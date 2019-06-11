@@ -1,0 +1,514 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\reindexer\core\aggregator.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\cbinding\reindexer_c.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\cbinding\resultserializer.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\cjson\baseencoder.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\cjson\cjsonbuilder.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\cjson\cjsondecoder.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\cjson\jsonbuilder.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\cjson\jsondecoder.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\comparator.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\compositearraycomparator.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\dbconfig.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\areaholder.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\config\baseftconfig.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\config\ftfastconfig.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\config\ftfuzzyconfig.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ftdsl.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fast\dataholder.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fast\dataprocessor.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fast\selecter.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\advacedpackedvec.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\dataholder\basebuildedholder.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\dataholder\smardeque.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\dumper\fulltextdumper.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\merger\basemerger.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\prefilter\prefilter.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\searchengine.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\searchers\base_searcher\baseseacher.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\searchers\kblayout.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\ft_fuzzy\searchers\translit.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\idrelset.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\numtotext.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\stopwords\stop_en.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\stopwords\stop_ru.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\ft\typos.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\idset.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\indexdef.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\indexopts.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\index\index.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\index\indexordered.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\index\indexstore.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\index\indextext\fastindextext.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\index\indextext\fuzzyindextext.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\index\indextext\indextext.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\index\indexunordered.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\item.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\itemimpl.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\keyvalue\variant.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\lrucache.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\namespace.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\namespacedef.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\namespacestat.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\nsselecter\explaincalc.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\nsselecter\nsselecter.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\nsselecter\selectiterator.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\payload\payloadfieldtype.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\payload\payloadfieldvalue.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\payload\payloadiface.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\payload\payloadtype.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\payload\payloadvalue.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\perfstatcounter.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\querystat.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\query\aggregationresult.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\query\dslencoder.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\query\dslparsetools.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\query\query.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\query\queryresults.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\query\querywhere.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\reindexer.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\reindexerimpl.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\selectfunc\ctx\ftctx.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\selectfunc\functions\highlight.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\selectfunc\functions\snippet.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\selectfunc\nsselectfuncinterface.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\selectfunc\selectfunc.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\selectfunc\selectfuncparser.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\sortingprioritiestable.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\storage\leveldbstorage.cc" />
+    <ClCompile Include="..\..\src\reindexer\core\storage\storagefactory.cc" />
+    <ClCompile Include="..\..\src\reindexer\debug\allocdebug.cc" />
+    <ClCompile Include="..\..\src\reindexer\debug\backtrace.cc" />
+    <ClCompile Include="..\..\src\reindexer\estl\tokenizer.cc" />
+    <ClCompile Include="..\..\src\reindexer\replicator\updatesobserver.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\customhash.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\customlocal.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\errors.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\fsops.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\json2kv.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\jsontools.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\logger.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\serializer.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\stringstools.cc" />
+    <ClCompile Include="..\..\src\reindexer\tools\timetools.cc" />
+    <ClCompile Include="..\..\src\reindexer\vendor\base64\base64.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\gason\gason.cc" />
+    <ClCompile Include="..\..\src\reindexer\vendor\itoa\itoa.cc" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libdivsufsort\divsufsort.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libdivsufsort\sssort.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libdivsufsort\trsort.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libdivsufsort\utils.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\libstemmer\libstemmer_utf8.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\runtime\api.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\runtime\utilities.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_danish.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_dutch.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_english.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_finnish.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_french.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_german.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_hungarian.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_italian.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_norwegian.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_porter.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_portuguese.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_romanian.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_russian.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_spanish.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_swedish.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_turkish.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\murmurhash\MurmurHash3.cc" />
+    <ClCompile Include="..\..\src\reindexer\vendor\picohttpparser\picohttpparser.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\spdlog\fmt\bundled\format.cc" />
+    <ClCompile Include="..\..\src\reindexer\vendor\spdlog\fmt\bundled\ostream.cc" />
+    <ClCompile Include="..\..\src\reindexer\vendor\spdlog\fmt\bundled\posix.cc" />
+    <ClCompile Include="..\..\src\reindexer\vendor\spdlog\fmt\bundled\printf.cc" />
+    <ClCompile Include="..\..\src\reindexer\vendor\time\gmtime.c" />
+    <ClCompile Include="..\..\src\reindexer\vendor\yaml\yaml.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\reindexer\core\aggregator.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cbinding\reindexer_c.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cbinding\reindexer_ctypes.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cbinding\resultserializer.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\baseencoder.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\cjsonbuilder.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\cjsondecoder.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\ctag.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\fieldextractor.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\jsonbuilder.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\jsondecoder.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\tagsmatcher.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\tagsmatcherimpl.h" />
+    <ClInclude Include="..\..\src\reindexer\core\cjson\tagspathcache.h" />
+    <ClInclude Include="..\..\src\reindexer\core\comparator.h" />
+    <ClInclude Include="..\..\src\reindexer\core\comparatorimpl.h" />
+    <ClInclude Include="..\..\src\reindexer\core\compositearraycomparator.h" />
+    <ClInclude Include="..\..\src\reindexer\core\dbconfig.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\areaholder.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\bm25.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\config\baseftconfig.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\config\ftfastconfig.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\config\ftfuzzyconfig.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ftdsl.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ftsetcashe.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fast\dataholder.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fast\dataprocessor.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fast\ftfastkeyentry.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fast\indextexttypes.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fast\selecter.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\advacedpackedvec.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\dataholder\basebuildedholder.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\dataholder\datastruct.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\dataholder\smardeque.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\dumper\fulltextdumper.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\merger\basemerger.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\merger\dataset.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\prefilter\prefilter.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\searchengine.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\searchers\base_searcher\baseseacher.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\searchers\isearcher.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\searchers\kblayout.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\ft_fuzzy\searchers\translit.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\idrelset.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\numtotext.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\stemmer.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\stopwords\stop.h" />
+    <ClInclude Include="..\..\src\reindexer\core\ft\typos.h" />
+    <ClInclude Include="..\..\src\reindexer\core\idset.h" />
+    <ClInclude Include="..\..\src\reindexer\core\idsetcache.h" />
+    <ClInclude Include="..\..\src\reindexer\core\indexdef.h" />
+    <ClInclude Include="..\..\src\reindexer\core\indexopts.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\index.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\indexordered.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\indexstore.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\indextext\fastindextext.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\indextext\fieldsgetter.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\indextext\fuzzyindextext.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\indextext\indextext.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\indexunordered.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\keyentry.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\payload_map.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\string_map.h" />
+    <ClInclude Include="..\..\src\reindexer\core\index\updatetracker.h" />
+    <ClInclude Include="..\..\src\reindexer\core\item.h" />
+    <ClInclude Include="..\..\src\reindexer\core\itemimpl.h" />
+    <ClInclude Include="..\..\src\reindexer\core\joincache.h" />
+    <ClInclude Include="..\..\src\reindexer\core\keyvalue\key_string.h" />
+    <ClInclude Include="..\..\src\reindexer\core\keyvalue\p_string.h" />
+    <ClInclude Include="..\..\src\reindexer\core\keyvalue\variant.h" />
+    <ClInclude Include="..\..\src\reindexer\core\lrucache.h" />
+    <ClInclude Include="..\..\src\reindexer\core\namespace.h" />
+    <ClInclude Include="..\..\src\reindexer\core\namespacedef.h" />
+    <ClInclude Include="..\..\src\reindexer\core\namespacestat.h" />
+    <ClInclude Include="..\..\src\reindexer\core\nsselecter\explaincalc.h" />
+    <ClInclude Include="..\..\src\reindexer\core\nsselecter\nsselecter.h" />
+    <ClInclude Include="..\..\src\reindexer\core\nsselecter\selectiterator.h" />
+    <ClInclude Include="..\..\src\reindexer\core\payload\fieldsset.h" />
+    <ClInclude Include="..\..\src\reindexer\core\payload\payloadfieldtype.h" />
+    <ClInclude Include="..\..\src\reindexer\core\payload\payloadfieldvalue.h" />
+    <ClInclude Include="..\..\src\reindexer\core\payload\payloadiface.h" />
+    <ClInclude Include="..\..\src\reindexer\core\payload\payloadtype.h" />
+    <ClInclude Include="..\..\src\reindexer\core\payload\payloadvalue.h" />
+    <ClInclude Include="..\..\src\reindexer\core\perfstatcounter.h" />
+    <ClInclude Include="..\..\src\reindexer\core\querystat.h" />
+    <ClInclude Include="..\..\src\reindexer\core\query\aggregationresult.h" />
+    <ClInclude Include="..\..\src\reindexer\core\query\dslencoder.h" />
+    <ClInclude Include="..\..\src\reindexer\core\query\dslparsetools.h" />
+    <ClInclude Include="..\..\src\reindexer\core\query\query.h" />
+    <ClInclude Include="..\..\src\reindexer\core\query\querycache.h" />
+    <ClInclude Include="..\..\src\reindexer\core\query\queryresults.h" />
+    <ClInclude Include="..\..\src\reindexer\core\query\querywhere.h" />
+    <ClInclude Include="..\..\src\reindexer\core\reindexer.h" />
+    <ClInclude Include="..\..\src\reindexer\core\reindexerimpl.h" />
+    <ClInclude Include="..\..\src\reindexer\core\selectfunc\ctx\basefunctionctx.h" />
+    <ClInclude Include="..\..\src\reindexer\core\selectfunc\ctx\ftctx.h" />
+    <ClInclude Include="..\..\src\reindexer\core\selectfunc\functions\highlight.h" />
+    <ClInclude Include="..\..\src\reindexer\core\selectfunc\functions\snippet.h" />
+    <ClInclude Include="..\..\src\reindexer\core\selectfunc\nsselectfuncinterface.h" />
+    <ClInclude Include="..\..\src\reindexer\core\selectfunc\selectfunc.h" />
+    <ClInclude Include="..\..\src\reindexer\core\selectfunc\selectfuncparser.h" />
+    <ClInclude Include="..\..\src\reindexer\core\selectkeyresult.h" />
+    <ClInclude Include="..\..\src\reindexer\core\sortingprioritiestable.h" />
+    <ClInclude Include="..\..\src\reindexer\core\storage\idatastorage.h" />
+    <ClInclude Include="..\..\src\reindexer\core\storage\leveldbstorage.h" />
+    <ClInclude Include="..\..\src\reindexer\core\storage\storagefactory.h" />
+    <ClInclude Include="..\..\src\reindexer\core\type_consts.h" />
+    <ClInclude Include="..\..\src\reindexer\debug\allocdebug.h" />
+    <ClInclude Include="..\..\src\reindexer\debug\backtrace.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\cbuf.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\chunk_buf.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\cow.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\fast_hash_map.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\fast_hash_set.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\flat_str_map.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\h_vector.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\intrusive_ptr.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\packed_vector.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\shared_mutex.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\string_view.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\suffix_map.h" />
+    <ClInclude Include="..\..\src\reindexer\estl\tokenizer.h" />
+    <ClInclude Include="..\..\src\reindexer\replicator\updatesobserver.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\customhash.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\customlocal.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\errors.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\fsops.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\json2kv.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\jsontools.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\logger.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\oscompat.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\serializer.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\ssize_t.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\stringstools.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\timetools.h" />
+    <ClInclude Include="..\..\src\reindexer\tools\varint.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\args\args.hpp" />
+    <ClInclude Include="..\..\src\reindexer\vendor\base64\base64.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\cpp-btree\btree.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\cpp-btree\btree_container.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\cpp-btree\btree_map.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\cpp-btree\btree_set.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\cpp-btree\btree_test.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\cpp-btree\safe_btree.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\cpp-btree\safe_btree_map.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\cpp-btree\safe_btree_set.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\gason\gason.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\hopscotch\hopscotch_hash.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\hopscotch\hopscotch_map.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\hopscotch\hopscotch_sc_map.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\hopscotch\hopscotch_sc_set.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\hopscotch\hopscotch_set.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\itoa\itoa.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\kx\kxsort.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libdivsufsort\config.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libdivsufsort\divsufsort.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libdivsufsort\divsufsort_private.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\include\libstemmer.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\libstemmer\modules_utf8.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\runtime\api.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\runtime\header.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_danish.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_dutch.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_english.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_finnish.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_french.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_german.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_hungarian.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_italian.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_norwegian.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_porter.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_portuguese.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_romanian.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_russian.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_spanish.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_swedish.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\libstemmer\src_c\stem_UTF_8_turkish.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\murmurhash\MurmurHash3.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\picohttpparser\picohttpparser.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\async_logger.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\common.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\async_logger_impl.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\async_log_helper.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\file_helper.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\logger_impl.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\log_msg.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\mpmc_bounded_q.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\null_mutex.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\os.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\pattern_formatter_impl.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\registry.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\details\spdlog_impl.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\fmt\bundled\format.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\fmt\bundled\ostream.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\fmt\bundled\posix.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\fmt\bundled\printf.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\fmt\bundled\time.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\fmt\fmt.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\fmt\ostr.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\formatter.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\logger.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\android_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\ansicolor_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\base_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\dist_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\file_sinks.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\msvc_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\null_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\ostream_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\stdout_sinks.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\syslog_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\wincolor_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\sinks\windebug_sink.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\spdlog.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\spdlog\tweakme.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\time\fast_time.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\urlparser\urlparser.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\utf8cpp\utf8.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\utf8cpp\utf8\checked.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\utf8cpp\utf8\core.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\utf8cpp\utf8\unchecked.h" />
+    <ClInclude Include="..\..\src\reindexer\vendor\yaml\yaml.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{E1E78A67-C1A7-401B-87E9-3BC0E9D32205}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>reindexer</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\reindexer;..\..\src\reindexer\vendor;..\..\src\leveldb;..\..\src\leveldb\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>-D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\reindexer;..\..\src\reindexer\vendor;..\..\src\leveldb;..\..\src\leveldb\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalOptions>-D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\reindexer;..\..\src\reindexer\vendor;..\..\src\leveldb;..\..\src\leveldb\include</AdditionalIncludeDirectories>
+      <AdditionalOptions>-D_SCL_SECURE_NO_WARNINGS -D_CRT_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	./autogen.sh
+	./configure BDB_LIBS='-L${BDB_PREFIX}/lib -ldb_cxx-4.8' BDB_CFLAGS='-I${BDB_PREFIX}/include' CFLAGS='-fPIC' CXXFLAGS='-fPIC' --prefix=/usr
+
+override_dh_clean:
+	dh_clean
+	git clean -xdf --exclude="debian"

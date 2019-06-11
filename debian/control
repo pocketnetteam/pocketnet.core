@@ -1,0 +1,14 @@
+Source: pocketnetcore
+Section: network
+Priority: optional
+Maintainer: Pocketnet Team <support@pocketnet.app>
+Build-Depends: debhelper (>= 10), build-essential, libtool, autotools-dev, automake, pkg-config, libssl-dev, libevent-dev, bsdmainutils, python3, libboost-system-dev, libboost-filesystem-dev, libboost-chrono-dev, libboost-test-dev, libboost-thread-dev
+Standards-Version: 4.1.2
+Homepage: https://github.com/pocketnetteam/pocketnet.core
+Vcs-Git: https://github.com/pocketnetteam/pocketnet.core.git
+Vcs-Browser: https://github.com/pocketnetteam/pocketnet.core
+
+Package: pocketnetcore
+Architecture: any
+Depends: libqt5gui5, libboost-all-dev, libevent-dev, libzmq3-dev
+Description: Pocketnet Core Software

@@ -1,0 +1,33 @@
+# /etc/conf.d/pocketcoind: config file for /etc/init.d/pocketcoind
+
+# Config file location
+#POCKETCOIND_CONFIGFILE="/etc/pocketcoin/pocketcoin.conf"
+
+# What directory to write pidfile to?  (created and owned by $POCKETCOIND_USER)
+#POCKETCOIND_PIDDIR="/var/run/pocketcoind"
+
+# What filename to give the pidfile
+#POCKETCOIND_PIDFILE="${POCKETCOIND_PIDDIR}/pocketcoind.pid"
+
+# Where to write pocketcoind data (be mindful that the blockchain is large)
+#POCKETCOIND_DATADIR="/var/lib/pocketcoind"
+
+# User and group to own pocketcoind process
+#POCKETCOIND_USER="pocketcoin"
+#POCKETCOIND_GROUP="pocketcoin"
+
+# Path to pocketcoind executable
+#POCKETCOIND_BIN="/usr/bin/pocketcoind"
+
+# Nice value to run pocketcoind under
+#POCKETCOIND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#POCKETCOIND_OPTS=""
+
+# The timeout in seconds OpenRC will wait for pocketcoind to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+POCKETCOIND_SIGTERM_TIMEOUT=60

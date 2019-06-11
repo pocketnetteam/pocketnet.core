@@ -1,0 +1,83 @@
+# Copyright (c) 2015-2016 The Pocketcoin Core developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+bin_PROGRAMS += bench/bench_pocketcoin
+BENCH_SRCDIR = bench
+BENCH_BINARY = bench/bench_pocketcoin$(EXEEXT)
+
+RAW_BENCH_FILES = \
+  bench/data/block413567.raw
+GENERATED_BENCH_FILES = $(RAW_BENCH_FILES:.raw=.raw.h)
+
+bench_bench_pocketcoin_SOURCES = \
+  $(RAW_BENCH_FILES) \
+  bench/bench_pocketcoin.cpp \
+  bench/bench.cpp \
+  bench/bench.h \
+  bench/block_assemble.cpp \
+  bench/checkblock.cpp \
+  bench/checkqueue.cpp \
+  bench/examples.cpp \
+  bench/rollingbloom.cpp \
+  bench/crypto_hash.cpp \
+  bench/ccoins_caching.cpp \
+  bench/gcs_filter.cpp \
+  bench/merkle_root.cpp \
+  bench/mempool_eviction.cpp \
+  bench/verify_script.cpp \
+  bench/base58.cpp \
+  bench/bech32.cpp \
+  bench/lockedpool.cpp \
+  bench/prevector.cpp
+
+nodist_bench_bench_pocketcoin_SOURCES = $(GENERATED_BENCH_FILES) $(REINDEXER_H) $(REINDEXER_CC)
+
+bench_bench_pocketcoin_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(EVENT_CLFAGS) $(EVENT_PTHREADS_CFLAGS) -I$(builddir)/bench/
+bench_bench_pocketcoin_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+bench_bench_pocketcoin_LDADD = \
+  $(LIBPOCKETCOIN_WALLET) \
+  $(LIBPOCKETCOIN_SERVER) \
+  $(LIBPOCKETCOIN_COMMON) \
+  $(LIBPOCKETCOIN_UTIL) \
+  $(LIBPOCKETCOIN_CONSENSUS) \
+  $(LIBPOCKETCOIN_CRYPTO) \
+  $(LIBLEVELDB) \
+  $(LIBLEVELDB_SSE42) \
+  $(LIBMEMENV) \
+  $(LIBSECP256K1) \
+  $(LIBUNIVALUE)
+
+if ENABLE_ZMQ
+bench_bench_pocketcoin_LDADD += $(LIBPOCKETCOIN_ZMQ) $(ZMQ_LIBS)
+endif
+
+if ENABLE_WALLET
+bench_bench_pocketcoin_SOURCES += bench/coin_selection.cpp
+endif
+
+bench_bench_pocketcoin_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS)
+bench_bench_pocketcoin_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+
+CLEAN_POCKETCOIN_BENCH = bench/*.gcda bench/*.gcno $(GENERATED_BENCH_FILES)
+
+CLEANFILES += $(CLEAN_POCKETCOIN_BENCH)
+
+bench/checkblock.cpp: bench/data/block413567.raw.h
+
+pocketcoin_bench: $(BENCH_BINARY)
+
+bench: $(BENCH_BINARY) FORCE
+	$(BENCH_BINARY)
+
+pocketcoin_bench_clean : FORCE
+	rm -f $(CLEAN_POCKETCOIN_BENCH) $(bench_bench_pocketcoin_OBJECTS) $(BENCH_BINARY)
+
+%.raw.h: %.raw
+	@$(MKDIR_P) $(@D)
+	@{ \
+	 echo "static unsigned const char $(*F)[] = {" && \
+	 $(HEXDUMP) -v -e '8/1 "0x%02x, "' -e '"\n"' $< | $(SED) -e 's/0x  ,//g' && \
+	 echo "};"; \
+	} > "$@.new" && mv -f "$@.new" "$@"
+	@echo "Generated $@"
