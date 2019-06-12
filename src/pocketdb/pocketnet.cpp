@@ -109,7 +109,7 @@ void FillLimits(const CChainParams& params) {
     // trial_score_limit
     std::map<int, int64_t> _trial_score_limit;
     _trial_score_limit.insert({ 0, 45 });
-    _trial_score_limit.insert({ 174500, 100 });
+    _trial_score_limit.insert({ 175600, 100 });
     Limits.insert(std::make_pair(Limit::trial_score_limit, _trial_score_limit));
 
     // trial_complain_limit
@@ -130,7 +130,7 @@ void FillLimits(const CChainParams& params) {
     // full_score_limit
     std::map<int, int64_t> _full_score_limit;
     _full_score_limit.insert({ 0, 90 });
-    _full_score_limit.insert({ 174500, 200 });
+    _full_score_limit.insert({ 175600, 200 });
     Limits.insert(std::make_pair(Limit::full_score_limit, _full_score_limit));
 
     // full_complain_limit

@@ -107,7 +107,7 @@ class AntiBot
 private:
 	void getMode(std::string _address, ABMODE &mode, int &reputation, int64_t &balance, int height);
 	void getMode(std::string _address, ABMODE &mode, int height);
-	int getLimit(CHECKTYPE _type, ABMODE _mode);
+	int getLimit(CHECKTYPE _type, ABMODE _mode, int height);
 
 
     // Check user is a registration. Need one record in DB Users
@@ -133,7 +133,7 @@ private:
 	bool check_blocking(UniValue oitm, BlockVTX blockVtx, bool checkMempool, ANTIBOTRESULT &result);
 
 	// Maximum size for reindexer item with switch for type
-	bool check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result);
+	bool check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height);
 
 public:
     explicit AntiBot();

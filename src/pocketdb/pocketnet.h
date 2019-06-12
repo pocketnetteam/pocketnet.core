@@ -34,7 +34,7 @@ enum Limit {
 void FillLimits(const CChainParams& params);
 
 // Get actual limit for current height
-int64_t GetActualLimit(Limit type, int height = 0);
+int64_t GetActualLimit(Limit type, int height);
 
 
 // Pocketnet transaction types

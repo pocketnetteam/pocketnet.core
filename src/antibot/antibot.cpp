@@ -23,7 +23,7 @@ bool vectorFind(std::vector<std::string>& V, std::string f)
 void AntiBot::getMode(std::string _address, ABMODE &mode, int &reputation, int64_t &balance, int height) {
     reputation = g_pocketdb->GetUserReputation(_address, height);
     balance = g_pocketdb->GetUserBalance(_address, height);
-    if (reputation >= GetActualLimit(Limit::threshold_reputation) || balance >= GetActualLimit(Limit::threshold_balance))
+    if (reputation >= GetActualLimit(Limit::threshold_reputation, height) || balance >= GetActualLimit(Limit::threshold_balance, height))
         mode = Full;
     else
         mode = Trial;
@@ -34,23 +34,23 @@ void AntiBot::getMode(std::string _address, ABMODE &mode, int height) {
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, height);
 
-    if (reputation >= GetActualLimit(Limit::threshold_reputation) || balance >= GetActualLimit(Limit::threshold_balance))
+    if (reputation >= GetActualLimit(Limit::threshold_reputation, height) || balance >= GetActualLimit(Limit::threshold_balance, height))
         mode = Full;
     else
         mode = Trial;
 }
 
-int AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode) {
+int AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height) {
     switch (_type)
     {
     case Post:
-        return _mode == Full ? GetActualLimit(Limit::full_post_limit) : GetActualLimit(Limit::trial_post_limit);
+        return _mode == Full ? GetActualLimit(Limit::full_post_limit, height) : GetActualLimit(Limit::trial_post_limit, height);
     case PostEdit:
-        return _mode == Full ? GetActualLimit(Limit::full_post_edit_limit) : GetActualLimit(Limit::trial_post_edit_limit);
+        return _mode == Full ? GetActualLimit(Limit::full_post_edit_limit, height) : GetActualLimit(Limit::trial_post_edit_limit, height);
     case Score:
-        return _mode == Full ? GetActualLimit(Limit::full_score_limit) : GetActualLimit(Limit::trial_score_limit);
+        return _mode == Full ? GetActualLimit(Limit::full_score_limit, height) : GetActualLimit(Limit::trial_score_limit, height);
     case Complain:
-        return _mode == Full ? GetActualLimit(Limit::full_complain_limit) : GetActualLimit(Limit::trial_complain_limit);
+        return _mode == Full ? GetActualLimit(Limit::full_complain_limit, height) : GetActualLimit(Limit::trial_complain_limit, height);
     default:
         return 0;
     }
@@ -159,7 +159,7 @@ bool AntiBot::check_post(UniValue oitm, BlockVTX blockVtx, bool checkMempool, AN
     // Check limit
     ABMODE mode;
     getMode(_address, mode, chainActive.Height() + 1);
-    int limit = getLimit(Post, mode);
+    int limit = getLimit(Post, mode, chainActive.Height() + 1);
     if (postsCount >= limit) {
         result = ANTIBOTRESULT::PostLimit;
         return false;
@@ -196,7 +196,7 @@ bool AntiBot::check_post_edit(UniValue oitm, BlockVTX blockVtx, bool checkMempoo
     }
 
     // Original post edit only 24 hours
-    if (oitm["time"].get_int64() - _original_post_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_post_timeout)) {
+    if (oitm["time"].get_int64() - _original_post_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_post_timeout, chainActive.Height() + 1)) {
         result = ANTIBOTRESULT::PostEditLimit;
         return false;
     }
@@ -226,7 +226,7 @@ bool AntiBot::check_post_edit(UniValue oitm, BlockVTX blockVtx, bool checkMempoo
         
         ABMODE mode;
         getMode(_address, mode, chainActive.Height() + 1);
-        int limit = getLimit(PostEdit, mode);
+        int limit = getLimit(PostEdit, mode, chainActive.Height() + 1);
         if (edit_count >= limit) {
             result = ANTIBOTRESULT::PostEditLimit;
             return false;
@@ -351,7 +351,7 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX blockVtx, bool checkMempool, A
 
     ABMODE mode;
     getMode(_address, mode, chainActive.Height() + 1);
-    int limit = getLimit(Score, mode);
+    int limit = getLimit(Score, mode, chainActive.Height() + 1);
     if (scoresCount >= limit) {
         result = ANTIBOTRESULT::ScoreLimit;
         return false;
@@ -440,7 +440,7 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX blockVtx, bool checkMempool
     int reputation = 0;
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, chainActive.Height() + 1);
-    if (reputation < GetActualLimit(Limit::threshold_reputation_complains)) {
+    if (reputation < GetActualLimit(Limit::threshold_reputation_complains, chainActive.Height() + 1)) {
         result = ANTIBOTRESULT::LowReputation;
         return false;
     }
@@ -494,7 +494,7 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX blockVtx, bool checkMempool
         }
     }
 
-    int limit = getLimit(Complain, mode);
+    int limit = getLimit(Complain, mode, chainActive.Height() + 1);
     if (complainCount >= limit) {
         result = ANTIBOTRESULT::ComplainLimit;
         return false;
@@ -517,7 +517,7 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX blockVtx, bool checkMempo
         userItm
     ).ok()) {
         int64_t userUpdateTime = userItm["time"].As<int64_t>();
-        if (oitm["time"].get_int64() - userUpdateTime <= GetActualLimit(Limit::change_info_timeout)) {
+        if (oitm["time"].get_int64() - userUpdateTime <= GetActualLimit(Limit::change_info_timeout, chainActive.Height() + 1)) {
             result = ANTIBOTRESULT::ChangeInfoLimit;
             return false;
         }
@@ -724,11 +724,11 @@ bool AntiBot::check_blocking(UniValue oitm, BlockVTX blockVtx, bool checkMempool
     return true;
 }
 
-bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result) {
+bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height) {
     int _limit = oitm["size"].get_int();
 
-    if (_type == CHECKTYPE::Post) _limit = GetActualLimit(Limit::max_post_size);
-    if (_type == CHECKTYPE::User) _limit = GetActualLimit(Limit::max_user_size);
+    if (_type == CHECKTYPE::Post) _limit = GetActualLimit(Limit::max_post_size, height);
+    if (_type == CHECKTYPE::User) _limit = GetActualLimit(Limit::max_user_size, height);
 
     if (oitm["size"].get_int() > _limit) {
         result = ANTIBOTRESULT::ContentSizeLimit;
@@ -779,7 +779,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX blockVtx, bool chec
     if (chainActive.Height() <= Params().GetConsensus().nHeight_version_1_0_0_pre) return;
 
     if (table == "Posts") {
-        if (!check_item_size(oitm, Post, resultCode)) return;
+        if (!check_item_size(oitm, Post, resultCode, chainActive.Height() + 1)) return;
         if (oitm["txidEdit"].get_str() != "") {
             check_post_edit(oitm, blockVtx, checkMempool, resultCode);
         } else {
@@ -799,7 +799,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX blockVtx, bool chec
         check_blocking(oitm, blockVtx, checkMempool, resultCode);
     }
     else if (table == "Users") {
-        if (!check_item_size(oitm, User, resultCode)) return;
+        if (!check_item_size(oitm, User, resultCode, chainActive.Height() + 1)) return;
         check_changeInfo(oitm, blockVtx, checkMempool, resultCode);
     }
     else {
@@ -856,18 +856,18 @@ bool AntiBot::GetUserState(std::string _address, int64_t _time, UserStateItem& _
     _state.reputation = reputation;
     _state.balance = balance;
 
-    int postsCount = getLimitsCount("Posts", _address, _time);
-    int postsLimit = getLimit(Post, mode);
+    int postsCount = getLimitsCount("Posts", _address, chainActive.Tip()->nTime);
+    int postsLimit = getLimit(Post, mode, chainActive.Height() + 1);
     _state.post_spent = postsCount;
     _state.post_unspent = postsLimit - postsCount;
 
-    int scoresCount = getLimitsCount("Scores", _address, _time);
-    int scoresLimit = getLimit(Score, mode);
+    int scoresCount = getLimitsCount("Scores", _address, chainActive.Tip()->nTime);
+    int scoresLimit = getLimit(Score, mode, chainActive.Height() + 1);
     _state.score_spent = scoresCount;
     _state.score_unspent = scoresLimit - scoresCount;
 
-    int complainsCount = getLimitsCount("Complains", _address, _time);
-    int complainsLimit = getLimit(Complain, mode);
+    int complainsCount = getLimitsCount("Complains", _address, chainActive.Tip()->nTime);
+    int complainsLimit = getLimit(Complain, mode, chainActive.Height() + 1);
     _state.complain_spent = complainsCount;
     _state.complain_unspent = complainsLimit - complainsCount;
 

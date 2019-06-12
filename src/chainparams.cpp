@@ -182,7 +182,7 @@ class CTestNetParams : public CChainParams {
 public:
 	CTestNetParams() {
 		strNetworkID = "test";
-		consensus.nSubsidyHalvingInterval = 5000;
+		consensus.nSubsidyHalvingInterval = 2100000;
 		consensus.BIP16Exception = uint256(); // uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22");
 
 		consensus.BIP34Height = 1;
@@ -192,24 +192,24 @@ public:
 		consensus.BIP66Height = 0; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
 		consensus.powLimit = ArithToUint256(~arith_uint256(0) >> 16);
 		consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // two weeks
-		consensus.nPowTargetSpacing = 0.5 * 60;
+		consensus.nPowTargetSpacing = 1 * 60;
 		consensus.fPowAllowMinDifficultyBlocks = false;
 		consensus.fPowNoRetargeting = false;
-		consensus.nRuleChangeActivationThreshold = 95; // 95% of 2016
-		consensus.nMinerConfirmationWindow = 1000; // nPowTargetTimespan / nPowTargetSpacing
+		consensus.nRuleChangeActivationThreshold = 95;
+		consensus.nMinerConfirmationWindow = 100;
 		consensus.nPosFirstBlock = 1020;
 		consensus.fPosRequiresPeers = false;
-		consensus.nStakeMinAge = 60 * 10;	// minimum for coin age: 2 minutes
+		consensus.nStakeMinAge = 60 * 60;
 		consensus.nPosTargetSpacing = consensus.nPowTargetSpacing;
 		consensus.nPosTargetTimespan = 7500;
 
-		consensus.nStakeCombineThreshold = 50 * COIN;
-		consensus.nStakeSplitThreshold = 100 * COIN;
+		consensus.nStakeCombineThreshold = 5 * COIN;
+		consensus.nStakeSplitThreshold = 10 * COIN;
 
 		consensus.nStakeMinimumThreshold = 0 * COIN;
 		consensus.nStakeMaximumThreshold = 10000 * COIN;
 		consensus.nDailyBlockCount = (24 * 60 * 60) / consensus.nPosTargetSpacing;
-		consensus.nModifierInterval = 5 * 60; // time to elapse before new modifier is computed
+		consensus.nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
 
 		consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
 		consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
@@ -226,7 +226,9 @@ public:
 		consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         consensus.nHeight_version_1_0_0_pre = 100000;
-        consensus.nHeight_version_1_0_0 = 210000;
+        consensus.sVersion_1_0_0_pre_checkpoint = "128abcf7e0371db3ad595702b456a701539ba5977459fac0cd720dc7b84f09a8";
+        consensus.nHeight_version_1_0_0 = 108300;
+        consensus.nHeight_fix_ratings = 151600;
 
 		// The best chain should have at least this much work.
 		consensus.nMinimumChainWork = uint256S("0x00");
@@ -244,12 +246,12 @@ public:
 		pchMessageStart[2] = 0xd7;
 		pchMessageStart[3] = 0xaf;
 
-		nDefaultPort = 10010;
+		nDefaultPort = 11010;
 		nPruneAfterHeight = 100000;
 
-		genesis = CreateGenesisBlock(1548092268, 11314, 0x1f00ffff, 1, 50 * COIN);
+		genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
 		consensus.hashGenesisBlock = genesis.GetHash();
-		assert(consensus.hashGenesisBlock == uint256S("0x0000cdd933b357fb4b50d90fd920d7be04c6eebe787668290c8487e00ac70883"));
+		assert(consensus.hashGenesisBlock == uint256S("0x00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f"));
 		assert(genesis.hashMerkleRoot == uint256S("0xaced9fcaba8f66be3d4d51a95cb048dda6611b8f2d2bf4541d9e2e16c07ee1c9"));
 
 		// Note that of those which support the service bits prefix, most only support a subset of
