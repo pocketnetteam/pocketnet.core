@@ -1,0 +1,7 @@
+[main]
+host = https://www.transifex.com
+
+[pocketcoin.qt-translation-017x]
+file_filter = src/qt/locale/pocketcoin_<lang>.ts
+source_file = src/qt/locale/pocketcoin_en.ts
+source_lang = en

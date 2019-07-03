@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <PropertyGroup>
+      <BuildDependsOn>
+          CopyConfig;
+          $(BuildDependsOn);
+      </BuildDependsOn>
+  </PropertyGroup>
+  <Target Name="CopyConfig"
+          Inputs="$(MSBuildThisFileDirectory)pocketcoin_config.h"
+          Outputs="$(MSBuildThisFileDirectory)..\src\config\pocketcoin-config.h">
+      <Copy SourceFiles="$(MSBuildThisFileDirectory)pocketcoin_config.h" DestinationFiles="$(MSBuildThisFileDirectory)..\src\config\pocketcoin-config.h" />
+  </Target>
+</Project>
