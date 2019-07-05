@@ -4252,11 +4252,15 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool fReceived, bool* fNewBlock)
 {
 	AssertLockNotHeld(cs_main);
-	CBlockIndex* pindex = nullptr;
 
 	{
+        CBlockIndex* pindex = nullptr;
 		bool ret = true;
 		if (fNewBlock) *fNewBlock = false;
+
+        // CheckBlock() does not support multi-threaded block validation because CBlock::fChecked can cause data race.
+        // Therefore, the following critical section must include the CheckBlock() call as well.
+        LOCK(cs_main);
 
 		// Ensure that CheckBlock() passes before calling AcceptBlock, as
 		// belt-and-suspenders.
