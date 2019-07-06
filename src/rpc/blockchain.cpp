@@ -1048,6 +1048,7 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
 	if (!hashBlock.IsNull()) {
 		entry.pushKV("blockhash", hashBlock.GetHex());
 
+        LOCK(cs_main);
 		CBlockIndex* pindex = LookupBlockIndex(hashBlock);
 		if (pindex) {
 			entry.pushKV("height", pindex->nHeight);
@@ -1119,6 +1120,7 @@ static UniValue checkstringtype(const JSONRPCRequest& request) {
 		}
 
 		// Second check blocks
+        LOCK(cs_main);
 		const CBlockIndex* pblockindex = LookupBlockIndex(hash);
 		if (pblockindex) {
 			CBlock block;

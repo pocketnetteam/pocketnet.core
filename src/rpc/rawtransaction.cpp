@@ -2708,6 +2708,7 @@ UniValue txunspent(const JSONRPCRequest& request)
         }
 
         if (!blockindex) {
+            LOCK(cs_main);
             blockindex = LookupBlockIndex(hash_block);
             if (!blockindex) {
                 continue;
