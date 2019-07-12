@@ -546,19 +546,20 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
 
                 // For lottery use scores as 4=1 and 5=2
                 if (_value == 4 || _value == 5) {
-
-                    // Ignore scores from users with rating < Antibot::Limit::threshold_reputation_score
-                    int64_t _limit = GetActualLimit(Limit::threshold_reputation_score, pindexPrev->nHeight + 1);
-
                     // Get address of score initiator
-                    reindexer::Item _score_user;
-                    if (!g_pocketdb->SelectOne( reindexer::Query("Scores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_user ).ok()) {
+                    reindexer::Item _score_itm;
+                    if (!g_pocketdb->SelectOne( reindexer::Query("Scores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm ).ok()) {
                         LogPrintf("--- GetRatingRewards error get score: %s\n", tx->GetHash().GetHex());
                         continue;
                     }
+
+                    reindexer::Item _post_itm;
+                    if (!g_pocketdb->SelectOne( reindexer::Query("Posts").Where("txid", CondEq, _score_itm["posttxid"].As<string>()), _post_itm ).ok()) {
+                        LogPrintf("--- GetRatingRewards error get post: %s\n", _score_itm["posttxid"].As<string>());
+                        continue;
+                    }
                     
-                    int _user_reputation = g_pocketdb->GetUserReputation(_score_user["address"].As<string>(), pindexPrev->nHeight);
-                    if (_user_reputation >= _limit) {
+                    if (g_antibot->AllowLottery(_score_itm["address"].As<string>(), _post_itm["address"].As<string>(), pindexPrev->nHeight, tx->GetHash().GetHex(), tx->nTime)) {
                         if (allRatings.find(_address) == allRatings.end()) allRatings.insert(std::make_pair(_address, 0));
                         allRatings[_address] += (_value - 3);
                     }

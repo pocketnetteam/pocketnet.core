@@ -28,7 +28,8 @@ enum Limit {
     edit_post_timeout,
     max_user_size,
     max_post_size,
-    bad_reputation
+    bad_reputation,
+    scores_one_to_one
 };
 
 void FillLimits(const CChainParams& params);

@@ -242,36 +242,30 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
     // Find post for get author address
     Item postItm;
     if (!g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, posttxid), postItm).ok()) return false;
-    std::string postaddress = postItm["address"].As<string>();
+    std::string post_address = postItm["address"].As<string>();
 
-    // Collate rating for user
-    // Ignore scores from users with rating < Antibot::Limit::threshold_reputation_score
-    int64_t _limit = GetActualLimit(Limit::threshold_reputation_score, pindex->nHeight);
-    int _user_reputation = 0;
-    
-    if (pindex->nHeight < Params().GetConsensus().nHeight_fix_ratings) {
-        _user_reputation = g_pocketdb->GetUserReputation(postaddress, pindex->nHeight - 1);
-    } else {
-        _user_reputation = g_pocketdb->GetUserReputation(score_address, pindex->nHeight - 1);
-    }
-
-    if (_user_reputation >= _limit) {
-        if (userRatings.find(postaddress) == userRatings.end()) userRatings.insert(std::make_pair(postaddress, std::make_pair(0, 0)));
-        userRatings[postaddress].first += scoreVal;
-        userRatings[postaddress].second += 1;
-    }
-
-    // Collate rating for post
-    if (_user_reputation >= _limit) {
-        if (postReputations.find(posttxid) == postReputations.end()) postReputations.insert(std::make_pair(posttxid, 0));
-
-        // Reputation compute with formula `sum - (cnt * 3)`
-        postReputations[posttxid] += scoreVal - 3;
-    }
-
+    // Save rating for post in any case
     if (postRatings.find(posttxid) == postRatings.end()) postRatings.insert(std::make_pair(posttxid, std::make_pair(0, 0)));
     postRatings[posttxid].first += scoreVal;
     postRatings[posttxid].second += 1;
+
+    // Modify reputation for user and post
+    std::string _check_score_address = score_address;
+    if (pindex->nHeight < Params().GetConsensus().nHeight_fix_ratings) {
+        _check_score_address = post_address;
+    }
+
+    if (g_antibot->AllowModifyReputation(_check_score_address, post_address, pindex->nHeight - 1, txid, tx->nTime, true)) {
+        // USER reputation
+        if (userRatings.find(post_address) == userRatings.end()) userRatings.insert(std::make_pair(post_address, std::make_pair(0, 0)));
+        userRatings[post_address].first += scoreVal;
+        userRatings[post_address].second += 1;
+
+        // POST reputation
+        if (postReputations.find(posttxid) == postReputations.end()) postReputations.insert(std::make_pair(posttxid, 0));
+        // Reputation compute with formula `sum - (cnt * 3)`
+        postReputations[posttxid] += scoreVal - 3;
+    }
 
     return true;
 }

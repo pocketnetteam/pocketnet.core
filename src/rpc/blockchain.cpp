@@ -869,6 +869,15 @@ static UniValue getcompactblock(CBlockIndex* pindex) {
 }
 
 static UniValue getlastblocks(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() > 2)
+        throw std::runtime_error(
+            "getlastblocks ( count, verbosity )\n"
+            "\nGet N last blocks.\n"
+            "\nArguments:\n"
+            "1. \"count\"     (int, optional) Count of blocks\n"
+            "2. \"verbosity\" (int, optional) Verbosity output\n"
+        );
+
 	int count = 10;
 	if (request.params.size() > 0 && request.params[0].isNum()) {
 		count = request.params[0].get_int();
@@ -893,6 +902,16 @@ static UniValue getlastblocks(const JSONRPCRequest& request) {
 }
 
 static UniValue getblocks(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() > 3)
+        throw std::runtime_error(
+            "getblocks start_time end_time ( verbosity )\n"
+            "\nGet blocks in period.\n"
+            "\nArguments:\n"
+            "1. \"start_time\" (int64) Start time\n"
+            "2. \"end_time\"   (int64) End time\n"
+            "3. \"verbosity\"  (int, optional) Verbosity output\n"
+        );
+        
 	if (request.params.size() < 2
 		|| !request.params[0].isNum()
 		|| !request.params[1].isNum()
@@ -919,6 +938,14 @@ static UniValue getblocks(const JSONRPCRequest& request) {
 }
 
 static UniValue getaddressinfo(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "getaddressinfo \"address\"\n"
+            "\nGet address general info.\n"
+            "\nArguments:\n"
+            "1. \"address\"    (string) Address\n"
+        );
+
 	std::string address;
 	if (request.params.size() > 0 && request.params[0].isStr()) {
 		CTxDestination dest = DecodeDestination(request.params[0].get_str());
@@ -949,7 +976,7 @@ static UniValue getaddressinfo(const JSONRPCRequest& request) {
 			if (it["spent_block"].As<int>() == 0) unspent += amount;
 			else spent += amount;
 
-			txs.push_back(it["txid"].As<string>());
+            txs.push_back(it["txid"].As<string>());
 		}
 	}
 	//-----------------------------------------
@@ -1061,6 +1088,14 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
 }
 
 static UniValue gettransactions(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "gettransactions [transactions]\n"
+            "\nGet transactions info.\n"
+            "\nArguments:\n"
+            "1. \"transactions\" (json array) List of transactions or one transaction id string\n"
+        );
+
 	std::vector<std::string> transactions;
 	if (request.params[0].isStr())
 		transactions.push_back(request.params[0].get_str());
@@ -1090,6 +1125,14 @@ static UniValue gettransactions(const JSONRPCRequest& request) {
 }
 
 static UniValue checkstringtype(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "checkstringtype \"string\"\n"
+            "\nCheck type of input string - address, block or tx id.\n"
+            "\nArguments:\n"
+            "1. \"string\"   (string) Input string\n"
+        );
+
 	std::string value;
 	if (request.params.size() > 0) {
 		value = request.params[0].get_str();
@@ -1137,6 +1180,15 @@ static UniValue checkstringtype(const JSONRPCRequest& request) {
 
 static std::map<int64_t, UniValue> g_statistic_cashe;
 static UniValue getstatistic(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() > 2)
+        throw std::runtime_error(
+            "getstatistic (start_time, end_time )\n"
+            "\nGet statistics.\n"
+            "\nArguments:\n"
+            "1. \"start_time\"   (int64, optional) Start time of period\n"
+            "2. \"end_time\"   (int64, optional) End time of period\n"
+        );
+
     int64_t end_time = GetAdjustedTime();
 	if (request.params.size() > 0 && request.params[0].isNum()) {
 		int64_t _end_time = request.params[0].get_int64();

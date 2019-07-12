@@ -6,6 +6,7 @@
 //-----------------------------------------------------
 #include "pocketdb/pocketdb.h"
 #include "pocketdb/pocketnet.h"
+#include "antibot/antibot.h"
 #include "primitives/block.h"
 #include "script/standard.h"
 #include "key_io.h"

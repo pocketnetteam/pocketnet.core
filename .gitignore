@@ -88,7 +88,7 @@ src/qt/pocketcoin-qt.includes
 
 # Compilation and Qt preprocessor part
 *.qm
-Makefile
+src/**/Makefile
 pocketcoin-qt
 Pocketcoin-Qt.app
 background.tiff*

@@ -1705,6 +1705,12 @@ bool GetInputAddress(uint256 txhash, int n, std::string& address)
 
 UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "sendrawtransactionwithmessage\n"
+            "\nCreate new Pocketnet transaction.\n"
+        );
+
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ, UniValue::VSTR});
     //-------------------------------------------------
     std::string address = "";
@@ -1996,6 +2002,12 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
 
 UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getrawtransactionwithmessage\n"
+            "\nReturn Pocketnet posts.\n"
+        );
+
     UniValue a(UniValue::VARR);
 
     reindexer::QueryResults queryRes;
@@ -2101,6 +2113,12 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
 
 UniValue getrawtransactionwithmessagebyid(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getrawtransactionwithmessagebyid\n"
+            "\nReturn Pocketnet posts.\n"
+        );
+
     if (request.params.size() < 1)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no TxId");
 
@@ -2141,6 +2159,12 @@ UniValue getrawtransactionwithmessagebyid(const JSONRPCRequest& request)
 
 UniValue gethotposts(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "gethotposts\n"
+            "\nReturn Pocketnet top posts.\n"
+        );
+
     int count = 20;
     if (request.params.size() > 0) {
         ParseInt32(request.params[0].get_str(), &count);
@@ -2334,6 +2358,12 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<string> addresses, 
 }
 UniValue getuserprofile(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getuserprofile \"address\" ( shortForm )\n"
+            "\nReturn Pocketnet user profile.\n"
+        );
+
     if (request.params.size() < 1)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
 
@@ -2366,6 +2396,12 @@ UniValue getuserprofile(const JSONRPCRequest& request)
 
 UniValue getmissedinfo(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getmissedinfo \"address\" block_number\n"
+            "\nGet missed info.\n"
+        );
+
     if (request.params.size() < 1)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
     if (request.params.size() < 2)
@@ -2872,6 +2908,12 @@ UniValue getuserstate(const JSONRPCRequest& request)
 
 UniValue gettime(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "gettime\n"
+            "\nReturn node time.\n"
+        );
+
     UniValue entry(UniValue::VOBJ);
     entry.pushKV("time", GetAdjustedTime());
 
@@ -2923,45 +2965,6 @@ UniValue getrecommendedposts(const JSONRPCRequest& request)
     jreq.params = UniValue(UniValue::VARR);
     jreq.params.push_back(a);
     return getrawtransactionwithmessagebyid(jreq);
-}
-
-UniValue checkindexes(const JSONRPCRequest& request)
-{
-    bool verbose = !request.params[0].isNull();
-    UniValue ret(UniValue::VOBJ);
-    UniValue tbls(UniValue::VOBJ);
-    if (!g_pocketdb->CheckIndexes(tbls)) {
-        throw JSONRPCError(-1, "Error reading RI DB `UTXO`");
-    }
-    //----------------------------
-    for (std::string k : tbls.getKeys()) {
-        UniValue k_arr(UniValue::VARR);
-        int _all = 0;
-        int _bad = 0;
-        for (unsigned int i = 0; i < tbls[k].size(); i++) {
-            std::string txid = tbls[k][i].get_str();
-            //--------------------
-            CBlockIndex* blockindex = nullptr;
-            uint256 hash_block;
-            CTransactionRef tx;
-            uint256 txhash;
-            txhash.SetHex(txid);
-            //----------------------------
-            if (!GetTransaction(txhash, tx, Params().GetConsensus(), hash_block)) {
-                _bad += 1;
-                if (verbose) k_arr.push_back(txid);
-            }
-
-            _all += 1;
-        }
-
-        if (verbose)
-            ret.pushKV(k, k_arr);
-        else
-            ret.pushKV(k, std::to_string(_bad) + "/" + std::to_string(_all));
-    }
-    //----------------------------
-    return ret;
 }
 
 UniValue searchtags(const JSONRPCRequest& request)
@@ -3038,6 +3041,12 @@ void getFastSearchString(std::string search, std::string str, std::map<std::stri
 
 UniValue search(const JSONRPCRequest& request)
 {
+    if (request.fHelp || request.params.size() > 2)
+        throw std::runtime_error(
+            "search ...\n"
+            "\nSearch in Pocketnet DB.\n"
+        );
+
     std::string fulltext_search_string;
     std::string fulltext_search_string_strict;
 
@@ -3188,6 +3197,12 @@ UniValue search(const JSONRPCRequest& request)
 
 UniValue getuseraddress(const JSONRPCRequest& request)
 {
+    if (request.fHelp || request.params.size() > 2)
+        throw std::runtime_error(
+            "getuseraddress \"user_name\" ( count )\n"
+            "\nGet list addresses of user.\n"
+        );
+
     std::string userName;
     if (!request.params[0].isNull()) {
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
@@ -3218,6 +3233,12 @@ UniValue getuseraddress(const JSONRPCRequest& request)
 
 UniValue debug(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "debug\n"
+            "\nFor debugging purposes.\n"
+        );
+
     UniValue result(UniValue::VOBJ);
     return result;
 }
@@ -3250,7 +3271,6 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "getuserstate",                     &getuserstate,                     { "address", "time" } },
     { "rawtransactions",    "gettime",                          &gettime,                          {} },
     { "rawtransactions",    "getrecommendedposts",              &getrecommendedposts,              { "address", "count" } },
-    { "rawtransactions",    "checkindexes",                     &checkindexes,                     { "verbose" } },
     { "rawtransactions",    "searchtags",                       &searchtags,                       { "search_string", "count" } },
     { "rawtransactions",    "search",                           &search,                           { "search_string", "type", "count" } },
     { "rawtransactions",    "gethotposts",                      &gethotposts,                      { "count", "depth" } },

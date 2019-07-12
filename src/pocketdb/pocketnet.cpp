@@ -164,6 +164,11 @@ void FillLimits(const CChainParams& params) {
     _bad_reputation.insert({ 0, -50 });
     Limits.insert(std::make_pair(Limit::bad_reputation, _bad_reputation));
     
+    // scores_one_to_one
+    std::map<int, int64_t> _scores_one_to_one;
+    _scores_one_to_one.insert({ 0, 99999 });
+    _scores_one_to_one.insert({ 220000, 2 });
+    Limits.insert(std::make_pair(Limit::scores_one_to_one, _scores_one_to_one));
 };
 
 // Get actual limit for current height

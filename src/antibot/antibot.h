@@ -159,6 +159,11 @@ public:
 		Contains info about spent and unspent posts and scores. Also current reputation value
 	*/
 	bool GetUserState(std::string _address, int64_t _time, UserStateItem& _state);
+    /*
+        to test the possibility of changing that reputation
+    */
+    bool AllowModifyReputation(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time, bool scores);
+    bool AllowLottery(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time);
 };
 //-----------------------------------------------------
 extern std::unique_ptr<AntiBot> g_antibot;

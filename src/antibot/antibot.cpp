@@ -900,7 +900,53 @@ bool AntiBot::GetUserState(std::string _address, int64_t _time, UserStateItem& _
     _state.complain_unspent = complainsLimit - complainsCount;
 
     int allow_reputation_blocking = GetActualLimit(Limit::threshold_reputation_blocking, chainActive.Height() + 1);
-    _state.number_of_blocking = g_pocketdb->SelectCount(reindexer::Query("BlockingView").Where("address_reputation", CondGe, allow_reputation_blocking));
+    _state.number_of_blocking = g_pocketdb->SelectCount(reindexer::Query("BlockingView").Where("address_to", CondEq, _address).Where("address_reputation", CondGe, allow_reputation_blocking));
 
+    return true;
+}
+//-----------------------------------------------------
+
+//-----------------------------------------------------
+bool AntiBot::AllowModifyReputation(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time, bool scores) {
+    // Ignore scores from users with rating < Antibot::Limit::threshold_reputation_score
+    int64_t _min_user_reputation = GetActualLimit(Limit::threshold_reputation_score, height);
+    int _user_reputation = g_pocketdb->GetUserReputation(_score_address, height);
+    if (_user_reputation < _min_user_reputation) return false;
+
+    if (scores) {
+        // Disable reputation increment if from one address to one address > 2 scores over day
+        int64_t _max_scores_one_to_one = GetActualLimit(Limit::scores_one_to_one, height);
+        size_t scores_one_to_one_count = g_pocketdb->SelectCount(
+            reindexer::Query("Scores")
+                .Where("address", CondEq, _score_address)
+                .Where("time", CondGe, _tx_time - 86400)
+                .Where("time", CondLt, _tx_time)
+                .Not().Where("txid", CondEq, _txid)
+            .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, _post_address))
+        );
+        if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
+    }
+    
+    // All is OK
+    return true;
+}
+
+bool AntiBot::AllowLottery(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time) {
+    if (!AllowModifyReputation(_score_address, _post_address, height, _txid, _tx_time, false)) return false;
+
+    // Disable reputation increment if from one address to one address > 2 scores over day
+    int64_t _max_scores_one_to_one = GetActualLimit(Limit::scores_one_to_one, height);
+    size_t scores_one_to_one_count = g_pocketdb->SelectCount(
+        reindexer::Query("Scores")
+            .Where("address", CondEq, _score_address)
+            .Where("time", CondGe, _tx_time - 86400)
+            .Where("time", CondLt, _tx_time)
+            .Where("value", CondSet, {4, 5})
+            .Not().Where("txid", CondEq, _txid)
+        .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, _post_address))
+    );
+    if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
+    
+    // All is OK
     return true;
 }

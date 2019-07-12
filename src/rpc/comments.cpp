@@ -9,6 +9,12 @@
 
 UniValue sendcomment(const JSONRPCRequest& request)
 { 
+    if (request.fHelp)
+        throw std::runtime_error(
+            "sendcomment\n"
+            "\nCreate new Pocketnet comment.\n"
+        );
+
     if (request.params.size() < 5)
         throw JSONRPCError(RPC_INVALID_PARAMS, "Not enough params");
 
@@ -173,6 +179,12 @@ UniValue sendcomment(const JSONRPCRequest& request)
 
 UniValue getcomments(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getcomments\n"
+            "\nGet Pocketnet comment.\n"
+        );
+
     std::string postid = "";
     if (request.params.size() > 0) {
         postid = request.params[0].get_str();

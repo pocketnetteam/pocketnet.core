@@ -196,6 +196,34 @@ static UniValue getnewaddress(const JSONRPCRequest& request)
     return EncodeDestination(dest);
 }
 
+static UniValue getprivkeyaddress(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() > 2)
+        throw std::runtime_error(
+            "getprivkeyaddress \"private\" ( output_type )\n"
+            "\nGet address from private key.\n"
+        );
+
+    if (request.params.size() < 1) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
+
+    // Parse the label first so we don't generate a key if there's an error
+    CPubKey pubkey;
+    if (!request.params[0].isNull()) {
+        CKey key = DecodeSecret(request.params[0].get_str());
+        if (!key.IsValid()) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
+        pubkey = key.GetPubKey();
+    }
+
+    OutputType output_type = DEFAULT_ADDRESS_TYPE;
+    if (!request.params[1].isNull()) {
+        if (!ParseOutputType(request.params[1].get_str(), output_type)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[1].get_str()));
+        }
+    }
+
+    CTxDestination dest = GetDestinationForKey(pubkey, output_type);
+    return EncodeDestination(dest);
+}
+
 static UniValue getrawchangeaddress(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -248,7 +276,6 @@ static UniValue getrawchangeaddress(const JSONRPCRequest& request)
 
     return EncodeDestination(dest);
 }
-
 
 static UniValue setlabel(const JSONRPCRequest& request)
 {
@@ -4275,6 +4302,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "getaddressinfo",                   &getaddressinfo,                {"address"} },
     { "wallet",             "getbalance",                       &getbalance,                    {"dummy","minconf","include_watchonly"} },
     { "wallet",             "getnewaddress",                    &getnewaddress,                 {"label","address_type"} },
+    { "wallet",             "getprivkeyaddress",                &getprivkeyaddress,             {"privkey","address_type"} },
+    
     { "wallet",             "getrawchangeaddress",              &getrawchangeaddress,           {"address_type"} },
     { "wallet",             "getreceivedbyaddress",             &getreceivedbyaddress,          {"address","minconf"} },
     { "wallet",             "getreceivedbylabel",               &getreceivedbylabel,            {"label","minconf"} },
