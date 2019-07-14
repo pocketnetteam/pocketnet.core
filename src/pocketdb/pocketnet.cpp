@@ -167,7 +167,7 @@ void FillLimits(const CChainParams& params) {
     // scores_one_to_one
     std::map<int, int64_t> _scores_one_to_one;
     _scores_one_to_one.insert({ 0, 99999 });
-    _scores_one_to_one.insert({ 220000, 2 });
+    _scores_one_to_one.insert({ 225000, 2 });
     Limits.insert(std::make_pair(Limit::scores_one_to_one, _scores_one_to_one));
 };
 

@@ -162,7 +162,8 @@ public:
     /*
         to test the possibility of changing that reputation
     */
-    bool AllowModifyReputation(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time, bool scores);
+    bool AllowModifyReputation(std::string _score_address, int height);
+    bool AllowModifyReputation(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time);
     bool AllowLottery(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time);
 };
 //-----------------------------------------------------

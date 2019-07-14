@@ -255,13 +255,18 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
         _check_score_address = post_address;
     }
 
-    if (g_antibot->AllowModifyReputation(_check_score_address, post_address, pindex->nHeight - 1, txid, tx->nTime, true)) {
-        // USER reputation
+    bool modify_by_user_reputation = g_antibot->AllowModifyReputation(_check_score_address, pindex->nHeight - 1);
+    bool modify_by_scores_one_to_one_limit = g_antibot->AllowModifyReputation(_check_score_address, post_address, pindex->nHeight - 1, txid, tx->nTime);
+
+    // USER reputation
+    if (modify_by_user_reputation && modify_by_scores_one_to_one_limit) {
         if (userRatings.find(post_address) == userRatings.end()) userRatings.insert(std::make_pair(post_address, std::make_pair(0, 0)));
         userRatings[post_address].first += scoreVal;
         userRatings[post_address].second += 1;
+    }
 
-        // POST reputation
+    // POST reputation
+    if (modify_by_user_reputation) {
         if (postReputations.find(posttxid) == postReputations.end()) postReputations.insert(std::make_pair(posttxid, 0));
         // Reputation compute with formula `sum - (cnt * 3)`
         postReputations[posttxid] += scoreVal - 3;
