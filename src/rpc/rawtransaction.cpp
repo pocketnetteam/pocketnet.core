@@ -2215,7 +2215,6 @@ UniValue gethotposts(const JSONRPCRequest& request)
     g_pocketdb->Select(reindexer::Query("Posts", 0, count * 5)
         .Where("time", CondGt, curTime - depth)
         .Not().Where("address", CondSet, addrsblock)
-        .Sort("time", true)
         .Sort("reputation", true)
         .Sort("scoreSum", true)
     ,postsRes);
@@ -3042,7 +3041,7 @@ void getFastSearchString(std::string search, std::string str, std::map<std::stri
 
 UniValue search(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 2)
+    if (request.fHelp)
         throw std::runtime_error(
             "search ...\n"
             "\nSearch in Pocketnet DB.\n"
