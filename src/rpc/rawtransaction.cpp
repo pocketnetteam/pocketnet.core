@@ -2215,6 +2215,7 @@ UniValue gethotposts(const JSONRPCRequest& request)
     g_pocketdb->Select(reindexer::Query("Posts", 0, count * 5)
         .Where("time", CondGt, curTime - depth)
         .Not().Where("address", CondSet, addrsblock)
+        .Sort("time", true)
         .Sort("reputation", true)
         .Sort("scoreSum", true)
     ,postsRes);
