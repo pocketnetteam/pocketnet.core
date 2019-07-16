@@ -966,6 +966,7 @@ static UniValue getaddressinfo(const JSONRPCRequest& request) {
 	int64_t spent = 0;
 	int64_t unspent = 0;
 	UniValue txs(UniValue::VARR);
+    std::unordered_set<std::string> s_txs;
 
 	reindexer::QueryResults utxo;
 	if (g_pocketdb->Select(reindexer::Query("UTXO").Where("address", CondEq, address).Sort("time", true), utxo).ok()) {
@@ -976,7 +977,10 @@ static UniValue getaddressinfo(const JSONRPCRequest& request) {
 			if (it["spent_block"].As<int>() == 0) unspent += amount;
 			else spent += amount;
 
-            txs.push_back(it["txid"].As<string>());
+            std::string txid = it["txid"].As<string>();
+            if (s_txs.emplace(txid).second) {
+                txs.push_back(txid);
+            }
 		}
 	}
 	//-----------------------------------------
