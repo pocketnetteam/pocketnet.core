@@ -39,3 +39,13 @@ License
 
 Pocketnet Core is released under the terms of the Apache 2.0 license. See [COPYING](COPYING) for more
 information or see https://opensource.org/licenses/Apache-2.0.
+
+Contacts
+-------
+
+Email:
+support@pocketnet.app - general questions
+core@pocketnet.app - blockchain nodes
+
+Telegram:
+https://t.me/pocketnet_news - channel for news
