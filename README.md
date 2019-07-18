@@ -52,3 +52,5 @@ core@pocketnet.app - blockchain nodes
 Telegram:
 
 https://t.me/pocketnet_news - channel for news
+
+https://t.me/pocketnet_core - public group to discuss the work of nodes
