@@ -1141,6 +1141,14 @@ bool AddrIndex::CommitRIMempool(const CBlock& block, int height)
             }
         }
 
+        //------------------------
+        if (gArgs.GetBoolArg("-debug_pocketnet_tx", false)) {
+            std::ofstream outfile;
+            outfile.open("debug_pocketnet_tx.txt", std::ios_base::app);
+            outfile << txid + ": " + mpItm["data"].As<string>() << std::endl; 
+        }
+        //------------------------
+
         // Parse mempool data
         std::string ri_table = mpItm["table"].As<string>();
         reindexer::Item new_item = g_pocketdb->DB()->NewItem(ri_table);

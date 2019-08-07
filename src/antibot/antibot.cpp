@@ -787,6 +787,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
         // Sorry, this life can be a lot of things.:)
         std::map<std::string, std::string> op_return_checkpoints;
         op_return_checkpoints.insert_or_assign("5741a02961547b401f9f9be17bd2c220bc6a98b4ff4d7909543e44adf3cb57e9", "603d2953b635a5963ad26da7f4d945e58ad511707c983cf11f96eadaa8511fa6");
+        op_return_checkpoints.insert_or_assign("551932e47d978aed0b955db0081f093634330fff3d473fc4de1c59c660558783", "26b5d9a177eecfc2387bb140acdaa5b26855dd8cd730fb11224df5fb403cd681");
 
         std::vector<std::string> vasm;
         boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
