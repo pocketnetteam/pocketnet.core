@@ -884,6 +884,8 @@ static UniValue getlastblocks(const JSONRPCRequest& request) {
 		if (count > 10) count = 10;
 	}
 
+    // TODO (brangr): add param start (height or hash)
+
 	bool verbose = false;
 	if (request.params.size() > 1 && request.params[1].isNum()) {
 		verbose = request.params[1].get_int() == 1;
