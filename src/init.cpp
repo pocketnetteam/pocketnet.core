@@ -1353,8 +1353,6 @@ bool AppInitMain()
         uiInterface.InitMessage_connect(SetRPCWarmupStatus);
         if (!AppInitServers())
             return InitError(_("Unable to start HTTP server. See debug log for details."));
-
-        if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
     }
 
 	// ********************************************************* Step 4.1: Start PocketDB
@@ -1871,6 +1869,9 @@ bool AppInitMain()
     uiInterface.InitMessage(_("Done loading"));
 
     g_wallet_init_interface.Start(scheduler);
+
+    // Start WebSocket server
+    if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
 
     return true;
 }
