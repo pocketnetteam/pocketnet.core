@@ -1708,8 +1708,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     if (request.fHelp)
         throw std::runtime_error(
             "sendrawtransactionwithmessage\n"
-            "\nCreate new Pocketnet transaction.\n"
-        );
+            "\nCreate new Pocketnet transaction.\n");
 
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ, UniValue::VSTR});
     //-------------------------------------------------
@@ -1741,12 +1740,12 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         if (request.params[1].exists("txidEdit")) _txid_edit = request.params[1]["txidEdit"].get_str();
         if (_txid_edit != "") {
             reindexer::Item _itmP;
-            reindexer::Error _err = g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _txid_edit),_itmP);
+            reindexer::Error _err = g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _txid_edit), _itmP);
 
             if (!_err.ok()) throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid txidEdit. Post not found.");
 
-			txTime = _itmP["time"].As<int64_t>();
-		}
+            txTime = _itmP["time"].As<int64_t>();
+        }
 
         new_rtx.pTransaction["txid"] = _txid_edit == "" ? new_txid : _txid_edit;
         new_rtx.pTransaction["txidEdit"] = _txid_edit == "" ? "" : new_txid;
@@ -2005,8 +2004,7 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
     if (request.fHelp)
         throw std::runtime_error(
             "getrawtransactionwithmessage\n"
-            "\nReturn Pocketnet posts.\n"
-        );
+            "\nReturn Pocketnet posts.\n");
 
     UniValue a(UniValue::VARR);
 
@@ -2116,8 +2114,7 @@ UniValue getrawtransactionwithmessagebyid(const JSONRPCRequest& request)
     if (request.fHelp)
         throw std::runtime_error(
             "getrawtransactionwithmessagebyid\n"
-            "\nReturn Pocketnet posts.\n"
-        );
+            "\nReturn Pocketnet posts.\n");
 
     if (request.params.size() < 1)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no TxId");
@@ -2162,8 +2159,7 @@ UniValue gethotposts(const JSONRPCRequest& request)
     if (request.fHelp)
         throw std::runtime_error(
             "gethotposts\n"
-            "\nReturn Pocketnet top posts.\n"
-        );
+            "\nReturn Pocketnet top posts.\n");
 
     int count = 20;
     if (request.params.size() > 0) {
@@ -2213,11 +2209,12 @@ UniValue gethotposts(const JSONRPCRequest& request)
     // 60s * 60m * 24h * 30d = 2592000
     reindexer::QueryResults postsRes;
     g_pocketdb->Select(reindexer::Query("Posts", 0, count * 5)
-        .Where("time", CondGt, curTime - depth)
-        .Not().Where("address", CondSet, addrsblock)
-        .Sort("reputation", true)
-        .Sort("scoreSum", true)
-    ,postsRes);
+                           .Where("time", CondGt, curTime - depth)
+                           .Not()
+                           .Where("address", CondSet, addrsblock)
+                           .Sort("reputation", true)
+                           .Sort("scoreSum", true),
+        postsRes);
 
     UniValue result(UniValue::VARR);
 
@@ -2324,7 +2321,7 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<string> addresses, 
             }
             entry.pushKV("subscribers", arS);
 
-			// Blockings
+            // Blockings
             reindexer::QueryResults queryResBlockings;
             reindexer::Error errRB = g_pocketdb->DB()->Select(
                 reindexer::Query("BlockingView")
@@ -2361,8 +2358,7 @@ UniValue getuserprofile(const JSONRPCRequest& request)
     if (request.fHelp)
         throw std::runtime_error(
             "getuserprofile \"address\" ( shortForm )\n"
-            "\nReturn Pocketnet user profile.\n"
-        );
+            "\nReturn Pocketnet user profile.\n");
 
     if (request.params.size() < 1)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
@@ -2399,8 +2395,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
     if (request.fHelp)
         throw std::runtime_error(
             "getmissedinfo \"address\" block_number\n"
-            "\nGet missed info.\n"
-        );
+            "\nGet missed info.\n");
 
     if (request.params.size() < 1)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
@@ -2440,10 +2435,10 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
     msg.pushKV("cntposts", (int)posts.Count());
     a.push_back(msg);
 
-	std::string txidpocketnet = "";
+    std::string txidpocketnet = "";
     std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
 
-	reindexer::QueryResults postspocketnet;
+    reindexer::QueryResults postspocketnet;
     g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).Where("address", CondEq, addrespocketnet).Where("txidEdit", CondEq, ""), postspocketnet);
     for (auto it : postspocketnet) {
         reindexer::Item itm(it.GetItem());
@@ -2458,11 +2453,11 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
             txidpocketnet = txidpocketnet + itm["txid"].As<string>() + ",";
     }
     if (txidpocketnet != "") {
-		UniValue msg(UniValue::VOBJ);
-		msg.pushKV("msg", "sharepocketnet");
-		msg.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
-		a.push_back(msg);
-	}
+        UniValue msg(UniValue::VOBJ);
+        msg.pushKV("msg", "sharepocketnet");
+        msg.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
+        a.push_back(msg);
+    }
 
     reindexer::QueryResults subscribers;
     g_pocketdb->DB()->Select(reindexer::Query("SubscribesView").Where("address_to", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult), subscribers);
@@ -2911,8 +2906,7 @@ UniValue gettime(const JSONRPCRequest& request)
     if (request.fHelp)
         throw std::runtime_error(
             "gettime\n"
-            "\nReturn node time.\n"
-        );
+            "\nReturn node time.\n");
 
     UniValue entry(UniValue::VOBJ);
     entry.pushKV("time", GetAdjustedTime());
@@ -3044,8 +3038,7 @@ UniValue search(const JSONRPCRequest& request)
     if (request.fHelp)
         throw std::runtime_error(
             "search ...\n"
-            "\nSearch in Pocketnet DB.\n"
-        );
+            "\nSearch in Pocketnet DB.\n");
 
     std::string fulltext_search_string;
     std::string fulltext_search_string_strict;
@@ -3200,8 +3193,7 @@ UniValue getuseraddress(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() > 2)
         throw std::runtime_error(
             "getuseraddress \"user_name\" ( count )\n"
-            "\nGet list addresses of user.\n"
-        );
+            "\nGet list addresses of user.\n");
 
     std::string userName;
     if (!request.params[0].isNull()) {
@@ -3231,13 +3223,36 @@ UniValue getuseraddress(const JSONRPCRequest& request)
     return aResult;
 }
 
+UniValue getreputations(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getreputations\n"
+            "\nGet list repuatations of users.\n");
+
+	reindexer::QueryResults users;
+    g_pocketdb->Select(reindexer::Query("UsersView"), users);
+
+	UniValue aResult(UniValue::VARR);
+    for (auto& u : users) {
+        reindexer::Item userItm = u.GetItem();
+
+        UniValue oUser(UniValue::VOBJ);
+        oUser.pushKV("address", userItm["address"].As<string>());
+        oUser.pushKV("reputation", userItm["reputation"].As<string>());
+
+        aResult.push_back(oUser);
+    }
+
+    return aResult;
+}
+
 UniValue debug(const JSONRPCRequest& request)
 {
     if (request.fHelp)
         throw std::runtime_error(
             "debug\n"
-            "\nFor debugging purposes.\n"
-        );
+            "\nFor debugging purposes.\n");
 
     UniValue result(UniValue::VOBJ);
     return result;
@@ -3275,6 +3290,7 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "search",                           &search,                           { "search_string", "type", "count" } },
     { "rawtransactions",    "gethotposts",                      &gethotposts,                      { "count", "depth" } },
     { "rawtransactions",    "getuseraddress",                   &getuseraddress,                   { "name", "count" } },
+	{ "rawtransactions",    "getreputations",                   &getreputations,                   {} },
 
     { "blockchain",         "gettxoutproof",                    &gettxoutproof,                    {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",                 &verifytxoutproof,                 {"proof"} },
