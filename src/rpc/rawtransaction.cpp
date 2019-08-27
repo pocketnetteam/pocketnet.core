@@ -3239,6 +3239,7 @@ UniValue getreputations(const JSONRPCRequest& request)
 
         UniValue oUser(UniValue::VOBJ);
         oUser.pushKV("address", userItm["address"].As<string>());
+        oUser.pushKV("referrer", userItm["referrer"].As<string>());
         oUser.pushKV("reputation", userItm["reputation"].As<string>());
 
         aResult.push_back(oUser);
