@@ -1237,7 +1237,6 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
     return result;
 }
 
-
 struct CCoinsStats
 {
     int nHeight;
