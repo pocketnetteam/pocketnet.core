@@ -70,25 +70,33 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
 
 static std::map<Limit, std::map<int, int64_t>> Limits;
 void FillLimits(const CChainParams& params) {
+
+    // Forks
+    int64_t fork_20190830 = 288100;
+
     // threshold_reputation
     std::map<int, int64_t> _threshold_reputation;
     _threshold_reputation.insert({ 0, 50 });
+    _threshold_reputation.insert({ fork_20190830, 100 });
     Limits.insert(std::make_pair(Limit::threshold_reputation, _threshold_reputation));
 
     // threshold_reputation_score
     std::map<int, int64_t> _threshold_reputation_score;
     _threshold_reputation_score.insert({ 0, -1000 });
     _threshold_reputation_score.insert({ (int)params.GetConsensus().nHeight_version_1_0_0, 50 });
+    _threshold_reputation_score.insert({ fork_20190830, 100 });
     Limits.insert(std::make_pair(Limit::threshold_reputation_score, _threshold_reputation_score));
 
     // threshold_reputation_complains
     std::map<int, int64_t> _threshold_reputation_complains;
     _threshold_reputation_complains.insert({ 0, 50 });
+    _threshold_reputation_complains.insert({ fork_20190830, 100 });
     Limits.insert(std::make_pair(Limit::threshold_reputation_complains, _threshold_reputation_complains));
 
     // threshold_reputation_blocking
     std::map<int, int64_t> _threshold_reputation_blocking;
     _threshold_reputation_blocking.insert({ 0, 50 });
+    _threshold_reputation_blocking.insert({ fork_20190830, 100 });
     Limits.insert(std::make_pair(Limit::threshold_reputation_blocking, _threshold_reputation_blocking));
 
     // threshold_balance
@@ -169,6 +177,13 @@ void FillLimits(const CChainParams& params) {
     _scores_one_to_one.insert({ 0, 99999 });
     _scores_one_to_one.insert({ 225000, 2 });
     Limits.insert(std::make_pair(Limit::scores_one_to_one, _scores_one_to_one));
+
+    // scores_one_to_one time
+    std::map<int, int64_t> _scores_one_to_one_depth;
+    _scores_one_to_one_depth.insert({ 0, 99999 });
+    _scores_one_to_one_depth.insert({ 225000, 1*24*3600 });
+    _scores_one_to_one_depth.insert({ fork_20190830, 7*24*3600 });
+    Limits.insert(std::make_pair(Limit::scores_one_to_one_depth, _scores_one_to_one_depth));
 };
 
 // Get actual limit for current height
