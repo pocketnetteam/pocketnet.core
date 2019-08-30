@@ -3259,6 +3259,82 @@ UniValue debug(const JSONRPCRequest& request)
     return result;
 }
 
+
+static UniValue getaddressbalance(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() < 1)
+        throw std::runtime_error(
+            "getaddressbalance address\n"
+            "\nGet address balance.\n"
+            "\nArguments:\n"
+            "1. \"address\"   (string) Public address\n"
+        );
+    
+    std::string address;
+	if (request.params.size() > 0 && request.params[0].isStr()) {
+		CTxDestination dest = DecodeDestination(request.params[0].get_str());
+
+		if (!IsValidDestination(dest)) {
+			throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[0].get_str());
+		}
+
+		address = request.params[0].get_str();
+	}
+	else {
+		throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
+	}
+
+    UniValue result(UniValue::VOBJ);
+    int64_t balance = 0;
+
+	CBlockIndex* pindex = chainActive.Tip();
+	while (pindex) {
+        
+        CBlock block;
+        ReadBlockFromDisk(block, pindex, Params().GetConsensus());
+
+        for (const auto& tx : block.vtx) {
+
+            // OUTs add to balance
+            for (int i = 0; i < tx->vout.size(); i++) {
+                const CTxOut& txout = tx->vout[i];
+                
+                CTxDestination destAddress;
+                if (!ExtractDestination(txout.scriptPubKey, destAddress)) continue;
+                std::string out_address = EncodeDestination(destAddress);
+                if (out_address != address) continue;
+
+                balance += txout.nValue;
+            }
+
+            // INs remove from balance
+            if (!tx->IsCoinBase()) {
+                for (int i = 0; i < tx->vin.size(); i++) {
+                    const CTxIn& txin = tx->vin[i];
+
+                    uint256 hash_block;
+                    CTransactionRef tx;
+                    //-------------------------
+                    if (!GetTransaction(txin.prevout.hash, tx, Params().GetConsensus(), hash_block)) continue;
+                    const CTxOut& txout = tx->vout[txin.prevout.n];
+                    CTxDestination destAddress;
+                    const CScript& scriptPubKey = txout.scriptPubKey;
+                    bool fValidAddress = ExtractDestination(scriptPubKey, destAddress);
+                    if (!fValidAddress) continue;
+                    std::string in_address = EncodeDestination(destAddress);
+                    if (in_address != address) continue;
+
+                    balance -= txout.nValue;
+                }
+            }
+        }
+
+		pindex = pindex->pprev;
+	}
+
+    result.pushKV("balance", balance);
+    return result;
+}
+
 // clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                            actor (function)            argNames
@@ -3297,6 +3373,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "verifytxoutproof",                 &verifytxoutproof,                 {"proof"} },
 
     { "rawtransactions",    "debug",                            &debug,                            {} },
+    { "rawtransactions",    "getaddressbalance",                &getaddressbalance,                { "address" } },
 };
 // clang-format on
 
