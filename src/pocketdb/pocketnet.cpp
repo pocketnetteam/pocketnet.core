@@ -72,7 +72,7 @@ static std::map<Limit, std::map<int, int64_t>> Limits;
 void FillLimits(const CChainParams& params) {
 
     // Forks
-    int64_t fork_20190830 = 288100;
+    int64_t fork_20190830 = 292800;
 
     // threshold_reputation
     std::map<int, int64_t> _threshold_reputation;
