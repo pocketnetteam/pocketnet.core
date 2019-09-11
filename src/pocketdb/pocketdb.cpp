@@ -45,8 +45,6 @@ bool findInVector(std::vector<reindexer::NamespaceDef> defs, std::string name)
 
 bool PocketDB::Init()
 {
-    db = new Reindexer();
-
     Error err;
     err = db->Connect("builtin://" + (GetDataDir() / "pocketdb").string());
     if (!err.ok()) {

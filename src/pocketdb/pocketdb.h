@@ -21,7 +21,7 @@ using namespace reindexer;
 //-----------------------------------------------------
 class PocketDB {
 private:
-	Reindexer* db;
+    Reindexer* db = new Reindexer();
 	
 public:
 	PocketDB();

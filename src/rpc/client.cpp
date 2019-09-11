@@ -176,10 +176,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
 
 	{ "gettransactions", 0, "transactions"},
 	{ "getlastblocks", 0, "count" },
-	{ "getlastblocks", 1, "verbose" },
-	{ "getblocks", 0, "start_time" },
-	{ "getblocks", 1, "end_time" },
-	{ "getblocks", 2, "verbose" },
+	{ "getlastblocks", 1, "last_height" },
+	{ "getlastblocks", 2, "verbose" },
 
     { "getstatistic", 0, "end_time" },
     { "getstatistic", 1, "start_time" },

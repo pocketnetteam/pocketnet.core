@@ -869,73 +869,104 @@ static UniValue getcompactblock(CBlockIndex* pindex) {
 }
 
 static UniValue getlastblocks(const JSONRPCRequest& request) {
-    if (request.fHelp || request.params.size() > 2)
+    if (request.fHelp || request.params.size() < 1)
         throw std::runtime_error(
             "getlastblocks ( count, verbosity )\n"
             "\nGet N last blocks.\n"
             "\nArguments:\n"
-            "1. \"count\"     (int, optional) Count of blocks\n"
-            "2. \"verbosity\" (int, optional) Verbosity output\n"
+            "1. \"count\"         (int, optional) Count of blocks. Maximum 100 blocks.\n"
+            "2. \"last_height\"   (int, optional) Height of last block, including.\n"
+            "3. \"verbosity\"     (int, optional) Verbosity output.\n"
         );
 
 	int count = 10;
 	if (request.params.size() > 0 && request.params[0].isNum()) {
 		count = request.params[0].get_int();
-		if (count > 10) count = 10;
+		if (count > 100) count = 100;
 	}
 
-    // TODO (brangr): add param start (height or hash)
+    int last_height = chainActive.Height();
+	if (request.params.size() > 1 && request.params[1].isNum()) {
+		last_height = request.params[1].get_int();
+        if (last_height < 0) last_height = chainActive.Height();
+	}
 
 	bool verbose = false;
-	if (request.params.size() > 1 && request.params[1].isNum()) {
-		verbose = request.params[1].get_int() == 1;
+	if (request.params.size() > 2) {
+        RPCTypeCheckArgument(request.params[2], UniValue::VBOOL);
+		verbose = request.params[2].get_bool();
 	}
-	//-----------------------------------
-	UniValue result(UniValue::VARR);
+	
+    UniValue result(UniValue::VARR);
 
-	CBlockIndex* pindex = chainActive.Tip();
+    // Prepare statistic from Reindexer in dictionary (table, (block, count))
+    std::map<std::string, std::map<int, int>> rStat;
+    if (verbose) {
+        
+        reindexer::AggregationResult aggRes;
+
+        std::map<int, int> oUsers;
+        if (g_pocketdb->SelectAggr(reindexer::Query("UsersView").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+            for (const auto& f : aggRes.facets) {
+                oUsers.emplace(std::stoi(f.value), f.count);
+            }
+        }
+        rStat.emplace("users", oUsers);
+
+        std::map<int, int> oPosts;
+        if (g_pocketdb->SelectAggr(reindexer::Query("Posts").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+            for (const auto& f : aggRes.facets) {
+                oPosts.emplace(std::stoi(f.value), f.count);
+            }
+        }
+        rStat.emplace("posts", oPosts);
+
+        std::map<int, int> oScores;
+        if (g_pocketdb->SelectAggr(reindexer::Query("Scores").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+            for (const auto& f : aggRes.facets) {
+                oScores.emplace(std::stoi(f.value), f.count);
+            }
+        }
+        rStat.emplace("scores", oScores);
+
+        std::map<int, int> oSubscribes;
+        if (g_pocketdb->SelectAggr(reindexer::Query("SubscribesView").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+            for (const auto& f : aggRes.facets) {
+                oSubscribes.emplace(std::stoi(f.value), f.count);
+            }
+        }
+        rStat.emplace("subscribes", oSubscribes);
+
+        std::map<int, int> oComments;
+        if (g_pocketdb->SelectAggr(reindexer::Query("Comments").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+            for (const auto& f : aggRes.facets) {
+                oComments.emplace(std::stoi(f.value), f.count);
+            }
+        }
+        rStat.emplace("comments", oComments);
+    }
+
+	CBlockIndex* pindex = chainActive[last_height];
 	while (pindex && count > 0) {
-		result.push_back(getcompactblock(pindex));
+        UniValue ublock = getcompactblock(pindex);
+        UniValue types(UniValue::VOBJ);
+
+        if (verbose) {
+            for (auto s: rStat) {
+                auto f = s.second.find(pindex->nHeight);
+                if (f != s.second.end()) {
+                    types.pushKV(s.first, f->second);
+                }
+            }
+        }
+
+		ublock.pushKV("types", types);
+		result.push_back(ublock);
+
 		pindex = pindex->pprev;
 		count -= 1;
 	}
-	//-----------------------------------
-	return result;
-}
-
-static UniValue getblocks(const JSONRPCRequest& request) {
-    if (request.fHelp || request.params.size() > 3)
-        throw std::runtime_error(
-            "getblocks start_time end_time ( verbosity )\n"
-            "\nGet blocks in period.\n"
-            "\nArguments:\n"
-            "1. \"start_time\" (int64) Start time\n"
-            "2. \"end_time\"   (int64) End time\n"
-            "3. \"verbosity\"  (int, optional) Verbosity output\n"
-        );
-        
-	if (request.params.size() < 2
-		|| !request.params[0].isNum()
-		|| !request.params[1].isNum()
-	) throw JSONRPCError(RPC_INVALID_PARAMS, "Need start and end time.");
-	//-----------------------------------
-	int64_t start_time = request.params[0].get_int64();
-	int64_t end_time = request.params[1].get_int64();
-
-	bool verbose = false;
-	if (request.params.size() > 2 && request.params[2].isNum()) {
-		verbose = request.params[2].get_int() == 1;
-	}
-	//-----------------------------------
-	UniValue result(UniValue::VARR);
-
-	//CBlockIndex* pindex = chainActive.FindEarliestAtLeast(end_time);
-	//if (pindex == nullptr) return result;
-	//while ((int64_t)pindex->nTime >= start_time) {
-	//	result.push_back(getcompactblock(pindex));
-	//	pindex = pindex->pprev;
-	//}
-	//-----------------------------------
+    
 	return result;
 }
 
@@ -1236,7 +1267,6 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
     
     return result;
 }
-
 
 struct CCoinsStats
 {
@@ -2611,8 +2641,7 @@ static const CRPCCommand commands[] =
 
 	{ "blockchain",         "getaddressinfo",         &getaddressinfo,         {"address"} },
 	{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"} },
-	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","verbose"} },
-	{ "blockchain",         "getblocks",              &getblocks,              {"start_time","end_time","verbose"} },
+	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"} },
 	{ "blockchain",         "checkstringtype",        &checkstringtype,        {"value"} },
     { "blockchain",         "getstatistic",           &getstatistic,           {"end_time","start_time"} },
     
