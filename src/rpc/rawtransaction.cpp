@@ -3077,6 +3077,18 @@ UniValue search(const JSONRPCRequest& request)
         ParseInt32(request.params[4].get_str(), &resulCount);
     }
 
+	std::string address = "";
+    if (request.params.size() > 5) {
+        RPCTypeCheckArgument(request.params[5], UniValue::VSTR);
+        CTxDestination dest = DecodeDestination(request.params[5].get_str());
+
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + request.params[5].get_str());
+        }
+
+        address = request.params[5].get_str();
+    }
+
     int fsresultCount = 10;
 
     // --- Return object -----------------------------------------------
@@ -3097,6 +3109,7 @@ UniValue search(const JSONRPCRequest& request)
                           reindexer::Query("Posts", resultStart, resulCount)
                               .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
                               .Where(search_string.at(0) == '#' ? "tags" : "caption+message", CondEq, search_string.at(0) == '#' ? search_string.substr(1) : "\"" + search_string + "\"")
+                              .Where("address", address == "" ? CondGt : CondEq, address)
                               .Sort("time", true)
                               .ReqTotal(),
                           resPostsBySearchString)
@@ -3230,10 +3243,10 @@ UniValue getreputations(const JSONRPCRequest& request)
             "getreputations\n"
             "\nGet list repuatations of users.\n");
 
-	reindexer::QueryResults users;
+    reindexer::QueryResults users;
     g_pocketdb->Select(reindexer::Query("UsersView"), users);
 
-	UniValue aResult(UniValue::VARR);
+    UniValue aResult(UniValue::VARR);
     for (auto& u : users) {
         reindexer::Item userItm = u.GetItem();
 
@@ -3245,6 +3258,52 @@ UniValue getreputations(const JSONRPCRequest& request)
         aResult.push_back(oUser);
     }
 
+    return aResult;
+}
+
+UniValue getcontents(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() < 1) {
+        throw std::runtime_error(
+            "getcontents address\n"
+            "\nReturns contents for address.\n"
+            "\nArguments:\n"
+            "1. address            (string) A pocketcoin addresses to filter\n"
+            "\nResult\n"
+            "[                     (array of contents)\n"
+            "  ...\n"
+            "]");
+    }
+
+	std::string address;
+    if (!request.params[0].isNull()) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        CTxDestination dest = DecodeDestination(request.params[0].get_str());
+
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + request.params[0].get_str());
+        }
+
+        address = request.params[0].get_str();
+    }
+
+	reindexer::QueryResults posts;
+    g_pocketdb->Select(reindexer::Query("Posts").Where("address", CondEq, address), posts);
+	
+	UniValue aResult(UniValue::VARR);
+    for (auto& p : posts) {
+        reindexer::Item postItm = p.GetItem();
+
+        UniValue oPost(UniValue::VOBJ);
+        oPost.pushKV("content", postItm["caption_"].As<string>() == "" ? postItm["message_"].As<string>().substr(0, 100) : postItm["caption_"].As<string>());
+        oPost.pushKV("txid", postItm["txid"].As<string>());
+        oPost.pushKV("time", postItm["time"].As<string>());
+        oPost.pushKV("settings", postItm["settings"].As<string>());
+        oPost.pushKV("scoreSum", postItm["scoreSum"].As<string>());
+        oPost.pushKV("scoreCnt", postItm["scoreCnt"].As<string>());
+
+        aResult.push_back(oPost);
+    }
     return aResult;
 }
 
@@ -3292,6 +3351,7 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "gethotposts",                      &gethotposts,                      { "count", "depth" } },
     { "rawtransactions",    "getuseraddress",                   &getuseraddress,                   { "name", "count" } },
 	{ "rawtransactions",    "getreputations",                   &getreputations,                   {} },
+	{ "rawtransactions",    "getcontents",                      &getcontents,                      { "address" } },
 
     { "blockchain",         "gettxoutproof",                    &gettxoutproof,                    {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",                 &verifytxoutproof,                 {"proof"} },

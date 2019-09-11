@@ -240,6 +240,44 @@ UniValue getcomments(const JSONRPCRequest& request)
     return aResult;
 }
 
+UniValue getlastcomments(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getcomments\n"
+            "\nGet Pocketnet comment.\n");
+
+    int resulCount = 10;
+    if (request.params.size() > 0) {
+        ParseInt32(request.params[0].get_str(), &resulCount);
+    }
+
+    reindexer::QueryResults commRes;
+	g_pocketdb->Select(Query("Comments").Sort("time", true).Limit(resulCount), commRes);
+
+    UniValue aResult(UniValue::VARR);
+    for (auto& c : commRes) {
+        reindexer::Item cmntItm = c.GetItem();
+
+        UniValue oCmnt(UniValue::VOBJ);
+        oCmnt.pushKV("id", cmntItm["id"].As<string>());
+        oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
+        oCmnt.pushKV("address", cmntItm["address"].As<string>());
+        oCmnt.pushKV("pubkey", cmntItm["pubkey"].As<string>());
+        oCmnt.pushKV("signature", cmntItm["signature"].As<string>());
+        oCmnt.pushKV("time", cmntItm["time"].As<string>());
+        oCmnt.pushKV("block", cmntItm["block"].As<string>());
+        oCmnt.pushKV("msg", cmntItm["msg"].As<string>());
+        oCmnt.pushKV("parentid", cmntItm["parentid"].As<string>());
+        oCmnt.pushKV("answerid", cmntItm["answerid"].As<string>());
+        oCmnt.pushKV("timeupd", cmntItm["timeupd"].As<string>());
+
+        aResult.push_back(oCmnt);
+    }
+
+    return aResult;
+}
+
 static const CRPCCommand commands[] =
     {
         //  category              name                            actor (function)            argNames
