@@ -3077,7 +3077,7 @@ UniValue search(const JSONRPCRequest& request)
         ParseInt32(request.params[4].get_str(), &resulCount);
     }
 
-	std::string address = "";
+    std::string address = "";
     if (request.params.size() > 5) {
         RPCTypeCheckArgument(request.params[5], UniValue::VSTR);
         CTxDestination dest = DecodeDestination(request.params[5].get_str());
@@ -3275,7 +3275,7 @@ UniValue getcontents(const JSONRPCRequest& request)
             "]");
     }
 
-	std::string address;
+    std::string address;
     if (!request.params[0].isNull()) {
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
         CTxDestination dest = DecodeDestination(request.params[0].get_str());
@@ -3287,23 +3287,83 @@ UniValue getcontents(const JSONRPCRequest& request)
         address = request.params[0].get_str();
     }
 
-	reindexer::QueryResults posts;
+    reindexer::QueryResults posts;
     g_pocketdb->Select(reindexer::Query("Posts").Where("address", CondEq, address), posts);
-	
-	UniValue aResult(UniValue::VARR);
+
+    UniValue aResult(UniValue::VARR);
     for (auto& p : posts) {
         reindexer::Item postItm = p.GetItem();
 
         UniValue oPost(UniValue::VOBJ);
-        oPost.pushKV("content", postItm["caption_"].As<string>() == "" ? postItm["message_"].As<string>().substr(0, 100) : postItm["caption_"].As<string>());
+        oPost.pushKV("content", UrlDecode(postItm["caption"].As<string>()) == "" ? UrlDecode(postItm["message"].As<string>()).substr(0, 100) : UrlDecode(postItm["caption"].As<string>()));
         oPost.pushKV("txid", postItm["txid"].As<string>());
         oPost.pushKV("time", postItm["time"].As<string>());
+        oPost.pushKV("reputation", postItm["reputation"].As<string>());
         oPost.pushKV("settings", postItm["settings"].As<string>());
         oPost.pushKV("scoreSum", postItm["scoreSum"].As<string>());
         oPost.pushKV("scoreCnt", postItm["scoreCnt"].As<string>());
 
         aResult.push_back(oPost);
     }
+    return aResult;
+}
+
+UniValue gettags(const JSONRPCRequest& request)
+{
+    std::string address = "";
+    if (!request.params[0].isNull() && request.params[0].get_str().length() > 0) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        CTxDestination dest = DecodeDestination(request.params[0].get_str());
+
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + request.params[0].get_str());
+        }
+
+        address = request.params[0].get_str();
+    }
+
+    int count = 50;
+    if (request.params.size() >= 2) {
+        ParseInt32(request.params[1].get_str(), &count);
+    }
+
+	int from = 0;
+    if (request.params.size() >= 3) {
+        ParseInt32(request.params[2].get_str(), &from);
+    }
+
+    std::map<std::string, int> mapTags;
+    reindexer::QueryResults posts;
+    g_pocketdb->Select(reindexer::Query("Posts").Where("block", CondGe, from).Where("address", address == "" ? CondGt : CondEq, address), posts);
+    for (auto& p : posts) {
+        reindexer::Item postItm = p.GetItem();
+
+        UniValue t(UniValue::VARR);
+        reindexer::VariantArray va = postItm["tags"];
+        for (unsigned int idx = 0; idx < va.size(); idx++) {
+            std::string sTag = lower(va[idx].As<string>());
+            if (std::all_of(sTag.begin(), sTag.end(), [](unsigned char ch) { return ::isdigit(ch) || ::isalpha(ch); })) {
+                if (mapTags.count(sTag) == 0)
+                    mapTags[sTag] = 1;
+                else
+                    mapTags[sTag] = mapTags[sTag] + 1;
+            }
+        }
+    }
+
+    typedef std::function<bool(std::pair<std::string, int>, std::pair<std::string, int>)> Comparator;
+    Comparator compFunctor = [](std::pair<std::string, int> elem1, std::pair<std::string, int> elem2) { return elem1.second > elem2.second; };
+    std::set<std::pair<std::string, int>, Comparator> setTags(mapTags.begin(), mapTags.end(), compFunctor);
+
+    UniValue aResult(UniValue::VARR);
+    for (std::set<std::pair<std::string, int>, Comparator>::iterator it = setTags.begin(); it != setTags.end() && count; ++it, --count) {
+        UniValue oTag(UniValue::VOBJ);
+        oTag.pushKV("tag", it->first);
+        oTag.pushKV("count", std::to_string(it->second));
+
+        aResult.push_back(oTag);
+    }
+
     return aResult;
 }
 
@@ -3319,44 +3379,41 @@ UniValue debug(const JSONRPCRequest& request)
 }
 
 
-static UniValue getaddressbalance(const JSONRPCRequest& request) {
+static UniValue getaddressbalance(const JSONRPCRequest& request)
+{
     if (request.fHelp || request.params.size() < 1)
         throw std::runtime_error(
             "getaddressbalance address\n"
             "\nGet address balance.\n"
             "\nArguments:\n"
-            "1. \"address\"   (string) Public address\n"
-        );
-    
+            "1. \"address\"   (string) Public address\n");
+
     std::string address;
-	if (request.params.size() > 0 && request.params[0].isStr()) {
-		CTxDestination dest = DecodeDestination(request.params[0].get_str());
+    if (request.params.size() > 0 && request.params[0].isStr()) {
+        CTxDestination dest = DecodeDestination(request.params[0].get_str());
 
-		if (!IsValidDestination(dest)) {
-			throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[0].get_str());
-		}
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[0].get_str());
+        }
 
-		address = request.params[0].get_str();
-	}
-	else {
-		throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
-	}
+        address = request.params[0].get_str();
+    } else {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
+    }
 
     UniValue result(UniValue::VOBJ);
     int64_t balance = 0;
 
-	CBlockIndex* pindex = chainActive.Tip();
-	while (pindex) {
-        
+    CBlockIndex* pindex = chainActive.Tip();
+    while (pindex) {
         CBlock block;
         ReadBlockFromDisk(block, pindex, Params().GetConsensus());
 
         for (const auto& tx : block.vtx) {
-
             // OUTs add to balance
             for (int i = 0; i < tx->vout.size(); i++) {
                 const CTxOut& txout = tx->vout[i];
-                
+
                 CTxDestination destAddress;
                 if (!ExtractDestination(txout.scriptPubKey, destAddress)) continue;
                 std::string out_address = EncodeDestination(destAddress);
@@ -3387,8 +3444,8 @@ static UniValue getaddressbalance(const JSONRPCRequest& request) {
             }
         }
 
-		pindex = pindex->pprev;
-	}
+        pindex = pindex->pprev;
+    }
 
     result.pushKV("balance", balance);
     return result;
@@ -3428,6 +3485,7 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "getuseraddress",                   &getuseraddress,                   { "name", "count" } },
 	{ "rawtransactions",    "getreputations",                   &getreputations,                   {} },
 	{ "rawtransactions",    "getcontents",                      &getcontents,                      { "address" } },
+	{ "rawtransactions",    "gettags",                          &gettags,                          { "address", "count" } },
 
     { "blockchain",         "gettxoutproof",                    &gettxoutproof,                    {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",                 &verifytxoutproof,                 {"proof"} },
