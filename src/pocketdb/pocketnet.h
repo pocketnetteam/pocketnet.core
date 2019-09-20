@@ -30,7 +30,8 @@ enum Limit {
     max_post_size,
     bad_reputation,
     scores_one_to_one,
-    scores_one_to_one_depth
+    scores_one_to_one_depth,
+    scores_depth_modify_reputation
 };
 
 void FillLimits(const CChainParams& params);
