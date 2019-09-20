@@ -282,8 +282,9 @@ static const CRPCCommand commands[] =
     {
         //  category              name                            actor (function)            argNames
         //  --------------------- ------------------------        -----------------------     ----------
-        {"rawtransactions", "sendcomment", &sendcomment, {"id", "postid", "address", "pubkey", "signature", "msg", "parentid", "answerid"}},
-        {"rawtransactions", "getcomments", &getcomments, {"postid", "parentid"}},
+        {"rawtransactions", "sendcomment",     &sendcomment,       {"id", "postid", "address", "pubkey", "signature", "msg", "parentid", "answerid"}},
+        {"rawtransactions", "getcomments",     &getcomments,       {"postid", "parentid"}},
+        {"rawtransactions", "getlastcomments", &getlastcomments,   {"count"}},
 };
 
 void RegisterCommentsRPCCommands(CRPCTable& t)
