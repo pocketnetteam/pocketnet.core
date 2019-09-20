@@ -73,7 +73,7 @@ void FillLimits(const CChainParams& params) {
 
     // Forks
     int64_t fork_20190830 = 292800;
-    int64_t fork_20190920 = 318340;
+    int64_t fork_20190920 = 322700;
 
     // threshold_reputation
     std::map<int, int64_t> _threshold_reputation;
