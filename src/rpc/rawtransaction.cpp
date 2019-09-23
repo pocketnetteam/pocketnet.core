@@ -2435,7 +2435,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
     msg.pushKV("cntposts", (int)posts.Count());
     a.push_back(msg);
 
-    std::string txidpocketnet = "";
+    /*std::string txidpocketnet = "";
     std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
 
     reindexer::QueryResults postspocketnet;
@@ -2456,6 +2456,18 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
         UniValue msg(UniValue::VOBJ);
         msg.pushKV("msg", "sharepocketnet");
         msg.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
+        a.push_back(msg);
+    }*/
+
+    std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
+    reindexer::QueryResults postspocketnet;
+    g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).Where("address", CondEq, addrespocketnet), postspocketnet);
+    for (auto it : postspocketnet) {
+        reindexer::Item itm(it.GetItem());
+        UniValue msg(UniValue::VOBJ);
+        msg.pushKV("msg", "sharepocketnet");
+        msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("nblock", itm["block"].As<int>());
         a.push_back(msg);
     }
 
