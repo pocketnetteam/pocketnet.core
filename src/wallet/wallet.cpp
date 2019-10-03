@@ -4318,6 +4318,7 @@ int CMerkleTx::GetDepthInMainChain() const
 
 	// Find the block it claims to be in
 	CBlockIndex* pindex = LookupBlockIndex(hashBlock);
+    LogPrint(BCLog::DB, "DEBUG! pindex->nHeight (%s) nIndex (%s)\n", pindex->nHeight, nIndex, hashBlock.GetHex());
 	if (!pindex || !chainActive.Contains(pindex))
 		return 0;
 
