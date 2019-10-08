@@ -2604,8 +2604,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         const CBlockIndex *pindex = nullptr;
+        const CBlockIndex *pindexFirst = nullptr;
         CValidationState state;
-        if (!ProcessNewBlockHeaders({cmpctblock.header}, state, chainparams, &pindex)) {
+        if (!ProcessNewBlockHeaders({cmpctblock.header}, state, chainparams, &pindex, nullptr, &pindexFirst)) {
             int nDoS;
             if (state.IsInvalid(nDoS)) {
                 if (nDoS > 0) {
@@ -2614,6 +2615,19 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 } else {
                     LogPrint(BCLog::NET, "Peer %d sent us invalid header via cmpctblock\n", pfrom->GetId());
                 }
+                return true;
+            }
+        }
+
+        if(gArgs.GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER) && !IsInitialBlockDownload()) {
+            LOCK(cs_main);
+            CValidationState state;
+            CNodeState *nodestate = State(pfrom->GetId());
+            nodestate->headers.addHeaders(pindexFirst, pindex);
+            nodestate->headers.updateState(state, true);
+            int nDos = 0;
+            if (state.IsInvalid(nDos) && nDos > 0) {
+                Misbehaving(pfrom->GetId(), nDos, "header spam detected via cmpctblock");
                 return true;
             }
         }
