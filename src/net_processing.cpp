@@ -184,6 +184,83 @@ struct CBlockReject {
     uint256 hashBlock;
 };
 
+class CNodeHeaders {
+public:
+    CNodeHeaders() : maxSize(0), maxAvg(0) {
+        maxSize = gArgs.GetArg("-headerspamfiltermaxsize", DEFAULT_HEADER_SPAM_FILTER_MAX_SIZE);
+        maxAvg = gArgs.GetArg("-headerspamfiltermaxavg", DEFAULT_HEADER_SPAM_FILTER_MAX_AVG);
+    }
+
+    bool addHeaders(const CBlockIndex *pindexFirst, const CBlockIndex *pindexLast) {
+        if (pindexFirst && pindexLast && maxSize && maxAvg) {
+            // Get the begin block index
+            int nBegin = pindexFirst->nHeight;
+
+            // Get the end block index
+            int nEnd = pindexLast->nHeight;
+
+            for(int point = nBegin; point <= nEnd; point++) {
+                addPoint(point);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    bool updateState(CValidationState& state, bool ret) {
+        // No headers
+        size_t size = points.size();
+        if (size == 0) {
+            return ret;
+        }
+
+        // Compute the number of the received headers
+        size_t nHeaders = 0;
+        for (auto point : points) {
+            nHeaders += point.second;
+        }
+
+        // Compute the average value per height
+        double nAvgValue = (double)nHeaders / size;
+
+        // Ban the node if try to spam
+        bool banNode = (nAvgValue >= 1.5 * maxAvg && size >= maxAvg) ||
+                (nAvgValue >= maxAvg && nHeaders >= maxSize) ||
+                (nHeaders >= maxSize * 3);
+        if (banNode) {
+            // Clear the points and ban the node
+            points.clear();
+            return state.DoS(100, false, REJECT_INVALID, "header-spam", "ban node for sending spam");
+        }
+
+        return ret;
+    }
+
+private:
+    void addPoint(int height) {
+        // Erace the last element in the list
+        if (points.size() == maxSize) {
+            points.erase(points.begin());
+        }
+
+        // Add the point to the list
+        int occurrence = 0;
+        auto mi = points.find(height);
+         if (mi != points.end()) {
+             occurrence = (*mi).second;
+         }
+         occurrence++;
+         points[height] = occurrence;
+     }
+
+ private:
+     std::map<int,int> points;
+     size_t maxSize;
+     size_t maxAvg;
+};
+
 /**
  * Maintain validation-specific state about nodes, protected by cs_main, instead
  * by CNode's own locks. This simplifies asynchronous operation, where
@@ -238,6 +315,8 @@ struct CNodeState {
     bool fProvidesHeaderAndIDs;
     //! Whether this peer can give us witnesses
     bool fHaveWitness;
+    //! The received header information from the peer.
+    CNodeHeaders headers;
     //! Whether this peer wants witnesses in cmpctblocks/blocktxns
     bool fWantsCmpctWitness;
     /**
@@ -569,7 +648,7 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 return;
             }
 			// We need download data forcing - reindexer data must be loss
-			// pindex->nStatus & BLOCK_HAVE_DATA || 
+			// pindex->nStatus & BLOCK_HAVE_DATA ||
             if (chainActive.Contains(pindex)) {
                 if (pindex->nChainTx)
                     state->pindexLastCommonBlock = pindex;
@@ -1408,6 +1487,8 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
 
     bool received_new_header = false;
     const CBlockIndex *pindexLast = nullptr;
+    const CBlockIndex *pindexFirst = nullptr;
+    bool valid = true;
     {
         LOCK(cs_main);
         CNodeState *nodestate = State(pfrom->GetId());
@@ -1436,24 +1517,55 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
             if (nodestate->nUnconnectingHeaders % MAX_UNCONNECTING_HEADERS == 0) {
                 Misbehaving(pfrom->GetId(), 20);
             }
-            return true;
+            valid = false;
         }
 
-        uint256 hashLastBlock;
-        for (const CBlockHeader& header : headers) {
-            if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
-                Misbehaving(pfrom->GetId(), 20, "non-continuous headers sequence");
-                return false;
+        if (valid) {
+            uint256 hashLastBlock;
+            for (const CBlockHeader& header : headers) {
+                if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
+                    Misbehaving(pfrom->GetId(), 20, "non-continuous headers sequence");
+                    valid = false;
+                    break;
+                }
+                hashLastBlock = header.GetHash();
             }
-            hashLastBlock = header.GetHash();
-        }
 
-        // If we don't have the last header, then they'll have given us
-        // something new (if these headers are valid).
-        if (!LookupBlockIndex(hashLastBlock)) {
-            received_new_header = true;
+            // If we don't have the last header, then they'll have given us
+            // something new (if these headers are valid).
+            if (!LookupBlockIndex(hashLastBlock)) {
+                received_new_header = true;
+            }
         }
     }
+
+    if (valid) {
+        CValidationState state;
+        CBlockHeader first_invalid_header;
+        received_new_header = true;
+        if (!ProcessNewBlockHeaders(headers, state, chainparams, &pindexLast, &first_invalid_header, &pindexFirst)) {
+            int nDos = 0;
+            if (state.IsInvalid(nDos) && nDos > 0) {
+                Misbehaving(pfrom->GetId(), nDos);
+            }
+            valid = false;
+        }
+    }
+
+    if(gArgs.GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER) && !IsInitialBlockDownload()) {
+        LOCK(cs_main);
+        CValidationState state;
+        CNodeState *nodestate = State(pfrom->GetId());
+        nodestate->headers.addHeaders(pindexFirst, pindexLast);
+        valid = nodestate->headers.updateState(state, valid);
+        int nDos = 0;
+        if (state.IsInvalid(nDos) && nDos > 0) {
+            Misbehaving(pfrom->GetId(), nDos, "header spam detected");
+            valid = false;
+        }
+    }
+
+    if (!valid) { return false; }
 
     CValidationState state;
     CBlockHeader first_invalid_header;
@@ -2275,7 +2387,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             LogPrintf("DEBUG!!! Receive transaction without pocketdata: %s\n", ptx->GetHash().GetHex());
         }
 
-		// Save 
+		// Save
 		if (pocket_data != "") {
 			// Check transaction with Antibot
 			UniValue _txs_src(UniValue::VOBJ);
@@ -2469,7 +2581,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 		if (vRecv.size() > 0) {
 			vRecv >> pocket_data;
 		}
-		
+
 		if (pocket_data != "") {
 			POCKETNET_DATA.emplace(cmpctblock.header.GetHash(), pocket_data);
 		}
@@ -3729,7 +3841,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
 					}
 
                     if (pto->pfilter && !pto->pfilter->IsRelevantAndUpdate(*txinfo.tx)) continue;
-                    
+
 					// Send
                     vInv.push_back(CInv(MSG_TX, hash));
                     nRelayedTransactions++;
