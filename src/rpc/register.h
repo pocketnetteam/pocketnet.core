@@ -21,6 +21,8 @@ void RegisterMiningRPCCommands(CRPCTable &tableRPC);
 void RegisterRawTransactionRPCCommands(CRPCTable &tableRPC);
 /** Register comments RPC commands */
 void RegisterCommentsRPCCommands(CRPCTable& tableRPC);
+/** Register pocketnet RPC commands */
+void RegisterPocketnetRPCCommands(CRPCTable& tableRPC);
 
 static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
 {
@@ -30,6 +32,7 @@ static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
     RegisterMiningRPCCommands(t);
     RegisterRawTransactionRPCCommands(t);
     RegisterCommentsRPCCommands(t);
+    RegisterPocketnetRPCCommands(t);
 }
 
 #endif // POCKETCOIN_RPC_REGISTER_H

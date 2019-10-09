@@ -182,11 +182,15 @@ enum opcodetype
     OP_NOP9 = 0xb8,
     OP_NOP10 = 0xb9,
 
+    // Pocketnet
+    OP_WINNER_POST = 0xc0,
+    OP_WINNER_COMMENT = 0xc1,
+
     OP_INVALIDOPCODE = 0xff,
 };
 
 // Maximum value that an opcode can be
-static const unsigned int MAX_OPCODE = OP_NOP10;
+static const unsigned int MAX_OPCODE = OP_WINNER_COMMENT;
 
 const char* GetOpName(opcodetype opcode);
 

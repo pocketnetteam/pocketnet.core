@@ -67,19 +67,21 @@ public:
 	// Return hash by values for compare with OP_RETURN
 	bool GetHashItem(Item& item, std::string table, bool with_referrer, std::string& out_hash);
 
-    // Update ratings
-    bool UpdateUserRating(std::string address, int sum, int cnt);
-    bool UpdateUserRating(std::string address, int height);
+    // Ratings
+    // User
+    bool UpdateUserReputation(std::string address, double rep);
+    bool UpdateUserReputation(std::string address, int height);
+    double GetUserReputation(std::string _address, int height);
+
+    // Post
     bool UpdatePostRating(std::string posttxid, int sum, int cnt, int& rep);
     bool UpdatePostRating(std::string posttxid, int height);
-
-    void GetUserRating(std::string address, int& sum, int& cnt, int height);
     void GetPostRating(std::string posttxid, int& sum, int& cnt, int& rep, int height);
 
-    // Get global reputation for user.
-	// In DB rating saved in format {1,2,3,4,5}
-	// Reputation converted to format {-2,-1,0,+1,+2}
-    int GetUserReputation(std::string _address, int height);
+    // Comment
+    bool UpdateCommentRating(std::string commentid, int up, int down, int& rep);
+    bool UpdateCommentRating(std::string commentid, int height);
+    void GetCommentRating(std::string commentid, int& up, int& down, int& rep, int height);
 	
     // Returns sum of all unspent transactions for address
 	int64_t GetUserBalance(std::string _address, int height);
@@ -92,6 +94,9 @@ public:
 
     // Restore previous version of Post
     Error RestorePostItem(std::string posttxid, int height);
+
+    Error CommitLastItem(std::string table, Item& itm);
+    Error RestoreLastItem(std::string table, std::string txid, std::string otxid, int height);
 
 };
 //-----------------------------------------------------

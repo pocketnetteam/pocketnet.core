@@ -78,9 +78,18 @@ private:
 		OP_RETURN can contains `OR_SCORE` value - its Score for Post
 	*/
 	bool indexRating(const CTransactionRef& tx, 
-        std::map<std::string, std::pair<int, int>>& userRatings,
+        std::map<std::string, double>& userReputations,
         std::map<std::string, std::pair<int, int>>& postRatings,
         std::map<std::string, int>& postReputations,
+        CBlockIndex* pindex);
+    /*
+		Indexing block transactions for collect rating of User.
+		OP_RETURN can contains `OR_COMMENT_SCORE` value - its Score for Comment
+	*/
+	bool indexCommentRating(const CTransactionRef& tx, 
+        std::map<std::string, double>& userReputations,
+        std::map<std::string, std::pair<int, int>>& commentRatings,
+        std::map<std::string, int>& commentReputations,
         CBlockIndex* pindex);
 	/*
 		Indexing block transactions for collect tags.
@@ -96,11 +105,15 @@ private:
 	/*
 		Aggregate table UserRatings for all users
 	*/
-	bool computeUsersRatings(CBlockIndex* pindex, std::map<std::string, std::pair<int, int>>& userRatings);
+	bool computeUsersRatings(CBlockIndex* pindex, std::map<std::string, double>& userReputations);
 	/*
-		Increment rating of post
+		Increment rating of Post
 	*/
 	bool computePostsRatings(CBlockIndex* pindex, std::map<std::string, std::pair<int, int>>& postRatings, std::map<std::string, int>& postReputations);
+    /*
+		Increment rating of Comment
+	*/
+	bool computeCommentRatings(CBlockIndex* pindex, std::map<std::string, std::pair<int, int>>& commentRatings, std::map<std::string, int>& commentReputations);
     /*
         Indexing posts data
     */

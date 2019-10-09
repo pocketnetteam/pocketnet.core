@@ -2680,7 +2680,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 mapBlockSource.erase(pblock->GetHash());
             }
             LOCK(cs_main); // hold cs_main for CBlockIndex::IsValid()
-            if (state.GetRejectCode() == 700004 || pindex->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+            if (pindex->IsValid(BLOCK_VALID_TRANSACTIONS)) {
                 // Clear download state for this block, which is in
                 // process from some other peer.  We do this after calling
                 // ProcessNewBlock so that a malleated cmpctblock announcement

@@ -642,6 +642,15 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
 
         // -reindex
         if (fReindex) {
+
+            // Clear ratings for clear reindexing
+            {
+                g_pocketdb->DropTable("UserRatings");
+                g_pocketdb->DropTable("PostRatings");
+                g_pocketdb->DropTable("CommentRatings");
+                LogPrintf("Rating tables cleared\n");
+            }
+
             int nFile = 0;
             while (true) {
                 CDiskBlockPos pos(nFile, 0);

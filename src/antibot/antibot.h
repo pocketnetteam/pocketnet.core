@@ -11,12 +11,13 @@
 #include <timedata.h>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string.hpp>
+#include "html.h"
 //-----------------------------------------------------
 struct UserStateItem {
 	std::string address;
 	int64_t user_registration_date;
 	int64_t address_registration_date;
-	int reputation;
+	double reputation;
 	int64_t balance;
 	bool trial;
 
@@ -28,12 +29,43 @@ struct UserStateItem {
 
 	int complain_unspent;
 	int complain_spent;
+
+    int comment_unspent;
+	int comment_spent;
+
+    int comment_score_unspent;
+	int comment_score_spent;
     
 	int number_of_blocking;
 
 	UserStateItem(std::string _address) {
 		address = _address;
 	}
+
+    UniValue Serialize() {
+        UniValue result(UniValue::VOBJ);
+
+        result.pushKV("address", address);
+        result.pushKV("user_reg_date", user_registration_date);
+        result.pushKV("addr_reg_date", address_registration_date);
+        result.pushKV("reputation", reputation);
+        result.pushKV("balance", balance);
+        result.pushKV("trial", trial);
+        result.pushKV("post_unspent", post_unspent);
+        result.pushKV("post_spent", post_spent);
+        result.pushKV("score_unspent", score_unspent);
+        result.pushKV("score_spent", score_spent);
+        result.pushKV("complain_unspent", complain_unspent);
+        result.pushKV("complain_spent", complain_spent);
+        result.pushKV("number_of_blocking", number_of_blocking);
+
+        result.pushKV("comment_spent", comment_spent);
+        result.pushKV("comment_unspent", comment_unspent);
+        result.pushKV("comment_score_spent", comment_score_spent);
+        result.pushKV("comment_score_unspent", comment_score_unspent);
+
+        return result;
+    }
 };
 //-----------------------------------------------------
 enum CHECKTYPE {
@@ -41,7 +73,10 @@ enum CHECKTYPE {
 	Post,
     PostEdit,
 	Score,
-	Complain
+	Complain,
+    Comment,
+    CommentEdit,
+    CommentScore
 };
 //-----------------------------------------------------
 enum ABMODE {
@@ -72,13 +107,26 @@ enum ANTIBOTRESULT {
     NicknameLong = 19,
     ReferrerSelf = 20,
     FailedOpReturn = 21,
-    InvalideBlocking = 22,
+    InvalidBlocking = 22,
     DoubleBlocking = 23,
     SelfBlocking = 24,
     DoublePostEdit = 25,
     PostEditLimit = 26,
     PostEditUnauthorized = 27,
-    ManyTransactions = 28
+    ManyTransactions = 28,
+    CommentLimit = 29,
+    CommentEditLimit = 30,
+    CommentScoreLimit = 31,
+    Blocking = 32,
+    Size = 33,
+    InvalidParentComment = 34,
+    InvalidAnswerComment = 35,
+    DoubleCommentEdit = 37,
+    SelfCommentScore = 38,
+    DoubleCommentDelete = 39,
+    DoubleCommentScore = 40,
+    OpReturnFailed = 41,
+    CommentDeletedEdit = 42,
 };
 //-----------------------------------------------------
 struct BlockVTX {
@@ -105,9 +153,12 @@ struct BlockVTX {
 class AntiBot
 {
 private:
-	void getMode(std::string _address, ABMODE &mode, int &reputation, int64_t &balance, int height);
+	void getMode(std::string _address, ABMODE &mode, double &reputation, int64_t &balance, int height);
 	void getMode(std::string _address, ABMODE &mode, int height);
 	int getLimit(CHECKTYPE _type, ABMODE _mode, int height);
+
+	// Maximum size for reindexer item with switch for type
+	bool check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height);
 
 	// Check new post and edited post from address
 	bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
@@ -128,8 +179,13 @@ private:
 	// Check blocking/unblocking
 	bool check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
 
-	// Maximum size for reindexer item with switch for type
-	bool check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height);
+    // Check new comment
+    bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
+    bool check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
+    bool check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
+
+    // Check new score to comment
+    bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
 
 public:
     explicit AntiBot();
@@ -163,8 +219,8 @@ public:
         to test the possibility of changing that reputation
     */
     bool AllowModifyReputation(std::string _score_address, int height);
-    bool AllowModifyReputation(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time);
-    bool AllowLottery(std::string _score_address, std::string _post_address, int height, std::string _txid, int64_t _tx_time);
+    bool AllowModifyReputationOverPost(std::string _score_address, std::string _post_address, int height, const CTransactionRef& tx, bool lottery);
+    bool AllowModifyReputationOverComment(std::string _score_address, std::string _comment_address, int height, const CTransactionRef& tx, bool lottery);
 };
 //-----------------------------------------------------
 extern std::unique_ptr<AntiBot> g_antibot;

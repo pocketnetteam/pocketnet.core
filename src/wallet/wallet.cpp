@@ -4325,6 +4325,7 @@ int CMerkleTx::GetDepthInMainChain() const
 	return ((nIndex == -1) ? (-1) : 1) * (chainActive.Height() - pindex->nHeight + 1);
 }
 
+// TODO (brangr): Fix assert
 int CMerkleTx::GetBlocksToMaturity() const
 {
 	if (!(IsCoinBase() || IsCoinStake())) {
