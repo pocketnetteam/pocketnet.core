@@ -2649,10 +2649,15 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
         a.push_back(msg);
     }
 
+    std::vector<std::string> txSent;
     reindexer::QueryResults transactions;
     g_pocketdb->DB()->Select(reindexer::Query("UTXO").Where("address", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult), transactions);
     for (auto it : transactions) {
         reindexer::Item itm(it.GetItem());
+        
+        // Double transaction notify not allowed
+        if (std::find(txSent.begin(), txSent.end(), itm["txid"].As<string>()) != txSent.end()) continue;
+
         UniValue msg(UniValue::VOBJ);
         msg.pushKV("addr", itm["address"].As<string>());
         msg.pushKV("msg", "transaction");
@@ -2687,7 +2692,8 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
                         optype = "unsubscribe";
                 }
             }
-            if (optype != "") msg.pushKV("mesType", optype);
+            if (optype != "") msg.pushKV("type", optype);
+
             UniValue txinfo(UniValue::VOBJ);
             TxToJSON(*tx, hash_block, txinfo);
             msg.pushKV("txinfo", txinfo);
