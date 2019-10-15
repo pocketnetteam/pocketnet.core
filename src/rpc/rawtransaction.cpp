@@ -2690,9 +2690,22 @@ UniValue getmissedinfo(const JSONRPCRequest& request, int version = 0)
                         optype = "userInfo";
                     else if (spl[1] == OR_UNSUBSCRIBE)
                         optype = "unsubscribe";
+                    else if (spl[1] == OR_COMMENT)
+                        optype = "comment";
+                    else if (spl[1] == OR_COMMENT_EDIT)
+                        optype = "commentEdit";
+                    else if (spl[1] == OR_COMMENT_DELETE)
+                        optype = "commentDelete";
+                    else if (spl[1] == OR_COMMENT_SCORE)
+                        optype = "cScore";
                 }
             }
+
             if (optype != "") msg.pushKV("type", optype);
+            // if (optype != "") {
+            //     txSent.push_back(itm["txid"].As<string>());
+            //     continue;
+            // }
 
             UniValue txinfo(UniValue::VOBJ);
             TxToJSON(*tx, hash_block, txinfo);
