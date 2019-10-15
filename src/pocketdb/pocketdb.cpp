@@ -760,6 +760,10 @@ Error PocketDB::CommitLastItem(std::string table, Item& itm) {
     }
 
     // Insert new item
+    itm["last"] = true;
+    itm["scoreUp"] = 0;
+    itm["scoreDown"] = 0;
+    itm["reputation"] = 0;
     err = UpsertWithCommit(table, itm);
     return err;
 }
