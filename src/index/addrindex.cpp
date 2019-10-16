@@ -566,7 +566,7 @@ bool AddrIndex::WriteRTransaction(std::string table, reindexer::Item& item, int 
         std::string message_decoded = UrlDecode(item["message"].As<string>());
         item["message_"] = ClearHtmlTags(message_decoded);
 
-        if (!g_pocketdb->CommitPostItem(item).ok()) return false;
+        if (!g_pocketdb->CommitPostItem(item, height).ok()) return false;
     }
 
     // Score for post
@@ -593,7 +593,7 @@ bool AddrIndex::WriteRTransaction(std::string table, reindexer::Item& item, int 
 
     // New Comment
     if (table == "Comment") {
-        if (!g_pocketdb->CommitLastItem("Comment", item).ok()) return false;
+        if (!g_pocketdb->CommitLastItem("Comment", item, height).ok()) return false;
     }
 
     // Comment score

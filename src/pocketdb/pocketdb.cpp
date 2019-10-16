@@ -654,7 +654,9 @@ Error PocketDB::UpdateBlockingView(std::string address, std::string address_to)
 }
 
 
-Error PocketDB::CommitPostItem(Item& itm) {
+Error PocketDB::CommitPostItem(Item& itm, int height) {
+    Error err;
+    
     // Move exists Post to history table
     if (itm["txidEdit"].As<string>() != "") {
         Item cur_post_item;
@@ -674,16 +676,26 @@ Error PocketDB::CommitPostItem(Item& itm) {
             hist_post_item["images"] = cur_post_item["images"];
             hist_post_item["settings"] = cur_post_item["settings"].As<string>();
             
-            Error err = UpsertWithCommit("PostsHistory", hist_post_item);
+            err = UpsertWithCommit("PostsHistory", hist_post_item);
             if (!err.ok()) return err;
 
             err = DeleteWithCommit(Query("Posts").Where("txid", CondEq, itm["txid"].As<string>()));
             if (!err.ok()) return err;
         }
+
+        // Restore rating for Edit Post
+        int sum = 0;
+        int cnt = 0;
+        int rep = 0;
+        GetPostRating(itm["txid"].As<string>(), sum, cnt, rep, height);
+        itm["scoreSum"] = sum;
+        itm["scoreCnt"] = cnt;
+        itm["reputation"] = rep;
     }
 
     // Insert new Post
-    return UpsertWithCommit("Posts", itm);
+    err = UpsertWithCommit("Posts", itm);
+    return err;
 }
 
 Error PocketDB::RestorePostItem(std::string posttxid, int height) {
@@ -743,7 +755,7 @@ Error PocketDB::RestorePostItem(std::string posttxid, int height) {
 }
 
 
-Error PocketDB::CommitLastItem(std::string table, Item& itm) {
+Error PocketDB::CommitLastItem(std::string table, Item& itm, int height) {
     
     // Disable all founded last items
     QueryResults all_res;
@@ -759,11 +771,17 @@ Error PocketDB::CommitLastItem(std::string table, Item& itm) {
         if (!err.ok()) return err;
     }
 
+    // Restore rating
+    int up = 0;
+    int down = 0;
+    int rep = 0;
+    GetCommentRating(itm["otxid"].As<string>(), up, down, rep, height);
+    itm["scoreUp"] = up;
+    itm["scoreDown"] = down;
+    itm["reputation"] = rep;
+
     // Insert new item
     itm["last"] = true;
-    itm["scoreUp"] = 0;
-    itm["scoreDown"] = 0;
-    itm["reputation"] = 0;
     err = UpsertWithCommit(table, itm);
     return err;
 }

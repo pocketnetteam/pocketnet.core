@@ -90,12 +90,12 @@ public:
     void SearchTags(std::string search, int count, std::map<std::string, int>& tags, int& totalCount);
 
     // Add new Post with move old version to history table
-    Error CommitPostItem(Item& itm);
+    Error CommitPostItem(Item& itm, int height);
 
     // Restore previous version of Post
     Error RestorePostItem(std::string posttxid, int height);
 
-    Error CommitLastItem(std::string table, Item& itm);
+    Error CommitLastItem(std::string table, Item& itm, int height);
     Error RestoreLastItem(std::string table, std::string txid, std::string otxid, int height);
 
 };
