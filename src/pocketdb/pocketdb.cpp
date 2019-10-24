@@ -20,6 +20,11 @@ PocketDB::PocketDB()
 }
 PocketDB::~PocketDB()
 {
+    CloseNamespaces();
+}
+
+void PocketDB::CloseNamespaces() {
+    db->CloseNamespace("Service");
     db->CloseNamespace("Mempool");
     db->CloseNamespace("UsersView");
     db->CloseNamespace("Users");
@@ -40,6 +45,44 @@ PocketDB::~PocketDB()
     db->CloseNamespace("Comments");
     db->CloseNamespace("Comment");
 }
+
+// Check for update DB
+bool PocketDB::UpdateDB() {
+    // Find current version of RDB
+    int current_version = 0;
+    Item service_itm;
+    Error err = SelectOne(Query("Service").Sort("version", true), service_itm);
+    if (err.ok()) current_version = service_itm["version"].As<int>();
+
+    // Need to update?
+    if (current_version < version) {
+        LogPrintf("Current version RDB=%s. Need to update RDB structure to version %s. Blockchain data will be erased and uploaded again.\n", current_version, version);
+        
+        CloseNamespaces();
+        db->~Reindexer();
+        db = nullptr;
+
+        remove_all(GetDataDir() / "blocks");
+        remove_all(GetDataDir() / "chainstate");
+        remove_all(GetDataDir() / "indexes");
+        remove_all(GetDataDir() / "pocketdb");
+
+        return ConnectDB();
+    }
+
+    return true;
+}
+
+bool PocketDB::ConnectDB() {
+    db = new Reindexer();
+    Error err = db->Connect("builtin://" + (GetDataDir() / "pocketdb").string());
+    if (!err.ok()) {
+        LogPrintf("Cannot open Reindexer DB (%s) - %s\n", (GetDataDir() / "pocketdb").string(), err.what());
+        return false;
+    }
+
+    return InitDB();
+}
 //-----------------------------------------------------
 
 //-----------------------------------------------------
@@ -50,28 +93,49 @@ bool findInVector(std::vector<reindexer::NamespaceDef> defs, std::string name)
 
 bool PocketDB::Init()
 {
-    Error err;
-    err = db->Connect("builtin://" + (GetDataDir() / "pocketdb").string());
-    if (!err.ok()) {
-        LogPrintf("Error loading Reindexer DB (%s) - %s\n", (GetDataDir() / "pocketdb").string(), err.what());
-        return false;
-    }
-
-    InitDB();
+    if (!ConnectDB()) return false;
+    if (!UpdateDB()) return false;
+    
     LogPrintf("Loaded Reindexer DB (%s)\n", (GetDataDir() / "pocketdb").string());
+
+    // Save current version
+    Item service_new_item = db->NewItem("Service");
+    service_new_item["version"] = version;
+    UpsertWithCommit("Service", service_new_item);
+
+    // Turn on/off statistic
+    Item conf_item = db->NewItem("#config");
+    conf_item.FromJSON(R"json({
+		"type":"profiling", 
+		"profiling":{
+			"queriesperfstats":false,
+			"queries_threshold_us":10,
+			"perfstats":false,
+			"memstats":false,
+            "activitystats": false
+		}
+	})json");
+    UpsertWithCommit("#config", conf_item);
 
     return true;
 }
 
 bool PocketDB::InitDB(std::string table)
 {
+    // Service
+    if (table == "Service" || table == "ALL") {
+        db->OpenNamespace("Service", StorageOpts().Enabled().CreateIfMissing());
+        db->AddIndex("Service", {"version", "tree", "int", IndexOpts().PK()});
+        db->Commit("Service");
+    }
+
 	// RI Mempool
     if (table == "Mempool" || table == "ALL") {
         db->OpenNamespace("Mempool", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("Mempool", {"txid", "hash", "string", IndexOpts().PK()});
         db->AddIndex("Mempool", {"txid_source", "hash", "string", IndexOpts()});
-        db->AddIndex("Mempool", {"table", "", "string", IndexOpts()});
-        db->AddIndex("Mempool", {"data", "", "string", IndexOpts()});
+        db->AddIndex("Mempool", {"table", "-", "string", IndexOpts()});
+        db->AddIndex("Mempool", {"data", "-", "string", IndexOpts()});
         db->Commit("Mempool");
     }
 
@@ -80,22 +144,21 @@ bool PocketDB::InitDB(std::string table)
         db->OpenNamespace("UsersView", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("UsersView", {"txid", "hash", "string", IndexOpts()});
         db->AddIndex("UsersView", {"block", "tree", "int", IndexOpts()});
-        db->AddIndex("UsersView", {"time", "", "int64", IndexOpts()});
+        db->AddIndex("UsersView", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("UsersView", {"address", "hash", "string", IndexOpts().PK()});
         db->AddIndex("UsersView", {"name", "hash", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("UsersView", {"birthday", "", "int", IndexOpts()});
-        db->AddIndex("UsersView", {"gender", "", "int", IndexOpts()});
-        db->AddIndex("UsersView", {"regdate", "tree", "int64", IndexOpts()});
-        db->AddIndex("UsersView", {"avatar", "", "string", IndexOpts()});
-        db->AddIndex("UsersView", {"about", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("UsersView", {"lang", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("UsersView", {"url", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("UsersView", {"pubkey", "", "string", IndexOpts()});
-        db->AddIndex("UsersView", {"donations", "", "string", IndexOpts()});
+        db->AddIndex("UsersView", {"birthday", "-", "int", IndexOpts()});
+        db->AddIndex("UsersView", {"gender", "-", "int", IndexOpts()});
+        db->AddIndex("UsersView", {"regdate", "-", "int64", IndexOpts()});
+        db->AddIndex("UsersView", {"avatar", "-", "string", IndexOpts()});
+        db->AddIndex("UsersView", {"about", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("UsersView", {"lang", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("UsersView", {"url", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("UsersView", {"pubkey", "-", "string", IndexOpts()});
+        db->AddIndex("UsersView", {"donations", "-", "string", IndexOpts()});
         db->AddIndex("UsersView", {"referrer", "hash", "string", IndexOpts()});
-        db->AddIndex("UsersView", {"id", "tree", "int", IndexOpts()});
-        db->AddIndex("UsersView", {"reputation", "", "double", IndexOpts()});
-        db->AddIndex("UsersView", {"name+about", {"name","about"}, "text", "composite", IndexOpts().SetCollateMode(CollateUTF8) });
+        db->AddIndex("UsersView", {"id", "-", "int", IndexOpts()});
+        db->AddIndex("UsersView", {"reputation", "-", "int", IndexOpts()});
         db->AddIndex("UsersView", {"name_text", {"name"}, "text", "composite", IndexOpts().SetCollateMode(CollateUTF8) });
         db->Commit("UsersView");
     }
@@ -107,18 +170,18 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Users", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("Users", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("Users", {"address", "hash", "string", IndexOpts()});
-        db->AddIndex("Users", {"name", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Users", {"birthday", "", "int", IndexOpts()});
-        db->AddIndex("Users", {"gender", "", "int", IndexOpts()});
-        db->AddIndex("Users", {"regdate", "", "int64", IndexOpts()});
-        db->AddIndex("Users", {"avatar", "", "string", IndexOpts()});
-        db->AddIndex("Users", {"about", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Users", {"lang", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Users", {"url", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Users", {"pubkey", "", "string", IndexOpts()});
-        db->AddIndex("Users", {"donations", "", "string", IndexOpts()});
-        db->AddIndex("Users", {"referrer", "", "string", IndexOpts()});
-        db->AddIndex("Users", {"id", "", "int", IndexOpts()});
+        db->AddIndex("Users", {"name", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Users", {"birthday", "-", "int", IndexOpts()});
+        db->AddIndex("Users", {"gender", "-", "int", IndexOpts()});
+        db->AddIndex("Users", {"regdate", "-", "int64", IndexOpts()});
+        db->AddIndex("Users", {"avatar", "-", "string", IndexOpts()});
+        db->AddIndex("Users", {"about", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Users", {"lang", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Users", {"url", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Users", {"pubkey", "-", "string", IndexOpts()});
+        db->AddIndex("Users", {"donations", "-", "string", IndexOpts()});
+        db->AddIndex("Users", {"referrer", "-", "string", IndexOpts()});
+        db->AddIndex("Users", {"id", "-", "int", IndexOpts()});
         db->Commit("Users");
     }
 
@@ -127,17 +190,9 @@ bool PocketDB::InitDB(std::string table)
         db->OpenNamespace("UserRatings", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("UserRatings", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("UserRatings", {"address", "hash", "string", IndexOpts()});
-        db->AddIndex("UserRatings", {"reputation", "", "double", IndexOpts()});
+        db->AddIndex("UserRatings", {"reputation", "-", "int", IndexOpts()});
         db->AddIndex("UserRatings", {"address+block", {"address", "block"}, "hash", "composite", IndexOpts().PK()});
         db->Commit("UserRatings");
-    }
-
-    // Tags
-    if (table == "Tags" || table == "ALL") {
-        db->OpenNamespace("Tags", StorageOpts().Enabled().CreateIfMissing());
-        db->AddIndex("Tags", {"tag", "text", "string", IndexOpts().SetCollateMode(CollateUTF8).PK()});
-        db->AddIndex("Tags", {"rating", "tree", "int", IndexOpts()});
-        db->Commit("Tags");
     }
 
     // Posts
@@ -153,18 +208,18 @@ bool PocketDB::InitDB(std::string table)
         // 1 - video post
         // 2 - image post
         db->AddIndex("Posts", {"type", "tree", "int", IndexOpts()});
-        db->AddIndex("Posts", {"lang", "hash", "string", IndexOpts()});
-        db->AddIndex("Posts", {"caption", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"caption_", "text", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"message", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"message_", "text", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"tags", "", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"url", "text", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"images", "", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"settings", "text", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"scoreSum", "", "int", IndexOpts()});
-        db->AddIndex("Posts", {"scoreCnt", "", "int", IndexOpts()});
-        db->AddIndex("Posts", {"reputation", "", "int", IndexOpts()});
+        db->AddIndex("Posts", {"lang", "-", "string", IndexOpts()});
+        db->AddIndex("Posts", {"caption", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"caption_", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"message", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"message_", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"tags", "-", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"url", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"images", "-", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"settings", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"scoreSum", "-", "int", IndexOpts()});
+        db->AddIndex("Posts", {"scoreCnt", "-", "int", IndexOpts()});
+        db->AddIndex("Posts", {"reputation", "-", "int", IndexOpts()});
         db->AddIndex("Posts", {"caption+message", {"caption_", "message_"}, "text", "composite", IndexOpts().SetCollateMode(CollateUTF8)});
         db->Commit("Posts");
     }
@@ -175,16 +230,16 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("PostsHistory", {"txid", "hash", "string", IndexOpts()});
         db->AddIndex("PostsHistory", {"txidEdit", "hash", "string", IndexOpts()});
         db->AddIndex("PostsHistory", {"block", "tree", "int", IndexOpts()});
-        db->AddIndex("PostsHistory", {"time", "", "int64", IndexOpts()});
-        db->AddIndex("PostsHistory", {"address", "", "string", IndexOpts()});
-        db->AddIndex("PostsHistory", {"type", "tree", "int", IndexOpts()});
-        db->AddIndex("PostsHistory", {"lang", "", "string", IndexOpts()});
-        db->AddIndex("PostsHistory", {"caption", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("PostsHistory", {"message", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("PostsHistory", {"tags", "", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
-        db->AddIndex("PostsHistory", {"url", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("PostsHistory", {"images", "", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
-        db->AddIndex("PostsHistory", {"settings", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("PostsHistory", {"time", "tree", "int64", IndexOpts()});
+        db->AddIndex("PostsHistory", {"address", "hash", "string", IndexOpts()});
+        db->AddIndex("PostsHistory", {"type", "-", "int", IndexOpts()});
+        db->AddIndex("PostsHistory", {"lang", "-", "string", IndexOpts()});
+        db->AddIndex("PostsHistory", {"caption", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("PostsHistory", {"message", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("PostsHistory", {"tags", "-", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
+        db->AddIndex("PostsHistory", {"url", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("PostsHistory", {"images", "-", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
+        db->AddIndex("PostsHistory", {"settings", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("PostsHistory", {"txid+block", {"txid", "block"}, "hash", "composite", IndexOpts().PK()});
         db->Commit("PostsHistory");
     }
@@ -194,9 +249,9 @@ bool PocketDB::InitDB(std::string table)
         db->OpenNamespace("PostRatings", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("PostRatings", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("PostRatings", {"posttxid", "hash", "string", IndexOpts()});
-        db->AddIndex("PostRatings", {"scoreSum", "", "int", IndexOpts()});
-        db->AddIndex("PostRatings", {"scoreCnt", "", "int", IndexOpts()});
-        db->AddIndex("PostRatings", {"reputation", "", "int", IndexOpts()});
+        db->AddIndex("PostRatings", {"scoreSum", "-", "int", IndexOpts()});
+        db->AddIndex("PostRatings", {"scoreCnt", "-", "int", IndexOpts()});
+        db->AddIndex("PostRatings", {"reputation", "-", "int", IndexOpts()});
         db->AddIndex("PostRatings", {"posttxid+block", {"posttxid", "block"}, "hash", "composite", IndexOpts().PK()});
         db->Commit("PostRatings");
     }
@@ -209,21 +264,19 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Scores", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("Scores", {"posttxid", "hash", "string", IndexOpts()});
         db->AddIndex("Scores", {"address", "hash", "string", IndexOpts()});
-        db->AddIndex("Scores", {"value", "tree", "int", IndexOpts()});
-        db->AddIndex("Scores", {"address+posttxid", {"address", "posttxid"}, "hash", "composite", IndexOpts()});
+        db->AddIndex("Scores", {"value", "-", "int", IndexOpts()});
         db->Commit("Scores");
     }
 
     // Subscribes
     if (table == "SubscribesView" || table == "ALL") {
         db->OpenNamespace("SubscribesView", StorageOpts().Enabled().CreateIfMissing());
-        db->AddIndex("SubscribesView", {"txid", "hash", "string", IndexOpts()});
+        db->AddIndex("SubscribesView", {"txid", "hash", "string", IndexOpts().PK()});
         db->AddIndex("SubscribesView", {"block", "tree", "int", IndexOpts()});
-        db->AddIndex("SubscribesView", {"time", "", "int64", IndexOpts()});
+        db->AddIndex("SubscribesView", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("SubscribesView", {"address", "hash", "string", IndexOpts()});
         db->AddIndex("SubscribesView", {"address_to", "hash", "string", IndexOpts()});
-        db->AddIndex("SubscribesView", {"private", "", "bool", IndexOpts()});
-        db->AddIndex("SubscribesView", {"address+address_to", {"address", "address_to"}, "hash", "composite", IndexOpts().PK()});
+        db->AddIndex("SubscribesView", {"private", "-", "bool", IndexOpts()});
         db->Commit("SubscribesView");
     }
 
@@ -235,22 +288,20 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Subscribes", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("Subscribes", {"address", "hash", "string", IndexOpts()});
         db->AddIndex("Subscribes", {"address_to", "hash", "string", IndexOpts()});
-        db->AddIndex("Subscribes", {"private", "", "bool", IndexOpts()});
-        db->AddIndex("Subscribes", {"unsubscribe", "", "bool", IndexOpts()});
-        db->AddIndex("Subscribes", {"address+address_to", {"address", "address_to"}, "hash", "composite", IndexOpts()});
+        db->AddIndex("Subscribes", {"private", "-", "bool", IndexOpts()});
+        db->AddIndex("Subscribes", {"unsubscribe", "-", "bool", IndexOpts()});
         db->Commit("Subscribes");
     }
 
 	// Blocking
     if (table == "BlockingView" || table == "ALL") {
         db->OpenNamespace("BlockingView", StorageOpts().Enabled().CreateIfMissing());
-        db->AddIndex("BlockingView", {"txid", "hash", "string", IndexOpts()});
+        db->AddIndex("BlockingView", {"txid", "hash", "string", IndexOpts().PK()});
         db->AddIndex("BlockingView", {"block", "tree", "int", IndexOpts()});
-        db->AddIndex("BlockingView", {"time", "", "int64", IndexOpts()});
+        db->AddIndex("BlockingView", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("BlockingView", {"address", "hash", "string", IndexOpts()});
         db->AddIndex("BlockingView", {"address_to", "hash", "string", IndexOpts()});
-        db->AddIndex("BlockingView", {"address_reputation", "", "double", IndexOpts()});
-        db->AddIndex("BlockingView", {"address+address_to", {"address", "address_to"}, "hash", "composite", IndexOpts().PK()});
+        db->AddIndex("BlockingView", {"address_reputation", "-", "int", IndexOpts()});
         db->Commit("BlockingView");
     }
 
@@ -262,21 +313,9 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Blocking", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("Blocking", {"address", "hash", "string", IndexOpts()});
         db->AddIndex("Blocking", {"address_to", "hash", "string", IndexOpts()});
-        db->AddIndex("Blocking", {"unblocking", "", "bool", IndexOpts()});
-        db->AddIndex("Blocking", {"address+address_to", {"address", "address_to"}, "hash", "composite", IndexOpts()});
+        db->AddIndex("Blocking", {"unblocking", "-", "bool", IndexOpts()});
         db->Commit("Blocking");
     }
-
-    // Reposts
-    // if (table == "Reposts" || table == "ALL") {
-    //     db->OpenNamespace("Reposts", StorageOpts().Enabled().CreateIfMissing());
-    //     db->AddIndex("Reposts", {"txid", "hash", "string", IndexOpts().PK()});
-    //     db->AddIndex("Reposts", {"block", "tree", "int", IndexOpts()});
-    //     db->AddIndex("Reposts", {"address", "hash", "string", IndexOpts()});
-    //     db->AddIndex("Reposts", {"posttxid", "hash", "string", IndexOpts()});
-    //     db->AddIndex("Reposts", {"address+posttxid", {"address", "posttxid"}, "hash", "composite", IndexOpts()});
-    //     db->Commit("Reposts");
-    // }
 
     // Complains
     if (table == "Complains" || table == "ALL") {
@@ -286,20 +325,19 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Complains", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("Complains", {"posttxid", "hash", "string", IndexOpts()});
         db->AddIndex("Complains", {"address", "hash", "string", IndexOpts()});
-        db->AddIndex("Complains", {"reason", "tree", "int", IndexOpts()});
-        db->AddIndex("Complains", {"address+posttxid", {"address", "posttxid"}, "hash", "composite", IndexOpts()});
+        db->AddIndex("Complains", {"reason", "-", "int", IndexOpts()});
         db->Commit("Complains");
     }
 
     // UTXO
     if (table == "UTXO" || table == "ALL") {
         db->OpenNamespace("UTXO", StorageOpts().Enabled().CreateIfMissing());
-        db->AddIndex("UTXO", {"txid", "", "string", IndexOpts()});
-        db->AddIndex("UTXO", {"txout", "", "int", IndexOpts()});
-        db->AddIndex("UTXO", {"time", "tree", "int64", IndexOpts()});
+        db->AddIndex("UTXO", {"txid", "-", "string", IndexOpts()});
+        db->AddIndex("UTXO", {"txout", "-", "int", IndexOpts()});
+        db->AddIndex("UTXO", {"time", "-", "int64", IndexOpts()});
         db->AddIndex("UTXO", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("UTXO", {"address", "hash", "string", IndexOpts()});
-        db->AddIndex("UTXO", {"amount", "", "int64", IndexOpts()});
+        db->AddIndex("UTXO", {"amount", "-", "int64", IndexOpts()});
         db->AddIndex("UTXO", {"spent_block", "tree", "int", IndexOpts()});
         db->AddIndex("UTXO", {"txid+txout", {"txid", "txout"}, "hash", "composite", IndexOpts().PK()});
         db->Commit("UTXO");
@@ -315,39 +353,22 @@ bool PocketDB::InitDB(std::string table)
         db->Commit("Addresses");
     }
 
-    // Comments
-    if (table == "Comments" || table == "ALL") {
-        db->OpenNamespace("Comments", StorageOpts().Enabled().CreateIfMissing());
-        db->AddIndex("Comments", {"id", "tree", "string", IndexOpts().PK()});
-        db->AddIndex("Comments", {"postid", "tree", "string", IndexOpts()});
-        db->AddIndex("Comments", {"address", "tree", "string", IndexOpts()});
-        db->AddIndex("Comments", {"pubkey", "", "string", IndexOpts()});
-        db->AddIndex("Comments", {"signature", "", "string", IndexOpts()});
-        db->AddIndex("Comments", {"time", "tree", "int64", IndexOpts()});
-        db->AddIndex("Comments", {"block", "tree", "int", IndexOpts()});
-        db->AddIndex("Comments", {"msg", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Comments", {"parentid", "tree", "string", IndexOpts()});
-        db->AddIndex("Comments", {"answerid", "tree", "string", IndexOpts()});
-        db->AddIndex("Comments", {"timeupd", "tree", "int64", IndexOpts()});
-        db->Commit("Comments");
-    }
-
     // Comment
     if (table == "Comment" || table == "ALL") {
         db->OpenNamespace("Comment", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("Comment", {"txid", "hash", "string", IndexOpts().PK()});
         db->AddIndex("Comment", {"otxid", "hash", "string", IndexOpts()});
-        db->AddIndex("Comment", {"last", "", "bool", IndexOpts()});
-        db->AddIndex("Comment", {"postid", "tree", "string", IndexOpts()});
-        db->AddIndex("Comment", {"address", "tree", "string", IndexOpts()});
+        db->AddIndex("Comment", {"last", "-", "bool", IndexOpts()});
+        db->AddIndex("Comment", {"postid", "hash", "string", IndexOpts()});
+        db->AddIndex("Comment", {"address", "hash", "string", IndexOpts()});
         db->AddIndex("Comment", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("Comment", {"block", "tree", "int", IndexOpts()});
-        db->AddIndex("Comment", {"msg", "", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Comment", {"parentid", "tree", "string", IndexOpts()});
-        db->AddIndex("Comment", {"answerid", "tree", "string", IndexOpts()});
-        db->AddIndex("Comment", {"scoreUp", "", "int", IndexOpts()});
-        db->AddIndex("Comment", {"scoreDown", "", "int", IndexOpts()});
-        db->AddIndex("Comment", {"reputation", "", "int", IndexOpts()});
+        db->AddIndex("Comment", {"msg", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Comment", {"parentid", "hash", "string", IndexOpts()});
+        db->AddIndex("Comment", {"answerid", "hash", "string", IndexOpts()});
+        db->AddIndex("Comment", {"scoreUp", "-", "int", IndexOpts()});
+        db->AddIndex("Comment", {"scoreDown", "-", "int", IndexOpts()});
+        db->AddIndex("Comment", {"reputation", "-", "int", IndexOpts()});
         db->Commit("Comment");
     }
 
@@ -356,9 +377,9 @@ bool PocketDB::InitDB(std::string table)
         db->OpenNamespace("CommentRatings", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("CommentRatings", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("CommentRatings", {"commentid", "hash", "string", IndexOpts()});
-        db->AddIndex("CommentRatings", {"scoreUp", "", "int", IndexOpts()});
-        db->AddIndex("CommentRatings", {"scoreDown", "", "int", IndexOpts()});
-        db->AddIndex("CommentRatings", {"reputation", "", "int", IndexOpts()});
+        db->AddIndex("CommentRatings", {"scoreUp", "-", "int", IndexOpts()});
+        db->AddIndex("CommentRatings", {"scoreDown", "-", "int", IndexOpts()});
+        db->AddIndex("CommentRatings", {"reputation", "-", "int", IndexOpts()});
         db->AddIndex("CommentRatings", {"commentid+block", {"commentid", "block"}, "hash", "composite", IndexOpts().PK()});
         db->Commit("CommentRatings");
     }
@@ -371,8 +392,7 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("CommentScores", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("CommentScores", {"commentid", "hash", "string", IndexOpts()});
         db->AddIndex("CommentScores", {"address", "hash", "string", IndexOpts()});
-        db->AddIndex("CommentScores", {"value", "tree", "int", IndexOpts()});
-        db->AddIndex("CommentScores", {"address+commentid", {"address", "commentid"}, "hash", "composite", IndexOpts()});
+        db->AddIndex("CommentScores", {"value", "-", "int", IndexOpts()});
         db->Commit("CommentScores");
     }
 
@@ -420,7 +440,7 @@ bool PocketDB::GetStatistic(std::string table, UniValue& obj)
     Error err;
     if (table != "") {
         QueryResults _res;
-        err = db->Select(reindexer::Query(table).ReqTotal(), _res);
+        err = db->Select(reindexer::Query(table).Sort("block", true).ReqTotal(), _res);
         if (err.ok()) {
             obj.pushKV("total", (uint64_t)_res.TotalCount());
 
@@ -845,10 +865,10 @@ int64_t PocketDB::GetUserBalance(std::string _address, int height)
     }
 }
 
-double PocketDB::GetUserReputation(std::string _address, int height)
+int PocketDB::GetUserReputation(std::string _address, int height)
 {
     // Set to default if rating for user not found
-    double rep = 0.0;
+    int rep = 0;
 
     // Sorting by block desc - last accumulating rating
     Item _itm_rating;
@@ -860,13 +880,13 @@ double PocketDB::GetUserReputation(std::string _address, int height)
             , _itm_rating
         ).ok()
     ) {
-        rep = _itm_rating["reputation"].As<double>();
+        rep = _itm_rating["reputation"].As<int>();
     }
 
     return rep;
 }
 
-bool PocketDB::UpdateUserReputation(std::string address, double rep)
+bool PocketDB::SetUserReputation(std::string address, int rep)
 {
     reindexer::QueryResults userViewRes;
     if (!db->Select(reindexer::Query("UsersView", 0, 1).Where("address", CondEq, address), userViewRes).ok()) return false;
@@ -881,7 +901,7 @@ bool PocketDB::UpdateUserReputation(std::string address, double rep)
 
 bool PocketDB::UpdateUserReputation(std::string address, int height)
 {
-    double rep = GetUserReputation(address, height);
+    int rep = GetUserReputation(address, height);
     return UpdateUserReputation(address, rep);
 }
 

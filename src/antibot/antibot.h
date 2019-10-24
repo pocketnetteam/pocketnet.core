@@ -17,7 +17,7 @@ struct UserStateItem {
 	std::string address;
 	int64_t user_registration_date;
 	int64_t address_registration_date;
-	double reputation;
+	int reputation;
 	int64_t balance;
 	bool trial;
 
@@ -48,7 +48,7 @@ struct UserStateItem {
         result.pushKV("address", address);
         result.pushKV("user_reg_date", user_registration_date);
         result.pushKV("addr_reg_date", address_registration_date);
-        result.pushKV("reputation", reputation);
+        result.pushKV("reputation", reputation / 10.0);
         result.pushKV("balance", balance);
         result.pushKV("trial", trial);
         result.pushKV("post_unspent", post_unspent);
@@ -153,7 +153,7 @@ struct BlockVTX {
 class AntiBot
 {
 private:
-	void getMode(std::string _address, ABMODE &mode, double &reputation, int64_t &balance, int height);
+	void getMode(std::string _address, ABMODE &mode, int &reputation, int64_t &balance, int height);
 	void getMode(std::string _address, ABMODE &mode, int height);
 	int getLimit(CHECKTYPE _type, ABMODE _mode, int height);
 

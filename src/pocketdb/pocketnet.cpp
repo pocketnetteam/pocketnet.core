@@ -94,6 +94,9 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
     return ret;
 }
 
+// User reputation - double value in integer
+// i.e. 213 = 21.3
+// i.e. 45  = 4.5
 static std::map<Limit, std::map<int, int64_t>> Limits;
 void FillLimits(const CChainParams& params) {
 
@@ -103,27 +106,27 @@ void FillLimits(const CChainParams& params) {
 
     // threshold_reputation
     std::map<int, int64_t> _threshold_reputation;
-    _threshold_reputation.insert({ 0, 50 });
-    _threshold_reputation.insert({ fork_20190830, 100 });
+    _threshold_reputation.insert({ 0, 500 });
+    _threshold_reputation.insert({ fork_20190830, 1000 });
     Limits.insert(std::make_pair(Limit::threshold_reputation, _threshold_reputation));
 
     // threshold_reputation_score
     std::map<int, int64_t> _threshold_reputation_score;
-    _threshold_reputation_score.insert({ 0, -1000 });
-    _threshold_reputation_score.insert({ (int)params.GetConsensus().nHeight_version_1_0_0, 50 });
-    _threshold_reputation_score.insert({ fork_20190830, 100 });
+    _threshold_reputation_score.insert({ 0, -10000 });
+    _threshold_reputation_score.insert({ (int)params.GetConsensus().nHeight_version_1_0_0, 500 });
+    _threshold_reputation_score.insert({ fork_20190830, 1000 });
     Limits.insert(std::make_pair(Limit::threshold_reputation_score, _threshold_reputation_score));
 
     // threshold_reputation_complains
     std::map<int, int64_t> _threshold_reputation_complains;
-    _threshold_reputation_complains.insert({ 0, 50 });
-    _threshold_reputation_complains.insert({ fork_20190830, 100 });
+    _threshold_reputation_complains.insert({ 0, 500 });
+    _threshold_reputation_complains.insert({ fork_20190830, 1000 });
     Limits.insert(std::make_pair(Limit::threshold_reputation_complains, _threshold_reputation_complains));
 
     // threshold_reputation_blocking
     std::map<int, int64_t> _threshold_reputation_blocking;
-    _threshold_reputation_blocking.insert({ 0, 50 });
-    _threshold_reputation_blocking.insert({ fork_20190830, 100 });
+    _threshold_reputation_blocking.insert({ 0, 500 });
+    _threshold_reputation_blocking.insert({ fork_20190830, 1000 });
     Limits.insert(std::make_pair(Limit::threshold_reputation_blocking, _threshold_reputation_blocking));
 
     // threshold_balance
@@ -195,7 +198,7 @@ void FillLimits(const CChainParams& params) {
 
     // bad_reputation
     std::map<int, int64_t> _bad_reputation;
-    _bad_reputation.insert({ 0, -50 });
+    _bad_reputation.insert({ 0, -500 });
     Limits.insert(std::make_pair(Limit::bad_reputation, _bad_reputation));
     
     // scores_one_to_one
@@ -267,4 +270,24 @@ void FillLimits(const CChainParams& params) {
 // Get actual limit for current height
 int64_t GetActualLimit(Limit type, int height) {
     return (--Limits[type].upper_bound(height))->second;
+}
+
+
+static std::map<int, std::string> CheckpointsBlocks;
+void FillCheckpoints(const CChainParams& params) {
+    CheckpointsBlocks.emplace(355728, "ff718a5f0d8fb33aa5454a77cb34d0d009a421a86ff67e81275c68a9220f0ecd");
+    CheckpointsBlocks.emplace(355729, "e8dd221233ef8955049179d38edd945f202c7672c08919a4dcca4b91b59d1359");
+    CheckpointsBlocks.emplace(355730, "9b9aa4c3931a91f024a866a69f15979813b3d068a1545f3a96e9ef9e2641d193");
+    CheckpointsBlocks.emplace(355735, "5483eb752c49c50fc5701efcb3efd638acede37cc7d78ee90cc8e41b53791240");
+    CheckpointsBlocks.emplace(355736, "0024dd9843b582faa3a89ab750f52cb75f39f58b425e59761dec74aef4fce209");
+    CheckpointsBlocks.emplace(355737, "237b66bbf8768277e36308e035e3911a58f9fbac1a183ba3c6bbd154b3cb51f6");
+    CheckpointsBlocks.emplace(361934, "b72d9ec3712be053b07ae8e7ce55df739f543d16eac11f19de4f11ccb1e3540c");
+    CheckpointsBlocks.emplace(361945, "17d68d65f8d2b9c5f012ca50aa22d292e2c6d2390a1acde7a491605aece66205");
+    CheckpointsBlocks.emplace(361947, "ae0bec9a7200811f0761242e71b33add2a2a181fc00e903dfa06950bdb0c221a");
+    CheckpointsBlocks.emplace(361955, "092fe8d9d260dc9e301210dc155ca7594d6284fee1d339c8d5ec3b85f1c72c0f");
+}
+
+bool IsCheckpoint(int height, std::string hash) {
+    if (CheckpointsBlocks.find(height) == CheckpointsBlocks.end()) return false;
+    return CheckpointsBlocks[height] == hash;
 }

@@ -161,7 +161,6 @@ void Staker::worker(
             std::shared_ptr<CBlock> block = std::make_shared<CBlock>(blocktemplate->block);
 
             if (signBlock(block, wallet, nFees)) {
-                LogPrintf("=== New PoS Block signed\n");
                 CheckStake(block, wallet, chainparams);
                 MilliSleep(500);
             }

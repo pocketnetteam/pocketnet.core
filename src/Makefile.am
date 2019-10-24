@@ -627,7 +627,6 @@ libpocketcoin_server_a_SOURCES = \
     rpc/rawtransaction.cpp \
     rpc/server.cpp \
     rpc/util.cpp \
-    rpc/comments.cpp \
     rpc/pocketrpc.cpp \
     script/sigcache.cpp \
     shutdown.cpp \

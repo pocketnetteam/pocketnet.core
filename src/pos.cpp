@@ -661,7 +661,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
 bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, std::vector<std::string> winners, opcodetype op_code_type) {
     if (winners.size() > 0 && winners.size() <= 25) {
         CAmount ratingReward = nCredit * 0.5;
-        if (op_code_type == OP_WINNER_COMMENT) ratingReward = ratingReward / 10.0;
+        if (op_code_type == OP_WINNER_COMMENT) ratingReward = ratingReward / 10;
         totalAmount += ratingReward;
 
         int current = 0;

@@ -21,8 +21,14 @@ using namespace reindexer;
 //-----------------------------------------------------
 class PocketDB {
 private:
-    Reindexer* db = new Reindexer();
-	
+    Reindexer* db;
+    
+    int version = 1;
+
+    void CloseNamespaces();
+    bool UpdateDB();
+    bool ConnectDB();
+
 public:
 	PocketDB();
 	~PocketDB();
@@ -69,9 +75,9 @@ public:
 
     // Ratings
     // User
-    bool UpdateUserReputation(std::string address, double rep);
+    bool SetUserReputation(std::string address, int rep);
     bool UpdateUserReputation(std::string address, int height);
-    double GetUserReputation(std::string _address, int height);
+    int GetUserReputation(std::string _address, int height);
 
     // Post
     bool UpdatePostRating(std::string posttxid, int sum, int cnt, int& rep);

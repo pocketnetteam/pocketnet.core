@@ -1049,7 +1049,8 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
 		}
 
 		if (g_txindex) {
-			return g_txindex->FindTx(hash, hashBlock, txOut);
+			if (g_txindex->FindTx(hash, hashBlock, txOut))
+                return true;
 		}
 
 		if (fAllowSlow) { // use coin database to locate block that contains transaction, and scan it
@@ -1894,6 +1895,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 			// problems.
 			return AbortNode(state, "Corrupt block found indicating potential hardware failure; shutting down");
 		}
+
+        if (state.Incompleted()) {
+            // Incompleted means that the reindexer data is lost.
+            // We need to request block data from other nodes.
+            return false;
+        }
+
 		return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 	}
 
@@ -2193,7 +2201,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 		int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
 		if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource)) {
-			return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
+            if (IsCheckpoint(pindex->nHeight, block.GetHash().ToString()))
+                LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
+            else
+                return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
 		}
 	}
 
@@ -2201,23 +2212,17 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 		return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
 
 	//----------------------------------------------------------------------------------
-    uint256 blockhash = block.GetHash();
-
-	// Check Pocketnet transactions
-    if (!CheckBlockAdditional(block, pindex, state)) {
-        if (state.GetRejectCode() == REJECT_INTERNAL) {
-            LogPrintf("--- Receive block without reindexer part (%s)\n", blockhash.GetHex());
-            return false;
-        } else {
-            return false;
-            //return state.DoS(100, error("%s: Antibot failed", __func__), state.GetRejectCode(), "block-antibot-validation-failed");
-        }
+    // Check reindexer data exists and Antibot checks
+    if (!CheckBlockAdditional(block, state)) {
+        return false;
     }
 
-	// Try write reindexer data
+    // Try write reindexer data
     // Data can received by another node or this node created new block
     // and data in mempool
     {
+        uint256 blockhash = block.GetHash();
+
 		// Write received PocketNET data to RIDB
 		if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
 			std::string _pocket_data = POCKETNET_DATA[blockhash];
@@ -2657,8 +2662,15 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 		bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams);
 		GetMainSignals().BlockChecked(blockConnecting, state);
 		if (!rv) {
-			if (state.IsInvalid())
-				InvalidBlockFound(pindexNew, state);
+			if (state.IsInvalid()) {
+
+                if (state.Incompleted()) {
+                    pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
+                } else {
+				    InvalidBlockFound(pindexNew, state);
+                }
+            }
+
 			return error("%s: ConnectBlock %s failed, %s", __func__, pindexNew->GetBlockHash().ToString(), FormatStateMessage(state));
 		}
 		nTime3 = GetTimeMicros();
@@ -2702,9 +2714,6 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 	}
 	//-----------------------------------------------------
 	LogPrintf("+++ Block connected to chain: %d BH:%s\n", pindexNew->nHeight, pindexNew->GetBlockHash().GetHex());
-    for (auto& tx : blockConnecting.vtx) {
-        LogPrintf("  | %s\n", tx->GetHash().GetHex());
-    }
     //-----------------------------------------------------
 	connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
 	return true;
@@ -3160,15 +3169,15 @@ bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainPar
 			if (!ConnectTip(state, chainparams, pindexConnect, pindexConnect == pindexMostWork ? pblock : std::shared_ptr<const CBlock>(), connectTrace, disconnectpool)) {
 				if (state.IsInvalid()) {
 					// The block violates a consensus rule.
-					if (!state.CorruptionPossible()) {
+					if (!state.CorruptionPossible() && !state.Incompleted()) {
 						InvalidChainFound(vpindexToConnect.front());
 					}
+
 					state = CValidationState();
 					fInvalidFound = true;
 					fContinue = false;
 					break;
-				}
-				else {
+				} else {
 					// A system error occurred (disk space, database error, ...).
 					// Make the mempool consistent with the current tip, just in case
 					// any observers try to use it before shutdown.
@@ -3286,6 +3295,7 @@ bool CChainState::ActivateBestChain(CValidationState& state, const CChainParams&
 				std::shared_ptr<const CBlock> nullBlockPtr;
 				if (!ActivateBestChainStep(state, chainparams, pindexMostWork, pblock && pblock->GetHash() == pindexMostWork->GetBlockHash() ? pblock : nullBlockPtr, fInvalidFound, connectTrace))
 					return false;
+                    
 				blocks_connected = true;
 
 				if (fInvalidFound) {
@@ -3740,15 +3750,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 			return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
 				strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(), state.GetDebugMessage()));
 		}
-
-        // Check reindexer part exists
-        {
-            //std::string ri_table;
-            //if (g_addrindex->GetPocketnetTXType(tx, ri_table)) {
-            //    reindexer::Item itm;
-            //    if (!FindRTransaction(_txs_src, tx, ri_table, itm)) return false;
-            //}
-        }
 	}
 
 	unsigned int nSigOps = 0;
@@ -3827,8 +3828,8 @@ bool FindRTransaction(UniValue& _txs_src, const CTransactionRef& tx, std::string
     return false;
 }
 
-bool CheckBlockAdditional(const CBlock& block, const CBlockIndex* pindex, CValidationState& state) {
-	int height = pindex->nHeight;
+bool CheckBlockAdditional(const CBlock& block, CValidationState& state) {
+	// int height = pindex->nHeight;
 	
 	// We need check POCKETNET_DATA array or mempool or general RI tables
 	// for check antibot, consistent block and reindexer db and op_return of transactions
@@ -3858,13 +3859,15 @@ bool CheckBlockAdditional(const CBlock& block, const CBlockIndex* pindex, CValid
             if (!g_addrindex->GetPocketnetTXType(tx, ri_table)) continue;
 
             reindexer::Item itm;
-			if (!FindRTransaction(_txs_src, tx, ri_table, itm)) return false;
+			if (!FindRTransaction(_txs_src, tx, ri_table, itm)) {
+                return state.DoS(200, error("Failed find reindexer transaction part (%s)", tx->GetHash().GetHex()), REJECT_INCOMPLETE, "failed-find-rtransaction", false, "", true);
+            }
 
             blockVtx.Add(ri_table, g_addrindex->GetUniValue(tx, itm, ri_table));
 		}
 
         if (!g_antibot->CheckBlock(blockVtx)) {
-            return state.DoS(200, error("Block check with the AntiBot failed (%s)", blockhash.GetHex()), REJECT_INVALID, "bad-antibot-checking");
+            return state.Invalid(false, REJECT_INVALID, "bad-antibot-checking", strprintf("Block check with the AntiBot failed (%s)", blockhash.GetHex()));
         }
     }
 

@@ -8,6 +8,7 @@
 #include <validation.h>
 //-----------------------------------------------------
 std::unique_ptr<AddrIndex> g_addrindex;
+bool gPruneRDB;
 //-----------------------------------------------------
 AddrIndex::AddrIndex()
 {
@@ -109,7 +110,7 @@ bool AddrIndex::indexUTXO(const CTransactionRef& tx, CBlockIndex* pindex)
 
             // Mark UTXO item as deleted
             reindexer::QueryResults _res;
-            reindexer::Error err = g_pocketdb->DB()->Select(reindexer::Query("UTXO", 0, 1).Where("txid", CondEq, txinid).Where("txout", CondEq, txinout), _res);
+            reindexer::Error err = g_pocketdb->DB()->Select(reindexer::Query("UTXO", 0, 1).WhereComposite("txid+txout", CondEq, {{ Variant(txinid), Variant(txinout) }}), _res);
             if (!err.ok() || _res.Count() <= 0) {
                 LogPrintf("Error get item: %s (%d)\n", err.code(), err.what());
                 return false;
@@ -117,6 +118,8 @@ bool AddrIndex::indexUTXO(const CTransactionRef& tx, CBlockIndex* pindex)
 
             reindexer::Item item = _res[0].GetItem();
             item["spent_block"] = pindex->nHeight;
+
+            std::string address = item["address"].As<string>();
 
             if (!g_pocketdb->UpsertWithCommit("UTXO", item).ok()) return false;
         }
@@ -225,10 +228,10 @@ bool AddrIndex::indexPost(const CTransactionRef& tx, CBlockIndex* pindex)
 // RATINGS
 //-----------------------------------------------------
 bool AddrIndex::indexRating(const CTransactionRef& tx,
-    std::map<std::string, double>& userReputations,
+    CBlockIndex* pindex,
+    std::map<std::string, int>& userReputations,
     std::map<std::string, std::pair<int, int>>& postRatings,
-    std::map<std::string, int>& postReputations,
-    CBlockIndex* pindex)
+    std::map<std::string, int>& postReputations)
 {
     std::string txid = tx->GetHash().GetHex();
 
@@ -268,7 +271,7 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
 
         // User reputation
         if (userReputations.find(post_address) == userReputations.end()) userReputations.insert(std::make_pair(post_address, 0));
-        userReputations[post_address] += scoreVal - 3; // Reputation between -2 and 2
+        userReputations[post_address] += (scoreVal - 3) * 10; // Reputation between -20 and 20 - user reputation saved in int 21 = 2.1
 
         // Post reputation
         if (postReputations.find(posttxid) == postReputations.end()) postReputations.insert(std::make_pair(posttxid, 0));
@@ -280,10 +283,10 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
 }
 
 bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
-    std::map<std::string, double>& userReputations,
+    CBlockIndex* pindex,
+    std::map<std::string, int>& userReputations,
     std::map<std::string, std::pair<int, int>>& commentRatings,
-    std::map<std::string, int>& commentReputations,
-    CBlockIndex* pindex)
+    std::map<std::string, int>& commentReputations)
 {
     std::string txid = tx->GetHash().GetHex();
 
@@ -314,7 +317,7 @@ bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
 
         // User reputation
         if (userReputations.find(comment_address) == userReputations.end()) userReputations.insert(std::make_pair(comment_address, 0));
-        userReputations[comment_address] += scoreVal / 10.0; // Reputation equals -0.1 or 0.1
+        userReputations[comment_address] += scoreVal; // Reputation equals -0.1 or 0.1
 
         // Comment reputation        
         if (commentReputations.find(commentid) == commentReputations.end()) commentReputations.insert(std::make_pair(commentid, 0));
@@ -325,11 +328,11 @@ bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
     return true;
 }
 
-bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, double>& userReputations)
+bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, int>& userReputations)
 {
     for (auto& ur : userReputations) {
 
-        double rep = g_pocketdb->GetUserReputation(ur.first, pindex->nHeight - 1);
+        int rep = g_pocketdb->GetUserReputation(ur.first, pindex->nHeight - 1);
         rep += ur.second;
 
         // Create new item with this height - new accumulating rating
@@ -340,7 +343,10 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, d
         if (!g_pocketdb->UpsertWithCommit("UserRatings", _itm_rating_new).ok()) return false;
 
         // Update user reputation
-        if (!g_pocketdb->UpdateUserReputation(ur.first, rep)) return false;
+        if (!g_pocketdb->SetUserReputation(ur.first, rep)) return false;
+
+        
+
     }
 
     return true;
@@ -424,7 +430,7 @@ bool AddrIndex::IndexBlock(const CBlock& block, CBlockIndex* pindex)
 {
     // User reputations map for this block
     // <address, rep>
-    std::map<std::string, double> userReputations;
+    std::map<std::string, int> userReputations;
 
     // Post ratings map for this block
     // <posttxid, <sum, cnt>>
@@ -459,13 +465,13 @@ bool AddrIndex::IndexBlock(const CBlock& block, CBlockIndex* pindex)
         if (!GetPocketnetTXType(tx, ri_table)) continue;
 
         // Indexing ratings
-        if (ri_table == "Scores" && !indexRating(tx, userReputations, postRatings, postReputations, pindex)) {
+        if (ri_table == "Scores" && !indexRating(tx, pindex, userReputations, postRatings, postReputations)) {
             LogPrintf("(AddrIndex::IndexBlock) indexRating - tx (%s)\n", tx->GetHash().GetHex());
             return false;
         }
 
         // Indexing ratings
-        if (ri_table == "CommentScores" && !indexCommentRating(tx, userReputations, commentRatings, commentReputations, pindex)) {
+        if (ri_table == "CommentScores" && !indexCommentRating(tx, pindex, userReputations, commentRatings, commentReputations)) {
             LogPrintf("(AddrIndex::IndexBlock) indexCommentRating - tx (%s)\n", tx->GetHash().GetHex());
             return false;
         }
@@ -1031,7 +1037,7 @@ bool AddrIndex::GetRecomendedSubscriptions(std::string _address, int count, std:
                     for (auto it : queryResUserReputations) {
                         reindexer::Item UserReputations(it.GetItem());
                         std::string _addr = UserReputations["address"].As<string>();
-                        double reputation = UserReputations["reputation"].As<double>();
+                        int reputation = UserReputations["reputation"].As<int>();
 
                         // Get "reputation" in result - freqInCorpus
                         freqInCorpus = freqInCorpus + reputation;

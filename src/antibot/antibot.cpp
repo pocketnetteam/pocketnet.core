@@ -20,7 +20,7 @@ bool vectorFind(std::vector<std::string>& V, std::string f)
     return std::find(V.begin(), V.end(), f) != V.end();
 }
 
-void AntiBot::getMode(std::string _address, ABMODE &mode, double &reputation, int64_t &balance, int height) {
+void AntiBot::getMode(std::string _address, ABMODE &mode, int &reputation, int64_t &balance, int height) {
     reputation = g_pocketdb->GetUserReputation(_address, height - 1);
     balance = g_pocketdb->GetUserBalance(_address, height);
     if (reputation >= GetActualLimit(Limit::threshold_reputation, height) || balance >= GetActualLimit(Limit::threshold_balance, height))
@@ -30,7 +30,7 @@ void AntiBot::getMode(std::string _address, ABMODE &mode, double &reputation, in
 }
 
 void AntiBot::getMode(std::string _address, ABMODE &mode, int height) {
-    double reputation = 0;
+    int reputation = 0;
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, height);
 
@@ -484,10 +484,12 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     }
 
     ABMODE mode;
-    double reputation = 0;
+    int reputation = 0;
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, chainActive.Height() + 1);
-    if (reputation < GetActualLimit(Limit::threshold_reputation_complains, chainActive.Height() + 1)) {
+    int64_t minRep = GetActualLimit(Limit::threshold_reputation_complains, chainActive.Height() + 1);
+    if (reputation < minRep) {
+        LogPrintf("%s - %s < %s\n", _address, reputation, minRep);
         result = ANTIBOTRESULT::LowReputation;
         return false;
     }
@@ -1070,7 +1072,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
     bool not_found = false;
     std::string _comment_address;
     reindexer::Item commentItm;
-    if (g_pocketdb->SelectOne(reindexer::Query("Comment").Where("otxid", CondEq, _comment_id), commentItm).ok()) {
+    if (g_pocketdb->SelectOne(reindexer::Query("Comment").Where("otxid", CondEq, _comment_id).Where("last", CondEq, true).Not().Where("msg", CondEq, ""), commentItm).ok()) {
         _comment_address = commentItm["address"].As<string>();
 
         // Score to self comment
@@ -1086,7 +1088,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
         // Maybe in current block?
         if (blockVtx.Exists("Comment")) {
             for (auto& mtx : blockVtx.Data["Comment"]) {
-                if (mtx["otxid"].get_str() == _comment_id) {
+                if (mtx["otxid"].get_str() == _comment_id && mtx["msg"].get_str() != "") {
                     _comment_address = mtx["address"].get_str();
                     not_found = false;
                     break;
@@ -1315,7 +1317,7 @@ bool AntiBot::GetUserState(std::string _address, int64_t _time, UserStateItem& _
     _state.address_registration_date = g_addrindex->GetAddressRegistrationDate(_address);
 
     ABMODE mode;
-    double reputation = 0;
+    int reputation = 0;
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, chainActive.Height() + 1);
 
@@ -1359,7 +1361,7 @@ bool AntiBot::GetUserState(std::string _address, int64_t _time, UserStateItem& _
 bool AntiBot::AllowModifyReputation(std::string _score_address, int height) {
     // Ignore scores from users with rating < Antibot::Limit::threshold_reputation_score
     int64_t _min_user_reputation = GetActualLimit(Limit::threshold_reputation_score, height);
-    double _user_reputation = g_pocketdb->GetUserReputation(_score_address, height);
+    int _user_reputation = g_pocketdb->GetUserReputation(_score_address, height);
     if (_user_reputation < _min_user_reputation) return false;
     
     // All is OK

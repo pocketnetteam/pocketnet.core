@@ -77,20 +77,20 @@ private:
 		Indexing block transactions for collect rating of User.
 		OP_RETURN can contains `OR_SCORE` value - its Score for Post
 	*/
-	bool indexRating(const CTransactionRef& tx, 
-        std::map<std::string, double>& userReputations,
+	bool indexRating(const CTransactionRef& tx,
+        CBlockIndex* pindex, 
+        std::map<std::string, int>& userReputations,
         std::map<std::string, std::pair<int, int>>& postRatings,
-        std::map<std::string, int>& postReputations,
-        CBlockIndex* pindex);
+        std::map<std::string, int>& postReputations);
     /*
 		Indexing block transactions for collect rating of User.
 		OP_RETURN can contains `OR_COMMENT_SCORE` value - its Score for Comment
 	*/
-	bool indexCommentRating(const CTransactionRef& tx, 
-        std::map<std::string, double>& userReputations,
+	bool indexCommentRating(const CTransactionRef& tx,
+        CBlockIndex* pindex, 
+        std::map<std::string, int>& userReputations,
         std::map<std::string, std::pair<int, int>>& commentRatings,
-        std::map<std::string, int>& commentReputations,
-        CBlockIndex* pindex);
+        std::map<std::string, int>& commentReputations);
 	/*
 		Indexing block transactions for collect tags.
 		OP_RETURN can contains `OR_POST` value - its Post
@@ -105,7 +105,7 @@ private:
 	/*
 		Aggregate table UserRatings for all users
 	*/
-	bool computeUsersRatings(CBlockIndex* pindex, std::map<std::string, double>& userReputations);
+	bool computeUsersRatings(CBlockIndex* pindex, std::map<std::string, int>& userReputations);
 	/*
 		Increment rating of Post
 	*/
@@ -118,6 +118,7 @@ private:
         Indexing posts data
     */
     bool indexPost(const CTransactionRef& tx, CBlockIndex* pindex);
+
 
 public:
     explicit AddrIndex();
@@ -229,5 +230,6 @@ public:
 };
 //-----------------------------------------------------
 extern std::unique_ptr<AddrIndex> g_addrindex;
+extern bool gPruneRDB;
 //-----------------------------------------------------
 #endif // ADDRINDEX_H

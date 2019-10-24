@@ -21,6 +21,7 @@ static const unsigned char REJECT_NONSTANDARD = 0x40;
 // static const unsigned char REJECT_DUST = 0x41; // part of BIP 61
 static const unsigned char REJECT_INSUFFICIENTFEE = 0x42;
 static const unsigned char REJECT_CHECKPOINT = 0x43;
+static const unsigned char REJECT_INCOMPLETE = 0x60;
 
 /** Capture information about block/transaction validation */
 class CValidationState {
@@ -34,16 +35,19 @@ private:
     std::string strRejectReason;
     unsigned int chRejectCode;
     bool corruptionPossible;
+    bool incompleted;
     std::string strDebugMessage;
 public:
     CValidationState() : mode(MODE_VALID), nDoS(0), chRejectCode(0), corruptionPossible(false) {}
     bool DoS(int level, bool ret = false,
              unsigned int chRejectCodeIn=0, const std::string &strRejectReasonIn="",
              bool corruptionIn=false,
-             const std::string &strDebugMessageIn="") {
+             const std::string &strDebugMessageIn="",
+             bool incompletedIn=false) {
         chRejectCode = chRejectCodeIn;
         strRejectReason = strRejectReasonIn;
         corruptionPossible = corruptionIn;
+        incompleted = incompletedIn;
         strDebugMessage = strDebugMessageIn;
         if (mode == MODE_ERROR)
             return ret;
@@ -83,6 +87,12 @@ public:
     }
     void SetCorruptionPossible() {
         corruptionPossible = true;
+    }
+    bool Incompleted() const {
+        return incompleted;
+    }
+    void SetIncompleted() {
+        incompleted = true;
     }
     unsigned int GetRejectCode() const { return chRejectCode; }
     std::string GetRejectReason() const { return strRejectReason; }

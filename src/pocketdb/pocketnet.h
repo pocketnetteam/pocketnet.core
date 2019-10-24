@@ -78,4 +78,9 @@ std::string PocketTXType(const CTransactionRef& tx);
 bool ConvertOPToTableName(std::string op, std::string& ri_table);
 
 
+// Checkpoints for blocks
+void FillCheckpoints(const CChainParams& params);
+bool IsCheckpoint(int height, std::string hash);
+
+
 #endif // POCKETNET_H

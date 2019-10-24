@@ -472,7 +472,7 @@ static const CRPCCommand commands[] =
     { "util",               "getnodeinfo",            &getnodeinfo,            {}},
 
 	/* For ReindexerDB */
-	{ "util",               "getristat",              &getristat,              {"table"}},
+	{ "hidden",             "getristat",              &getristat,              {"table"}},
 };
 // clang-format on
 
