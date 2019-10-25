@@ -109,7 +109,6 @@ bool PocketDB::Init()
 		"type":"profiling", 
 		"profiling":{
 			"queriesperfstats":false,
-			"queries_threshold_us":10,
 			"perfstats":false,
 			"memstats":false,
             "activitystats": false

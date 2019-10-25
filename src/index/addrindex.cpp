@@ -344,9 +344,6 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
 
         // Update user reputation
         if (!g_pocketdb->SetUserReputation(ur.first, rep)) return false;
-
-        
-
     }
 
     return true;
