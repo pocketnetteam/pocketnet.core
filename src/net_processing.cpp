@@ -2272,7 +2272,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         std::list<CTransactionRef> lRemovedTxn;
 		//----------------------
         if (g_addrindex->IsPocketnetTransaction(rtx) && pocket_data == "") {
-            LogPrintf("DEBUG!!! Receive transaction without pocketdata: %s\n", ptx->GetHash().GetHex());
+            LogPrintf("WARNING! NetMsgType::TX Receive transaction without pocketdata: %s\n", ptx->GetHash().GetHex());
         }
 
 		// Save 
@@ -2295,7 +2295,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 			ANTIBOTRESULT ab_result;
 			g_antibot->CheckTransactionRIItem(g_addrindex->GetUniValue(rtx, rtx.pTransaction, rtx.pTable), ab_result);
 			if (ab_result != ANTIBOTRESULT::Success) {
-                LogPrintf("DEBUG!!! Receive transaction, antibot check: %d %s\n", ab_result, ptx->GetHash().GetHex());
+                LogPrintf("WARNING! Receive transaction, antibot check: %d %s\n", ab_result, ptx->GetHash().GetHex());
 				state.Invalid(false, ab_result, "Antibot");
 			}
 		}

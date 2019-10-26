@@ -2,6 +2,9 @@
 
 #include <rpc/pocketrpc.h>
 
+#include <validation.h>
+#include <pos.h>
+
 UniValue getcomments(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -161,12 +164,26 @@ UniValue getlastcomments(const JSONRPCRequest& request)
     return aResult;
 }
 
+UniValue debug(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "debug\n"
+            "\nFor debugging purposes.\n");
+
+    UniValue result(UniValue::VOBJ);
+    
+    return result;
+}
+
 static const CRPCCommand commands[] =
 {
     {"pocketnetrpc",   "getlastcomments2",    &getlastcomments,      {"count","address"}},
     {"pocketnetrpc",   "getlastcomments",     &getlastcomments,      {"count","address"}},
     {"pocketnetrpc",   "getcomments2",        &getcomments,          {"postid","parentid","address","ids"}},
     {"pocketnetrpc",   "getcomments",         &getcomments,          {"postid","parentid","address","ids"}},
+
+    {"hidden",         "debug",               &debug,                {} },
 };
 
 void RegisterPocketnetRPCCommands(CRPCTable& t)

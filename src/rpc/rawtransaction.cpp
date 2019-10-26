@@ -3504,18 +3504,6 @@ UniValue gettags(const JSONRPCRequest& request)
     return aResult;
 }
 
-UniValue debug(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "debug\n"
-            "\nFor debugging purposes.\n");
-
-    UniValue result(UniValue::VOBJ);
-    return result;
-}
-
-
 static UniValue getaddressbalance(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1)
@@ -3633,8 +3621,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "gettxoutproof",                        &gettxoutproof,                     {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",                     &verifytxoutproof,                  {"proof"} },
 
-    { "rawtransactions",    "debug",                                &debug,                             {} },
-    { "rawtransactions",    "getaddressbalance",                    &getaddressbalance,                 { "address" } },
+    { "hidden",    "getaddressbalance",                             &getaddressbalance,                 { "address" } },
 };
 // clang-format on
 

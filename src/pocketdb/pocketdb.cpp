@@ -901,7 +901,7 @@ bool PocketDB::SetUserReputation(std::string address, int rep)
 bool PocketDB::UpdateUserReputation(std::string address, int height)
 {
     int rep = GetUserReputation(address, height);
-    return UpdateUserReputation(address, rep);
+    return SetUserReputation(address, rep);
 }
 
 
