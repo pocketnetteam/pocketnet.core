@@ -2214,7 +2214,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
 	//----------------------------------------------------------------------------------
     // Check reindexer data exists and Antibot checks
-    if (!CheckBlockAdditional(block, state)) {
+    if (!CheckBlockAdditional(pindex, block, state)) {
         return false;
     }
 
@@ -3829,7 +3829,7 @@ bool FindRTransaction(UniValue& _txs_src, const CTransactionRef& tx, std::string
     return false;
 }
 
-bool CheckBlockAdditional(const CBlock& block, CValidationState& state) {
+bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationState& state) {
 	// int height = pindex->nHeight;
 	
 	// We need check POCKETNET_DATA array or mempool or general RI tables
@@ -3868,7 +3868,8 @@ bool CheckBlockAdditional(const CBlock& block, CValidationState& state) {
 		}
 
         if (!g_antibot->CheckBlock(blockVtx)) {
-            return state.Invalid(false, REJECT_INVALID, "bad-antibot-checking", strprintf("Block check with the AntiBot failed (%s)", blockhash.GetHex()));
+            if (!IsCheckpoint(pindex->nHeight, blockhash.GetHex()))
+                return state.Invalid(false, REJECT_INVALID, "bad-antibot-checking", strprintf("Block check with the AntiBot failed (%s)", blockhash.GetHex()));
         }
     }
 
