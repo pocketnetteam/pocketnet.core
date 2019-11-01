@@ -344,9 +344,6 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
 
         // Update user reputation
         if (!g_pocketdb->SetUserReputation(ur.first, rep)) return false;
-
-        
-
     }
 
     return true;
@@ -1258,7 +1255,7 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
         }
         
         if (!err.ok()) {
-            LogPrintf("DEBUG!!! GetTXRIData: ridata not found %s\n", txid);
+            LogPrintf("WARNING! AddrIndex::GetTXRIData: ridata not found %s\n", txid);
             return false;
         }
     }
