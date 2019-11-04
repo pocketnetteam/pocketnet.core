@@ -299,6 +299,35 @@ void FillCheckpoints(const CChainParams& params) {
     CheckpointsBlocks.emplace(366215, "c4e12f070c48c88f0738dbbdf918d4705f2b2b7827cccde019f03abf7bb85eb0");
     CheckpointsBlocks.emplace(366426, "228d7b995324642b31841428c27033cb3748fe17851ac8432a14f466b21ac15d");
     CheckpointsBlocks.emplace(366455, "d8594e1e14b591ab1fff611cd2d402d44d23711a3739e65809e3786e759aef93");
+    CheckpointsBlocks.emplace(369165, "f4022299ec6890b71a16fa41a7ce4d9411ae88135eb9700d4257f5754b4a08e6");
+    CheckpointsBlocks.emplace(369609, "e96c7ab86d96f3f157b08cccfa2641b17af1fe13226826b31981d184af0f2d6a");
+    CheckpointsBlocks.emplace(369682, "d39b34fe1db359c2c2f47900b42a52327ae636b44f17436d7edf59419f240756");
+    CheckpointsBlocks.emplace(370664, "97fe021d7c99ac0029adf25650fe74dd1f45c26a8be3185f7084c36a7505a320");
+    CheckpointsBlocks.emplace(370692, "743b543e168739670b01446ea3ecf23cf59ff340fe6611fe1c9cab12923c3de2");
+    CheckpointsBlocks.emplace(372179, "6ff637108b23435971b7aea4fe9e0a7c564581433d03c7d889ef6c9b6b034500");
+    CheckpointsBlocks.emplace(372180, "e6cb167746d786dd2c84ef08e7fc9e61dae6157445fdbaad128b402984393bc7");
+    CheckpointsBlocks.emplace(372426, "1030210c393e2f8e0f841c6a9547e623d78b35b11b7fc19c9c77aeefb6a42e4d");
+    CheckpointsBlocks.emplace(373166, "9bce5b36493eeeeb40a64c3702f7d341eaeea3e70e3e3432646770d448f484e6");
+    CheckpointsBlocks.emplace(373168, "6be5138294b706b06d86b90ac19458443e2244b0d60e59a700eff4a5076cea52");
+    CheckpointsBlocks.emplace(373259, "a3f0a10b0c0733a35f2bb00da68562598b45745844227ded618c9eb723e524e6");
+    CheckpointsBlocks.emplace(373605, "5a7d146d7535d17b0067123ccc644cf4dc617fc2ec99b47634d9989a473796f5");
+    CheckpointsBlocks.emplace(373639, "d4dbd76656936416ab1cc6584c9517a9f54aa77897792996f1f1352a8dce63f8");
+    CheckpointsBlocks.emplace(374456, "7e93f9259e9a1ce463539446d61940582329789fa804337398a202cd1a0a6f57");
+    CheckpointsBlocks.emplace(374458, "01d10e315928bb5619341984e2c91e304433b0c2facc1f965004a36abf545a21");
+    CheckpointsBlocks.emplace(374726, "52f89b6208c77f41078f3ec184cc0a4b670d5e4466da347610fb76db70f7515e");
+    CheckpointsBlocks.emplace(374730, "5e909ecf11c8e0e13d4e62ace01e37905851ea5388fb21041481608e111ce7fe");
+    CheckpointsBlocks.emplace(374820, "b1166a1673140ce85ad6934b1e170f7596f8cb97033d434b61004d165fdade29");
+    CheckpointsBlocks.emplace(374861, "cfab349c68a98b8f6cf8dd1cb83e09bf140e72cf3ab48559df75c0f0ae5a5d85");
+    CheckpointsBlocks.emplace(374944, "58260bfe434629407acd72f2dee8c48984dddcf137eaf8933290c5ed26529052");
+    CheckpointsBlocks.emplace(374965, "a4f01af1686bb8502704a2f199ad23da1b4b54f190b81a99fec2a7773df2abaa");
+    CheckpointsBlocks.emplace(376642, "d41502757d49a0a67cb76218de5de21c76250fa3464533799e80469b014b664e");
+    CheckpointsBlocks.emplace(376900, "0cb8967e40fb6549b505abc03092b0d77bfa4b67b11a191e5e78b3462aab2d15");
+    CheckpointsBlocks.emplace(376901, "78ea617182fb5f5a80ccdb0b44907430726b30ba48a17d11279558645213c26b");
+    CheckpointsBlocks.emplace(377678, "97a23982034342bb797323a82ef0f2ec45317a95772267fc4d410d1e1671c147");
+    CheckpointsBlocks.emplace(377729, "c945f861dcd7091de0e2bd4e0e487cded91f9eaf5565002ce9a4341cb9bc9d09");
+    CheckpointsBlocks.emplace(378278, "08b8617d9b14e629f6faab155974aa4c7900e816a2a81bdce7e223660f93f798");
+    CheckpointsBlocks.emplace(378308, "2e805cd488c4c3d708eac063ec3027c549e3cbdc1939c1b52f50f9ce75ef3ca0");
+    CheckpointsBlocks.emplace(378966, "3b3f38f5527adf9f94e1bb3600aec082691eea6198eead71316ddd6a00f29118");
 
     CheckpointsBlocks.emplace(373222, "b8a1527d921a9903fb1020c370595116a9a609dff7d3f5524458e7eef04efde1");
 }
