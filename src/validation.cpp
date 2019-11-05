@@ -2205,7 +2205,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
             else
                 return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
-                // LogPrintf("--- CHECKPOINT %s\n", block.GetHash().ToString());
+                //LogPrintf("--- CHECKPOINT %s\n", block.GetHash().ToString());
 		}
 	}
 

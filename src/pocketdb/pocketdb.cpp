@@ -4,6 +4,7 @@
 #include "pocketdb/pocketdb.h"
 #include "html.h"
 #include "tools/logger.h"
+#include <ui_interface.h>
 
 #if defined(HAVE_CONFIG_H)
 #include <config/pocketcoin-config.h>
@@ -57,7 +58,7 @@ bool PocketDB::UpdateDB() {
     // Need to update?
     if (current_version < version) {
         LogPrintf("Current version RDB=%s. Need to update RDB structure to version %s. Blockchain data will be erased and uploaded again.\n", current_version, version);
-        
+
         CloseNamespaces();
         db->~Reindexer();
         db = nullptr;
@@ -97,6 +98,7 @@ bool PocketDB::Init()
     if (!UpdateDB()) return false;
     
     LogPrintf("Loaded Reindexer DB (%s)\n", (GetDataDir() / "pocketdb").string());
+    uiInterface.InitMessage(_("Loading Reindexer DB..."));
 
     // Save current version
     Item service_new_item = db->NewItem("Service");

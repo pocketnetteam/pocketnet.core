@@ -275,6 +275,8 @@ int64_t GetActualLimit(Limit type, int height) {
 
 static std::map<int, std::string> CheckpointsBlocks;
 void FillCheckpoints(const CChainParams& params) {
+    
+    // PoS
     CheckpointsBlocks.emplace(355728, "ff718a5f0d8fb33aa5454a77cb34d0d009a421a86ff67e81275c68a9220f0ecd");
     CheckpointsBlocks.emplace(355729, "e8dd221233ef8955049179d38edd945f202c7672c08919a4dcca4b91b59d1359");
     CheckpointsBlocks.emplace(355730, "9b9aa4c3931a91f024a866a69f15979813b3d068a1545f3a96e9ef9e2641d193");
@@ -328,8 +330,15 @@ void FillCheckpoints(const CChainParams& params) {
     CheckpointsBlocks.emplace(378278, "08b8617d9b14e629f6faab155974aa4c7900e816a2a81bdce7e223660f93f798");
     CheckpointsBlocks.emplace(378308, "2e805cd488c4c3d708eac063ec3027c549e3cbdc1939c1b52f50f9ce75ef3ca0");
     CheckpointsBlocks.emplace(378966, "3b3f38f5527adf9f94e1bb3600aec082691eea6198eead71316ddd6a00f29118");
+    CheckpointsBlocks.emplace(382538, "fdb0b23b12cd567dfa539061b5cc8d93dfad8db2d6a04daff64d0368bd13c0cc");
+    CheckpointsBlocks.emplace(382539, "fad01113fa7674b8a696efe7b2484508148ebce4fc711b0c015afd7381bc1565");
+    CheckpointsBlocks.emplace(382544, "17c3f0d199d61e0175880cf6412c48d320dad6bdf991019f5c6ec9d37f167c1a");
+    CheckpointsBlocks.emplace(382554, "6a89c2d8eba914938a593f8612f52565aa4d603fc191ca31e25a0f2a9ebe9666");
+    CheckpointsBlocks.emplace(382625, "0220bea6bce2e012cf12e6c53d37f9ea0eafb22b35691dd785366997dc2ea5b8");
 
+	// Antibot
     CheckpointsBlocks.emplace(373222, "b8a1527d921a9903fb1020c370595116a9a609dff7d3f5524458e7eef04efde1");
+    CheckpointsBlocks.emplace(382536, "46d5831c2f7e3ac1e719db7909e77d3f5aba1415931b851ad50768e97c54391a");
 }
 
 bool IsCheckpoint(int height, std::string hash) {
