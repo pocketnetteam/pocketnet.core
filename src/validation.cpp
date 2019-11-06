@@ -162,6 +162,8 @@ private:
 	 */
 	CCriticalSection m_cs_chainstate;
 
+    typedef std::map<std::string, std::string> custom_fields;
+
 public:
 	CChain chainActive;
 	BlockMap mapBlockIndex;
@@ -204,7 +206,8 @@ public:
 private:
 	bool ActivateBestChainStep(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound, ConnectTrace& connectTrace) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 	bool ConnectTip(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew, const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace, DisconnectedBlockTransactions& disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-	void NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex);
+    void NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex);
+    void PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields = custom_fields());
 
 	CBlockIndex* AddToBlockIndex(const CBlockHeader& block) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 	/** Create a new block index entry for a given block hash */
@@ -1046,7 +1049,8 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
 		}
 
 		if (g_txindex) {
-			return g_txindex->FindTx(hash, hashBlock, txOut);
+			if (g_txindex->FindTx(hash, hashBlock, txOut))
+                return true;
 		}
 
 		if (fAllowSlow) { // use coin database to locate block that contains transaction, and scan it
@@ -1891,6 +1895,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 			// problems.
 			return AbortNode(state, "Corrupt block found indicating potential hardware failure; shutting down");
 		}
+
+        if (state.Incompleted()) {
+            // Incompleted means that the reindexer data is lost.
+            // We need to request block data from other nodes.
+            return false;
+        }
+
 		return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 	}
 
@@ -2190,7 +2201,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 		int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
 		if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource)) {
-			return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
+            if (IsCheckpoint(pindex->nHeight, block.GetHash().ToString()))
+                LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
+            else
+                return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
+                //LogPrintf("--- CHECKPOINT %s\n", block.GetHash().ToString());
 		}
 	}
 
@@ -2198,23 +2213,17 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 		return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
 
 	//----------------------------------------------------------------------------------
-    uint256 blockhash = block.GetHash();
-
-	// Check Pocketnet transactions
-    if (!CheckBlockAdditional(block, pindex, state)) {
-        if (state.GetRejectCode() == REJECT_INTERNAL) {
-            LogPrintf("--- Receive block without reindexer part (%s)\n", blockhash.GetHex());
-            return false;
-        } else {
-            return false;
-            //return state.DoS(100, error("%s: Antibot failed", __func__), state.GetRejectCode(), "block-antibot-validation-failed");
-        }
+    // Check reindexer data exists and Antibot checks
+    if (!CheckBlockAdditional(pindex, block, state)) {
+        return false;
     }
 
-	// Try write reindexer data
+    // Try write reindexer data
     // Data can received by another node or this node created new block
     // and data in mempool
     {
+        uint256 blockhash = block.GetHash();
+
 		// Write received PocketNET data to RIDB
 		if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
 			std::string _pocket_data = POCKETNET_DATA[blockhash];
@@ -2654,8 +2663,15 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 		bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams);
 		GetMainSignals().BlockChecked(blockConnecting, state);
 		if (!rv) {
-			if (state.IsInvalid())
-				InvalidBlockFound(pindexNew, state);
+			if (state.IsInvalid()) {
+
+                if (state.Incompleted()) {
+                    pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
+                } else {
+				    InvalidBlockFound(pindexNew, state);
+                }
+            }
+
 			return error("%s: ConnectBlock %s failed, %s", __func__, pindexNew->GetBlockHash().ToString(), FormatStateMessage(state));
 		}
 		nTime3 = GetTimeMicros();
@@ -2699,13 +2715,12 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 	}
 	//-----------------------------------------------------
 	LogPrintf("+++ Block connected to chain: %d BH:%s\n", pindexNew->nHeight, pindexNew->GetBlockHash().GetHex());
-    for (auto& tx : blockConnecting.vtx) {
-        LogPrintf("  | %s\n", tx->GetHash().GetHex());
-    }
     //-----------------------------------------------------
 	connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
 	return true;
 }
+
+typedef std::map<std::string, std::string> custom_fields;
 
 void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 {
@@ -2717,7 +2732,9 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 	std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
 
 	for (const auto& tx : block.vtx) {
-		std::vector<std::pair<std::string, std::pair<int,int64_t>>> addrs;
+		// std::vector<std::pair<std::string, std::pair<int,int64_t>>> addrs;
+        std::map<std::string, std::pair<int,int64_t>> addrs;
+        int64_t txtime = tx->nTime;
 		std::string txid = tx->GetHash().GetHex();
 		std::string optype = "";
 
@@ -2734,8 +2751,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 						optype = "share";
 						sharesCnt += 1;
 					}
-					else if (spl[1] == OR_POSTEDIT)
-						optype = "shareEdit";
+					// else if (spl[1] == OR_POSTEDIT)
+					// 	optype = "shareEdit";
 					else if (spl[1] == OR_SCORE)
 						optype = "upvoteShare";
 					else if (spl[1] == OR_SUBSCRIBE)
@@ -2746,6 +2763,14 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 						optype = "userInfo";
 					else if (spl[1] == OR_UNSUBSCRIBE)
 						optype = "unsubscribe";
+					else if (spl[1] == OR_COMMENT_SCORE)
+						optype = "cScore";
+                    else if (spl[1] == OR_COMMENT)
+						optype = "comment";
+                    else if (spl[1] == OR_COMMENT_EDIT)
+						optype = "commentEdit";
+                    else if (spl[1] == OR_COMMENT_DELETE)
+						optype = "commentDelete";
 				}
 			}
 			//-------------------------
@@ -2753,102 +2778,185 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 			bool fValidAddress = ExtractDestination(txout.scriptPubKey, destAddress);
 			if (fValidAddress) {
 				std::string encoded_address = EncodeDestination(destAddress);
-                addrs.emplace_back(encoded_address, std::make_pair(i, (int64_t)txout.nValue));
+                if (addrs.find(encoded_address) == addrs.end())
+                    addrs.emplace(encoded_address, std::make_pair(i, (int64_t)txout.nValue));
 			}
 		}
 
 		for (auto const& addr : addrs) {
+
 			// Event for new transaction
-			UniValue msg_tr(UniValue::VOBJ);
-			msg_tr.pushKV("addr", addr.first);
-			msg_tr.pushKV("msg", "transaction");
-			msg_tr.pushKV("txid", txid);
-            msg_tr.pushKV("nout", addr.second.first);
-			msg_tr.pushKV("amount", addr.second.second);
-			if (optype != "") msg_tr.pushKV("mesType", optype);
+            custom_fields cTrFields {
+                { "nout", std::to_string(addr.second.first) },
+                { "amount", std::to_string(addr.second.second) },
+            };
 
-			if (messages.find(addr.first) == messages.end()) {
-				std::vector<UniValue> _list;
-				messages.insert(std::make_pair(addr.first, _list));
-			}
-			messages[addr.first].push_back(msg_tr);
+            if (optype != "") cTrFields.emplace("type", optype);
+            PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
-			if (optype == "share" && addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
-				txidpocketnet = txidpocketnet + txid + ",";
-			// Event for new PocketNET transaction
-			else if (optype == "upvoteShare" || optype == "subscribe" || optype == "subscribePrivate" || optype == "unsubscribe" || optype == "userInfo") {
-				std::string addrTo = "";
-				std::string posttxid = "";
-				int score = 0;
+            // Event for new PocketNET transaction
+            if (optype == "share" && addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
+                txidpocketnet = txidpocketnet + txid + ",";
+            else if (optype != "share") {
+                if (optype == "userInfo") {
+                    reindexer::Item _user_itm;
+                    if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("txid", CondEq, txid), _user_itm).ok()) {
+                        if (_user_itm["time"].As<int64_t>() == _user_itm["regdate"].As<int64_t>()) {
+                            if (_user_itm["referrer"].As<string>() != "") {
+                            
+                                custom_fields cFields {
+                                    { "mesType", optype },
+                                    { "addrFrom", addr.first }
+                                };
+                                
+                                PrepareWSMessage(messages, "event", _user_itm["referrer"].As<string>(), txid, txtime, cFields);
+                            }
+                        }
+                    }
+                }
+                else if (optype == "upvoteShare") {
+                    reindexer::QueryResults queryResS;
+                    reindexer::QueryResults queryResP;
 
-				if (optype == "userInfo") {
-					reindexer::Item _user_itm;
-					if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("txid", CondEq, txid), _user_itm).ok()) {
-						if (_user_itm["time"].As<int64_t>() == _user_itm["regdate"].As<int64_t>()) {
-							if (_user_itm["referrer"].As<string>() != "") {
-								addrTo = _user_itm["referrer"].As<string>();
-							}
-						}
-					}
-				}
-				else if (optype == "upvoteShare") {
-					reindexer::QueryResults queryResS;
-					reindexer::QueryResults queryResP;
+                    reindexer::Error errS = g_pocketdb->DB()->Select(
+                        reindexer::Query("Scores", 0, 1)
+                        .Where("txid", CondEq, txid),
+                        queryResS);
 
-					reindexer::Error errS = g_pocketdb->DB()->Select(
-						reindexer::Query("Scores", 0, 1)
-						.Where("txid", CondEq, txid),
-						queryResS);
+                    if (errS.ok() && queryResS.Count() > 0) {
+                        reindexer::Item itmS(queryResS[0].GetItem());
 
-					if (errS.ok() && queryResS.Count() > 0) {
-						reindexer::Item itmS(queryResS[0].GetItem());
-						posttxid = itmS["posttxid"].As<string>();
-						score = itmS["value"].As<int>();
+                        reindexer::Error errP = g_pocketdb->DB()->Select(
+                            reindexer::Query("Posts", 0, 1)
+                                .Where("txid", CondEq, itmS["posttxid"].As<string>()),
+                            queryResP);
 
-						reindexer::Error errP = g_pocketdb->DB()->Select(
-							reindexer::Query("Posts", 0, 1)
-							.Where("txid", CondEq, posttxid),
-							queryResP);
+                        if (errP.ok() && queryResP.Count() > 0) {
+                            reindexer::Item itmP(queryResP[0].GetItem());
 
-						if (errP.ok() && queryResP.Count() > 0) {
-							reindexer::Item itmP(queryResP[0].GetItem());
-							addrTo = itmP["address"].As<string>();
-						}
-					}
-				}
-				else if (optype == "subscribe" || optype == "subscribePrivate" || optype == "unsubscribe") {
-					reindexer::QueryResults queryRes;
+                            custom_fields cFields {
+                                { "mesType", optype },
+                                { "addrFrom", addr.first },
+                                { "posttxid", itmS["posttxid"].As<string>() },
+                                { "upvoteVal", itmS["value"].As<string>() }
+                            };
 
-					reindexer::Error err = g_pocketdb->DB()->Select(
-						reindexer::Query("Subscribes", 0, 1)
-						.Where("txid", CondEq, txid),
-						queryRes);
+                            PrepareWSMessage(messages, "event", itmP["address"].As<string>(), txid, txtime, cFields);
+                        }
+                    }
+                }
+                else if (optype == "subscribe" || optype == "subscribePrivate" || optype == "unsubscribe") {
+                    reindexer::QueryResults queryRes;
 
-					if (err.ok() && queryRes.Count() > 0) {
-						reindexer::Item itm(queryRes[0].GetItem());
-						addrTo = itm["address_to"].As<string>();
-					}
-				}
+                    reindexer::Error err = g_pocketdb->DB()->Select(
+                        reindexer::Query("Subscribes", 0, 1)
+                        .Where("txid", CondEq, txid),
+                        queryRes);
 
-				if (addrTo != "") {
-					UniValue msg(UniValue::VOBJ);
-					msg.pushKV("addr", addrTo);
-					msg.pushKV("addrFrom", addr.first);
-					msg.pushKV("msg", "event");
-					msg.pushKV("txid", txid);
-					if (optype == "upvoteShare") {
-						msg.pushKV("posttxid", posttxid);
-						msg.pushKV("upvoteVal", score);
-					}
-					msg.pushKV("mesType", optype);
+                    if (err.ok() && queryRes.Count() > 0) {
+                        reindexer::Item itm(queryRes[0].GetItem());
 
-					if (messages.find(addrTo) == messages.end()) {
-						std::vector<UniValue> _list;
-						messages.insert(std::make_pair(addrTo, _list));
-					}
-					messages[addrTo].push_back(msg);
-				}
-			}
+                        custom_fields cFields {
+                            { "mesType", optype },
+                            { "addrFrom", addr.first },
+                        };
+
+                        PrepareWSMessage(messages, "event", itm["address_to"].As<string>(), txid, txtime, cFields);
+                    }
+                }
+                else if (optype == "cScore") {
+                    reindexer::QueryResults queryResS;
+                    reindexer::QueryResults queryResP;
+
+                    reindexer::Error errS = g_pocketdb->DB()->Select(
+                        reindexer::Query("CommentScores", 0, 1)
+                        .Where("txid", CondEq, txid),
+                        queryResS);
+
+                    if (errS.ok() && queryResS.Count() > 0) {
+                        reindexer::Item itmS(queryResS[0].GetItem());
+                        reindexer::Error errP = g_pocketdb->DB()->Select(
+                            reindexer::Query("Comment", 0, 1)
+                            .Where("otxid", CondEq, itmS["commentid"].As<string>())
+                            .Where("last", CondEq, true),
+                            queryResP);
+
+                        if (errP.ok() && queryResP.Count() > 0) {
+                            reindexer::Item itmP(queryResP[0].GetItem());
+
+                            custom_fields cFields {
+                                { "mesType", optype },
+                                { "addrFrom", addr.first },
+                                { "commentid", itmS["commentid"].As<string>() },
+                                { "upvoteVal", itmS["value"].As<string>() }
+                            };
+
+                            PrepareWSMessage(messages, "event", itmP["address"].As<string>(), txid, txtime, cFields);
+                        }
+                    }
+                }
+                else if (optype == "comment" || optype == "commentEdit" || optype == "commentDelete") {
+    
+                    reindexer::QueryResults queryResS;
+                    reindexer::Error errS = g_pocketdb->DB()->Select(
+                        reindexer::Query("Comment", 0, 1)
+                            .Where("txid", CondEq, txid),
+                        queryResS);
+
+                    if (errS.ok() && queryResS.Count() > 0) {
+                        reindexer::Item itmS(queryResS[0].GetItem());
+
+                        // First send notification to autor of post
+                        {
+                            reindexer::QueryResults queryResP;
+                            reindexer::Error errP = g_pocketdb->DB()->Select(
+                                reindexer::Query("Posts", 0, 1)
+                                    .Where("txid", CondEq, itmS["postid"].As<string>()),
+                                queryResP);
+
+                            if (errP.ok() && queryResP.Count() > 0) {
+                                reindexer::Item itmP(queryResP[0].GetItem());
+
+                                custom_fields cFields {
+                                    { "mesType", optype },
+                                    { "addrFrom", addr.first },
+                                    { "posttxid", itmS["postid"].As<string>() },
+                                    { "parentid", itmS["parentid"].As<string>() },
+                                    { "answerid", itmS["answerid"].As<string>() },
+                                    { "reason", "post" },
+                                };
+
+                                PrepareWSMessage(messages, "event", itmP["address"].As<string>(), itmS["otxid"].As<string>(), txtime, cFields);
+                            }
+                        }
+
+                        // Second send notification to autor of comment if answerid not empty
+                        {
+                            reindexer::QueryResults queryResP;
+                            reindexer::Error errP = g_pocketdb->DB()->Select(
+                                reindexer::Query("Comment", 0, 1)
+                                    .Where("otxid", CondEq, itmS["answerid"].As<string>())
+                                    .Where("last", CondEq, true),
+                                queryResP);
+
+                            if (errP.ok() && queryResP.Count() > 0) {
+                                reindexer::Item itmP(queryResP[0].GetItem());
+                                
+                                custom_fields cFields {
+                                    { "mesType", optype },
+                                    { "addrFrom", addr.first },
+                                    { "posttxid", itmS["postid"].As<string>() },
+                                    { "parentid", itmS["parentid"].As<string>() },
+                                    { "answerid", itmS["answerid"].As<string>() },
+                                    { "reason", "answer" },
+                                };
+
+                                PrepareWSMessage(messages, "event", itmP["address"].As<string>(), itmS["otxid"].As<string>(), txtime, cFields);
+                            }
+                        }
+                    }
+                }
+            }
 		}
 	}
 
@@ -2858,6 +2966,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 		msg.pushKV("addr", connWS.second.Address);
 		msg.pushKV("msg", "new block");
 		msg.pushKV("blockhash", _block_hash.GetHex());
+		msg.pushKV("time", std::to_string(block.nTime));
 		msg.pushKV("height", blockIndex->nHeight);
 		msg.pushKV("shares", sharesCnt);
 
@@ -2866,18 +2975,19 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 			reindexer::Query("SubscribesView")
 			.Where("address", CondEq, connWS.second.Address),
 			queryResSubscribes);
+
 		if (err.ok() && queryResSubscribes.Count() > 0) {
-			std::vector<string> addrs;
+			std::vector<string> _addrs;
 			for (auto it : queryResSubscribes) {
 				reindexer::Item itm(it.GetItem());
-				addrs.push_back(itm["address_to"].As<string>());
+				_addrs.push_back(itm["address_to"].As<string>());
 			}
 
 			reindexer::QueryResults queryResShares;
 			reindexer::Error err = g_pocketdb->DB()->Select(
 				reindexer::Query("Posts")
 				.Where("block", CondEq, blockIndex->nHeight)
-				.Where("address", CondSet, addrs),
+				.Where("address", CondSet, _addrs),
 				queryResShares);
 			if (err.ok() && queryResShares.Count() > 0) {
 				msg.pushKV("sharesSubscr", (int)queryResShares.Count());
@@ -2895,6 +3005,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                 try {
                     UniValue m(UniValue::VOBJ);
                     m.pushKV("msg", "sharepocketnet");
+                    m.pushKV("time", std::to_string(block.nTime));
                     m.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
                     connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
                 } catch (const std::exception& e) {
@@ -2916,6 +3027,28 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
             connWS.second.Block = blockIndex->nHeight;
         }
 	}
+}
+
+void CChainState::PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo,
+    std::string txid, int64_t txtime, custom_fields cFields)
+{
+
+    UniValue msg(UniValue::VOBJ);
+    msg.pushKV("addr", addrTo);
+    msg.pushKV("msg", msg_type);
+    msg.pushKV("txid", txid);
+    msg.pushKV("time", txtime);
+
+    for (auto& it : cFields) {
+        msg.pushKV(it.first, it.second);
+    }
+
+    if (messages.find(addrTo) == messages.end()) {
+        std::vector<UniValue> _list;
+        messages.insert(std::make_pair(addrTo, _list));
+    }
+
+    messages[addrTo].push_back(msg);
 }
 
 /**
@@ -3037,15 +3170,15 @@ bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainPar
 			if (!ConnectTip(state, chainparams, pindexConnect, pindexConnect == pindexMostWork ? pblock : std::shared_ptr<const CBlock>(), connectTrace, disconnectpool)) {
 				if (state.IsInvalid()) {
 					// The block violates a consensus rule.
-					if (!state.CorruptionPossible()) {
+					if (!state.CorruptionPossible() && !state.Incompleted()) {
 						InvalidChainFound(vpindexToConnect.front());
 					}
+
 					state = CValidationState();
 					fInvalidFound = true;
 					fContinue = false;
 					break;
-				}
-				else {
+				} else {
 					// A system error occurred (disk space, database error, ...).
 					// Make the mempool consistent with the current tip, just in case
 					// any observers try to use it before shutdown.
@@ -3163,6 +3296,7 @@ bool CChainState::ActivateBestChain(CValidationState& state, const CChainParams&
 				std::shared_ptr<const CBlock> nullBlockPtr;
 				if (!ActivateBestChainStep(state, chainparams, pindexMostWork, pblock && pblock->GetHash() == pindexMostWork->GetBlockHash() ? pblock : nullBlockPtr, fInvalidFound, connectTrace))
 					return false;
+                    
 				blocks_connected = true;
 
 				if (fInvalidFound) {
@@ -3617,15 +3751,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 			return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
 				strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(), state.GetDebugMessage()));
 		}
-
-        // Check reindexer part exists
-        {
-            //std::string ri_table;
-            //if (g_addrindex->GetPocketnetTXType(tx, ri_table)) {
-            //    reindexer::Item itm;
-            //    if (!FindRTransaction(_txs_src, tx, ri_table, itm)) return false;
-            //}
-        }
 	}
 
 	unsigned int nSigOps = 0;
@@ -3704,9 +3829,7 @@ bool FindRTransaction(UniValue& _txs_src, const CTransactionRef& tx, std::string
     return false;
 }
 
-bool CheckBlockAdditional(const CBlock& block, const CBlockIndex* pindex, CValidationState& state) {
-	int height = pindex->nHeight;
-
+bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationState& state) {
 	// We need check POCKETNET_DATA array or mempool or general RI tables
 	// for check antibot, consistent block and reindexer db and op_return of transactions
 	{
@@ -3735,13 +3858,16 @@ bool CheckBlockAdditional(const CBlock& block, const CBlockIndex* pindex, CValid
             if (!g_addrindex->GetPocketnetTXType(tx, ri_table)) continue;
 
             reindexer::Item itm;
-			if (!FindRTransaction(_txs_src, tx, ri_table, itm)) return false;
+			if (!FindRTransaction(_txs_src, tx, ri_table, itm)) {
+                return state.DoS(200, error("Failed find reindexer transaction part (%s)", tx->GetHash().GetHex()), REJECT_INCOMPLETE, "failed-find-rtransaction", false, "", true);
+            }
 
             blockVtx.Add(ri_table, g_addrindex->GetUniValue(tx, itm, ri_table));
 		}
 
         if (!g_antibot->CheckBlock(blockVtx)) {
-            return state.DoS(200, error("Block check with the AntiBot failed (%s)", blockhash.GetHex()), REJECT_INVALID, "bad-antibot-checking");
+            if (!IsCheckpoint(pindex->nHeight, blockhash.GetHex()))
+                return state.Invalid(false, REJECT_INVALID, "bad-antibot-checking", strprintf("Block check with the AntiBot failed (%s)", blockhash.GetHex()));
         }
     }
 
@@ -3806,9 +3932,9 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
 			valid = valid && (vout == txnRef);
 
 			if (!valid) {
-				printf("%s\n", vout.ToString().c_str());
-				printf("%s\n", txnRef.ToString().c_str());
-				printf("NOT VALID\n");
+				LogPrintf("%s\n", vout.ToString().c_str());
+				LogPrintf("%s\n", txnRef.ToString().c_str());
+				LogPrintf("NOT VALID\n");
 			}
 		}
 
@@ -4078,8 +4204,9 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
 			pindex = miSelf->second;
 			if (ppindex)
 				*ppindex = pindex;
-			if (pindex->nStatus & BLOCK_FAILED_MASK)
+			if (pindex->nStatus & BLOCK_FAILED_MASK) {
 				return state.Invalid(error("%s: block %s is marked invalid", __func__, hash.ToString()), 0, "duplicate");
+            }
 			return true;
 		}
 

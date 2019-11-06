@@ -524,9 +524,13 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t& nCoinAge) {
 
 bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, const CBlockIndex* pindexPrev, CDataStream& hashProofOfStakeSource, const CBlock* block)
 {
-	std::vector<std::string> vLotteryUsers;
     const int RATINGS_PAYOUT_MAX = 25;
-    std::map<std::string, int> allRatings;
+
+	std::vector<std::string> vLotteryPost;
+	std::vector<std::string> vLotteryComment;
+    
+    std::map<std::string, int> allPostRatings;
+    std::map<std::string, int> allCommentRatings;
 
     CBlock blockPrev;
     ReadBlockFromDisk(blockPrev, pindexPrev, Params().GetConsensus());
@@ -535,7 +539,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
     for (const auto& tx : blockPrev.vtx) {
         std::vector<std::string> vasm;
         if (!g_addrindex->FindPocketNetAsmString(tx, vasm)) continue;
-        if (vasm[1] == OR_SCORE && vasm.size() >= 4) {
+        if ((vasm[1] == OR_SCORE || vasm[1] == OR_COMMENT_SCORE) && vasm.size() >= 4) {
             std::vector<unsigned char> _data_hex = ParseHex(vasm[3]);
             std::string _data_str(_data_hex.begin(), _data_hex.end());
             std::vector<std::string> _data;
@@ -544,8 +548,8 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                 std::string _address = _data[0];
                 int _value = std::stoi(_data[1]);
 
-                // For lottery use scores as 4=1 and 5=2
-                if (_value == 4 || _value == 5) {
+                // For lottery use scores as 4=1 and 5=2 - Scores to posts
+                if (vasm[1] == OR_SCORE && (_value == 4 || _value == 5)) {
                     // Get address of score initiator
                     reindexer::Item _score_itm;
                     if (!g_pocketdb->SelectOne( reindexer::Query("Scores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm ).ok()) {
@@ -559,66 +563,131 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         continue;
                     }
                     
-                    if (g_antibot->AllowLottery(_score_itm["address"].As<string>(), _post_itm["address"].As<string>(), pindexPrev->nHeight, tx->GetHash().GetHex(), tx->nTime)) {
-                        if (allRatings.find(_address) == allRatings.end()) allRatings.insert(std::make_pair(_address, 0));
-                        allRatings[_address] += (_value - 3);
+                    if (g_antibot->AllowModifyReputationOverPost(_score_itm["address"].As<string>(), _post_itm["address"].As<string>(), pindexPrev->nHeight, tx, true)) {
+                        if (allPostRatings.find(_address) == allPostRatings.end()) allPostRatings.insert(std::make_pair(_address, 0));
+                        allPostRatings[_address] += (_value - 3);
+                    }
+                }
+
+                // For lottery use scores as 1 and -1 - Scores to comments
+                if (vasm[1] == OR_COMMENT_SCORE && (_value == 1)) {
+                    // Get address of score initiator
+                    reindexer::Item _score_itm;
+                    if (!g_pocketdb->SelectOne( reindexer::Query("CommentScores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm ).ok()) {
+                        LogPrintf("--- GetRatingRewards error get comment score: %s\n", tx->GetHash().GetHex());
+                        continue;
+                    }
+
+                    reindexer::Item _comment_itm;
+                    if (!g_pocketdb->SelectOne( reindexer::Query("Comment").Where("otxid", CondEq, _score_itm["commentid"].As<string>()), _comment_itm ).ok()) {
+                        LogPrintf("--- GetRatingRewards error get comment: %s\n", _score_itm["posttxid"].As<string>());
+                        continue;
+                    }
+                    
+                    if (g_antibot->AllowModifyReputationOverComment(_score_itm["address"].As<string>(), _comment_itm["address"].As<string>(), pindexPrev->nHeight, tx, true)) {
+                        if (allCommentRatings.find(_address) == allCommentRatings.end()) allCommentRatings.insert(std::make_pair(_address, 0));
+                        allCommentRatings[_address] += _value;
                     }
                 }
             }
         }
     }
 
-    // Sort users and shrink
-    std::vector<std::pair<std::string, std::pair<int, arith_uint256>>> allUsersSorted;
+    // Sort founded users
+    {
+        std::vector<std::pair<std::string, std::pair<int, arith_uint256>>> allPostSorted;
+        std::vector<std::pair<std::string, std::pair<int, arith_uint256>>> allCommentSorted;
 
-    for (auto& it : allRatings) {
-        CDataStream ss(hashProofOfStakeSource);
-        ss << it.first;
-        arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
-        allUsersSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
-    }
+        {
+            // Users with scores by post
+            for (auto& it : allPostRatings) {
+                CDataStream ss(hashProofOfStakeSource);
+                ss << it.first;
+                arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
+                allPostSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
+            }
 
-    if (allUsersSorted.size() > 0) {
-        std::sort(allUsersSorted.begin(), allUsersSorted.end(), [](auto & a, auto & b) {
-            return a.second.second < b.second.second;
-        });
-
-        if (allUsersSorted.size() > RATINGS_PAYOUT_MAX) {
-            allUsersSorted.resize(RATINGS_PAYOUT_MAX);
+            // Users with scores by comment
+            for (auto& it : allCommentRatings) {
+                CDataStream ss(hashProofOfStakeSource);
+                ss << it.first;
+                arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
+                allCommentSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
+            }
         }
 
-        for (auto& it : allUsersSorted) {
-            vLotteryUsers.push_back(it.first);
+        // Shrink founded users
+        {
+            // Users with scores by post
+            if (allPostSorted.size() > 0) {
+                std::sort(allPostSorted.begin(), allPostSorted.end(), [](auto & a, auto & b) {
+                    return a.second.second < b.second.second;
+                });
+
+                if (allPostSorted.size() > RATINGS_PAYOUT_MAX) {
+                    allPostSorted.resize(RATINGS_PAYOUT_MAX);
+                }
+
+                for (auto& it : allPostSorted) {
+                    vLotteryPost.push_back(it.first);
+                }
+            }
+
+            // Users with scores by comment
+            if (allCommentSorted.size() > 0) {
+                std::sort(allCommentSorted.begin(), allCommentSorted.end(), [](auto & a, auto & b) {
+                    return a.second.second < b.second.second;
+                });
+
+                if (allCommentSorted.size() > RATINGS_PAYOUT_MAX) {
+                    allCommentSorted.resize(RATINGS_PAYOUT_MAX);
+                }
+
+                for (auto& it : allCommentSorted) {
+                    vLotteryComment.push_back(it.first);
+                }
+            }
         }
     }
-	//-------------------------------------------
+    
 	// Create transactions for all winners
-	if (vLotteryUsers.size() > 0 && vLotteryUsers.size() <= 25) {
-        totalAmount = nCredit * 0.5;
-		CAmount ratingReward = totalAmount;
+    bool ret = false;
+    ret = GenerateOuts(nCredit, results, totalAmount, vLotteryPost, OP_WINNER_POST) || ret;
+    ret = GenerateOuts(nCredit, results, totalAmount, vLotteryComment, OP_WINNER_COMMENT) || ret;
 
-		int current = 0;
-		const int rewardsCount = vLotteryUsers.size();
-		CAmount rewardsPool = ratingReward;
+    return ret;
+}
+
+bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, std::vector<std::string> winners, opcodetype op_code_type) {
+    if (winners.size() > 0 && winners.size() <= 25) {
+        CAmount ratingReward = nCredit * 0.5;
+        if (op_code_type == OP_WINNER_COMMENT) ratingReward = ratingReward / 10;
+        totalAmount += ratingReward;
+
+        int current = 0;
+        const int rewardsCount = winners.size();
+        CAmount rewardsPool = ratingReward;
         CAmount reward = ratingReward / rewardsCount;
 
-		for (auto addr : boost::adaptors::reverse(vLotteryUsers)) {
-			CAmount re;
-			if (++current == rewardsCount) {
-				re = rewardsPool;
-			}
-			else {
-				rewardsPool = rewardsPool - reward;
-				re = reward;
-			}
+        for (auto addr : boost::adaptors::reverse(winners)) {
+            CAmount re;
+            if (++current == rewardsCount) {
+                re = rewardsPool;
+            }
+            else {
+                rewardsPool = rewardsPool - reward;
+                re = reward;
+            }
 
-			CTxDestination dest = DecodeDestination(addr);
-			CScript scriptPubKey = GetScriptForDestination(dest);
-			results.push_back(CTxOut(re, scriptPubKey)); // send to ratings
-		}
+            CTxDestination dest = DecodeDestination(addr);
+            CScript scriptPubKey = GetScriptForDestination(dest);
+            // TODO (brangr): Include with fork
+            // scriptPubKey << op_code_type;
+            results.push_back(CTxOut(re, scriptPubKey)); // send to ratings
+        }
 
-		return true;
-	}
-	//-------------------------------------------
-	return false;
+        return true;
+    }
+
+    return false;
 }

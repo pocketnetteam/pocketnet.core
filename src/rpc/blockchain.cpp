@@ -929,6 +929,14 @@ static UniValue getlastblocks(const JSONRPCRequest& request) {
         }
         rStat.emplace("scores", oScores);
 
+        std::map<int, int> oCommentScores;
+        if (g_pocketdb->SelectAggr(reindexer::Query("CommentScores").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+            for (const auto& f : aggRes.facets) {
+                oCommentScores.emplace(std::stoi(f.value), f.count);
+            }
+        }
+        rStat.emplace("commentScores", oCommentScores);
+
         std::map<int, int> oSubscribes;
         if (g_pocketdb->SelectAggr(reindexer::Query("SubscribesView").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
             for (const auto& f : aggRes.facets) {
@@ -938,7 +946,7 @@ static UniValue getlastblocks(const JSONRPCRequest& request) {
         rStat.emplace("subscribes", oSubscribes);
 
         std::map<int, int> oComments;
-        if (g_pocketdb->SelectAggr(reindexer::Query("Comments").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+        if (g_pocketdb->SelectAggr(reindexer::Query("Comment").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
             for (const auto& f : aggRes.facets) {
                 oComments.emplace(std::stoi(f.value), f.count);
             }
@@ -1253,8 +1261,9 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
             rStat.pushKV("Users", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondGe, dt_start).Where("regdate", CondLt, dt_end)));
             rStat.pushKV("Posts", (int)g_pocketdb->SelectCount(reindexer::Query("Posts").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
             rStat.pushKV("Ratings", (int)g_pocketdb->SelectCount(reindexer::Query("Scores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
+            rStat.pushKV("CommentRatings", (int)g_pocketdb->SelectCount(reindexer::Query("CommentScores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
             rStat.pushKV("Subscribes", (int)g_pocketdb->SelectCount(reindexer::Query("SubscribesView").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-            rStat.pushKV("Comments", (int)g_pocketdb->SelectCount(reindexer::Query("Comments").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
+            rStat.pushKV("Comments", (int)g_pocketdb->SelectCount(reindexer::Query("Comment").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
             g_statistic_cashe.insert_or_assign(dt_start, rStat);
         }
 

@@ -138,6 +138,10 @@ const char* GetOpName(opcodetype opcode)
     case OP_NOP8                   : return "OP_NOP8";
     case OP_NOP9                   : return "OP_NOP9";
     case OP_NOP10                  : return "OP_NOP10";
+    
+    // Pocketnet
+    case OP_WINNER_POST            : return "OP_WINNER_POST";
+    case OP_WINNER_COMMENT         : return "OP_WINNER_COMMENT";
 
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";
 

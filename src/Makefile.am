@@ -522,6 +522,7 @@ POCKETCOIN_CORE_H = \
     rpc/rawtransaction.h \
     rpc/register.h \
     rpc/util.h \
+    rpc/pocketrpc.h \
     scheduler.h \
     script/descriptor.h \
     script/ismine.h \
@@ -626,6 +627,7 @@ libpocketcoin_server_a_SOURCES = \
     rpc/rawtransaction.cpp \
     rpc/server.cpp \
     rpc/util.cpp \
+    rpc/pocketrpc.cpp \
     script/sigcache.cpp \
     shutdown.cpp \
     staker.cpp \
@@ -641,7 +643,6 @@ libpocketcoin_server_a_SOURCES = \
     antibot/antibot.cpp \
     index/addrindex.cpp \
     websocket/ws.cpp \
-    rpc/comments.cpp \
     $(POCKETCOIN_CORE_H)
 
 if !ENABLE_WALLET

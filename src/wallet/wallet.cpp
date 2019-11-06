@@ -4318,13 +4318,17 @@ int CMerkleTx::GetDepthInMainChain() const
 
 	// Find the block it claims to be in
 	CBlockIndex* pindex = LookupBlockIndex(hashBlock);
-    LogPrint(BCLog::DB, "DEBUG! pindex->nHeight (%s) nIndex (%s)\n", pindex->nHeight, nIndex, hashBlock.GetHex());
 	if (!pindex || !chainActive.Contains(pindex))
 		return 0;
 
-	return ((nIndex == -1) ? (-1) : 1) * (chainActive.Height() - pindex->nHeight + 1);
+    int chain_depth = ((nIndex == -1) ? (-1) : 1) * (chainActive.Height() - pindex->nHeight + 1);
+    if (chain_depth < 0)
+        LogPrint(BCLog::DB, "DEBUG! chain_depth=%s pindex->nHeight=%s nIndex=%s\n", chain_depth, pindex->nHeight, nIndex, hashBlock.GetHex());
+
+	return chain_depth;
 }
 
+// TODO (brangr): Fix assert
 int CMerkleTx::GetBlocksToMaturity() const
 {
 	if (!(IsCoinBase() || IsCoinStake())) {

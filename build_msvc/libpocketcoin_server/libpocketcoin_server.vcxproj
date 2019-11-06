@@ -159,7 +159,6 @@
     <ClCompile Include="..\..\src\html.cpp" />
     <ClCompile Include="..\..\src\pocketdb\pocketnet.cpp" />
     <ClCompile Include="..\..\src\primitives\rtransaction.cpp" />
-    <ClCompile Include="..\..\src\rpc\comments.cpp" />
     <ClCompile Include="..\..\src\rpc\net.cpp">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)\netrpc.obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)\netrpc.obj</ObjectFileName>
@@ -196,6 +195,7 @@
     <ClCompile Include="..\..\src\rpc\blockchain.cpp" />
     <ClCompile Include="..\..\src\rpc\mining.cpp" />
     <ClCompile Include="..\..\src\rpc\misc.cpp" />
+    <ClCompile Include="..\..\src\rpc\pocketrpc.cpp" />
     <ClCompile Include="..\..\src\rpc\rawtransaction.cpp" />
     <ClCompile Include="..\..\src\rpc\server.cpp" />
     <ClCompile Include="..\..\src\rpc\util.cpp" />
@@ -223,6 +223,7 @@
     <ClInclude Include="..\..\src\html.h" />
     <ClInclude Include="..\..\src\pocketdb\pocketnet.h" />
     <ClInclude Include="..\..\src\primitives\rtransaction.h" />
+    <ClInclude Include="..\..\src\rpc\pocketrpc.h" />
   </ItemGroup>
   <Import Label="configTarget" Project="..\common.vcxproj" />
 </Project>

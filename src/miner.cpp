@@ -230,12 +230,12 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx) {
             itm = g_pocketdb->DB()->NewItem(ri_table);
             std::string itmSrc = DecodeBase64(_data);
             if (!itm.FromJSON(itmSrc).ok()) {
-                LogPrintf("DEBUG!!! Block generate (parse): %s\n", txid);
+                LogPrintf("Warning! Block generate (parse): %s\n", txid);
                 return false;
             }
         }
         else {
-            LogPrintf("DEBUG!!! Block generate (notfound): %s\n", txid);
+            LogPrintf("Warning! Block generate (notfound): %s\n", txid);
             return false;
         }
 
@@ -243,12 +243,11 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx) {
         ANTIBOTRESULT resultCode;
         g_antibot->CheckTransactionRIItem(oitm, blockVtx, false, resultCode);
         if (resultCode != ANTIBOTRESULT::Success) {
-            LogPrintf("DEBUG!!! Block generate (CheckTransactionRIItem): %s - %s\n", txid, resultCode);
             return false;
         }
 
         if (!g_antibot->CheckInputs(tx)) {
-            LogPrintf("DEBUG!!! Block generate (CheckInputs): %s\n", txid);
+            LogPrintf("Warning! Block generate (CheckInputs): %s\n", txid);
             return false;
         }
 

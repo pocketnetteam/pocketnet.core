@@ -970,7 +970,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
                                               "Clients should transition to using signrawtransactionwithkey and signrawtransactionwithwallet");
 }
 
-static UniValue _sendrawtransction(RTransaction& rtx)
+static UniValue _sendrawtransaction(RTransaction& rtx)
 {
     const uint256& hashTx = rtx->GetHash();
 
@@ -1064,7 +1064,7 @@ static UniValue sendrawtransaction(const JSONRPCRequest& request)
     //CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
     RTransaction rtx(mtx);
 
-    return _sendrawtransction(rtx);
+    return _sendrawtransaction(rtx);
 }
 
 static UniValue testmempoolaccept(const JSONRPCRequest& request)
@@ -1908,6 +1908,58 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         new_rtx.pTransaction["address_to"] = request.params[1]["address"].get_str();
         new_rtx.pTransaction["unblocking"] = true;
 
+    } else if (mesType == "comment" || mesType == "commentEdit" || mesType == "commentDelete") {
+
+        bool valid = true;
+        if (mesType != "comment") valid = valid & request.params[1].exists("id");
+        if (mesType != "commentDelete") valid = valid & request.params[1].exists("msg");
+        valid = valid & request.params[1].exists("postid");
+        valid = valid & request.params[1].exists("parentid");
+        valid = valid & request.params[1].exists("answerid");
+        if (!valid) throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameters");
+
+        new_rtx.pTable = "Comment";
+        new_rtx.pTransaction = g_pocketdb->DB()->NewItem(new_rtx.pTable);
+
+        std::string _otxid = new_txid;
+        if (request.params[1].exists("id")) _otxid = request.params[1]["id"].get_str();
+        new_rtx.pTransaction["txid"] = new_txid;
+        new_rtx.pTransaction["otxid"] = _otxid;
+
+        new_rtx.pTransaction["block"] = -1;
+        new_rtx.pTransaction["address"] = address;
+        new_rtx.pTransaction["time"] = txTime;
+        new_rtx.pTransaction["last"] = true;
+
+        new_rtx.pTransaction["msg"] = "";
+        if (mesType != "commentDelete") 
+            new_rtx.pTransaction["msg"] = request.params[1]["msg"].get_str();
+
+        new_rtx.pTransaction["postid"] = request.params[1]["postid"].get_str();
+        new_rtx.pTransaction["parentid"] = request.params[1]["parentid"].get_str();
+        new_rtx.pTransaction["answerid"] = request.params[1]["answerid"].get_str();
+
+    } else if (mesType == "cScore") {
+
+        bool valid = true;
+        valid = valid & request.params[1].exists("commentid");
+        valid = valid & request.params[1].exists("value");
+        if (!valid) throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameters");
+
+        new_rtx.pTable = "CommentScores";
+        new_rtx.pTransaction = g_pocketdb->DB()->NewItem(new_rtx.pTable);
+
+        new_rtx.pTransaction["txid"] = new_txid;
+        new_rtx.pTransaction["address"] = address;
+        new_rtx.pTransaction["time"] = txTime;
+        new_rtx.pTransaction["block"] = -1;
+
+        new_rtx.pTransaction["commentid"] = request.params[1]["commentid"].get_str();
+
+        int _val;
+        ParseInt32(request.params[1]["value"].get_str(), &_val);
+        new_rtx.pTransaction["value"] = _val;
+
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
     }
@@ -1920,7 +1972,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     }
 
     // Antibot checked -> create transaction in blockchain
-    UniValue rt = _sendrawtransction(new_rtx);
+    UniValue rt = _sendrawtransaction(new_rtx);
     //-------------------------------------------------
     return rt;
 }
@@ -1974,24 +2026,48 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
         entry.pushKV("myVal", errS.ok() ? scoreMyItm["value"].As<string>() : "0");
     }
 
-    int totalComments = g_pocketdb->SelectCount(Query("Comments").Where("postid", CondEq, itm["txid"].As<string>()));
-    reindexer::Item cmntItm;
-    g_pocketdb->SelectOne(Query("Comments").Where("postid", CondEq, itm["txid"].As<string>()).Where("parentid", CondEq, "").Sort("time", true), cmntItm);
+    int totalComments = g_pocketdb->SelectCount(Query("Comment").Where("postid", CondEq, itm["txid"].As<string>()).Where("last", CondEq, true));
     entry.pushKV("comments", totalComments);
-    if (totalComments > 0) {
+
+    reindexer::QueryResults cmntRes;
+    g_pocketdb->Select(
+        Query("Comment", 0, 1)
+            .Where("postid", CondEq, itm["txid"].As<string>())
+            .Where("parentid", CondEq, "")
+            .Where("last", CondEq, true)
+            .Sort("time", true)
+            .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
+            .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondSet, address).Limit(1))
+        ,cmntRes);
+    
+    if (totalComments > 0 && cmntRes.Count() > 0) {
         UniValue oCmnt(UniValue::VOBJ);
-        oCmnt.pushKV("id", cmntItm["id"].As<string>());
+
+        reindexer::Item cmntItm = cmntRes[0].GetItem();
+        reindexer::Item ocmntItm = cmntRes[0].GetJoined()[0][0].GetItem();
+        
+        int myScore = 0;
+        if (cmntRes[0].GetJoined().size() > 1 && cmntRes[0].GetJoined()[1].Count() > 0) {
+            reindexer::Item ocmntScoreItm = cmntRes[0].GetJoined()[1][0].GetItem();
+            myScore = ocmntScoreItm["value"].As<int>();
+        }
+
+        oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
         oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
         oCmnt.pushKV("address", cmntItm["address"].As<string>());
-        oCmnt.pushKV("pubkey", cmntItm["pubkey"].As<string>());
-        oCmnt.pushKV("signature", cmntItm["signature"].As<string>());
-        oCmnt.pushKV("time", cmntItm["time"].As<string>());
+        oCmnt.pushKV("time", ocmntItm["time"].As<string>());
+        oCmnt.pushKV("timeUpd", cmntItm["time"].As<string>());
         oCmnt.pushKV("block", cmntItm["block"].As<string>());
         oCmnt.pushKV("msg", cmntItm["msg"].As<string>());
         oCmnt.pushKV("parentid", cmntItm["parentid"].As<string>());
         oCmnt.pushKV("answerid", cmntItm["answerid"].As<string>());
-        oCmnt.pushKV("timeupd", cmntItm["timeupd"].As<string>());
-        oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comments").Where("parentid", CondEq, cmntItm["id"].As<string>()))));
+        oCmnt.pushKV("scoreUp", cmntItm["scoreUp"].As<string>());
+        oCmnt.pushKV("scoreDown", cmntItm["scoreDown"].As<string>());
+        oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
+        oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
+        oCmnt.pushKV("deleted", cmntItm["msg"].As<string>() == "");
+        oCmnt.pushKV("myScore", myScore);
+        oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comment").Where("parentid", CondEq, cmntItm["otxid"].As<string>()).Where("last", CondEq, true))));
 
         entry.pushKV("lastComment", oCmnt);
     }
@@ -1999,8 +2075,7 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
     return entry;
 }
 
-UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
-{
+UniValue getrawtransactionwithmessage(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error(
             "getrawtransactionwithmessage\n"
@@ -2108,6 +2183,8 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
 
     return a;
 }
+UniValue getrawtransactionwithmessage2(const JSONRPCRequest& request) { return getrawtransactionwithmessage(request); }
+
 
 UniValue getrawtransactionwithmessagebyid(const JSONRPCRequest& request)
 {
@@ -2153,6 +2230,7 @@ UniValue getrawtransactionwithmessagebyid(const JSONRPCRequest& request)
     }
     return a;
 }
+UniValue getrawtransactionwithmessagebyid2(const JSONRPCRequest& request) { return getrawtransactionwithmessagebyid(request); }
 
 UniValue gethotposts(const JSONRPCRequest& request)
 {
@@ -2230,6 +2308,7 @@ UniValue gethotposts(const JSONRPCRequest& request)
 
     return result;
 }
+UniValue gethotposts2(const JSONRPCRequest& request) { return gethotposts(request); }
 //----------------------------------------------------------
 std::map<std::string, UniValue> getUsersProfiles(std::vector<string> addresses, bool shortForm = true, int option = 0)
 {
@@ -2468,13 +2547,13 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
         UniValue msg(UniValue::VOBJ);
         msg.pushKV("msg", "sharepocketnet");
         msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
         msg.pushKV("nblock", itm["block"].As<int>());
         a.push_back(msg);
     }
 
     reindexer::QueryResults subscribers;
     g_pocketdb->DB()->Select(reindexer::Query("SubscribesView").Where("address_to", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult), subscribers);
-
     for (auto it : subscribers) {
         reindexer::Item itm(it.GetItem());
         UniValue msg(UniValue::VOBJ);
@@ -2482,6 +2561,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
         msg.pushKV("addrFrom", itm["address"].As<string>());
         msg.pushKV("msg", "event");
         msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
         msg.pushKV("mesType", "subscribe");
         msg.pushKV("nblock", itm["block"].As<int>());
 
@@ -2490,7 +2570,6 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
 
     reindexer::QueryResults scores;
     g_pocketdb->DB()->Select(reindexer::Query("Scores").Where("block", CondGt, blockNumber).InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, address)).Sort("time", true).Limit(cntResult), scores);
-
     for (auto it : scores) {
         reindexer::Item itm(it.GetItem());
         UniValue msg(UniValue::VOBJ);
@@ -2498,23 +2577,51 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
         msg.pushKV("addrFrom", itm["address"].As<string>());
         msg.pushKV("msg", "event");
         msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
         msg.pushKV("posttxid", itm["posttxid"].As<string>());
         msg.pushKV("upvoteVal", itm["value"].As<int>());
         msg.pushKV("mesType", "upvoteShare");
         msg.pushKV("nblock", itm["block"].As<int>());
-
         a.push_back(msg);
     }
 
+    reindexer::QueryResults commentScores;
+    g_pocketdb->DB()->Select(
+        reindexer::Query("CommentScores")
+            .Where("block", CondGt, blockNumber)
+            .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, address))
+            .Sort("time", true)
+            .Limit(cntResult)
+    ,commentScores);
+    for (auto it : commentScores) {
+        reindexer::Item itm(it.GetItem());
+        UniValue msg(UniValue::VOBJ);
+        msg.pushKV("addr", address);
+        msg.pushKV("addrFrom", itm["address"].As<string>());
+        msg.pushKV("msg", "event");
+        msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
+        msg.pushKV("commentid", itm["commentid"].As<string>());
+        msg.pushKV("upvoteVal", itm["value"].As<int>());
+        msg.pushKV("mesType", "cScore");
+        msg.pushKV("nblock", itm["block"].As<int>());
+        a.push_back(msg);
+    }
+
+    std::vector<std::string> txSent;
     reindexer::QueryResults transactions;
     g_pocketdb->DB()->Select(reindexer::Query("UTXO").Where("address", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult), transactions);
-
     for (auto it : transactions) {
         reindexer::Item itm(it.GetItem());
+        
+        // Double transaction notify not allowed
+        if (std::find(txSent.begin(), txSent.end(), itm["txid"].As<string>()) != txSent.end()) continue;
+
         UniValue msg(UniValue::VOBJ);
         msg.pushKV("addr", itm["address"].As<string>());
         msg.pushKV("msg", "transaction");
         msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
         msg.pushKV("amount", itm["amount"].As<int64_t>());
         msg.pushKV("nblock", itm["block"].As<int>());
 
@@ -2542,9 +2649,19 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
                         optype = "userInfo";
                     else if (spl[1] == OR_UNSUBSCRIBE)
                         optype = "unsubscribe";
+                    else if (spl[1] == OR_COMMENT)
+                        optype = "comment";
+                    else if (spl[1] == OR_COMMENT_EDIT)
+                        optype = "commentEdit";
+                    else if (spl[1] == OR_COMMENT_DELETE)
+                        optype = "commentDelete";
+                    else if (spl[1] == OR_COMMENT_SCORE)
+                        optype = "cScore";
                 }
             }
-            if (optype != "") msg.pushKV("mesType", optype);
+
+            if (optype != "") msg.pushKV("type", optype);
+
             UniValue txinfo(UniValue::VOBJ);
             TxToJSON(*tx, hash_block, txinfo);
             msg.pushKV("txinfo", txinfo);
@@ -2555,18 +2672,31 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
 
     vector<string> answerpostids;
     reindexer::QueryResults commentsAnswer;
-    g_pocketdb->DB()->Select(reindexer::Query("Comments").Where("block", CondGt, blockNumber).InnerJoin("answerid", "id", CondEq, reindexer::Query("Comments").Where("address", CondEq, address)).Sort("time", true).Limit(cntResult), commentsAnswer);
+    g_pocketdb->DB()->Select(
+        reindexer::Query("Comment")
+            .Where("block", CondGt, blockNumber)
+            .Where("last", CondEq, true)
+            .InnerJoin("answerid", "otxid", CondEq, reindexer::Query("Comment").Where("address", CondEq, address).Where("last", CondEq, true))
+            .Sort("time", true)
+            .Limit(cntResult)
+    ,commentsAnswer);
+
     for (auto it : commentsAnswer) {
         reindexer::Item itm(it.GetItem());
         if (address != itm["address"].As<string>()) {
+            if (itm["msg"].As<string>() == "") continue;
+            if (itm["otxid"].As<string>() != itm["txid"].As<string>()) continue;
+
             UniValue msg(UniValue::VOBJ);
             msg.pushKV("addr", address);
             msg.pushKV("addrFrom", itm["address"].As<string>());
             msg.pushKV("nblock", itm["block"].As<int>());
             msg.pushKV("msg", "comment");
             msg.pushKV("mesType", "answer");
-            msg.pushKV("commentid", itm["id"].As<string>());
+            msg.pushKV("txid", itm["otxid"].As<string>());
             msg.pushKV("posttxid", itm["postid"].As<string>());
+            msg.pushKV("reason", "answer");
+            msg.pushKV("time", itm["time"].As<string>());
             if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
             if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
 
@@ -2577,18 +2707,25 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
     }
 
     reindexer::QueryResults commentsPost;
-    g_pocketdb->DB()->Select(reindexer::Query("Comments").Where("block", CondGt, blockNumber).InnerJoin("postid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, address).Not().Where("txid", CondSet, answerpostids)).Sort("time", true).Limit(cntResult), commentsPost);
+    g_pocketdb->DB()->Select(reindexer::Query("Comment").Where("block", CondGt, blockNumber).Where("last", CondEq, true)
+        .InnerJoin("postid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, address).Not().Where("txid", CondSet, answerpostids)).Sort("time", true).Limit(cntResult), commentsPost);
+
     for (auto it : commentsPost) {
         reindexer::Item itm(it.GetItem());
         if (address != itm["address"].As<string>()) {
+            if (itm["msg"].As<string>() == "") continue;
+            if (itm["otxid"].As<string>() != itm["txid"].As<string>()) continue;
+
             UniValue msg(UniValue::VOBJ);
             msg.pushKV("addr", address);
             msg.pushKV("addrFrom", itm["address"].As<string>());
             msg.pushKV("nblock", itm["block"].As<int>());
             msg.pushKV("msg", "comment");
             msg.pushKV("mesType", "post");
-            msg.pushKV("commentid", itm["id"].As<string>());
+            msg.pushKV("txid", itm["otxid"].As<string>());
             msg.pushKV("posttxid", itm["postid"].As<string>());
+            msg.pushKV("reason", "post");
+            msg.pushKV("time", itm["time"].As<string>());
             if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
             if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
 
@@ -2598,6 +2735,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
 
     return a;
 }
+UniValue getmissedinfo2(const JSONRPCRequest& request) { return getmissedinfo(request); }
 
 UniValue txunspent(const JSONRPCRequest& request)
 {
@@ -2889,29 +3027,13 @@ UniValue getuserstate(const JSONRPCRequest& request)
         time = request.params[1].get_int64();
     }
 
-
     // Get transaction ids from UTXO index
     UserStateItem userStateItm(address);
     if (!g_antibot->GetUserState(address, time, userStateItm)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error get from address index");
     }
-    //-------------------------
-    UniValue result(UniValue::VOBJ);
-    result.pushKV("address", address);
-    result.pushKV("user_reg_date", userStateItm.user_registration_date);
-    result.pushKV("addr_reg_date", userStateItm.address_registration_date);
-    result.pushKV("reputation", userStateItm.reputation);
-    result.pushKV("balance", userStateItm.balance);
-    result.pushKV("trial", userStateItm.trial);
-    result.pushKV("post_unspent", userStateItm.post_unspent);
-    result.pushKV("post_spent", userStateItm.post_spent);
-    result.pushKV("score_unspent", userStateItm.score_unspent);
-    result.pushKV("score_spent", userStateItm.score_spent);
-    result.pushKV("complain_unspent", userStateItm.complain_unspent);
-    result.pushKV("complain_spent", userStateItm.complain_spent);
-    result.pushKV("number_of_blocking", userStateItm.number_of_blocking);
-    //-------------------------
-    return result;
+    
+    return userStateItm.Serialize();
 }
 
 UniValue gettime(const JSONRPCRequest& request)
@@ -2973,6 +3095,7 @@ UniValue getrecommendedposts(const JSONRPCRequest& request)
     jreq.params.push_back(a);
     return getrawtransactionwithmessagebyid(jreq);
 }
+UniValue getrecommendedposts2(const JSONRPCRequest& request) { return getrecommendedposts(request); }
 
 UniValue searchtags(const JSONRPCRequest& request)
 {
@@ -3213,6 +3336,7 @@ UniValue search(const JSONRPCRequest& request)
 
     return result;
 }
+UniValue search2(const JSONRPCRequest& request) { return search(request); }
 
 UniValue getuseraddress(const JSONRPCRequest& request)
 {
@@ -3380,18 +3504,6 @@ UniValue gettags(const JSONRPCRequest& request)
     return aResult;
 }
 
-UniValue debug(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "debug\n"
-            "\nFor debugging purposes.\n");
-
-    UniValue result(UniValue::VOBJ);
-    return result;
-}
-
-
 static UniValue getaddressbalance(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1)
@@ -3466,45 +3578,50 @@ static UniValue getaddressbalance(const JSONRPCRequest& request)
 
 // clang-format off
 static const CRPCCommand commands[] =
-{ //  category              name                            actor (function)            argNames
-  //  --------------------- ------------------------        -----------------------     ----------
-    { "rawtransactions",    "getrawtransaction",                &getrawtransaction,                {"txid","verbose","blockhash"} },
-    { "rawtransactions",    "createrawtransaction",             &createrawtransaction,             {"inputs","outputs","locktime","replaceable"} },
-    { "rawtransactions",    "decoderawtransaction",             &decoderawtransaction,             {"hexstring","iswitness"} },
-    { "rawtransactions",    "decodescript",                     &decodescript,                     {"hexstring"} },
-    { "rawtransactions",    "sendrawtransaction",               &sendrawtransaction,               {"hexstring","allowhighfees"} },
-    { "rawtransactions",    "combinerawtransaction",            &combinerawtransaction,            {"txs"} },
-    { "hidden",             "signrawtransaction",               &signrawtransaction,               {"hexstring","prevtxs","privkeys","sighashtype"} },
-    { "rawtransactions",    "signrawtransactionwithkey",        &signrawtransactionwithkey,        {"hexstring","privkeys","prevtxs","sighashtype"} },
-    { "rawtransactions",    "testmempoolaccept",                &testmempoolaccept,                {"rawtxs","allowhighfees"} },
-    { "rawtransactions",    "decodepsbt",                       &decodepsbt,                       {"psbt"} },
-    { "rawtransactions",    "combinepsbt",                      &combinepsbt,                      {"txs"} },
-    { "rawtransactions",    "finalizepsbt",                     &finalizepsbt,                     {"psbt", "extract"} },
-    { "rawtransactions",    "createpsbt",                       &createpsbt,                       {"inputs","outputs","locktime","replaceable"} },
-    { "rawtransactions",    "converttopsbt",                    &converttopsbt,                    {"hexstring","permitsigdata","iswitness"} },
-    { "rawtransactions",    "sendrawtransactionwithmessage",    &sendrawtransactionwithmessage,    {"hexstring", "message", "type"} },
-    { "rawtransactions",    "getrawtransactionwithmessage",     &getrawtransactionwithmessage,     { "address_from", "address_to", "start_txid", "count" } },
-    { "rawtransactions",    "getrawtransactionwithmessagebyid", &getrawtransactionwithmessagebyid, { "txs","address" } },
-    { "rawtransactions",    "getuserprofile",                   &getuserprofile,                   { "addresses", "short" } },
-    { "rawtransactions",    "getmissedinfo",                    &getmissedinfo,                    { "address", "blocknumber" } },
-    { "rawtransactions",    "txunspent",                        &txunspent,                        { "addresses","minconf","maxconf","include_unsafe","query_options" } },
-    { "rawtransactions",    "getaddressregistration",           &getaddressregistration,           { "addresses" } },
-    { "rawtransactions",    "getuserstate",                     &getuserstate,                     { "address", "time" } },
-    { "rawtransactions",    "gettime",                          &gettime,                          {} },
-    { "rawtransactions",    "getrecommendedposts",              &getrecommendedposts,              { "address", "count" } },
-    { "rawtransactions",    "searchtags",                       &searchtags,                       { "search_string", "count" } },
-    { "rawtransactions",    "search",                           &search,                           { "search_string", "type", "count" } },
-    { "rawtransactions",    "gethotposts",                      &gethotposts,                      { "count", "depth" } },
-    { "rawtransactions",    "getuseraddress",                   &getuseraddress,                   { "name", "count" } },
-	{ "rawtransactions",    "getreputations",                   &getreputations,                   {} },
-	{ "rawtransactions",    "getcontents",                      &getcontents,                      { "address" } },
-	{ "rawtransactions",    "gettags",                          &gettags,                          { "address", "count" } },
+{ //  category              name                                    actor (function)                    argNames
+  //  --------------------- ------------------------                -----------------------             ----------
+    { "rawtransactions",    "getrawtransaction",                    &getrawtransaction,                 {"txid","verbose","blockhash"} },
+    { "rawtransactions",    "createrawtransaction",                 &createrawtransaction,              {"inputs","outputs","locktime","replaceable"} },
+    { "rawtransactions",    "decoderawtransaction",                 &decoderawtransaction,              {"hexstring","iswitness"} },
+    { "rawtransactions",    "decodescript",                         &decodescript,                      {"hexstring"} },
+    { "rawtransactions",    "sendrawtransaction",                   &sendrawtransaction,                {"hexstring","allowhighfees"} },
+    { "rawtransactions",    "combinerawtransaction",                &combinerawtransaction,             {"txs"} },
+    { "hidden",             "signrawtransaction",                   &signrawtransaction,                {"hexstring","prevtxs","privkeys","sighashtype"} },
+    { "rawtransactions",    "signrawtransactionwithkey",            &signrawtransactionwithkey,         {"hexstring","privkeys","prevtxs","sighashtype"} },
+    { "rawtransactions",    "testmempoolaccept",                    &testmempoolaccept,                 {"rawtxs","allowhighfees"} },
+    { "rawtransactions",    "decodepsbt",                           &decodepsbt,                        {"psbt"} },
+    { "rawtransactions",    "combinepsbt",                          &combinepsbt,                       {"txs"} },
+    { "rawtransactions",    "finalizepsbt",                         &finalizepsbt,                      {"psbt", "extract"} },
+    { "rawtransactions",    "createpsbt",                           &createpsbt,                        {"inputs","outputs","locktime","replaceable"} },
+    { "rawtransactions",    "converttopsbt",                        &converttopsbt,                     {"hexstring","permitsigdata","iswitness"} },
+    { "rawtransactions",    "sendrawtransactionwithmessage",        &sendrawtransactionwithmessage,     {"hexstring", "message", "type"} },
+    { "rawtransactions",    "getrawtransactionwithmessage",         &getrawtransactionwithmessage,      { "address_from", "address_to", "start_txid", "count" } },
+    { "rawtransactions",    "getrawtransactionwithmessage2",        &getrawtransactionwithmessage2,     { "address_from", "address_to", "start_txid", "count" } },
+    { "rawtransactions",    "getrawtransactionwithmessagebyid",     &getrawtransactionwithmessagebyid,  { "txs","address" } },
+    { "rawtransactions",    "getrawtransactionwithmessagebyid2",    &getrawtransactionwithmessagebyid2, { "txs","address" } },
+    { "rawtransactions",    "getuserprofile",                       &getuserprofile,                    { "addresses", "short" } },
+    { "rawtransactions",    "getmissedinfo",                        &getmissedinfo,                     { "address", "blocknumber" } },
+    { "rawtransactions",    "getmissedinfo2",                       &getmissedinfo2,                    { "address", "blocknumber" } },
+    { "rawtransactions",    "txunspent",                            &txunspent,                         { "addresses","minconf","maxconf","include_unsafe","query_options" } },
+    { "rawtransactions",    "getaddressregistration",               &getaddressregistration,            { "addresses" } },
+    { "rawtransactions",    "getuserstate",                         &getuserstate,                      { "address", "time" } },
+    { "rawtransactions",    "gettime",                              &gettime,                           {} },
+    { "rawtransactions",    "getrecommendedposts",                  &getrecommendedposts,               { "address", "count" } },
+    { "rawtransactions",    "getrecommendedposts2",                 &getrecommendedposts2,              { "address", "count" } },
+    { "rawtransactions",    "searchtags",                           &searchtags,                        { "search_string", "count" } },
+    { "rawtransactions",    "search",                               &search,                            { "search_string", "type", "count" } },
+    { "rawtransactions",    "search2",                              &search2,                           { "search_string", "type", "count" } },
+    { "rawtransactions",    "gethotposts",                          &gethotposts,                       { "count", "depth" } },
+    { "rawtransactions",    "gethotposts2",                         &gethotposts2,                      { "count", "depth" } },
+    { "rawtransactions",    "getuseraddress",                       &getuseraddress,                    { "name", "count" } },
+	{ "rawtransactions",    "getreputations",                       &getreputations,                    {} },
+	{ "rawtransactions",    "getcontents",                          &getcontents,                       { "address" } },
+	{ "rawtransactions",    "gettags",                              &gettags,                           { "address", "count" } },
 
-    { "blockchain",         "gettxoutproof",                    &gettxoutproof,                    {"txids", "blockhash"} },
-    { "blockchain",         "verifytxoutproof",                 &verifytxoutproof,                 {"proof"} },
+    { "blockchain",         "gettxoutproof",                        &gettxoutproof,                     {"txids", "blockhash"} },
+    { "blockchain",         "verifytxoutproof",                     &verifytxoutproof,                  {"proof"} },
 
-    { "rawtransactions",    "debug",                            &debug,                            {} },
-    { "rawtransactions",    "getaddressbalance",                &getaddressbalance,                { "address" } },
+    { "hidden",    "getaddressbalance",                             &getaddressbalance,                 { "address" } },
 };
 // clang-format on
 

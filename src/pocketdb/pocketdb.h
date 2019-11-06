@@ -21,8 +21,14 @@ using namespace reindexer;
 //-----------------------------------------------------
 class PocketDB {
 private:
-    Reindexer* db = new Reindexer();
-	
+    Reindexer* db;
+    
+    int version = 1;
+
+    void CloseNamespaces();
+    bool UpdateDB();
+    bool ConnectDB();
+
 public:
 	PocketDB();
 	~PocketDB();
@@ -67,19 +73,21 @@ public:
 	// Return hash by values for compare with OP_RETURN
 	bool GetHashItem(Item& item, std::string table, bool with_referrer, std::string& out_hash);
 
-    // Update ratings
-    bool UpdateUserRating(std::string address, int sum, int cnt);
-    bool UpdateUserRating(std::string address, int height);
+    // Ratings
+    // User
+    bool SetUserReputation(std::string address, int rep);
+    bool UpdateUserReputation(std::string address, int height);
+    int GetUserReputation(std::string _address, int height);
+
+    // Post
     bool UpdatePostRating(std::string posttxid, int sum, int cnt, int& rep);
     bool UpdatePostRating(std::string posttxid, int height);
-
-    void GetUserRating(std::string address, int& sum, int& cnt, int height);
     void GetPostRating(std::string posttxid, int& sum, int& cnt, int& rep, int height);
 
-    // Get global reputation for user.
-	// In DB rating saved in format {1,2,3,4,5}
-	// Reputation converted to format {-2,-1,0,+1,+2}
-    int GetUserReputation(std::string _address, int height);
+    // Comment
+    bool UpdateCommentRating(std::string commentid, int up, int down, int& rep);
+    bool UpdateCommentRating(std::string commentid, int height);
+    void GetCommentRating(std::string commentid, int& up, int& down, int& rep, int height);
 	
     // Returns sum of all unspent transactions for address
 	int64_t GetUserBalance(std::string _address, int height);
@@ -88,10 +96,13 @@ public:
     void SearchTags(std::string search, int count, std::map<std::string, int>& tags, int& totalCount);
 
     // Add new Post with move old version to history table
-    Error CommitPostItem(Item& itm);
+    Error CommitPostItem(Item& itm, int height);
 
     // Restore previous version of Post
     Error RestorePostItem(std::string posttxid, int height);
+
+    Error CommitLastItem(std::string table, Item& itm, int height);
+    Error RestoreLastItem(std::string table, std::string txid, std::string otxid, int height);
 
 };
 //-----------------------------------------------------

@@ -30,7 +30,16 @@ enum Limit {
     max_post_size,
     bad_reputation,
     scores_one_to_one,
+    scores_one_to_one_over_comment,
     scores_one_to_one_depth,
+    trial_comment_limit,
+    trial_comment_edit_limit,
+    trial_comment_score_limit,
+    full_comment_limit,
+    full_comment_edit_limit,
+    full_comment_score_limit,
+    comment_size_limit,
+    edit_comment_timeout,
     scores_depth_modify_reputation
 };
 
@@ -52,14 +61,26 @@ int64_t GetActualLimit(Limit type, int height);
 #define OR_BLOCKING "626c6f636b696e67"
 #define OR_UNBLOCKING "756e626c6f636b696e67"
 
+#define OR_COMMENT "636f6d6d656e74"
+#define OR_COMMENT_EDIT "636f6d6d656e7445646974"
+#define OR_COMMENT_DELETE "636f6d6d656e7444656c657465"
+#define OR_COMMENT_SCORE "6353636f7265"
+
 
 // Check transaction type is pocketnet
 bool IsPocketTX(const CTxOut& out);
 bool IsPocketTX(const CTransaction& tx);
 bool IsPocketTX(const CTransactionRef& tx);
+std::string PocketTXType(const CTransactionRef& tx);
 
 
 // Transaction type convert to reindexer table name
 bool ConvertOPToTableName(std::string op, std::string& ri_table);
+
+
+// Checkpoints for blocks
+void FillCheckpoints(const CChainParams& params);
+bool IsCheckpoint(int height, std::string hash);
+
 
 #endif // POCKETNET_H
