@@ -4,7 +4,6 @@
 #include "pocketdb/pocketdb.h"
 #include "html.h"
 #include "tools/logger.h"
-#include <ui_interface.h>
 
 #if defined(HAVE_CONFIG_H)
 #include <config/pocketcoin-config.h>
@@ -98,7 +97,6 @@ bool PocketDB::Init()
     if (!UpdateDB()) return false;
     
     LogPrintf("Loaded Reindexer DB (%s)\n", (GetDataDir() / "pocketdb").string());
-    uiInterface.InitMessage(_("Loading Reindexer DB..."));
 
     // Save current version
     Item service_new_item = db->NewItem("Service");

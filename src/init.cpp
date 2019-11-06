@@ -1367,6 +1367,7 @@ bool AppInitMain()
     }
 
 	// ********************************************************* Step 4.1: Start PocketDB
+    uiInterface.InitMessage(_("Loading Reindexer DB..."));
 	g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
     if (!g_pocketdb->Init()) {
         return InitError(_("Unable to start reindexer database."));
