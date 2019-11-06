@@ -590,7 +590,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 	// Coinbase is only valid in a block, not as a loose transaction
 	if (tx.IsCoinBase())
 		return state.DoS(100, false, REJECT_INVALID, "coinbase");
-    
+
 	// Rather not work on nonstandard transactions (unless -testnet/-regtest)
 	std::string reason;
 	if (fRequireStandard && !IsStandardTx(tx, reason))
@@ -992,7 +992,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
 		}
 
-        
+
 	}
 
 	GetMainSignals().TransactionAddedToMempool(rtx);
@@ -1329,7 +1329,7 @@ void static InvalidChainFound(CBlockIndex* pindexNew) EXCLUSIVE_LOCKS_REQUIRED(c
 	LogPrintf("%s:  current best=%s  height=%d  log2_work=%.8g  date=%s\n", __func__,
 		tip->GetBlockHash().ToString(), chainActive.Height(), log(tip->nChainWork.getdouble()) / log(2.0),
 		FormatISO8601DateTime(tip->GetBlockTime()));
-    
+
 	CheckForkWarningConditions();
 }
 
@@ -2483,7 +2483,7 @@ void static UpdateTip(const CBlockIndex* pindexNew, const CChainParams& chainPar
 
 	//   if (!warningMessages.empty())
 	//       LogPrintf(" warning='%s'", warningMessages); /* Continued */
-	//   
+	//
 	   //LogPrintf("\n");
 }
 
@@ -3759,7 +3759,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 	}
 	if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST)
 		return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
-    
+
 	if (fCheckPOW && fCheckMerkleRoot)
 		block.fChecked = true;
 
@@ -3777,7 +3777,7 @@ bool FindRTransaction(UniValue& _txs_src, const CTransactionRef& tx, std::string
             LogPrintf("700001: Transaction RI data parse failed (%s): %s\n", txid, _tx_src);
             return false;
         }
-        
+
         ri_table = _tx["t"].get_str();
         itm = g_pocketdb->DB()->NewItem(ri_table);
         _tx_src = DecodeBase64(_tx["d"].get_str());
@@ -3830,8 +3830,6 @@ bool FindRTransaction(UniValue& _txs_src, const CTransactionRef& tx, std::string
 }
 
 bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationState& state) {
-	// int height = pindex->nHeight;
-	
 	// We need check POCKETNET_DATA array or mempool or general RI tables
 	// for check antibot, consistent block and reindexer db and op_return of transactions
 	{
@@ -4256,8 +4254,9 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
 }
 
 // Exposed wrapper for AcceptBlockHeader
-bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex, CBlockHeader* first_invalid)
+bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex, CBlockHeader* first_invalid, const CBlockIndex** ppindexFirst)
 {
+    bool is_first = true;
 	if (first_invalid != nullptr) first_invalid->SetNull();
 	{
 		LOCK(cs_main);
@@ -4269,6 +4268,11 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
 			}
 			if (ppindex) {
 				*ppindex = pindex;
+
+                if (pindex && is_first && ppindexFirst) {
+                    *ppindexFirst = pindex;
+                    is_first = false;
+                }
 			}
 		}
 	}
@@ -4394,7 +4398,7 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, c
 		// Ensure that CheckBlock() passes before calling AcceptBlock, as
 		// belt-and-suspenders.
 		ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
-        		
+
 		// Store to disk
 		if (ret) {
 			ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
