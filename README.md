@@ -1,4 +1,8 @@
-Pocketnet Core
+<img align="left" src="https://pocketnet.app/img/pocketnetLetter.jpg" />Core
+<br/>
+<br/>
+<br/>
+<br/>
 =====================================
 
 What is Pocketcoin?
@@ -11,6 +15,12 @@ between node operators and content creators. Node operators stake Pocketcoin
 in order to mint blocks with rewards and transactions fees. Half of rewards
 in each block go to content creators based on ratings their content gathers
 from users. [Read more in the article.](https://pocketnet.app/docs/Pocketnet%20Whitepaper%20Draft%20v2.pdf)
+
+What should I know?
+---
+This software allows you to participate in the work of the blockchain network - [Help center `https://pocketnet.app/help`](https://pocketnet.app/help?page=faq).
+
+To start a node independently, you need basic skills of working with the operating system, understanding the principle of the blockchain network. A deeper level of personal computer proficiency is welcome.
 
 Usage
 =====
