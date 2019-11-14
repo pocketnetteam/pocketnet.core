@@ -2795,9 +2795,25 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
             PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
             // Event for new PocketNET transaction
-            if (optype == "share" && addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
+            if (optype == "share") {
+                reindexer::Item _repost_itm;
+                if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
                 txidpocketnet = txidpocketnet + txid + ",";
-            else if (optype != "share") {
+                else if (g_pocketdb->SelectOne(reindexer::Query("Posts").InnerJoin("txid", "txidRepost", CondEq, reindexer::Query("Posts").Where("txid", CondEq, txid)), _repost_itm).ok()) {
+                    reindexer::Item _itmP;
+					std::string addrFrom = "";
+                    if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _repost_itm["txid"].As<string>()), _itmP).ok())
+                        addrFrom = _itmP["address"].As<string>();
+                    custom_fields cFields{
+                        {"mesType", "reshare"},
+                        {"txidRepost", _repost_itm["txid"].As<string>()},
+                        {"addrFrom", addrFrom}};
+
+                    PrepareWSMessage(messages, "event", _repost_itm["address"].As<string>(), txid, txtime, cFields);
+                }
+			}
+            else if (optype != "share")
+            {
                 if (optype == "userInfo") {
                     reindexer::Item _user_itm;
                     if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("txid", CondEq, txid), _user_itm).ok()) {

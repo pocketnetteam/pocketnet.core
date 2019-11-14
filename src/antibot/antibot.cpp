@@ -1229,7 +1229,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
         }
 
         if ( ( vasm[2] != oitm["data_hash"].get_str() && vasm[2] != op_return_checkpoints[oitm["txid"].get_str()] ) ) {
-            if (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str()) {
+            if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str())) {
                 resultCode = ANTIBOTRESULT::FailedOpReturn;
                 return;
             }

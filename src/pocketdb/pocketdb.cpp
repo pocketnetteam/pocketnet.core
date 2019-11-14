@@ -199,6 +199,7 @@ bool PocketDB::InitDB(std::string table)
         db->OpenNamespace("Posts", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("Posts", {"txid", "hash", "string", IndexOpts().PK()});
         db->AddIndex("Posts", {"txidEdit", "hash", "string", IndexOpts()});
+        db->AddIndex("Posts", {"txidRepost", "hash", "string", IndexOpts()});
         db->AddIndex("Posts", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("Posts", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("Posts", {"address", "hash", "string", IndexOpts()});
@@ -228,6 +229,7 @@ bool PocketDB::InitDB(std::string table)
         db->OpenNamespace("PostsHistory", StorageOpts().Enabled().CreateIfMissing());
         db->AddIndex("PostsHistory", {"txid", "hash", "string", IndexOpts()});
         db->AddIndex("PostsHistory", {"txidEdit", "hash", "string", IndexOpts()});
+        db->AddIndex("PostsHistory", {"txidRepost", "hash", "string", IndexOpts()});
         db->AddIndex("PostsHistory", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("PostsHistory", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("PostsHistory", {"address", "hash", "string", IndexOpts()});
@@ -683,6 +685,7 @@ Error PocketDB::CommitPostItem(Item& itm, int height) {
             Item hist_post_item = db->NewItem("PostsHistory");
             hist_post_item["txid"] = cur_post_item["txid"].As<string>();
             hist_post_item["txidEdit"] = cur_post_item["txidEdit"].As<string>();
+            hist_post_item["txidRepost"] = cur_post_item["txidRepost"].As<string>();
             hist_post_item["block"] = cur_post_item["block"].As<int>();
             hist_post_item["time"] = cur_post_item["time"].As<int64_t>();
             hist_post_item["address"] = cur_post_item["address"].As<string>();
@@ -727,6 +730,7 @@ Error PocketDB::RestorePostItem(std::string posttxid, int height) {
         Item post_item = db->NewItem("Posts");
         post_item["txid"] = hist_post_item["txid"].As<string>();
         post_item["txidEdit"] = posttxid_edit;
+        post_item["txidEdit"] = hist_post_item["posttxid_edit"].As<string>();
         post_item["block"] = hist_post_item["block"].As<int>();
         post_item["time"] = hist_post_item["time"].As<int64_t>();
         post_item["address"] = hist_post_item["address"].As<string>();
@@ -1035,7 +1039,8 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
         for (size_t i = 0; i < va_images.size(); ++i)
             data += (i ? "," : "") + va_images[i].As<string>();
 
-        data += item["txidEdit"].As<string>();
+        data += item["txidEdit"].As<string>() == "" ? "" : item["txid"].As<string>();
+        data += item["txidRepost"].As<string>();
     }
     
     if (table == "Scores") {

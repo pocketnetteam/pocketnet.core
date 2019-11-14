@@ -1230,6 +1230,7 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
                     itm = g_pocketdb->DB()->NewItem("Posts");
                     itm["txid"] = hist_item["txid"].As<string>();
                     itm["txidEdit"] = hist_item["txidEdit"].As<string>();
+                    itm["txidRepost"] = hist_item["txidRepost"].As<string>();
                     itm["block"] = hist_item["block"].As<int>();
                     itm["time"] = hist_item["time"].As<int64_t>();
                     itm["address"] = hist_item["address"].As<string>();

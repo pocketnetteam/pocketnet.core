@@ -1747,8 +1747,18 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
             txTime = _itmP["time"].As<int64_t>();
         }
 
+		std::string _txid_repost = "";
+        if (request.params[1].exists("txidRepost")) _txid_repost = request.params[1]["txidRepost"].get_str();
+        if (_txid_repost != "") {
+            reindexer::Item _itmP;
+            reindexer::Error _err = g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _txid_repost), _itmP);
+
+            if (!_err.ok()) throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid txidRepost. Post not found.");
+        }
+
         new_rtx.pTransaction["txid"] = _txid_edit == "" ? new_txid : _txid_edit;
         new_rtx.pTransaction["txidEdit"] = _txid_edit == "" ? "" : new_txid;
+        new_rtx.pTransaction["txidRepost"] = _txid_repost;
         new_rtx.pTransaction["block"] = -1;
         new_rtx.pTransaction["address"] = address;
         new_rtx.pTransaction["time"] = txTime;
@@ -1932,7 +1942,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         new_rtx.pTransaction["last"] = true;
 
         new_rtx.pTransaction["msg"] = "";
-        if (mesType != "commentDelete") 
+        if (mesType != "commentDelete")
             new_rtx.pTransaction["msg"] = request.params[1]["msg"].get_str();
 
         new_rtx.pTransaction["postid"] = request.params[1]["postid"].get_str();
@@ -1983,6 +1993,7 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
 
     entry.pushKV("txid", itm["txid"].As<string>());
     if (itm["txidEdit"].As<string>() != "") entry.pushKV("edit", "true");
+    if (itm["txidRepost"].As<string>() != "") entry.pushKV("repost", itm["txidRepost"].As<string>());
     entry.pushKV("address", itm["address"].As<string>());
     entry.pushKV("time", itm["time"].As<string>());
     entry.pushKV("l", itm["lang"].As<string>());
@@ -2045,7 +2056,7 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
 
         reindexer::Item cmntItm = cmntRes[0].GetItem();
         reindexer::Item ocmntItm = cmntRes[0].GetJoined()[0][0].GetItem();
-        
+
         int myScore = 0;
         if (cmntRes[0].GetJoined().size() > 1 && cmntRes[0].GetJoined()[1].Count() > 0) {
             reindexer::Item ocmntScoreItm = cmntRes[0].GetJoined()[1][0].GetItem();
@@ -2071,6 +2082,10 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
 
         entry.pushKV("lastComment", oCmnt);
     }
+
+	int totalReposted = g_pocketdb->SelectCount(Query("Posts").Where("txidRepost", CondEq, itm["txid"].As<string>()));
+    if (totalReposted > 0)
+		entry.pushKV("reposted", totalReposted);
 
     return entry;
 }
@@ -2552,6 +2567,21 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
         a.push_back(msg);
     }
 
+	reindexer::QueryResults reposts;
+    g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).InnerJoin("txidRepost", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, address)), reposts);
+        for (auto it : reposts) {
+        reindexer::Item itm(it.GetItem());
+        UniValue msg(UniValue::VOBJ);
+        msg.pushKV("msg", "reshare");
+        msg.pushKV("txid", itm["txid"].As<string>());
+        msg.pushKV("txidRepost", itm["txidRepost"].As<string>());
+		msg.pushKV("addrFrom", itm["address"].As<string>());
+        msg.pushKV("time", itm["time"].As<string>());
+        msg.pushKV("nblock", itm["block"].As<int>());
+
+		a.push_back(msg);
+	}
+
     reindexer::QueryResults subscribers;
     g_pocketdb->DB()->Select(reindexer::Query("SubscribesView").Where("address_to", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult), subscribers);
     for (auto it : subscribers) {
@@ -2613,7 +2643,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
     g_pocketdb->DB()->Select(reindexer::Query("UTXO").Where("address", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult), transactions);
     for (auto it : transactions) {
         reindexer::Item itm(it.GetItem());
-        
+
         // Double transaction notify not allowed
         if (std::find(txSent.begin(), txSent.end(), itm["txid"].As<string>()) != txSent.end()) continue;
 
@@ -3032,7 +3062,7 @@ UniValue getuserstate(const JSONRPCRequest& request)
     if (!g_antibot->GetUserState(address, time, userStateItm)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error get from address index");
     }
-    
+
     return userStateItm.Serialize();
 }
 
