@@ -2340,7 +2340,7 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<string> addresses, 
         entry.pushKV("i", itm["avatar"].As<string>());
         entry.pushKV("b", itm["donations"].As<string>());
         entry.pushKV("r", itm["referrer"].As<string>());
-        entry.pushKV("reputation", itm["reputation"].As<string>());
+        entry.pushKV("reputation", itm["reputation"].As<int>() / 10);
 
         if (_posts_cnt.find(_address) != _posts_cnt.end()) {
             entry.pushKV("postcnt", _posts_cnt[_address]);
