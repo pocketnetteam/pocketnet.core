@@ -730,7 +730,7 @@ Error PocketDB::RestorePostItem(std::string posttxid, int height) {
         Item post_item = db->NewItem("Posts");
         post_item["txid"] = hist_post_item["txid"].As<string>();
         post_item["txidEdit"] = posttxid_edit;
-        post_item["txidEdit"] = hist_post_item["posttxid_edit"].As<string>();
+        post_item["txidRepost"] = hist_post_item["txidRepost"].As<string>();
         post_item["block"] = hist_post_item["block"].As<int>();
         post_item["time"] = hist_post_item["time"].As<int64_t>();
         post_item["address"] = hist_post_item["address"].As<string>();
