@@ -2811,6 +2811,17 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 
                     PrepareWSMessage(messages, "event", _repost_itm["address"].As<string>(), txid, txtime, cFields);
                 }
+
+				reindexer::QueryResults postfromprivate;
+                g_pocketdb->DB()->Select(reindexer::Query("SubscribesView").Where("address_to", CondEq, addr.first).Where("private", CondEq, "true"), postfromprivate);
+				for (auto it : postfromprivate) {
+                    reindexer::Item _itm(it.GetItem());
+                    custom_fields cFields{
+                        {"mesType", "postfromprivate"},
+                        {"addrFrom", addr.first}};
+                    PrepareWSMessage(messages, "event",_itm["address"].As<string>(), txid, txtime, cFields);
+				}
+                
 			}
             else if (optype != "share")
             {

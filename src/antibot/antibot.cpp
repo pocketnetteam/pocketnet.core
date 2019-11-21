@@ -695,7 +695,7 @@ bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
         return false;
     }
 
-    if (!_unsubscribe && err.ok()) {
+    if (!_unsubscribe && err.ok() && sItm["private"].As<bool>() == _private) {
         result = ANTIBOTRESULT::DoubleSubscribe;
         return false;
     }
