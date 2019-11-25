@@ -164,6 +164,62 @@ UniValue getlastcomments(const JSONRPCRequest& request)
     return aResult;
 }
 
+UniValue getaddressscores(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getaddressscores\n"
+            "\nGet scores from address.\n");
+
+    std::string address = "";
+    if (request.params.size() > 0 && request.params[0].isStr()) {
+        CTxDestination dest = DecodeDestination(request.params[0].get_str());
+
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[0].get_str());
+        }
+
+        address = request.params[0].get_str();
+    } else {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
+    }
+
+    vector<string> TxIds;
+    if (request.params.size() > 1) {
+        if (request.params[1].isArray()) {
+            UniValue txid = request.params[1].get_array();
+            for (unsigned int idx = 0; idx < txid.size(); idx++) {
+                TxIds.push_back(txid[idx].get_str());
+            }
+        } else if (request.params[1].isStr()) {
+            TxIds.push_back(request.params[1].get_str());
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid txs format");
+        }
+    }
+
+    reindexer::QueryResults queryRes;
+    if (TxIds.empty()) {
+        g_pocketdb->DB()->Select(
+            reindexer::Query("Scores").Where("address", CondEq, address).Sort("time", true),
+            queryRes);
+    } else {
+        g_pocketdb->DB()->Select(
+            reindexer::Query("Scores").Where("address", CondEq, address).Where("posttxid", CondSet, TxIds).Sort("time", true),
+            queryRes);
+    }
+
+    UniValue result(UniValue::VARR);
+    for (auto it : queryRes) {
+        reindexer::Item itm(it.GetItem());
+        UniValue postscore(UniValue::VOBJ);
+        postscore.pushKV("posttxid", itm["posttxid"].As<string>());
+        postscore.pushKV("value", itm["value"].As<string>());
+        result.push_back(postscore);
+    }
+    return result;
+}
+
 UniValue debug(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -182,6 +238,7 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc",   "getlastcomments",     &getlastcomments,      {"count","address"}},
     {"pocketnetrpc",   "getcomments2",        &getcomments,          {"postid","parentid","address","ids"}},
     {"pocketnetrpc",   "getcomments",         &getcomments,          {"postid","parentid","address","ids"}},
+    {"pocketnetrpc",   "getaddressscores",    &getaddressscores,     {"address","txs"}},
 
     {"hidden",         "debug",               &debug,                {} },
 };

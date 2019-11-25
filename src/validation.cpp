@@ -117,26 +117,26 @@ class ConnectTrace;
 class CChainState
 {
 private:
-	/**
+    /**
 	 * The set of all CBlockIndex entries with BLOCK_VALID_TRANSACTIONS (for itself and all ancestors) and
 	 * as good as our current tip or better. Entries may be failed, though, and pruning nodes may be
 	 * missing the data for the block.
 	 */
-	std::set<CBlockIndex*, CBlockIndexWorkComparator> setBlockIndexCandidates;
+    std::set<CBlockIndex*, CBlockIndexWorkComparator> setBlockIndexCandidates;
 
-	/**
+    /**
 	 * Every received block is assigned a unique and increasing identifier, so we
 	 * know which one to give priority in case of a fork.
 	 */
-	CCriticalSection cs_nBlockSequenceId;
-	/** Blocks loaded from disk are assigned id 0, so start the counter at 1. */
-	int32_t nBlockSequenceId = 1;
-	/** Decreasing counter (used by subsequent preciousblock calls). */
-	int32_t nBlockReverseSequenceId = -1;
-	/** chainwork for the last block that preciousblock has been applied to. */
-	arith_uint256 nLastPreciousChainwork = 0;
+    CCriticalSection cs_nBlockSequenceId;
+    /** Blocks loaded from disk are assigned id 0, so start the counter at 1. */
+    int32_t nBlockSequenceId = 1;
+    /** Decreasing counter (used by subsequent preciousblock calls). */
+    int32_t nBlockReverseSequenceId = -1;
+    /** chainwork for the last block that preciousblock has been applied to. */
+    arith_uint256 nLastPreciousChainwork = 0;
 
-	/** In order to efficiently track invalidity of headers, we keep the set of
+    /** In order to efficiently track invalidity of headers, we keep the set of
 	  * blocks which we tried to connect and found to be invalid here (ie which
 	  * were set to BLOCK_FAILED_VALID since the last restart). We can then
 	  * walk this set and check if a new header is a descendant of something in
@@ -154,76 +154,76 @@ private:
 	  * ahead and mark descendants of invalid blocks as FAILED_CHILD at that time,
 	  * instead of putting things in this set.
 	  */
-	std::set<CBlockIndex*> m_failed_blocks;
+    std::set<CBlockIndex*> m_failed_blocks;
 
-	/**
+    /**
 	 * the ChainState CriticalSection
 	 * A lock that must be held when modifying this ChainState - held in ActivateBestChain()
 	 */
-	CCriticalSection m_cs_chainstate;
+    CCriticalSection m_cs_chainstate;
 
     typedef std::map<std::string, std::string> custom_fields;
 
 public:
-	CChain chainActive;
-	BlockMap mapBlockIndex;
-	std::multimap<CBlockIndex*, CBlockIndex*> mapBlocksUnlinked;
-	CBlockIndex* pindexBestInvalid = nullptr;
+    CChain chainActive;
+    BlockMap mapBlockIndex;
+    std::multimap<CBlockIndex*, CBlockIndex*> mapBlocksUnlinked;
+    CBlockIndex* pindexBestInvalid = nullptr;
 
-	bool LoadBlockIndex(const Consensus::Params& consensus_params, CBlockTreeDB& blocktree) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool LoadBlockIndex(const Consensus::Params& consensus_params, CBlockTreeDB& blocktree) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-	bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock);
+    bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock);
 
-	/**
+    /**
 	 * If a block header hasn't already been seen, call CheckBlockHeader on it, ensure
 	 * that it doesn't descend from an invalid block, and then add it to mapBlockIndex.
 	 */
-	bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-	bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-	// Block (dis)connection on a given view:
-	DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
-	bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    // Block (dis)connection on a given view:
+    DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
+    bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-	// Block disconnection on our pcoinsTip:
-	bool DisconnectTip(CValidationState& state, const CChainParams& chainparams, DisconnectedBlockTransactions* disconnectpool);
+    // Block disconnection on our pcoinsTip:
+    bool DisconnectTip(CValidationState& state, const CChainParams& chainparams, DisconnectedBlockTransactions* disconnectpool);
 
-	// Manual block validity manipulation:
-	bool PreciousBlock(CValidationState& state, const CChainParams& params, CBlockIndex* pindex) LOCKS_EXCLUDED(cs_main);
-	bool InvalidateBlock(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-	void ResetBlockFailureFlags(CBlockIndex* pindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    // Manual block validity manipulation:
+    bool PreciousBlock(CValidationState& state, const CChainParams& params, CBlockIndex* pindex) LOCKS_EXCLUDED(cs_main);
+    bool InvalidateBlock(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    void ResetBlockFailureFlags(CBlockIndex* pindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-	bool ReplayBlocks(const CChainParams& params, CCoinsView* view);
-	bool RewindBlockIndex(const CChainParams& params);
-	bool LoadGenesisBlock(const CChainParams& chainparams);
+    bool ReplayBlocks(const CChainParams& params, CCoinsView* view);
+    bool RewindBlockIndex(const CChainParams& params);
+    bool LoadGenesisBlock(const CChainParams& chainparams);
 
-	void PruneBlockIndexCandidates();
+    void PruneBlockIndexCandidates();
 
-	void UnloadBlockIndex();
+    void UnloadBlockIndex();
 
-	void InvalidBlockFound(CBlockIndex* pindex, const CValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    void InvalidBlockFound(CBlockIndex* pindex, const CValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 private:
-	bool ActivateBestChainStep(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound, ConnectTrace& connectTrace) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-	bool ConnectTip(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew, const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace, DisconnectedBlockTransactions& disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool ActivateBestChainStep(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound, ConnectTrace& connectTrace) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool ConnectTip(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew, const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace, DisconnectedBlockTransactions& disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     void NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex);
     void PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields = custom_fields());
 
-	CBlockIndex* AddToBlockIndex(const CBlockHeader& block) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-	/** Create a new block index entry for a given block hash */
-	CBlockIndex* InsertBlockIndex(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-	/**
+    CBlockIndex* AddToBlockIndex(const CBlockHeader& block) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    /** Create a new block index entry for a given block hash */
+    CBlockIndex* InsertBlockIndex(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    /**
 	 * Make various assertions about the state of the block index.
 	 *
 	 * By default this only executes fully when using the Regtest chain; see: fCheckBlockIndex.
 	 */
-	void CheckBlockIndex(const Consensus::Params& consensusParams);
+    void CheckBlockIndex(const Consensus::Params& consensusParams);
 
-	CBlockIndex* FindMostWorkChain() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-	void ReceivedBlockTransactions(const CBlock& block, CBlockIndex* pindexNew, const CDiskBlockPos& pos, const Consensus::Params& consensusParams) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    CBlockIndex* FindMostWorkChain() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    void ReceivedBlockTransactions(const CBlock& block, CBlockIndex* pindexNew, const CDiskBlockPos& pos, const Consensus::Params& consensusParams) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 
-	bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 } g_chainstate;
 
 
@@ -2798,10 +2798,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
             if (optype == "share") {
                 reindexer::Item _repost_itm;
                 if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
-                txidpocketnet = txidpocketnet + txid + ",";
+                    txidpocketnet = txidpocketnet + txid + ",";
                 else if (g_pocketdb->SelectOne(reindexer::Query("Posts").InnerJoin("txid", "txidRepost", CondEq, reindexer::Query("Posts").Where("txid", CondEq, txid)), _repost_itm).ok()) {
                     reindexer::Item _itmP;
-					std::string addrFrom = "";
+                    std::string addrFrom = "";
                     if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _repost_itm["txid"].As<string>()), _itmP).ok())
                         addrFrom = _itmP["address"].As<string>();
                     custom_fields cFields{
@@ -2812,17 +2812,17 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                     PrepareWSMessage(messages, "event", _repost_itm["address"].As<string>(), txid, txtime, cFields);
                 }
 
-				reindexer::QueryResults postfromprivate;
+                reindexer::QueryResults postfromprivate;
                 g_pocketdb->DB()->Select(reindexer::Query("SubscribesView").Where("address_to", CondEq, addr.first).Where("private", CondEq, "true"), postfromprivate);
-				for (auto it : postfromprivate) {
+                for (auto it : postfromprivate) {
                     reindexer::Item _itm(it.GetItem());
                     custom_fields cFields{
                         {"mesType", "postfromprivate"},
                         {"addrFrom", addr.first}};
-                    PrepareWSMessage(messages, "event",_itm["address"].As<string>(), txid, txtime, cFields);
-				}
-                
-			}
+                    PrepareWSMessage(messages, "event", _itm["address"].As<string>(), txid, txtime, cFields);
+                }
+
+            }
             else if (optype != "share")
             {
                 if (optype == "userInfo") {

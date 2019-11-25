@@ -1985,6 +1985,167 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     return rt;
 }
 //----------------------------------------------------------
+std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addresses, bool shortForm = true, int option = 0)
+{
+    std::map<std::string, UniValue> result;
+
+    // Get users
+    reindexer::QueryResults _users_res;
+    g_pocketdb->DB()->Select(reindexer::Query("UsersView").Where("address", CondSet, addresses), _users_res);
+
+    // Get count of posts by addresses
+    reindexer::AggregationResult aggRes;
+    std::map<std::string, int> _posts_cnt;
+    if (g_pocketdb->SelectAggr(reindexer::Query("Posts").Where("address", CondSet, addresses).Aggregate("address", AggFacet), "address", aggRes).ok()) {
+        for (const auto& f : aggRes.facets) {
+            _posts_cnt.insert_or_assign(f.value, f.count);
+        }
+    }
+
+    // Build return object array
+    for (auto& it : _users_res) {
+        UniValue entry(UniValue::VOBJ);
+        reindexer::Item itm = it.GetItem();
+        std::string _address = itm["address"].As<string>();
+
+        // Minimal fields for short form
+        entry.pushKV("address", _address);
+        entry.pushKV("name", itm["name"].As<string>());
+        entry.pushKV("id", itm["id"].As<int>() + 1);
+        entry.pushKV("i", itm["avatar"].As<string>());
+        entry.pushKV("b", itm["donations"].As<string>());
+        entry.pushKV("r", itm["referrer"].As<string>());
+        entry.pushKV("reputation", itm["reputation"].As<int>() / 10);
+
+        if (_posts_cnt.find(_address) != _posts_cnt.end()) {
+            entry.pushKV("postcnt", _posts_cnt[_address]);
+        }
+
+        // Count of referrals
+        size_t _referrals_count = g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("referrer", CondEq, _address));
+        entry.pushKV("rc", (int)_referrals_count);
+
+        if (option == 1)
+            entry.pushKV("a", itm["about"].As<string>());
+
+        // In full form add other fields
+        if (!shortForm) {
+            entry.pushKV("regdate", itm["regdate"].As<int64_t>());
+            if (option != 1)
+                entry.pushKV("a", itm["about"].As<string>());
+            entry.pushKV("l", itm["lang"].As<string>());
+            entry.pushKV("s", itm["url"].As<string>());
+            entry.pushKV("update", itm["time"].As<int64_t>());
+            entry.pushKV("k", itm["pubkey"].As<string>());
+            //entry.pushKV("birthday", itm["birthday"].As<int>());
+            //entry.pushKV("gender", itm["gender"].As<int>());
+
+            // Subscribes
+            reindexer::QueryResults queryResSubscribes;
+            reindexer::Error errS = g_pocketdb->DB()->Select(
+                reindexer::Query("SubscribesView")
+                    .Where("address", CondEq, _address),
+                queryResSubscribes);
+
+            UniValue aS(UniValue::VARR);
+            if (errS.ok() && queryResSubscribes.Count() > 0) {
+                for (auto itS : queryResSubscribes) {
+                    UniValue entryS(UniValue::VOBJ);
+                    reindexer::Item curSbscrbItm(itS.GetItem());
+                    entryS.pushKV("adddress", curSbscrbItm["address_to"].As<string>());
+                    entryS.pushKV("private", curSbscrbItm["private"].As<string>());
+                    aS.push_back(entryS);
+                }
+            }
+            entry.pushKV("subscribes", aS);
+
+            // Subscribers
+            reindexer::QueryResults queryResSubscribers;
+            reindexer::Error errRS = g_pocketdb->DB()->Select(
+                reindexer::Query("SubscribesView")
+                    .Where("address_to", CondEq, _address)
+                    .Where("private", CondEq, false),
+                queryResSubscribers);
+
+            UniValue arS(UniValue::VARR);
+            if (errRS.ok() && queryResSubscribers.Count() > 0) {
+                for (auto itS : queryResSubscribers) {
+                    reindexer::Item curSbscrbItm(itS.GetItem());
+                    arS.push_back(curSbscrbItm["address"].As<string>());
+                }
+            }
+            entry.pushKV("subscribers", arS);
+
+            // Blockings
+            reindexer::QueryResults queryResBlockings;
+            reindexer::Error errRB = g_pocketdb->DB()->Select(
+                reindexer::Query("BlockingView")
+                    .Where("address", CondEq, _address),
+                queryResBlockings);
+
+            UniValue arB(UniValue::VARR);
+            if (errRB.ok() && queryResBlockings.Count() > 0) {
+                for (auto itB : queryResBlockings) {
+                    reindexer::Item curBlckItm(itB.GetItem());
+                    arB.push_back(curBlckItm["address_to"].As<string>());
+                }
+            }
+            entry.pushKV("blocking", arB);
+
+            // Recommendations subscribtions
+            std::vector<string> recomendedSubscriptions;
+            g_addrindex->GetRecomendedSubscriptions(_address, 10, recomendedSubscriptions);
+
+            UniValue rs(UniValue::VARR);
+            for (std::string r : recomendedSubscriptions) {
+                rs.push_back(r);
+            }
+            entry.pushKV("recomendedSubscribes", rs);
+        }
+
+        result.insert_or_assign(_address, entry);
+    }
+
+    return result;
+}
+//----------------------------------------------------------
+UniValue getuserprofile(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getuserprofile \"address\" ( shortForm )\n"
+            "\nReturn Pocketnet user profile.\n");
+
+    if (request.params.size() < 1)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+
+    std::vector<string> addresses;
+    if (request.params[0].isStr())
+        addresses.push_back(request.params[0].get_str());
+    else if (request.params[0].isArray()) {
+        UniValue addr = request.params[0].get_array();
+        for (unsigned int idx = 0; idx < addr.size(); idx++) {
+            addresses.push_back(addr[idx].get_str());
+        }
+    } else
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
+
+    // Short profile form is: address, b, i, name
+    bool shortForm = false;
+    if (request.params.size() >= 2) {
+        shortForm = request.params[1].get_str() == "1";
+    }
+
+    UniValue aResult(UniValue::VARR);
+
+    std::map<std::string, UniValue> profiles = getUsersProfiles(addresses, shortForm);
+    for (auto& p : profiles) {
+        aResult.push_back(p.second);
+    }
+
+    return aResult;
+}
+//----------------------------------------------------------
 UniValue getPostData(reindexer::Item& itm, std::string address)
 {
     UniValue entry(UniValue::VOBJ);
@@ -2084,6 +2245,11 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
     int totalReposted = g_pocketdb->SelectCount(Query("Posts").Where("txidRepost", CondEq, itm["txid"].As<string>()));
     if (totalReposted > 0)
         entry.pushKV("reposted", totalReposted);
+
+    std::map<std::string, UniValue> profile = getUsersProfiles(std::vector<std::string>{itm["address"].As<string>()}, true);
+    if (profile.size() > 0)
+        entry.pushKV("userprofile", profile.begin()->second);
+
 
     return entry;
 }
@@ -2324,166 +2490,6 @@ UniValue gethotposts(const JSONRPCRequest& request)
 }
 UniValue gethotposts2(const JSONRPCRequest& request) { return gethotposts(request); }
 //----------------------------------------------------------
-std::map<std::string, UniValue> getUsersProfiles(std::vector<string> addresses, bool shortForm = true, int option = 0)
-{
-    std::map<std::string, UniValue> result;
-
-    // Get users
-    reindexer::QueryResults _users_res;
-    g_pocketdb->DB()->Select(reindexer::Query("UsersView").Where("address", CondSet, addresses), _users_res);
-
-    // Get count of posts by addresses
-    reindexer::AggregationResult aggRes;
-    std::map<std::string, int> _posts_cnt;
-    if (g_pocketdb->SelectAggr(reindexer::Query("Posts").Where("address", CondSet, addresses).Aggregate("address", AggFacet), "address", aggRes).ok()) {
-        for (const auto& f : aggRes.facets) {
-            _posts_cnt.insert_or_assign(f.value, f.count);
-        }
-    }
-
-    // Build return object array
-    for (auto& it : _users_res) {
-        UniValue entry(UniValue::VOBJ);
-        reindexer::Item itm = it.GetItem();
-        std::string _address = itm["address"].As<string>();
-
-        // Minimal fields for short form
-        entry.pushKV("address", _address);
-        entry.pushKV("name", itm["name"].As<string>());
-        entry.pushKV("id", itm["id"].As<int>() + 1);
-        entry.pushKV("i", itm["avatar"].As<string>());
-        entry.pushKV("b", itm["donations"].As<string>());
-        entry.pushKV("r", itm["referrer"].As<string>());
-        entry.pushKV("reputation", itm["reputation"].As<int>() / 10);
-
-        if (_posts_cnt.find(_address) != _posts_cnt.end()) {
-            entry.pushKV("postcnt", _posts_cnt[_address]);
-        }
-
-        // Count of referrals
-        size_t _referrals_count = g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("referrer", CondEq, _address));
-        entry.pushKV("rc", (int)_referrals_count);
-
-        if (option == 1)
-            entry.pushKV("a", itm["about"].As<string>());
-
-        // In full form add other fields
-        if (!shortForm) {
-            entry.pushKV("regdate", itm["regdate"].As<int64_t>());
-            if (option != 1)
-                entry.pushKV("a", itm["about"].As<string>());
-            entry.pushKV("l", itm["lang"].As<string>());
-            entry.pushKV("s", itm["url"].As<string>());
-            entry.pushKV("update", itm["time"].As<int64_t>());
-            entry.pushKV("k", itm["pubkey"].As<string>());
-            //entry.pushKV("birthday", itm["birthday"].As<int>());
-            //entry.pushKV("gender", itm["gender"].As<int>());
-
-            // Subscribes
-            reindexer::QueryResults queryResSubscribes;
-            reindexer::Error errS = g_pocketdb->DB()->Select(
-                reindexer::Query("SubscribesView")
-                    .Where("address", CondEq, _address),
-                queryResSubscribes);
-
-            UniValue aS(UniValue::VARR);
-            if (errS.ok() && queryResSubscribes.Count() > 0) {
-                for (auto itS : queryResSubscribes) {
-                    UniValue entryS(UniValue::VOBJ);
-                    reindexer::Item curSbscrbItm(itS.GetItem());
-                    entryS.pushKV("adddress", curSbscrbItm["address_to"].As<string>());
-                    entryS.pushKV("private", curSbscrbItm["private"].As<string>());
-                    aS.push_back(entryS);
-                }
-            }
-            entry.pushKV("subscribes", aS);
-
-            // Subscribers
-            reindexer::QueryResults queryResSubscribers;
-            reindexer::Error errRS = g_pocketdb->DB()->Select(
-                reindexer::Query("SubscribesView")
-                    .Where("address_to", CondEq, _address)
-                    .Where("private", CondEq, false),
-                queryResSubscribers);
-
-            UniValue arS(UniValue::VARR);
-            if (errRS.ok() && queryResSubscribers.Count() > 0) {
-                for (auto itS : queryResSubscribers) {
-                    reindexer::Item curSbscrbItm(itS.GetItem());
-                    arS.push_back(curSbscrbItm["address"].As<string>());
-                }
-            }
-            entry.pushKV("subscribers", arS);
-
-            // Blockings
-            reindexer::QueryResults queryResBlockings;
-            reindexer::Error errRB = g_pocketdb->DB()->Select(
-                reindexer::Query("BlockingView")
-                    .Where("address", CondEq, _address),
-                queryResBlockings);
-
-            UniValue arB(UniValue::VARR);
-            if (errRB.ok() && queryResBlockings.Count() > 0) {
-                for (auto itB : queryResBlockings) {
-                    reindexer::Item curBlckItm(itB.GetItem());
-                    arB.push_back(curBlckItm["address_to"].As<string>());
-                }
-            }
-            entry.pushKV("blocking", arB);
-
-            // Recommendations subscribtions
-            std::vector<string> recomendedSubscriptions;
-            g_addrindex->GetRecomendedSubscriptions(_address, 10, recomendedSubscriptions);
-
-            UniValue rs(UniValue::VARR);
-            for (std::string r : recomendedSubscriptions) {
-                rs.push_back(r);
-            }
-            entry.pushKV("recomendedSubscribes", rs);
-        }
-
-        result.insert_or_assign(_address, entry);
-    }
-
-    return result;
-}
-UniValue getuserprofile(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "getuserprofile \"address\" ( shortForm )\n"
-            "\nReturn Pocketnet user profile.\n");
-
-    if (request.params.size() < 1)
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
-
-    std::vector<string> addresses;
-    if (request.params[0].isStr())
-        addresses.push_back(request.params[0].get_str());
-    else if (request.params[0].isArray()) {
-        UniValue addr = request.params[0].get_array();
-        for (unsigned int idx = 0; idx < addr.size(); idx++) {
-            addresses.push_back(addr[idx].get_str());
-        }
-    } else
-        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
-
-    // Short profile form is: address, b, i, name
-    bool shortForm = false;
-    if (request.params.size() >= 2) {
-        shortForm = request.params[1].get_str() == "1";
-    }
-
-    UniValue aResult(UniValue::VARR);
-
-    std::map<std::string, UniValue> profiles = getUsersProfiles(addresses, shortForm);
-    for (auto& p : profiles) {
-        aResult.push_back(p.second);
-    }
-
-    return aResult;
-}
-
 UniValue getmissedinfo(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -3651,9 +3657,9 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "gethotposts",                          &gethotposts,                       { "count", "depth" } },
     { "rawtransactions",    "gethotposts2",                         &gethotposts2,                      { "count", "depth" } },
     { "rawtransactions",    "getuseraddress",                       &getuseraddress,                    { "name", "count" } },
-	{ "rawtransactions",    "getreputations",                       &getreputations,                    {} },
-	{ "rawtransactions",    "getcontents",                          &getcontents,                       { "address" } },
-	{ "rawtransactions",    "gettags",                              &gettags,                           { "address", "count" } },
+    { "rawtransactions",    "getreputations",                       &getreputations,                    {} },
+    { "rawtransactions",    "getcontents",                          &getcontents,                       { "address" } },
+    { "rawtransactions",    "gettags",                              &gettags,                           { "address", "count" } },
 
     { "blockchain",         "gettxoutproof",                        &gettxoutproof,                     {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",                     &verifytxoutproof,                  {"proof"} },
