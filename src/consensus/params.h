@@ -96,6 +96,7 @@ namespace Consensus {
         std::string sVersion_1_0_0_pre_checkpoint;
         unsigned int nHeight_version_1_0_0;
         unsigned int nHeight_fix_ratings;
+        unsigned int nHeight_version_0_18_11;
 	};
 } // namespace Consensus
 
