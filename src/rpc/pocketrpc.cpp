@@ -202,12 +202,12 @@ UniValue getaddressscores(const JSONRPCRequest& request)
     if (TxIds.empty()) {
         g_pocketdb->DB()->Select(
             reindexer::Query("Scores").Where("address", CondEq, address)
-            .InnerJoin("address", "address", CondEq, Query("UsersView")).Sort("time", true),
+            .InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address)).Sort("time", true),
             queryRes);
     } else {
         g_pocketdb->DB()->Select(
             reindexer::Query("Scores").Where("address", CondEq, address).Where("posttxid", CondSet, TxIds)
-            .InnerJoin("address", "address", CondEq, Query("UsersView")).Sort("time", true),
+            .InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address)).Sort("time", true),
             queryRes);
     }
 
@@ -266,9 +266,11 @@ UniValue getpostscores(const JSONRPCRequest& request)
 
     reindexer::QueryResults queryRes1;
     g_pocketdb->DB()->Select(
-        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds).Sort("txid", true)
-        .InnerJoin("address", "address_to", CondEq, Query("SubscribesView").Where("address", CondEq, address).Sort("private", true))
-        .InnerJoin("address", "address", CondEq, Query("UsersView").Sort("reputation", true)), queryRes1);
+        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds)
+        .InnerJoin("address", "address_to", CondEq, Query("SubscribesView").Where("address", CondEq, address))
+        .InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address))
+        //.Sort("txid", true).Sort("private", true).Sort("reputation", true)
+        , queryRes1);
 
     std::vector<std::string> subscribeadrs;
     for (auto it : queryRes1) {
@@ -290,9 +292,10 @@ UniValue getpostscores(const JSONRPCRequest& request)
 
     reindexer::QueryResults queryRes2;
     g_pocketdb->DB()->Select(
-        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds).Not().Where("address", CondSet, subscribeadrs).Sort("txid", true)
-        .InnerJoin("address", "address", CondEq, Query("UsersView").Sort("reputation", true)),
-        queryRes2);
+        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds).Not().Where("address", CondSet, subscribeadrs)
+        .InnerJoin("address", "address", CondEq, Query("UsersView").Not().Where("address", CondSet, subscribeadrs))
+        //.Sort("txid", true).Sort("reputation", true)
+        ,queryRes2);
 
     for (auto it : queryRes2) {
         reindexer::Item itm(it.GetItem());
