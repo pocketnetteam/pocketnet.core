@@ -412,7 +412,7 @@ UniValue getpagescores(const JSONRPCRequest& request)
             reindexer::QueryResults queryResLikers3;
             g_pocketdb->DB()->Select(
                 reindexer::Query("UsersView")
-                    .InnerJoin("address", "address", CondEq, Query("Scores").Where("posttxid", CondEq, itm["txid"].As<string>()).Not().Where("address", CondSet, postlikersadrs))
+                    .InnerJoin("address", "address", CondEq, Query("Scores").Where("posttxid", CondEq, itm["txid"].As<string>()).Where("value", CondGt, 3).Not().Where("address", CondSet, postlikersadrs))
                     .Sort("reputation", true)
                     .Limit(3 - postlikers.size()),
                 queryResLikers3);
