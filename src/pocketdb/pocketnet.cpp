@@ -274,8 +274,8 @@ int64_t GetActualLimit(Limit type, int height) {
 
 
 static std::map<int, std::string> CheckpointsBlocks;
-void FillCheckpoints(const CChainParams& params) {
-    
+void FillCheckpointsBlocks(const CChainParams& params)
+{
     // PoS
     CheckpointsBlocks.emplace(355728, "ff718a5f0d8fb33aa5454a77cb34d0d009a421a86ff67e81275c68a9220f0ecd");
     CheckpointsBlocks.emplace(355729, "e8dd221233ef8955049179d38edd945f202c7672c08919a4dcca4b91b59d1359");
@@ -335,13 +335,135 @@ void FillCheckpoints(const CChainParams& params) {
     CheckpointsBlocks.emplace(382544, "17c3f0d199d61e0175880cf6412c48d320dad6bdf991019f5c6ec9d37f167c1a");
     CheckpointsBlocks.emplace(382554, "6a89c2d8eba914938a593f8612f52565aa4d603fc191ca31e25a0f2a9ebe9666");
     CheckpointsBlocks.emplace(382625, "0220bea6bce2e012cf12e6c53d37f9ea0eafb22b35691dd785366997dc2ea5b8");
+    CheckpointsBlocks.emplace(388191, "69591ff21896135332a9f4b84fcbfe5da1bfc209bda10aeaec08c59a7ad06ef6");
+    CheckpointsBlocks.emplace(388192, "b24b0cf25679b0d43cb4014ed874fa07e73c597c332b328d6bd2314b81757ec5");
 
 	// Antibot
     CheckpointsBlocks.emplace(373222, "b8a1527d921a9903fb1020c370595116a9a609dff7d3f5524458e7eef04efde1");
     CheckpointsBlocks.emplace(382536, "46d5831c2f7e3ac1e719db7909e77d3f5aba1415931b851ad50768e97c54391a");
 }
 
-bool IsCheckpoint(int height, std::string hash) {
+bool IsCheckpointBlock(int height, std::string hash) {
     if (CheckpointsBlocks.find(height) == CheckpointsBlocks.end()) return false;
     return CheckpointsBlocks[height] == hash;
+}
+
+static std::vector<std::string> CheckpointsTransactions;
+void FillCheckpointsTransactions(const CChainParams& params)
+{
+    CheckpointsTransactions.push_back("f00f8d35c512ab282130ad8609d4ffa01f3a67011230ecdd903dfe12abde5fcf");
+    CheckpointsTransactions.push_back("9ec4404eaf8d3e16e5b02da9e3ec468e3d471cb5b3632c31fcc7388544e6e3cc");
+    CheckpointsTransactions.push_back("51effdd1aa5512992b65441161e0c8fded0c24d781480b07bd2300935a89a0c1");
+    CheckpointsTransactions.push_back("7e530bd7e1b6ecebf514756129a2e43bf03958edefbcfff9360e28c51ffb20e0");
+    CheckpointsTransactions.push_back("9c86226e0ca07c2bd021d8754572d5a227560c4858d133262ed834971100cdf5");
+    CheckpointsTransactions.push_back("ebbd469d8567b7644564d298e6300c31fa6bb592bdd32c9fc1de07bebce9ee62");
+    CheckpointsTransactions.push_back("3847a247d60865c3ae499e3de63ed8063862ff7652046d00a3bc724f2a71cb82");
+    CheckpointsTransactions.push_back("53ee5afe1edafdeca13f9dadcbcc6fc29b64c365a767691a23b4d914a018a31c");
+    CheckpointsTransactions.push_back("2087ec178c2cb2fe8840b1f3dd2f8dd8300bcb2a17cfde00acf0cb488004a546");
+    CheckpointsTransactions.push_back("c74641d493d7d102748d2ed54de855eb399ecbb70b1c7e5854d4194009da3c5e");
+    CheckpointsTransactions.push_back("a98aa7df032c16c57efe153b8d916de6b0882e192bd6d25ab09ac982e3079aba");
+    CheckpointsTransactions.push_back("ac7ddefa0efb21606014f0ffe5bdaa890da9dd59c59922c51d0eb72582ecb0c9");
+    CheckpointsTransactions.push_back("7fdcd94e189ff9829ccf8dca264f7b5577c2b7d52faa283ecea3917ec112e0ca");
+    CheckpointsTransactions.push_back("6e4fb0248d5a2de72e83ef7c4f5df6a42bc5443fb2fb3683c7be3b4b689103eb");
+    CheckpointsTransactions.push_back("d7ab57b7dbcc5383b38ab6dd5e1f7e7daa622e715f85d1648638168b6d7f8703");
+    CheckpointsTransactions.push_back("bb2676fb51c5e4a9004197245beb104d84ab205696292e47ad69d90f5d90a303");
+    CheckpointsTransactions.push_back("7bcace22ba0b3db12c70f16a9802fab0122a2b2505f69f9f6128a50a1ffb650e");
+    CheckpointsTransactions.push_back("87e7606e8d4a15d3dd2e014f9b738d9477bda02b57fd2ba8ac887fcad272951b");
+    CheckpointsTransactions.push_back("15be0addbfaf35e05970023b54e69f0758cd31b432cb6335599804c19e5dab22");
+    CheckpointsTransactions.push_back("8d502590ac91a3abb454cabeb5f8c3bbde2533d3c84278115d4daba00b392f26");
+    CheckpointsTransactions.push_back("0c8d0202e0650cbd5eb4a226a98664b587aa7c0b56cf074bf5444a618e51d555");
+    CheckpointsTransactions.push_back("c54642c4a955070b93faf39c3de0fef9da69875694872a6106c41a45f52e7657");
+    CheckpointsTransactions.push_back("888e18c0f95e9fe1d1ed808c4bfe2bddaef31e7d7614c8223e548ff691790b87");
+    CheckpointsTransactions.push_back("efee870fcb4042ed963fd337e3d7fe353d5dfa5e66dc7bbdcff7e3df8a4de7ca");
+    CheckpointsTransactions.push_back("045908a0a86cf525943eec3641bf4f604ac25eef6e618f92a841ac5efbce78dd");
+    CheckpointsTransactions.push_back("638455551564d3ec6f350d0afb9842a49bf87cb4ad36da463c55a0ee1ed332ec");
+    CheckpointsTransactions.push_back("4e2b5e40f28f1133562c5ab07ec47146ce74f55df71351527bc62a5e179d530f");
+    CheckpointsTransactions.push_back("c3c8d1a7dc7039c8bf2a3388de3766b601b42a55270d60e179788a4bf9f3a3b2");
+    CheckpointsTransactions.push_back("a205fa0c8f0b38c78349662c13fdd264f3069c75741551f40d805e0f42e44588");
+    CheckpointsTransactions.push_back("3f599f11eeed6fd69c45fcc8f73668ecbc575df2b3eebfe567b81b8dd3a367d5");
+    CheckpointsTransactions.push_back("0f186b661bb3666e5bbd1dc61b7d50223f9125256a327e00aba25e62b538a1dc");
+    CheckpointsTransactions.push_back("7a9c4929e1e8a6e9d5d827ff0ba89a80ab3100080126fdca0ff6b93d3429874c");
+    CheckpointsTransactions.push_back("f35e6e2ba1ee6d32c9c9fd4476d340a5644bd032c410e2fc257c5255c8608fc3");
+    CheckpointsTransactions.push_back("749e78a8b5850aa848e957abfdbf100e59a1942629ed49da15d68706c400e847");
+    CheckpointsTransactions.push_back("164e6db187d935b1bd3a4cbd2af541be6848979a4783e114ff755c87124f1551");
+    CheckpointsTransactions.push_back("0435ba4832791332b14f11ae810296aaef98dd560a73eab6d2d01329dade46bf");
+    CheckpointsTransactions.push_back("4271ba4040dd044160eba4f6fef57f4d5bd0f9614752f3640f3f6d78625b9410");
+    CheckpointsTransactions.push_back("a8611e3813c7ee567f44cbe53ce25d19d76ae5920b939e948c19c7c969475d4a");
+    CheckpointsTransactions.push_back("5a8e5fd6506f5cc8f8b9ed4c7ac57bed675fb47411018387b03a17ed541f1c71");
+    CheckpointsTransactions.push_back("bad8541da87f08d59d6241cbc538a902a27f8baa5b0d1095b36d3d37d987daf6");
+    CheckpointsTransactions.push_back("a798427f74abdc0a839fab679db597bb84919746004a82932c0c049620294ef9");
+    CheckpointsTransactions.push_back("5d0eeb996443c3bfd67cf96c6d0d23912d99c6d25c277d081942625b07a70b6c");
+    CheckpointsTransactions.push_back("519a095a90cae3b62a5725af2e871acd59a1a0385200440b167279ebe493ec9b");
+    CheckpointsTransactions.push_back("f78453ffb67d19bd75f03d880bc3e0812fdddd22f1d7534e5b0d44e5cd954570");
+    CheckpointsTransactions.push_back("d000bf49402e180104303eb13087af5baaf4c6113f31f0bf06188578d8c069cc");
+    CheckpointsTransactions.push_back("596d561f08907ad3b5ba9eeb5e3c6afcd201e9754531b1e23c48fa59f66bc420");
+    CheckpointsTransactions.push_back("8b07a75dea5c2b318246298b189a419519d9e9006c27e2a4256127c91f8672bc");
+    CheckpointsTransactions.push_back("3393338a971b679df979141f7653aeda7c090df469130d806ff9ea391dda85d8");
+    CheckpointsTransactions.push_back("9e890d72a2935e88a8a67f7de0ab7d1cee5603b7cef1550030ac656c4ba87987");
+    CheckpointsTransactions.push_back("cfb32596f74c90ed497f729ca8ccd1c5a0373fd792e19227ddbccf5c605b77bd");
+    CheckpointsTransactions.push_back("34d87a4e288751fa42416210d884eb96f2391def2a4849e3fc5a874e23d00301");
+    CheckpointsTransactions.push_back("f18a28e77a07c342f7988d917b835f0bc6094a5696d8cf24849467c051608f28");
+    CheckpointsTransactions.push_back("a210373d9f547b6c067ccbeb4ff7d066aec6d963ba65bc4becdde9679777559d");
+    CheckpointsTransactions.push_back("56da1f5959f73fdd38c5329e026fd21a3657ffe75b71343c8d32e687185c85b3");
+    CheckpointsTransactions.push_back("1d84969a3f9fd948a3bd3cabb5881013155865361221668c367d419004b345bd");
+    CheckpointsTransactions.push_back("68e3a4dc6b2d2e27c97983754ce2d8168794c44b3855ede9ef45115574f0e5a3");
+    CheckpointsTransactions.push_back("6194419c04736781100ba432412a1f2e63eb05c17025db2a71340b4888048bdf");
+    CheckpointsTransactions.push_back("e8c667e29456e5b501a5e68b455468b4dc0e1bd77561fed3fbfe02f62028ff99");
+    CheckpointsTransactions.push_back("9679ac3dac5d29f5cef3913fb72a2b93dc8d9421118ab8931a7532163b92979d");
+    CheckpointsTransactions.push_back("77909ad71bf0fd849a8d7a834becca464bca1314d825eb33cf81619d462dd98b");
+    CheckpointsTransactions.push_back("d167814ba72ef9045b2d07e90f42902b1ed7009f5f634f8435c8a7895aa4504a");
+    CheckpointsTransactions.push_back("17c232c198b7dc381245648088b070d53e572f31a60ce4695ce02a29220e2b2f");
+    CheckpointsTransactions.push_back("2d17c244ad606541326dfcd221e0807079e2d4b57a1943ca215119e108578762");
+    CheckpointsTransactions.push_back("c0cf10129f4d3e315345f91579761a6dddfca79640914cf99b084f2679da3092");
+    CheckpointsTransactions.push_back("ff7b33404ce8a716eb3056bc29be92a95ba8bbaddf4fc32f6fa633f8b703c7b0");
+    CheckpointsTransactions.push_back("698f709485ba44e537023dbb385b9e6d5efdfd134264428ecf82fbcbcf8fb655");
+    CheckpointsTransactions.push_back("ed3c7f996c55b528aeed78c3696d3413fc1c28f4e16efb7bf59ee5ff26db6bce");
+    CheckpointsTransactions.push_back("2a7d6a597f0f6d1dcd1a6f624348f105e49025ace4c8e7f2e8d80f3a649fd9eb");
+    CheckpointsTransactions.push_back("a46dfe70ff5a1090b7a2543c31c660b5de523341fc0cba336e89f44e86eb9fe6");
+    CheckpointsTransactions.push_back("819db1858bcccc019368a8abe722dbcf5fced2241d2395224a29ca078f29ed11");
+    CheckpointsTransactions.push_back("01490e5b7e4d5ffd21c67aefdb59ae7e51edb8f095d9a8e02cb440db37898e43");
+    CheckpointsTransactions.push_back("cb6a33aee2f933e3198ff9edf8c9a4a958f3a0953c6bebfb2b0a42aa5c25e6ec");
+    CheckpointsTransactions.push_back("5d2f8afebb34cb7ae18ed36060f802c5ec99ec7ee7e294e16903856b97393865");
+    CheckpointsTransactions.push_back("1d1f62bce36d43bb3d7054282a0bfdc082a7c4198df16f7c37ccbbf466a4532f");
+    CheckpointsTransactions.push_back("94fa10c2de9e9ae862309beb9fc7128fb3f313b19c2ff389eba543e0e5cc7b00");
+    CheckpointsTransactions.push_back("a33e591dc0b8918a9781f95bbe42719da91f9bebb82b716f7ffb4082507e901d");
+    CheckpointsTransactions.push_back("19a08b78e935b47ab91003c325d810fa5ef110ef591f4d83992e3e515dfffda9");
+    CheckpointsTransactions.push_back("9536d7bd5132b3994ef47a70371674517c6f5c1e4c4000890c90412ac4ec10e4");
+    CheckpointsTransactions.push_back("73a20c40d0b318725d88ebc1438e2082db800be34d404a26994c6b54a5714a37");
+    CheckpointsTransactions.push_back("1f093757e7d0783833333f28fdb19493d87548061a0a81ba34f638e0331ec476");
+    CheckpointsTransactions.push_back("7ecf297230ecbc55b014ce302cde241d9362c50f2aadbc3f476dd9ae8a6aaa9f");
+    CheckpointsTransactions.push_back("9b7b1049b6de44416b879691bd0dbb5bb4c6352cde2747d625f82e664c08f1ba");
+    CheckpointsTransactions.push_back("7f0ab92c0b92bcb4e7dc9c12050a2419b9aefa1fbb260bb65468c5c5c4457ac3");
+    CheckpointsTransactions.push_back("b1a635675cf1cec31680aa04ddf90d4246278a3659fb31defcf631f8dcb9fa37");
+    CheckpointsTransactions.push_back("709715f1420660c7f2c1ac5ccaf9a12712b66aece43b25829fa754e3b204bf57");
+    CheckpointsTransactions.push_back("897eca2d187863ef126815201b13bd748318126115ed87806995e810252ac59e");
+    CheckpointsTransactions.push_back("fa3dd182ad1dc287b14a9fbceb8c33ccd8b894e8f2187d8eeef0ed5efb77bec9");
+    CheckpointsTransactions.push_back("c57c47c49a775443a3191abe469294e8dd6549524ef07368872063c15a98e324");
+    CheckpointsTransactions.push_back("17d25ae7b6e06bf1ddcbb43d10cfdd4ad933d86c4ec3609132eb1b5d8139634a");
+    CheckpointsTransactions.push_back("986dac41d232dd3443b12a4b8153176f9dfa86997e8793e57c2c0488690456ed");
+    CheckpointsTransactions.push_back("a841baa175f2c8d0b152e8e09e43357dc6cacbeaeae8f3a192532832b590fcc0");
+    CheckpointsTransactions.push_back("edebb4af73407face7bfbca6d2c67b5b28e7f101f6920c223b7d4f1b68ccc8ca");
+    CheckpointsTransactions.push_back("5e1db09656b76c0ca3c8e15a3dd9775bb6d3e77d8c9abffa8d9e989337d854ea");
+    CheckpointsTransactions.push_back("4fd2022604439f6ad0a518de09eae9cbe1e410f4ae20114ea497caa9d28c470c");
+    CheckpointsTransactions.push_back("d6b21451f035f2dcb435446daaeab472a465ba78965f3b40bf60728a6bbac34e");
+    CheckpointsTransactions.push_back("dcd07908e6eb4bcd681de36887f7c824a62b6e1ccd69467fa913b8d4742ba62c");
+    CheckpointsTransactions.push_back("8fa0f2aa3f70b06bf455746f3cbc7e5e2540d9a412237d6fd9a1c215dd2722f3");
+    CheckpointsTransactions.push_back("7b52be957c18d20fd1eff2b4ae67215d67f0805dafe40ac929d8b21c044e2f0a");
+    CheckpointsTransactions.push_back("ba667ac80cf623f5603b3b1b238b74938bdcae12ab897fd170e77e28948e6516");
+    CheckpointsTransactions.push_back("d5fc11cba672e30a500afb4dc40e83b7ed072acd158e289819db6b9db435c383");
+    CheckpointsTransactions.push_back("255fbd900102be30b7db16028463707fb35b9e50d8d76052c8f9aa805e8a9e55");
+    CheckpointsTransactions.push_back("362aaa7490398bc60f055ec8d9dcff37c44112fa410d299f5b87860e081d1325");
+    CheckpointsTransactions.push_back("69c205e48c21a3c70bff62b12c99a51baa69d601d7c7e66daa2941f9b9e99293");
+    CheckpointsTransactions.push_back("375c68fbe4d70ff7f779c94ece57790f7d8abeadc532033a568a931d917f5c66");
+    CheckpointsTransactions.push_back("b07615f5fd1e20008df1aa2dc11808dba7a3676d3b28346c1fc50c70ad61c31a");
+    CheckpointsTransactions.push_back("3bdb1046ed07357cf828ce66fd22f12d9e8b3c3b0a02d174f4bd03681cadab42");
+    CheckpointsTransactions.push_back("8ab207c295bc13da47da5947b5d93fdfd5a78136841ee44659489af7537c4dd0");
+    CheckpointsTransactions.push_back("e7ac37bfc229ce6bcad948a98030a95be6b5929d718d4efcdefbfea428789010");
+    CheckpointsTransactions.push_back("ce7da6823ed58784003d4c418dca892d156e8ee5b5f36a76cafdd48cb50861d5");
+    CheckpointsTransactions.push_back("cbf99c5c5073ccba798222af117984d304b30360d0397d32af45f52c49c5cb8c");
+    CheckpointsTransactions.push_back("e48505877db1563304523d13a5057922a8adc9d0c8aaa4f488b56e18f318545e");
+}
+
+bool IsCheckpointTransaction(std::string hash) {
+    return (std::find(CheckpointsTransactions.begin(), CheckpointsTransactions.end(), hash) != CheckpointsTransactions.end());
 }

@@ -241,7 +241,7 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx) {
 
         UniValue oitm = g_addrindex->GetUniValue(tx, itm, ri_table);
         ANTIBOTRESULT resultCode;
-        g_antibot->CheckTransactionRIItem(oitm, blockVtx, false, resultCode);
+        g_antibot->CheckTransactionRIItem(oitm, blockVtx, false, chainActive.Height() + 1, resultCode);
         if (resultCode != ANTIBOTRESULT::Success) {
             return false;
         }

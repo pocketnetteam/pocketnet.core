@@ -49,14 +49,14 @@ void PocketDB::CloseNamespaces() {
 // Check for update DB
 bool PocketDB::UpdateDB() {
     // Find current version of RDB
-    int current_version = 0;
+    int db_version = 0;
     Item service_itm;
     Error err = SelectOne(Query("Service").Sort("version", true), service_itm);
-    if (err.ok()) current_version = service_itm["version"].As<int>();
+    if (err.ok()) db_version = service_itm["version"].As<int>();
 
     // Need to update?
-    if (current_version < version) {
-        LogPrintf("Current version RDB=%s. Need to update RDB structure to version %s. Blockchain data will be erased and uploaded again.\n", current_version, version);
+    if (db_version < cur_version) {
+        LogPrintf("Update RDB structure from v%s to v%s. Blockchain data will be erased and uploaded again.\n", db_version, cur_version);
 
         CloseNamespaces();
         db->~Reindexer();
@@ -100,7 +100,7 @@ bool PocketDB::Init()
 
     // Save current version
     Item service_new_item = db->NewItem("Service");
-    service_new_item["version"] = version;
+    service_new_item["version"] = cur_version;
     UpsertWithCommit("Service", service_new_item);
 
     // Turn on/off statistic
@@ -272,12 +272,13 @@ bool PocketDB::InitDB(std::string table)
     // Subscribes
     if (table == "SubscribesView" || table == "ALL") {
         db->OpenNamespace("SubscribesView", StorageOpts().Enabled().CreateIfMissing());
-        db->AddIndex("SubscribesView", {"txid", "hash", "string", IndexOpts().PK()});
+        db->AddIndex("SubscribesView", {"txid", "hash", "string", IndexOpts()});
         db->AddIndex("SubscribesView", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("SubscribesView", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("SubscribesView", {"address", "hash", "string", IndexOpts()});
         db->AddIndex("SubscribesView", {"address_to", "hash", "string", IndexOpts()});
         db->AddIndex("SubscribesView", {"private", "-", "bool", IndexOpts()});
+        db->AddIndex("SubscribesView", {"address+address_to", {"address", "address_to"}, "hash", "composite", IndexOpts().PK()});
         db->Commit("SubscribesView");
     }
 
@@ -402,9 +403,13 @@ bool PocketDB::InitDB(std::string table)
 
 bool PocketDB::DropTable(std::string table)
 {
-    Error err = db->DropNamespace(table).ok();
-    if (!InitDB(table)) return false;
-    return true;
+    Error err = db->DropNamespace(table);
+    if (!err.ok()) LogPrintf("Drop namespace(%s) %s\n", table, err.what());
+    
+    err = db->Commit(table);
+    if (!err.ok()) LogPrintf("Commit drop namespace(%s) %s\n", table, err.what());
+
+    return InitDB(table);
 }
 
 bool PocketDB::CheckIndexes(UniValue& obj)
@@ -635,14 +640,13 @@ Error PocketDB::UpdateUsersView(std::string address, int height)
 
 Error PocketDB::UpdateSubscribesView(std::string address, std::string address_to)
 {
+    DeleteWithCommit(Query("SubscribesView").Where("address", CondEq, address).Where("address_to", CondEq, address_to));
+
     QueryResults _res;
     Error err = db->Select(Query("Subscribes", 0, 1).Where("address", CondEq, address).Where("address_to", CondEq, address_to).Sort("time", true), _res);
-    if (_res.Count() <= 0) return DeleteWithCommit(Query("SubscribesView").Where("address", CondEq, address).Where("address_to", CondEq, address_to));
-    if (err.ok()) {
+    if (err.ok() && _res.Count() > 0) {
         Item _itm = _res[0].GetItem();
-        if (_itm["unsubscribe"].As<bool>() == true)
-            return DeleteWithCommit(Query("SubscribesView").Where("address", CondEq, address).Where("address_to", CondEq, address_to));
-        else
+        if (!_itm["unsubscribe"].As<bool>())
             return UpsertWithCommit("SubscribesView", _itm);
     }
     //-----------------

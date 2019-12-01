@@ -79,8 +79,17 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table);
 
 
 // Checkpoints for blocks
-void FillCheckpoints(const CChainParams& params);
-bool IsCheckpoint(int height, std::string hash);
+void FillCheckpointsBlocks(const CChainParams& params);
+bool IsCheckpointBlock(int height, std::string hash);
+
+
+// Checkpoints for transactions
+void FillCheckpointsTransactions(const CChainParams& params);
+bool IsCheckpointTransaction(std::string hash);
+
+
+// Change in consensus rules
+#define CH_CONSENSUS_SCORE_BLOCKING 430000
 
 
 #endif // POCKETNET_H

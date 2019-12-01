@@ -2201,7 +2201,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 		int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
 		if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource)) {
-            if (IsCheckpoint(pindex->nHeight, block.GetHash().ToString()))
+            if (IsCheckpointBlock(pindex->nHeight, block.GetHash().ToString()))
                 LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
             else
                 return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
@@ -3892,8 +3892,8 @@ bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationS
             blockVtx.Add(ri_table, g_addrindex->GetUniValue(tx, itm, ri_table));
 		}
 
-        if (!g_antibot->CheckBlock(blockVtx)) {
-            if (!IsCheckpoint(pindex->nHeight, blockhash.GetHex()))
+        if (!g_antibot->CheckBlock(blockVtx, pindex->nHeight)) {
+            if (!IsCheckpointBlock(pindex->nHeight, blockhash.GetHex()))
                 return state.Invalid(false, REJECT_INVALID, "bad-antibot-checking", strprintf("Block check with the AntiBot failed (%s)", blockhash.GetHex()));
         }
     }
@@ -4296,10 +4296,10 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
 			if (ppindex) {
 				*ppindex = pindex;
 
-                if (pindex && is_first && ppindexFirst) {
-                    *ppindexFirst = pindex;
-                    is_first = false;
-                }
+                // if (pindex && is_first && ppindexFirst) {
+                //     *ppindexFirst = pindex;
+                //     is_first = false;
+                // }
 			}
 		}
 	}

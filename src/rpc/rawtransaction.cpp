@@ -1974,7 +1974,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     //-------------------------------------------------
     // Check transaction with antibot
     ANTIBOTRESULT ab_result;
-    g_antibot->CheckTransactionRIItem(g_addrindex->GetUniValue(new_rtx, new_rtx.pTransaction, new_rtx.pTable), ab_result);
+    g_antibot->CheckTransactionRIItem(g_addrindex->GetUniValue(new_rtx, new_rtx.pTransaction, new_rtx.pTable), chainActive.Height() + 1, ab_result);
     if (ab_result != ANTIBOTRESULT::Success) {
         throw JSONRPCError(ab_result, mesType);
     }

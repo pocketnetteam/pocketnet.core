@@ -1517,55 +1517,71 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
             if (nodestate->nUnconnectingHeaders % MAX_UNCONNECTING_HEADERS == 0) {
                 Misbehaving(pfrom->GetId(), 20);
             }
-            valid = false;
+
+            // valid = false;
+            return true;
         }
 
-        if (valid) {
-            uint256 hashLastBlock;
-            for (const CBlockHeader& header : headers) {
-                if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
-                    Misbehaving(pfrom->GetId(), 20, "non-continuous headers sequence");
-                    valid = false;
-                    break;
-                }
+        uint256 hashLastBlock;
+        for (const CBlockHeader& header : headers) {
+            if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
+                Misbehaving(pfrom->GetId(), 20, "non-continuous headers sequence");
+                return false;
                 hashLastBlock = header.GetHash();
             }
+        }
+        // if (valid) {
+        //     uint256 hashLastBlock;
+        //     for (const CBlockHeader& header : headers) {
+        //         if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
+        //             Misbehaving(pfrom->GetId(), 20, "non-continuous headers sequence");
+        //             valid = false;
+        //             break;
+        //         }
+        //         hashLastBlock = header.GetHash();
+        //     }
 
-            // If we don't have the last header, then they'll have given us
-            // something new (if these headers are valid).
-            if (!LookupBlockIndex(hashLastBlock)) {
-                received_new_header = true;
-            }
+        //     // If we don't have the last header, then they'll have given us
+        //     // something new (if these headers are valid).
+        //     if (!LookupBlockIndex(hashLastBlock)) {
+        //         received_new_header = true;
+        //     }
+        // }
+
+        // If we don't have the last header, then they'll have given us
+        // something new (if these headers are valid).
+        if (!LookupBlockIndex(hashLastBlock)) {
+            received_new_header = true;
         }
     }
 
-    if (valid) {
-        CValidationState state;
-        CBlockHeader first_invalid_header;
-        received_new_header = true;
-        if (!ProcessNewBlockHeaders(headers, state, chainparams, &pindexLast, &first_invalid_header, &pindexFirst)) {
-            int nDos = 0;
-            if (state.IsInvalid(nDos) && nDos > 0) {
-                Misbehaving(pfrom->GetId(), nDos);
-            }
-            valid = false;
-        }
-    }
+    // if (valid) {
+    //     CValidationState state;
+    //     CBlockHeader first_invalid_header;
+    //     received_new_header = true;
+    //     if (!ProcessNewBlockHeaders(headers, state, chainparams, &pindexLast, &first_invalid_header, &pindexFirst)) {
+    //         int nDos = 0;
+    //         if (state.IsInvalid(nDos) && nDos > 0) {
+    //             Misbehaving(pfrom->GetId(), nDos);
+    //         }
+    //         valid = false;
+    //     }
+    // }
 
-    if(gArgs.GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER) && !IsInitialBlockDownload()) {
-        LOCK(cs_main);
-        CValidationState state;
-        CNodeState *nodestate = State(pfrom->GetId());
-        nodestate->headers.addHeaders(pindexFirst, pindexLast);
-        valid = nodestate->headers.updateState(state, valid);
-        int nDos = 0;
-        if (state.IsInvalid(nDos) && nDos > 0) {
-            Misbehaving(pfrom->GetId(), nDos, "header spam detected");
-            valid = false;
-        }
-    }
+    // if(gArgs.GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER) && !IsInitialBlockDownload()) {
+    //     LOCK(cs_main);
+    //     CValidationState state;
+    //     CNodeState *nodestate = State(pfrom->GetId());
+    //     nodestate->headers.addHeaders(pindexFirst, pindexLast);
+    //     valid = nodestate->headers.updateState(state, valid);
+    //     int nDos = 0;
+    //     if (state.IsInvalid(nDos) && nDos > 0) {
+    //         Misbehaving(pfrom->GetId(), nDos, "header spam detected");
+    //         valid = false;
+    //     }
+    // }
 
-    if (!valid) { return false; }
+    // if (!valid) { return false; }
 
     CValidationState state;
     CBlockHeader first_invalid_header;
@@ -2405,7 +2421,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 			}
 
 			ANTIBOTRESULT ab_result;
-			g_antibot->CheckTransactionRIItem(g_addrindex->GetUniValue(rtx, rtx.pTransaction, rtx.pTable), ab_result);
+			g_antibot->CheckTransactionRIItem(g_addrindex->GetUniValue(rtx, rtx.pTransaction, rtx.pTable), chainActive.Height() + 1, ab_result);
 			if (ab_result != ANTIBOTRESULT::Success) {
                 LogPrintf("WARNING! Receive transaction, antibot check: %d %s\n", ab_result, ptx->GetHash().GetHex());
 				state.Invalid(false, ab_result, "Antibot");

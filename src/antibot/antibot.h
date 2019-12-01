@@ -158,34 +158,34 @@ private:
 	int getLimit(CHECKTYPE _type, ABMODE _mode, int height);
 
 	// Maximum size for reindexer item with switch for type
-	bool check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height);
+	bool check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result);
 
 	// Check new post and edited post from address
-	bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
-    bool check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
+	bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    bool check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
 	// Check new score to post from address
-	bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
+	bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
 	// Check new complain to post from address
-	bool check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
+	bool check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
 	// Check change profile
-	bool check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
+	bool check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
 	// Check subscribe/unsubscribe
-	bool check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
+	bool check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
 	// Check blocking/unblocking
-	bool check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result);
+	bool check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
     // Check new comment
-    bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
-    bool check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
-    bool check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
+    bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    bool check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    bool check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
     // Check new score to comment
-    bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result);
+    bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
 public:
     explicit AntiBot();
@@ -199,8 +199,8 @@ public:
 		Check conditions for new transaction.
 		PocketNET data must be in RIMempool
 	*/
-	void CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& resultCode);
-    void CheckTransactionRIItem(UniValue oitm, ANTIBOTRESULT& resultCode);
+	void CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& resultCode);
+    void CheckTransactionRIItem(UniValue oitm, int height, ANTIBOTRESULT& resultCode);
     /*
         Check inputs for exists utxo
     */
@@ -209,7 +209,7 @@ public:
         Check all transactions in block
         Include this transactions as parents
     */
-    bool CheckBlock(BlockVTX& blockVtx);
+    bool CheckBlock(BlockVTX& blockVtx, int height);
 	/*
 		Return array of user states.
 		Contains info about spent and unspent posts and scores. Also current reputation value

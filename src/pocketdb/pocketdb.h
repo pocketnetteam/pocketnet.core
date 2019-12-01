@@ -23,7 +23,7 @@ class PocketDB {
 private:
     Reindexer* db;
     
-    int version = 1;
+    int cur_version = 2;
 
     void CloseNamespaces();
     bool UpdateDB();

@@ -667,28 +667,6 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
             reindexer::Item _delete_post_itm = it.GetItem();
             std::string _post_txid = _delete_post_itm["txid"].As<string>();
 
-            // TODO (brangr): Temporaly remove tags
-            {
-                // reindexer::VariantArray vaTags = _post_itm["tags"];
-                // std::vector<std::string> vTags;
-                // for (int i = 0; i < vaTags.size(); i++) {
-                //     std::string _tag = vaTags[i].As<string>();
-                //     if (_tag.size() > 0) {
-                //         vTags.push_back(_tag);
-                //     }
-                // }
-
-                // if (vTags.size() > 0) {
-                //     reindexer::QueryResults _res;
-                //     g_pocketdb->Select(reindexer::Query("Tags").Where("tag", CondSet, vTags), _res);
-                //     for (auto& it : _res) {
-                //         reindexer::Item _tagItm = it.GetItem();
-                //         _tagItm["rating"] = _tagItm["rating"].As<int>() - 1;
-                //         g_pocketdb->Update("Tags", _tagItm);
-                //     }
-                // }
-            }
-
             if (back_to_mempool && !insert_to_mempool(_delete_post_itm, "Posts")) return false;
             if (!g_pocketdb->RestorePostItem(_post_txid, blockHeight).ok()) return false;
         }

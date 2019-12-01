@@ -142,7 +142,7 @@ bool AntiBot::CheckRegistration(std::string _address) {
     return false;
 }
 
-bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &result, int height) {
+bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result) {
     int _limit = oitm["size"].get_int();
 
     if (_type == CHECKTYPE::Post) _limit = GetActualLimit(Limit::max_post_size, height);
@@ -158,7 +158,7 @@ bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, ANTIBOTRESULT &res
 
 //-----------------------------------------------------
 
-bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result)
+bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();
@@ -202,8 +202,8 @@ bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, A
 
     // Check limit
     ABMODE mode;
-    getMode(_address, mode, chainActive.Height() + 1);
-    int limit = getLimit(Post, mode, chainActive.Height() + 1);
+    getMode(_address, mode, height);
+    int limit = getLimit(Post, mode, height);
     if (postsCount >= limit) {
         result = ANTIBOTRESULT::PostLimit;
         return false;
@@ -212,7 +212,7 @@ bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, A
     return true;
 }
 
-bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result)
+bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();// Original post id
@@ -241,7 +241,7 @@ bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     }
 
     // Original post edit only 24 hours
-    if (_time - _original_post_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_post_timeout, chainActive.Height() + 1)) {
+    if (_time - _original_post_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_post_timeout, height)) {
         result = ANTIBOTRESULT::PostEditLimit;
         return false;
     }
@@ -270,8 +270,8 @@ bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
         edit_count += g_pocketdb->SelectCount(Query("PostsHistory").Where("txid", CondEq, _txid).Not().Where("txidEdit", CondEq, ""));
         
         ABMODE mode;
-        getMode(_address, mode, chainActive.Height() + 1);
-        int limit = getLimit(PostEdit, mode, chainActive.Height() + 1);
+        getMode(_address, mode, height);
+        int limit = getLimit(PostEdit, mode, height);
         if (edit_count >= limit) {
             result = ANTIBOTRESULT::PostEditLimit;
             return false;
@@ -281,7 +281,7 @@ bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     return true;
 }
 
-bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result)
+bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -331,6 +331,12 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
             result = ANTIBOTRESULT::NotFound;
             return false;
         }
+    }
+
+    // Blocking
+    if (height >= CH_CONSENSUS_SCORE_BLOCKING && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _post_address).Where("address_to", CondEq, _address))) {
+        result = ANTIBOTRESULT::Blocking;
+        return false;
     }
 
     // Check double score to post
@@ -396,8 +402,8 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
     }
 
     ABMODE mode;
-    getMode(_address, mode, chainActive.Height() + 1);
-    int limit = getLimit(Score, mode, chainActive.Height() + 1);
+    getMode(_address, mode, height);
+    int limit = getLimit(Score, mode, height);
     if (scoresCount >= limit) {
         result = ANTIBOTRESULT::ScoreLimit;
         return false;
@@ -425,7 +431,7 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
     return true;
 }
 
-bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result)
+bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -486,8 +492,8 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     ABMODE mode;
     int reputation = 0;
     int64_t balance = 0;
-    getMode(_address, mode, reputation, balance, chainActive.Height() + 1);
-    int64_t minRep = GetActualLimit(Limit::threshold_reputation_complains, chainActive.Height() + 1);
+    getMode(_address, mode, reputation, balance, height);
+    int64_t minRep = GetActualLimit(Limit::threshold_reputation_complains, height);
     if (reputation < minRep) {
         LogPrintf("%s - %s < %s\n", _address, reputation, minRep);
         result = ANTIBOTRESULT::LowReputation;
@@ -543,7 +549,7 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
         }
     }
 
-    int limit = getLimit(Complain, mode, chainActive.Height() + 1);
+    int limit = getLimit(Complain, mode, height);
     if (complainCount >= limit) {
         result = ANTIBOTRESULT::ComplainLimit;
         return false;
@@ -552,7 +558,7 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     return true;
 }
 
-bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result)
+bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -567,7 +573,7 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
         userItm
     ).ok()) {
         int64_t userUpdateTime = userItm["time"].As<int64_t>();
-        if (_time - userUpdateTime <= GetActualLimit(Limit::change_info_timeout, chainActive.Height() + 1)) {
+        if (_time - userUpdateTime <= GetActualLimit(Limit::change_info_timeout, height)) {
             result = ANTIBOTRESULT::ChangeInfoLimit;
             return false;
         }
@@ -629,7 +635,7 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
     return true;
 }
 
-bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT &result)
+bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -696,14 +702,19 @@ bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     }
 
     if (!_unsubscribe && err.ok() && sItm["private"].As<bool>() == _private) {
-        result = ANTIBOTRESULT::DoubleSubscribe;
-        return false;
+        if (!IsCheckpointTransaction(_txid)) {
+            result = ANTIBOTRESULT::DoubleSubscribe;
+            return false;
+            //LogPrintf("--- CHECKPOINT AB::DoubleSubscribe %s\n", _txid);
+        } else {
+            LogPrintf("Found checkpoint transaction %s\n", _txid);
+        }
     }
 
     return true;
 }
 
-bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result)
+bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -776,7 +787,7 @@ bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     return true;
 }
 
-bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result)
+bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();
@@ -794,7 +805,7 @@ bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool
     }
 
     // Size message limit
-    if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit,  chainActive.Height() + 1)) {
+    if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit,  height)) {
         result = ANTIBOTRESULT::Size;
         return false;
     }
@@ -856,8 +867,8 @@ bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool
 
         // Check limit
         ABMODE mode;
-        getMode(_address, mode, chainActive.Height() + 1);
-        int limit = getLimit(Comment, mode, chainActive.Height() + 1);
+        getMode(_address, mode, height);
+        int limit = getLimit(Comment, mode, height);
         if (commentsCount >= limit) {
             result = ANTIBOTRESULT::CommentLimit;
             return false;
@@ -867,7 +878,7 @@ bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool
     return true;
 }
 
-bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result) {
+bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result) {
     std::string _address = oitm["address"].get_str();
     int64_t _time = oitm["time"].get_int64();
     
@@ -885,7 +896,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
     }
 
     // Size message limit
-    if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit,  chainActive.Height() + 1)) {
+    if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit,  height)) {
         result = ANTIBOTRESULT::Size;
         return false;
     }
@@ -916,7 +927,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
     }
 
     // Original comment edit only 24 hours
-    if (_time - _original_comment_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_comment_timeout, chainActive.Height() + 1)) {
+    if (_time - _original_comment_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_comment_timeout, height)) {
         result = ANTIBOTRESULT::CommentEditLimit;
         return false;
     }
@@ -967,8 +978,8 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
         size_t edit_count = g_pocketdb->SelectCount(Query("Comment").Where("otxid", CondEq, _otxid));
         
         ABMODE mode;
-        getMode(_address, mode, chainActive.Height() + 1);
-        int limit = getLimit(CommentEdit, mode, chainActive.Height() + 1);
+        getMode(_address, mode, height);
+        int limit = getLimit(CommentEdit, mode, height);
         if (edit_count >= limit) {
             result = ANTIBOTRESULT::CommentEditLimit;
             return false;
@@ -978,7 +989,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
     return true;
 }
 
-bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result) {
+bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result) {
     std::string _address = oitm["address"].get_str();
     int64_t _time = oitm["time"].get_int64();
     
@@ -1050,7 +1061,7 @@ bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool check
     return true;
 }
 
-bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& result)
+bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -1100,6 +1111,12 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
             result = ANTIBOTRESULT::NotFound;
             return false;
         }
+    }
+
+    // Blocking
+    if (height >= CH_CONSENSUS_SCORE_BLOCKING && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _comment_address).Where("address_to", CondEq, _address))) {
+        result = ANTIBOTRESULT::Blocking;
+        return false;
     }
 
     // Check double score to comment
@@ -1166,8 +1183,8 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
         }
 
         ABMODE mode;
-        getMode(_address, mode, chainActive.Height() + 1);
-        int limit = getLimit(CommentScore, mode, chainActive.Height() + 1);
+        getMode(_address, mode, height);
+        int limit = getLimit(CommentScore, mode, height);
         if (scoresCount >= limit) {
             result = ANTIBOTRESULT::CommentScoreLimit;
             return false;
@@ -1199,12 +1216,12 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
 //-----------------------------------------------------
 
 //-----------------------------------------------------
-void AntiBot::CheckTransactionRIItem(UniValue oitm, ANTIBOTRESULT& resultCode) {
+void AntiBot::CheckTransactionRIItem(UniValue oitm, int height, ANTIBOTRESULT& resultCode) {
     BlockVTX blockVtx;
-    CheckTransactionRIItem(oitm, blockVtx, true, resultCode);
+    CheckTransactionRIItem(oitm, blockVtx, true, height, resultCode);
 }
 
-void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, ANTIBOTRESULT& resultCode) {
+void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& resultCode) {
     resultCode = ANTIBOTRESULT::Success;
     std::string table = oitm["table"].get_str();
     std::string tx_type = oitm["type"].get_str();
@@ -1215,7 +1232,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     if (g_addrindex->CheckRItemExists(table, _txid_check_exists)) return;
 
     // Check consistent transaction and reindexer::Item
-    if (chainActive.Height() >= Params().GetConsensus().nHeight_version_0_18_11) {
+    if (height >= Params().GetConsensus().nHeight_version_0_18_11) {
         std::vector<std::string> vasm;
         boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
         if (vasm.size() < 3) {
@@ -1225,46 +1242,47 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
 
         if (vasm[2] != oitm["data_hash"].get_str()) {
             if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str())) {
-                resultCode = ANTIBOTRESULT::FailedOpReturn;
-                return;
+                // resultCode = ANTIBOTRESULT::FailedOpReturn;
+                // return;
+                LogPrintf("--- CHECKPOINT OPRETURN %s Hashes: %s != %s\n", oitm["txid"].get_str(), vasm[2], oitm["data_hash"].get_str());
             }
         }
     }
 
     // Hard fork for old inconcistents antibot rules
-    if (chainActive.Height() <= Params().GetConsensus().nHeight_version_1_0_0_pre) return;
+    if (height <= Params().GetConsensus().nHeight_version_1_0_0_pre) return;
 
     if (table == "Posts") {
-        if (!check_item_size(oitm, Post, resultCode, chainActive.Height() + 1)) return;
+        if (!check_item_size(oitm, Post, height, resultCode)) return;
         if (oitm["txidEdit"].get_str() != "") {
-            check_post_edit(oitm, blockVtx, checkMempool, resultCode);
+            check_post_edit(oitm, blockVtx, checkMempool, height, resultCode);
         } else {
-            check_post(oitm, blockVtx, checkMempool, resultCode);
+            check_post(oitm, blockVtx, checkMempool, height, resultCode);
         }
     }
     else if (table == "Scores") {
-        check_score(oitm, blockVtx, checkMempool, resultCode);
+        check_score(oitm, blockVtx, checkMempool, height, resultCode);
     }
     else if (table == "Complains") {
-        check_complain(oitm, blockVtx, checkMempool, resultCode);
+        check_complain(oitm, blockVtx, checkMempool, height, resultCode);
     }
     else if (table == "Subscribes") {
-        check_subscribe(oitm, blockVtx, checkMempool, resultCode);
+        check_subscribe(oitm, blockVtx, checkMempool, height, resultCode);
     }
 	else if (table == "Blocking") {
-        check_blocking(oitm, blockVtx, checkMempool, resultCode);
+        check_blocking(oitm, blockVtx, checkMempool, height, resultCode);
     }
     else if (table == "Users") {
-        if (!check_item_size(oitm, User, resultCode, chainActive.Height() + 1)) return;
-        check_changeInfo(oitm, blockVtx, checkMempool, resultCode);
+        if (!check_item_size(oitm, User, height, resultCode)) return;
+        check_changeInfo(oitm, blockVtx, checkMempool, height, resultCode);
     }
 	else if (table == "Comment") {
-        if (tx_type == OR_COMMENT) check_comment(oitm, blockVtx, checkMempool, resultCode);
-        else if (tx_type == OR_COMMENT_EDIT) check_comment_edit(oitm, blockVtx, checkMempool, resultCode);
-        else if (tx_type == OR_COMMENT_DELETE) check_comment_delete(oitm, blockVtx, checkMempool, resultCode);
+        if (tx_type == OR_COMMENT) check_comment(oitm, blockVtx, checkMempool, height, resultCode);
+        else if (tx_type == OR_COMMENT_EDIT) check_comment_edit(oitm, blockVtx, checkMempool, height, resultCode);
+        else if (tx_type == OR_COMMENT_DELETE) check_comment_delete(oitm, blockVtx, checkMempool, height, resultCode);
     }
 	else if (table == "CommentScores") {
-        check_comment_score(oitm, blockVtx, checkMempool, resultCode);
+        check_comment_score(oitm, blockVtx, checkMempool, height, resultCode);
     }
     else {
         resultCode = ANTIBOTRESULT::Unknown;
@@ -1286,11 +1304,11 @@ bool AntiBot::CheckInputs(CTransactionRef& tx) {
     return true;
 }
 
-bool AntiBot::CheckBlock(BlockVTX& blockVtx) {
+bool AntiBot::CheckBlock(BlockVTX& blockVtx, int height) {
     for (auto& t : blockVtx.Data) {
         for (auto& mtx : t.second) {
             ANTIBOTRESULT resultCode = ANTIBOTRESULT::Success;
-            CheckTransactionRIItem(mtx, blockVtx, false, resultCode);
+            CheckTransactionRIItem(mtx, blockVtx, false, height, resultCode);
             if (resultCode != ANTIBOTRESULT::Success) {
                 LogPrintf("Transaction check with the AntiBot failed (%s) %s %s\n", mtx["txid"].get_str(), resultCode, t.first);
 

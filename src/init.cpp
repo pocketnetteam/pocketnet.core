@@ -950,7 +950,8 @@ bool AppInitParameterInteraction()
 
     // ********************************************************* Step 2.1: Create and fill limits valus
     FillLimits(chainparams);
-    FillCheckpoints(chainparams);
+    FillCheckpointsBlocks(chainparams);
+    FillCheckpointsTransactions(chainparams);
 
     // also see: InitParameterInteraction()
 
@@ -1380,6 +1381,7 @@ bool AppInitMain()
     gPruneRDB = gArgs.GetBoolArg("-prunerdb", false);
 	// ********************************************************* Step 4.3: Start AntiBot
 	g_antibot = std::unique_ptr<AntiBot>(new AntiBot());
+
     // ********************************************************* Step 5: verify wallet database integrity
     if (!g_wallet_init_interface.Verify()) return false;
 
@@ -1795,15 +1797,10 @@ bool AppInitMain()
 
     // ********************************************************* Step 12: start node
     int chain_active_height;
-
-    //// debug print
     {
         LOCK(cs_main);
         LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
         chain_active_height = chainActive.Height();
-
-		// Drop all pindex after chainActive.Tip() for redownloading
-
     }
     LogPrintf("nBestHeight = %d\n", chain_active_height);
 
