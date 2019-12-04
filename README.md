@@ -59,5 +59,6 @@ information or see https://opensource.org/licenses/Apache-2.0.
 Contacts
 -------
 support@pocketnet.app - general questions
+
 core@pocketnet.app - blockchain nodes
 
