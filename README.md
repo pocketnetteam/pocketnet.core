@@ -44,18 +44,20 @@ Build from source code
 ---
 See `doc/build-*.md` files for build instructions.
 
+Help
+---
+You can get help and useful information from different sources:
+- https://pocketnet.app/help
+- https://github.com/pocketnetteam/pocketnet.core/tree/master/doc/help
+- Contact section below
+
 License
 -------
-
 Pocketnet Core is released under the terms of the Apache 2.0 license. See [COPYING](COPYING) for more
 information or see https://opensource.org/licenses/Apache-2.0.
 
 Contacts
 -------
-
-Email:
-
 support@pocketnet.app - general questions
-
 core@pocketnet.app - blockchain nodes
 
