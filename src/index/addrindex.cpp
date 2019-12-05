@@ -1215,10 +1215,14 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
                     itm["lang"] = hist_item["lang"].As<string>();
                     itm["caption"] = hist_item["caption"].As<string>();
                     itm["message"] = hist_item["message"].As<string>();
-                    itm["tags"] = hist_item["tags"];
                     itm["url"] = hist_item["url"].As<string>();
-                    itm["images"] = hist_item["images"];
                     itm["settings"] = hist_item["settings"].As<string>();
+
+                    VariantArray vaTags = hist_item["tags"];
+                    itm["tags"] = vaTags;
+                    
+                    VariantArray vaImages = hist_item["images"];
+                    itm["images"] = vaImages;
                 }
             }
 

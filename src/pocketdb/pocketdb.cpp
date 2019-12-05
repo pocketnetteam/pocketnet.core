@@ -697,10 +697,14 @@ Error PocketDB::CommitPostItem(Item& itm, int height) {
             hist_post_item["lang"] = cur_post_item["lang"].As<string>();
             hist_post_item["caption"] = cur_post_item["caption"].As<string>();
             hist_post_item["message"] = cur_post_item["message"].As<string>();
-            hist_post_item["tags"] = cur_post_item["tags"];
             hist_post_item["url"] = cur_post_item["url"].As<string>();
-            hist_post_item["images"] = cur_post_item["images"];
             hist_post_item["settings"] = cur_post_item["settings"].As<string>();
+
+            VariantArray vaTags = cur_post_item["tags"];
+            hist_post_item["tags"] = vaTags;
+
+            VariantArray vaImages = cur_post_item["images"];
+            hist_post_item["images"] = vaImages;
             
             err = UpsertWithCommit("PostsHistory", hist_post_item);
             if (!err.ok()) return err;
@@ -742,10 +746,14 @@ Error PocketDB::RestorePostItem(std::string posttxid, int height) {
         post_item["lang"] = hist_post_item["lang"].As<string>();
         post_item["caption"] = hist_post_item["caption"].As<string>();
         post_item["message"] = hist_post_item["message"].As<string>();
-        post_item["tags"] = hist_post_item["tags"];
         post_item["url"] = hist_post_item["url"].As<string>();
-        post_item["images"] = hist_post_item["images"];
         post_item["settings"] = hist_post_item["settings"].As<string>();
+
+        VariantArray vaTags = hist_post_item["tags"];
+        post_item["tags"] = vaTags;
+
+        VariantArray vaImages = hist_post_item["images"];
+        post_item["images"] = vaImages;
 
         std::string caption_decoded = UrlDecode(post_item["caption"].As<string>());
         post_item["caption_"] = ClearHtmlTags(caption_decoded);

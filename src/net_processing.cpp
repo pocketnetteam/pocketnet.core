@@ -2421,7 +2421,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 			}
 
 			ANTIBOTRESULT ab_result;
-			g_antibot->CheckTransactionRIItem(g_addrindex->GetUniValue(rtx, rtx.pTransaction, rtx.pTable), chainActive.Height() + 1, ab_result);
+            g_antibot->CheckTransactionRIItem(g_addrindex->GetUniValue(rtx, rtx.pTransaction, rtx.pTable), chainActive.Height() + 1, ab_result);
 			if (ab_result != ANTIBOTRESULT::Success) {
                 LogPrintf("WARNING! Receive transaction, antibot check: %d %s\n", ab_result, ptx->GetHash().GetHex());
 				state.Invalid(false, ab_result, "Antibot");

@@ -705,7 +705,6 @@ bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
         if (!IsCheckpointTransaction(_txid)) {
             result = ANTIBOTRESULT::DoubleSubscribe;
             return false;
-            //LogPrintf("--- CHECKPOINT AB::DoubleSubscribe %s\n", _txid);
         } else {
             LogPrintf("Found checkpoint transaction %s\n", _txid);
         }
@@ -1232,7 +1231,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     if (g_addrindex->CheckRItemExists(table, _txid_check_exists)) return;
 
     // Check consistent transaction and reindexer::Item
-    if (height >= Params().GetConsensus().nHeight_version_0_18_11) {
+    //if (height >= Params().GetConsensus().nHeight_version_0_18_11) {
         std::vector<std::string> vasm;
         boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
         if (vasm.size() < 3) {
@@ -1244,10 +1243,10 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
             if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str())) {
                 // resultCode = ANTIBOTRESULT::FailedOpReturn;
                 // return;
-                LogPrintf("--- CHECKPOINT OPRETURN %s Hashes: %s != %s\n", oitm["txid"].get_str(), vasm[2], oitm["data_hash"].get_str());
+                LogPrintf("--- CHECKPOINT OPRETURN %s %s Hashes: %s != %s\n", oitm["txid"].get_str(), table, vasm[2], oitm["data_hash"].get_str());
             }
         }
-    }
+    //}
 
     // Hard fork for old inconcistents antibot rules
     if (height <= Params().GetConsensus().nHeight_version_1_0_0_pre) return;

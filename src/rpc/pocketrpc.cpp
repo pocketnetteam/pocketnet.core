@@ -54,7 +54,7 @@ UniValue getcomments(const JSONRPCRequest& request)
                 .Where("last", CondEq, true)
                 .Where("time", CondLe, GetAdjustedTime())
                 .InnerJoin("otxid", "txid", CondEq, Query("Comment").Where("txid", CondSet, cmnids).Limit(1))
-                .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondSet, address).Limit(1)),
+                .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1)),
             commRes);
     else
         g_pocketdb->Select(
@@ -64,7 +64,7 @@ UniValue getcomments(const JSONRPCRequest& request)
                 .Where("last", CondEq, true)
                 .Where("time", CondLe, GetAdjustedTime())
                 .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
-                .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondSet, address).Limit(1)),
+                .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1)),
             commRes);
 
     UniValue aResult(UniValue::VARR);
@@ -127,7 +127,7 @@ UniValue getlastcomments(const JSONRPCRequest& request)
             .Sort("time", true)
             .Limit(resultCount)
             .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
-            .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondSet, address).Limit(1)),
+            .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1)),
         commRes);
 
     UniValue aResult(UniValue::VARR);
