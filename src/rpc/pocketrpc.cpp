@@ -456,18 +456,12 @@ UniValue getpagescores(const JSONRPCRequest& request)
     for (auto cit : commRes) {
         reindexer::Item cmntItm = cit.GetItem();
 
-        int myScoreCmnt = 0;
-        if (cit.GetJoined().size() > 1 && cit.GetJoined()[0].Count() > 0) {
-            reindexer::Item ocmntScoreItm = cit.GetJoined()[0][0].GetItem();
-            int myScoreCmnt = ocmntScoreItm["value"].As<int>();
-        }
-
         UniValue cmntscore(UniValue::VOBJ);
         cmntscore.pushKV("cmntid", cmntItm["otxid"].As<string>());
         cmntscore.pushKV("scoreUp", cmntItm["scoreUp"].As<string>());
         cmntscore.pushKV("scoreDown", cmntItm["scoreDown"].As<string>());
         cmntscore.pushKV("reputation", cmntItm["reputation"].As<string>());
-        cmntscore.pushKV("myscore", myScoreCmnt);
+        if (cit.GetJoined().size() > 0) cmntscore.pushKV("myscore", cit.GetJoined()[0][0].GetItem()["value"].As<string>());
         result.push_back(cmntscore);
     }
 
