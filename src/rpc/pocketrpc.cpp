@@ -201,13 +201,11 @@ UniValue getaddressscores(const JSONRPCRequest& request)
     reindexer::QueryResults queryRes;
     if (TxIds.empty()) {
         g_pocketdb->DB()->Select(
-            reindexer::Query("Scores").Where("address", CondEq, address)
-            .InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address)).Sort("time", true),
+            reindexer::Query("Scores").Where("address", CondEq, address).InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address)).Sort("time", true),
             queryRes);
     } else {
         g_pocketdb->DB()->Select(
-            reindexer::Query("Scores").Where("address", CondEq, address).Where("posttxid", CondSet, TxIds)
-            .InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address)).Sort("time", true),
+            reindexer::Query("Scores").Where("address", CondEq, address).Where("posttxid", CondSet, TxIds).InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address)).Sort("time", true),
             queryRes);
     }
 
@@ -266,11 +264,10 @@ UniValue getpostscores(const JSONRPCRequest& request)
 
     reindexer::QueryResults queryRes1;
     g_pocketdb->DB()->Select(
-        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds)
-        .InnerJoin("address", "address_to", CondEq, Query("SubscribesView").Where("address", CondEq, address))
-        .InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address))
+        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds).InnerJoin("address", "address_to", CondEq, Query("SubscribesView").Where("address", CondEq, address)).InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address))
         //.Sort("txid", true).Sort("private", true).Sort("reputation", true)
-        , queryRes1);
+        ,
+        queryRes1);
 
     std::vector<std::string> subscribeadrs;
     for (auto it : queryRes1) {
@@ -292,10 +289,10 @@ UniValue getpostscores(const JSONRPCRequest& request)
 
     reindexer::QueryResults queryRes2;
     g_pocketdb->DB()->Select(
-        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds).Not().Where("address", CondSet, subscribeadrs)
-        .InnerJoin("address", "address", CondEq, Query("UsersView").Not().Where("address", CondSet, subscribeadrs))
+        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds).Not().Where("address", CondSet, subscribeadrs).InnerJoin("address", "address", CondEq, Query("UsersView").Not().Where("address", CondSet, subscribeadrs))
         //.Sort("txid", true).Sort("reputation", true)
-        ,queryRes2);
+        ,
+        queryRes2);
 
     for (auto it : queryRes2) {
         reindexer::Item itm(it.GetItem());
@@ -349,11 +346,23 @@ UniValue getpagescores(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMS, "There is no address.");
     }
 
+    vector<string> CmntIds;
+    if (request.params.size() > 2) {
+        if (request.params[2].isArray()) {
+            UniValue cmntid = request.params[2].get_array();
+            for (unsigned int id = 0; id < cmntid.size(); id++) {
+                CmntIds.push_back(cmntid[id].get_str());
+            }
+        } else if (request.params[2].isStr()) {
+            CmntIds.push_back(request.params[2].get_str());
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid cmntids format");
+        }
+    }
+
     reindexer::QueryResults queryRes;
     g_pocketdb->DB()->Select(
-        reindexer::Query("Posts").Where("txid", CondSet, TxIds)
-        .LeftJoin("txid", "posttxid", CondEq, Query("Scores").Where("address", CondEq, address).Where("value", CondGt, 3))
-        ,queryRes);
+        reindexer::Query("Posts").Where("txid", CondSet, TxIds).LeftJoin("txid", "posttxid", CondEq, Query("Scores").Where("address", CondEq, address).Where("value", CondGt, 3)), queryRes);
 
     UniValue result(UniValue::VARR);
     for (auto it : queryRes) {
@@ -364,11 +373,11 @@ UniValue getpagescores(const JSONRPCRequest& request)
         reindexer::QueryResults queryResLikers1;
         g_pocketdb->DB()->Select(
             reindexer::Query("UsersView")
-            .InnerJoin("address", "address", CondEq, Query("Scores").Where("posttxid", CondEq, itm["txid"].As<string>()).Where("value", CondGt, 3))
-            .InnerJoin("address", "address_to", CondEq, Query("SubscribesView").Where("address", CondEq, address).Where("private", CondEq, true))
-            .Sort("reputation", true)
-            .Limit(3)
-            ,queryResLikers1);
+                .InnerJoin("address", "address", CondEq, Query("Scores").Where("posttxid", CondEq, itm["txid"].As<string>()).Where("value", CondGt, 3))
+                .InnerJoin("address", "address_to", CondEq, Query("SubscribesView").Where("address", CondEq, address).Where("private", CondEq, true))
+                .Sort("reputation", true)
+                .Limit(3),
+            queryResLikers1);
 
         UniValue postlikers(UniValue::VARR);
         std::vector<std::string> postlikersadrs;
@@ -435,6 +444,33 @@ UniValue getpagescores(const JSONRPCRequest& request)
         result.push_back(postscore);
     }
 
+    reindexer::QueryResults commRes;
+    g_pocketdb->Select(
+        Query("Comment")
+            .Where("otxid", CondSet, CmntIds)
+            .Where("last", CondEq, true)
+            .Where("time", CondLe, GetAdjustedTime())
+            .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1)),
+        commRes);
+
+    for (auto cit : commRes) {
+        reindexer::Item cmntItm = cit.GetItem();
+
+        int myScoreCmnt = 0;
+        if (cit.GetJoined().size() > 1 && cit.GetJoined()[0].Count() > 0) {
+            reindexer::Item ocmntScoreItm = cit.GetJoined()[0][0].GetItem();
+            int myScoreCmnt = ocmntScoreItm["value"].As<int>();
+        }
+
+        UniValue cmntscore(UniValue::VOBJ);
+        cmntscore.pushKV("cmntid", cmntItm["otxid"].As<string>());
+        cmntscore.pushKV("scoreUp", cmntItm["scoreUp"].As<string>());
+        cmntscore.pushKV("scoreDown", cmntItm["scoreDown"].As<string>());
+        cmntscore.pushKV("reputation", cmntItm["reputation"].As<string>());
+        cmntscore.pushKV("myscore", myScoreCmnt);
+        result.push_back(cmntscore);
+    }
+
     return result;
 }
 
@@ -452,13 +488,13 @@ UniValue debug(const JSONRPCRequest& request)
 
 static const CRPCCommand commands[] =
     {
-        {"pocketnetrpc", "getlastcomments2", &getlastcomments,  {"count", "address"}},
-        {"pocketnetrpc", "getlastcomments",  &getlastcomments,  {"count", "address"}},
-        {"pocketnetrpc", "getcomments2",     &getcomments,      {"postid", "parentid", "address", "ids"}},
-        {"pocketnetrpc", "getcomments",      &getcomments,      {"postid", "parentid", "address", "ids"}},
+        {"pocketnetrpc", "getlastcomments2", &getlastcomments, {"count", "address"}},
+        {"pocketnetrpc", "getlastcomments", &getlastcomments, {"count", "address"}},
+        {"pocketnetrpc", "getcomments2", &getcomments, {"postid", "parentid", "address", "ids"}},
+        {"pocketnetrpc", "getcomments", &getcomments, {"postid", "parentid", "address", "ids"}},
         {"pocketnetrpc", "getaddressscores", &getaddressscores, {"address", "txs"}},
-        {"pocketnetrpc", "getpostscores",    &getpostscores,    {"txs", "address"}},
-        {"pocketnetrpc", "getpagescores",    &getpagescores,    {"txs", "address"}},
+        {"pocketnetrpc", "getpostscores", &getpostscores, {"txs", "address"}},
+        {"pocketnetrpc", "getpagescores", &getpagescores, {"txs", "address", "cmntids"}},
 
         {"hidden", "debug", &debug, {}},
 };
