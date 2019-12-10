@@ -1,0 +1,79 @@
+﻿------------------
+Basic node information
+
+By default, the node is installed in directories:
+    Linux - /usr/bin
+    Windows - %LOCALAPPDATA%\Programs\PocketnetCore
+
+The installation package contains two programs:
+    pocketcoind                 # Node daemon
+    pocketcoin-cli              # Console RPC utility for control daemon
+    pocketcoin-qt               # GUI Wallet (you do NOT need to run the daemon when using the GUI Wallet)
+
+To start a node in console mode:
+    > pocketcoind <args>
+
+See help for more flexible customization:
+    > pocketcoind help
+
+
+------------------
+Blockhain data directory
+
+By default, the blockchain data directory is located in the following paths:
+    Linux - ~/pocketcoin/
+    Windows - %APPDATA%\pocketcoin\
+
+You can specify your directory. Start the node with the argument:
+    > pocketcoind -datadir=<your_full_path>
+
+
+------------------
+Configuration file
+
+You can specify daemon settings in the configuration file.
+
+Default config file placement:
+    Linux - ~/pocketcoin/pocketcoin.conf
+    Windows - %APPDATA%\pocketcoin\pocketcoin.conf
+
+An example of a minimal configuration:
+    daemon=1                    # Launch daemon in background (only Linux)
+    rpcallowip=0.0.0.0/0        # Allow receive from all
+    rpcallowip=192.168.1.0/0    # or allow receive from only your network
+    rpcallowip=127.0.0.1/24     # or allow receive from only your localhost
+    rpcuser=<your_rpc_login>
+    rpcpassword=<your_rpc_password>
+
+
+------------------
+Control node with pocketcoin-cli
+
+You can manage your site with the helpful console utility `pocketcoin-cli` which uses RPC Protocol to connect to the host.
+Examples of using `pocketcoin-cli`:
+    > pocketcoin-cli help                     # Show all RPC commands
+    > pocketcoin-cli help <command>           # Show help for command
+    > pocketcoin-cli getblockchaininfo        # General blockchaininfo
+    > pocketcoin-cli getwalletinfo            # Wallet info
+    > pocketcoin-cli dumpprivkey <address>    # Show private key for address
+
+Note that if you are using your own path for blockchain data, specify the path to the directory:
+    > pocketcoin-cli -datadir=<your_full_path> <command> <args>    
+
+
+------------------
+Staking
+                            
+For effective staking must have 1 or more of outow on the wallet.
+When creating a block, one out is used as an input and is "frozen" for 1 hour. 
+
+To view information about the current balance, use the `getwalletinfo` command:
+    balance - available funds at the moment.
+    unconfirmed_balance - unconfirmed coins
+    immature_balance - outs used in staking, "frozen"
+
+For a list of available outs, use the `listunspent` command
+
+
+
+
