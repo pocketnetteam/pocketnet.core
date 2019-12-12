@@ -2063,8 +2063,8 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addres
             reindexer::QueryResults queryResSubscribers;
             reindexer::Error errRS = g_pocketdb->DB()->Select(
                 reindexer::Query("SubscribesView")
-                    .Where("address_to", CondEq, _address)
-                    .Where("private", CondEq, false),
+                    .Where("address_to", CondEq, _address),
+                    //.Where("private", CondEq, false),
                 queryResSubscribers);
 
             UniValue arS(UniValue::VARR);
