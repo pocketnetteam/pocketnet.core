@@ -141,7 +141,9 @@ const char* GetOpName(opcodetype opcode)
     
     // Pocketnet
     case OP_WINNER_POST            : return "OP_WINNER_POST";
+    case OP_WINNER_POST_REFERRAL   : return "OP_WINNER_POST_REFERRAL";
     case OP_WINNER_COMMENT         : return "OP_WINNER_COMMENT";
+    case OP_WINNER_COMMENT_REFERRAL: return "OP_WINNER_COMMENT_REFERRAL";
 
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";
 

@@ -522,12 +522,15 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t& nCoinAge) {
 	return true;
 }
 
-bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, const CBlockIndex* pindexPrev, CDataStream& hashProofOfStakeSource, const CBlock* block)
+bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, const CBlockIndex* pindexPrev, CDataStream& hashProofOfStakeSource, std::vector<opcodetype>& winner_types, const CBlock* block)
 {
     const int RATINGS_PAYOUT_MAX = 25;
 
 	std::vector<std::string> vLotteryPost;
 	std::vector<std::string> vLotteryComment;
+
+    std::map<std::string, std::string> mLotteryPostRef;
+    std::map<std::string, std::string> mLotteryCommentRef;
     
     std::map<std::string, int> allPostRatings;
     std::map<std::string, int> allCommentRatings;
@@ -550,44 +553,76 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
 
                 // For lottery use scores as 4=1 and 5=2 - Scores to posts
                 if (vasm[1] == OR_SCORE && (_value == 4 || _value == 5)) {
+                    std::string _score_address = "";
+                    std::string _post_address = "";
+
                     // Get address of score initiator
                     reindexer::Item _score_itm;
-                    if (!g_pocketdb->SelectOne( reindexer::Query("Scores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm ).ok()) {
-                        LogPrintf("--- GetRatingRewards error get score: %s\n", tx->GetHash().GetHex());
-                        continue;
-                    }
+                    if (g_pocketdb->SelectOne( reindexer::Query("Scores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm ).ok())
+                        _score_address = _score_itm["address"].As<string>();
 
                     reindexer::Item _post_itm;
-                    if (!g_pocketdb->SelectOne( reindexer::Query("Posts").Where("txid", CondEq, _score_itm["posttxid"].As<string>()), _post_itm ).ok()) {
-                        LogPrintf("--- GetRatingRewards error get post: %s\n", _score_itm["posttxid"].As<string>());
+                    if (g_pocketdb->SelectOne( reindexer::Query("Posts").Where("txid", CondEq, _score_itm["posttxid"].As<string>()), _post_itm ).ok()) 
+                        _post_address = _post_itm["address"].As<string>();
+                    
+                    if (_score_address == "" || _post_address == "") {
+                        LogPrintf("GetRatingRewards error: _score_address='%s' _post_address='%s'\n", _score_address, _post_address);
                         continue;
                     }
                     
-                    if (g_antibot->AllowModifyReputationOverPost(_score_itm["address"].As<string>(), _post_itm["address"].As<string>(), pindexPrev->nHeight, tx, true)) {
-                        if (allPostRatings.find(_address) == allPostRatings.end()) allPostRatings.insert(std::make_pair(_address, 0));
-                        allPostRatings[_address] += (_value - 3);
-                    }
+                    //if (_address == _post_address && g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, pindexPrev->nHeight, tx, true)) {
+                        if (allPostRatings.find(_post_address) == allPostRatings.end()) allPostRatings.insert(std::make_pair(_post_address, 0));
+                        allPostRatings[_post_address] += (_value - 3);
+
+                        if (pindexPrev->nHeight >= CH_CONSENSUS_LOTTERY_REFERRAL) {
+                            reindexer::Item _referrer_itm;
+                            if (g_pocketdb->SelectOne( reindexer::Query("UsersView").Where("address", CondEq, _post_address).Not().Where("referrer", CondEq, ""), _referrer_itm ).ok()) {
+                                std::string _referrer_address = _referrer_itm["referrer"].As<string>();
+                                if (_referrer_address != "" && _score_address != _referrer_address) {
+                                    if (mLotteryPostRef.find(_post_address) == mLotteryPostRef.end()) {
+                                        mLotteryPostRef.emplace(_post_address, _referrer_address);
+                                    }
+                                }
+                            }
+                        }
+                    //}
                 }
 
                 // For lottery use scores as 1 and -1 - Scores to comments
                 if (vasm[1] == OR_COMMENT_SCORE && (_value == 1)) {
+                    std::string _score_address = "";
+                    std::string _comment_address = "";
+
                     // Get address of score initiator
                     reindexer::Item _score_itm;
-                    if (!g_pocketdb->SelectOne( reindexer::Query("CommentScores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm ).ok()) {
-                        LogPrintf("--- GetRatingRewards error get comment score: %s\n", tx->GetHash().GetHex());
+                    if (g_pocketdb->SelectOne( reindexer::Query("CommentScores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm ).ok())
+                        _score_address = _score_itm["address"].As<string>();
+
+                    reindexer::Item _comment_itm;
+                    if (!g_pocketdb->SelectOne( reindexer::Query("Comment").Where("otxid", CondEq, _score_itm["commentid"].As<string>()), _comment_itm ).ok())
+                        _comment_address = _comment_itm["address"].As<string>();
+                    
+                    if (_score_address == "" || _comment_address == "") {
+                        LogPrintf("GetRatingRewards error: _score_address='%s' _comment_address='%s'\n", _score_address, _comment_address);
                         continue;
                     }
 
-                    reindexer::Item _comment_itm;
-                    if (!g_pocketdb->SelectOne( reindexer::Query("Comment").Where("otxid", CondEq, _score_itm["commentid"].As<string>()), _comment_itm ).ok()) {
-                        LogPrintf("--- GetRatingRewards error get comment: %s\n", _score_itm["posttxid"].As<string>());
-                        continue;
-                    }
-                    
-                    if (g_antibot->AllowModifyReputationOverComment(_score_itm["address"].As<string>(), _comment_itm["address"].As<string>(), pindexPrev->nHeight, tx, true)) {
-                        if (allCommentRatings.find(_address) == allCommentRatings.end()) allCommentRatings.insert(std::make_pair(_address, 0));
-                        allCommentRatings[_address] += _value;
-                    }
+                    //if (_address == _comment_address && g_antibot->AllowModifyReputationOverComment(_score_address,_comment_address, pindexPrev->nHeight, tx, true)) {
+                        if (allCommentRatings.find(_comment_address) == allCommentRatings.end()) allCommentRatings.insert(std::make_pair(_comment_address, 0));
+                        allCommentRatings[_comment_address] += _value;
+
+                        if (pindexPrev->nHeight >= CH_CONSENSUS_LOTTERY_REFERRAL) {
+                            reindexer::Item _referrer_itm;
+                            if (g_pocketdb->SelectOne( reindexer::Query("UsersView").Where("address", CondEq, _comment_address).Not().Where("referrer", CondEq, ""), _referrer_itm ).ok()) {
+                                std::string _referrer_address = _referrer_itm["referrer"].As<string>();
+                                if (_referrer_address != "" && _score_address != _referrer_address) {
+                                    if (mLotteryCommentRef.find(_comment_address) == mLotteryCommentRef.end()) {
+                                        mLotteryCommentRef.emplace(_comment_address, _referrer_address);
+                                    }
+                                }
+                            }
+                        }
+                    //}
                 }
             }
         }
@@ -652,17 +687,52 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
     
 	// Create transactions for all winners
     bool ret = false;
-    ret = GenerateOuts(nCredit, results, totalAmount, vLotteryPost, OP_WINNER_POST) || ret;
-    ret = GenerateOuts(nCredit, results, totalAmount, vLotteryComment, OP_WINNER_COMMENT) || ret;
+    ret = GenerateOuts(nCredit, results, totalAmount, vLotteryPost, OP_WINNER_POST, pindexPrev->nHeight, winner_types) || ret;
+    ret = GenerateOuts(nCredit, results, totalAmount, vLotteryComment, OP_WINNER_COMMENT, pindexPrev->nHeight, winner_types) || ret;
+
+    if (pindexPrev->nHeight >= CH_CONSENSUS_LOTTERY_REFERRAL)
+    {
+        std::vector<std::string> vLotteryPostRef;
+        GetReferrers(vLotteryPost, mLotteryPostRef, vLotteryPostRef);
+
+	    std::vector<std::string> vLotteryCommentRef;
+        GetReferrers(vLotteryComment, mLotteryCommentRef, vLotteryCommentRef);
+
+        ret = GenerateOuts(nCredit, results, totalAmount, vLotteryPostRef, OP_WINNER_POST_REFERRAL, pindexPrev->nHeight, winner_types) || ret;
+        ret = GenerateOuts(nCredit, results, totalAmount, vLotteryCommentRef, OP_WINNER_COMMENT_REFERRAL, pindexPrev->nHeight, winner_types) || ret;
+    }
 
     return ret;
 }
 
-bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, std::vector<std::string> winners, opcodetype op_code_type) {
-    if (winners.size() > 0 && winners.size() <= 25) {
-        CAmount ratingReward = nCredit * 0.5;
-        if (op_code_type == OP_WINNER_COMMENT) ratingReward = ratingReward / 10;
-        totalAmount += ratingReward;
+void GetReferrers(std::vector<std::string>& winners, std::map<std::string, std::string> all_referrers, std::vector<std::string>& referrers)
+{
+    for (auto& addr: winners) {
+        if (all_referrers.find(addr) != all_referrers.end()) {
+            referrers.push_back(all_referrers[addr]);
+        }
+    }
+}
+
+bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, std::vector<std::string> winners, opcodetype op_code_type, int height, std::vector<opcodetype>& winner_types) {
+    if (winners.size() > 0 && winners.size() <= 25)
+    {
+        CAmount ratingReward = 0;
+        if (height < CH_CONSENSUS_LOTTERY_REFERRAL)
+        {
+            ratingReward = nCredit * 0.5;
+            if (op_code_type == OP_WINNER_COMMENT) ratingReward = ratingReward / 10;
+            totalAmount += ratingReward;
+        }
+        else
+        {
+            // Referrer program 5 - 100%; 2.0 - nodes; 3.0 - all for lottery; 2.0 - posts; 0.4 - referrer over posts (20%); 0.5 - comment; 0.1 - referrer over comment (20%);
+            if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.40;
+            if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.08;
+            if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.10;
+            if (op_code_type == OP_WINNER_COMMENT_REFERRAL) ratingReward = nCredit * 0.02;
+            totalAmount += ratingReward;
+        }
 
         int current = 0;
         const int rewardsCount = winners.size();
@@ -681,8 +751,10 @@ bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalA
 
             CTxDestination dest = DecodeDestination(addr);
             CScript scriptPubKey = GetScriptForDestination(dest);
-            // TODO (brangr): Include with fork
-            // scriptPubKey << op_code_type;
+            
+            if (height >= CH_CONSENSUS_LOTTERY_REFERRAL)
+                winner_types.push_back(op_code_type);
+                
             results.push_back(CTxOut(re, scriptPubKey)); // send to ratings
         }
 

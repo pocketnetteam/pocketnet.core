@@ -188,7 +188,7 @@ bool Staker::signBlock(
     std::vector<CTransactionRef> vtx = block->vtx;
     // if we are trying to sign
     // something other than a proof-of-stake block template
-    if (!vtx[0]->vout[0].IsEmpty()) {
+    if (!vtx[0]->vout[0].IsEmptyOrWinners()) {
         LogPrintf("SignBlock() : Trying to sign malformed proof-of-stake block template\n");
         return false;
     }

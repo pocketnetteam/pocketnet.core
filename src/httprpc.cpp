@@ -22,6 +22,9 @@
 
 #include <boost/algorithm/string.hpp> // boost::trim
 
+#include <chrono> 
+using namespace std::chrono; 
+
 /** WWW-Authenticate to present with 401 Unauthorized response */
 static const char* WWW_AUTH_HEADER_DATA = "Basic realm=\"jsonrpc\"";
 
@@ -189,8 +192,12 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
         if (valRequest.isObject()) {
             jreq.parse(valRequest);
 
-            LogPrint(BCLog::RPC, "RPC Method %s - %s\n", jreq.strMethod, valRequest.write());
+            //LogPrint(BCLog::RPC, "RPC Method %s - %s\n", jreq.strMethod, valRequest.write());
+            //auto start = high_resolution_clock::now();
             UniValue result = tableRPC.execute(jreq);
+            //auto stop = high_resolution_clock::now(); 
+            //auto duration = duration_cast<microseconds>(stop - start); 
+            //LogPrint(BCLog::RPC, "RPC Method time %s - %smcs\n", jreq.strMethod, duration.count());
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);

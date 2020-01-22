@@ -3939,7 +3939,8 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
 	std::vector<CTxOut> txns;
 	CAmount rewardsTotal = 0;
 
-	if (GetRatingRewards(calculated, txns, rewardsTotal, pindexPrev, hashProofOfStakeSource, &block)) {
+    std::vector<opcodetype> winner_types;
+	if (GetRatingRewards(calculated, txns, rewardsTotal, pindexPrev, hashProofOfStakeSource, winner_types, &block)) {
 		std::vector<CTxOut> vouts = block.vtx[1]->vout;
 		std::reverse(vouts.begin(), vouts.end());
 		const auto txnsCount = txns.size();

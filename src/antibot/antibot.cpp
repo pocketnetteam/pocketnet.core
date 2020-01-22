@@ -171,7 +171,6 @@ bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, i
 
     // Compute count of posts for last 24 hours
     int postsCount = g_pocketdb->SelectCount(Query("Posts").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("time", CondGe, _time - 86400));
-    postsCount += g_pocketdb->SelectCount(Query("PostsHistory").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("time", CondGe, _time - 86400));
 
     // Also check mempool
     if (checkMempool) {
@@ -334,7 +333,7 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
     }
 
     // Blocking
-    if (height >= CH_CONSENSUS_SCORE_BLOCKING && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _post_address).Where("address_to", CondEq, _address))) {
+    if (height >= CH_CONSENSUS_SCORE_BLOCKING_ON && height < CH_CONSENSUS_SCORE_BLOCKING_OFF && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _post_address).Where("address_to", CondEq, _address))) {
         result = ANTIBOTRESULT::Blocking;
         return false;
     }
@@ -1113,7 +1112,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
     }
 
     // Blocking
-    if (height >= CH_CONSENSUS_SCORE_BLOCKING && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _comment_address).Where("address_to", CondEq, _address))) {
+    if (height >= CH_CONSENSUS_SCORE_BLOCKING_ON && height < CH_CONSENSUS_SCORE_BLOCKING_OFF && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _comment_address).Where("address_to", CondEq, _address))) {
         result = ANTIBOTRESULT::Blocking;
         return false;
     }
@@ -1231,7 +1230,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     if (g_addrindex->CheckRItemExists(table, _txid_check_exists)) return;
 
     // Check consistent transaction and reindexer::Item
-    //if (height >= Params().GetConsensus().nHeight_version_0_18_11) {
+    if (height >= CH_CONSENSUS_OPRETURN_CHECK) {
         std::vector<std::string> vasm;
         boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
         if (vasm.size() < 3) {
@@ -1241,12 +1240,12 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
 
         if (vasm[2] != oitm["data_hash"].get_str()) {
             if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str())) {
-                // resultCode = ANTIBOTRESULT::FailedOpReturn;
-                // return;
-                LogPrintf("--- CHECKPOINT OPRETURN %s %s Hashes: %s != %s\n", oitm["txid"].get_str(), table, vasm[2], oitm["data_hash"].get_str());
+                resultCode = ANTIBOTRESULT::FailedOpReturn;
+                return;
+                // LogPrintf("--- CHECKPOINT OPRETURN %s %s Hashes: %s != %s\n", oitm["txid"].get_str(), table, vasm[2], oitm["data_hash"].get_str());
             }
         }
-    //}
+    }
 
     // Hard fork for old inconcistents antibot rules
     if (height <= Params().GetConsensus().nHeight_version_1_0_0_pre) return;

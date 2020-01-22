@@ -4321,21 +4321,16 @@ int CMerkleTx::GetDepthInMainChain() const
 	if (!pindex || !chainActive.Contains(pindex))
 		return 0;
 
-    int chain_depth = ((nIndex == -1) ? (-1) : 1) * (chainActive.Height() - pindex->nHeight + 1);
-    if (chain_depth < 0)
-        LogPrint(BCLog::DB, "DEBUG! chain_depth=%s pindex->nHeight=%s nIndex=%s\n", chain_depth, pindex->nHeight, nIndex, hashBlock.GetHex());
-
-	return chain_depth;
+    return ((nIndex == -1) ? (-1) : 1) * (chainActive.Height() - pindex->nHeight + 1);
 }
 
-// TODO (brangr): Fix assert
 int CMerkleTx::GetBlocksToMaturity() const
 {
 	if (!(IsCoinBase() || IsCoinStake())) {
 		return 0;
 	}
 	int chain_depth = GetDepthInMainChain();
-	assert(chain_depth >= 0); // coinbase tx should not be conflicted
+    if (chain_depth < 0) return chain_depth;
 	return std::max(0, (COINBASE_MATURITY + 1) - chain_depth);
 }
 
@@ -4712,9 +4707,16 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 
 	CAmount totalRewardAmount = 0;
 	std::vector<CTxOut> ratingRewards;
-	if (GetRatingRewards(nReward - nFees, ratingRewards, totalRewardAmount, pindexPrev, hashProofOfStakeSource, nullptr)) {
+    std::vector<opcodetype> winner_types;
+	if (GetRatingRewards(nReward - nFees, ratingRewards, totalRewardAmount, pindexPrev, hashProofOfStakeSource, winner_types, nullptr)) {
 		blockValue -= totalRewardAmount;
 	}
+
+    if (winner_types.size() > 0) {
+        for (opcodetype t : winner_types) {
+            txNew.vout[0].scriptPubKey << t;
+        }
+    }
 
     if (blockValue >= Params().GetConsensus().nStakeSplitThreshold) {
         txNew.vout.push_back(CTxOut(0, txNew.vout[1].scriptPubKey)); //split stake

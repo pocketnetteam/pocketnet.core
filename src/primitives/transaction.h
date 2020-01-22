@@ -165,6 +165,29 @@ public:
         return (nValue == 0 && scriptPubKey.empty());
     }
 
+    bool IsEmptyOrWinners() const
+    {
+        bool winners = false;
+        CScript::const_iterator pc = scriptPubKey.begin();
+        while (pc < scriptPubKey.end())
+        {
+            opcodetype opcode;
+            if (!scriptPubKey.GetOp(pc, opcode)) {
+                winners = false;
+                break;
+            }
+            
+            if (opcode < OP_WINNER_POST || opcode > OP_WINNER_COMMENT_REFERRAL) {
+                winners = false;
+                break;
+            }
+
+            winners = true;
+        }
+
+        return (nValue == 0 && (scriptPubKey.empty() or winners));
+    }
+
     friend bool operator==(const CTxOut& a, const CTxOut& b)
     {
         return (a.nValue       == b.nValue &&
@@ -343,7 +366,7 @@ public:
 
     bool IsCoinStake() const
     {
-        return (vin.size() > 0 && (!vin[0].prevout.IsNull()) && vout.size() >= 2 && vout[0].IsEmpty());
+        return (vin.size() > 0 && (!vin[0].prevout.IsNull()) && vout.size() >= 2 && vout[0].IsEmptyOrWinners());
     }
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)

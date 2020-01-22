@@ -184,7 +184,9 @@ enum opcodetype
 
     // Pocketnet
     OP_WINNER_POST = 0xc0,
-    OP_WINNER_COMMENT = 0xc1,
+    OP_WINNER_POST_REFERRAL = 0xc1,
+    OP_WINNER_COMMENT = 0xc2,
+    OP_WINNER_COMMENT_REFERRAL = 0xc3,
 
     OP_INVALIDOPCODE = 0xff,
 };
