@@ -185,7 +185,7 @@ public:
             winners = true;
         }
 
-        return (nValue == 0 && (scriptPubKey.empty() or winners));
+        return (nValue == 0 && (scriptPubKey.empty() || winners));
     }
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)

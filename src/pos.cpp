@@ -570,6 +570,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         continue;
                     }
                     
+                    // TODO (brangr): REMOVE!!!!!!!!!!!!!
                     //if (_address == _post_address && g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, pindexPrev->nHeight, tx, true)) {
                         if (allPostRatings.find(_post_address) == allPostRatings.end()) allPostRatings.insert(std::make_pair(_post_address, 0));
                         allPostRatings[_post_address] += (_value - 3);
@@ -599,7 +600,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         _score_address = _score_itm["address"].As<string>();
 
                     reindexer::Item _comment_itm;
-                    if (!g_pocketdb->SelectOne( reindexer::Query("Comment").Where("otxid", CondEq, _score_itm["commentid"].As<string>()), _comment_itm ).ok())
+                    if (g_pocketdb->SelectOne( reindexer::Query("Comment").Where("txid", CondEq, _score_itm["commentid"].As<string>()), _comment_itm ).ok())
                         _comment_address = _comment_itm["address"].As<string>();
                     
                     if (_score_address == "" || _comment_address == "") {
@@ -607,6 +608,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         continue;
                     }
 
+                    // TODO (brangr): REMOVE!!!!!!!!!!!!!
                     //if (_address == _comment_address && g_antibot->AllowModifyReputationOverComment(_score_address,_comment_address, pindexPrev->nHeight, tx, true)) {
                         if (allCommentRatings.find(_comment_address) == allCommentRatings.end()) allCommentRatings.insert(std::make_pair(_comment_address, 0));
                         allCommentRatings[_comment_address] += _value;
