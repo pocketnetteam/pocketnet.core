@@ -88,12 +88,11 @@ void FillCheckpointsTransactions(const CChainParams& params);
 bool IsCheckpointTransaction(std::string hash);
 
 
-// TODO (VERSION): определить номер форка
 // Change in consensus rules
 #define CH_CONSENSUS_SCORE_BLOCKING_ON      430000
-#define CH_CONSENSUS_SCORE_BLOCKING_OFF     494200
-#define CH_CONSENSUS_LOTTERY_REFERRAL       494200
-#define CH_CONSENSUS_OPRETURN_CHECK         494200
+#define CH_CONSENSUS_SCORE_BLOCKING_OFF     514185
+#define CH_CONSENSUS_LOTTERY_REFERRAL       514185
+#define CH_CONSENSUS_OPRETURN_CHECK         514185
 
 
 #endif // POCKETNET_H

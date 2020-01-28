@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Pocketcoin Core developers
+// Copyright (c) 2019-2020 The Pocketcoin Core developers
 
 #ifndef POCKETCOIN_RPC_POCKETNET_H
 #define POCKETCOIN_RPC_POCKETNET_H

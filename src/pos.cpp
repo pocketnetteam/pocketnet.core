@@ -570,8 +570,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         continue;
                     }
                     
-                    // TODO (brangr): REMOVE!!!!!!!!!!!!!
-                    //if (_address == _post_address && g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, pindexPrev->nHeight, tx, true)) {
+                    if (_address == _post_address && g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, pindexPrev->nHeight, tx, true)) {
                         if (allPostRatings.find(_post_address) == allPostRatings.end()) allPostRatings.insert(std::make_pair(_post_address, 0));
                         allPostRatings[_post_address] += (_value - 3);
 
@@ -586,7 +585,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                                 }
                             }
                         }
-                    //}
+                    }
                 }
 
                 // For lottery use scores as 1 and -1 - Scores to comments
@@ -608,8 +607,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         continue;
                     }
 
-                    // TODO (brangr): REMOVE!!!!!!!!!!!!!
-                    //if (_address == _comment_address && g_antibot->AllowModifyReputationOverComment(_score_address,_comment_address, pindexPrev->nHeight, tx, true)) {
+                    if (_address == _comment_address && g_antibot->AllowModifyReputationOverComment(_score_address,_comment_address, pindexPrev->nHeight, tx, true)) {
                         if (allCommentRatings.find(_comment_address) == allCommentRatings.end()) allCommentRatings.insert(std::make_pair(_comment_address, 0));
                         allCommentRatings[_comment_address] += _value;
 
@@ -624,7 +622,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                                 }
                             }
                         }
-                    //}
+                    }
                 }
             }
         }

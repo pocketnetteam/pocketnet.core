@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Pocketcoin Core developers
+// Copyright (c) 2019-2020 The Pocketcoin Core developers
 
 #include <rpc/pocketrpc.h>
 
