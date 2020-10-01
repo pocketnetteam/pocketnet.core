@@ -607,7 +607,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         continue;
                     }
 
-                    if (_address == _comment_address && g_antibot->AllowModifyReputationOverComment(_score_address,_comment_address, pindexPrev->nHeight, tx, true)) {
+                    if (_address == _comment_address && g_antibot->AllowModifyReputationOverComment(_score_address, _comment_address, pindexPrev->nHeight, tx, true)) {
                         if (allCommentRatings.find(_comment_address) == allCommentRatings.end()) allCommentRatings.insert(std::make_pair(_comment_address, 0));
                         allCommentRatings[_comment_address] += _value;
 

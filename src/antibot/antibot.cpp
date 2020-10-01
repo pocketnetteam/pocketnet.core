@@ -1414,7 +1414,6 @@ bool AntiBot::AllowModifyReputationOverPost(std::string _score_address, std::str
     return true;
 }
 
-// TODO (brangr): add check transactions in block
 bool AntiBot::AllowModifyReputationOverComment(std::string _score_address, std::string _comment_address, int height, const CTransactionRef& tx, bool lottery) {
     // Check user reputation
     if (!AllowModifyReputation(_score_address, height)) return false;
@@ -1423,8 +1422,13 @@ bool AntiBot::AllowModifyReputationOverComment(std::string _score_address, std::
     int64_t _max_scores_one_to_one = GetActualLimit(Limit::scores_one_to_one_over_comment, height);
     int64_t _scores_one_to_one_depth = GetActualLimit(Limit::scores_one_to_one_depth, height);
 
-    auto values = { -1, 1 };
-    if (lottery) values = { 1 };
+    std::vector<int> values;
+    if (lottery) {
+        values.push_back(1);
+    } else {
+        values.push_back(-1);
+        values.push_back(1);
+	}
 
     size_t scores_one_to_one_count = g_pocketdb->SelectCount(
         reindexer::Query("CommentScores")
@@ -1436,6 +1440,7 @@ bool AntiBot::AllowModifyReputationOverComment(std::string _score_address, std::
             // join by original id with txid, not otxid
             .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, _comment_address))
     );
+
     if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
     
     // All is OK
