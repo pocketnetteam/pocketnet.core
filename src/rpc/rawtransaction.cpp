@@ -435,6 +435,9 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter combination: Sequence number(s) contradict replaceable option");
     }
 
+    if(rawTx.nTime == 0)
+        rawTx.nTime = GetAdjustedTime();
+
     return rawTx;
 }
 
