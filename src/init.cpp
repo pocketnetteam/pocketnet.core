@@ -482,6 +482,7 @@ void SetupServerArgs()
     gArgs.AddArg("-maxtxfee=<amt>", strprintf("Maximum total fees (in %s) to use in a single wallet transaction or raw transaction; setting this too low may abort large transactions (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_TRANSACTION_MAXFEE)), false, OptionsCategory::DEBUG_TEST);
     gArgs.AddArg("-printpriority", strprintf("Log transaction fee per kB when mining blocks (default: %u)", DEFAULT_PRINTPRIORITY), true, OptionsCategory::DEBUG_TEST);
     gArgs.AddArg("-printtoconsole", "Send trace/debug info to console (default: 1 when no -daemon. To disable logging to file, set -nodebuglogfile)", false, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-silent", "Disable stdout to console (Default: false)", false, OptionsCategory::DEBUG_TEST);
     gArgs.AddArg("-shrinkdebugfile", "Shrink debug.log file on client startup (default: 1 when no -debug)", false, OptionsCategory::DEBUG_TEST);
     gArgs.AddArg("-uacomment=<cmt>", "Append comment to the user agent string", false, OptionsCategory::DEBUG_TEST);
 
@@ -855,7 +856,7 @@ void InitLogging()
     // debug.log.
     LogPrintf("\n\n\n\n\n");
 
-    g_logger->m_print_to_console = gArgs.GetBoolArg("-printtoconsole", !gArgs.GetBoolArg("-daemon", false));
+    g_logger->m_print_to_console = gArgs.GetBoolArg("-printtoconsole", !gArgs.GetBoolArg("-daemon", false) & !gArgs.GetBoolArg("-silent", false));
     g_logger->m_log_timestamps = gArgs.GetBoolArg("-logtimestamps", DEFAULT_LOGTIMESTAMPS);
     g_logger->m_log_time_micros = gArgs.GetBoolArg("-logtimemicros", DEFAULT_LOGTIMEMICROS);
 
@@ -1260,19 +1261,19 @@ static void StartWS()
 
     };
 
-    ws.on_open = [](shared_ptr<WsServer::Connection> connection) {
+    ws.on_open = [](std::shared_ptr<WsServer::Connection> connection) {
         //cout << "Server: Opened connection " << connection.get() << endl;
         //if ((std::find(WSConnections.begin(), WSConnections.end(), connection) == WSConnections.end()))
         //    WSConnections.push_back(connection);
     };
 
-    ws.on_close = [](shared_ptr<WsServer::Connection> connection, int status, const string& /*reason*/) {
+    ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const string& /*reason*/) {
 		if (WSConnections.find(connection->ID()) != WSConnections.end()) {
 			WSConnections.erase(connection->ID());
 		}
     };
 
-    ws.on_error = [](shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec) {
+    ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec) {
 		if (WSConnections.find(connection->ID()) != WSConnections.end()) {
 			WSConnections.erase(connection->ID());
 		}
