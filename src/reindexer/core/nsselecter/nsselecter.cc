@@ -617,8 +617,11 @@ void NsSelecter::selectLoop(LoopCtx &ctx, QueryResults &result) {
 
 		if (hasScan && ns_->items_[properRowId].IsFree()) continue;
 		if (firstSortIndex) {
-			assert(firstSortIndex->SortOrders().size() > static_cast<size_t>(rowId));
-			properRowId = firstSortIndex->SortOrders()[rowId];
+			if (firstSortIndex->SortOrders().size() > static_cast<size_t>(rowId)) {
+			    properRowId = firstSortIndex->SortOrders()[rowId];
+            } else {
+                continue;
+            }
 		}
 
 		bool found = true;
