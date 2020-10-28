@@ -226,6 +226,10 @@ public:
         Present reindexer::Item as UniValue for antibot check
     */
     UniValue GetUniValue(const CTransactionRef& tx, Item& item, std::string table);
+    /*
+        Prune old data for economy RAM space
+    */
+    bool PruneDB(CBlockIndex* pindex);
     
 };
 //-----------------------------------------------------

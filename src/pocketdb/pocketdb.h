@@ -40,6 +40,7 @@ public:
 	bool DropTable(std::string table);
 
 	bool CheckIndexes(UniValue& obj);
+    void UpdateIndexes(std::string table = "ALL");
 
 	// Statistics for DB
 	bool GetStatistic(std::string table, UniValue& obj);
@@ -60,6 +61,7 @@ public:
 	Error Delete(Query query);
 	// Delete items from query and commit
 	Error DeleteWithCommit(Query query);
+    Error DeleteWithCommit(Query query, size_t& deleted);
 
 	Error Update(std::string table, Item& item, bool commit = true);
 
