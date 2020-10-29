@@ -111,17 +111,11 @@ bool AddrIndex::indexUTXO(const CTransactionRef& tx, CBlockIndex* pindex)
             // Mark UTXO item as deleted
             reindexer::QueryResults _res;
             reindexer::Error err = g_pocketdb->DB()->Select(reindexer::Query("UTXO", 0, 1).WhereComposite("txid+txout", CondEq, {{ Variant(txinid), Variant(txinout) }}), _res);
-            if (!err.ok() || _res.Count() <= 0) {
-                LogPrintf("Error get item: %s (%d)\n", err.code(), err.what());
-                return false;
+            if (err.ok() && _res.Count() > 0) {
+                reindexer::Item item = _res[0].GetItem();
+                item["spent_block"] = pindex->nHeight;
+                if (!g_pocketdb->UpsertWithCommit("UTXO", item).ok()) return false;
             }
-
-            reindexer::Item item = _res[0].GetItem();
-            item["spent_block"] = pindex->nHeight;
-
-            std::string address = item["address"].As<string>();
-
-            if (!g_pocketdb->UpsertWithCommit("UTXO", item).ok()) return false;
         }
     }
 
@@ -1633,7 +1627,7 @@ bool AddrIndex::PruneDB(CBlockIndex* pindex) {
     // UTXO
     if (!g_pocketdb->DeleteWithCommit(
         reindexer::Query("UTXO")
-            .Where("block", CondLt, pindex->nHeight - 50)
+            .Where("block", CondLt, pindex->nHeight - 500)
             .Not().Where("spent_block", CondEq, 0)
     , deleted).ok()) return false;
     LogPrintf("UTXO = %s; ", deleted);
