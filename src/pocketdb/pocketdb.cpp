@@ -443,28 +443,28 @@ bool PocketDB::CheckIndexes(UniValue& obj)
 
 void PocketDB::UpdateIndexes(std::string table) {
 
-    if (table == "UserRatings" || table == "ALL") {
-        db->UpdateIndex("UserRatings", {"block", "tree", "int", IndexOpts()});
-        db->UpdateIndex("UserRatings", {"address", "hash", "string", IndexOpts()});
-        db->UpdateIndex("UserRatings", {"address+block", {"address", "block"}, "hash", "composite", IndexOpts().PK()});
-        db->Commit("UserRatings");
-    }
+    // if (table == "UserRatings" || table == "ALL") {
+    //     db->UpdateIndex("UserRatings", {"block", "tree", "int", IndexOpts()});
+    //     db->UpdateIndex("UserRatings", {"address", "hash", "string", IndexOpts()});
+    //     db->UpdateIndex("UserRatings", {"address+block", {"address", "block"}, "hash", "composite", IndexOpts().PK()});
+    //     db->Commit("UserRatings");
+    // }
 
-    if (table == "PostRatings" || table == "ALL") {
-        db->UpdateIndex("PostRatings", {"block", "tree", "int", IndexOpts()});
-        db->UpdateIndex("PostRatings", {"posttxid", "hash", "string", IndexOpts()});
-        db->UpdateIndex("PostRatings", {"posttxid+block", {"posttxid", "block"}, "hash", "composite", IndexOpts().PK()});
-        db->Commit("PostRatings");
-    }
+    // if (table == "PostRatings" || table == "ALL") {
+    //     db->UpdateIndex("PostRatings", {"block", "tree", "int", IndexOpts()});
+    //     db->UpdateIndex("PostRatings", {"posttxid", "hash", "string", IndexOpts()});
+    //     db->UpdateIndex("PostRatings", {"posttxid+block", {"posttxid", "block"}, "hash", "composite", IndexOpts().PK()});
+    //     db->Commit("PostRatings");
+    // }
 
-    if (table == "Scores" || table == "ALL") {
-        db->UpdateIndex("Scores", {"txid", "hash", "string", IndexOpts().PK()});
-        db->UpdateIndex("Scores", {"block", "tree", "int", IndexOpts()});
-        db->UpdateIndex("Scores", {"time", "tree", "int64", IndexOpts()});
-        db->UpdateIndex("Scores", {"posttxid", "hash", "string", IndexOpts()});
-        db->UpdateIndex("Scores", {"address", "hash", "string", IndexOpts()});
-        db->Commit("Scores");
-    }
+    // if (table == "Scores" || table == "ALL") {
+    //     db->UpdateIndex("Scores", {"txid", "hash", "string", IndexOpts().PK()});
+    //     db->UpdateIndex("Scores", {"block", "tree", "int", IndexOpts()});
+    //     db->UpdateIndex("Scores", {"time", "tree", "int64", IndexOpts()});
+    //     db->UpdateIndex("Scores", {"posttxid", "hash", "string", IndexOpts()});
+    //     db->UpdateIndex("Scores", {"address", "hash", "string", IndexOpts()});
+    //     db->Commit("Scores");
+    // }
 
     if (table == "UTXO" || table == "ALL") {
         db->UpdateIndex("UTXO", {"block", "tree", "int", IndexOpts()});
@@ -474,22 +474,22 @@ void PocketDB::UpdateIndexes(std::string table) {
         db->Commit("UTXO");
     }
 
-    if (table == "CommentRatings" || table == "ALL") {
-        db->UpdateIndex("CommentRatings", {"block", "tree", "int", IndexOpts()});
-        db->UpdateIndex("CommentRatings", {"commentid", "hash", "string", IndexOpts()});
-        db->UpdateIndex("CommentRatings", {"commentid+block", {"commentid", "block"}, "hash", "composite", IndexOpts().PK()});
-        db->Commit("CommentRatings");
-    }
+    // if (table == "CommentRatings" || table == "ALL") {
+    //     db->UpdateIndex("CommentRatings", {"block", "tree", "int", IndexOpts()});
+    //     db->UpdateIndex("CommentRatings", {"commentid", "hash", "string", IndexOpts()});
+    //     db->UpdateIndex("CommentRatings", {"commentid+block", {"commentid", "block"}, "hash", "composite", IndexOpts().PK()});
+    //     db->Commit("CommentRatings");
+    // }
 
-    // CommentScores
-    if (table == "CommentScores" || table == "ALL") {
-        db->UpdateIndex("CommentScores", {"txid", "hash", "string", IndexOpts().PK()});
-        db->UpdateIndex("CommentScores", {"block", "tree", "int", IndexOpts()});
-        db->UpdateIndex("CommentScores", {"time", "tree", "int64", IndexOpts()});
-        db->UpdateIndex("CommentScores", {"commentid", "hash", "string", IndexOpts()});
-        db->UpdateIndex("CommentScores", {"address", "hash", "string", IndexOpts()});
-        db->Commit("CommentScores");
-    }
+    // // CommentScores
+    // if (table == "CommentScores" || table == "ALL") {
+    //     db->UpdateIndex("CommentScores", {"txid", "hash", "string", IndexOpts().PK()});
+    //     db->UpdateIndex("CommentScores", {"block", "tree", "int", IndexOpts()});
+    //     db->UpdateIndex("CommentScores", {"time", "tree", "int64", IndexOpts()});
+    //     db->UpdateIndex("CommentScores", {"commentid", "hash", "string", IndexOpts()});
+    //     db->UpdateIndex("CommentScores", {"address", "hash", "string", IndexOpts()});
+    //     db->Commit("CommentScores");
+    // }
 
     // TODO (brangr): POSTS
     // TODO (brangr): COMMENTS

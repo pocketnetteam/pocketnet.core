@@ -1639,12 +1639,12 @@ bool AddrIndex::PruneDB(CBlockIndex* pindex) {
     LogPrintf("UTXO = %s; ", deleted);
 
     // Scores
-    deleted = 0;
-    if (!g_pocketdb->DeleteWithCommit(
-        reindexer::Query("Scores")
-            .Where("time", CondLt, (int64_t)pindex->nTime - GetActualLimit(Limit::scores_depth_modify_reputation, pindex->nHeight))
-    , deleted).ok()) return false;
-    LogPrintf("Scores = %s; ", deleted);
+    // deleted = 0;
+    // if (!g_pocketdb->DeleteWithCommit(
+    //     reindexer::Query("Scores")
+    //         .Where("time", CondLt, (int64_t)pindex->nTime - GetActualLimit(Limit::scores_depth_modify_reputation, pindex->nHeight))
+    // , deleted).ok()) return false;
+    // LogPrintf("Scores = %s; ", deleted);
 
     // UserRatings
     // TODO (brangr):
