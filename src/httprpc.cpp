@@ -5,25 +5,25 @@
 #include <httprpc.h>
 
 #include <chainparams.h>
+#include <crypto/hmac_sha256.h>
 #include <httpserver.h>
 #include <key_io.h>
+#include <random.h>
 #include <rpc/protocol.h>
 #include <rpc/server.h>
-#include <random.h>
+#include <stdio.h>
 #include <sync.h>
+#include <ui_interface.h>
 #include <util.h>
 #include <utilstrencodings.h>
-#include <ui_interface.h>
 #include <walletinitinterface.h>
-#include <crypto/hmac_sha256.h>
-#include <stdio.h>
 
 #include <memory>
 
 #include <boost/algorithm/string.hpp> // boost::trim
 
-#include <chrono> 
-using namespace std::chrono; 
+#include <chrono>
+using namespace std::chrono;
 
 /** WWW-Authenticate to present with 401 Unauthorized response */
 static const char* WWW_AUTH_HEADER_DATA = "Basic realm=\"jsonrpc\"";
@@ -34,14 +34,14 @@ static const char* WWW_AUTH_HEADER_DATA = "Basic realm=\"jsonrpc\"";
 class HTTPRPCTimer : public RPCTimerBase
 {
 public:
-    HTTPRPCTimer(struct event_base* eventBase, std::function<void()>& func, int64_t millis) :
-        ev(eventBase, false, func)
+    HTTPRPCTimer(struct event_base* eventBase, std::function<void()>& func, int64_t millis) : ev(eventBase, false, func)
     {
         struct timeval tv;
-        tv.tv_sec = millis/1000;
-        tv.tv_usec = (millis%1000)*1000;
+        tv.tv_sec = millis / 1000;
+        tv.tv_usec = (millis % 1000) * 1000;
         ev.trigger(&tv);
     }
+
 private:
     HTTPEvent ev;
 };
@@ -60,6 +60,7 @@ public:
     {
         return new HTTPRPCTimer(base, func, millis);
     }
+
 private:
     struct event_base* base;
 };
@@ -118,7 +119,7 @@ static bool multiUserAuthorized(std::string strUserPass)
         unsigned char out[KEY_SIZE];
 
         CHMAC_SHA256(reinterpret_cast<const unsigned char*>(strSalt.c_str()), strSalt.size()).Write(reinterpret_cast<const unsigned char*>(strPass.c_str()), strPass.size()).Finalize(out);
-        std::vector<unsigned char> hexvec(out, out+KEY_SIZE);
+        std::vector<unsigned char> hexvec(out, out + KEY_SIZE);
         std::string strHashFromPass = HexStr(hexvec);
 
         if (TimingResistantEqual(strHashFromPass, strHash)) {
@@ -148,7 +149,7 @@ static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUserna
     return multiUserAuthorized(strUserPass);
 }
 
-static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
+static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
 {
     // JSONRPC handles only POST
     if (req->GetRequestMethod() != HTTPRequest::POST) {
@@ -163,26 +164,46 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
         return false;
     }
 
+    std::string sMethd = "";
+    UniValue valReq;
+    try {
+        if (valReq.read(req->ReadBody())) {
+            if (valReq.isObject()) {
+                JSONRPCRequest jrq;
+                jrq.parse(valReq);
+                sMethd = jrq.strMethod;
+                //LogPrintf("Method: %s\n", sMethd);
+            }
+        }
+    } catch (const std::exception& e) {
+    }
+    const CRPCCommand* pcmd = tableRPC[sMethd];
+
     JSONRPCRequest jreq;
     jreq.peerAddr = req->GetPeer().ToString();
-    if (!RPCAuthorized(authHeader.second, jreq.authUser)) {
-        LogPrintf("ThreadRPCServer incorrect password attempt from %s\n", jreq.peerAddr);
+    //if (!RPCAuthorized(authHeader.second, jreq.authUser) & !pcmd & pcmd->category != "pocketnetrpc") {
+    if (pcmd) {
+        if (pcmd->category != "pocketnetrpc") {
+            if (!RPCAuthorized(authHeader.second, jreq.authUser)) {
+                LogPrintf("ThreadRPCServer incorrect password attempt from %s\n", jreq.peerAddr);
 
-        /* Deter brute-forcing
+                /* Deter brute-forcing
            If this results in a DoS the user really
            shouldn't have their RPC port exposed. */
-        MilliSleep(250);
+                MilliSleep(250);
 
-        req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
-        req->WriteReply(HTTP_UNAUTHORIZED);
-        return false;
+                req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
+                req->WriteReply(HTTP_UNAUTHORIZED);
+                return false;
+            }
+        }
     }
-
     try {
         // Parse request
         UniValue valRequest;
-        if (!valRequest.read(req->ReadBody()))
-            throw JSONRPCError(RPC_PARSE_ERROR, "Parse error");
+        //if (!valRequest.read(req->ReadBody()))
+        //    throw JSONRPCError(RPC_PARSE_ERROR, "Parse error");
+        valRequest = valReq;
 
         // Set the URI
         jreq.URI = req->GetURI();
@@ -192,17 +213,17 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
         if (valRequest.isObject()) {
             jreq.parse(valRequest);
 
-            //LogPrint(BCLog::RPC, "RPC Method %s - %s\n", jreq.strMethod, valRequest.write());
+            LogPrint(BCLog::RPC, "RPC Method %s - %s\n", jreq.strMethod, valRequest.write());
             //auto start = high_resolution_clock::now();
             UniValue result = tableRPC.execute(jreq);
-            //auto stop = high_resolution_clock::now(); 
-            //auto duration = duration_cast<microseconds>(stop - start); 
+            //auto stop = high_resolution_clock::now();
+            //auto duration = duration_cast<microseconds>(stop - start);
             //LogPrint(BCLog::RPC, "RPC Method time %s - %smcs\n", jreq.strMethod, duration.count());
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
 
-        // array of requests
+            // array of requests
         } else if (valRequest.isArray())
             strReply = JSONRPCExecBatch(jreq, valRequest.get_array());
         else
@@ -222,8 +243,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
 
 static bool InitRPCAuthentication()
 {
-    if (gArgs.GetArg("-rpcpassword", "") == "")
-    {
+    if (gArgs.GetArg("-rpcpassword", "") == "") {
         LogPrintf("No rpcpassword set - using random cookie authentication.\n");
         if (!GenerateAuthCookie(&strRPCUserColonPass)) {
             uiInterface.ThreadSafeMessageBox(
@@ -235,8 +255,7 @@ static bool InitRPCAuthentication()
         LogPrintf("Config options rpcuser and rpcpassword will soon be deprecated. Locally-run instances may remove rpcuser to use cookie-based auth, or may be replaced with rpcauth. Please see share/rpcauth for rpcauth auth generation.\n");
         strRPCUserColonPass = gArgs.GetArg("-rpcuser", "") + ":" + gArgs.GetArg("-rpcpassword", "");
     }
-    if (gArgs.GetArg("-rpcauth","") != "")
-    {
+    if (gArgs.GetArg("-rpcauth", "") != "") {
         LogPrintf("Using rpcauth authentication.\n");
     }
     return true;

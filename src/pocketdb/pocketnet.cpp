@@ -214,7 +214,7 @@ void FillLimits(const CChainParams& params) {
 
     // scores_one_to_one time
     std::map<int, int64_t> _scores_one_to_one_depth;
-    _scores_one_to_one_depth.insert({ 0, 99999 });
+    _scores_one_to_one_depth.insert({ 0, 336*24*3600 });
     _scores_one_to_one_depth.insert({ 225000, 1*24*3600 });
     _scores_one_to_one_depth.insert({ fork_20190830, 7*24*3600 });
     _scores_one_to_one_depth.insert({ fork_20190920, 2*24*3600 });
@@ -265,6 +265,12 @@ void FillLimits(const CChainParams& params) {
     _scores_depth_modify_reputation.insert({ 0, 336*24*3600 });
     _scores_depth_modify_reputation.insert({ fork_20190920, 30*24*3600 });
     Limits.insert(std::make_pair(Limit::scores_depth_modify_reputation, _scores_depth_modify_reputation));
+
+    // lottery_referral_depth
+    std::map<int, int64_t> _lottery_referral_depth;
+    _lottery_referral_depth.insert({ 0, 30*24*3600 });
+    Limits.insert(std::make_pair(Limit::lottery_referral_depth, _lottery_referral_depth));
+    
 };
 
 // Get actual limit for current height
@@ -471,4 +477,70 @@ void FillCheckpointsTransactions(const CChainParams& params)
 
 bool IsCheckpointTransaction(std::string hash) {
     return (std::find(CheckpointsTransactions.begin(), CheckpointsTransactions.end(), hash) != CheckpointsTransactions.end());
+}
+
+
+bool GetInputAddress(uint256 txhash, int n, std::string& address)
+{
+    uint256 hash_block;
+    CTransactionRef tx;
+    //-------------------------
+    if (!GetTransaction(txhash, tx, Params().GetConsensus(), hash_block)) return false;
+    const CTxOut& txout = tx->vout[n];
+    CTxDestination destAddress;
+    const CScript& scriptPubKey = txout.scriptPubKey;
+    bool fValidAddress = ExtractDestination(scriptPubKey, destAddress);
+    if (!fValidAddress) return false;
+    address = EncodeDestination(destAddress);
+    //-------------------------
+    return true;
+}
+bool GetTransactionData(std::string txid, std::string& address)
+{
+    CTransactionRef tx;
+    return GetTransactionData(txid, address, tx);
+}
+bool GetTransactionData(std::string txid, std::string& address, CTransactionRef& tx)
+{
+    uint256 hash_block;
+    uint256 hash_tx;
+    hash_tx.SetHex(txid);
+    if (!GetTransaction(hash_tx, tx, Params().GetConsensus(), hash_block, true, nullptr)) return false;
+    return GetInputAddress(tx->vin[0].prevout.hash, tx->vin[0].prevout.n, address);
+}
+
+
+bool FindPocketNetAsmString(const CTransactionRef& tx, std::vector<std::string>& vasm)
+{
+    std::string asmStr;
+    if (!FindPocketNetAsmString(tx, asmStr)) return false;
+    boost::split(vasm, asmStr, boost::is_any_of("\t "));
+    //-------------------------
+    return true;
+}
+bool FindPocketNetAsmString(const CTransactionRef& tx, std::string& asmStr)
+{
+    const CTxOut& txout = tx->vout[0];
+    if (txout.scriptPubKey[0] == OP_RETURN) {
+        asmStr = ScriptToAsmStr(txout.scriptPubKey);
+        return true;
+    }
+
+    return false;
+}
+
+bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table)
+{
+    std::vector<std::string> vasm;
+    if (!FindPocketNetAsmString(tx, vasm)) return false;
+    return ConvertOPToTableName(vasm[1], ri_table);
+}
+bool IsPocketnetTransaction(const CTransactionRef& tx)
+{
+    std::string _ri_table = "";
+    return GetPocketnetTXType(tx, _ri_table);
+}
+bool IsPocketnetTransaction(const CTransaction& tx)
+{
+    return IsPocketnetTransaction(MakeTransactionRef(tx));
 }

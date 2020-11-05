@@ -8,6 +8,7 @@
 #include <primitives/transaction.h>
 #include <core_io.h>
 #include <sstream>
+#include <rpc/rawtransaction.h>
 
 // Antibot limits
 enum Limit {
@@ -40,7 +41,8 @@ enum Limit {
     full_comment_score_limit,
     comment_size_limit,
     edit_comment_timeout,
-    scores_depth_modify_reputation
+    scores_depth_modify_reputation,
+    lottery_referral_depth
 };
 
 void FillLimits(const CChainParams& params);
@@ -91,8 +93,25 @@ bool IsCheckpointTransaction(std::string hash);
 // Change in consensus rules
 #define CH_CONSENSUS_SCORE_BLOCKING_ON      430000
 #define CH_CONSENSUS_SCORE_BLOCKING_OFF     514185
-#define CH_CONSENSUS_LOTTERY_REFERRAL       514185
 #define CH_CONSENSUS_OPRETURN_CHECK         514185
+#define CH_CONSENSUS_LOTTERY_REFERRAL_BEG           514185
+#define CH_CONSENSUS_LOTTERY_REFERRAL_LIMITATION    1713100
+
+bool GetInputAddress(uint256 txhash, int n, std::string& address);
+bool GetTransactionData(std::string txid, std::string& address);
+bool GetTransactionData(std::string txid, std::string& address, CTransactionRef& tx);
+
+/*
+    Find asm string with OP_RETURN for check type transaction
+*/
+bool FindPocketNetAsmString(const CTransactionRef& tx, std::vector<std::string>& vasm);
+bool FindPocketNetAsmString(const CTransactionRef& tx, std::string& asmStr);
+/*
+    Return table name for transaction if is PocketNET transaction
+*/
+bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table);
+bool IsPocketnetTransaction(const CTransactionRef& tx);
+bool IsPocketnetTransaction(const CTransaction& tx);
 
 
 #endif // POCKETNET_H
