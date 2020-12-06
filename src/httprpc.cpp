@@ -183,7 +183,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
     jreq.peerAddr = req->GetPeer().ToString();
     //if (!RPCAuthorized(authHeader.second, jreq.authUser) & !pcmd & pcmd->category != "pocketnetrpc") {
     if (pcmd) {
-        if (pcmd->category != "pocketnetrpc") {
+        if (pcmd->pwdRequied) {
             if (!RPCAuthorized(authHeader.second, jreq.authUser)) {
                 LogPrintf("ThreadRPCServer incorrect password attempt from %s\n", jreq.peerAddr);
 
