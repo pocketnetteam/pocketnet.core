@@ -418,11 +418,11 @@ bool AddrIndex::IndexBlock(const CBlock& block, CBlockIndex* pindex)
         return false;
     }
 
-    if (pindex->nHeight % 100 == 0) {
-        if (!PruneDB(pindex)) {
-            LogPrintf("(AddrIndex::PruneDB) block %s height %s\n", block.GetHash().GetHex(), pindex->nHeight);
-        }
-    }
+    // if (pindex->nHeight % 100 == 0) {
+    //     if (!PruneDB(pindex)) {
+    //         LogPrintf("(AddrIndex::PruneDB) block %s height %s\n", block.GetHash().GetHex(), pindex->nHeight);
+    //     }
+    // }
 
     return true;
 }
