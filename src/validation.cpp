@@ -2727,6 +2727,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 	std::map<std::string, std::vector<UniValue>> messages;
 	uint256 _block_hash = block.GetHash();
 	int sharesCnt = 0;
+	std::map<std::string,int> sharesCntLang;
 	std::string txidpocketnet = "";
 	std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
 
@@ -2749,6 +2750,16 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 					if (spl[1] == OR_POST) {
 						optype = "share";
 						sharesCnt += 1;
+
+						reindexer::Item shr_itm;
+						if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, txid), shr_itm).ok()) {
+							std::string lang = shr_itm["lang"].As<string>();
+							std::map<std::string, int>::iterator itl = sharesCntLang.find(lang);
+							if (itl != sharesCntLang.end())
+								itl->second += 1;
+							else
+								sharesCntLang.emplace(lang,1);
+						}
 					}
 					// else if (spl[1] == OR_POSTEDIT)
 					// 	optype = "shareEdit";
@@ -2987,6 +2998,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 	}
 
 	// Send all WS clients messages
+	UniValue sharesLang(UniValue::VOBJ);
+    for (std::map<std::string, int>::iterator itl = sharesCntLang.begin(); itl != sharesCntLang.end(); ++itl) {
+		sharesLang.pushKV(itl->first, itl->second);
+    }
 	for (auto& connWS : WSConnections) {
 		UniValue msg(UniValue::VOBJ);
 		msg.pushKV("addr", connWS.second.Address);
@@ -2995,6 +3010,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 		msg.pushKV("time", std::to_string(block.nTime));
 		msg.pushKV("height", blockIndex->nHeight);
 		msg.pushKV("shares", sharesCnt);
+		msg.pushKV("sharesLang", sharesLang);
 
 		reindexer::QueryResults queryResSubscribes;
 		reindexer::Error err = g_pocketdb->DB()->Select(

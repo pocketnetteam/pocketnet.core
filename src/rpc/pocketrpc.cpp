@@ -397,6 +397,10 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         new_rtx.pTable = "Posts";
         new_rtx.pTransaction = g_pocketdb->DB()->NewItem(new_rtx.pTable);
 
+        std::string postlang = "en";
+        if (request.params[1].exists("l"))
+            postlang = request.params[1]["l"].get_str().length() != 2 ? "en" : request.params[1]["l"].get_str();
+
         // Posts:
         //   txid - txid of original post transaction
         //   txidEdit - txid of post transaction
@@ -409,6 +413,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
             if (!_err.ok()) throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid txidEdit. Post not found.");
 
             txTime = _itmP["time"].As<int64_t>();
+            //postlang = _itmP["lang"].As<string>();
         }
 
         std::string _txid_repost = "";
@@ -426,7 +431,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         new_rtx.pTransaction["block"] = -1;
         new_rtx.pTransaction["address"] = address;
         new_rtx.pTransaction["time"] = txTime;
-        new_rtx.pTransaction["lang"] = "en";
+        new_rtx.pTransaction["lang"] = postlang;
         new_rtx.pTransaction["message"] = request.params[1]["m"].get_str();
 
         if (request.params[1].exists("c")) new_rtx.pTransaction["caption"] = request.params[1]["c"].get_str();
@@ -690,6 +695,11 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
         resultCount = request.params[3].get_int();
     }
 
+    std::string lang = "";
+    if (request.params.size() > 4) {
+        lang = request.params[4].get_str();
+    }
+
     vector<string> addrsblock;
     if (address_from != "" && (address_to == "" || address_to == "1")) {
         reindexer::QueryResults queryResBlocking;
@@ -730,11 +740,11 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
         }
 
         err = g_pocketdb->DB()->Select(
-            reindexer::Query("Posts" /*, 0, resultCount*/).Where("address", CondSet, addrs).Not().Where("address", CondSet, addrsblock).Where("time", ((resultCount > 0 && resultStart > 0) ? CondLt : CondGt), resultStart).Where("time", CondLe, GetAdjustedTime()).Sort("time", (resultCount > 0 ? true : false)),
+            reindexer::Query("Posts" /*, 0, resultCount*/).Where("lang", (lang == "" ? CondGe : CondEq), lang).Where("address", CondSet, addrs).Not().Where("address", CondSet, addrsblock).Where("time", ((resultCount > 0 && resultStart > 0) ? CondLt : CondGt), resultStart).Where("time", CondLe, GetAdjustedTime()).Sort("time", (resultCount > 0 ? true : false)),
             queryRes);
     } else {
         err = g_pocketdb->DB()->Select(
-            reindexer::Query("Posts" /*, 0, resultCount*/).Where("txidRepost", CondEq, "").Not().Where("address", CondSet, addrsblock).Where("time", ((resultCount > 0 && resultStart > 0) ? CondLt : CondGt), resultStart).Where("time", CondLe, GetAdjustedTime()).Sort("time", (resultCount > 0 ? true : false)),
+            reindexer::Query("Posts" /*, 0, resultCount*/).Where("lang", (lang == "" ? CondGe : CondEq), lang).Where("txidRepost", CondEq, "").Not().Where("address", CondSet, addrsblock).Where("time", ((resultCount > 0 && resultStart > 0) ? CondLt : CondGt), resultStart).Where("time", CondLe, GetAdjustedTime()).Sort("time", (resultCount > 0 ? true : false)),
             queryRes);
     }
 
@@ -882,10 +892,26 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
 
     reindexer::QueryResults posts;
     g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber), posts);
+    std::map<std::string, int> postsCntLang;
+    for (auto& p : posts) {
+        reindexer::Item postItm = p.GetItem();
+
+        UniValue t(UniValue::VARR);
+        std::string lang = postItm["lang"].As<string>();
+        if (postsCntLang.count(lang) == 0)
+            postsCntLang[lang] = 1;
+        else
+            postsCntLang[lang] += 1;
+    }
+    UniValue cntpostslang(UniValue::VOBJ);
+    for (std::map<std::string, int>::iterator itl = postsCntLang.begin(); itl != postsCntLang.end(); ++itl) {
+        cntpostslang.pushKV(itl->first, itl->second);
+    }
 
     UniValue msg(UniValue::VOBJ);
     msg.pushKV("block", (int)chainActive.Height());
     msg.pushKV("cntposts", (int)posts.Count());
+    msg.pushKV("cntpostslang", cntpostslang);
     a.push_back(msg);
 
     std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
@@ -1725,6 +1751,11 @@ UniValue gethotposts(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid address in HEX transaction");
     }
 
+    std::string lang = "";
+    if (request.params.size() > 3) {
+        lang = request.params[3].get_str();
+    }
+
     int64_t curTime = GetAdjustedTime();
 
     // Excluded posts
@@ -1755,6 +1786,7 @@ UniValue gethotposts(const JSONRPCRequest& request)
     // 60s * 60m * 24h * 30d = 2592000
     reindexer::QueryResults postsRes;
     g_pocketdb->Select(reindexer::Query("Posts", 0, count * 5)
+                           .Where("lang", (lang == "" ? CondGe : CondEq), lang)
                            .Where("time", CondGt, curTime - depth)
                            .Not()
                            .Where("address", CondSet, addrsblock)
@@ -1900,18 +1932,23 @@ UniValue gettags(const JSONRPCRequest& request)
     }
 
     int count = 50;
-    if (request.params.size() >= 2) {
+    if (request.params.size() > 1) {
         ParseInt32(request.params[1].get_str(), &count);
     }
 
     int from = 0;
-    if (request.params.size() >= 3) {
+    if (request.params.size() > 2) {
         ParseInt32(request.params[2].get_str(), &from);
+    }
+
+    std::string lang = "";
+    if (request.params.size() > 3) {
+        lang = request.params[3].get_str();
     }
 
     std::map<std::string, int> mapTags;
     reindexer::QueryResults posts;
-    g_pocketdb->Select(reindexer::Query("Posts").Where("block", CondGe, from).Where("address", address == "" ? CondGt : CondEq, address), posts);
+    g_pocketdb->Select(reindexer::Query("Posts").Where("block", CondGe, from).Where("lang", (lang == "" ? CondGe : CondEq), lang).Where("address", address == "" ? CondGt : CondEq, address), posts);
     for (auto& p : posts) {
         reindexer::Item postItm = p.GetItem();
 
@@ -2057,6 +2094,11 @@ UniValue getlastcomments(const JSONRPCRequest& request)
         address = request.params[1].get_str();
     }
 
+    std::string lang = "";
+    if (request.params.size() > 2) {
+        lang = request.params[2].get_str();
+    }
+
     reindexer::QueryResults commRes;
     g_pocketdb->Select(
         Query("Comment")
@@ -2065,7 +2107,8 @@ UniValue getlastcomments(const JSONRPCRequest& request)
             .Sort("time", true)
             .Limit(resultCount)
             .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
-            .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1)),
+            .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1))
+            .InnerJoin("postid", "txid", CondEq, Query("Posts").Where("lang", (lang == "" ? CondGe : CondEq), lang).Limit(1)),
         commRes);
 
     UniValue aResult(UniValue::VARR);
