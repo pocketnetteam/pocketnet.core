@@ -44,6 +44,10 @@ Build from source code
 ---
 See `doc/build-*.md` files for build instructions.
 
+Download blockhain via torrent:
+---
+magnet:?xt=urn:btih:498656d93724f5495c06ee9a177622f22c29b59e&dn=pocketnet.blockchain.1014845&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
+
 Help
 ---
 You can get help and useful information from different sources:
