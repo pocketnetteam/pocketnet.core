@@ -1225,9 +1225,9 @@ static UniValue checkstringtype(const JSONRPCRequest& request) {
 
 static std::map<int64_t, UniValue> g_statistic_cashe;
 static UniValue getstatistic(const JSONRPCRequest& request) {
-    if (request.fHelp || request.params.size() > 2)
+    if (request.fHelp)
         throw std::runtime_error(
-            "getstatistic (start_time, end_time )\n"
+            "getstatistic (start_time, end_time)\n"
             "\nGet statistics.\n"
             "\nArguments:\n"
             "1. \"start_time\"   (int64, optional) Start time of period\n"

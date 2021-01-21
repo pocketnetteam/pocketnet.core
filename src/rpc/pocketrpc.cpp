@@ -291,18 +291,18 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
         UniValue oCmnt(UniValue::VOBJ);
 
         reindexer::Item cmntItm = cmntRes[0].GetItem();
-        //reindexer::Item ocmntItm = cmntRes[0].GetJoined()[0][0].GetItem();
+        reindexer::Item ocmntItm = cmntRes[0].GetJoined()[0][0].GetItem();
 
         int myScore = 0;
-        //if (cmntRes[0].GetJoined().size() > 1 && cmntRes[0].GetJoined()[1].Count() > 0) {
-        //    reindexer::Item ocmntScoreItm = cmntRes[0].GetJoined()[1][0].GetItem();
-        //    myScore = ocmntScoreItm["value"].As<int>();
-        //}
+        if (cmntRes[0].GetJoined().size() > 1 && cmntRes[0].GetJoined()[1].Count() > 0) {
+           reindexer::Item ocmntScoreItm = cmntRes[0].GetJoined()[1][0].GetItem();
+           myScore = ocmntScoreItm["value"].As<int>();
+        }
 
         oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
         oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
         oCmnt.pushKV("address", cmntItm["address"].As<string>());
-        //oCmnt.pushKV("time", ocmntItm["time"].As<string>());
+        oCmnt.pushKV("time", ocmntItm["time"].As<string>());
         oCmnt.pushKV("timeUpd", cmntItm["time"].As<string>());
         oCmnt.pushKV("block", cmntItm["block"].As<string>());
         oCmnt.pushKV("msg", cmntItm["msg"].As<string>());
