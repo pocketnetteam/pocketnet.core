@@ -275,6 +275,7 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
         }
     }
 
+    // TODO (brangr): Split GET & POST queues
     // Dispatch to worker thread
     if (i != iend) {
         std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
@@ -282,7 +283,7 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
         if (workQueue->Enqueue(item.get()))
             item.release(); /* if true, queue took ownership */
         else {
-            LogPrintf("WARNING: request rejected because http work queue depth exceeded, it can be increased with the -rpcworkqueue= setting\n");
+            LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue depth exceeded, it can be increased with the -rpcworkqueue= setting\n");
             item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded");
         }
     } else {

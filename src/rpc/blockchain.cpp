@@ -1239,21 +1239,27 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
 		int64_t _end_time = request.params[0].get_int64();
         if (_end_time < end_time) end_time = _end_time;
 	}
-    end_time = floor(end_time / 3600 / 24) * 3600 * 24;
 
     int64_t start_time = end_time - (30 * 86400);
     if (request.params.size() > 1 && request.params[1].isNum()) {
-		int64_t _start_time = request.params[1].get_int64();
-        if (_start_time < start_time) start_time = _start_time;
+		start_time = request.params[1].get_int64();
+        if ((end_time - start_time) > (3 * 30 * 86400)) start_time = end_time - (30 * 86400);
 	}
-    start_time = floor(start_time / 3600 / 24) * 3600 * 24;
+    
+    int round = 3600 * 24;
+    if (request.params.size() > 1 && request.params[1].isNum()) {
+		round = request.params[1].get_int();
+        if (round <= 0) round = 3600;
+	}
+        
+    start_time = floor(start_time / round) * round;
 
     UniValue result(UniValue::VOBJ);
-    int stat_count = 100;
+    int stat_count = 300;
 
     // Loop all days in period start_time - end_time
     int64_t dt_end = end_time;
-    int64_t dt_start = end_time - 86400;
+    int64_t dt_start = end_time - round;
     while (dt_start >= start_time && stat_count > 0) {
         if (g_statistic_cashe.find(dt_start) == g_statistic_cashe.end()) {
             UniValue rStat(UniValue::VOBJ);
@@ -1270,8 +1276,8 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
         result.pushKV(std::to_string(dt_start), g_statistic_cashe[dt_start]);
 
         stat_count -= 1;
-        dt_end -= 86400;
-        dt_start -= 86400;
+        dt_end -= round;
+        dt_start -= round;
     }
     
     return result;
@@ -2624,12 +2630,12 @@ UniValue scantxoutset(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      {} },
+    { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      {}, false },
     { "blockchain",         "getchaintxstats",        &getchaintxstats,        {"nblocks", "blockhash"} },
     { "blockchain",         "getblockstats",          &getblockstats,          {"hash_or_height", "stats"} },
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       {} },
     { "blockchain",         "getblockcount",          &getblockcount,          {} },
-    { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose"} },
+    { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose"}, false },
     { "blockchain",         "getblockhash",           &getblockhash,           {"height"} },
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
     { "blockchain",         "getchaintips",           &getchaintips,           {} },
@@ -2648,11 +2654,11 @@ static const CRPCCommand commands[] =
     { "blockchain",         "preciousblock",          &preciousblock,          {"blockhash"} },
     { "blockchain",         "scantxoutset",           &scantxoutset,           {"action", "scanobjects"} },
 
-	{ "blockchain",         "getaddressinfo",         &getaddressinfo,         {"address"} },
-	{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"} },
-	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"} },
-	{ "blockchain",         "checkstringtype",        &checkstringtype,        {"value"} },
-    { "blockchain",         "getstatistic",           &getstatistic,           {"end_time","start_time"} },
+	{ "blockchain",         "getaddressinfo",         &getaddressinfo,         {"address"}, false },
+	{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"}, false },
+	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"}, false },
+	{ "blockchain",         "checkstringtype",        &checkstringtype,        {"value"}, false },
+    { "blockchain",         "getstatistic",           &getstatistic,           {"end_time","start_time"}, false },
     
 	
 
