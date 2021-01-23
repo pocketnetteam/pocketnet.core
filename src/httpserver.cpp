@@ -488,31 +488,31 @@ void InterruptHTTPServer()
     }
     if (workQueue)
         workQueue->Interrupt();
+
     if (workQueuePost)
-        workQueue->Interrupt();
+        workQueuePost->Interrupt();
 }
 
 void StopHTTPServer()
 {
     LogPrint(BCLog::HTTP, "Stopping HTTP server\n");
+
+    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
+    for (auto& thread: g_thread_http_workers) {
+        thread.join();
+    }
+    g_thread_http_workers.clear();
+    
     if (workQueue) {
-        LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-        for (auto& thread: g_thread_http_workers) {
-            thread.join();
-        }
-        g_thread_http_workers.clear();
         delete workQueue;
         workQueue = nullptr;
     }
+
     if (workQueuePost) {
-        LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-        for (auto& thread: g_thread_http_workers) {
-            thread.join();
-        }
-        g_thread_http_workers.clear();
         delete workQueuePost;
         workQueuePost = nullptr;
     }
+
     if (eventBase) {
         LogPrint(BCLog::HTTP, "Waiting for HTTP event thread to exit\n");
         // Exit the event loop as soon as there are no active events.
@@ -533,6 +533,7 @@ void StopHTTPServer()
         evhttp_free(eventHTTP);
         eventHTTP = nullptr;
     }
+
     if (eventBase) {
         event_base_free(eventBase);
         eventBase = nullptr;
