@@ -164,6 +164,7 @@ static auto accumSumFunc = [](int64_t sum, const std::pair<std::string, std::vec
     return sum + std::accumulate(rhs.second.begin(), rhs.second.end(), (int64_t)0);
 };
 
+static int StatLogCounter = 100;
 static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
 {
     // JSONRPC handles only POST
@@ -212,52 +213,62 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
                 req->WriteReply(HTTP_UNAUTHORIZED);
                 return false;
             }
+        }
 
-            // Build statistic object
+        // Build statistic object
+        if (sMethd == "rpcstat" || StatLogCounter <= 0) {
+            UniValue statResult(UniValue::VOBJ);
+
+            for (auto& hData : StatisticData) {
+                UniValue hResult(UniValue::VOBJ);
+
+                // statistic level 0
+
+                // Count of calls
+                int64_t _cnt = std::accumulate(hData.second.begin(), hData.second.end(), 0, accumCountFunc);
+                hResult.pushKV("cnt", _cnt);
+
+                // Average time execute
+                int64_t _sum = std::accumulate(hData.second.begin(), hData.second.end(), 0, accumSumFunc);
+                hResult.pushKV("avg", _sum / _cnt);
+
+                // hResult.pushKV("min", 0);
+                // hResult.pushKV("max", 0);
+
+                hResult.pushKV("uniq", hData.second.size());
+
+                // statistic level 1
+                // if (jreq.params["level"].get_int() >= 1) {
+                //     // todo
+
+                //     if (jreq.params["level"].get_int() >= 2) {
+                //         // todo
+                //     }
+                // }
+
+                statResult.pushKV(std::to_string(hData.first), hResult);
+            }
+
+            std::string strReplyStat = JSONRPCReply(statResult, NullUniValue, jreq.id);
+            
+            if (StatLogCounter <= 0) {
+                StatLogCounter = 100;
+                LogPrintf("??? RPC Statistic: %s", strReplyStat);
+            }
+            
             if (sMethd == "rpcstat") {
-                UniValue statResult(UniValue::VOBJ);
-
-                for (auto& hData : StatisticData) {
-                    UniValue hResult(UniValue::VOBJ);
-
-                    // statistic level 0
-
-                    // Count of calls
-                    int64_t _cnt = std::accumulate(hData.second.begin(), hData.second.end(), 0, accumCountFunc);
-                    hResult.pushKV("cnt", _cnt);
-
-                    // Average time execute
-                    int64_t _sum = std::accumulate(hData.second.begin(), hData.second.end(), 0, accumSumFunc);
-                    hResult.pushKV("avg", _sum / _cnt);
-
-                    // hResult.pushKV("min", 0);
-                    // hResult.pushKV("max", 0);
-
-                    hResult.pushKV("uniq", hData.second.size());
-
-                    // statistic level 1
-                    // if (jreq.params["level"].get_int() >= 1) {
-                    //     // todo
-
-                    //     if (jreq.params["level"].get_int() >= 2) {
-                    //         // todo
-                    //     }
-                    // }
-
-                    statResult.pushKV(std::to_string(hData.first), hResult);
-                }
-
-                std::string strReplyStat = JSONRPCReply(statResult, NullUniValue, jreq.id);
                 req->WriteHeader("Content-Type", "application/json");
                 req->WriteReply(HTTP_OK, strReplyStat);
                 return true;
             }
         }
 
+        StatLogCounter -= 1;
+
         // Set the URI
         jreq.URI = req->GetURI();
-
         std::string strReply;
+
         // singleton request
         if (valRequest.isObject()) {
             jreq.parse(valRequest);
@@ -267,13 +278,19 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
             UniValue result = tableRPC.execute(jreq);
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(stop - start);
-            LogPrint(BCLog::RPC, "RPC Method time %s - %smcs\n", jreq.strMethod, duration.count());
+            LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %smcs\n", jreq.strMethod, jreq.peerAddr, duration.count());
 
             // Extend statistic data
             if (gArgs.GetBoolArg("-rpcstat", false)) {
                 time_t tt = system_clock::to_time_t(start);
                 tm utc_tm = *gmtime(&tt);
+
                 int key = (utc_tm.tm_mday * 100) + utc_tm.tm_hour;
+
+                std::string ip = "";
+                std::vector<std::string> vIp;
+                boost::split(vIp, jreq.peerAddr, boost::is_any_of(":"));
+                if (vIp.size() > 0) ip = vIp[0];
                 
                 // new hour key
                 if (StatisticData.find(key) == StatisticData.end()) {
@@ -282,12 +299,12 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
                 }
 
                 // new IP key
-                if (StatisticData[key].find(jreq.peerAddr) == StatisticData[key].end()) {
+                if (StatisticData[key].find(ip) == StatisticData[key].end()) {
                     std::vector<int64_t> ipTimes;
-                    StatisticData[key].insert(std::make_pair(jreq.peerAddr, ipTimes));
+                    StatisticData[key].insert(std::make_pair(ip, ipTimes));
                 }
 
-                StatisticData[key][jreq.peerAddr].push_back(duration.count());
+                StatisticData[key][ip].push_back(duration.count());
 
                 // Clear old data
                 while (StatisticData.size() > 24) {
@@ -347,6 +364,7 @@ bool StartHTTPRPC()
         return false;
 
     RegisterHTTPHandler("/", true, HTTPReq_JSONRPC);
+    RegisterHTTPHandler("/post/", true, HTTPReq_JSONRPC);
     if (g_wallet_init_interface.HasWalletSupport()) {
         RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC);
     }

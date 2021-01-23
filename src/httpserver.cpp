@@ -163,6 +163,8 @@ struct evhttp* eventHTTP = nullptr;
 static std::vector<CSubNet> rpc_allow_subnets;
 //! Work queue for handling longer requests off the event loop thread
 static WorkQueue<HTTPClosure>* workQueue = nullptr;
+//! Work queue for handling longer requests off the event loop thread
+static WorkQueue<HTTPClosure>* workQueuePost = nullptr;
 //! Handlers for (sub)paths
 std::vector<HTTPPathHandler> pathHandlers;
 //! Bound listening sockets
@@ -228,6 +230,7 @@ static std::string RequestMethodString(HTTPRequest::RequestMethod m)
     }
 }
 
+static std::string sendrawtransaction("sendrawtransaction");
 /** HTTP request callback */
 static void http_request_cb(struct evhttp_request* req, void* arg)
 {
@@ -252,6 +255,14 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
         return;
     }
 
+    // bool sendTransaction = false;
+    // try {
+    //     std::string body = hreq->ReadBody();
+    //     sendTransaction = body.find(sendrawtransaction) != std::string::npos;
+    // } catch (const UniValue& objError) {
+    //     LogPrintf("!!! %s\n", objError.write());
+    // }
+
     // Early reject unknown HTTP methods
     if (hreq->GetRequestMethod() == HTTPRequest::UNKNOWN) {
         hreq->WriteReply(HTTP_BADMETHOD);
@@ -275,16 +286,28 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
         }
     }
 
-    // TODO (brangr): Split GET & POST queues
     // Dispatch to worker thread
     if (i != iend) {
         std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
-        assert(workQueue);
-        if (workQueue->Enqueue(item.get()))
-            item.release(); /* if true, queue took ownership */
-        else {
-            LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue depth exceeded, it can be increased with the -rpcworkqueue= setting\n");
-            item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded");
+        
+        std::string post("/post/");
+        if (strURI == post) {
+            LogPrintf("--- SEND Transaction\n");
+            assert(workQueuePost);
+            if (workQueuePost->Enqueue(item.get()))
+                item.release();
+            else {
+                LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (POST) depth exceeded\n");
+                item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (POST)");
+            }
+        } else {
+            assert(workQueue);
+            if (workQueue->Enqueue(item.get()))
+                item.release();
+            else {
+                LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (GET) depth exceeded.\n");
+                item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (GET)");
+            }
         }
     } else {
         hreq->WriteReply(HTTP_NOTFOUND);
@@ -412,6 +435,7 @@ bool InitHTTPServer()
     LogPrintf("HTTP: creating work queue of depth %d\n", workQueueDepth);
 
     workQueue = new WorkQueue<HTTPClosure>(workQueueDepth);
+    workQueuePost = new WorkQueue<HTTPClosure>(workQueueDepth);
     // transfer ownership to eventBase/HTTP via .release()
     eventBase = base_ctr.release();
     eventHTTP = http_ctr.release();
@@ -440,13 +464,14 @@ void StartHTTPServer()
 {
     LogPrint(BCLog::HTTP, "Starting HTTP server\n");
     int rpcThreads = std::max((long)gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
-    LogPrintf("HTTP: starting %d worker threads\n", rpcThreads);
+    LogPrintf("HTTP: starting %d worker threads\n", rpcThreads * 2);
     std::packaged_task<bool(event_base*)> task(ThreadHTTP);
     threadResult = task.get_future();
     threadHTTP = std::thread(std::move(task), eventBase);
 
     for (int i = 0; i < rpcThreads; i++) {
         g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueue);
+        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePost);
     }
 }
 
@@ -463,6 +488,8 @@ void InterruptHTTPServer()
     }
     if (workQueue)
         workQueue->Interrupt();
+    if (workQueuePost)
+        workQueue->Interrupt();
 }
 
 void StopHTTPServer()
@@ -476,6 +503,15 @@ void StopHTTPServer()
         g_thread_http_workers.clear();
         delete workQueue;
         workQueue = nullptr;
+    }
+    if (workQueuePost) {
+        LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
+        for (auto& thread: g_thread_http_workers) {
+            thread.join();
+        }
+        g_thread_http_workers.clear();
+        delete workQueuePost;
+        workQueuePost = nullptr;
     }
     if (eventBase) {
         LogPrint(BCLog::HTTP, "Waiting for HTTP event thread to exit\n");
