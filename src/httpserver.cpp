@@ -252,16 +252,9 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
     // Early address-based allow check
     if (!ClientAllowed(hreq->GetPeer())) {
         hreq->WriteReply(HTTP_FORBIDDEN);
+        LogPrint(BCLog::HTTP, "Request from %s not allowed\n", hreq->GetPeer().ToString());
         return;
     }
-
-    // bool sendTransaction = false;
-    // try {
-    //     std::string body = hreq->ReadBody();
-    //     sendTransaction = body.find(sendrawtransaction) != std::string::npos;
-    // } catch (const UniValue& objError) {
-    //     LogPrintf("!!! %s\n", objError.write());
-    // }
 
     // Early reject unknown HTTP methods
     if (hreq->GetRequestMethod() == HTTPRequest::UNKNOWN) {
@@ -292,7 +285,6 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
         
         std::string post("/post/");
         if (strURI == post) {
-            LogPrintf("--- SEND Transaction\n");
             assert(workQueuePost);
             if (workQueuePost->Enqueue(item.get()))
                 item.release();
@@ -310,6 +302,7 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
             }
         }
     } else {
+        LogPrint(BCLog::HTTP, "Rrequest from %s not found\n", hreq->GetPeer().ToString());
         hreq->WriteReply(HTTP_NOTFOUND);
     }
 }

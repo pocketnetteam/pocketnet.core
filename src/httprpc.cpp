@@ -169,12 +169,14 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
 {
     // JSONRPC handles only POST
     if (req->GetRequestMethod() != HTTPRequest::POST) {
+        LogPrint(BCLog::RPC, "WARNING: Request not POST\n");
         req->WriteReply(HTTP_BAD_METHOD, "JSONRPC server handles only POST requests");
         return false;
     }
     // Check authorization
     std::pair<bool, std::string> authHeader = req->GetHeader("authorization");
     if (!authHeader.first) {
+        LogPrint(BCLog::RPC, "WARNING: Request whithour authorization header\n");
         req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
         req->WriteReply(HTTP_UNAUTHORIZED);
         return false;
@@ -186,7 +188,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
         UniValue valRequest;
 
         // get method for chack auth needed
-        if (valRequest.read(req->ReadBody())) {
+        /*if (valRequest.read(req->ReadBody())) {
             if (valRequest.isObject()) {
                 UniValue valMethod = find_value(valRequest, "method");
                 if (!valMethod.isNull() && valMethod.isStr())
@@ -194,12 +196,12 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
             }
         } else {
             throw JSONRPCError(RPC_PARSE_ERROR, "Parse error");
-        }
+        }*/
         
         jreq.peerAddr = req->GetPeer().ToString();
-        const CRPCCommand* pcmd = tableRPC[sMethd];
+        //const CRPCCommand* pcmd = tableRPC[sMethd];
 
-        if (sMethd == "rpcstat" || (pcmd && pcmd->pwdRequied)) {
+        //if (sMethd == "rpcstat" || (pcmd && pcmd->pwdRequied)) {
             if (!RPCAuthorized(authHeader.second, jreq.authUser)) {
                 LogPrintf("ThreadRPCServer incorrect password attempt from %s\n", jreq.peerAddr);
 
@@ -213,9 +215,10 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
                 req->WriteReply(HTTP_UNAUTHORIZED);
                 return false;
             }
-        }
+        //}
 
         // Build statistic object
+        /*
         if (sMethd == "rpcstat" || StatLogCounter <= 0) {
             UniValue statResult(UniValue::VOBJ);
 
@@ -264,7 +267,11 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
         }
 
         StatLogCounter -= 1;
+        */
 
+        if (!valRequest.read(req->ReadBody()))
+            throw JSONRPCError(RPC_PARSE_ERROR, "Parse error");
+            
         // Set the URI
         jreq.URI = req->GetURI();
         std::string strReply;
@@ -274,12 +281,12 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
             jreq.parse(valRequest);
 
             //LogPrint(BCLog::RPC, "RPC Method %s - %s\n", jreq.strMethod, valRequest.write());
-            auto start = high_resolution_clock::now();
+            auto start = system_clock::now();
             UniValue result = tableRPC.execute(jreq);
-            auto stop = high_resolution_clock::now();
-            auto duration = duration_cast<microseconds>(stop - start);
-            LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %smcs\n", jreq.strMethod, jreq.peerAddr, duration.count());
-
+            auto stop = system_clock::now();
+            auto duration = duration_cast<milliseconds>(stop - start);
+            LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", jreq.strMethod, jreq.peerAddr, duration.count());
+/*
             // Extend statistic data
             if (gArgs.GetBoolArg("-rpcstat", false)) {
                 time_t tt = system_clock::to_time_t(start);
@@ -312,7 +319,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
                     StatisticData.erase(remKey);
                 }
             }
-
+*/
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
 
@@ -328,9 +335,11 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strReply);
     } catch (const UniValue& objError) {
+        LogPrint(BCLog::RPC, "Exception %s\n", objError.write());
         JSONErrorReply(req, objError, jreq.id);
         return false;
     } catch (const std::exception& e) {
+        LogPrint(BCLog::RPC, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()));
         JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
         return false;
     }
