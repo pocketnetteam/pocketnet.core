@@ -174,7 +174,6 @@ static UniValue getblockcount(const JSONRPCRequest& request)
             + HelpExampleRpc("getblockcount", "")
         );
 
-    LOCK(cs_main);
     return chainActive.Height();
 }
 
@@ -191,7 +190,6 @@ static UniValue getbestblockhash(const JSONRPCRequest& request)
             + HelpExampleRpc("getbestblockhash", "")
         );
 
-    LOCK(cs_main);
     return chainActive.Tip()->GetBlockHash().GetHex();
 }
 
@@ -355,7 +353,6 @@ static UniValue getdifficulty(const JSONRPCRequest& request)
             + HelpExampleRpc("getdifficulty", "")
         );
 
-    LOCK(cs_main);
     return GetDifficulty(chainActive.Tip());
 }
 
@@ -684,8 +681,6 @@ static UniValue getblockhash(const JSONRPCRequest& request)
             + HelpExampleRpc("getblockhash", "1000")
         );
 
-    LOCK(cs_main);
-
     int nHeight = request.params[0].get_int();
     if (nHeight < 0 || nHeight > chainActive.Height())
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
@@ -728,8 +723,6 @@ static UniValue getblockheader(const JSONRPCRequest& request)
             + HelpExampleCli("getblockheader", "\"00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09\"")
             + HelpExampleRpc("getblockheader", "\"00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09\"")
         );
-
-    LOCK(cs_main);
 
     std::string strHash = request.params[0].get_str();
     uint256 hash(uint256S(strHash));
@@ -823,8 +816,6 @@ static UniValue getblock(const JSONRPCRequest& request)
             + HelpExampleCli("getblock", "\"00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09\"")
             + HelpExampleRpc("getblock", "\"00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09\"")
         );
-
-    LOCK(cs_main);
 
     std::string strHash = request.params[0].get_str();
     uint256 hash(uint256S(strHash));
@@ -1120,7 +1111,6 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
 	if (!hashBlock.IsNull()) {
 		entry.pushKV("blockhash", hashBlock.GetHex());
 
-        LOCK(cs_main);
 		CBlockIndex* pindex = LookupBlockIndex(hashBlock);
 		if (pindex) {
 			entry.pushKV("height", pindex->nHeight);
@@ -1208,7 +1198,6 @@ static UniValue checkstringtype(const JSONRPCRequest& request) {
 		}
 
 		// Second check blocks
-        LOCK(cs_main);
 		const CBlockIndex* pblockindex = LookupBlockIndex(hash);
 		if (pblockindex) {
 			CBlock block;
@@ -1324,7 +1313,6 @@ static bool GetUTXOStats(CCoinsView *view, CCoinsStats &stats)
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
     stats.hashBlock = pcursor->GetBestBlock();
     {
-        LOCK(cs_main);
         stats.nHeight = LookupBlockIndex(stats.hashBlock)->nHeight;
     }
     ss << stats.hashBlock;
@@ -1482,8 +1470,6 @@ UniValue gettxout(const JSONRPCRequest& request)
             "\nAs a json rpc call\n"
             + HelpExampleRpc("gettxout", "\"txid\", 1")
         );
-
-    LOCK(cs_main);
 
     UniValue ret(UniValue::VOBJ);
 
@@ -1676,8 +1662,6 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             + HelpExampleCli("getblockchaininfo", "")
             + HelpExampleRpc("getblockchaininfo", "")
         );
-
-    LOCK(cs_main);
 
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("chain",                 Params().NetworkIDString());

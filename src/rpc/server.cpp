@@ -497,15 +497,7 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
         if (request.params.isObject()) {
             return pcmd->actor(transformNamedArguments(request, pcmd->argNames));
         } else {
-            auto start = system_clock::now();
-
-            auto ret = pcmd->actor(request);
-
-            auto stop = system_clock::now();
-            auto duration = duration_cast<milliseconds>(stop - start);
-            LogPrint(BCLog::RPC, "CRPCTable::pcmd->actor(request) time %s (%s) - %ldms\n", request.strMethod, request.peerAddr, duration.count());
-
-            return ret;
+            return pcmd->actor(request);
         }
     }
     catch (const std::exception& e)

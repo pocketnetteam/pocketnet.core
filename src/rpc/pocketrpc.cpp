@@ -19,8 +19,6 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
     entry.pushKV("pockettx", g_addrindex->IsPocketnetTransaction(tx));
 
     if (!hashBlock.IsNull()) {
-        LOCK(cs_main);
-
         entry.pushKV("blockhash", hashBlock.GetHex());
         CBlockIndex* pindex = LookupBlockIndex(hashBlock);
         if (pindex) {
@@ -1312,7 +1310,6 @@ UniValue txunspent(const JSONRPCRequest& request)
         }
 
         if (!blockindex) {
-            LOCK(cs_main);
             blockindex = LookupBlockIndex(hash_block);
             if (!blockindex) {
                 continue;
