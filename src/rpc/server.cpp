@@ -22,6 +22,9 @@
 #include <memory> // for unique_ptr
 #include <unordered_map>
 
+#include <chrono>
+using namespace std::chrono;
+
 static CCriticalSection cs_rpcWarmup;
 static bool fRPCRunning = false;
 static bool fRPCInWarmup GUARDED_BY(cs_rpcWarmup) = true;
@@ -475,11 +478,15 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
 UniValue CRPCTable::execute(const JSONRPCRequest &request) const
 {
     // Return immediately if in warmup
+    auto start = system_clock::now();
     {
         LOCK(cs_rpcWarmup);
         if (fRPCInWarmup)
             throw JSONRPCError(RPC_IN_WARMUP, rpcWarmupStatus);
     }
+    auto stop = system_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    LogPrint(BCLog::RPC, "CRPCTable::execute LOCK time %s (%s) - %ldms\n", request.strMethod, request.peerAddr, duration.count());
 
     // Find method
     const CRPCCommand *pcmd = tableRPC[request.strMethod];
