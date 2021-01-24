@@ -478,31 +478,37 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
 UniValue CRPCTable::execute(const JSONRPCRequest &request) const
 {
     // Return immediately if in warmup
-    auto start = system_clock::now();
     {
         LOCK(cs_rpcWarmup);
         if (fRPCInWarmup)
             throw JSONRPCError(RPC_IN_WARMUP, rpcWarmupStatus);
     }
-    auto stop = system_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    LogPrint(BCLog::RPC, "CRPCTable::execute LOCK time %s (%s) - %ldms\n", request.strMethod, request.peerAddr, duration.count());
 
     // Find method
     const CRPCCommand *pcmd = tableRPC[request.strMethod];
     if (!pcmd)
         throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
 
+    auto start = system_clock::now();
     g_rpcSignals.PreCommand(*pcmd);
+    auto stop = system_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    LogPrint(BCLog::RPC, "CRPCTable::PreCommand(*pcmd) LOCK time %s (%s) - %ldms\n", request.strMethod, request.peerAddr, duration.count());
 
     try
     {
+        auto start = system_clock::now();
+
         // Execute, convert arguments to array if necessary
         if (request.params.isObject()) {
             return pcmd->actor(transformNamedArguments(request, pcmd->argNames));
         } else {
             return pcmd->actor(request);
         }
+        
+        auto stop = system_clock::now();
+        auto duration = duration_cast<milliseconds>(stop - start);
+        LogPrint(BCLog::RPC, "CRPCTable::pcmd->actor LOCK time %s (%s) - %ldms\n", request.strMethod, request.peerAddr, duration.count());
     }
     catch (const std::exception& e)
     {
