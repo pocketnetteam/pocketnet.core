@@ -137,7 +137,42 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
 
     CTransactionRef tx;
     uint256 hash_block;
-    if (!GetTransaction(hash, tx, Params().GetConsensus(), hash_block, true, blockindex)) {
+    bool found = false;
+    CBlockIndex* pindexSlow = blockindex;
+
+    // analog Validation.GetTransaction without LOCK(cs_main)
+	if (!blockindex) {
+		CTransactionRef ptx = mempool.get(hash);
+		if (ptx) {
+			tx = ptx;
+			found = true;
+		}
+
+		if (g_txindex) {
+			if (g_txindex->FindTx(hash, hash_block, tx))
+                found = true;
+		}
+
+		if (true) { // use coin database to locate block that contains transaction, and scan it
+			const Coin& coin = AccessByTxid(*pcoinsTip, hash);
+			if (!coin.IsSpent()) pindexSlow = chainActive[coin.nHeight];
+		}
+	}
+
+	if (pindexSlow) {
+		CBlock block;
+		if (ReadBlockFromDisk(block, pindexSlow, Params().GetConsensus())) {
+			for (const auto& tx_ : block.vtx) {
+				if (tx_->GetHash() == hash) {
+					tx = tx_;
+					hash_block = pindexSlow->GetBlockHash();
+					found = true;
+				}
+			}
+		}
+	}
+
+    if (!found) {
         std::string errmsg;
         if (blockindex) {
             if (!(blockindex->nStatus & BLOCK_HAVE_DATA)) {
