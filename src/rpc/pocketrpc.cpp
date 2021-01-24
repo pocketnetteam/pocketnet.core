@@ -2341,11 +2341,13 @@ UniValue getpagescores(const JSONRPCRequest& request)
         }
     }
 
+    UniValue result(UniValue::VARR);
+
+/*
     reindexer::QueryResults queryRes;
     g_pocketdb->DB()->Select(
         reindexer::Query("Posts").Where("txid", CondSet, TxIds).LeftJoin("txid", "posttxid", CondEq, Query("Scores").Where("address", CondEq, address).Where("value", CondGt, 3)), queryRes);
 
-    UniValue result(UniValue::VARR);
     for (auto it : queryRes) {
         reindexer::Item itm(it.GetItem());
         reindexer::Item itmj;
@@ -2424,6 +2426,7 @@ UniValue getpagescores(const JSONRPCRequest& request)
         postscore.pushKV("postlikers", postlikers);
         result.push_back(postscore);
     }
+*/
 
     reindexer::QueryResults commRes;
     g_pocketdb->Select(
