@@ -2081,6 +2081,7 @@ UniValue getlastcomments(const JSONRPCRequest& request)
             "getlastcomments (count)\n"
             "\nGet Pocketnet last comments.\n");
 
+/*
     int resultCount = 10;
     if (request.params.size() > 0) {
         ParseInt32(request.params[0].get_str(), &resultCount);
@@ -2095,7 +2096,7 @@ UniValue getlastcomments(const JSONRPCRequest& request)
     if (request.params.size() > 2) {
         lang = request.params[2].get_str();
     }
-
+    
     reindexer::QueryResults commRes;
     g_pocketdb->Select(
         Query("Comment")
@@ -2138,7 +2139,8 @@ UniValue getlastcomments(const JSONRPCRequest& request)
 
         aResult.push_back(oCmnt);
     }
-
+*/
+    UniValue aResult(UniValue::VARR);
     return aResult;
 }
 //----------------------------------------------------------
