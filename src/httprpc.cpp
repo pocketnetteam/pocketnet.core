@@ -339,7 +339,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
         JSONErrorReply(req, objError, jreq.id);
         return false;
     } catch (const std::exception& e) {
-        LogPrint(BCLog::RPC, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()));
+        LogPrint(BCLog::RPC, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
         JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
         return false;
     }
