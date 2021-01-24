@@ -2104,20 +2104,20 @@ UniValue getlastcomments(const JSONRPCRequest& request)
             .Sort("time", true)
             .Limit(resultCount)
             .InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
-            .LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1))
-            .InnerJoin("postid", "txid", CondEq, Query("Posts").Where("lang", (lang == "" ? CondGe : CondEq), lang).Limit(1)),
-        commRes);
+            //.LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1))
+            //.InnerJoin("postid", "txid", CondEq, Query("Posts").Where("lang", (lang == "" ? CondGe : CondEq), lang).Limit(1))
+        ,commRes);
 
     UniValue aResult(UniValue::VARR);
     for (auto& it : commRes) {
         reindexer::Item cmntItm = it.GetItem();
         reindexer::Item ocmntItm = it.GetJoined()[0][0].GetItem();
 
-        int myScore = 0;
+        /*int myScore = 0;
         if (it.GetJoined().size() > 1 && it.GetJoined()[1].Count() > 0) {
             reindexer::Item ocmntScoreItm = it.GetJoined()[1][0].GetItem();
             myScore = ocmntScoreItm["value"].As<int>();
-        }
+        }*/
 
         UniValue oCmnt(UniValue::VOBJ);
         oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
@@ -2134,11 +2134,11 @@ UniValue getlastcomments(const JSONRPCRequest& request)
         oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
         oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
         oCmnt.pushKV("deleted", cmntItm["msg"].As<string>() == "");
-        oCmnt.pushKV("myScore", myScore);
+        //oCmnt.pushKV("myScore", myScore);
 
         aResult.push_back(oCmnt);
     }
-    
+
     return aResult;
 }
 //----------------------------------------------------------
