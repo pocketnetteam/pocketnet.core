@@ -431,8 +431,6 @@ std::string JSONRPCExecBatch(const JSONRPCRequest& jreq, const UniValue& vReq)
  */
 static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, const std::vector<std::string>& argNames)
 {
-    auto start = system_clock::now();
-
     JSONRPCRequest out = in;
     out.params = UniValue(UniValue::VARR);
     // Build a map of parameters, and remove ones that have been processed, so that we can throw a focused error if
@@ -474,10 +472,6 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown named parameter " + argsIn.begin()->first);
     }
     
-    auto stop = system_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    LogPrint(BCLog::RPC, "CRPCTable::transformNamedArguments time %ldms\n", duration.count());
-
     // Return request with named arguments transformed to positional arguments
     return out;
 }
@@ -503,7 +497,15 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
         if (request.params.isObject()) {
             return pcmd->actor(transformNamedArguments(request, pcmd->argNames));
         } else {
-            return pcmd->actor(request);
+            auto start = system_clock::now();
+
+            auto ret = pcmd->actor(request);
+
+            auto stop = system_clock::now();
+            auto duration = duration_cast<milliseconds>(stop - start);
+            LogPrint(BCLog::RPC, "CRPCTable::pcmd->actor(request) time %s (%s) - %ldms\n", request.strMethod, request.peerAddr, duration.count());
+
+            return ret;
         }
     }
     catch (const std::exception& e)
