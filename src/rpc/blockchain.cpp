@@ -1233,7 +1233,7 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
     int64_t start_time = end_time - (30 * 86400);
     if (request.params.size() > 1 && request.params[1].isNum()) {
 		start_time = request.params[1].get_int64();
-        LogPrintf("--- start_time %s  _start_time %s\n", start_time, _start_time);
+        LogPrintf("--- start_time %s\n", start_time);
         if ((end_time - start_time) > (3 * 30 * 86400)) start_time = end_time - (30 * 86400);
 	}
     
