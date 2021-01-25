@@ -1236,8 +1236,8 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
 	}
     
     int round = 3600 * 24;
-    if (request.params.size() > 1 && request.params[1].isNum()) {
-		round = request.params[1].get_int();
+    if (request.params.size() > 2 && request.params[2].isNum()) {
+		round = request.params[2].get_int();
         if (round <= 0) round = 3600;
 	}
         
