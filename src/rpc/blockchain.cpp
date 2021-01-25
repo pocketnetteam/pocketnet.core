@@ -1225,16 +1225,14 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
 
     int64_t end_time = GetAdjustedTime();
 	if (request.params.size() > 0 && request.params[0].isNum()) {
-		int64_t _end_time = request.params[0].get_int64();
-        LogPrintf("--- end_time %s  _end_time %s\n", end_time, _end_time);
-        if (_end_time < end_time) end_time = _end_time;
+		end_time = request.params[0].get_int64();
+        //if (_end_time < end_time) end_time = _end_time;
 	}
 
     int64_t start_time = end_time - (30 * 86400);
     if (request.params.size() > 1 && request.params[1].isNum()) {
 		start_time = request.params[1].get_int64();
-        LogPrintf("--- start_time %s\n", start_time);
-        if ((end_time - start_time) > (3 * 30 * 86400)) start_time = end_time - (30 * 86400);
+        //if ((end_time - start_time) > (3 * 30 * 86400)) start_time = end_time - (30 * 86400);
 	}
     
     int round = 3600 * 24;
@@ -1251,7 +1249,6 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
     // Loop all days in period start_time - end_time
     int64_t dt_end = end_time;
     int64_t dt_start = end_time - round;
-    LogPrintf("--- dt_end %s  dt_start %s\n", dt_end, dt_start);
     while (dt_start >= start_time && stat_count > 0) {
         if (g_statistic_cashe.find(dt_start) == g_statistic_cashe.end()) {
             UniValue rStat(UniValue::VOBJ);
@@ -1270,8 +1267,6 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
         stat_count -= 1;
         dt_end -= round;
         dt_start -= round;
-        
-        LogPrintf("------ dt_end %s  dt_start %s\n", dt_end, dt_start);
     }
     
     return result;
