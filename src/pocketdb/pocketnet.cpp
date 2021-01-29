@@ -347,11 +347,12 @@ void FillCheckpointsBlocks(const CChainParams& params)
     CheckpointsBlocks.emplace(413599, "2383eff8a73d146ca7fca1472b352adf7fc642d40a0600dc99fe273ab7e0c242");
     CheckpointsBlocks.emplace(413613, "5d906b2dc460c935b18b4ef8fc248df576d7a794eed1c49092f90d8a8ec0866a");
     CheckpointsBlocks.emplace(413635, "723a3eb018307912220582bf1271d459c7d0401aec0a7836a4b8858620ce022d");
-    CheckpointsBlocks.emplace(413662, "1b4fa351d7e89b659daf9b9fd8f4e0c9cdfaf7b9b393b61e32fb4cee55b980cc");
+    CheckpointsBlocks.emplace(413662, "1b4fa351d7e89b659daf9b9fd8f4e0c9cdfaf7b9b393b61e32fb4cee55b980cc");    
 
 	// Antibot
     CheckpointsBlocks.emplace(373222, "b8a1527d921a9903fb1020c370595116a9a609dff7d3f5524458e7eef04efde1");
     CheckpointsBlocks.emplace(382536, "46d5831c2f7e3ac1e719db7909e77d3f5aba1415931b851ad50768e97c54391a");
+    CheckpointsBlocks.emplace(1019525, "e3950d1fce3abe7688d5709bfa14cd9850d5a4d0d32c4ab3c4eaa0d3319d8eec");
 }
 
 bool IsCheckpointBlock(int height, std::string hash) {
@@ -473,7 +474,6 @@ void FillCheckpointsTransactions(const CChainParams& params)
     CheckpointsTransactions.push_back("ce7da6823ed58784003d4c418dca892d156e8ee5b5f36a76cafdd48cb50861d5");
     CheckpointsTransactions.push_back("cbf99c5c5073ccba798222af117984d304b30360d0397d32af45f52c49c5cb8c");
     CheckpointsTransactions.push_back("e48505877db1563304523d13a5057922a8adc9d0c8aaa4f488b56e18f318545e");
-    CheckpointsTransactions.push_back("e5282ba40eb2cb4c842247c3266c733477f61b5063881a7e585f1a4e81ea1644");
 }
 
 bool IsCheckpointTransaction(std::string hash) {
