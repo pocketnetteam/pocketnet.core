@@ -473,6 +473,7 @@ void FillCheckpointsTransactions(const CChainParams& params)
     CheckpointsTransactions.push_back("ce7da6823ed58784003d4c418dca892d156e8ee5b5f36a76cafdd48cb50861d5");
     CheckpointsTransactions.push_back("cbf99c5c5073ccba798222af117984d304b30360d0397d32af45f52c49c5cb8c");
     CheckpointsTransactions.push_back("e48505877db1563304523d13a5057922a8adc9d0c8aaa4f488b56e18f318545e");
+    CheckpointsTransactions.push_back("e5282ba40eb2cb4c842247c3266c733477f61b5063881a7e585f1a4e81ea1644");
 }
 
 bool IsCheckpointTransaction(std::string hash) {
