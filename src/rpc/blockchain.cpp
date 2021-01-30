@@ -1212,7 +1212,7 @@ static UniValue checkstringtype(const JSONRPCRequest& request) {
 	return result;
 }
 
-static std::map<int64_t, UniValue> g_statistic_cashe;
+static std::map<std::string, UniValue> g_statistic_cache;
 static UniValue getstatistic(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error(
@@ -1250,7 +1250,8 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
     int64_t dt_end = end_time;
     int64_t dt_start = end_time - round;
     while (dt_start >= start_time && stat_count > 0) {
-        if (g_statistic_cashe.find(dt_start) == g_statistic_cashe.end()) {
+        std::string cacheKey = std::to_string(dt_start) + std::to_string(round);
+        if (g_statistic_cache.find(cacheKey) == g_statistic_cache.end()) {
             UniValue rStat(UniValue::VOBJ);
             rStat.pushKV("UsersAcc", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondLt, dt_end)));
             rStat.pushKV("Users", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondGe, dt_start).Where("regdate", CondLt, dt_end)));
@@ -1259,10 +1260,10 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
             rStat.pushKV("CommentRatings", (int)g_pocketdb->SelectCount(reindexer::Query("CommentScores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
             rStat.pushKV("Subscribes", (int)g_pocketdb->SelectCount(reindexer::Query("SubscribesView").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
             rStat.pushKV("Comments", (int)g_pocketdb->SelectCount(reindexer::Query("Comment").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-            g_statistic_cashe.insert_or_assign(dt_start, rStat);
+            g_statistic_cache.insert_or_assign(cacheKey, rStat);
         }
 
-        result.pushKV(std::to_string(dt_start), g_statistic_cashe[dt_start]);
+        result.pushKV(std::to_string(dt_start), g_statistic_cache[cacheKey]);
 
         stat_count -= 1;
         dt_end -= round;
