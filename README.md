@@ -53,36 +53,6 @@ Copy content to:
 - Windows: %APPDATA%/Pocketcoin
 - Linux: ~/.pocketcoin
 
-List of official Pocketnet Team nodes.
----
-Please add them to the whitelist via your node's configuration file.
-
-- Windows: %APPDATA%/Pocketcoin/pocketcoin.conf
-- Linux: ~/.pocketcoin/pocketcoin.conf
-
-```
-addnode=64.235.33.85:38080
-addnode=64.235.35.173:38080
-addnode=64.235.41.74:38080
-addnode=64.235.45.119:38080
-addnode=64.235.45.204:38080
-addnode=216.108.231.40:38080
-addnode=185.148.147.15:38080
-addnode=216.108.237.11:38080
-```
-
-Also exclude from the ban list (over console tool `pocketcoin-cli` or debug console in desktop wallet app):
-```
-> setban 64.235.33.85 remove
-> setban 64.235.35.173 remove
-> setban 64.235.41.74 remove
-> setban 64.235.45.119 remove
-> setban 64.235.45.204 remove
-> setban 216.108.231.40 remove
-> setban 185.148.147.15 remove
-> setban 216.108.237.11 remove
-```
-
 Help
 ---
 You can get help and useful information from different sources:
