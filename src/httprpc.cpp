@@ -203,6 +203,9 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
                 if (!valMethod.isNull() && valMethod.isStr()) {
                     const std::string& sMethd = valMethod.get_str();
                     const CRPCCommand* pcmd = tableRPC[sMethd];
+                    if (!pcmd)
+                        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
+
                     if (pcmd->pwdRequied) {
                         req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
                         req->WriteReply(HTTP_UNAUTHORIZED);
