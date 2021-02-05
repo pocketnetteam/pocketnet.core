@@ -135,3 +135,5 @@ contrib/devtools/split-debug.sh
 *.user
 conf
 conf
+/.idea/
+/src/.idea/

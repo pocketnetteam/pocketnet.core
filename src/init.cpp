@@ -513,9 +513,17 @@ void SetupServerArgs()
     gArgs.AddArg("-rpcport=<port>", strprintf("Listen for JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort(), regtestBaseParams->RPCPort()), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcserialversion", strprintf("Sets the serialization of raw transaction or block hex returned in non-verbose mode, non-segwit(0) or segwit(1) (default: %d)", DEFAULT_RPC_SERIALIZE_VERSION), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT), true, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcthreads=<n>", strprintf("Set the number of threads to service RPC calls (default: %d)", DEFAULT_HTTP_THREADS), false, OptionsCategory::RPC);
+
+    gArgs.AddArg("-rpcthreads=<n>", strprintf("Set the number of threads to service RPC (MAIN) calls (default: %d)", DEFAULT_HTTP_THREADS), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpostthreads=<n>", strprintf("Set the number of threads to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_THREADS), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpublicthreads=<n>", strprintf("Set the number of threads to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_THREADS), false, OptionsCategory::RPC);
+
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::RPC);
+
     gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), true, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcworkpostqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), true, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcworkpublicqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), true, OptionsCategory::RPC);
+
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
 
 	gArgs.AddArg("-wsuse", "Accept WebSocket connections", false, OptionsCategory::RPC);

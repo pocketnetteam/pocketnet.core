@@ -10,7 +10,11 @@
 #include <functional>
 
 static const int DEFAULT_HTTP_THREADS=4;
+static const int DEFAULT_HTTP_POST_THREADS=4;
+static const int DEFAULT_HTTP_PUBLIC_THREADS=4;
 static const int DEFAULT_HTTP_WORKQUEUE=16;
+static const int DEFAULT_HTTP_POST_WORKQUEUE=16;
+static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE=16;
 static const int DEFAULT_HTTP_SERVER_TIMEOUT=30;
 
 struct evhttp_request;

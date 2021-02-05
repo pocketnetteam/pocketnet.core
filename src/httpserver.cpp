@@ -163,8 +163,8 @@ struct evhttp* eventHTTP = nullptr;
 static std::vector<CSubNet> rpc_allow_subnets;
 //! Work queue for handling longer requests off the event loop thread
 static WorkQueue<HTTPClosure>* workQueue = nullptr;
-//! Work queue for handling longer requests off the event loop thread
 static WorkQueue<HTTPClosure>* workQueuePost = nullptr;
+static WorkQueue<HTTPClosure>* workQueuePublic = nullptr;
 //! Handlers for (sub)paths
 std::vector<HTTPPathHandler> pathHandlers;
 //! Bound listening sockets
@@ -282,9 +282,8 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
     // Dispatch to worker thread
     if (i != iend) {
         std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
-        
-        std::string post("/post/");
-        if (strURI == post) {
+
+        if (strURI == "/post/") {
             assert(workQueuePost);
             if (workQueuePost->Enqueue(item.get()))
                 item.release();
@@ -292,13 +291,21 @@ static void http_request_cb(struct evhttp_request* req, void* arg)
                 LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (POST) depth exceeded\n");
                 item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (POST)");
             }
+        } else if (strURI == "/public/") {
+            assert(workQueuePublic);
+            if (workQueuePublic->Enqueue(item.get()))
+                item.release();
+            else {
+                LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (PUBLIC) depth exceeded\n");
+                item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (PUBLIC)");
+            }
         } else {
             assert(workQueue);
             if (workQueue->Enqueue(item.get()))
                 item.release();
             else {
-                LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (GET) depth exceeded.\n");
-                item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (GET)");
+                LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (MAIN) depth exceeded.\n");
+                item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (MAIN)");
             }
         }
     } else {
@@ -424,11 +431,19 @@ bool InitHTTPServer()
     }
 
     LogPrint(BCLog::HTTP, "Initialized HTTP server\n");
-    int workQueueDepth = std::max((long)gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
-    LogPrintf("HTTP: creating work queue of depth %d\n", workQueueDepth);
+    int workQueueMainDepth = std::max((long)gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
+    int workQueuePostDepth = std::max((long)gArgs.GetArg("-rpcworkpostqueue", DEFAULT_HTTP_POST_WORKQUEUE), 1L);
+    int workQueuePublicDepth = std::max((long)gArgs.GetArg("-rpcworkpublicqueue", DEFAULT_HTTP_PUBLIC_WORKQUEUE), 1L);
 
-    workQueue = new WorkQueue<HTTPClosure>(workQueueDepth);
-    workQueuePost = new WorkQueue<HTTPClosure>(workQueueDepth);
+    workQueue = new WorkQueue<HTTPClosure>(workQueueMainDepth);
+    LogPrintf("HTTP: creating work queue of depth %d\n", workQueueMainDepth);
+
+    workQueuePost = new WorkQueue<HTTPClosure>(workQueuePostDepth);
+    LogPrintf("HTTP: creating work queue of depth %d\n", workQueuePostDepth);
+
+    workQueuePublic = new WorkQueue<HTTPClosure>(workQueuePublicDepth);
+    LogPrintf("HTTP: creating work queue of depth %d\n", workQueuePublicDepth);
+
     // transfer ownership to eventBase/HTTP via .release()
     eventBase = base_ctr.release();
     eventHTTP = http_ctr.release();
@@ -456,15 +471,25 @@ static std::vector<std::thread> g_thread_http_workers;
 void StartHTTPServer()
 {
     LogPrint(BCLog::HTTP, "Starting HTTP server\n");
-    int rpcThreads = std::max((long)gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
-    LogPrintf("HTTP: starting %d worker threads\n", rpcThreads * 2);
+    int rpcMainThreads = std::max((long)gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
+    int rpcPostThreads = std::max((long)gArgs.GetArg("-rpcpostthreads", DEFAULT_HTTP_POST_THREADS), 1L);
+    int rpcPublicThreads = std::max((long)gArgs.GetArg("-rpcpublicthreads", DEFAULT_HTTP_PUBLIC_THREADS), 1L);
+
+    LogPrintf("HTTP: starting %d worker threads\n", rpcMainThreads + rpcPostThreads + rpcPublicThreads);
     std::packaged_task<bool(event_base*)> task(ThreadHTTP);
     threadResult = task.get_future();
     threadHTTP = std::thread(std::move(task), eventBase);
 
-    for (int i = 0; i < rpcThreads; i++) {
+    for (int i = 0; i < rpcMainThreads; i++) {
         g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueue);
+    }
+
+    for (int i = 0; i < rpcPostThreads; i++) {
         g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePost);
+    }
+
+    for (int i = 0; i < rpcPublicThreads; i++) {
+        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePublic);
     }
 }
 
@@ -484,6 +509,9 @@ void InterruptHTTPServer()
 
     if (workQueuePost)
         workQueuePost->Interrupt();
+
+    if (workQueuePublic)
+        workQueuePublic->Interrupt();
 }
 
 void StopHTTPServer()
@@ -504,6 +532,11 @@ void StopHTTPServer()
     if (workQueuePost) {
         delete workQueuePost;
         workQueuePost = nullptr;
+    }
+
+    if (workQueuePublic) {
+        delete workQueuePublic;
+        workQueuePublic = nullptr;
     }
 
     if (eventBase) {
