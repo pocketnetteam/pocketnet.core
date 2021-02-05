@@ -156,32 +156,36 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
         req->WriteReply(HTTP_BAD_METHOD, "JSONRPC server handles only POST requests");
         return false;
     }
-    // Check authorization
-    std::pair<bool, std::string> authHeader = req->GetHeader("authorization");
-    if (!authHeader.first) {
-        LogPrint(BCLog::RPC, "WARNING: Request whithour authorization header\n");
-        req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
-        req->WriteReply(HTTP_UNAUTHORIZED);
-        return false;
-    }
 
     JSONRPCRequest jreq;
     try {
         UniValue valRequest;
 
         jreq.peerAddr = req->GetPeer().ToString();
-        if (rpcAuthenticate && !RPCAuthorized(authHeader.second, jreq.authUser)) {
-            LogPrintf("ThreadRPCServer incorrect password attempt from %s\n", jreq.peerAddr);
+        if (rpcAuthenticate) {
 
-            /*  Deter brute-forcing
-                If this results in a DoS the user really
-                shouldn't have their RPC port exposed.
-            */
-            MilliSleep(250);
+            // Check authorization
+            std::pair<bool, std::string> authHeader = req->GetHeader("authorization");
+            if (!authHeader.first) {
+                LogPrint(BCLog::RPC, "WARNING: Request whithour authorization header\n");
+                req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
+                req->WriteReply(HTTP_UNAUTHORIZED);
+                return false;
+            }
 
-            req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
-            req->WriteReply(HTTP_UNAUTHORIZED);
-            return false;
+            if (!RPCAuthorized(authHeader.second, jreq.authUser)) {
+                LogPrintf("ThreadRPCServer incorrect password attempt from %s\n", jreq.peerAddr);
+
+                /*  Deter brute-forcing
+                    If this results in a DoS the user really
+                    shouldn't have their RPC port exposed.
+                */
+                MilliSleep(250);
+
+                req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
+                req->WriteReply(HTTP_UNAUTHORIZED);
+                return false;
+            }
         }
 
         if (!valRequest.read(req->ReadBody()))
