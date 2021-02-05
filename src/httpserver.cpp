@@ -432,8 +432,8 @@ bool InitHTTPServer()
 
     LogPrint(BCLog::HTTP, "Initialized HTTP server\n");
     int workQueueMainDepth = std::max((long)gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
-    int workQueuePostDepth = std::max((long)gArgs.GetArg("-rpcworkpostqueue", DEFAULT_HTTP_POST_WORKQUEUE), 1L);
-    int workQueuePublicDepth = std::max((long)gArgs.GetArg("-rpcworkpublicqueue", DEFAULT_HTTP_PUBLIC_WORKQUEUE), 1L);
+    int workQueuePostDepth = std::max((long)gArgs.GetArg("-rpcpostworkqueue", DEFAULT_HTTP_POST_WORKQUEUE), 1L);
+    int workQueuePublicDepth = std::max((long)gArgs.GetArg("-rpcpublicworkqueue", DEFAULT_HTTP_PUBLIC_WORKQUEUE), 1L);
 
     workQueue = new WorkQueue<HTTPClosure>(workQueueMainDepth);
     LogPrintf("HTTP: creating work queue of depth %d\n", workQueueMainDepth);
@@ -475,7 +475,6 @@ void StartHTTPServer()
     int rpcPostThreads = std::max((long)gArgs.GetArg("-rpcpostthreads", DEFAULT_HTTP_POST_THREADS), 1L);
     int rpcPublicThreads = std::max((long)gArgs.GetArg("-rpcpublicthreads", DEFAULT_HTTP_PUBLIC_THREADS), 1L);
 
-    LogPrintf("HTTP: starting %d worker threads\n", rpcMainThreads + rpcPostThreads + rpcPublicThreads);
     std::packaged_task<bool(event_base*)> task(ThreadHTTP);
     threadResult = task.get_future();
     threadHTTP = std::thread(std::move(task), eventBase);
@@ -483,14 +482,17 @@ void StartHTTPServer()
     for (int i = 0; i < rpcMainThreads; i++) {
         g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueue);
     }
+    LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
 
     for (int i = 0; i < rpcPostThreads; i++) {
         g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePost);
     }
+    LogPrintf("HTTP: starting %d Post worker threads\n", rpcPostThreads);
 
     for (int i = 0; i < rpcPublicThreads; i++) {
         g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePublic);
     }
+    LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
 }
 
 void InterruptHTTPServer()
