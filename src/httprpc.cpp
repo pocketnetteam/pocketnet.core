@@ -167,7 +167,6 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
 
     JSONRPCRequest jreq;
     try {
-        std::string sMethd = "";
         UniValue valRequest;
 
         jreq.peerAddr = req->GetPeer().ToString();
@@ -194,8 +193,23 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
 
         // singleton request
         if (valRequest.isObject()) {
-            jreq.parse(valRequest);
 
+            if (!rpcAuthenticate) {
+                UniValue valMethod = find_value(valRequest, "method");
+                if (!valMethod.isNull() && valMethod.isStr()) {
+                    const std::string& sMethd = valMethod.get_str();
+                    const CRPCCommand* pcmd = tableRPC[sMethd];
+                    if (pcmd->pwdRequied) {
+                        req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
+                        req->WriteReply(HTTP_UNAUTHORIZED);
+                        return false;
+                    }
+                } else {
+                    throw JSONRPCError(RPC_PARSE_ERROR, "method not found");
+                }
+            }
+
+            jreq.parse(valRequest);
             UniValue result = tableRPC.execute(jreq);
 
             // Send reply
