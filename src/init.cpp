@@ -180,10 +180,6 @@ void Shutdown()
     RenameThread("pocketcoin-shutoff");
     mempool.AddTransactionsUpdated(1);
 
-    StopHTTPRPC();
-    StopREST();
-    StopRPC();
-    StopHTTPServer();
     g_wallet_init_interface.Flush();
     StopMapPort();
 
@@ -273,6 +269,12 @@ void Shutdown()
     g_wallet_init_interface.Close();
     globalVerifyHandle.reset();
     ECC_Stop();
+
+    StopHTTPRPC();
+    StopREST();
+    StopRPC();
+    StopHTTPServer();
+
     LogPrintf("%s: done\n", __func__);
 }
 
