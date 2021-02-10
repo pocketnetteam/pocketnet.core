@@ -1766,11 +1766,11 @@ static UniValue getaddressbalance(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                                    actor (function)                    argNames
   //  --------------------- ------------------------                -----------------------             ----------
-    { "rawtransactions",    "getrawtransaction",                    &getrawtransaction,                 {"txid","verbose","blockhash"},                        false },
+    { "rawtransactions",    "getrawtransaction",                    &getrawtransaction,                 {"txid","verbose","blockhash"}, false },
     { "rawtransactions",    "createrawtransaction",                 &createrawtransaction,              {"inputs","outputs","locktime","replaceable"} },
     { "rawtransactions",    "decoderawtransaction",                 &decoderawtransaction,              {"hexstring","iswitness"} },
     { "rawtransactions",    "decodescript",                         &decodescript,                      {"hexstring"} },
-    { "rawtransactions",    "sendrawtransaction",                   &sendrawtransaction,                {"hexstring","allowhighfees"} },
+    { "rawtransactions",    "sendrawtransaction",                   &sendrawtransaction,                {"hexstring","allowhighfees"}, false },
     { "rawtransactions",    "combinerawtransaction",                &combinerawtransaction,             {"txs"} },
     { "hidden",             "signrawtransaction",                   &signrawtransaction,                {"hexstring","prevtxs","privkeys","sighashtype"} },
     { "rawtransactions",    "signrawtransactionwithkey",            &signrawtransactionwithkey,         {"hexstring","privkeys","prevtxs","sighashtype"} },
