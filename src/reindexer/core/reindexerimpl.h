@@ -45,6 +45,7 @@ public:
 	Error Delete(const Query &query, QueryResults &result);
 	Error Select(const string_view &query, QueryResults &result, Completion cmpl = nullptr);
 	Error Select(const Query &query, QueryResults &result, Completion cmpl = nullptr);
+        Error SelectNoLock(const Query &query, QueryResults &result, Completion cmpl = nullptr);
 	Error Commit(const string &namespace_);
 	Item NewItem(const string &_namespace);
 	Error GetMeta(const string &_namespace, const string &key, string &data);

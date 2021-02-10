@@ -350,6 +350,63 @@ struct ItemRefLess {
 	}
 };
 
+Error ReindexerImpl::SelectNoLock(const Query& q, QueryResults& result, Completion cmpl) {
+    NsLocker locks;
+
+    Namespace::Ptr mainNs;
+
+    try {
+        mainNs = getNamespace(q._namespace);
+    } catch (const Error& err) {
+        if (cmpl) cmpl(err);
+        return err;
+    }
+
+    mtx_.lock_shared();
+    auto profCfg = profConfig_;
+    mtx_.unlock_shared();
+
+//    PerfStatCalculatorMT calc(mainNs->selectPerfCounter_, mainNs->enablePerfCounters_);  // todo more accurate detect joined queries
+//    auto& tracker = queriesStatTracker_;
+//    QueryStatCalculator statCalculator(
+//        [&q, &tracker](bool lockHit, std::chrono::microseconds time) {
+//          if (lockHit)
+//              tracker.LockHit(q, time);
+//          else
+//              tracker.Hit(q, time);
+//        },
+//        std::chrono::microseconds(profCfg->queriedThresholdUS), profCfg->queriesPerfStats);
+
+    try {
+        if (q._namespace.size() && q._namespace[0] == '#') syncSystemNamespaces(q._namespace);
+        // Loockup and lock namespaces_
+        locks.Add(mainNs);
+        q.WalkNested(false, true, [this, &locks](const Query q) { locks.Add(getNamespace(q._namespace)); });
+
+//        locks.Lock();
+    } catch (const Error& err) {
+        if (cmpl) cmpl(err);
+        return err;
+    }
+//    calc.LockHit();
+//    statCalculator.LockHit();
+    try {
+        SelectFunctionsHolder func;
+        if (!q.joinQueries_.empty()) {
+            result.joined_.resize(1 + q.mergeQueries_.size());
+        }
+
+        doSelect(q, result, locks, func);
+        result.lockResults();
+        func.Process(result);
+    } catch (const Error& err) {
+        if (cmpl) cmpl(err);
+        return err;
+    }
+    if (cmpl) cmpl(errOK);
+    return errOK;
+}
+
 Error ReindexerImpl::Select(const Query& q, QueryResults& result, Completion cmpl) {
 	NsLocker locks;
 

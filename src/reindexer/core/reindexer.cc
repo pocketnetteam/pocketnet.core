@@ -28,6 +28,7 @@ Error Reindexer::EnumMeta(const string& _namespace, vector<string>& keys) { retu
 Error Reindexer::Delete(const Query& q, QueryResults& result) { return impl_->Delete(q, result); }
 Error Reindexer::Select(const string_view& query, QueryResults& result, Completion cmpl) { return impl_->Select(query, result, cmpl); }
 Error Reindexer::Select(const Query& q, QueryResults& result, Completion cmpl) { return impl_->Select(q, result, cmpl); }
+Error Reindexer::SelectNoLock(const Query& q, QueryResults& result, Completion cmpl) { return impl_->SelectNoLock(q, result, cmpl); }
 Error Reindexer::Commit(const string& _namespace) { return impl_->Commit(_namespace); }
 Error Reindexer::AddIndex(const string& _namespace, const IndexDef& idx) { return impl_->AddIndex(_namespace, idx); }
 Error Reindexer::UpdateIndex(const string& _namespace, const IndexDef& idx) { return impl_->UpdateIndex(_namespace, idx); }
