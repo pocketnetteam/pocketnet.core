@@ -1220,19 +1220,18 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
             "\nGet statistics.\n"
             "\nArguments:\n"
             "1. \"end_time\"   (int64, optional) End time of period\n"
-            "2. \"start_time\"   (int64, optional) Start time of period\n"
+            "2. \"start_time\" (int64, optional) Start time of period\n"
+            "3. \"round   \"   (int32, optional) Chunk size\n"
         );
 
     int64_t end_time = GetAdjustedTime();
 	if (request.params.size() > 0 && request.params[0].isNum()) {
 		end_time = request.params[0].get_int64();
-        //if (_end_time < end_time) end_time = _end_time;
 	}
 
     int64_t start_time = end_time - (30 * 86400);
     if (request.params.size() > 1 && request.params[1].isNum()) {
 		start_time = request.params[1].get_int64();
-        //if ((end_time - start_time) > (3 * 30 * 86400)) start_time = end_time - (30 * 86400);
 	}
     
     int round = 3600 * 24;
@@ -1270,6 +1269,17 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
         dt_start -= round;
     }
     
+    return result;
+}
+static UniValue resetstatistic(const JSONRPCRequest& request) {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "resetstatistic\n"
+            "\nClear statistic cache.\n"
+        );
+
+    g_statistic_cache.clear();
+    UniValue result(UniValue::VOBJ);    
     return result;
 }
 
@@ -2643,9 +2653,6 @@ static const CRPCCommand commands[] =
 	{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"}, false },
 	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"}, false },
 	{ "blockchain",         "checkstringtype",        &checkstringtype,        {"value"}, false },
-    { "blockchain",         "getstatistic",           &getstatistic,           {"end_time","start_time"}, false },
-    
-	
 
     /* Not shown in help */
     { "hidden",             "invalidateblock",        &invalidateblock,        {"blockhash"} },
@@ -2654,6 +2661,8 @@ static const CRPCCommand commands[] =
     { "hidden",             "waitforblock",           &waitforblock,           {"blockhash","timeout"} },
     { "hidden",             "waitforblockheight",     &waitforblockheight,     {"height","timeout"} },
     { "hidden",             "syncwithvalidationinterfacequeue", &syncwithvalidationinterfacequeue, {} },
+    { "hidden",             "getstatistic",           &getstatistic,           {"end_time","start_time","round"}, false },
+    { "hidden",             "resetstatistic",         &resetstatistic,         {}, false },
 };
 // clang-format on
 
