@@ -217,7 +217,14 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
             }
 
             jreq.parse(valRequest);
+
+            auto start = system_clock::now();
+
             UniValue result = tableRPC.execute(jreq);
+            
+            auto stop = system_clock::now();
+            auto duration = duration_cast<milliseconds>(stop - start);
+            LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", jreq.strMethod, jreq.peerAddr, duration.count());
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
