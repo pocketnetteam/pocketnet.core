@@ -233,7 +233,7 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
                     jreq.strMethod,
                     start,
                     stop,
-                    jreq.peerAddr,
+                    jreq.peerAddr.substr(0, jreq.peerAddr.find(':')),
                     valRequest.write().size(),
                     result.write().size()
                 }

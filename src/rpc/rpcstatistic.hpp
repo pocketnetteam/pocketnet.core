@@ -34,7 +34,7 @@ public:
 
     void AddSample(const RequestSample& sample)
     {
-        if (!LogAcceptCategory(BCLog::RPCSTAT) || sample.TimestampEnd < sample.TimestampBegin)
+        if (sample.TimestampEnd < sample.TimestampBegin)
             return;
 
         std::lock_guard<std::mutex> lock{_samplesLock};
@@ -220,13 +220,10 @@ public:
         std::string msg = "RPC Statistic for last %lds:\n---------------------------------------\n%s\n---------------------------------------\n";
 
         while (!shutdown) {
+            auto chunkSize = GetCurrentSystemTime() - std::chrono::milliseconds(statLoggerSleep);
+            LogPrint(BCLog::RPCSTAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize).write(1));
 
-            if (LogAcceptCategory(BCLog::RPCSTAT)) {
-                auto chunkSize = GetCurrentSystemTime() - std::chrono::milliseconds(statLoggerSleep);
-                LogPrint(BCLog::RPCSTAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize).write(1));
-
-                RemoveSamplesBefore(chunkSize);
-            }
+            RemoveSamplesBefore(chunkSize);
 
             MilliSleep(statLoggerSleep);
         }
