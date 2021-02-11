@@ -150,6 +150,7 @@ public:
             value.pushKV("Key", sample.Key);
             value.pushKV("TimestampBegin", sample.TimestampBegin.count());
             value.pushKV("TimestampEnd", sample.TimestampEnd.count());
+            value.pushKV("TimestampProcess", sample.TimestampEnd.count() - sample.TimestampBegin.count());
             value.pushKV("SourceIP", sample.SourceIP);
             value.pushKV("InputSize", (int)sample.InputSize);
             value.pushKV("OutputSize", (int)sample.OutputSize);
@@ -237,6 +238,8 @@ private:
     void RemoveSamplesBefore(RequestTime time)
     {
         std::lock_guard<std::mutex> lock{_samplesLock};
+        int64_t sizeBefore = _samples.size();
+
         _samples.erase(
             std::remove_if(
                 _samples.begin(),
@@ -246,7 +249,7 @@ private:
                 }),
             _samples.end());
 
-        LogPrint(BCLog::RPCSTAT, "Clear RPC Statistic cache: %d items after.\n", _samples.size());
+        LogPrint(BCLog::RPCSTAT, "Clear RPC Statistic cache: %d -> %d items after.\n", sizeBefore, _samples.size());
     }
 
     std::vector<RequestSample> GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since) const
