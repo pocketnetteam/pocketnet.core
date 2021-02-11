@@ -240,7 +240,7 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
             );
 
             auto diff = (stop - start);
-            LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", jreq.strMethod, jreq.peerAddr, diff.count());
+            LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", jreq.strMethod, jreq.peerAddr.substr(0, jreq.peerAddr.find(':')), diff.count());
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);

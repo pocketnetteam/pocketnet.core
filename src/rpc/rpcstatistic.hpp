@@ -143,7 +143,7 @@ public:
 
     UniValue CompileStatsAsJsonSince(RequestTime since) const
     {
-        constexpr auto top_limit = 5;
+        constexpr auto top_limit = 1;
         const auto sample_to_json = [](const RequestSample& sample) {
             UniValue value{UniValue::VOBJ};
 
@@ -249,7 +249,7 @@ private:
                 }),
             _samples.end());
 
-        LogPrint(BCLog::RPCSTAT, "Clear RPC Statistic cache: %d items after.", _samples.size());
+        LogPrint(BCLog::RPCSTAT, "Clear RPC Statistic cache: %d items after.\n", _samples.size());
     }
 
     std::vector<RequestSample> GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since) const
