@@ -523,6 +523,7 @@ POCKETCOIN_CORE_H = \
     rpc/register.h \
     rpc/util.h \
     rpc/pocketrpc.h \
+    rpc/rpcstatistic.hpp \
     scheduler.h \
     script/descriptor.h \
     script/ismine.h \

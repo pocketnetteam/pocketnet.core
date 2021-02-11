@@ -7,11 +7,12 @@
 
 #include <string>
 #include <map>
+#include <boost/thread.hpp>
 
 /** Start HTTP RPC subsystem.
  * Precondition; HTTP and RPC has been started.
  */
-bool StartHTTPRPC();
+bool StartHTTPRPC(boost::thread_group& threadGroup);
 /** Interrupt HTTP RPC subsystem.
  */
 void InterruptHTTPRPC();

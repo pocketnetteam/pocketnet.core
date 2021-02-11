@@ -20,6 +20,7 @@
 #include <memory>
 #include <numeric>
 #include <boost/algorithm/string.hpp> // boost::trim
+#include "rpc/rpcstatistic.hpp"
 
 #include <chrono>
 using namespace std::chrono;
@@ -69,6 +70,9 @@ private:
 static std::string strRPCUserColonPass;
 /* Stored RPC timer interface (for unregistration) */
 static std::unique_ptr<HTTPRPCTimerInterface> httpRPCTimerInterface;
+
+// For realtime statistic collate
+static RpcStatistic::RequestStatEngine requestStatEngine;
 
 static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const UniValue& id)
 {
@@ -218,13 +222,25 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
 
             jreq.parse(valRequest);
 
-            auto start = system_clock::now();
+            auto start = requestStatEngine.GetCurrentSystemTime();
 
             UniValue result = tableRPC.execute(jreq);
             
-            auto stop = system_clock::now();
-            auto duration = duration_cast<milliseconds>(stop - start);
-            LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", jreq.strMethod, jreq.peerAddr, duration.count());
+            auto stop = requestStatEngine.GetCurrentSystemTime();
+
+            requestStatEngine.AddSample(
+                RpcStatistic::RequestSample{
+                    jreq.strMethod,
+                    start,
+                    stop,
+                    jreq.peerAddr,
+                    valRequest.write().size(),
+                    result.write().size()
+                }
+            );
+
+            auto diff = (stop - start);
+            LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", jreq.strMethod, jreq.peerAddr, diff.count());
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
@@ -282,12 +298,13 @@ static bool InitRPCAuthentication()
     return true;
 }
 
-bool StartHTTPRPC()
+bool StartHTTPRPC(boost::thread_group& threadGroup)
 {
     LogPrint(BCLog::RPC, "Starting HTTP RPC server\n");
     if (!InitRPCAuthentication())
         return false;
 
+    requestStatEngine.Run(threadGroup);
     RegisterHTTPHandler("/", true, HTTPReq_JSONRPC);
     RegisterHTTPHandler("/post/", true, HTTPReq_JSONRPC_Anonymous);
     RegisterHTTPHandler("/public/", true, HTTPReq_JSONRPC_Anonymous);
@@ -309,6 +326,7 @@ void InterruptHTTPRPC()
 void StopHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
+    requestStatEngine.Stop();
     UnregisterHTTPHandler("/", true);
     UnregisterHTTPHandler("/post/", true);
     UnregisterHTTPHandler("/public/", true);

@@ -173,6 +173,11 @@ void Shutdown()
     if (!lockShutdown)
         return;
 
+    StopHTTPRPC();
+    StopREST();
+    StopRPC();
+    StopHTTPServer();
+
     /// Note: Shutdown() must be able to handle cases in which initialization failed part of the way,
     /// for example if the data directory was found to be locked.
     /// Be sure that anything that writes files or flushes caches only does this if the respective
@@ -269,11 +274,6 @@ void Shutdown()
     g_wallet_init_interface.Close();
     globalVerifyHandle.reset();
     ECC_Stop();
-
-    StopHTTPRPC();
-    StopREST();
-    StopRPC();
-    StopHTTPServer();
 
     LogPrintf("%s: done\n", __func__);
 }
@@ -522,9 +522,11 @@ void SetupServerArgs()
 
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::RPC);
 
-    gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), true, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcworkpostqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), true, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcworkpublicqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), true, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcworkpostqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcworkpublicqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), false, OptionsCategory::RPC);
+
+    gArgs.AddArg("-rpcstatdepth=<n>", strprintf("Set the depth of the work queue for RPC statistic in seconds (default: %ds)", 60), false, OptionsCategory::RPC);
 
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
 
@@ -769,7 +771,7 @@ static bool AppInitServers()
     if (!InitHTTPServer())
         return false;
     StartRPC();
-    if (!StartHTTPRPC())
+    if (!StartHTTPRPC(threadGroup))
         return false;
     if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST();
     StartHTTPServer();
