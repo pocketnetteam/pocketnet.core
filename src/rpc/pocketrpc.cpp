@@ -205,6 +205,7 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addres
             entry.pushKV("blocking", arB);
 
             // Recommendations subscribtions
+            /*
             std::vector<string> recomendedSubscriptions;
             g_addrindex->GetRecomendedSubscriptions(_address, 10, recomendedSubscriptions);
 
@@ -213,6 +214,7 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addres
                 rs.push_back(r);
             }
             entry.pushKV("recomendedSubscribes", rs);
+            */
         }
 
         result.insert_or_assign(_address, entry);
