@@ -108,7 +108,6 @@ public:
 	/// @param result - QueryResults with found items
 	/// @param cmpl - Optional async completion routine. If nullptr function will work syncronius
 	Error Select(const Query &query, QueryResults &result, Completion cmpl = nullptr);
-        Error SelectNoLock(const Query &query, QueryResults &result, Completion cmpl = nullptr);
 	/// Flush changes to storage
 	/// @param nsName - Name of namespace
 	Error Commit(const string &nsName);

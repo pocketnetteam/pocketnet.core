@@ -550,7 +550,7 @@ size_t PocketDB::SelectTotalCount(std::string table)
 {
     Error err;
     QueryResults _res;
-    err = db->SelectNoLock(Query(table).ReqTotal(), _res);
+    err = db->Select(Query(table).ReqTotal(), _res);
     if (err.ok())
         return _res.TotalCount();
     else
@@ -561,7 +561,7 @@ size_t PocketDB::SelectCount(Query query)
 {
     // TODO (brangr): Its not funny! :D
     QueryResults _res;
-    if (db->SelectNoLock(query, _res).ok())
+    if (db->Select(query, _res).ok())
         return _res.Count();
     else
         return 0;
@@ -570,7 +570,7 @@ size_t PocketDB::SelectCount(Query query)
 Error PocketDB::Select(Query query, QueryResults& res)
 {
     reindexer::Query _query(query);
-    return db->SelectNoLock(_query, res);
+    return db->Select(_query, res);
 }
 
 Error PocketDB::SelectOne(Query query, Item& item)
@@ -579,7 +579,7 @@ Error PocketDB::SelectOne(Query query, Item& item)
     _query.start = 0;
     _query.count = 1;
     QueryResults res;
-    Error err = db->SelectNoLock(_query, res);
+    Error err = db->Select(_query, res);
     if (err.ok()) {
         if (res.Count() > 0) {
             item = res[0].GetItem();
@@ -593,7 +593,7 @@ Error PocketDB::SelectOne(Query query, Item& item)
 
 Error PocketDB::SelectAggr(Query query, QueryResults& aggRes)
 {
-    Error err = db->SelectNoLock(query, aggRes);
+    Error err = db->Select(query, aggRes);
     if (err.ok()) {
         if (aggRes.aggregationResults.size() > 0) {
             return err;
@@ -608,7 +608,7 @@ Error PocketDB::SelectAggr(Query query, QueryResults& aggRes)
 Error PocketDB::SelectAggr(Query query, std::string aggId, AggregationResult& aggRes)
 {
     QueryResults res;
-    Error err = db->SelectNoLock(query, res);
+    Error err = db->Select(query, res);
     if (err.ok()) {
         if (res.aggregationResults.size() > 0) {
             aggRes = std::find_if(res.aggregationResults.begin(), res.aggregationResults.end(),
