@@ -1228,7 +1228,9 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     // If `item` with `txid` already in reindexer db - skip checks
     std::string _txid_check_exists = oitm["txid"].get_str();
     if (table == "Posts" && oitm["txidEdit"].get_str() != "") _txid_check_exists = oitm["txidEdit"].get_str();
-    if (g_addrindex->CheckRItemExists(table, _txid_check_exists)) return;
+
+    // Always check transactions
+    //if (g_addrindex->CheckRItemExists(table, _txid_check_exists)) return;
 
     // Check consistent transaction and reindexer::Item
     if (height >= CH_CONSENSUS_OPRETURN_CHECK) {
