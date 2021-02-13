@@ -9,6 +9,9 @@
 #include <memory>
 #include <string>
 #include <util.h>
+#include "statistic.hpp"
+
+extern Statistic::RequestStatEngine gStatEngineInstance;
 
 class CScheduler;
 class CWallet;

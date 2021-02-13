@@ -1,10 +1,8 @@
 #pragma once
 
-#ifndef STATISTIC_HPP
-#define STATISTIC_HPP
-
 #include "univalue.h"
 
+#include "chainparams.h"
 #include "validation.h"
 #include <boost/thread.hpp>
 #include <chrono>
@@ -42,19 +40,19 @@ public:
         if (sample.TimestampEnd < sample.TimestampBegin)
             return;
 
-        std::lock_guard<std::mutex> lock{_samplesLock};
+        LOCK(_samplesLock);
         _samples.push_back(sample);
     }
 
-    std::size_t GetNumSamples() const
+    std::size_t GetNumSamples()
     {
-        std::lock_guard<std::mutex> lock{_samplesLock};
+        LOCK(_samplesLock);
         return _samples.size();
     }
 
-    std::size_t GetNumSamplesBetween(RequestTime begin, RequestTime end) const
+    std::size_t GetNumSamplesBetween(RequestTime begin, RequestTime end)
     {
-        std::lock_guard<std::mutex> lock{_samplesLock};
+        LOCK(_samplesLock);
         return std::count_if(
             _samples.begin(),
             _samples.end(),
@@ -63,21 +61,21 @@ public:
             });
     }
 
-    std::size_t GetNumSamplesBefore(RequestTime time) const
+    std::size_t GetNumSamplesBefore(RequestTime time)
     {
         return GetNumSamplesBetween(RequestTime::min(), time);
     }
 
-    std::size_t GetNumSamplesSince(RequestTime time) const
+    std::size_t GetNumSamplesSince(RequestTime time)
     {
         return GetNumSamplesBetween(time, RequestTime::max());
     }
 
-    RequestTime GetAvgRequestTimeSince(RequestTime since) const
+    RequestTime GetAvgRequestTimeSince(RequestTime since)
     {
-        std::lock_guard<std::mutex> lock{_samplesLock};
+        LOCK(_samplesLock);
 
-        if (_samples.size() < 1)
+        if (_samples.empty())
             return {};
 
         RequestTime sum{};
@@ -94,46 +92,46 @@ public:
         return sum / count;
     }
 
-    RequestTime GetAvgRequestTime() const
+    RequestTime GetAvgRequestTime()
     {
         return GetAvgRequestTimeSince(RequestTime::min());
     }
 
-    std::vector<RequestSample> GetTopHeavyTimeSamplesSince(std::size_t limit, RequestTime since) const
+    std::vector<RequestSample> GetTopHeavyTimeSamplesSince(std::size_t limit, RequestTime since)
     {
         return GetTopTimeSamplesImpl(limit, since);
     }
 
-    std::vector<RequestSample> GetTopHeavyTimeSamples(std::size_t limit) const
+    std::vector<RequestSample> GetTopHeavyTimeSamples(std::size_t limit)
     {
         return GetTopHeavyTimeSamplesSince(limit, RequestTime::min());
     }
 
-    std::vector<RequestSample> GetTopHeavyInputSamplesSince(std::size_t limit, RequestTime since) const
+    std::vector<RequestSample> GetTopHeavyInputSamplesSince(std::size_t limit, RequestTime since)
     {
         return GetTopSizeSamplesImpl(limit, &RequestSample::InputSize, since);
     }
 
-    std::vector<RequestSample> GetTopHeavyInputSamples(std::size_t limit) const
+    std::vector<RequestSample> GetTopHeavyInputSamples(std::size_t limit)
     {
         return GetTopHeavyInputSamplesSince(limit, RequestTime::min());
     }
 
-    std::vector<RequestSample> GetTopHeavyOutputSamplesSince(std::size_t limit, RequestTime since) const
+    std::vector<RequestSample> GetTopHeavyOutputSamplesSince(std::size_t limit, RequestTime since)
     {
         return GetTopSizeSamplesImpl(limit, &RequestSample::OutputSize, since);
     }
 
-    std::vector<RequestSample> GetTopHeavyOutputSamples(std::size_t limit) const
+    std::vector<RequestSample> GetTopHeavyOutputSamples(std::size_t limit)
     {
         return GetTopHeavyOutputSamplesSince(limit, RequestTime::min());
     }
 
-    std::set<RequestIP> GetUniqueSourceIPsSince(RequestTime since) const
+    std::set<RequestIP> GetUniqueSourceIPsSince(RequestTime since)
     {
         std::set<RequestIP> result{};
 
-        std::lock_guard<std::mutex> lock{_samplesLock};
+        LOCK(_samplesLock);
         for (auto& sample : _samples)
             if (sample.TimestampBegin >= since)
                 result.insert(sample.SourceIP);
@@ -141,12 +139,12 @@ public:
         return result;
     }
 
-    std::set<RequestIP> GetUniqueSourceIPs() const
+    std::set<RequestIP> GetUniqueSourceIPs()
     {
         return GetUniqueSourceIPsSince(RequestTime::min());
     }
 
-    UniValue CompileStatsAsJsonSince(RequestTime since) const
+    UniValue CompileStatsAsJsonSince(RequestTime since)
     {
         constexpr auto top_limit = 1;
         const auto sample_to_json = [](const RequestSample& sample) {
@@ -188,7 +186,8 @@ public:
 
         UniValue chainStat(UniValue::VOBJ);
         chainStat.pushKV("Chain", Params().NetworkIDString());
-        chainStat.pushKV("CurrentBlock", chainActive.Height());
+        chainStat.pushKV("Height", chainActive.Height());
+        chainStat.pushKV("LastBlock", chainActive.Tip()->GetBlockHash().GetHex());
         chainStat.pushKV("PeersALL", (int)g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
         chainStat.pushKV("PeersIN", (int)g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
         chainStat.pushKV("PeersOUT", (int)g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
@@ -206,13 +205,13 @@ public:
         return result;
     }
 
-    UniValue CompileStatsAsJson() const
+    UniValue CompileStatsAsJson()
     {
         return CompileStatsAsJsonSince(RequestTime::min());
     }
 
     // Just a helper to prevent copypasta
-    RequestTime GetCurrentSystemTime() const
+    RequestTime GetCurrentSystemTime()
     {
         return std::chrono::duration_cast<RequestTime>(std::chrono::system_clock::now().time_since_epoch());
     }
@@ -247,12 +246,12 @@ public:
 
 private:
     std::vector<RequestSample> _samples;
-    mutable std::mutex _samplesLock;
+    Mutex _samplesLock;
     bool shutdown = false;
 
     void RemoveSamplesBefore(RequestTime time)
     {
-        std::lock_guard<std::mutex> lock{_samplesLock};
+        LOCK(_samplesLock);
         int64_t sizeBefore = _samples.size();
 
         _samples.erase(
@@ -267,9 +266,9 @@ private:
         LogPrint(BCLog::STAT, "Clear statistic cache: %d -> %d items after.\n", sizeBefore, _samples.size());
     }
 
-    std::vector<RequestSample> GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since) const
+    std::vector<RequestSample> GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since)
     {
-        std::lock_guard<std::mutex> lock{_samplesLock};
+        LOCK(_samplesLock);
         auto samples_copy = _samples;
 
         samples_copy.erase(
@@ -294,9 +293,9 @@ private:
         return samples_copy;
     }
 
-    std::vector<RequestSample> GetTopTimeSamplesImpl(std::size_t limit, RequestTime since) const
+    std::vector<RequestSample> GetTopTimeSamplesImpl(std::size_t limit, RequestTime since)
     {
-        std::lock_guard<std::mutex> lock{_samplesLock};
+        LOCK(_samplesLock);
         auto samples_copy = _samples;
 
         samples_copy.erase(
@@ -322,8 +321,4 @@ private:
     }
 };
 
-std::unique_ptr<RequestStatEngine> g_request_stat_engine;
-
 } // namespace Statistic
-
-#endif // STATISTIC_HPP

@@ -61,7 +61,6 @@
 #include <sys/stat.h>
 #endif
 
-#include "statistic.hpp"
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -81,6 +80,8 @@ static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 std::unique_ptr<CConnman> g_connman;
 std::unique_ptr<PeerLogicValidation> peerLogic;
+Statistic::RequestStatEngine gStatEngineInstance;
+
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -174,7 +175,7 @@ void Shutdown()
     if (!lockShutdown)
         return;
 
-    Statistic::g_request_stat_engine->Stop();
+    gStatEngineInstance.Stop();
 
     StopHTTPRPC();
     StopREST();
@@ -1514,8 +1515,6 @@ bool AppInitMain()
         nMaxOutboundLimit = gArgs.GetArg("-maxuploadtarget", DEFAULT_MAX_UPLOAD_TARGET) * 1024 * 1024;
     }
 
-
-
     // ********************************************************* Step 7: load block chain
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
@@ -1896,8 +1895,7 @@ bool AppInitMain()
     // Start WebSocket server
     if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
 
-    Statistic::g_request_stat_engine = std::unique_ptr<Statistic::RequestStatEngine>(new Statistic::RequestStatEngine());
-    Statistic::g_request_stat_engine->Run(threadGroup);
+    gStatEngineInstance.Run(threadGroup);
 
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));

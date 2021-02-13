@@ -20,8 +20,6 @@
 #include <memory>
 #include <numeric>
 #include <boost/algorithm/string.hpp> // boost::trim
-#include "statistic.hpp"
-
 #include <chrono>
 using namespace std::chrono;
 
@@ -219,13 +217,13 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
 
             jreq.parse(valRequest);
 
-            auto start = Statistic::g_request_stat_engine->GetCurrentSystemTime();
+            auto start = gStatEngineInstance.GetCurrentSystemTime();
 
             UniValue result = tableRPC.execute(jreq);
             
-            auto stop = Statistic::g_request_stat_engine->GetCurrentSystemTime();
+            auto stop = gStatEngineInstance.GetCurrentSystemTime();
 
-            Statistic::g_request_stat_engine->AddSample(
+            gStatEngineInstance.AddSample(
                 Statistic::RequestSample{
                     jreq.strMethod,
                     start,
