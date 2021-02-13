@@ -4,6 +4,12 @@
 <br/>
 <br/>
 =====================================
+![version](https://img.shields.io/github/v/release/pocketnetteam/pocketnet.core)
+![contributors](https://img.shields.io/github/contributors/pocketnetteam/pocketnet.core)
+![activity](https://img.shields.io/github/commit-activity/m/pocketnetteam/pocketnet.core)
+![last_commit](https://img.shields.io/github/last-commit/pocketnetteam/pocketnet.core)
+![release_date](https://img.shields.io/github/release-date/pocketnetteam/pocketnet.core)
+![download_latest](https://img.shields.io/github/downloads/pocketnetteam/pocketnet.core/latest/total)
 
 What is Pocketcoin?
 ----------------
