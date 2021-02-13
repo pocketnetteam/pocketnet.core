@@ -1,15 +1,20 @@
 #pragma once
 
+#ifndef STATISTIC_HPP
+#define STATISTIC_HPP
+
 #include "univalue.h"
 
+#include "validation.h"
 #include <boost/thread.hpp>
 #include <chrono>
 #include <cstdint>
 #include <ctime>
+#include <net.h>
 #include <numeric>
 #include <set>
 
-namespace RpcStatistic {
+namespace Statistic {
 
 using RequestKey = std::string;
 using RequestTime = std::chrono::milliseconds;
@@ -181,12 +186,22 @@ public:
         for (auto& sample : top_out)
             top_out_json.push_back(sample_to_json(sample));
 
-        result.pushKV("NumSamples", (int)GetNumSamplesSince(since));
-        result.pushKV("AverageTime", GetAvgRequestTimeSince(since).count());
-        result.pushKV("UniqueIPs", unique_ips_json);
-        result.pushKV("TopTime", top_tm_json);
-        result.pushKV("TopInputSize", top_in_json);
-        result.pushKV("TopOutputSize", top_out_json);
+        UniValue chainStat(UniValue::VOBJ);
+        chainStat.pushKV("Chain", Params().NetworkIDString());
+        chainStat.pushKV("CurrentBlock", chainActive.Height());
+        chainStat.pushKV("PeersALL", (int)g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
+        chainStat.pushKV("PeersIN", (int)g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
+        chainStat.pushKV("PeersOUT", (int)g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
+        result.pushKV("General", chainStat);
+
+        UniValue rpcStat(UniValue::VOBJ);
+        rpcStat.pushKV("NumSamples", (int)GetNumSamplesSince(since));
+        rpcStat.pushKV("AverageTime", GetAvgRequestTimeSince(since).count());
+        rpcStat.pushKV("UniqueIPs", unique_ips_json);
+        rpcStat.pushKV("TopTime", top_tm_json);
+        rpcStat.pushKV("TopInputSize", top_in_json);
+        rpcStat.pushKV("TopOutputSize", top_out_json);
+        result.pushKV("RPC", rpcStat);
 
         return result;
     }
@@ -217,12 +232,12 @@ public:
 
     void PeriodicStatLogger()
     {
-        auto statLoggerSleep = gArgs.GetArg("-rpcstatdepth", 60) * 1000;
-        std::string msg = "RPC Statistic for last %lds:\n---------------------------------------\n%s\n---------------------------------------\n";
+        auto statLoggerSleep = gArgs.GetArg("-statdepth", 60) * 1000;
+        std::string msg = "Statistic for last %lds:\n%s\n";
 
         while (!shutdown) {
             auto chunkSize = GetCurrentSystemTime() - std::chrono::milliseconds(statLoggerSleep);
-            LogPrint(BCLog::RPCSTAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize).write(1));
+            LogPrint(BCLog::STAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize).write(1));
 
             RemoveSamplesBefore(chunkSize);
 
@@ -249,7 +264,7 @@ private:
                 }),
             _samples.end());
 
-        LogPrint(BCLog::RPCSTAT, "Clear RPC Statistic cache: %d -> %d items after.\n", sizeBefore, _samples.size());
+        LogPrint(BCLog::STAT, "Clear statistic cache: %d -> %d items after.\n", sizeBefore, _samples.size());
     }
 
     std::vector<RequestSample> GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since) const
@@ -307,4 +322,8 @@ private:
     }
 };
 
-} // namespace RpcStatistic
+std::unique_ptr<RequestStatEngine> g_request_stat_engine;
+
+} // namespace Statistic
+
+#endif // STATISTIC_HPP

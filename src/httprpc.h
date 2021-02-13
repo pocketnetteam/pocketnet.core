@@ -12,7 +12,7 @@
 /** Start HTTP RPC subsystem.
  * Precondition; HTTP and RPC has been started.
  */
-bool StartHTTPRPC(boost::thread_group& threadGroup);
+bool StartHTTPRPC();
 /** Interrupt HTTP RPC subsystem.
  */
 void InterruptHTTPRPC();

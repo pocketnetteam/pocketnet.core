@@ -54,7 +54,7 @@ namespace BCLog {
         QT          = (1 << 19),
         LEVELDB     = (1 << 20),
         STAKEMODIF  = (1 << 21),
-        RPCSTAT     = (1 << 22),
+        STAT        = (1 << 22),
         ALL         = ~(uint32_t)0,
     };
 

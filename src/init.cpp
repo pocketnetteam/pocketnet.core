@@ -61,6 +61,7 @@
 #include <sys/stat.h>
 #endif
 
+#include "statistic.hpp"
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -172,6 +173,8 @@ void Shutdown()
     TRY_LOCK(cs_Shutdown, lockShutdown);
     if (!lockShutdown)
         return;
+
+    Statistic::g_request_stat_engine->Stop();
 
     StopHTTPRPC();
     StopREST();
@@ -526,7 +529,7 @@ void SetupServerArgs()
     gArgs.AddArg("-rpcworkpostqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcworkpublicqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), false, OptionsCategory::RPC);
 
-    gArgs.AddArg("-rpcstatdepth=<n>", strprintf("Set the depth of the work queue for RPC statistic in seconds (default: %ds)", 60), false, OptionsCategory::RPC);
+    gArgs.AddArg("-statdepth=<n>", strprintf("Set the depth of the work queue for statistic in seconds (default: %ds)", 60), false, OptionsCategory::RPC);
 
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
 
@@ -771,7 +774,7 @@ static bool AppInitServers()
     if (!InitHTTPServer())
         return false;
     StartRPC();
-    if (!StartHTTPRPC(threadGroup))
+    if (!StartHTTPRPC())
         return false;
     if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST();
     StartHTTPServer();
@@ -1890,13 +1893,16 @@ bool AppInitMain()
     Staker::getInstance()->startWorkers(threadGroup, chainparams);
 #endif
 
+    // Start WebSocket server
+    if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
+
+    Statistic::g_request_stat_engine = std::unique_ptr<Statistic::RequestStatEngine>(new Statistic::RequestStatEngine());
+    Statistic::g_request_stat_engine->Run(threadGroup);
+
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));
 
     g_wallet_init_interface.Start(scheduler);
-
-    // Start WebSocket server
-    if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
 
     return true;
 }

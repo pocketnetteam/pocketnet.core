@@ -20,7 +20,7 @@
 #include <memory>
 #include <numeric>
 #include <boost/algorithm/string.hpp> // boost::trim
-#include "rpc/rpcstatistic.hpp"
+#include "statistic.hpp"
 
 #include <chrono>
 using namespace std::chrono;
@@ -70,9 +70,6 @@ private:
 static std::string strRPCUserColonPass;
 /* Stored RPC timer interface (for unregistration) */
 static std::unique_ptr<HTTPRPCTimerInterface> httpRPCTimerInterface;
-
-// For realtime statistic collate
-static RpcStatistic::RequestStatEngine requestStatEngine;
 
 static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const UniValue& id)
 {
@@ -222,14 +219,14 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
 
             jreq.parse(valRequest);
 
-            auto start = requestStatEngine.GetCurrentSystemTime();
+            auto start = Statistic::g_request_stat_engine->GetCurrentSystemTime();
 
             UniValue result = tableRPC.execute(jreq);
             
-            auto stop = requestStatEngine.GetCurrentSystemTime();
+            auto stop = Statistic::g_request_stat_engine->GetCurrentSystemTime();
 
-            requestStatEngine.AddSample(
-                RpcStatistic::RequestSample{
+            Statistic::g_request_stat_engine->AddSample(
+                Statistic::RequestSample{
                     jreq.strMethod,
                     start,
                     stop,
@@ -298,13 +295,12 @@ static bool InitRPCAuthentication()
     return true;
 }
 
-bool StartHTTPRPC(boost::thread_group& threadGroup)
+bool StartHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Starting HTTP RPC server\n");
     if (!InitRPCAuthentication())
         return false;
 
-    requestStatEngine.Run(threadGroup);
     RegisterHTTPHandler("/", true, HTTPReq_JSONRPC);
     RegisterHTTPHandler("/post/", true, HTTPReq_JSONRPC_Anonymous);
     RegisterHTTPHandler("/public/", true, HTTPReq_JSONRPC_Anonymous);
@@ -326,7 +322,6 @@ void InterruptHTTPRPC()
 void StopHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
-    requestStatEngine.Stop();
     UnregisterHTTPHandler("/", true);
     UnregisterHTTPHandler("/post/", true);
     UnregisterHTTPHandler("/public/", true);
