@@ -128,10 +128,10 @@ def main():
     g.write(' * IPv4 as well as onion addresses are wrapped inside an IPv6 address accordingly.\n')
     g.write(' */\n')
     with open(os.path.join(indir,'nodes_main.txt'), 'r', encoding="utf8") as f:
-        process_nodes(g, f, 'pnSeed6_main', 38080)
+        process_nodes(g, f, 'pnSeed6_main', 37070)
     g.write('\n')
     with open(os.path.join(indir,'nodes_test.txt'), 'r', encoding="utf8") as f:
-        process_nodes(g, f, 'pnSeed6_test', 18080)
+        process_nodes(g, f, 'pnSeed6_test', 11010)
     g.write('#endif // POCKETCOIN_CHAINPARAMSSEEDS_H\n')
 
 if __name__ == '__main__':

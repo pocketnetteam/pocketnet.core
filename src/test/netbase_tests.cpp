@@ -87,15 +87,15 @@ BOOST_AUTO_TEST_CASE(netbase_splithost)
     BOOST_CHECK(TestSplitHost("www.pocketcoincore.org:80", "www.pocketcoincore.org", 80));
     BOOST_CHECK(TestSplitHost("[www.pocketcoincore.org]:80", "www.pocketcoincore.org", 80));
     BOOST_CHECK(TestSplitHost("127.0.0.1", "127.0.0.1", -1));
-    BOOST_CHECK(TestSplitHost("127.0.0.1:38080", "127.0.0.1", 38080));
+    BOOST_CHECK(TestSplitHost("127.0.0.1:37070", "127.0.0.1", 37070));
     BOOST_CHECK(TestSplitHost("[127.0.0.1]", "127.0.0.1", -1));
-    BOOST_CHECK(TestSplitHost("[127.0.0.1]:38080", "127.0.0.1", 38080));
+    BOOST_CHECK(TestSplitHost("[127.0.0.1]:37070", "127.0.0.1", 37070));
     BOOST_CHECK(TestSplitHost("::ffff:127.0.0.1", "::ffff:127.0.0.1", -1));
-    BOOST_CHECK(TestSplitHost("[::ffff:127.0.0.1]:38080", "::ffff:127.0.0.1", 38080));
-    BOOST_CHECK(TestSplitHost("[::]:38080", "::", 38080));
-    BOOST_CHECK(TestSplitHost("::38080", "::38080", -1));
-    BOOST_CHECK(TestSplitHost(":38080", "", 38080));
-    BOOST_CHECK(TestSplitHost("[]:38080", "", 38080));
+    BOOST_CHECK(TestSplitHost("[::ffff:127.0.0.1]:37070", "::ffff:127.0.0.1", 37070));
+    BOOST_CHECK(TestSplitHost("[::]:37070", "::", 37070));
+    BOOST_CHECK(TestSplitHost("::37070", "::37070", -1));
+    BOOST_CHECK(TestSplitHost(":37070", "", 37070));
+    BOOST_CHECK(TestSplitHost("[]:37070", "", 37070));
     BOOST_CHECK(TestSplitHost("", "", -1));
 }
 
@@ -108,10 +108,10 @@ bool static TestParse(std::string src, std::string canon)
 BOOST_AUTO_TEST_CASE(netbase_lookupnumeric)
 {
     BOOST_CHECK(TestParse("127.0.0.1", "127.0.0.1:65535"));
-    BOOST_CHECK(TestParse("127.0.0.1:38080", "127.0.0.1:38080"));
+    BOOST_CHECK(TestParse("127.0.0.1:37070", "127.0.0.1:37070"));
     BOOST_CHECK(TestParse("::ffff:127.0.0.1", "127.0.0.1:65535"));
     BOOST_CHECK(TestParse("::", "[::]:65535"));
-    BOOST_CHECK(TestParse("[::]:38080", "[::]:38080"));
+    BOOST_CHECK(TestParse("[::]:37070", "[::]:37070"));
     BOOST_CHECK(TestParse("[127.0.0.1]", "127.0.0.1:65535"));
     BOOST_CHECK(TestParse(":::", "[::]:0"));
 

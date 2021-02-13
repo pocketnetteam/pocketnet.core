@@ -430,8 +430,8 @@ caching. A sample config for apache2 could look like:
     SSLCertificateKeyFile /etc/apache2/ssl/server.key
 
     <Location /pocketcoinrpc>
-        ProxyPass http://127.0.0.1:8332/
-        ProxyPassReverse http://127.0.0.1:8332/
+        ProxyPass http://127.0.0.1:37071/
+        ProxyPassReverse http://127.0.0.1:37071/
         # optional enable digest auth
         # AuthType Digest
         # ...

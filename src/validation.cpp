@@ -2713,7 +2713,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 		NotifyWSClients(blockConnecting, pindexNew);
 	}
 	//-----------------------------------------------------
-	LogPrint("+++ Block connected to chain: %d BH:%s\n", pindexNew->nHeight, pindexNew->GetBlockHash().GetHex());
+	LogPrintf("+++ Block connected to chain: %d BH:%s\n", pindexNew->nHeight, pindexNew->GetBlockHash().GetHex());
     //-----------------------------------------------------
 	connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
 	return true;

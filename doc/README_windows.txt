@@ -24,14 +24,14 @@ An example of a configuration file:
 
 pocketcoin.conf
 -----
-port=38080
+port=37070
 server=1
 
 rpcallowip=0.0.0.0/0            # for access from anywhere
 rpcallowip=127.0.0.1/24         # for access from only localhost
 rpcallowip=192.168.0.0/0        # for access from local network
 
-rpcport=38081
+rpcport=37071
 rpcuser=<RPC_LOGIN>
 rpcpassword=<RPC_PASSWORD>
 -----
