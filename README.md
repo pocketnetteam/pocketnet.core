@@ -52,7 +52,7 @@ See `doc/build-*.md` files for build instructions.
 
 Download blockhain via torrent:
 ---
-`magnet:?xt=urn:btih:180fa33e2befc4ee909820872783a78dd03c4500&dn=pocketnet.blockchain.1046717&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce`
+`magnet:?xt=urn:btih:9ec31b0e8e97b8b77ee50defe1cd410c9db50f41&dn=pocketnet.blockchain.1047356&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce`
 
 Download database via your torrent client.
 Copy content to:
