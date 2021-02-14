@@ -5,7 +5,6 @@
 <br/>
 =====================================
 ![contributors](https://img.shields.io/github/contributors/pocketnetteam/pocketnet.core?style=flat-square)
-![activity](https://img.shields.io/github/commit-activity/m/pocketnetteam/pocketnet.core?style=flat-square)
 ![last_commit](https://img.shields.io/github/last-commit/pocketnetteam/pocketnet.core?style=flat-square)
 ![release_date](https://img.shields.io/github/release-date/pocketnetteam/pocketnet.core?style=flat-square)
 ![version](https://img.shields.io/github/v/release/pocketnetteam/pocketnet.core?style=flat-square)
