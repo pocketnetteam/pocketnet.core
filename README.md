@@ -4,7 +4,7 @@
 <br/>
 <br/>
 =====================================
-![GitHub](https://img.shields.io/github/license/pocketnetteam/pocketnet.core)
+![GitHub](https://img.shields.io/github/license/pocketnetteam/pocketnet.api)
 ![contributors](https://img.shields.io/github/contributors/pocketnetteam/pocketnet.core)
 ![last_commit](https://img.shields.io/github/last-commit/pocketnetteam/pocketnet.core)
 ![release_date](https://img.shields.io/github/release-date/pocketnetteam/pocketnet.core)
