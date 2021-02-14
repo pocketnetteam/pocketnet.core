@@ -579,11 +579,11 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         allPostRatings[_post_address] += (_value - 3);
 
                         // Find winners with referral program
-                        if (pindexPrev->nHeight >= CH_CONSENSUS_LOTTERY_REFERRAL_BEG) {
+                        if (pindexPrev->nHeight >= Params().GetConsensus().lottery_referral_beg) {
                             reindexer::Item _referrer_itm;
 
                             reindexer::Query _referrer_query = reindexer::Query("UsersView").Where("address", CondEq, _post_address).Not().Where("referrer", CondEq, "").Not().Where("referrer", CondEq, _score_address);
-                            if (pindexPrev->nHeight >= CH_CONSENSUS_LOTTERY_REFERRAL_LIMITATION) {
+                            if (pindexPrev->nHeight >= Params().GetConsensus().lottery_referral_limitation) {
                                 _referrer_query.Where("regdate", CondGe, (int64_t)tx->nTime - _lottery_referral_depth);
                             }
                             
@@ -621,11 +621,11 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         allCommentRatings[_comment_address] += _value;
 
                         // Find winners with referral program
-                        if (pindexPrev->nHeight >= CH_CONSENSUS_LOTTERY_REFERRAL_BEG) {
+                        if (pindexPrev->nHeight >= Params().GetConsensus().lottery_referral_beg) {
                             reindexer::Item _referrer_itm;
 
                             reindexer::Query _referrer_query = reindexer::Query("UsersView").Where("address", CondEq, _comment_address).Not().Where("referrer", CondEq, "").Not().Where("referrer", CondEq, _score_address);
-                            if (pindexPrev->nHeight >= CH_CONSENSUS_LOTTERY_REFERRAL_LIMITATION) {
+                            if (pindexPrev->nHeight >= Params().GetConsensus().lottery_referral_limitation) {
                                 _referrer_query.Where("regdate", CondGe, (int64_t)tx->nTime - _lottery_referral_depth);
                             }
                             
@@ -704,7 +704,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
     ret = GenerateOuts(nCredit, results, totalAmount, vLotteryPost, OP_WINNER_POST, pindexPrev->nHeight, winner_types) || ret;
     ret = GenerateOuts(nCredit, results, totalAmount, vLotteryComment, OP_WINNER_COMMENT, pindexPrev->nHeight, winner_types) || ret;
 
-    if (pindexPrev->nHeight >= CH_CONSENSUS_LOTTERY_REFERRAL_BEG)
+    if (pindexPrev->nHeight >= Params().GetConsensus().lottery_referral_beg)
     {
         std::vector<std::string> vLotteryPostRef;
         GetReferrers(vLotteryPost, mLotteryPostRef, vLotteryPostRef);
@@ -732,7 +732,7 @@ bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalA
     if (winners.size() > 0 && winners.size() <= 25)
     {
         CAmount ratingReward = 0;
-        if (height >= CH_CONSENSUS_LOTTERY_REFERRAL_BEG)
+        if (height >= Params().GetConsensus().lottery_referral_beg)
         {
             // Referrer program 5 - 100%; 2.0 - nodes; 3.0 - all for lottery; 2.0 - posts; 0.4 - referrer over posts (20%); 0.5 - comment; 0.1 - referrer over comment (20%);
             if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.40;
@@ -766,7 +766,7 @@ bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalA
             CTxDestination dest = DecodeDestination(addr);
             CScript scriptPubKey = GetScriptForDestination(dest);
             
-            if (height >= CH_CONSENSUS_LOTTERY_REFERRAL_BEG)
+            if (height >= Params().GetConsensus().lottery_referral_beg)
                 winner_types.push_back(op_code_type);
                 
             results.push_back(CTxOut(re, scriptPubKey)); // send to ratings

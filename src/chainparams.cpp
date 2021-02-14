@@ -117,6 +117,12 @@ public:
         consensus.nHeight_fix_ratings = 151600;
         consensus.nHeight_version_0_18_11 = 419805;
 
+        consensus.score_blocking_on = 430000;
+        consensus.score_blocking_off = 514185;
+        consensus.opreturn_check = 514185;
+        consensus.lottery_referral_beg = 514185;
+        consensus.lottery_referral_limitation = 1035000;
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000760b1b23924548c85");
 
@@ -231,6 +237,12 @@ public:
         consensus.sVersion_1_0_0_pre_checkpoint = "128abcf7e0371db3ad595702b456a701539ba5977459fac0cd720dc7b84f09a8";
         consensus.nHeight_version_1_0_0 = 108300;
         consensus.nHeight_fix_ratings = 151600;
+
+        consensus.score_blocking_on = 0;
+        consensus.score_blocking_off = 0;
+        consensus.opreturn_check = 0;
+        consensus.lottery_referral_beg = 0;
+        consensus.lottery_referral_limitation = 0;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");

@@ -97,6 +97,12 @@ namespace Consensus {
         unsigned int nHeight_version_1_0_0;
         unsigned int nHeight_fix_ratings;
         unsigned int nHeight_version_0_18_11;
+
+        unsigned int score_blocking_on;
+        unsigned int score_blocking_off;
+        unsigned int opreturn_check;
+        unsigned int lottery_referral_beg;
+        unsigned int lottery_referral_limitation;
 	};
 } // namespace Consensus
 

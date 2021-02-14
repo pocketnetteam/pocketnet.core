@@ -334,7 +334,7 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
     }
 
     // Blocking
-    if (height >= CH_CONSENSUS_SCORE_BLOCKING_ON && height < CH_CONSENSUS_SCORE_BLOCKING_OFF && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _post_address).Where("address_to", CondEq, _address))) {
+    if (height >= Params().GetConsensus().score_blocking_on && height < Params().GetConsensus().score_blocking_off && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _post_address).Where("address_to", CondEq, _address))) {
         result = ANTIBOTRESULT::Blocking;
         return false;
     }
@@ -1113,7 +1113,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
     }
 
     // Blocking
-    if (height >= CH_CONSENSUS_SCORE_BLOCKING_ON && height < CH_CONSENSUS_SCORE_BLOCKING_OFF && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _comment_address).Where("address_to", CondEq, _address))) {
+    if (height >= Params().GetConsensus().score_blocking_on && height < Params().GetConsensus().score_blocking_off && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _comment_address).Where("address_to", CondEq, _address))) {
         result = ANTIBOTRESULT::Blocking;
         return false;
     }
@@ -1230,19 +1230,25 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     if (table == "Posts" && oitm["txidEdit"].get_str() != "") _txid_check_exists = oitm["txidEdit"].get_str();
 
     // Always check transactions
-    //if (g_addrindex->CheckRItemExists(table, _txid_check_exists)) return;
+    // if (g_addrindex->CheckRItemExists(table, _txid_check_exists)) {
+    //     LogPrintf("Transaction %s (%s) already exists in RI db\n", _txid_check_exists, table);
+    //     return;
+    // }
 
     // Check consistent transaction and reindexer::Item
-    if (height >= CH_CONSENSUS_OPRETURN_CHECK) {
+    if (height >= Params().GetConsensus().opreturn_check) {
         std::vector<std::string> vasm;
         boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
+        LogPrintf("==1 %s (%d)\n", oitm["asm"].get_str(), vasm.size());
         if (vasm.size() < 3) {
             resultCode = ANTIBOTRESULT::FailedOpReturn;
             return;
         }
 
         if (vasm[2] != oitm["data_hash"].get_str()) {
+            LogPrintf("==2 %s != %s\n", vasm[2], oitm["data_hash"].get_str());
             if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str())) {
+                LogPrintf("==3 FailedOpReturn %s\n", vasm[2], oitm.write());
                 resultCode = ANTIBOTRESULT::FailedOpReturn;
                 return;
             }

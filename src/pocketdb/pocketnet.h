@@ -89,14 +89,6 @@ bool IsCheckpointBlock(int height, std::string hash);
 void FillCheckpointsTransactions(const CChainParams& params);
 bool IsCheckpointTransaction(std::string hash);
 
-
-// Change in consensus rules
-#define CH_CONSENSUS_SCORE_BLOCKING_ON      430000
-#define CH_CONSENSUS_SCORE_BLOCKING_OFF     514185
-#define CH_CONSENSUS_OPRETURN_CHECK         514185
-#define CH_CONSENSUS_LOTTERY_REFERRAL_BEG           514185
-#define CH_CONSENSUS_LOTTERY_REFERRAL_LIMITATION    1035000
-
 bool GetInputAddress(uint256 txhash, int n, std::string& address);
 bool GetTransactionData(std::string txid, std::string& address);
 bool GetTransactionData(std::string txid, std::string& address, CTransactionRef& tx);
