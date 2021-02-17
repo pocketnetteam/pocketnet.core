@@ -1312,7 +1312,7 @@ UniValue txunspent(const JSONRPCRequest& request)
         }
 
         if (!blockindex) {
-            blockindex = LookupBlockIndex(hash_block);
+            blockindex = LookupBlockIndexWithoutLock(hash_block);
             if (!blockindex) {
                 continue;
             }

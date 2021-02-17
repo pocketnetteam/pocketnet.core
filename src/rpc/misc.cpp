@@ -441,12 +441,13 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
     entry.pushKV("lastblock", oblock);
 
     UniValue proxies(UniValue::VARR);
-    for (const auto& it : WSConnections) {
+    for (auto& it : WSConnections) {
         if (it.second.Service) {
-            UniValue oblock(UniValue::VOBJ);
-            oblock.pushKV("ip", it.second.Ip);
-            oblock.pushKV("port", it.second.MainPort);
-            oblock.pushKV("portWss", it.second.WssPort);
+            UniValue proxy(UniValue::VOBJ);
+            proxy.pushKV("ip", it.second.Ip);
+            proxy.pushKV("port", it.second.MainPort);
+            proxy.pushKV("portWss", it.second.WssPort);
+            proxies.push_back(proxy);
         }
     }
     entry.pushKV("proxies", proxies);

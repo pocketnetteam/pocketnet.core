@@ -18,7 +18,7 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
 
     if (!hashBlock.IsNull()) {
         entry.pushKV("blockhash", hashBlock.GetHex());
-        CBlockIndex* pindex = LookupBlockIndex(hashBlock);
+        CBlockIndex* pindex = LookupBlockIndexWithoutLock(hashBlock);
         if (pindex) {
             if (chainActive.Contains(pindex)) {
                 entry.pushKV("confirmations", 1 + chainActive.Height() - pindex->nHeight);

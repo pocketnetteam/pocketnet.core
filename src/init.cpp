@@ -1255,28 +1255,32 @@ static void StartWS()
         if (val.read(out_message)) {
             std::vector<std::string> keys = val.getKeys();
             if (std::find(keys.begin(), keys.end(), "addr") != keys.end()) {
-                std::string _addr = val["addr"].get_str();
+                try {
+                    std::string _addr = val["addr"].get_str();
 
-                int block = chainActive.Height();
-                if (std::find(keys.begin(), keys.end(), "block") != keys.end()) block = val["block"].get_int();
+                    int block = chainActive.Height();
+                    if (std::find(keys.begin(), keys.end(), "block") != keys.end()) block = val["block"].get_int();
 
-                std::string ip = connection->remote_endpoint_address();
-                bool service = std::find(keys.begin(), keys.end(), "service") != keys.end();
+                    std::string ip = connection->remote_endpoint_address();
+                    bool service = std::find(keys.begin(), keys.end(), "service") != keys.end();
 
-                int mainPort = 8899;
-                if (std::find(keys.begin(), keys.end(), "MainPort") != keys.end()) mainPort = val["MainPort"].get_int();
+                    int mainPort = 8899;
+                    if (std::find(keys.begin(), keys.end(), "mainport") != keys.end()) mainPort = val["mainport"].get_int();
 
-                int wssPort = 8099;
-                if (std::find(keys.begin(), keys.end(), "WssPort") != keys.end()) wssPort = val["WssPort"].get_int();
+                    int wssPort = 8099;
+                    if (std::find(keys.begin(), keys.end(), "wssport") != keys.end()) wssPort = val["wssport"].get_int();
 
-                if (std::find(keys.begin(), keys.end(), "nonce") != keys.end()) {
-                    WSConnections.erase(connection->ID());
-                    WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
-                    WSConnections.insert_or_assign(connection->ID(), wsUser);
-                } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end()) {
-                    if (val["msg"].get_str() == "unsubscribe") {
+                    if (std::find(keys.begin(), keys.end(), "nonce") != keys.end()) {
+                        WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
                         WSConnections.erase(connection->ID());
+                        WSConnections.insert_or_assign(connection->ID(), wsUser);
+                    } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end()) {
+                        if (val["msg"].get_str() == "unsubscribe") {
+                            WSConnections.erase(connection->ID());
+                        }
                     }
+                } catch (const std::exception& e) {
+                    LogPrintf("Warning: ws.on_message - %s\n", e.what());
                 }
             }
         }
