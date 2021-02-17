@@ -534,8 +534,8 @@ void SetupServerArgs()
 
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
 
-	gArgs.AddArg("-wsuse", "Accept WebSocket connections", false, OptionsCategory::RPC);
-	gArgs.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), false, OptionsCategory::RPC);
+    gArgs.AddArg("-wsuse", "Accept WebSocket connections", false, OptionsCategory::RPC);
+    gArgs.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), false, OptionsCategory::RPC);
 
 #if HAVE_DECL_DAEMON
     gArgs.AddArg("-daemon", "Run in the background as a daemon and accept commands", false, OptionsCategory::OPTIONS);
@@ -663,7 +663,6 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
 
         // -reindex
         if (fReindex) {
-
             // Clear ratings for clear reindexing
             {
                 g_pocketdb->DropTable("UserRatings");
@@ -730,14 +729,13 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             return;
         }
 
-		if (g_addrindex->RollbackDB(chainActive.Height(), false)) {
-			LogPrintf("RIDB rollback to block height %d success!\n", chainActive.Height());
-		}
-		else {
-			LogPrintf("Error: RIDB rollback failed!\n");
-			StartShutdown();
-			return;
-		}
+        if (g_addrindex->RollbackDB(chainActive.Height(), false)) {
+            LogPrintf("RIDB rollback to block height %d success!\n", chainActive.Height());
+        } else {
+            LogPrintf("Error: RIDB rollback failed!\n");
+            StartShutdown();
+            return;
+        }
     } // End scope of CImportingNow
 
     if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
@@ -1257,24 +1255,31 @@ static void StartWS()
         if (val.read(out_message)) {
             std::vector<std::string> keys = val.getKeys();
             if (std::find(keys.begin(), keys.end(), "addr") != keys.end()) {
-				std::string _addr = val["addr"].get_str();
+                std::string _addr = val["addr"].get_str();
 
                 int block = chainActive.Height();
                 if (std::find(keys.begin(), keys.end(), "block") != keys.end()) block = val["block"].get_int();
 
+                std::string ip = connection->remote_endpoint_address();
+                bool service = std::find(keys.begin(), keys.end(), "service") != keys.end();
+
+                int mainPort = 8899;
+                if (std::find(keys.begin(), keys.end(), "MainPort") != keys.end()) mainPort = val["MainPort"].get_int();
+
+                int wssPort = 8099;
+                if (std::find(keys.begin(), keys.end(), "WssPort") != keys.end()) wssPort = val["WssPort"].get_int();
+
                 if (std::find(keys.begin(), keys.end(), "nonce") != keys.end()) {
                     WSConnections.erase(connection->ID());
-
-                    WSUser wsUser = { connection, _addr, block };
-					WSConnections.insert_or_assign(connection->ID(), wsUser);
+                    WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
+                    WSConnections.insert_or_assign(connection->ID(), wsUser);
                 } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end()) {
                     if (val["msg"].get_str() == "unsubscribe") {
-						WSConnections.erase(connection->ID());
-					}
-				}
+                        WSConnections.erase(connection->ID());
+                    }
+                }
             }
         }
-
     };
 
     ws.on_open = [](std::shared_ptr<WsServer::Connection> connection) {
@@ -1284,15 +1289,15 @@ static void StartWS()
     };
 
     ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const string& /*reason*/) {
-		if (WSConnections.find(connection->ID()) != WSConnections.end()) {
-			WSConnections.erase(connection->ID());
-		}
+        if (WSConnections.find(connection->ID()) != WSConnections.end()) {
+            WSConnections.erase(connection->ID());
+        }
     };
 
     ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec) {
-		if (WSConnections.find(connection->ID()) != WSConnections.end()) {
-			WSConnections.erase(connection->ID());
-		}
+        if (WSConnections.find(connection->ID()) != WSConnections.end()) {
+            WSConnections.erase(connection->ID());
+        }
     };
 
     server.start();
@@ -1300,8 +1305,8 @@ static void StartWS()
 
 static void InitWS()
 {
-	std::thread server_thread(&StartWS);
-	server_thread.detach();
+    std::thread server_thread(&StartWS);
+    server_thread.detach();
 }
 
 bool AppInitMain()
@@ -1387,17 +1392,17 @@ bool AppInitMain()
             return InitError(_("Unable to start HTTP server. See debug log for details."));
     }
 
-	// ********************************************************* Step 4.1: Start PocketDB
+    // ********************************************************* Step 4.1: Start PocketDB
     uiInterface.InitMessage(_("Loading Reindexer DB..."));
-	g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
+    g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
     if (!g_pocketdb->Init()) {
         return InitError(_("Unable to start reindexer database."));
     }
-	// ********************************************************* Step 4.2: Start AddrIndex
-	g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
+    // ********************************************************* Step 4.2: Start AddrIndex
+    g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
     gPruneRDB = gArgs.GetBoolArg("-prunerdb", false);
-	// ********************************************************* Step 4.3: Start AntiBot
-	g_antibot = std::unique_ptr<AntiBot>(new AntiBot());
+    // ********************************************************* Step 4.3: Start AntiBot
+    g_antibot = std::unique_ptr<AntiBot>(new AntiBot());
 
     // ********************************************************* Step 5: verify wallet database integrity
     if (!g_wallet_init_interface.Verify()) return false;
@@ -1683,8 +1688,10 @@ bool AppInitMain()
                                 }
                             }
 
-                            if (rChecked) LogPrintf(" success.\n");
-                            else break;
+                            if (rChecked)
+                                LogPrintf(" success.\n");
+                            else
+                                break;
                         } else {
                             LogPrintf(" error get namespaces - %d (%s)\n", err.code(), err.what());
                             break;
@@ -1743,7 +1750,7 @@ bool AppInitMain()
     fFeeEstimatesInitialized = true;
 
     // ********************************************************* Step 8: start indexers
-	// TXIndex need! Force enabled!
+    // TXIndex need! Force enabled!
     g_txindex = MakeUnique<TxIndex>(nTxIndexCache, false, fReindex);
     g_txindex->Start();
     // ********************************************************* Step 9: load wallet
@@ -1885,7 +1892,7 @@ bool AppInitMain()
         return false;
     }
 
-        // ********************************************************* Step 13: finished
+    // ********************************************************* Step 13: finished
 
 #ifdef ENABLE_WALLET
     Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));

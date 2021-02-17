@@ -884,6 +884,10 @@ struct WSUser {
     std::shared_ptr<SimpleWeb::SocketServer<SimpleWeb::WS>::Connection> Connection;
     std::string Address;
     int Block;
+    std::string Ip;
+    bool Service;
+    int MainPort;
+    int WssPort;
 };
 
 

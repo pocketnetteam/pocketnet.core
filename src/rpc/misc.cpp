@@ -430,6 +430,7 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
 {
     UniValue entry(UniValue::VOBJ);
     entry.pushKV("time", GetAdjustedTime());
+    entry.pushKV("chain", Params().NetworkIDString());
 
     CBlockIndex* pindex = chainActive.Tip();
     UniValue oblock(UniValue::VOBJ);
@@ -437,8 +438,18 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
     oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
     oblock.pushKV("time", (int64_t)pindex->nTime);
     oblock.pushKV("ntx", (int)pindex->nTx);
-    
     entry.pushKV("lastblock", oblock);
+
+    UniValue proxies(UniValue::VARR);
+    for (const auto& it : WSConnections) {
+        if (it.second.Service) {
+            UniValue oblock(UniValue::VOBJ);
+            oblock.pushKV("ip", it.second.Ip);
+            oblock.pushKV("port", it.second.MainPort);
+            oblock.pushKV("portWss", it.second.WssPort);
+        }
+    }
+    entry.pushKV("proxies", proxies);
 
     return entry;
 }
@@ -469,10 +480,10 @@ static const CRPCCommand commands[] =
     { "hidden",             "echo",                   &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "echojson",               &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 
-    { "util",               "getnodeinfo",            &getnodeinfo,            {},                                                                       false},
+    { "util",               "getnodeinfo",            &getnodeinfo,            {}, false},
 
-	/* For ReindexerDB */
-	{ "hidden",             "getristat",              &getristat,              {"table"}},
+    /* For ReindexerDB */
+    { "hidden",             "getristat",              &getristat,              {"table"}},
 };
 // clang-format on
 
