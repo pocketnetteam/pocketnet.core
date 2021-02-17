@@ -1229,17 +1229,10 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     std::string _txid_check_exists = oitm["txid"].get_str();
     if (table == "Posts" && oitm["txidEdit"].get_str() != "") _txid_check_exists = oitm["txidEdit"].get_str();
 
-    // Always check transactions
-    // if (g_addrindex->CheckRItemExists(table, _txid_check_exists)) {
-    //     LogPrintf("Transaction %s (%s) already exists in RI db\n", _txid_check_exists, table);
-    //     return;
-    // }
-
     // Check consistent transaction and reindexer::Item
     if (height >= Params().GetConsensus().opreturn_check) {
         std::vector<std::string> vasm;
         boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
-        LogPrintf("==1 %s (%d)\n", oitm["asm"].get_str(), vasm.size());
         if (vasm.size() < 3) {
             resultCode = ANTIBOTRESULT::FailedOpReturn;
             return;
