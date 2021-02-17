@@ -3738,13 +3738,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         return false;
     }
 
-    // Read and parse received block data
-    UniValue _txs_src(UniValue::VOBJ);
-    if (POCKETNET_DATA.find(block.GetHash()) != POCKETNET_DATA.end()) {
-        std::string _pocket_data = POCKETNET_DATA[block.GetHash()];
-        _txs_src.read(_pocket_data);
-    }
-
     // Check transactions
     for (const auto& tx : block.vtx) {
         if (!CheckTransaction(*tx, state, true)) {
