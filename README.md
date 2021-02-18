@@ -35,33 +35,50 @@ Minimum system requirements:
 - 10GB free disk space
 - 1Mbps internet connection
 
+
 # Installation:
 ## Linux (Ubuntu, Debian, Mint, etc.)
 Unpack tar.gz with root privilegies. To do this, open the terminal in the directory where you downloaded the tar archive and execute commands:
 ```sh
 sudo tar -xzvf pocketnetcore_*_linux_x64.tar.gz -C /usr/local
 ```
-
 ## Windows
 Run the **pocketnetcore_*_win_x64_setup.exe** and follow the instructions of the installer.
 
   Follow the installer's instructions to install. When you first start, the pocketnetcore desktop utility will ask for the location of the blockchain data directory. Default for Windows `%APPDATA%/Pocketcoin`, for linux `~/.pocketcoin`.
 
+
 # Build from source code
 See `doc/build-*.md` files for build instructions.
 
-# Download blockhain via torrent:
+
+# Initialize blockhain data via torrent:
+Download database via your torrent client with magnet url:
 `magnet:?xt=urn:btih:9ec31b0e8e97b8b77ee50defe1cd410c9db50f41&dn=pocketnet.blockchain.1047356&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce`
 
-Download database via your torrent client.
-Copy content to:
-- Windows: %APPDATA%/Pocketcoin
-- Linux: ~/.pocketcoin
+There must be 4 directories:
+```
+blocks\
+chainstate\
+indexes\
+pocketdb\
+```
+
+Clean out everything except **wallet.dat** file, **wallets/** directory and **pocketcoin.conf** config file in the blockchain working directory:
+- Windows: `%APPDATA%\Pocketcoin\`
+- Linux: `~/.pocketcoin/`
+
+Put the data downloaded via torrent into these directory.
+Make sure the folders and files inside are not set to "read only"
+
+**VERY IMPORTANT**: save the **wallet.dat** file or **wallets/** files before cleaning the directory. It is recommended to even save these files somewhere for backup. 
+
 
 # Help
 You can get help and useful information from different sources:
 - https://pocketnet.app/help
 - https://github.com/pocketnetteam/pocketnet.core/tree/master/doc/help
+- https://github.com/pocketnetteam/pocketnet.core/blob/master/share/examples/pocketcoin.conf
 - Contact section below
 
 # License
