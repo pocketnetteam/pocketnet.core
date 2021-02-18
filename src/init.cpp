@@ -563,7 +563,7 @@ std::string LicenseInfo()
            "\n" +
            "\n" +
            _("This is experimental software.") + "\n" +
-           strprintf(_("Distributed under the APACHE v2.0 software license, see the accompanying file %s"), "LICENSE.txt") + "\n" +
+           strprintf(_("Distributed under the APACHE v2.0 software license, see the accompanying file %s"), "LICENSE") + "\n" +
            "\n" +
            strprintf(_("This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit %s and cryptographic software written by Eric Young and UPnP software written by Thomas Bernard."), "<https://www.openssl.org>") +
            "\n";

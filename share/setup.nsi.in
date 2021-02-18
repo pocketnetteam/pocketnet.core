@@ -72,7 +72,7 @@ Section -Main SEC0000
     SetOverwrite on
     File @abs_top_srcdir@/release/@POCKETCOIN_GUI_NAME@@EXEEXT@
     File /oname=Readme.txt @abs_top_srcdir@/doc/README_windows.txt
-    File /oname=LICENSE.txt @abs_top_srcdir@/LICENSE.txt
+    File /oname=LICENSE @abs_top_srcdir@/LICENSE
     SetOutPath $INSTDIR\daemon
     File @abs_top_srcdir@/release/@POCKETCOIN_DAEMON_NAME@@EXEEXT@
     File @abs_top_srcdir@/release/@POCKETCOIN_CLI_NAME@@EXEEXT@
@@ -120,7 +120,7 @@ done${UNSECTION_ID}:
 Section /o -un.Main UNSEC0000
     Delete /REBOOTOK $INSTDIR\@POCKETCOIN_GUI_NAME@@EXEEXT@
     Delete /REBOOTOK $INSTDIR\Readme.txt
-    Delete /REBOOTOK $INSTDIR\LICENSE.txt
+    Delete /REBOOTOK $INSTDIR\LICENSE
     RMDir /r /REBOOTOK $INSTDIR\daemon
     RMDir /r /REBOOTOK $INSTDIR\doc
 SectionEnd
