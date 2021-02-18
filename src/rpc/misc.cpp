@@ -444,6 +444,7 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
     for (auto& it : WSConnections) {
         if (it.second.Service) {
             UniValue proxy(UniValue::VOBJ);
+            proxy.pushKV("address", it.second.Address);
             proxy.pushKV("ip", it.second.Ip);
             proxy.pushKV("port", it.second.MainPort);
             proxy.pushKV("portWss", it.second.WssPort);
