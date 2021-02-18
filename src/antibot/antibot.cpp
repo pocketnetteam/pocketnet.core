@@ -1239,9 +1239,9 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
         }
 
         if (vasm[2] != oitm["data_hash"].get_str()) {
-            LogPrintf("==2 %s != %s\n", vasm[2], oitm["data_hash"].get_str());
+            //LogPrintf("==2 %s != %s\n", vasm[2], oitm["data_hash"].get_str());
             if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str())) {
-                LogPrintf("==3 FailedOpReturn %s\n", oitm.write());
+                LogPrintf("==3 FailedOpReturn %s - %s - %s\n", vasm[2], _txid_check_exists, oitm.write());
                 resultCode = ANTIBOTRESULT::FailedOpReturn;
                 return;
             }
