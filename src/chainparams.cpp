@@ -124,7 +124,7 @@ public:
         consensus.lottery_referral_limitation = 1035000;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("00000000000000000000000000000000000000000000001f7689bd683bee7d6c");
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000001f7689bd683bee7d6c");
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x023726f45edcedeb598693f9945e0b3646adab590c68de47a1fee50db80d433a"); // 1053425
