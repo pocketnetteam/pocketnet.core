@@ -2685,7 +2685,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     std::string _block_hash_str = _block_hash.GetHex();
 
     // Compute messages for sending by WebSocket
-    if (WSConnections.size() > 0) {
+    if (!WSConnections.empty()) {
         //std::thread server_thread(&NotifyWSClients, blockConnecting);
         //server_thread.detach();
         NotifyWSClients(blockConnecting, pindexNew);

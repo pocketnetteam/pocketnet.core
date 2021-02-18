@@ -440,18 +440,20 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
     oblock.pushKV("ntx", (int)pindex->nTx);
     entry.pushKV("lastblock", oblock);
 
-    UniValue proxies(UniValue::VARR);
-    for (auto& it : WSConnections) {
-        if (it.second.Service) {
-            UniValue proxy(UniValue::VOBJ);
-            proxy.pushKV("address", it.second.Address);
-            proxy.pushKV("ip", it.second.Ip);
-            proxy.pushKV("port", it.second.MainPort);
-            proxy.pushKV("portWss", it.second.WssPort);
-            proxies.push_back(proxy);
+    if (!WSConnections.empty()) {
+        UniValue proxies(UniValue::VARR);
+        for (auto& it : WSConnections) {
+            if (it.second.Service) {
+                UniValue proxy(UniValue::VOBJ);
+                proxy.pushKV("address", it.second.Address);
+                proxy.pushKV("ip", it.second.Ip);
+                proxy.pushKV("port", it.second.MainPort);
+                proxy.pushKV("portWss", it.second.WssPort);
+                proxies.push_back(proxy);
+            }
         }
+        entry.pushKV("proxies", proxies);
     }
-    entry.pushKV("proxies", proxies);
 
     return entry;
 }
