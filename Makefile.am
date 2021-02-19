@@ -20,6 +20,7 @@ POCKETCOIND_BIN=$(top_builddir)/src/$(POCKETCOIN_DAEMON_NAME)$(EXEEXT)
 POCKETCOIN_QT_BIN=$(top_builddir)/src/qt/$(POCKETCOIN_GUI_NAME)$(EXEEXT)
 POCKETCOIN_CLI_BIN=$(top_builddir)/src/$(POCKETCOIN_CLI_NAME)$(EXEEXT)
 POCKETCOIN_WIN_INSTALLER=$(PACKAGE)-$(PACKAGE_VERSION)-win$(WINDOWS_BITS)-setup$(EXEEXT)
+POCKETCOIN_LINUX_ARCHIVE=$(PACKAGE)-$(PACKAGE_VERSION)-linux$(LINUX_BITS).tar.gz
 
 empty :=
 space := $(empty) $(empty)
@@ -77,6 +78,11 @@ $(POCKETCOIN_WIN_INSTALLER): all-recursive
 	@test -f $(MAKENSIS) && $(MAKENSIS) -V2 $(top_builddir)/share/setup.nsi || \
 	  echo error: could not build $@
 	@echo built $@
+
+$(POCKETCOIN_LINUX_TARGZ): all-recursive
+	$(MKDIR_P) $(top_builddir)/release
+	$(MAKE) install DESTDIR=$(top_builddir)/release
+	$(AMTAR) -czf $(POCKETCOIN_LINUX_ARCHIVE) $(top_builddir)/release/*
 
 $(OSX_APP)/Contents/PkgInfo:
 	$(MKDIR_P) $(@D)
@@ -156,6 +162,9 @@ deploy: $(OSX_DMG)
 endif
 if TARGET_WINDOWS
 deploy: $(POCKETCOIN_WIN_INSTALLER)
+endif
+if TARGET_LINUX
+deploy: $(POCKETCOIN_LINUX_TARGZ)
 endif
 
 $(POCKETCOIN_QT_BIN): FORCE
@@ -271,7 +280,7 @@ EXTRA_DIST += \
     test/util/data/txcreatesignv2.hex \
     test/util/rpcauth-test.py
 
-CLEANFILES = $(OSX_DMG) $(POCKETCOIN_WIN_INSTALLER)
+CLEANFILES = $(OSX_DMG) $(POCKETCOIN_WIN_INSTALLER) $(POCKETCOIN_LINUX_ARCHIVE)
 
 .INTERMEDIATE: $(COVERAGE_INFO)
 

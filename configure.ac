@@ -471,6 +471,12 @@ case $host in
        *) AC_MSG_ERROR("Could not determine win32/win64 for installer") ;;
      esac
      AC_SUBST(WINDOWS_BITS)
+     case $host in
+       i?86-*) LINUX_BITS=32 ;;
+       x86_64-*) LINUX_BITS=64 ;;
+       *) AC_MSG_ERROR("Could not determine 32/64 for linux archive") ;;
+     esac
+     AC_SUBST(LINUX_BITS)
 
      dnl libtool insists upon adding -nostdlib and a list of objects/libs to link against.
      dnl That breaks our ability to build dll's with static libgcc/libstdc++/libssp. Override
@@ -1349,6 +1355,7 @@ fi
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
 AM_CONDITIONAL([BUILD_DARWIN], [test x$BUILD_OS = xdarwin])
 AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
+AM_CONDITIONAL([TARGET_LINUX], [test x$TARGET_OS = xlinux])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$pocketcoin_enable_qt = xyes])
