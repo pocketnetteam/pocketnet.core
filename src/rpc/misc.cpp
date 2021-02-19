@@ -11,6 +11,7 @@
 #include <httpserver.h>
 #include <key_io.h>
 #include <net.h>
+#include <pos.h>
 #include <netbase.h>
 #include <outputtype.h>
 #include <rpc/blockchain.h>
@@ -431,6 +432,9 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
     UniValue entry(UniValue::VOBJ);
     entry.pushKV("time", GetAdjustedTime());
     entry.pushKV("chain", Params().NetworkIDString());
+
+    uint64_t nNetworkWeight = GetPoSKernelPS();
+    entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
 
     CBlockIndex* pindex = chainActive.Tip();
     UniValue oblock(UniValue::VOBJ);
