@@ -2398,36 +2398,37 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         mapAlreadyAskedFor.erase(inv.hash);
 
         std::list<CTransactionRef> lRemovedTxn;
-		//----------------------
-        if (g_addrindex->IsPocketnetTransaction(rtx) && pocket_data == "") {
-            LogPrintf("WARNING! NetMsgType::TX Receive transaction without pocketdata: %s\n", ptx->GetHash().GetHex());
-        }
+		
+        // Antibot checked transaction with pocketnet consensus rules
+        if (g_addrindex->IsPocketnetTransaction(rtx)) {
+            if (pocket_data == "") {
+                LogPrintf("WARNING! NetMsgType::TX Receive transaction without pocketdata: %s\n", ptx->GetHash().GetHex());
+                state.Invalid(false, REJECT_INCOMPLETE, "Network");
+            } else {
+                // Check transaction with Antibot
+                UniValue _txs_src(UniValue::VOBJ);
+                _txs_src.read(pocket_data);
 
-		// Save
-		if (pocket_data != "") {
-			// Check transaction with Antibot
-			UniValue _txs_src(UniValue::VOBJ);
-			_txs_src.read(pocket_data);
-
-            rtx.pTable = _txs_src["t"].get_str();
-            rtx.pTransaction = g_pocketdb->DB()->NewItem(rtx.pTable);
-            rtx.pTransaction.FromJSON(DecodeBase64(_txs_src["d"].get_str()));
-
-			if (rtx.pTable == "Mempool") {
-                rtx.pTable = rtx.pTransaction["table"].As<string>();
-				std::string _data = rtx.pTransaction["data"].As<string>();
+                rtx.pTable = _txs_src["t"].get_str();
                 rtx.pTransaction = g_pocketdb->DB()->NewItem(rtx.pTable);
-                rtx.pTransaction.FromJSON(DecodeBase64(_data));
-			}
+                rtx.pTransaction.FromJSON(DecodeBase64(_txs_src["d"].get_str()));
 
-			ANTIBOTRESULT ab_result;
-            g_antibot->CheckTransactionRIItem(g_addrindex->GetUniValue(rtx, rtx.pTransaction, rtx.pTable), chainActive.Height() + 1, ab_result);
-			if (ab_result != ANTIBOTRESULT::Success) {
-                LogPrintf("WARNING! Receive transaction, antibot check: %d %s\n", ab_result, ptx->GetHash().GetHex());
-				state.Invalid(false, ab_result, "Antibot");
-			}
-		}
-		//----------------------
+                if (rtx.pTable == "Mempool") {
+                    rtx.pTable = rtx.pTransaction["table"].As<string>();
+                    std::string _data = rtx.pTransaction["data"].As<string>();
+                    rtx.pTransaction = g_pocketdb->DB()->NewItem(rtx.pTable);
+                    rtx.pTransaction.FromJSON(DecodeBase64(_data));
+                }
+
+                ANTIBOTRESULT ab_result;
+                g_antibot->CheckTransactionRIItem(g_addrindex->GetUniValue(rtx, rtx.pTransaction, rtx.pTable), chainActive.Height() + 1, ab_result);
+                if (ab_result != ANTIBOTRESULT::Success) {
+                    LogPrintf("WARNING! Receive transaction, antibot check: %d %s\n", ab_result, ptx->GetHash().GetHex());
+                    state.Invalid(false, ab_result, "Antibot");
+                }
+            }
+        }
+        
         if (!state.IsInvalid() && !AlreadyHave(inv) && AcceptToMemoryPool(mempool, state, rtx, &fMissingInputs, &lRemovedTxn, false /* bypass_limits */, 0 /* nAbsurdFee */))
 		{
             mempool.check(pcoinsTip.get());
