@@ -1169,7 +1169,6 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
     unsigned char hash[32] = {};
     CSHA256().Write((const unsigned char*)data.data(), data.size()).Finalize(hash);
     CSHA256().Write(hash, 32).Finalize(hash);
-
     std::vector<unsigned char> vec(hash, hash + sizeof(hash));
     out_hash = HexStr(vec);
     return true;

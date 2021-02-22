@@ -527,20 +527,20 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
 
         new_rtx.pTransaction["time"] = txTime;
         new_rtx.pTransaction["regdate"] = txTime;
+        new_rtx.pTransaction["referrer"] = "";
+
         reindexer::Item user_cur;
         if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("address", CondEq, address), user_cur).ok()) {
             new_rtx.pTransaction["regdate"] = user_cur["regdate"].As<int64_t>();
+            new_rtx.pTransaction["referrer"] = user_cur["referrer"].As<string>();
+        } else if (request.params[1].exists("r")) {
+            new_rtx.pTransaction["referrer"] = request.params[1]["r"].get_str();
         }
 
         if (request.params[1].exists("a")) new_rtx.pTransaction["about"] = request.params[1]["a"].get_str();
         if (request.params[1].exists("s")) new_rtx.pTransaction["url"] = request.params[1]["s"].get_str();
         if (request.params[1].exists("b")) new_rtx.pTransaction["donations"] = request.params[1]["b"].get_str();
         if (request.params[1].exists("k")) new_rtx.pTransaction["pubkey"] = request.params[1]["k"].get_str();
-
-        new_rtx.pTransaction["referrer"] = "";
-        if (request.params[1].exists("r")) {
-            new_rtx.pTransaction["referrer"] = request.params[1]["r"].get_str();
-        }
 
     } else if (mesType == "complainShare") {
         new_rtx.pTable = "Complains";

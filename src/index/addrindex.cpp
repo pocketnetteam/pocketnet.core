@@ -1171,6 +1171,13 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
             LogPrintf("WARNING! AddrIndex::GetTXRIData: ridata not found %s\n", txid);
             return false;
         }
+
+        if (ri_table == "Users") {
+            reindexer::Item prevItm;
+            if (g_pocketdb->SelectOne(Query("Users").Where("address", CondEq, itm["address"].As<string>()).Where("time", CondLt, itm["time"].As<int64_t>()), prevItm).ok()) {
+                itm["referrer"] = "";
+            }
+        }
     }
 
     ret_data.pushKV("t", (mempool ? "Mempool" : ri_table));

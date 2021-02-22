@@ -127,6 +127,7 @@ enum ANTIBOTRESULT {
     DoubleCommentScore = 40,
     OpReturnFailed = 41,
     CommentDeletedEdit = 42,
+    ReferrerAfterRegistration = 43
 };
 //-----------------------------------------------------
 struct BlockVTX {

@@ -565,6 +565,12 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
     std::string _address_referrer = oitm["referrer"].get_str();
     std::string _name = oitm["name"].get_str();
     int64_t _time = oitm["time"].get_int64();
+    
+    // Referrer to self? Seriously?;)
+    if (_address == _address_referrer) {
+        result = ANTIBOTRESULT::ReferrerSelf;
+        return false;
+    }
 
     // Get last updated item
     reindexer::Item userItm;
@@ -572,6 +578,12 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
         reindexer::Query("UsersView").Where("address", CondEq, _address),
         userItm
     ).ok()) {
+        if (_address_referrer != "") {
+            LogPrintf("ANTIBOTRESULT::ReferrerAfterRegistration UsersView %s", _txid);
+            result = ANTIBOTRESULT::ReferrerAfterRegistration;
+            return false;
+        }
+
         int64_t userUpdateTime = userItm["time"].As<int64_t>();
         if (_time - userUpdateTime <= GetActualLimit(Limit::change_info_timeout, height)) {
             result = ANTIBOTRESULT::ChangeInfoLimit;
@@ -589,9 +601,17 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
 
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
                 if (t_itm.FromJSON(t_src).ok()) {
-                    if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address) {
-                        result = ANTIBOTRESULT::ChangeInfoLimit;
-                        return false;
+                    if (t_itm["address"].As<string>() == _address) {
+                        if (_address_referrer != "") {
+                            LogPrintf("ANTIBOTRESULT::ReferrerAfterRegistration mempool %s", _txid);
+                            result = ANTIBOTRESULT::ReferrerAfterRegistration;
+                            return false;
+                        }
+
+                        if (t_itm["time"].As<int64_t>() <= _time) {
+                            result = ANTIBOTRESULT::ChangeInfoLimit;
+                            return false;
+                        }
                     }
                 }
             }
@@ -601,9 +621,17 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
     // Check block
     if (blockVtx.Exists("Users")) {
         for (auto& mtx : blockVtx.Data["Users"]) {
-            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
-                result = ANTIBOTRESULT::ChangeInfoLimit;
-                return false;
+            if (mtx["address"].get_str() == _address) {
+                if (_address_referrer != "") {
+                    LogPrintf("ANTIBOTRESULT::ReferrerAfterRegistration block %s", _txid);
+                    result = ANTIBOTRESULT::ReferrerAfterRegistration;
+                    return false;
+                }
+
+                if (mtx["txid"].get_str() != _txid) {
+                    result = ANTIBOTRESULT::ChangeInfoLimit;
+                    return false;
+                }
             }
         }
     }
@@ -624,11 +652,6 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
     // Check spaces in begin and end
     if (boost::algorithm::ends_with(_name, "%20") || boost::algorithm::starts_with(_name, "%20")) {
         result = ANTIBOTRESULT::Failed;
-        return false;
-    }
-
-    if (_address == _address_referrer) {
-        result = ANTIBOTRESULT::ReferrerSelf;
         return false;
     }
 
