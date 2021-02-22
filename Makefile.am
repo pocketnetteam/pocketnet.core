@@ -19,8 +19,9 @@ endif
 POCKETCOIND_BIN=$(top_builddir)/src/$(POCKETCOIN_DAEMON_NAME)$(EXEEXT)
 POCKETCOIN_QT_BIN=$(top_builddir)/src/qt/$(POCKETCOIN_GUI_NAME)$(EXEEXT)
 POCKETCOIN_CLI_BIN=$(top_builddir)/src/$(POCKETCOIN_CLI_NAME)$(EXEEXT)
-POCKETCOIN_WIN_INSTALLER=$(PACKAGE)-$(PACKAGE_VERSION)-win$(WINDOWS_BITS)-setup$(EXEEXT)
-POCKETCOIN_LINUX_ARCHIVE=$(PACKAGE)-$(PACKAGE_VERSION)-linux$(LINUX_BITS).tar.gz
+POCKETCOIN_WIN_INSTALLER=$(PACKAGE)_$(PACKAGE_VERSION)_win_x64_setup.exe
+POCKETCOIN_LINUX_INSTALLER = $(PACKAGE)_$(PACKAGE_VERSION)_linux_x64
+POCKETCOIN_LINUX_INSTALLER_NAME = $(PACKAGE)_$(PACKAGE_VERSION)_linux_x64
 
 empty :=
 space := $(empty) $(empty)
@@ -79,10 +80,20 @@ $(POCKETCOIN_WIN_INSTALLER): all-recursive
 	  echo error: could not build $@
 	@echo built $@
 
-$(POCKETCOIN_LINUX_TARGZ): all-recursive
-	$(MKDIR_P) $(top_builddir)/release
-	$(MAKE) install DESTDIR=$(top_builddir)/release
-	$(AMTAR) -czf $(POCKETCOIN_LINUX_ARCHIVE) $(top_builddir)/release/*
+$(POCKETCOIN_LINUX_INSTALLER): all-recursive
+	$(MKDIR_P) $(abs_top_builddir)/release
+	$(MAKE) install DESTDIR=$(abs_top_builddir)/release
+	$(AMTAR) -czf $(POCKETCOIN_LINUX_INSTALLER_NAME).tar.gz -C $(abs_top_builddir)/release .
+	$(MKDIR_P) $(abs_top_builddir)/release/DEBIAN
+	$(MKDIR_P) $(abs_top_builddir)/release/usr/local/share/applications
+	$(MKDIR_P) $(abs_top_builddir)/release/usr/local/share/pixmaps
+	@cp $(abs_top_builddir)/contrib/debian/control $(abs_top_builddir)/release/DEBIAN/
+	@cp $(abs_top_builddir)/share/data/pocketnetcore.desktop $(abs_top_builddir)/release/usr/local/share/applications/
+	@cp $(abs_top_builddir)/share/pixmaps/pocketcoin.png $(abs_top_builddir)/release/usr/local/share/pixmaps/
+	@sed -i "s/Version:.*/Version: $(PACKAGE_VERSION)/" $(abs_top_builddir)/release/DEBIAN/control
+	@sed -i "s/Version=.*/Version=$(PACKAGE_VERSION)/" $(abs_top_builddir)/release/usr/local/share/applications/pocketnetcore.desktop
+	@dpkg -b $(abs_top_builddir)/release
+	@mv $(abs_top_builddir)/release.deb $(abs_top_builddir)/$(POCKETCOIN_LINUX_INSTALLER_NAME)_setup.deb
 
 $(OSX_APP)/Contents/PkgInfo:
 	$(MKDIR_P) $(@D)
@@ -164,7 +175,7 @@ if TARGET_WINDOWS
 deploy: $(POCKETCOIN_WIN_INSTALLER)
 endif
 if TARGET_LINUX
-deploy: $(POCKETCOIN_LINUX_TARGZ)
+deploy: $(POCKETCOIN_LINUX_INSTALLER)
 endif
 
 $(POCKETCOIN_QT_BIN): FORCE

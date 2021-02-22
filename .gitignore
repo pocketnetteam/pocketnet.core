@@ -1,7 +1,6 @@
 build_msvc/pocketcoin.sln
 .vscode
 conf
-debian
 
 *.tar.gz
 
