@@ -4,3 +4,4 @@ Architecture: amd64
 Maintainer: Pocketnet Team <core@pocketnet.app>
 Priority: optional
 Description: Pocketnet core package. It includes desktop wallet, daemon, and the RPC console utility.
+
