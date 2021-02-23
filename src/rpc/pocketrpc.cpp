@@ -532,7 +532,6 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         reindexer::Item user_cur;
         if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("address", CondEq, address), user_cur).ok()) {
             new_rtx.pTransaction["regdate"] = user_cur["regdate"].As<int64_t>();
-            new_rtx.pTransaction["referrer"] = user_cur["referrer"].As<string>();
         } else if (request.params[1].exists("r")) {
             new_rtx.pTransaction["referrer"] = request.params[1]["r"].get_str();
         }

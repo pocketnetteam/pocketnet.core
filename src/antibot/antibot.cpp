@@ -579,9 +579,10 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
         userItm
     ).ok()) {
         if (_address_referrer != "") {
+            // TODO (brangr): For moving
             LogPrintf("ANTIBOTRESULT::ReferrerAfterRegistration UsersView %s", _txid);
-            result = ANTIBOTRESULT::ReferrerAfterRegistration;
-            return false;
+            // result = ANTIBOTRESULT::ReferrerAfterRegistration;
+            // return false;
         }
 
         int64_t userUpdateTime = userItm["time"].As<int64_t>();
@@ -603,9 +604,10 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == _address) {
                         if (_address_referrer != "") {
+                            // TODO (brangr): For moving
                             LogPrintf("ANTIBOTRESULT::ReferrerAfterRegistration mempool %s", _txid);
-                            result = ANTIBOTRESULT::ReferrerAfterRegistration;
-                            return false;
+                            // result = ANTIBOTRESULT::ReferrerAfterRegistration;
+                            // return false;
                         }
 
                         if (t_itm["time"].As<int64_t>() <= _time) {
@@ -623,9 +625,10 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
         for (auto& mtx : blockVtx.Data["Users"]) {
             if (mtx["address"].get_str() == _address) {
                 if (_address_referrer != "") {
+                    // TODO (brangr): For moving
                     LogPrintf("ANTIBOTRESULT::ReferrerAfterRegistration block %s", _txid);
-                    result = ANTIBOTRESULT::ReferrerAfterRegistration;
-                    return false;
+                    // result = ANTIBOTRESULT::ReferrerAfterRegistration;
+                    // return false;
                 }
 
                 if (mtx["txid"].get_str() != _txid) {
