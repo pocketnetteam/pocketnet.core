@@ -173,7 +173,7 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
             }
 
             if (!RPCAuthorized(authHeader.second, jreq.authUser)) {
-                LogPrintf("ThreadRPCServer incorrect password attempt from %s\n", jreq.peerAddr);
+                LogPrintf("ThreadRPCServer incorrect password %s attempt from %s\n", authHeader.second, jreq.peerAddr);
 
                 /*  Deter brute-forcing
                     If this results in a DoS the user really
