@@ -53,23 +53,40 @@ See `doc/build-*.md` files for build instructions.
 
 
 # Initialize blockhain data via torrent:
-Download database via your torrent client with magnet url:
-`magnet:?xt=urn:btih:9ec31b0e8e97b8b77ee50defe1cd410c9db50f41&dn=pocketnet.blockchain.1047356&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce`
-
-There must be 4 directories:
+1. Stop the node.
+2. Download database via your torrent client:
+```
+magnet:?xt=urn:btih:cc7f138611c8b9a8419822b20b775b38aabc7949&dn=pocketnet.checkpoint.1063731.tar.gz&tr=udp%3a%2f%2fexplodie.org%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.leechers-paradise.org%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.torrent.eu.org%3a451%2fannounce&tr=udp%3a%2f%2ftracker.bitcoin.sprovoost.nl%3a6969&tr=udp%3a%2f%2ftracker.opentrackr.org%3a1337%2fannounce&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce&tr=udp%3a%2f%2ftracker.coppersurfer.tk%3a6969%2fannounce
+```
+4. There must be archive tar.gz with 4 directories:
 ```
 blocks\
 chainstate\
 indexes\
 pocketdb\
 ```
-
-Clean out everything except **wallet.dat** file, **wallets/** directory and **pocketcoin.conf** config file in the blockchain working directory:
-- Windows: `%APPDATA%\Pocketcoin\`
-- Linux: `~/.pocketcoin/`
-
-Put the data downloaded via torrent into these directory.
-Make sure the folders and files inside are not set to "read only"
+4. Clean out everything except **wallet.dat** file, **wallets/** directory and **pocketcoin.conf** config file in the blockchain working directory and unpack the archive:
+```sh
+# for unix
+> cd ~/.pocketcoin/
+> 
+# or for windows
+> cd %APPDATA%\Pocketcoin\
+> 
+# or for macos
+> cd ~/Library/Application\ Support/Pocketcoin/
+> 
+# delete exists DB
+> rm -r ./blocks
+> rm -r ./chainstate
+> rm -r ./indexes
+> rm -r ./pocketdb
+>
+# unpack new checkpoint DB
+> tar -xzvf pocketnet.checkpoint.*.tar.gz -C ./
+```
+5. Make sure the folders and files inside are not set to "read only"
+6. Start the node.
 
 **VERY IMPORTANT**: save the **wallet.dat** file or **wallets/** files before cleaning the directory. It is recommended to even save these files somewhere for backup. 
 
