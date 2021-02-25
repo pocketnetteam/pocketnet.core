@@ -38,9 +38,9 @@ Minimum system requirements:
 
 # Installation:
 ## Linux (Ubuntu, Debian, Mint, etc.)
-Unpack tar.gz with root privilegies. To do this, open the terminal in the directory where you downloaded the tar archive and execute commands:
+Install package with root privilegies. To do this, open the terminal in the directory where you downloaded the installer and execute commands:
 ```sh
-sudo tar -xzvf pocketnetcore_*_linux_x64.tar.gz -C /usr/local
+sudo dpkg -i pocketnetcore_*_linux_x64_setup.deb
 ```
 ## Windows
 Run the **pocketnetcore_*_win_x64_setup.exe** and follow the instructions of the installer.
