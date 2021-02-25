@@ -122,6 +122,7 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::LEVELDB, "leveldb"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
+    {BCLog::SYNC, "sync"},
 };
 
 bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str)

@@ -55,6 +55,7 @@ namespace BCLog {
         LEVELDB     = (1 << 20),
         STAKEMODIF  = (1 << 21),
         STAT        = (1 << 22),
+        SYNC        = (1 << 23),
         ALL         = ~(uint32_t)0,
     };
 

@@ -119,7 +119,7 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, std::shared_ptr<CWallet> w
 	}
 
 	//// debug print
-	LogPrintf("=== CheckStake() : new PoS block found hash: %s\n", hashBlock.GetHex());
+	LogPrintf("=== Staking : new PoS block found hash: %s\n", hashBlock.GetHex());
 
 	// Found a solution
 	{
