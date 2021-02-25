@@ -430,6 +430,7 @@ static UniValue echo(const JSONRPCRequest& request)
 static UniValue getnodeinfo(const JSONRPCRequest& request)
 {
     UniValue entry(UniValue::VOBJ);
+    entry.pushKV("version", FormatVersion(CLIENT_VERSION));
     entry.pushKV("time", GetAdjustedTime());
     entry.pushKV("chain", Params().NetworkIDString());
 
