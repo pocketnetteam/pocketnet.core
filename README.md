@@ -36,7 +36,7 @@ Minimum system requirements:
 - 10Mbps internet connection
 
 
-# Installation:
+# Installation
 ## Linux (Ubuntu, Debian, Mint, etc.)
 Install package with root privilegies. To do this, open the terminal in the directory where you downloaded the installer and execute commands:
 ```sh
@@ -52,7 +52,19 @@ Run the **pocketnetcore_*_win_x64_setup.exe** and follow the instructions of the
 See `doc/build-*.md` files for build instructions.
 
 
-# Initialize blockhain data via torrent:
+# First full synchronization
+To quickly synchronize and minimize traffic costs, you can run an empty node with additional parameters:
+- `-listen=0` - disable the visibility of your node so that other novice nodes can't connect to you to download the blockchain.
+- `-blocksonly=1` - specifies the mode of operation without transaction relay. In this way, the node will load the blocks as a whole, ignoring individual transactions on the network.
+
+**After full synchronization, it is strongly recommended to disable these settings for the full operation of the node.**
+
+You can get the full list of parameters:
+```sh
+> pocketcoind --help
+```
+
+# Initialize blockhain data via torrent
 1. Stop the node.
 2. Download database via your torrent client:
 ```
