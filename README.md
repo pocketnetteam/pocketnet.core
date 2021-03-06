@@ -68,7 +68,7 @@ You can get the full list of parameters:
 1. Stop the node.
 2. Download database via your torrent client:
 ```
-magnet:?xt=urn:btih:cc7f138611c8b9a8419822b20b775b38aabc7949&dn=pocketnet.checkpoint.1063731.tar.gz&tr=udp%3a%2f%2fexplodie.org%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.leechers-paradise.org%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.torrent.eu.org%3a451%2fannounce&tr=udp%3a%2f%2ftracker.bitcoin.sprovoost.nl%3a6969&tr=udp%3a%2f%2ftracker.opentrackr.org%3a1337%2fannounce&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce&tr=udp%3a%2f%2ftracker.coppersurfer.tk%3a6969%2fannounce
+magnet:?xt=urn:btih:f21283c5071ce10c2f7f513eb02d2bcf72f62a5d&dn=pocketnet.checkpoint.1077334&tr=udp%3a%2f%2ftracker.torrent.eu.org%3a451%2fannounce&tr=udp%3a%2f%2ftracker.coppersurfer.tk%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.leechers-paradise.org%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.bitcoin.sprovoost.nl%3a6969&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce&tr=udp%3a%2f%2fexplodie.org%3a6969%2fannounce&tr=udp%3a%2f%2ftracker.opentrackr.org%3a1337%2fannounce
 ```
 4. There must be archive tar.gz with 4 directories:
 ```
