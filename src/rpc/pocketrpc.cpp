@@ -701,6 +701,20 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
         lang = request.params[4].get_str();
     }
 
+    std::vector<string> tags;
+    if (request.params.size() > 5) {
+        if (request.params[5].isStr()) {
+            tags.push_back(request.params[5].get_str());
+        } else if (request.params[5].isArray()) {
+            UniValue tgs = request.params[5].get_array();
+            for (unsigned int idx = 0; idx < tgs.size(); idx++) {
+                tags.push_back(tgs[idx].get_str());
+            }
+        }
+    } else {
+        tags.push_back("");
+    }
+
     vector<string> addrsblock;
     if (address_from != "" && (address_to == "" || address_to == "1")) {
         reindexer::QueryResults queryResBlocking;
@@ -724,8 +738,8 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
         }
     }
 
+    vector<string> addrs;
     if (address_to != "") {
-        vector<string> addrs;
         if (address_to == "1") {
             if (address_from.length() < 34)
                 throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid address in HEX transaction");
@@ -739,15 +753,43 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
         } else {
             addrs.push_back(address_to);
         }
-
-        err = g_pocketdb->DB()->Select(
-            reindexer::Query("Posts" /*, 0, resultCount*/).Where("lang", (lang == "" ? CondGe : CondEq), lang).Where("address", CondSet, addrs).Not().Where("address", CondSet, addrsblock).Where("time", ((resultCount > 0 && resultStart > 0) ? CondLt : CondGt), resultStart).Where("time", CondLe, GetAdjustedTime()).Sort("time", (resultCount > 0 ? true : false)),
-            queryRes);
+        //err = g_pocketdb->DB()->Select(
+        //    reindexer::Query("Posts" /*, 0, resultCount*/).Where("tags", (tags[0] != "" ? CondSet : CondEmpty), tags).Where("lang", (lang == "" ? CondGe : CondEq), lang).Where("address", CondSet, addrs).Not().Where("address", CondSet, addrsblock).Where("time", ((resultCount > 0 && resultStart > 0) ? CondLt : CondGt), resultStart).Where("time", CondLe, GetAdjustedTime()).Sort("time", (resultCount > 0 ? true : false)),
+        //    queryRes);
     } else {
-        err = g_pocketdb->DB()->Select(
-            reindexer::Query("Posts" /*, 0, resultCount*/).Where("lang", (lang == "" ? CondGe : CondEq), lang).Where("txidRepost", CondEq, "").Not().Where("address", CondSet, addrsblock).Where("time", ((resultCount > 0 && resultStart > 0) ? CondLt : CondGt), resultStart).Where("time", CondLe, GetAdjustedTime()).Sort("time", (resultCount > 0 ? true : false)),
-            queryRes);
+        //err = g_pocketdb->DB()->Select(
+        //    reindexer::Query("Posts" /*, 0, resultCount*/).Where("tags", (tags[0] != "" ? CondSet : CondGe), tags).Where("lang", (lang == "" ? CondGe : CondEq), lang).Where("txidRepost", CondEq, "").Not().Where("address", CondSet, addrsblock).Where("time", ((resultCount > 0 && resultStart > 0) ? CondLt : CondGt), resultStart).Where("time", CondLe, GetAdjustedTime()).Sort("time", (resultCount > 0 ? true : false)),
+        //    queryRes);
     }
+
+    reindexer::Query query;
+    query = reindexer::Query("Posts");
+
+    query = query.Not().Where("address", CondSet, addrsblock);
+    query = query.Where("time", CondLe, GetAdjustedTime());
+
+    if (resultCount > 0 && resultStart > 0) {
+        query = query.Where("time", CondLt, resultStart);
+    } else {
+        query = query.Where("time", CondGt, resultStart);
+    }
+    if (address_to != "") {
+        query = query.Where("address", CondSet, addrs);
+    } else {
+        query = query.Where("txidRepost", CondEq, "");
+    }
+    if (lang != "") {
+        query = query.Where("lang", CondEq, lang);
+    }
+    if (tags[0] != "") {
+        query = query.Where("tags", CondSet, tags);
+    }
+    if (resultCount > 0) {
+        query = query.Sort("time", true);
+    } else {
+        query = query.Sort("time", false);
+    }
+    err = g_pocketdb->DB()->Select(query, queryRes);
 
     int iQuery = 0;
     reindexer::QueryResults::Iterator it = queryRes.begin();
@@ -1625,6 +1667,10 @@ UniValue search(const JSONRPCRequest& request)
     std::map<std::string, std::set<std::string>> mTagsUsers;
     std::map<std::string, int> mFastSearch;
 
+    if(type == "tags"){
+
+    }
+
     // --- Search posts by Search String -----------------------------------------------
     if (fs || all || type == "posts") {
         //LogPrintf("--- Search: %s\n", fulltext_search_string);
@@ -1756,6 +1802,20 @@ UniValue gethotposts(const JSONRPCRequest& request)
         lang = request.params[3].get_str();
     }
 
+    std::vector<string> tags;
+    if (request.params.size() > 4) {
+        if (request.params[4].isStr()) {
+            tags.push_back(request.params[4].get_str());
+        } else if (request.params[4].isArray()) {
+            UniValue tgs = request.params[4].get_array();
+            for (unsigned int idx = 0; idx < tgs.size(); idx++) {
+                tags.push_back(tgs[idx].get_str());
+            }
+        }
+    } else {
+        tags.push_back("");
+    }
+
     int64_t curTime = GetAdjustedTime();
 
     // Excluded posts
@@ -1785,14 +1845,30 @@ UniValue gethotposts(const JSONRPCRequest& request)
     // best posts of last month
     // 60s * 60m * 24h * 30d = 2592000
     reindexer::QueryResults postsRes;
-    g_pocketdb->Select(reindexer::Query("Posts", 0, count * 5)
-                           .Where("lang", (lang == "" ? CondGe : CondEq), lang)
-                           .Where("time", CondGt, curTime - depth)
-                           .Not()
-                           .Where("address", CondSet, addrsblock)
-                           .Sort("reputation", true)
-                           .Sort("scoreSum", true),
-        postsRes);
+    reindexer::Query query;
+
+    query = reindexer::Query("Posts", 0, count * 5);
+    if (lang != "") {
+        query = query.Where("lang", CondEq, lang);
+    }
+    if (tags[0] != "") {
+        query = query.Where("tags", CondSet, tags);
+    }
+    query = query.Where("time", CondGt, curTime - depth);
+    query = query.Not().Where("address", CondSet, addrsblock);
+    query = query.Sort("reputation", true);
+    query = query.Sort("scoreSum", true);
+
+    g_pocketdb->Select(query, postsRes);
+
+    //g_pocketdb->Select(reindexer::Query("Posts", 0, count * 5)
+    //                       .Where("lang", (lang == "" ? CondGe : CondEq), lang)
+    //                       .Where("time", CondGt, curTime - depth)
+    //                       .Not()
+    //                       .Where("address", CondSet, addrsblock)
+    //                       .Sort("reputation", true)
+    //                       .Sort("scoreSum", true),
+    //    postsRes);
 
     UniValue result(UniValue::VARR);
 
@@ -2464,11 +2540,39 @@ UniValue debug(const JSONRPCRequest& request)
     return result;
 }
 //----------------------------------------------------------
+//----------------------------------------------------------
+//----------------------------------------------------------
+//--METHODS 2.0
+//----------------------------------------------------------
+UniValue gethistoricalstrip(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "gethistoricalstrip\n"
+            "\n.\n");
+
+
+
+    UniValue result(UniValue::VARR);
+    return result;
+}
+UniValue gethierarchicalstrip(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "gethierarchicalstrip\n"
+            "\n.\n");
+
+    UniValue result(UniValue::VOBJ);
+
+    return result;
+}
+//----------------------------------------------------------
 
 static const CRPCCommand commands[] =
     {
         {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"},                                       false},
-        {"pocketnetrpc", "getrawtransactionwithmessage",      &getrawtransactionwithmessage,      {"address_from", "address_to", "start_txid", "count"},                  false},
+        {"pocketnetrpc", "getrawtransactionwithmessage",      &getrawtransactionwithmessage,      {"address_from", "address_to", "start_txid", "count", "lang", "tags"},  false},
         {"pocketnetrpc", "getrawtransactionwithmessage2",     &getrawtransactionwithmessage2,     {"address_from", "address_to", "start_txid", "count"},                  false},
         {"pocketnetrpc", "getrawtransactionwithmessagebyid",  &getrawtransactionwithmessagebyid,  {"txs", "address"},                                                     false},
         {"pocketnetrpc", "getrawtransactionwithmessagebyid2", &getrawtransactionwithmessagebyid2, {"txs", "address"},                                                     false},
@@ -2484,7 +2588,7 @@ static const CRPCCommand commands[] =
         {"pocketnetrpc", "searchtags",                        &searchtags,                        {"search_string", "count"},                                             false},
         {"pocketnetrpc", "search",                            &search,                            {"search_string", "type", "count"},                                     false},
         {"pocketnetrpc", "search2",                           &search2,                           {"search_string", "type", "count"},                                     false},
-        {"pocketnetrpc", "gethotposts",                       &gethotposts,                       {"count", "depth"},                                                     false},
+        {"pocketnetrpc", "gethotposts",                       &gethotposts,                       {"count", "depth", "address", "lang", "tags"},                          false},
         {"pocketnetrpc", "gethotposts2",                      &gethotposts2,                      {"count", "depth"},                                                     false},
         {"pocketnetrpc", "getuseraddress",                    &getuseraddress,                    {"name", "count"},                                                      false},
         {"pocketnetrpc", "getreputations",                    &getreputations,                    {},                                                                     false},
