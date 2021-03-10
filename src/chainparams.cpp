@@ -124,13 +124,13 @@ public:
         consensus.lottery_referral_limitation = 1035000;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000001f7689bd683bee7d6c");
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000020a01baf8603ab2d0f");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x023726f45edcedeb598693f9945e0b3646adab590c68de47a1fee50db80d433a"); // 1053425
+        consensus.defaultAssumeValid = uint256S("0x014a4b038933d7a78a320aa89a08c06e1ec6742ac83b87fba6a66e79eea2a9dc"); // 1082899
 
         /**
-		 * The message start string is designed to be unl023726f45edcedeb598693f9945e0b3646adab590c68de47a1fee50db80d433aikely to occur in normal data.
+		 * The message start string is designed to be unlikely to occur in normal data.
 		 * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
 		 * a large 32-bit integer with any alignment.
 		 */
