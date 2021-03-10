@@ -393,6 +393,8 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     std::string mesType = request.params[2].get_str();
     int64_t txTime = new_rtx->nTime;
 
+    // TODO (brangr): split all transactions with new methods
+    //  || mesType == "video" || mesType == "verification" || mesType == "server_publish" || mesType == "poll" || mesType == "translate"
     if (mesType == "share") {
         new_rtx.pTable = "Posts";
         new_rtx.pTransaction = g_pocketdb->DB()->NewItem(new_rtx.pTable);

@@ -579,10 +579,8 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
         userItm
     ).ok()) {
         if (_address_referrer != "") {
-            // TODO (brangr): For moving
-            LogPrintf("ANTIBOTRESULT::ReferrerAfterRegistration UsersView %s", _txid);
-            // result = ANTIBOTRESULT::ReferrerAfterRegistration;
-            // return false;
+            result = ANTIBOTRESULT::ReferrerAfterRegistration;
+            return false;
         }
 
         int64_t userUpdateTime = userItm["time"].As<int64_t>();
@@ -603,13 +601,6 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == _address) {
-                        if (_address_referrer != "") {
-                            // TODO (brangr): For moving
-                            LogPrintf("ANTIBOTRESULT::ReferrerAfterRegistration mempool %s", _txid);
-                            // result = ANTIBOTRESULT::ReferrerAfterRegistration;
-                            // return false;
-                        }
-
                         if (t_itm["time"].As<int64_t>() <= _time) {
                             result = ANTIBOTRESULT::ChangeInfoLimit;
                             return false;
@@ -624,13 +615,6 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
     if (blockVtx.Exists("Users")) {
         for (auto& mtx : blockVtx.Data["Users"]) {
             if (mtx["address"].get_str() == _address) {
-                if (_address_referrer != "") {
-                    // TODO (brangr): For moving
-                    LogPrintf("ANTIBOTRESULT::ReferrerAfterRegistration block %s", _txid);
-                    // result = ANTIBOTRESULT::ReferrerAfterRegistration;
-                    // return false;
-                }
-
                 if (mtx["txid"].get_str() != _txid) {
                     result = ANTIBOTRESULT::ChangeInfoLimit;
                     return false;
@@ -1254,6 +1238,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     // If `item` with `txid` already in reindexer db - skip checks
     std::string _txid_check_exists = oitm["txid"].get_str();
     if (table == "Posts" && oitm["txidEdit"].get_str() != "") _txid_check_exists = oitm["txidEdit"].get_str();
+    if (g_addrindex->CheckRItemExists(table, _txid_check_exists)) return;
 
     // Check consistent transaction and reindexer::Item
     if (height >= Params().GetConsensus().opreturn_check) {

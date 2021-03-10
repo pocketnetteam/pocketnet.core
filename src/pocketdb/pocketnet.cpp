@@ -64,22 +64,39 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
         ri_table = "Posts";
     else if (op == OR_POSTEDIT)
         ri_table = "Posts";
+    else if (op == OR_VIDEO)
+        ri_table = "Posts";
+    else if (op == OR_VERIFICATION)
+        ri_table = "Posts";
+    else if (op == OR_SERVER_PUBLISH)
+        ri_table = "Posts";
+    else if (op == OR_POLL)
+        ri_table = "Posts";
+    else if (op == OR_TRANSLATE)
+        ri_table = "Posts";
+
     else if (op == OR_SCORE)
         ri_table = "Scores";
     else if (op == OR_COMPLAIN)
         ri_table = "Complains";
+
     else if (op == OR_SUBSCRIBE)
         ri_table = "Subscribes";
     else if (op == OR_SUBSCRIBEPRIVATE)
         ri_table = "Subscribes";
     else if (op == OR_UNSUBSCRIBE)
         ri_table = "Subscribes";
+
     else if (op == OR_USERINFO)
         ri_table = "Users";
+    else if (op == OR_SERVER)
+        ri_table = "Users";
+
     else if (op == OR_BLOCKING)
         ri_table = "Blocking";
     else if (op == OR_UNBLOCKING)
         ri_table = "Blocking";
+
     else if (op == OR_COMMENT)
         ri_table = "Comment";
     else if (op == OR_COMMENT_EDIT)
@@ -88,6 +105,7 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
         ri_table = "Comment";
     else if (op == OR_COMMENT_SCORE)
         ri_table = "CommentScores";
+
     else
         ret = false;
 
@@ -363,7 +381,6 @@ void FillCheckpointsBlocks(const CChainParams& params)
     CheckpointsBlocks.emplace(1019525, "e3950d1fce3abe7688d5709bfa14cd9850d5a4d0d32c4ab3c4eaa0d3319d8eec");
     CheckpointsBlocks.emplace(1026072, "c1b38ad130f2f6be10864886dab6fa1ad538ce73c88ef3b2d15a2feae2f40970");
     CheckpointsBlocks.emplace(1035428, "fe1a63ad20e1b6715cf3cf51e97195045bb6454d8a7d641d0648d5668c2b8aa8");
-    CheckpointsBlocks.emplace(1035428, "fe1a63ad20e1b6715cf3cf51e97195045bb6454d8a7d641d0648d5668c2b8aa8");
     CheckpointsBlocks.emplace(1042860, "2bf531942dfe9cc72bc6dc6fbd53f66975a94abdbccf5a095d91ff278ff3dda5");
     CheckpointsBlocks.emplace(1058486, "20d687c60f5c56abf9b2a4d352fa88bc58989af543533b5841c6da46db12bfa0");
     CheckpointsBlocks.emplace(1058716, "b0495d1fd05a37014d4003519057c6449071b383680d123ac7993afa76bb95e2");
@@ -375,8 +392,6 @@ void FillCheckpointsBlocks(const CChainParams& params)
     CheckpointsBlocks.emplace(1060299, "b3828d8e2e23e9d050f331fa06b758de18c0c0ea79e3ad2c8a48c6e73c21d528");
     CheckpointsBlocks.emplace(1060628, "6adf39fc7d403669d30276aea9c018ba3273f71a462152448e32dc3599711efd");
     CheckpointsBlocks.emplace(1060668, "0139923c13886b5f809ca889c321e12c2631cdbeb7bd9ff5c31f18fdad638f05");
-
-    
 }
 
 bool IsCheckpointBlock(int height, std::string hash) {

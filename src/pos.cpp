@@ -589,7 +589,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                             
                             if (g_pocketdb->SelectOne( _referrer_query , _referrer_itm ).ok()) {
                                     if (mLotteryPostRef.find(_post_address) == mLotteryPostRef.end()) {
-                                    std::string _referrer_address = _referrer_itm["referrer"].As<string>();
+                                        std::string _referrer_address = _referrer_itm["referrer"].As<string>();
                                         mLotteryPostRef.emplace(_post_address, _referrer_address);
                                     }
                                 }
@@ -631,7 +631,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                             
                             if (g_pocketdb->SelectOne( _referrer_query , _referrer_itm ).ok()) {
                                     if (mLotteryCommentRef.find(_comment_address) == mLotteryCommentRef.end()) {
-                                    std::string _referrer_address = _referrer_itm["referrer"].As<string>();
+                                        std::string _referrer_address = _referrer_itm["referrer"].As<string>();
                                         mLotteryCommentRef.emplace(_comment_address, _referrer_address);
                                     }
                                 }
