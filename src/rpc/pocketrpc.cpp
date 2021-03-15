@@ -2544,6 +2544,129 @@ UniValue debug(const JSONRPCRequest& request)
 //----------------------------------------------------------
 //--METHODS 2.0
 //----------------------------------------------------------
+UniValue converttxidaddress(const JSONRPCRequest& request)
+{
+    if (request.params.size() == 0 || request.fHelp)
+        throw std::runtime_error(
+            "converttxidaddress\n"
+            "\n.\n");
+
+    std::string txid = "";
+    std::string txidshort = "";
+    std::string txhex = "";
+    int nblock = 0;
+    int ntx = 0;
+    std::string address = "";
+    std::string addressshort = "";
+    int userid = 0;
+
+    if (request.params.size() > 0) {
+        if (request.params[0].isStr()) {
+            txhex = request.params[0].get_str();
+            if (txhex.length() == 64) {
+                txid = txhex;
+
+                CTransactionRef tx;
+                uint256 hash_block;
+                uint256 hash_tx;
+                hash_tx.SetHex(txid);
+                if (g_txindex->FindTx(hash_tx , hash_block, tx)) {
+                    CBlock block;
+                    if (!g_addrindex->IsPocketnetTransaction(tx)) {
+                        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Not Pocketnet transaction");
+                    }
+                    const CBlockIndex* pblockindex = LookupBlockIndex(hash_block);
+                    if (ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+                        nblock = pblockindex->nHeight;
+                        ntx = 0;
+                        for (const auto& tx : block.vtx) {
+                            if (tx->GetHash() == hash_tx) {
+                                break;
+                            }
+                            ntx += 1;
+                        }
+                        std::stringstream ss;
+                        ss << "k" << std::hex << nblock << "t" << std::hex << ntx;
+                        txidshort = ss.str();
+                    }
+                    else {
+                        throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
+                    }
+                }
+                else {
+                    throw JSONRPCError(RPC_TRANSACTION_ERROR, "Can't fint tx");
+                }
+            } else if (txhex.length() < 64 && txhex.length() > 3 && txhex.find('k') != string::npos && txhex.find('t') != string::npos && txhex.find('t') > txhex.find('k')) {
+                txidshort = txhex;
+                std::istringstream(txidshort.substr(txidshort.find('k') + 1, txidshort.find('t') - txidshort.find('k') - 1)) >> std::hex >> nblock;
+                std::istringstream(txidshort.substr(txidshort.find('t') + 1, txidshort.length() - txidshort.find('t') - 1)) >> std::hex >> ntx;
+
+                CBlock block;
+                const CBlockIndex* pblockindex = chainActive[nblock];
+                if (ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+                    for (const auto& tx : block.vtx) {
+                        if (ntx == 0) {
+                            txid = tx->GetHash().GetHex();
+                            break;
+                        }
+                        ntx -= 1;
+                    }
+                }
+                else {
+                    throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
+                }
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction format");
+            }
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction format");
+        }
+    }
+
+    if (request.params.size() > 1) {
+        RPCTypeCheckArgument(request.params[1], UniValue::VSTR);
+        address = request.params[1].get_str();
+        if (address.length() < 34) {
+            addressshort = address;
+
+            std::istringstream(addressshort.substr(addressshort.find('s') + 1, txidshort.length() - txidshort.find('s') - 1)) >> std::hex >> userid;
+
+            reindexer::Item userItm;
+            reindexer::Error errU = g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("id", CondEq, userid), userItm);
+            if (errU.ok()) {
+                 address = userItm["address"].As<string>();
+            } else {
+                throw JSONRPCError(RPC_DATABASE_ERROR, std::string("There is no user in DB"));
+            }
+        }
+        else {
+            CTxDestination dest = DecodeDestination(address);
+            if (IsValidDestination(dest)) {
+                reindexer::Item userItm;
+                reindexer::Error errU = g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("address", CondEq, address), userItm);
+                if (errU.ok()) {
+                    std::stringstream ss;
+                    ss << "s" << std::hex << userItm["id"].As<int>();
+                    addressshort = ss.str();
+                } else {
+                    throw JSONRPCError(RPC_DATABASE_ERROR, std::string("There is no user in DB"));
+                }
+            } else {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: "));
+            }
+        }
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("txid", txid);
+    result.pushKV("txidshort", txidshort);
+    //result.pushKV("nblock", nblock);
+    //result.pushKV("ntx", ntx);
+    result.pushKV("address", address);
+    result.pushKV("addressshort", addressshort);
+    //result.pushKV("userid", userid);
+    return result;
+}
 UniValue gethistoricalstrip(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -2601,6 +2724,8 @@ static const CRPCCommand commands[] =
         {"pocketnetrpc", "getaddressscores",                  &getaddressscores,                  {"address", "txs"},                                                     false},
         {"pocketnetrpc", "getpostscores",                     &getpostscores,                     {"txs", "address"},                                                     false},
         {"pocketnetrpc", "getpagescores",                     &getpagescores,                     {"txs", "address", "cmntids"},                                          false},
+
+        {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                    false},
 
         {"hidden", "debug",     &debug, {}},
 };
