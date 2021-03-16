@@ -122,6 +122,8 @@ public:
         consensus.opreturn_check = 514185;
         consensus.lottery_referral_beg = 514185;
         consensus.lottery_referral_limitation = 1035000;
+        // TODO (brangr): se checkpoint block
+        consensus.lottery_refactor_20210316 = 1100000;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000020a01baf8603ab2d0f");

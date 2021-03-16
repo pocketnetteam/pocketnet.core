@@ -732,9 +732,18 @@ bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalA
     if (winners.size() > 0 && winners.size() <= 25)
     {
         CAmount ratingReward = 0;
-        if (height >= Params().GetConsensus().lottery_referral_beg)
+        if (height >= Params().GetConsensus().lottery_refactor_20210316) {
+            // Referrer program 5 - 100%; 2.0 - nodes; 3.0 - all for lottery;
+            // 1.0 - posts (20%); 1.0 - referrer over posts (20%); 0.5 - comment (10%); 0.5 - referrer over comment (10%);
+            if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.20;
+            if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.20;
+            if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.10;
+            if (op_code_type == OP_WINNER_COMMENT_REFERRAL) ratingReward = nCredit * 0.10;
+            totalAmount += ratingReward;
+        } else if (height >= Params().GetConsensus().lottery_referral_beg)
         {
-            // Referrer program 5 - 100%; 2.0 - nodes; 3.0 - all for lottery; 2.0 - posts; 0.4 - referrer over posts (20%); 0.5 - comment; 0.1 - referrer over comment (20%);
+            // Referrer program 5 - 100%; 2.0 - nodes; 3.0 - all for lottery;
+            // 2.0 - posts; 0.4 - referrer over posts (20%); 0.5 - comment; 0.1 - referrer over comment (20%);
             if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.40;
             if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.08;
             if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.10;

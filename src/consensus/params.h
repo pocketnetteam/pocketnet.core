@@ -103,6 +103,7 @@ namespace Consensus {
         unsigned int opreturn_check;
         unsigned int lottery_referral_beg;
         unsigned int lottery_referral_limitation;
+        unsigned int lottery_refactor_20210316;
 	};
 } // namespace Consensus
 
