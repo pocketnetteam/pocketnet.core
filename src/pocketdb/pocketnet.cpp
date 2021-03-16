@@ -64,16 +64,6 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
         ri_table = "Posts";
     else if (op == OR_POSTEDIT)
         ri_table = "Posts";
-    else if (op == OR_VIDEO)
-        ri_table = "Posts";
-    else if (op == OR_VERIFICATION)
-        ri_table = "Posts";
-    else if (op == OR_SERVER_PUBLISH)
-        ri_table = "Posts";
-    else if (op == OR_POLL)
-        ri_table = "Posts";
-    else if (op == OR_TRANSLATE)
-        ri_table = "Posts";
 
     else if (op == OR_SCORE)
         ri_table = "Scores";
@@ -88,8 +78,6 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
         ri_table = "Subscribes";
 
     else if (op == OR_USERINFO)
-        ri_table = "Users";
-    else if (op == OR_SERVER)
         ri_table = "Users";
 
     else if (op == OR_BLOCKING)
@@ -151,6 +139,12 @@ void FillLimits(const CChainParams& params) {
     std::map<int, int64_t> _threshold_balance;
     _threshold_balance.insert({ 0, 50 * COIN });
     Limits.insert(std::make_pair(Limit::threshold_balance, _threshold_balance));
+
+    // threshold_likers_count
+    std::map<int, int64_t> _threshold_likers_count;
+    _threshold_likers_count.insert({ 0, 0 });
+    _threshold_likers_count.insert({ (int)params.GetConsensus().threshold_likers, 100 });
+    Limits.insert(std::make_pair(Limit::threshold_likers_count, _threshold_likers_count));
 
     // trial_post_limit
     std::map<int, int64_t> _trial_post_limit;

@@ -971,9 +971,9 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
                                               "Clients should transition to using signrawtransactionwithkey and signrawtransactionwithwallet");
 }
 
-static UniValue _sendrawtransaction(RTransaction& rtx)
+static UniValue _sendrawtransaction(CTransactionRef& tx)
 {
-    const uint256& hashTx = rtx->GetHash();
+    const uint256& hashTx = tx->GetHash();
 
     std::promise<void> promise;
     CAmount nMaxRawTxFee = maxTxFee;
@@ -982,7 +982,7 @@ static UniValue _sendrawtransaction(RTransaction& rtx)
         LOCK(cs_main);
         CCoinsViewCache& view = *pcoinsTip;
         bool fHaveChain = false;
-        for (size_t o = 0; !fHaveChain && o < rtx->vout.size(); o++) {
+        for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++) {
             const Coin& existingCoin = view.AccessCoin(COutPoint(hashTx, o));
             fHaveChain = !existingCoin.IsSpent();
         }
@@ -991,7 +991,7 @@ static UniValue _sendrawtransaction(RTransaction& rtx)
             // push to local node and sync with wallets
             CValidationState state;
             bool fMissingInputs;
-            if (!AcceptToMemoryPool(mempool, state, rtx, &fMissingInputs, nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee)) {
+            if (!AcceptToMemoryPool(mempool, state, tx, &fMissingInputs, nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee)) {
                 if (state.IsInvalid()) {
                     throw JSONRPCError(RPC_TRANSACTION_REJECTED, FormatStateMessage(state));
                 } else {
@@ -1062,10 +1062,9 @@ static UniValue sendrawtransaction(const JSONRPCRequest& request)
     CMutableTransaction mtx;
     if (!DecodeHexTx(mtx, request.params[0].get_str()))
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
-    //CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
-    RTransaction rtx(mtx);
+    CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
 
-    return _sendrawtransaction(rtx);
+    return _sendrawtransaction(tx);
 }
 
 static UniValue testmempoolaccept(const JSONRPCRequest& request)

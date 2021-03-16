@@ -9,5 +9,3 @@ RTransaction::RTransaction(CMutableTransaction mtx) : CTransactionRef(MakeTransa
 
 RTransaction::~RTransaction()
 { }
-
-bool Write();

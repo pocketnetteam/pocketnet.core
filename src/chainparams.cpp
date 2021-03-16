@@ -245,18 +245,20 @@ public:
         consensus.opreturn_check = 0;
         consensus.lottery_referral_beg = 0;
         consensus.lottery_referral_limitation = 0;
+        // TODO (brangr): !!!
+        consensus.threshold_likers = 0;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
 
         // By default assume that the signatures in ancestors of this block are valid.
-         consensus.defaultAssumeValid = uint256S("0x0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8"); //534292
+        consensus.defaultAssumeValid = uint256S("0x0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8"); //534292
 
         /**
-		 * The message start string is designed to be unlikely to occur in normal data.
-		 * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
-		 * a large 32-bit integer with any alignment.
-		 */
+         * The message start string is designed to be unlikely to occur in normal data.
+         * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
+         * a large 32-bit integer with any alignment.
+         */
         pchMessageStart[0] = 0xb9;
         pchMessageStart[1] = 0xe2;
         pchMessageStart[2] = 0xd7;

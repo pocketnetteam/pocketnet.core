@@ -5,7 +5,6 @@
 #define POCKETNET_H
 
 #include <chainparams.h>
-#include <primitives/transaction.h>
 #include <core_io.h>
 #include <sstream>
 #include <rpc/rawtransaction.h>
@@ -17,6 +16,7 @@ enum Limit {
     threshold_reputation_complains,
     threshold_reputation_blocking,
     threshold_balance,
+    threshold_likers_count,
     trial_post_limit,
     trial_post_edit_limit,
     trial_score_limit,
@@ -67,13 +67,6 @@ int64_t GetActualLimit(Limit type, int height);
 #define OR_COMMENT_EDIT "636f6d6d656e7445646974"
 #define OR_COMMENT_DELETE "636f6d6d656e7444656c657465"
 #define OR_COMMENT_SCORE "6353636f7265"
-
-#define OR_VIDEO "766964656f" // Post for video hosting
-#define OR_VERIFICATION "766572696669636174696f6e" // User verification post
-#define OR_SERVER "736572766572" // Server registration over User
-#define OR_SERVER_PUBLISH "7365727665727075626c697368" // Server card over Posts
-#define OR_POLL "706f6c6c" // Polling post
-#define OR_TRANSLATE "7472616e736c617465" // Post for translating words
 
 
 // Check transaction type is pocketnet

@@ -382,7 +382,6 @@ void SetupServerArgs()
                                          "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)",
                                    MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024),
         false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-prunerdb", "Remove old data every 1000 block, eg ratings, utxo", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
 #ifndef WIN32
@@ -1402,7 +1401,6 @@ bool AppInitMain()
     }
     // ********************************************************* Step 4.2: Start AddrIndex
     g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
-    gPruneRDB = gArgs.GetBoolArg("-prunerdb", false);
     // ********************************************************* Step 4.3: Start AntiBot
     g_antibot = std::unique_ptr<AntiBot>(new AntiBot());
 

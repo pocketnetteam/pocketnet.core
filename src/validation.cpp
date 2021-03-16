@@ -23,8 +23,8 @@
 #include <pos.h>
 #include <pow.h>
 #include <primitives/block.h>
-#include <primitives/rtransaction.h>
 #include <primitives/transaction.h>
+#include <primitives/rtransaction.h>
 #include <random.h>
 #include <reverse_iterator.h>
 #include <script/script.h>
