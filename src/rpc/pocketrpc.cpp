@@ -789,7 +789,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     if (mesType == "comment") return SetComment(request);
     if (mesType == "commentEdit") return SetCommentEdit(request);
     if (mesType == "commentDelete") return SetCommentDelete(request);
-    if (mesType == "cScore") return SetCScore(request);
+    if (mesType == "cScore") return SetCommentScore(request);
     
     throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
 }
