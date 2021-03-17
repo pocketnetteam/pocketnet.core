@@ -150,7 +150,7 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("UsersView", {"address", "hash", "string", IndexOpts().PK()});
         db->AddIndex("UsersView", {"name", "hash", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("UsersView", {"birthday", "-", "int", IndexOpts()});
-        db->AddIndex("UsersView", {"gender", "-", "int", IndexOpts()});
+        db->AddIndex("UsersView", {"gender", "hash", "int", IndexOpts()}); // enum AccountType
         db->AddIndex("UsersView", {"regdate", "-", "int64", IndexOpts()});
         db->AddIndex("UsersView", {"avatar", "-", "string", IndexOpts()});
         db->AddIndex("UsersView", {"about", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
@@ -159,7 +159,7 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("UsersView", {"pubkey", "-", "string", IndexOpts()});
         db->AddIndex("UsersView", {"donations", "-", "string", IndexOpts()});
         db->AddIndex("UsersView", {"referrer", "hash", "string", IndexOpts()});
-        db->AddIndex("UsersView", {"id", "-", "int", IndexOpts()});
+        db->AddIndex("UsersView", {"id", "hash", "int", IndexOpts()});
         db->AddIndex("UsersView", {"reputation", "-", "int", IndexOpts()});
         db->AddIndex("UsersView", {"name_text", {"name"}, "text", "composite", IndexOpts().SetCollateMode(CollateUTF8)});
         db->Commit("UsersView");
@@ -174,7 +174,7 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Users", {"address", "hash", "string", IndexOpts()});
         db->AddIndex("Users", {"name", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("Users", {"birthday", "-", "int", IndexOpts()});
-        db->AddIndex("Users", {"gender", "-", "int", IndexOpts()});
+        db->AddIndex("Users", {"gender", "-", "int", IndexOpts()}); // enum AccountType
         db->AddIndex("Users", {"regdate", "-", "int64", IndexOpts()});
         db->AddIndex("Users", {"avatar", "-", "string", IndexOpts()});
         db->AddIndex("Users", {"about", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
@@ -206,12 +206,8 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Posts", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("Posts", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("Posts", {"address", "hash", "string", IndexOpts()});
-        // Types:
-        // 0 - simple post
-        // 1 - video post
-        // 2 - image post
-        db->AddIndex("Posts", {"type", "tree", "int", IndexOpts()});
-        db->AddIndex("Posts", {"lang", "-", "string", IndexOpts()});
+        db->AddIndex("Posts", {"type", "hash", "int", IndexOpts()}); // enum ContentType
+        db->AddIndex("Posts", {"lang", "hash", "string", IndexOpts()});
         db->AddIndex("Posts", {"caption", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("Posts", {"caption_", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("Posts", {"message", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
@@ -236,7 +232,7 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("PostsHistory", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("PostsHistory", {"time", "tree", "int64", IndexOpts()});
         db->AddIndex("PostsHistory", {"address", "hash", "string", IndexOpts()});
-        db->AddIndex("PostsHistory", {"type", "-", "int", IndexOpts()});
+        db->AddIndex("PostsHistory", {"type", "-", "int", IndexOpts()}); // enum ContentType
         db->AddIndex("PostsHistory", {"lang", "-", "string", IndexOpts()});
         db->AddIndex("PostsHistory", {"caption", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("PostsHistory", {"message", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});

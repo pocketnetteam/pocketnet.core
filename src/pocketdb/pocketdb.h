@@ -23,9 +23,24 @@ enum RatingType {
     PostRating = 2,
     CommentRating = 3,
 };
+
+enum AccountType {
+    User = 0,
+    VideoServer = 1,
+    MessageServer = 2,
+};
+
+enum ContentType {
+    Post = 0,
+    Video = 1,
+    Verification = 2,
+    ServerPing = 3,
+    Poll = 4,
+    Translate = 5,
+};
+
 //-----------------------------------------------------
-class PocketDB
-{
+class PocketDB {
 private:
     Reindexer* db;
 

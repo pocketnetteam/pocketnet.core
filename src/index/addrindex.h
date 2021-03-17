@@ -140,8 +140,9 @@ public:
     /*
 		Return table name for transaction if is PocketNET transaction
 	*/
-    bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table);
-    bool IsPocketnetTransaction(const CTransactionRef& tx);
+	bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table);
+    bool GetPocketnetTXType(const CTransactionRef& tx, std::string& rxType, std::string& ri_table);
+	bool IsPocketnetTransaction(const CTransactionRef& tx);
     bool IsPocketnetTransaction(const CTransaction& tx);
     /*
 		Indexing block transactions.

@@ -104,42 +104,63 @@ int getLimitsCount(std::string _table, std::string _address, int64_t _time) {
 //-----------------------------------------------------
 
 //-----------------------------------------------------
-bool AntiBot::CheckRegistration(std::string _address, std::string _txid, int64_t time, bool checkMempool, BlockVTX& blockVtx) {
-    if (g_pocketdb->Exists(reindexer::Query("UsersView", 0, 1).Where("address", CondEq, _address))) return true;
+bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMempool, BlockVTX& blockVtx, ANTIBOTRESULT& result) {
+    std::string txType = oitm["type"].get_str();
+    std::string txId = oitm["txid"].get_str();
+    int64_t time = oitm["time"].get_int64();
+
+    int userId = -1;
+    int userType = -1;
+
+    // First restore user from DB
+    reindexer::Item userItm;
+    if (userId < 0 && g_pocketdb->SelectOne(reindexer::Query("UsersView", 0, 1).Where("address", CondEq, address), userItm).ok()) {
+        userId = userItm["userId"].As<int>();
+        userType = userItm["gender"].As<int>();
+    }
 
     // Or maybe registration in this block?
-    if (blockVtx.Exists("Users")) {
+    if (userId < 0 && blockVtx.Exists("Users")) {
         for (auto& mtx : blockVtx.Data["Users"]) {
-            if (mtx["txid"].get_str() != _txid && mtx["time"].get_int64() <= time && mtx["address"].get_str() == _address) {
-                return true;
+            if (mtx["txid"].get_str() != txId && mtx["time"].get_int64() <= time && mtx["address"].get_str() == address) {
+                userId = mtx["userId"].get_int();
+                userType = mtx["userType"].get_int();
             }
         }
     }
 
     // Or in mempool?
-    if (checkMempool) {
+    if (userId < 0 && checkMempool) {
         reindexer::QueryResults res;
-        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, _txid), res).ok()) {
+        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, txId), res).ok()) {
             for (auto& m : res) {
                 reindexer::Item mItm = m.GetItem();
                 std::string t_src = DecodeBase64(mItm["data"].As<string>());
 
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
                 if (t_itm.FromJSON(t_src).ok()) {
-                    if (t_itm["time"].As<int64_t>() <= time && t_itm["address"].As<string>() == _address) {
-                        return true;
+                    if (t_itm["time"].As<int64_t>() <= time && t_itm["address"].As<string>() == address) {
+                        userId = t_itm["userId"].As<int>();
+                        userType = t_itm["gender"].As<int>();
                     }
                 }
             }
         }
     }
 
-    return false;
-}
+    // Not found :(
+    if (userId < 0 || userType < 0) {
+        result = ANTIBOTRESULT::NotRegistered;
+        return false;
+    }
 
-bool AntiBot::CheckRegistration(std::string _address) {
-    if (g_pocketdb->Exists(reindexer::Query("UsersView", 0, 1).Where("address", CondEq, _address))) return true;
-    return false;
+    // For server accounts allowed only change self info & serverPing post
+    if (txType != OR_SERVER_PING && (userType == AccountType::VideoServer || userType == AccountType::MessageServer)) {
+        result = ANTIBOTRESULT::NotAllowed;
+        return false;
+    }
+
+    return true;
 }
 
 bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result) {
@@ -164,7 +185,7 @@ bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, i
     std::string _txid = oitm["txid"].get_str();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
@@ -220,7 +241,7 @@ bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     int64_t _time = oitm["time"].get_int64();
 
     // User registered?
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
@@ -294,7 +315,7 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
         return false;
     }
 
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
@@ -438,7 +459,7 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     std::string _post = oitm["posttxid"].get_str();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
@@ -654,12 +675,12 @@ bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     bool _unsubscribe = oitm["unsubscribe"].get_bool();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
 
-    if (!CheckRegistration(_address_to, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address_to, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
@@ -731,12 +752,12 @@ bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     bool _unblocking = oitm["unblocking"].get_bool();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
 
-    if (!CheckRegistration(_address_to, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address_to, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
@@ -808,7 +829,7 @@ bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool
     std::string _parentid = oitm["parentid"].get_str();
     std::string _answerid = oitm["answerid"].get_str();
 
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
@@ -899,7 +920,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
     std::string _answerid = oitm["answerid"].get_str();
 
     // User registered?
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
@@ -1008,7 +1029,7 @@ bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool check
     std::string _answerid = oitm["answerid"].get_str();
 
     // User registered?
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
@@ -1083,7 +1104,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
         return false;
     }
 
-    if (!CheckRegistration(_address, _txid, _time, checkMempool, blockVtx)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }

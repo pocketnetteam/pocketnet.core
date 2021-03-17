@@ -127,7 +127,8 @@ enum ANTIBOTRESULT {
     DoubleCommentScore = 40,
     OpReturnFailed = 41,
     CommentDeletedEdit = 42,
-    ReferrerAfterRegistration = 43
+    ReferrerAfterRegistration = 43,
+    NotAllowed = 43
 };
 //-----------------------------------------------------
 struct BlockVTX {
@@ -193,8 +194,7 @@ public:
     ~AntiBot();
 
     // Check user is a registration. Need one record in DB Users
-    bool CheckRegistration(std::string _address, std::string _txid, int64_t time, bool checkMempool, BlockVTX& blockVtx);
-    bool CheckRegistration(std::string _address);
+    bool CheckRegistration(UniValue oitm, std::string address, bool checkMempool, BlockVTX& blockVtx, ANTIBOTRESULT& result);
 
 	/*
 		Check conditions for new transaction.

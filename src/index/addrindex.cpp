@@ -596,10 +596,17 @@ bool AddrIndex::FindPocketNetAsmString(const CTransactionRef& tx, std::string& a
 
 bool AddrIndex::GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table)
 {
+    std::string rxType;
+    GetPocketnetTXType(tx, rxType, ri_table);
+}
+bool AddrIndex::GetPocketnetTXType(const CTransactionRef& tx, std::string& rxType, std::string& ri_table)
+{
     std::vector<std::string> vasm;
     if (!FindPocketNetAsmString(tx, vasm)) return false;
-    return ConvertOPToTableName(vasm[1], ri_table);
+    rxType = vasm[1];
+    return ConvertOPToTableName(rxType, ri_table);
 }
+
 bool AddrIndex::IsPocketnetTransaction(const CTransactionRef& tx)
 {
     std::string _ri_table = "";
@@ -1624,6 +1631,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
 
     if (table == "Posts") {
         oitm.pushKV("txidEdit", item["txidEdit"].As<string>());
+        oitm.pushKV("postType", item["type"].As<string>());
     }
     
     if (table == "Scores") {
@@ -1649,6 +1657,8 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
     if (table == "Users") {
         oitm.pushKV("referrer", item["referrer"].As<string>());
         oitm.pushKV("name", item["name"].As<string>());
+        oitm.pushKV("userType", item["gender"].As<int>());
+        oitm.pushKV("userId", item["id"].As<int>());
 
         //if (chainActive.Height() < Params().GetConsensus().nHeight_version_1_0_0) {
             std::string itm_hash_ref;
