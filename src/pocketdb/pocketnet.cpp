@@ -64,6 +64,10 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
         ri_table = "Posts";
     else if (op == OR_POSTEDIT)
         ri_table = "Posts";
+    else if (op == OR_VIDEO)
+        ri_table = "Posts";
+    else if (op == OR_SERVER_PING)
+        ri_table = "Posts";
 
     else if (op == OR_SCORE)
         ri_table = "Scores";
@@ -78,6 +82,10 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
         ri_table = "Subscribes";
 
     else if (op == OR_USERINFO)
+        ri_table = "Users";
+    else if (op == OR_VIDEO_SERVER)
+        ri_table = "Users";
+    else if (op == OR_MESSAGE_SERVER)
         ri_table = "Users";
 
     else if (op == OR_BLOCKING)

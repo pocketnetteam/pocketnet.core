@@ -597,7 +597,7 @@ bool AddrIndex::FindPocketNetAsmString(const CTransactionRef& tx, std::string& a
 bool AddrIndex::GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table)
 {
     std::string rxType;
-    GetPocketnetTXType(tx, rxType, ri_table);
+    return GetPocketnetTXType(tx, rxType, ri_table);
 }
 bool AddrIndex::GetPocketnetTXType(const CTransactionRef& tx, std::string& rxType, std::string& ri_table)
 {
