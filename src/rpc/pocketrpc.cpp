@@ -2799,11 +2799,8 @@ UniValue converttxidaddress(const JSONRPCRequest& request)
     UniValue result(UniValue::VOBJ);
     result.pushKV("txid", txid);
     result.pushKV("txidshort", txidshort);
-    //result.pushKV("nblock", nblock);
-    //result.pushKV("ntx", ntx);
     result.pushKV("address", address);
     result.pushKV("addressshort", addressshort);
-    //result.pushKV("userid", userid);
     return result;
 }
 UniValue gethistoricalstrip(const JSONRPCRequest& request)
@@ -2818,6 +2815,7 @@ UniValue gethistoricalstrip(const JSONRPCRequest& request)
     UniValue result(UniValue::VARR);
     return result;
 }
+
 UniValue gethierarchicalstrip(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -2825,7 +2823,128 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
             "gethierarchicalstrip\n"
             "\n.\n");
 
-    UniValue result(UniValue::VOBJ);
+    //int nLastBlock = 1089897;
+    int nLastBlock = chainActive.Height();
+
+    //int cntPostsForResult = 500;
+    int cntBlocksForResult = 300;
+    int cntPrevPosts = 5;
+    int durationBlocksForPrevPosts = 24 * 60; // about 1 day
+    double dekayRep = 0.7;
+    double dekayPost = 0.96;
+
+    UniValue result(UniValue::VARR);
+
+    std::map<string, std::map<Ranks, double>> postsRanks;
+
+    reindexer::Error err;
+
+    reindexer::Query query;
+    reindexer::QueryResults queryResults;
+
+    query = reindexer::Query("Posts")
+                .Where("block", CondLe, nLastBlock)
+                .Where("block", CondGt, nLastBlock - cntBlocksForResult)
+                .Sort("block", true).Sort("time", true)
+                .InnerJoin("address", "address", CondEq, reindexer::Query("UsersView").Limit(1));
+
+    err = g_pocketdb->DB()->Select(query, queryResults);
+    if (err.ok()) {
+        for (auto it : queryResults) {
+            reindexer::Item itm(it.GetItem());
+            reindexer::Item jntItm = it.GetJoined()[0][0].GetItem();
+
+            reindexer::Query queryLastFivePosts;
+            reindexer::QueryResults queryLastFivePostsResult;
+
+            int cntPositiveScores = 0;
+            std::string posttxid = itm["txid"].As<string>();
+            std::string postaddress = itm["address"].As<string>();
+            int postblock = itm["block"].As<int>();
+
+            queryLastFivePosts = reindexer::Query("Posts", 0, cntPrevPosts)
+                                     .Where("address", CondEq, postaddress)
+                                     .Where("block", CondLt, postblock)
+                                     .Where("block", CondGe, postblock - durationBlocksForPrevPosts);
+            err = g_pocketdb->DB()->Select(queryLastFivePosts, queryLastFivePostsResult);
+            if (err.ok()) {
+                std::vector<std::string> prevPostsIds;
+                for (auto itPrevPost : queryLastFivePostsResult) {
+                    reindexer::Item itmPP(itPrevPost.GetItem());
+                    prevPostsIds.push_back(itmPP["txid"].As<string>());
+                }
+                cntPositiveScores = g_pocketdb->SelectCount(reindexer::Query("Scores").Where("posttxid", CondSet, prevPostsIds).Where("value", CondEq, 5));
+            }
+            postsRanks[posttxid][LAST5] = 1.0 * cntPositiveScores;
+            postsRanks[posttxid][UREP] = 1.0 * jntItm["reputation"].As<int>() / 10;
+            postsRanks[posttxid][PREP] = 1.0 * itm["reputation"].As<int>();
+            postsRanks[posttxid][DREP] = pow(dekayRep, (nLastBlock - postblock));
+            postsRanks[posttxid][DPOST] = pow(dekayPost, (nLastBlock - postblock));
+        }
+
+        std::map<Ranks,int> count;
+        int nElements = postsRanks.size();
+        for(auto iPostRank : postsRanks) {
+            count[LAST5R] = 0;
+            count[UREPR] = 0;
+            count[PREPR] = 0;
+            for(auto jPostRank : postsRanks) {
+                if (iPostRank.second[LAST5] > jPostRank.second[LAST5]) {
+                    count[LAST5R] += 1;
+                }
+                if (iPostRank.second[UREP] > jPostRank.second[UREP]) {
+                    count[UREPR] += 1;
+                }
+                if (iPostRank.second[PREP] > jPostRank.second[PREP]) {
+                    count[PREPR] += 1;
+                }
+            }
+            double boost = 0;
+            postsRanks[iPostRank.first][LAST5R] = 1.0 * (count[LAST5R] * 100) / (nElements - 1);
+            postsRanks[iPostRank.first][UREPR] = 1.0 * (count[UREPR] * 100) / (nElements - 1);
+            postsRanks[iPostRank.first][PREPR] = 1.0 * (count[PREPR] * 100) / (nElements - 1);
+            postsRanks[iPostRank.first][POSTRF] = 0.4 *
+                                                      (0.75 *
+                                                              (postsRanks[iPostRank.first][LAST5R] + boost) +
+                                                          0.25 * postsRanks[iPostRank.first][UREPR]) *
+                                                      postsRanks[iPostRank.first][DREP] +
+                                                  0.6 * postsRanks[iPostRank.first][PREPR] * postsRanks[iPostRank.first][DPOST];
+        }
+    }
+
+    std::vector<std::pair<double, string> > postsRaited;
+
+    UniValue oPost(UniValue::VOBJ);
+    for(auto iPostRank : postsRanks) {
+        postsRaited.push_back(std::make_pair(iPostRank.second[POSTRF], iPostRank.first));
+    }
+
+    std::sort(postsRaited.begin(), postsRaited.end());
+
+    for(auto v : postsRaited) {
+        reindexer::Item postItm;
+        reindexer::Error errS = g_pocketdb->SelectOne(
+            reindexer::Query("Posts").Where("txid", CondEq, v.second),
+            postItm);
+
+        UniValue entry(UniValue::VOBJ);
+        entry = getPostData(postItm, "");
+
+        UniValue postRaiting(UniValue::VOBJ);
+        postRaiting.pushKV("LAST5", postsRanks[v.second][LAST5]);
+        postRaiting.pushKV("LAST5R", postsRanks[v.second][LAST5R]);
+        postRaiting.pushKV("BOOST", postsRanks[v.second][BOOST]);
+        postRaiting.pushKV("UREP", postsRanks[v.second][UREP]);
+        postRaiting.pushKV("UREPR", postsRanks[v.second][UREPR]);
+        postRaiting.pushKV("DREP", postsRanks[v.second][DREP]);
+        postRaiting.pushKV("PREP", postsRanks[v.second][PREP]);
+        postRaiting.pushKV("PREPR", postsRanks[v.second][PREPR]);
+        postRaiting.pushKV("DPOST", postsRanks[v.second][DPOST]);
+        postRaiting.pushKV("POSTRF", postsRanks[v.second][POSTRF]);
+        entry.pushKV("postRaitings", postRaiting);
+
+        result.push_back(entry);
+    }
 
     return result;
 }
@@ -2863,6 +2982,7 @@ static const CRPCCommand commands[] =
         {"pocketnetrpc", "getpostscores",                     &getpostscores,                     {"txs", "address"},                                                     false},
         {"pocketnetrpc", "getpagescores",                     &getpagescores,                     {"txs", "address", "cmntids"},                                          false},
         {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                    false},
+        {"pocketnetrpc", "gethierarchicalstrip",              &gethierarchicalstrip,              {},                                                                     false},
 
         // Pocketnet transactions
         {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"}, false},

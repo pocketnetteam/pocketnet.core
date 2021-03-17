@@ -9,6 +9,7 @@
 #include "rpc/server.h"
 #include "rpc/rawtransaction.h"
 #include "pocketdb/pocketnet.h"
-   
+
+enum Ranks {LAST5, LAST5R, BOOST, UREP, UREPR, DREP, PREP, PREPR, DPOST, POSTRF};
 
 #endif // POCKETCOIN_RPC_POCKETNET_H
