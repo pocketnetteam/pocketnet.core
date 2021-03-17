@@ -18,25 +18,25 @@
 using namespace reindexer;
 //-----------------------------------------------------
 enum RatingType {
-    UserReputation = 0,
-    UserLikers = 1,
-    PostRating = 2,
-    CommentRating = 3,
+    RatingUserReputation = 0,
+    RatingUserLikers = 1,
+    RatingPostRating = 2,
+    RatingCommentRating = 3,
 };
 
 enum AccountType {
-    User = 0,
-    VideoServer = 1,
-    MessageServer = 2,
+    AccountUser = 0,
+    AccountVideoServer = 1,
+    AccountMessageServer = 2,
 };
 
 enum ContentType {
-    Post = 0,
-    Video = 1,
-    Verification = 2,
-    ServerPing = 3,
-    Poll = 4,
-    Translate = 5,
+    ContentPost = 0,
+    ContentVideo = 1,
+    ContentVerification = 2,
+    ContentServerPing = 3,
+    ContentPoll = 4,
+    ContentTranslate = 5,
 };
 
 //-----------------------------------------------------

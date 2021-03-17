@@ -990,7 +990,7 @@ int PocketDB::GetUserLikersCount(int userId, int height)
 {
     return SelectCount(
         Query("Ratings")
-            .Where("type", CondEq, (int)RatingType::UserLikers)
+            .Where("type", CondEq, (int)RatingType::RatingUserLikers)
             .Where("key", CondEq, userId)
             .Where("block", CondLe, height));
 }
@@ -999,7 +999,7 @@ bool PocketDB::ExistsUserLiker(int userId, int likerId, int height)
 {
     return Exists(
         Query("Ratings")
-            .Where("type", CondEq, (int)RatingType::UserLikers)
+            .Where("type", CondEq, (int)RatingType::RatingUserLikers)
             .Where("key", CondEq, userId)
             .Where("value", CondEq, likerId)
             .Where("block", CondLe, height));

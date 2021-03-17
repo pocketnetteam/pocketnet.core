@@ -155,7 +155,7 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
     }
 
     // For server accounts allowed only change self info & serverPing post
-    if (txType != OR_SERVER_PING && (userType == AccountType::VideoServer || userType == AccountType::MessageServer)) {
+    if (txType != OR_SERVER_PING && (userType == AccountType::AccountVideoServer || userType == AccountType::AccountMessageServer)) {
         result = ANTIBOTRESULT::NotAllowed;
         return false;
     }
@@ -165,6 +165,7 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
 
 bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result) {
     int _limit = oitm["size"].get_int();
+    std::string table = oitm["table"].get_str();
 
     if (_type == CHECKTYPE::Post) _limit = GetActualLimit(Limit::max_post_size, height);
     if (_type == CHECKTYPE::User) _limit = GetActualLimit(Limit::max_user_size, height);
@@ -185,8 +186,7 @@ bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, i
     std::string _txid = oitm["txid"].get_str();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 
@@ -241,8 +241,7 @@ bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     int64_t _time = oitm["time"].get_int64();
 
     // User registered?
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 
@@ -315,8 +314,7 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 
@@ -459,8 +457,7 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     std::string _post = oitm["posttxid"].get_str();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 
@@ -675,13 +672,11 @@ bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     bool _unsubscribe = oitm["unsubscribe"].get_bool();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address_to, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address_to, checkMempool, blockVtx, result)) {
         return false;
     }
 
@@ -752,13 +747,11 @@ bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     bool _unblocking = oitm["unblocking"].get_bool();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address_to, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address_to, checkMempool, blockVtx, result)) {
         return false;
     }
 
@@ -829,8 +822,7 @@ bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool
     std::string _parentid = oitm["parentid"].get_str();
     std::string _answerid = oitm["answerid"].get_str();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 
@@ -920,8 +912,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
     std::string _answerid = oitm["answerid"].get_str();
 
     // User registered?
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 
@@ -1029,8 +1020,7 @@ bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool check
     std::string _answerid = oitm["answerid"].get_str();
 
     // User registered?
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 
@@ -1104,8 +1094,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx)) {
-        result = ANTIBOTRESULT::NotRegistered;
+    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
         return false;
     }
 

@@ -1,8 +1,5 @@
 #pragma once
 
-#ifndef RTRANSACTION_H
-#define RTRANSACTION_H
-
 #include "transaction.h"
 #include "pocketdb/pocketdb.h"
 

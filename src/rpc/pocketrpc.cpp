@@ -373,8 +373,7 @@ RTransaction& PreparePocketTransaction(const JSONRPCRequest& request) {
     if (!DecodeHexTx(mTx, request.params[0].get_str()))
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
 
-    CTransactionRef txRef = MakeTransactionRef(std::move(mTx));
-    RTransaction tx(txRef);
+    RTransaction tx(mTx);
 
     if (!g_addrindex->GetPocketnetTXType(tx, tx.TxType, tx.pTable))
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Pocket tx type bad");
@@ -385,7 +384,7 @@ RTransaction& PreparePocketTransaction(const JSONRPCRequest& request) {
     
     tx.Address = address;
     tx.pTransaction = g_pocketdb->DB()->NewItem(tx.pTable);
-    
+
     return tx;
 }
 
@@ -402,7 +401,7 @@ UniValue PostPocketTransaction(RTransaction& tx, std::string txType) {
 }
 //----------------------------------------------------------
 UniValue setContent(const JSONRPCRequest& request, ContentType contentType, std::string logType) {
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
     int64_t txTime = tx->nTime;
 
     tx.pTransaction["type"] = contentType;
@@ -470,34 +469,34 @@ UniValue SetShare(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("share\n\nCreate new pocketnet post.\n");
     
-    return setContent(request, ContentType::Post, "Share");
+    return setContent(request, ContentType::ContentPost, "Share");
 }
 
 UniValue SetVideo(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("video\n\nCreate new pocketnet video post.\n");
     
-    return setContent(request, ContentType::Video, "Video");
+    return setContent(request, ContentType::ContentVideo, "Video");
 }
 
 UniValue SetServerPing(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("serverPing\n\nCreate new pocketnet server ping post.\n");
     
-    return setContent(request, ContentType::ServerPing, "ServerPing");
+    return setContent(request, ContentType::ContentServerPing, "ServerPing");
 }
 
 UniValue SetUpvoteShare(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("upvoteShare\n\nCreate new pocketnet like to post.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
     tx.pTransaction["posttxid"] = request.params[1]["share"].get_str();
     tx.pTransaction["address"] = tx.Address;
-    tx.pTransaction["time"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
 
     int _val;
     ParseInt32(request.params[1]["value"].get_str(), &_val);
@@ -510,11 +509,11 @@ UniValue SetSubscribe(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("subscribe\n\nCreate new pocketnet subscribe.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
-    tx.pTransaction["time"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
     tx.pTransaction["address"] = tx.Address;
     tx.pTransaction["address_to"] = request.params[1]["address"].get_str();
     tx.pTransaction["private"] = false;
@@ -527,11 +526,11 @@ UniValue SetSubscribePrivate(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("subscribePrivate\n\nCreate new pocketnet subscribe private.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
-    tx.pTransaction["time"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
     tx.pTransaction["address"] = tx.Address;
     tx.pTransaction["address_to"] = request.params[1]["address"].get_str();
     tx.pTransaction["private"] = true;
@@ -544,7 +543,7 @@ UniValue SetUnsubscribe(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("unsubscribe\n\nCreate new pocketnet unsubscribe.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     reindexer::Item _itm;
     reindexer::Error _err = g_pocketdb->SelectOne(
@@ -557,7 +556,7 @@ UniValue SetUnsubscribe(const JSONRPCRequest& request) {
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
-    tx.pTransaction["time"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
     tx.pTransaction["address"] = tx.Address;
     tx.pTransaction["address_to"] = request.params[1]["address"].get_str();
     tx.pTransaction["unsubscribe"] = true;
@@ -565,50 +564,17 @@ UniValue SetUnsubscribe(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "Unsubscribe");
 }
 
-UniValue SetUserInfo(const JSONRPCRequest& request) {
-    if (request.fHelp)
-        throw std::runtime_error("userInfo\n\nCreate new pocketnet user.\n");
-    
-    auto& tx = PreparePocketTransaction(request);
-
-    tx.pTransaction["txid"] = tx->GetHash().GetHex();
-    tx.pTransaction["block"] = -1;
-    tx.pTransaction["id"] = -1;
-    tx.pTransaction["address"] = tx.Address;
-    tx.pTransaction["name"] = request.params[1]["n"].get_str();
-    tx.pTransaction["avatar"] = request.params[1]["i"].get_str();
-    tx.pTransaction["lang"] = request.params[1]["l"].get_str() == "" ? "en" : request.params[1]["l"].get_str();
-
-    tx.pTransaction["time"] = tx->nTime;
-    tx.pTransaction["regdate"] = tx->nTime;
-    tx.pTransaction["referrer"] = "";
-
-    reindexer::Item user_cur;
-    if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("address", CondEq, tx.Address), user_cur).ok()) {
-        tx.pTransaction["regdate"] = user_cur["regdate"].As<int64_t>();
-    } else if (request.params[1].exists("r")) {
-        tx.pTransaction["referrer"] = request.params[1]["r"].get_str();
-    }
-
-    if (request.params[1].exists("a")) tx.pTransaction["about"] = request.params[1]["a"].get_str();
-    if (request.params[1].exists("s")) tx.pTransaction["url"] = request.params[1]["s"].get_str();
-    if (request.params[1].exists("b")) tx.pTransaction["donations"] = request.params[1]["b"].get_str();
-    if (request.params[1].exists("k")) tx.pTransaction["pubkey"] = request.params[1]["k"].get_str();
-
-    return PostPocketTransaction(tx, "Account");
-}
-
 UniValue SetComplainShare(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("complainShare\n\nCreate new pocketnet complain for post.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
     tx.pTransaction["posttxid"] = request.params[1]["share"].get_str();
     tx.pTransaction["address"] = tx.Address;
-    tx.pTransaction["time"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
 
     int _val;
     ParseInt32(request.params[1]["reason"].get_str(), &_val);
@@ -621,11 +587,11 @@ UniValue SetBlocking(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("blocking\n\nCreate new pocketnet block post.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
-    tx.pTransaction["time"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
     tx.pTransaction["address"] = tx.Address;
     tx.pTransaction["address_to"] = request.params[1]["address"].get_str();
     tx.pTransaction["unblocking"] = false;
@@ -637,7 +603,7 @@ UniValue SetUnblocking(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("unblocking\n\nCreate new pocketnet unblock post.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     // reindexer::Item _itm;
     // reindexer::Error _err = g_pocketdb->SelectOne(
@@ -650,7 +616,7 @@ UniValue SetUnblocking(const JSONRPCRequest& request) {
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
-    tx.pTransaction["time"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
     tx.pTransaction["address"] = tx.Address;
     tx.pTransaction["address_to"] = request.params[1]["address"].get_str();
     tx.pTransaction["unblocking"] = true;
@@ -671,7 +637,7 @@ void FillComment(const JSONRPCRequest& request, RTransaction& tx, bool& valid) {
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
     tx.pTransaction["address"] = tx.Address;
-    tx.pTransaction["time"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
     tx.pTransaction["last"] = true;
     tx.pTransaction["postid"] = request.params[1]["postid"].get_str();
     tx.pTransaction["parentid"] = request.params[1]["parentid"].get_str();
@@ -682,7 +648,7 @@ UniValue SetComment(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("comment\n\nCreate new pocketnet comment for post.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     bool valid = true;
     valid = valid & request.params[1].exists("msg");
@@ -697,7 +663,7 @@ UniValue SetCommentEdit(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("commentEdit\n\nCreate new pocketnet comment edit.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     bool valid = true;
     valid = valid & request.params[1].exists("id");
@@ -713,7 +679,7 @@ UniValue SetCommentDelete(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("commentDelete\n\nDelete pocketnet comment.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     bool valid = true;
     valid = valid & request.params[1].exists("id");
@@ -726,9 +692,9 @@ UniValue SetCommentDelete(const JSONRPCRequest& request) {
 
 UniValue SetCScore(const JSONRPCRequest& request) {
     if (request.fHelp)
-        throw std::runtime_error("cScore\n\Create new pocketnet comment like.\n");
+        throw std::runtime_error("cScore\nCreate new pocketnet comment like.\n");
     
-    auto& tx = PreparePocketTransaction(request);
+    RTransaction& tx = PreparePocketTransaction(request);
 
     bool valid = true;
     valid = valid & request.params[1].exists("commentid");
@@ -737,7 +703,7 @@ UniValue SetCScore(const JSONRPCRequest& request) {
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["address"] = tx.Address;
-    tx.pTransaction["time"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
     tx.pTransaction["block"] = -1;
 
     tx.pTransaction["commentid"] = request.params[1]["commentid"].get_str();
@@ -749,11 +715,10 @@ UniValue SetCScore(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "UpvoteComment");
 }
 
-UniValue SetVideoServer(const JSONRPCRequest& request) {
-    if (request.fHelp)
-        throw std::runtime_error("videoServer\n\nCreate new pocketnet video server registration record.\n");
+UniValue setAccount(const JSONRPCRequest& request, AccountType accountType, std::string logType) {
+    RTransaction& tx = PreparePocketTransaction(request);
     
-    auto& tx = PreparePocketTransaction(request);
+    tx.pTransaction["gender"] = accountType;
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
@@ -763,8 +728,8 @@ UniValue SetVideoServer(const JSONRPCRequest& request) {
     tx.pTransaction["avatar"] = request.params[1]["i"].get_str();
     tx.pTransaction["lang"] = request.params[1]["l"].get_str() == "" ? "en" : request.params[1]["l"].get_str();
 
-    tx.pTransaction["time"] = tx->nTime;
-    tx.pTransaction["regdate"] = tx->nTime;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
+    tx.pTransaction["regdate"] = (int64_t)tx->nTime;
     tx.pTransaction["referrer"] = "";
 
     reindexer::Item user_cur;
@@ -779,20 +744,29 @@ UniValue SetVideoServer(const JSONRPCRequest& request) {
     if (request.params[1].exists("b")) tx.pTransaction["donations"] = request.params[1]["b"].get_str();
     if (request.params[1].exists("k")) tx.pTransaction["pubkey"] = request.params[1]["k"].get_str();
 
-    return PostPocketTransaction(tx, "VideoServer");
+    return PostPocketTransaction(tx, logType);
+}
+
+UniValue SetVideoServer(const JSONRPCRequest& request) {
+    if (request.fHelp)
+        throw std::runtime_error("videoServer\n\nCreate new pocketnet video server registration record.\n");
+    
+    return setAccount(request, AccountType::AccountVideoServer, "VideoServer");
 }
 
 UniValue SetMessageServer(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("messageServer\n\nCreate new pocketnet messaging server registration record.\n");
     
-    auto& tx = PreparePocketTransaction(request);
-
-    // TODO (brangr): from user
-
-    return PostPocketTransaction(tx, "MessageServer");
+    return setAccount(request, AccountType::AccountMessageServer, "MessageServer");
 }
 
+UniValue SetUserInfo(const JSONRPCRequest& request) {
+    if (request.fHelp)
+        throw std::runtime_error("userInfo\n\nCreate new pocketnet user.\n");
+    
+    return setAccount(request, AccountType::AccountMessageServer, "Account");
+}
 
 //----------------------------------------------------------
 UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
