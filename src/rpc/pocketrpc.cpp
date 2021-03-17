@@ -690,7 +690,7 @@ UniValue SetCommentDelete(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "CommentDelete");
 }
 
-UniValue SetCScore(const JSONRPCRequest& request) {
+UniValue SetCommentScore(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("cScore\nCreate new pocketnet comment like.\n");
     
@@ -790,9 +790,6 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     if (mesType == "commentEdit") return SetCommentEdit(request);
     if (mesType == "commentDelete") return SetCommentDelete(request);
     if (mesType == "cScore") return SetCScore(request);
-
-    if (mesType == "videoServer") return SetCScore(request);
-    if (mesType == "messageServer") return SetCScore(request);
     
     throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
 }
@@ -2868,20 +2865,27 @@ static const CRPCCommand commands[] =
         {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                    false},
 
         // Pocketnet transactions
-        {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"},                                       false},
-        {"pocketnetrpc", "share", &SetShare, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "upvoteshare", &SetUpvoteShare, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "subscribe", &SetSubscribe, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "subscribeprivate", &SetSubscribePrivate, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "unsubscribe", &SetUnsubscribe, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "userinfo", &SetUserInfo, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "complainshare", &SetComplainShare, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "blocking", &SetBlocking, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "unblocking", &SetUnblocking, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "comment", &SetComment, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "commentedit", &SetCommentEdit, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "commentdelete", &SetCommentDelete, {"hexstring", "message"}, false},
-        {"pocketnetrpc", "cscore", &SetCScore, {"hexstring", "message"}, false},
+        {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"}, false},
+
+        {"pocketnetrpc", "setshare",                          &SetShare,                          {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setvideo",                          &SetVideo,                          {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setserverping",                     &SetServerPing,                     {"hexstring", "message"}, false},
+
+        {"pocketnetrpc", "setupvoteshare",                    &SetUpvoteShare,                    {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setsubscribe",                      &SetSubscribe,                      {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setsubscribeprivate",               &SetSubscribePrivate,               {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setunsubscribe",                    &SetUnsubscribe,                    {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setcomplainshare",                  &SetComplainShare,                  {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setblocking",                       &SetBlocking,                       {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setunblocking",                     &SetUnblocking,                     {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setcomment",                        &SetComment,                        {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setcommentedit",                    &SetCommentEdit,                    {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setcommentdelete",                  &SetCommentDelete,                  {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setcommentscore",                   &SetCommentScore,                   {"hexstring", "message"}, false},
+        
+        {"pocketnetrpc", "setuserinfo",                       &SetUserInfo,                       {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setvideoserver",                    &SetVideoServer,                    {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setmessageserver",                  &SetMessageServer,                  {"hexstring", "message"}, false},
 
 
         {"hidden", "debug",     &debug, {}},
