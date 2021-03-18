@@ -115,7 +115,7 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
     // First restore user from DB
     reindexer::Item userItm;
     if (userId < 0 && g_pocketdb->SelectOne(reindexer::Query("UsersView", 0, 1).Where("address", CondEq, address), userItm).ok()) {
-        userId = userItm["userId"].As<int>();
+        userId = userItm["id"].As<int>();
         userType = userItm["gender"].As<int>();
     }
 
@@ -140,7 +140,7 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["time"].As<int64_t>() <= time && t_itm["address"].As<string>() == address) {
-                        userId = t_itm["userId"].As<int>();
+                        userId = t_itm["id"].As<int>();
                         userType = t_itm["gender"].As<int>();
                     }
                 }

@@ -123,8 +123,8 @@ public:
         consensus.lottery_referral_beg = 514185;
         consensus.lottery_referral_limitation = 1035000;
         // TODO (brangr): !!! for testing
-        consensus.lottery_refactor_20210316 = 1093722;
-        consensus.threshold_likers = 1093722;
+        consensus.lottery_refactor_20210316 = 1095722;
+        consensus.threshold_likers = 1095722;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000020a01baf8603ab2d0f");
@@ -133,10 +133,10 @@ public:
         consensus.defaultAssumeValid = uint256S("0x014a4b038933d7a78a320aa89a08c06e1ec6742ac83b87fba6a66e79eea2a9dc"); // 1082899
 
         /**
-		 * The message start string is designed to be unlikely to occur in normal data.
-		 * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
-		 * a large 32-bit integer with any alignment.
-		 */
+         * The message start string is designed to be unlikely to occur in normal data.
+         * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
+         * a large 32-bit integer with any alignment.
+         */
         pchMessageStart[0] = 0xb9;
         pchMessageStart[1] = 0xe2;
         pchMessageStart[2] = 0xd7;
@@ -247,8 +247,8 @@ public:
         consensus.lottery_referral_beg = 0;
         consensus.lottery_referral_limitation = 0;
         // TODO (brangr): !!! for testing
-        consensus.lottery_refactor_20210316 = 1093722;
-        consensus.threshold_likers = 1093722;
+        consensus.lottery_refactor_20210316 = 889524;
+        consensus.threshold_likers = 889524;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
