@@ -365,29 +365,6 @@ void getFastSearchString(std::string search, std::string str, std::map<std::stri
     }
 }
 //----------------------------------------------------------
-RTransaction& PreparePocketTransaction(const JSONRPCRequest& request) {
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
-
-    std::string address;
-    CMutableTransaction mTx;
-    if (!DecodeHexTx(mTx, request.params[0].get_str()))
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
-
-    RTransaction tx(mTx);
-
-    if (!g_addrindex->GetPocketnetTXType(tx, tx.TxType, tx.pTable))
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Pocket tx type bad");
-
-    if (!GetInputAddress(tx->vin[0].prevout.hash, tx->vin[0].prevout.n, address)) {
-        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid address");
-    }
-    
-    tx.Address = address;
-    tx.pTransaction = g_pocketdb->DB()->NewItem(tx.pTable);
-
-    return tx;
-}
-
 UniValue PostPocketTransaction(RTransaction& tx, std::string txType) {
     // Check transaction with antibot
     ANTIBOTRESULT ab_result;
@@ -400,8 +377,7 @@ UniValue PostPocketTransaction(RTransaction& tx, std::string txType) {
     return Sendrawtransaction(tx);
 }
 //----------------------------------------------------------
-UniValue setContent(const JSONRPCRequest& request, ContentType contentType, std::string logType) {
-    RTransaction& tx = PreparePocketTransaction(request);
+UniValue setContent(const JSONRPCRequest& request, RTransaction& tx, ContentType contentType, std::string logType) {
     int64_t txTime = tx->nTime;
 
     tx.pTransaction["type"] = contentType;
@@ -465,39 +441,37 @@ UniValue setContent(const JSONRPCRequest& request, ContentType contentType, std:
     return PostPocketTransaction(tx, logType);
 }
 
-UniValue SetShare(const JSONRPCRequest& request) {
+UniValue SetShare(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("share\n\nCreate new pocketnet post.\n");
     
-    return setContent(request, ContentType::ContentPost, "Share");
+    return setContent(request, tx, ContentType::ContentPost, "Share");
 }
 
-UniValue SetVideo(const JSONRPCRequest& request) {
+UniValue SetVideo(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("video\n\nCreate new pocketnet video post.\n");
     
-    return setContent(request, ContentType::ContentVideo, "Video");
+    return setContent(request, tx, ContentType::ContentVideo, "Video");
 }
 
-UniValue SetTranslate(const JSONRPCRequest& request) {
+UniValue SetTranslate(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("translate\n\nCreate new pocketnet translate post.\n");
     
-    return setContent(request, ContentType::ContentTranslate, "Translate");
+    return setContent(request, tx, ContentType::ContentTranslate, "Translate");
 }
 
-UniValue SetServerPing(const JSONRPCRequest& request) {
+UniValue SetServerPing(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("serverPing\n\nCreate new pocketnet server ping post.\n");
     
-    return setContent(request, ContentType::ContentServerPing, "ServerPing");
+    return setContent(request, tx, ContentType::ContentServerPing, "ServerPing");
 }
 
-UniValue SetUpvoteShare(const JSONRPCRequest& request) {
+UniValue SetUpvoteShare(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("upvoteShare\n\nCreate new pocketnet like to post.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
@@ -512,11 +486,9 @@ UniValue SetUpvoteShare(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "UpvoteShare");
 }
 
-UniValue SetSubscribe(const JSONRPCRequest& request) {
+UniValue SetSubscribe(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("subscribe\n\nCreate new pocketnet subscribe.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
@@ -529,11 +501,9 @@ UniValue SetSubscribe(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "Subscribe");
 }
 
-UniValue SetSubscribePrivate(const JSONRPCRequest& request) {
+UniValue SetSubscribePrivate(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("subscribePrivate\n\nCreate new pocketnet subscribe private.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
@@ -546,11 +516,9 @@ UniValue SetSubscribePrivate(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "SubscribePrivate");
 }
 
-UniValue SetUnsubscribe(const JSONRPCRequest& request) {
+UniValue SetUnsubscribe(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("unsubscribe\n\nCreate new pocketnet unsubscribe.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     reindexer::Item _itm;
     reindexer::Error _err = g_pocketdb->SelectOne(
@@ -571,11 +539,9 @@ UniValue SetUnsubscribe(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "Unsubscribe");
 }
 
-UniValue SetComplainShare(const JSONRPCRequest& request) {
+UniValue SetComplainShare(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("complainShare\n\nCreate new pocketnet complain for post.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
@@ -590,11 +556,9 @@ UniValue SetComplainShare(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "ComplainShare");
 }
 
-UniValue SetBlocking(const JSONRPCRequest& request) {
+UniValue SetBlocking(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("blocking\n\nCreate new pocketnet block post.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
     tx.pTransaction["block"] = -1;
@@ -606,11 +570,9 @@ UniValue SetBlocking(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "Blocking");
 }
 
-UniValue SetUnblocking(const JSONRPCRequest& request) {
+UniValue SetUnblocking(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("unblocking\n\nCreate new pocketnet unblock post.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     // reindexer::Item _itm;
     // reindexer::Error _err = g_pocketdb->SelectOne(
@@ -651,11 +613,9 @@ void FillComment(const JSONRPCRequest& request, RTransaction& tx, bool& valid) {
     tx.pTransaction["answerid"] = request.params[1]["answerid"].get_str();
 }
 
-UniValue SetComment(const JSONRPCRequest& request) {
+UniValue SetComment(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("comment\n\nCreate new pocketnet comment for post.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     bool valid = true;
     valid = valid & request.params[1].exists("msg");
@@ -666,11 +626,9 @@ UniValue SetComment(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "Comment");
 }
 
-UniValue SetCommentEdit(const JSONRPCRequest& request) {
+UniValue SetCommentEdit(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("commentEdit\n\nCreate new pocketnet comment edit.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     bool valid = true;
     valid = valid & request.params[1].exists("id");
@@ -682,11 +640,9 @@ UniValue SetCommentEdit(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "CommentDelete");
 }
 
-UniValue SetCommentDelete(const JSONRPCRequest& request) {
+UniValue SetCommentDelete(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("commentDelete\n\nDelete pocketnet comment.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     bool valid = true;
     valid = valid & request.params[1].exists("id");
@@ -697,11 +653,9 @@ UniValue SetCommentDelete(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "CommentDelete");
 }
 
-UniValue SetCommentScore(const JSONRPCRequest& request) {
+UniValue SetCommentScore(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("cScore\nCreate new pocketnet comment like.\n");
-    
-    RTransaction& tx = PreparePocketTransaction(request);
 
     bool valid = true;
     valid = valid & request.params[1].exists("commentid");
@@ -722,9 +676,7 @@ UniValue SetCommentScore(const JSONRPCRequest& request) {
     return PostPocketTransaction(tx, "UpvoteComment");
 }
 
-UniValue setAccount(const JSONRPCRequest& request, AccountType accountType, std::string logType) {
-    RTransaction& tx = PreparePocketTransaction(request);
-    
+UniValue setAccount(const JSONRPCRequest& request, RTransaction& tx, AccountType accountType, std::string logType) {
     tx.pTransaction["gender"] = accountType;
 
     tx.pTransaction["txid"] = tx->GetHash().GetHex();
@@ -754,25 +706,25 @@ UniValue setAccount(const JSONRPCRequest& request, AccountType accountType, std:
     return PostPocketTransaction(tx, logType);
 }
 
-UniValue SetVideoServer(const JSONRPCRequest& request) {
+UniValue SetVideoServer(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("videoServer\n\nCreate new pocketnet video server registration record.\n");
     
-    return setAccount(request, AccountType::AccountVideoServer, "VideoServer");
+    return setAccount(request, tx, AccountType::AccountVideoServer, "VideoServer");
 }
 
-UniValue SetMessageServer(const JSONRPCRequest& request) {
+UniValue SetMessageServer(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("messageServer\n\nCreate new pocketnet messaging server registration record.\n");
     
-    return setAccount(request, AccountType::AccountMessageServer, "MessageServer");
+    return setAccount(request, tx, AccountType::AccountMessageServer, "MessageServer");
 }
 
-UniValue SetUserInfo(const JSONRPCRequest& request) {
+UniValue SetUserInfo(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("userInfo\n\nCreate new pocketnet user.\n");
     
-    return setAccount(request, AccountType::AccountMessageServer, "Account");
+    return setAccount(request, tx, AccountType::AccountMessageServer, "Account");
 }
 
 //----------------------------------------------------------
@@ -782,27 +734,44 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
         throw std::runtime_error("sendrawtransactionwithmessage\n\nCreate new pocketnet transaction.\n");
 
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ, UniValue::VSTR});
-    std::string mesType = request.params[2].get_str();
-   
-    if (mesType == "share") return SetShare(request);
-    if (mesType == "upvoteShare") return SetUpvoteShare(request);
-    if (mesType == "subscribe") return SetSubscribe(request);
-    if (mesType == "subscribePrivate") return SetSubscribePrivate(request);
-    if (mesType == "unsubscribe") return SetUnsubscribe(request);
-    if (mesType == "userInfo") return SetUserInfo(request);
-    if (mesType == "complainShare") return SetComplainShare(request);
-    if (mesType == "blocking") return SetBlocking(request);
-    if (mesType == "unblocking") return SetUnblocking(request);
-    if (mesType == "comment") return SetComment(request);
-    if (mesType == "commentEdit") return SetCommentEdit(request);
-    if (mesType == "commentDelete") return SetCommentDelete(request);
-    if (mesType == "cScore") return SetCommentScore(request);
 
-    if (mesType == "video") return SetVideo(request);
-    if (mesType == "serverPing") return SetServerPing(request);
-    if (mesType == "translate") return SetTranslate(request);
-    if (mesType == "videoServer") return SetVideoServer(request);
-    if (mesType == "messageServer") return SetMessageServer(request);
+    std::string address;
+    CMutableTransaction mTx;
+    if (!DecodeHexTx(mTx, request.params[0].get_str()))
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+
+    RTransaction tx(mTx);
+
+    if (!g_addrindex->GetPocketnetTXType(tx, tx.TxType, tx.pTable))
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Pocket tx type bad");
+
+    if (!GetInputAddress(tx->vin[0].prevout.hash, tx->vin[0].prevout.n, address)) {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid address");
+    }
+
+    tx.Address = address;
+    tx.pTransaction = g_pocketdb->DB()->NewItem(tx.pTable);
+
+    std::string mesType = request.params[2].get_str();
+    if (mesType == "share") return SetShare(request, tx);
+    if (mesType == "upvoteShare") return SetUpvoteShare(request, tx);
+    if (mesType == "subscribe") return SetSubscribe(request, tx);
+    if (mesType == "subscribePrivate") return SetSubscribePrivate(request, tx);
+    if (mesType == "unsubscribe") return SetUnsubscribe(request, tx);
+    if (mesType == "userInfo") return SetUserInfo(request, tx);
+    if (mesType == "complainShare") return SetComplainShare(request, tx);
+    if (mesType == "blocking") return SetBlocking(request, tx);
+    if (mesType == "unblocking") return SetUnblocking(request, tx);
+    if (mesType == "comment") return SetComment(request, tx);
+    if (mesType == "commentEdit") return SetCommentEdit(request, tx);
+    if (mesType == "commentDelete") return SetCommentDelete(request, tx);
+    if (mesType == "cScore") return SetCommentScore(request, tx);
+
+    if (mesType == "video") return SetVideo(request, tx);
+    if (mesType == "serverPing") return SetServerPing(request, tx);
+    if (mesType == "translate") return SetTranslate(request, tx);
+    if (mesType == "videoServer") return SetVideoServer(request, tx);
+    if (mesType == "messageServer") return SetMessageServer(request, tx);
     
     throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
 }
@@ -3028,26 +2997,26 @@ static const CRPCCommand commands[] =
         // Pocketnet transactions
         {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"}, false},
 
-        {"pocketnetrpc", "setshare",                          &SetShare,                          {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setvideo",                          &SetVideo,                          {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setserverping",                     &SetServerPing,                     {"hexstring", "message"},         false},
-        {"pocketnetrpc", "settranslate",                      &SetTranslate,                      {"hexstring", "message"},         false},
-
-        {"pocketnetrpc", "setupvoteshare",                    &SetUpvoteShare,                    {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setsubscribe",                      &SetSubscribe,                      {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setsubscribeprivate",               &SetSubscribePrivate,               {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setunsubscribe",                    &SetUnsubscribe,                    {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setcomplainshare",                  &SetComplainShare,                  {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setblocking",                       &SetBlocking,                       {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setunblocking",                     &SetUnblocking,                     {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setcomment",                        &SetComment,                        {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setcommentedit",                    &SetCommentEdit,                    {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setcommentdelete",                  &SetCommentDelete,                  {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setcommentscore",                   &SetCommentScore,                   {"hexstring", "message"},         false},
-        
-        {"pocketnetrpc", "setuserinfo",                       &SetUserInfo,                       {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setvideoserver",                    &SetVideoServer,                    {"hexstring", "message"},         false},
-        {"pocketnetrpc", "setmessageserver",                  &SetMessageServer,                  {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setshare",                          &SetShare,                          {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setvideo",                          &SetVideo,                          {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setserverping",                     &SetServerPing,                     {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "settranslate",                      &SetTranslate,                      {"hexstring", "message"},         false},
+//
+//        {"pocketnetrpc", "setupvoteshare",                    &SetUpvoteShare,                    {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setsubscribe",                      &SetSubscribe,                      {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setsubscribeprivate",               &SetSubscribePrivate,               {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setunsubscribe",                    &SetUnsubscribe,                    {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setcomplainshare",                  &SetComplainShare,                  {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setblocking",                       &SetBlocking,                       {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setunblocking",                     &SetUnblocking,                     {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setcomment",                        &SetComment,                        {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setcommentedit",                    &SetCommentEdit,                    {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setcommentdelete",                  &SetCommentDelete,                  {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setcommentscore",                   &SetCommentScore,                   {"hexstring", "message"},         false},
+//
+//        {"pocketnetrpc", "setuserinfo",                       &SetUserInfo,                       {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setvideoserver",                    &SetVideoServer,                    {"hexstring", "message"},         false},
+//        {"pocketnetrpc", "setmessageserver",                  &SetMessageServer,                  {"hexstring", "message"},         false},
 
         {"hidden", "debug",     &debug, {}},
 };
