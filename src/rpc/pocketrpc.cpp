@@ -479,6 +479,13 @@ UniValue SetVideo(const JSONRPCRequest& request) {
     return setContent(request, ContentType::ContentVideo, "Video");
 }
 
+UniValue SetTranslate(const JSONRPCRequest& request) {
+    if (request.fHelp)
+        throw std::runtime_error("translate\n\nCreate new pocketnet translate post.\n");
+    
+    return setContent(request, ContentType::ContentTranslate, "Translate");
+}
+
 UniValue SetServerPing(const JSONRPCRequest& request) {
     if (request.fHelp)
         throw std::runtime_error("serverPing\n\nCreate new pocketnet server ping post.\n");
@@ -790,6 +797,12 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     if (mesType == "commentEdit") return SetCommentEdit(request);
     if (mesType == "commentDelete") return SetCommentDelete(request);
     if (mesType == "cScore") return SetCommentScore(request);
+
+    if (mesType == "video") return SetVideo(request);
+    if (mesType == "serverPing") return SetServerPing(request);
+    if (mesType == "translate") return SetTranslate(request);
+    if (mesType == "videoServer") return SetVideoServer(request);
+    if (mesType == "messageServer") return SetMessageServer(request);
     
     throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
 }
@@ -854,6 +867,19 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
         tags.push_back("");
     }
 
+    std::vector<int> contentTypes = {0, 1, 2, 4, 5};
+    if (request.params.size() > 6) {
+        if (request.params[6].isNum()) {
+            contentTypes = {ContentType[request.params[6].get_int()]};
+        } else if (request.params[6].isArray()) {
+            contentTypes.clear();
+            UniValue tps = request.params[6].get_array();
+            for (unsigned int idx = 0; idx < tps.size(); idx++) {
+                contentTypes.push_back(tps[idx].get_int());
+            }
+        }
+    }
+
     vector<string> addrsblock;
     if (address_from != "" && (address_to == "" || address_to == "1")) {
         reindexer::QueryResults queryResBlocking;
@@ -906,6 +932,7 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
 
     query = query.Not().Where("address", CondSet, addrsblock);
     query = query.Where("time", CondLe, GetAdjustedTime());
+    query = query.Where("type", CondSet, contentTypes);
 
     if (resultCount > 0 && resultStart > 0) {
         query = query.Where("time", CondLt, resultStart);
@@ -1955,6 +1982,19 @@ UniValue gethotposts(const JSONRPCRequest& request)
         tags.push_back("");
     }
 
+    std::vector<int> contentTypes = {0, 1, 2, 4, 5};
+    if (request.params.size() > 5) {
+        if (request.params[5].isNum()) {
+            contentTypes = {ContentType[request.params[5].get_int()]};
+        } else if (request.params[5].isArray()) {
+            contentTypes.clear();
+            UniValue tps = request.params[5].get_array();
+            for (unsigned int idx = 0; idx < tps.size(); idx++) {
+                contentTypes.push_back(tps[idx].get_int());
+            }
+        }
+    }
+
     int64_t curTime = GetAdjustedTime();
 
     // Excluded posts
@@ -1993,6 +2033,7 @@ UniValue gethotposts(const JSONRPCRequest& request)
     if (tags[0] != "") {
         query = query.Where("tags", CondSet, tags);
     }
+    query = query.Where("type", CondSet, contentTypes);
     query = query.Where("time", CondGt, curTime - depth);
     query = query.Not().Where("address", CondSet, addrsblock);
     query = query.Sort("reputation", true);
@@ -2952,61 +2993,61 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
 
 static const CRPCCommand commands[] =
     {
-        {"pocketnetrpc", "getrawtransactionwithmessage",      &getrawtransactionwithmessage,      {"address_from", "address_to", "start_txid", "count"},                  false},
-        {"pocketnetrpc", "getrawtransactionwithmessage2",     &getrawtransactionwithmessage2,     {"address_from", "address_to", "start_txid", "count"},                  false},
-        {"pocketnetrpc", "getrawtransactionwithmessagebyid",  &getrawtransactionwithmessagebyid,  {"txs", "address"},                                                     false},
-        {"pocketnetrpc", "getrawtransactionwithmessagebyid2", &getrawtransactionwithmessagebyid2, {"txs", "address"},                                                     false},
-        {"pocketnetrpc", "getuserprofile",                    &getuserprofile,                    {"addresses", "short"},                                                 false},
-        {"pocketnetrpc", "getmissedinfo",                     &getmissedinfo,                     {"address", "blocknumber"},                                             false},
-        {"pocketnetrpc", "getmissedinfo2",                    &getmissedinfo2,                    {"address", "blocknumber"},                                             false},
-        {"pocketnetrpc", "txunspent",                         &txunspent,                         {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}, false},
-        {"pocketnetrpc", "getaddressregistration",            &getaddressregistration,            {"addresses"},                                                          false},
-        {"pocketnetrpc", "getuserstate",                      &getuserstate,                      {"address", "time"},                                                    false},
-        {"pocketnetrpc", "gettime",                           &gettime,                           {},                                                                     false},
-        {"pocketnetrpc", "getrecommendedposts",               &getrecommendedposts,               {"address", "count"},                                                   false},
-        {"pocketnetrpc", "getrecommendedposts2",              &getrecommendedposts2,              {"address", "count"},                                                   false},
-        {"pocketnetrpc", "searchtags",                        &searchtags,                        {"search_string", "count"},                                             false},
-        {"pocketnetrpc", "search",                            &search,                            {"search_string", "type", "count"},                                     false},
-        {"pocketnetrpc", "search2",                           &search2,                           {"search_string", "type", "count"},                                     false},
-        {"pocketnetrpc", "gethotposts",                       &gethotposts,                       {"count", "depth", "address", "lang", "tags"},                          false},
-        {"pocketnetrpc", "gethotposts2",                      &gethotposts2,                      {"count", "depth"},                                                     false},
-        {"pocketnetrpc", "getuseraddress",                    &getuseraddress,                    {"name", "count"},                                                      false},
-        {"pocketnetrpc", "getreputations",                    &getreputations,                    {},                                                                     false},
-        {"pocketnetrpc", "getcontents",                       &getcontents,                       {"address"},                                                            false},
-        {"pocketnetrpc", "gettags",                           &gettags,                           {"address", "count"},                                                   false},
-        {"pocketnetrpc", "getlastcomments2",                  &getlastcomments,                   {"count", "address"},                                                   false},
-        {"pocketnetrpc", "getlastcomments",                   &getlastcomments,                   {"count", "address"},                                                   false},
-        {"pocketnetrpc", "getcomments2",                      &getcomments,                       {"postid", "parentid", "address", "ids"},                               false},
-        {"pocketnetrpc", "getcomments",                       &getcomments,                       {"postid", "parentid", "address", "ids"},                               false},
-        {"pocketnetrpc", "getaddressscores",                  &getaddressscores,                  {"address", "txs"},                                                     false},
-        {"pocketnetrpc", "getpostscores",                     &getpostscores,                     {"txs", "address"},                                                     false},
-        {"pocketnetrpc", "getpagescores",                     &getpagescores,                     {"txs", "address", "cmntids"},                                          false},
-        {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                    false},
-        {"pocketnetrpc", "gethierarchicalstrip",              &gethierarchicalstrip,              {},                                                                     false},
+        {"pocketnetrpc", "getrawtransactionwithmessage",      &getrawtransactionwithmessage,      {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}, false},
+        {"pocketnetrpc", "getrawtransactionwithmessage2",     &getrawtransactionwithmessage2,     {"address_from", "address_to", "start_txid", "count"},                                 false},
+        {"pocketnetrpc", "getrawtransactionwithmessagebyid",  &getrawtransactionwithmessagebyid,  {"txs", "address"},                                                                    false},
+        {"pocketnetrpc", "getrawtransactionwithmessagebyid2", &getrawtransactionwithmessagebyid2, {"txs", "address"},                                                                    false},
+        {"pocketnetrpc", "getuserprofile",                    &getuserprofile,                    {"addresses", "short"},                                                                false},
+        {"pocketnetrpc", "getmissedinfo",                     &getmissedinfo,                     {"address", "blocknumber"},                                                            false},
+        {"pocketnetrpc", "getmissedinfo2",                    &getmissedinfo2,                    {"address", "blocknumber"},                                                            false},
+        {"pocketnetrpc", "txunspent",                         &txunspent,                         {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"},                false},
+        {"pocketnetrpc", "getaddressregistration",            &getaddressregistration,            {"addresses"},                                                                         false},
+        {"pocketnetrpc", "getuserstate",                      &getuserstate,                      {"address", "time"},                                                                   false},
+        {"pocketnetrpc", "gettime",                           &gettime,                           {},                                                                                    false},
+        {"pocketnetrpc", "getrecommendedposts",               &getrecommendedposts,               {"address", "count"},                                                                  false},
+        {"pocketnetrpc", "getrecommendedposts2",              &getrecommendedposts2,              {"address", "count"},                                                                  false},
+        {"pocketnetrpc", "searchtags",                        &searchtags,                        {"search_string", "count"},                                                            false},
+        {"pocketnetrpc", "search",                            &search,                            {"search_string", "type", "count"},                                                    false},
+        {"pocketnetrpc", "search2",                           &search2,                           {"search_string", "type", "count"},                                                    false},
+        {"pocketnetrpc", "gethotposts",                       &gethotposts,                       {"count", "depth", "address", "lang", "tags", "contenttypes"},                         false},
+        {"pocketnetrpc", "gethotposts2",                      &gethotposts2,                      {"count", "depth"},                                                                    false},
+        {"pocketnetrpc", "getuseraddress",                    &getuseraddress,                    {"name", "count"},                                                                     false},
+        {"pocketnetrpc", "getreputations",                    &getreputations,                    {},                                                                                    false},
+        {"pocketnetrpc", "getcontents",                       &getcontents,                       {"address"},                                                                           false},
+        {"pocketnetrpc", "gettags",                           &gettags,                           {"address", "count"},                                                                  false},
+        {"pocketnetrpc", "getlastcomments2",                  &getlastcomments,                   {"count", "address"},                                                                  false},
+        {"pocketnetrpc", "getlastcomments",                   &getlastcomments,                   {"count", "address"},                                                                  false},
+        {"pocketnetrpc", "getcomments2",                      &getcomments,                       {"postid", "parentid", "address", "ids"},                                              false},
+        {"pocketnetrpc", "getcomments",                       &getcomments,                       {"postid", "parentid", "address", "ids"},                                              false},
+        {"pocketnetrpc", "getaddressscores",                  &getaddressscores,                  {"address", "txs"},                                                                    false},
+        {"pocketnetrpc", "getpostscores",                     &getpostscores,                     {"txs", "address"},                                                                    false},
+        {"pocketnetrpc", "getpagescores",                     &getpagescores,                     {"txs", "address", "cmntids"},                                                         false},
+        {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                                   false},
+        {"pocketnetrpc", "gethierarchicalstrip",              &gethierarchicalstrip,              {},                                                                                    false},
 
         // Pocketnet transactions
         {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"}, false},
 
-        {"pocketnetrpc", "setshare",                          &SetShare,                          {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setvideo",                          &SetVideo,                          {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setserverping",                     &SetServerPing,                     {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setshare",                          &SetShare,                          {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setvideo",                          &SetVideo,                          {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setserverping",                     &SetServerPing,                     {"hexstring", "message"},         false},
+        {"pocketnetrpc", "settranslate",                      &SetTranslate,                      {"hexstring", "message"},         false},
 
-        {"pocketnetrpc", "setupvoteshare",                    &SetUpvoteShare,                    {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setsubscribe",                      &SetSubscribe,                      {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setsubscribeprivate",               &SetSubscribePrivate,               {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setunsubscribe",                    &SetUnsubscribe,                    {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setcomplainshare",                  &SetComplainShare,                  {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setblocking",                       &SetBlocking,                       {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setunblocking",                     &SetUnblocking,                     {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setcomment",                        &SetComment,                        {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setcommentedit",                    &SetCommentEdit,                    {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setcommentdelete",                  &SetCommentDelete,                  {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setcommentscore",                   &SetCommentScore,                   {"hexstring", "message"}, false},
+        {"pocketnetrpc", "setupvoteshare",                    &SetUpvoteShare,                    {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setsubscribe",                      &SetSubscribe,                      {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setsubscribeprivate",               &SetSubscribePrivate,               {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setunsubscribe",                    &SetUnsubscribe,                    {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setcomplainshare",                  &SetComplainShare,                  {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setblocking",                       &SetBlocking,                       {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setunblocking",                     &SetUnblocking,                     {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setcomment",                        &SetComment,                        {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setcommentedit",                    &SetCommentEdit,                    {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setcommentdelete",                  &SetCommentDelete,                  {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setcommentscore",                   &SetCommentScore,                   {"hexstring", "message"},         false},
         
-        {"pocketnetrpc", "setuserinfo",                       &SetUserInfo,                       {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setvideoserver",                    &SetVideoServer,                    {"hexstring", "message"}, false},
-        {"pocketnetrpc", "setmessageserver",                  &SetMessageServer,                  {"hexstring", "message"}, false},
-
+        {"pocketnetrpc", "setuserinfo",                       &SetUserInfo,                       {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setvideoserver",                    &SetVideoServer,                    {"hexstring", "message"},         false},
+        {"pocketnetrpc", "setmessageserver",                  &SetMessageServer,                  {"hexstring", "message"},         false},
 
         {"hidden", "debug",     &debug, {}},
 };

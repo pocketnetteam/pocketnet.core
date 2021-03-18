@@ -73,7 +73,7 @@ int64_t GetActualLimit(Limit type, int height);
 // #define OR_VERIFICATION "766572696669636174696f6e" // User verification post
 #define OR_SERVER_PING "73657276657250696e67" // Server ping over Posts
 // #define OR_POLL "706f6c6c" // Polling post
-// #define OR_TRANSLATE "7472616e736c617465" // Post for translating words
+#define OR_TRANSLATE "7472616e736c617465" // Post for translating words
 
 #define OR_VIDEO_SERVER "766964656f536572766572" // Video server registration over User (userType = 1)
 #define OR_MESSAGE_SERVER "6d657373616765536572766572" // Messaging server registration over User (userType = 2)

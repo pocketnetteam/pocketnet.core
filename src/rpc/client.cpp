@@ -184,8 +184,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getstatistic", 2, "round" },
 
     { "getrawtransactionwithmessage", 3, "count" },
-    { "getrawtransactionwithmessage", 5, "tags" },//
+    { "getrawtransactionwithmessage", 5, "tags" },
+    { "getrawtransactionwithmessage", 6, "contenttypes" },
     { "gethotposts", 4, "count" },
+    { "gethotposts", 5, "contenttypes" },
 };
 // clang-format on
 
