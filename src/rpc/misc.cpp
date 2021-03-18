@@ -437,6 +437,8 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
     uint64_t nNetworkWeight = GetPoSKernelPS();
     entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
 
+	// TODO (dan): 
+
     CBlockIndex* pindex = chainActive.Tip();
     UniValue oblock(UniValue::VOBJ);
     oblock.pushKV("height", pindex->nHeight);
