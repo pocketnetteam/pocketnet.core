@@ -867,10 +867,10 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
         tags.push_back("");
     }
 
-    std::vector<int> contentTypes = {0, 1, 2, 4, 5};
+    std::vector<int> contentTypes = { 0, 1, 2, 4, 5 };
     if (request.params.size() > 6) {
         if (request.params[6].isNum()) {
-            contentTypes = {ContentType[request.params[6].get_int()]};
+            contentTypes = { request.params[6].get_int() };
         } else if (request.params[6].isArray()) {
             contentTypes.clear();
             UniValue tps = request.params[6].get_array();
@@ -1982,10 +1982,10 @@ UniValue gethotposts(const JSONRPCRequest& request)
         tags.push_back("");
     }
 
-    std::vector<int> contentTypes = {0, 1, 2, 4, 5};
+    std::vector<int> contentTypes = { 0, 1, 2, 4, 5 };
     if (request.params.size() > 5) {
         if (request.params[5].isNum()) {
-            contentTypes = {ContentType[request.params[5].get_int()]};
+            contentTypes = { request.params[5].get_int() };
         } else if (request.params[5].isArray()) {
             contentTypes.clear();
             UniValue tps = request.params[5].get_array();
