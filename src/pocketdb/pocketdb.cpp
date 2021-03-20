@@ -516,18 +516,13 @@ bool PocketDB::GetStatistic(std::string table, UniValue& obj)
     Error err;
     if (table != "") {
         QueryResults _res;
-        err = db->Select(reindexer::Query(table).Sort("block", true).ReqTotal(), _res);
+        err = db->Select(reindexer::Query(table).Sort("block", true), _res);
         if (err.ok()) {
             std::string retString;
-
             for (auto& it : _res) {
-                auto itm = it.GetItem();
-                for (int i = 0; i < itm.NumFields(); i++) {
-                    retString += it.GetItem().GetJSON().ToString();
-                    retString += "\n";
-                }
+                retString += it.GetItem().GetJSON().ToString();
+                retString += "\n";
             }
-
             obj = retString;
         }
 
@@ -1005,8 +1000,7 @@ bool PocketDB::ExistsUserLiker(int userId, int likerId, int height)
         Query("Ratings")
             .Where("type", CondEq, (int)RatingType::RatingUserLikers)
             .Where("key", CondEq, userId)
-            .Where("value", CondEq, likerId)
-            .Where("block", CondLe, height));
+            .Where("value", CondEq, likerId));
 }
 
 bool PocketDB::SetUserReputation(std::string address, int rep)

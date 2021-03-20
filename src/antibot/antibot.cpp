@@ -150,6 +150,7 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
 
     // Not found :(
     if (userId < 0 || userType < 0) {
+        LogPrintf("--- %s - %s\n", userId, userType);
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }

@@ -208,7 +208,8 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
             std::vector<std::string> likers;
             userLikers.insert(std::make_pair(post_address, likers));
         }
-        userLikers[post_address].push_back(score_address);
+        if (std::find(userLikers[post_address].begin(), userLikers[post_address].end(), score_address) == userLikers[post_address].end())
+            userLikers[post_address].push_back(score_address);
     }
 
     return true;
@@ -261,7 +262,8 @@ bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
             std::vector<std::string> likers;
             userLikers.insert(std::make_pair(comment_address, likers));
         }
-        userLikers[comment_address].push_back(score_address);
+        if (std::find(userLikers[comment_address].begin(), userLikers[comment_address].end(), score_address) == userLikers[comment_address].end())
+            userLikers[comment_address].push_back(score_address);
     }
 
     return true;
@@ -310,7 +312,11 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
                 _itm_rating_new["block"] = pindex->nHeight;
                 _itm_rating_new["key"] = userId;
                 _itm_rating_new["value"] = likerId;
-                if (!g_pocketdb->UpsertWithCommit("Ratings", _itm_rating_new).ok()) return false;
+
+                if (!g_pocketdb->UpsertWithCommit("Ratings", _itm_rating_new).ok()) {
+                    LogPrintf("Error save user likers ratings %d - %d\n", userId, likerId);
+                    return false;
+                }
             }
         }
     }
