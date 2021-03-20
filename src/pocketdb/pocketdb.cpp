@@ -518,13 +518,17 @@ bool PocketDB::GetStatistic(std::string table, UniValue& obj)
         QueryResults _res;
         err = db->Select(reindexer::Query(table).Sort("block", true).ReqTotal(), _res);
         if (err.ok()) {
-            obj.pushKV("total", (uint64_t)_res.TotalCount());
+            std::string retString;
 
-            UniValue t_arr(UniValue::VARR);
             for (auto& it : _res) {
-                t_arr.push_back(it.GetItem().GetJSON().ToString());
+                auto itm = it.GetItem();
+                for (int i = 0; i < itm.NumFields(); i++) {
+                    retString += it.GetItem().GetJSON().ToString();
+                    retString += "\n";
+                }
             }
-            obj.pushKV("items", t_arr);
+
+            obj = retString;
         }
 
         return err.ok();
