@@ -376,7 +376,7 @@
     <ProjectGuid>{E1E78A67-C1A7-401B-87E9-3BC0E9D32205}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>reindexer</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

@@ -4,6 +4,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+
 #include <chain.h>
 #include <clientversion.h>
 #include <core_io.h>
@@ -11,9 +12,9 @@
 #include <httpserver.h>
 #include <key_io.h>
 #include <net.h>
-#include <pos.h>
 #include <netbase.h>
 #include <outputtype.h>
+#include <pos.h>
 #include <rpc/blockchain.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
@@ -427,6 +428,58 @@ static UniValue echo(const JSONRPCRequest& request)
     return request.params;
 }
 
+
+static UniValue getcoininfo(const JSONRPCRequest& request)
+{
+    UniValue entry(UniValue::VOBJ);
+    int numblock;
+    if (request.params.size() == 0 || !request.params[0].isNum()) {
+         numblock = chainActive.Height();
+		} 
+
+	else {
+         numblock = request.params[0].get_int();
+	}
+        
+	
+    
+
+    int first75 = 3750000;
+
+
+    int halvblocks = 2'100'000;
+    double emission = 0;
+    int i = 0;
+    int nratio = numblock / halvblocks;
+
+
+    double mult;
+
+    for (int i = 0; i <= nratio; ++i) {
+        mult = 5. / pow(2., static_cast<double>(i));
+        if (i < nratio || nratio == 0) {
+            if (i == 0 && numblock < 75'000)
+                emission += numblock * 50;
+            else if (i == 0) {
+				
+               emission += first75+ (std::min(numblock, halvblocks) - 75000) * 5;
+         
+            }
+            else
+                emission += 2'100'000 * mult;
+        }
+
+
+        if (i == nratio && nratio != 0) {
+            emission += (numblock % halvblocks) * mult;
+        }
+    }
+	
+    entry.pushKV("emission", emission);
+    entry.pushKV("numblock", numblock);
+    return entry;
+}
+
 static UniValue getnodeinfo(const JSONRPCRequest& request)
 {
     UniValue entry(UniValue::VOBJ);
@@ -437,7 +490,6 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
     uint64_t nNetworkWeight = GetPoSKernelPS();
     entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
 
-	// TODO (dan): 
 
     CBlockIndex* pindex = chainActive.Tip();
     UniValue oblock(UniValue::VOBJ);
@@ -492,6 +544,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "echojson",               &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 
     { "util",               "getnodeinfo",            &getnodeinfo,            {}, false},
+	 {"util",               "getcoininfo",            &getcoininfo,            {"Blocknum"}},
 
     /* For ReindexerDB */
     { "hidden",             "getristat",              &getristat,              {"table"}},
