@@ -109,28 +109,25 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
     std::string txId = oitm["txid"].get_str();
     int64_t time = oitm["time"].get_int64();
 
-    int userId = -1;
     int userType = -1;
 
     // First restore user from DB
     reindexer::Item userItm;
-    if (userId < 0 && g_pocketdb->SelectOne(reindexer::Query("UsersView", 0, 1).Where("address", CondEq, address), userItm).ok()) {
-        userId = userItm["id"].As<int>();
+    if (userType < 0 && g_pocketdb->SelectOne(reindexer::Query("UsersView", 0, 1).Where("address", CondEq, address), userItm).ok()) {
         userType = userItm["gender"].As<int>();
     }
 
     // Or maybe registration in this block?
-    if (userId < 0 && blockVtx.Exists("Users")) {
+    if (userType < 0 && blockVtx.Exists("Users")) {
         for (auto& mtx : blockVtx.Data["Users"]) {
             if (mtx["txid"].get_str() != txId && mtx["time"].get_int64() <= time && mtx["address"].get_str() == address) {
-                userId = mtx["userId"].get_int();
                 userType = mtx["userType"].get_int();
             }
         }
     }
 
     // Or in mempool?
-    if (userId < 0 && checkMempool) {
+    if (userType < 0 && checkMempool) {
         reindexer::QueryResults res;
         if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, txId), res).ok()) {
             for (auto& m : res) {
@@ -140,7 +137,6 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["time"].As<int64_t>() <= time && t_itm["address"].As<string>() == address) {
-                        userId = t_itm["id"].As<int>();
                         userType = t_itm["gender"].As<int>();
                     }
                 }
@@ -149,8 +145,7 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
     }
 
     // Not found :(
-    if (userId < 0 || userType < 0) {
-        LogPrintf("--- %s - %s\n", userId, userType);
+    if (userType < 0) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
     }
