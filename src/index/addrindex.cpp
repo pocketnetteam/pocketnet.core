@@ -204,12 +204,15 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
         postReputations[posttxid] += scoreVal - 3; // Reputation between -2 and 2
 
         // Save distinct liker for user
-        if (userLikers.find(post_address) == userLikers.end()) {
-            std::vector<std::string> likers;
-            userLikers.insert(std::make_pair(post_address, likers));
+        if (scoreVal == 4 or scoreVal == 5) {
+            if (userLikers.find(post_address) == userLikers.end()) {
+                std::vector<std::string> likers;
+                userLikers.insert(std::make_pair(post_address, likers));
+            }
+
+            if (std::find(userLikers[post_address].begin(), userLikers[post_address].end(), score_address) == userLikers[post_address].end())
+                userLikers[post_address].push_back(score_address);
         }
-        if (std::find(userLikers[post_address].begin(), userLikers[post_address].end(), score_address) == userLikers[post_address].end())
-            userLikers[post_address].push_back(score_address);
     }
 
     return true;
@@ -258,12 +261,15 @@ bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
         commentReputations[commentid] += scoreVal;
 
         // Save distinct liker for user
-        if (userLikers.find(comment_address) == userLikers.end()) {
-            std::vector<std::string> likers;
-            userLikers.insert(std::make_pair(comment_address, likers));
+        if (scoreVal == 1) {
+            if (userLikers.find(comment_address) == userLikers.end()) {
+                std::vector<std::string> likers;
+                userLikers.insert(std::make_pair(comment_address, likers));
+            }
+            
+            if (std::find(userLikers[comment_address].begin(), userLikers[comment_address].end(), score_address) == userLikers[comment_address].end())
+                userLikers[comment_address].push_back(score_address);
         }
-        if (std::find(userLikers[comment_address].begin(), userLikers[comment_address].end(), score_address) == userLikers[comment_address].end())
-            userLikers[comment_address].push_back(score_address);
     }
 
     return true;
