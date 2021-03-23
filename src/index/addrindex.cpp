@@ -1,4 +1,3 @@
-// Copyright (c) 2018 PocketNet developers
 // Indexes for addresses and transactions
 // + manupulations with Reindexer DB
 //-----------------------------------------------------

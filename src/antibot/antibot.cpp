@@ -318,8 +318,10 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
     bool not_found = false;
     std::string _post_address;
     reindexer::Item postItm;
+    ContentType postType = ContentType::ContentPost;
     if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _post), postItm).ok()) {
         _post_address = postItm["address"].As<string>();
+        postType = ContentType(postItm["type"].As<int>());
 
         // Score to self post
         if (_post_address == _address) {
@@ -336,6 +338,7 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
             for (auto& mtx : blockVtx.Data["Posts"]) {
                 if (mtx["txid"].get_str() == _post) {
                     _post_address = mtx["address"].get_str();
+                    postType = ContentType(mtx["postType"].get_int());
                     not_found = false;
                     break;
                 }
@@ -346,6 +349,12 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
             result = ANTIBOTRESULT::NotFound;
             return false;
         }
+    }
+
+    // For translate posts allowed only value=5
+    if (postType != ContentType::ContentTranslate) {
+        result = ANTIBOTRESULT::NotAllowed;
+        return false;
     }
 
     // Blocking
