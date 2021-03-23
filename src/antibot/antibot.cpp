@@ -351,12 +351,6 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
         }
     }
 
-    // For translate posts allowed only value=5
-    if (postType != ContentType::ContentTranslate) {
-        result = ANTIBOTRESULT::NotAllowed;
-        return false;
-    }
-
     // Blocking
     if (height >= Params().GetConsensus().score_blocking_on && height < Params().GetConsensus().score_blocking_off && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _post_address).Where("address_to", CondEq, _address))) {
         result = ANTIBOTRESULT::Blocking;
