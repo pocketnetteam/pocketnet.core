@@ -182,7 +182,7 @@ enum opcodetype
     OP_NOP9 = 0xb8,
     OP_NOP10 = 0xb9,
 
-    // Pocketnet
+    // Pocketnet lottery winners
     OP_WINNER_POST = 0xc0,
     OP_WINNER_POST_REFERRAL = 0xc1,
     OP_WINNER_COMMENT = 0xc2,
