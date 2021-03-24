@@ -9,6 +9,5 @@
 #include "rpc/server.h"
 #include "rpc/rawtransaction.h"
 #include "pocketdb/pocketnet.h"
-   
 
 #endif // POCKETCOIN_RPC_POCKETNET_H
