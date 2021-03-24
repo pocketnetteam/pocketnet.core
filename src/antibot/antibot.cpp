@@ -104,7 +104,7 @@ int getLimitsCount(std::string _table, std::string _address, int64_t _time) {
 //-----------------------------------------------------
 
 //-----------------------------------------------------
-bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMempool, BlockVTX& blockVtx, ANTIBOTRESULT& result) {
+bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMempool, bool checkWithTime, BlockVTX& blockVtx, ANTIBOTRESULT& result) {
     std::string txType = oitm["type"].get_str();
     std::string txId = oitm["txid"].get_str();
     int64_t time = oitm["time"].get_int64();
@@ -120,8 +120,9 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
     // Or maybe registration in this block?
     if (userType < 0 && blockVtx.Exists("Users")) {
         for (auto& mtx : blockVtx.Data["Users"]) {
-            if (mtx["txid"].get_str() != txId && mtx["time"].get_int64() <= time && mtx["address"].get_str() == address) {
-                userType = mtx["userType"].get_int();
+            if (mtx["txid"].get_str() != txId && mtx["address"].get_str() == address) {
+                if (!checkWithTime || mtx["time"].get_int64() <= time)
+                    userType = mtx["userType"].get_int();
             }
         }
     }
@@ -136,8 +137,9 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
 
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
                 if (t_itm.FromJSON(t_src).ok()) {
-                    if (t_itm["time"].As<int64_t>() <= time && t_itm["address"].As<string>() == address) {
-                        userType = t_itm["gender"].As<int>();
+                    if (t_itm["address"].As<string>() == address) {
+                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= time)
+                            userType = t_itm["gender"].As<int>();
                     }
                 }
             }
@@ -176,13 +178,13 @@ bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBO
 
 //-----------------------------------------------------
 
-bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -200,8 +202,9 @@ bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, i
 
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
                 if (t_itm.FromJSON(t_src).ok()) {
-                    if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address && t_itm["txidEdit"].As<string>() == "") {
-                        postsCount += 1;
+                    if (t_itm["address"].As<string>() == _address && t_itm["txidEdit"].As<string>() == "") {
+                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                            postsCount += 1;
                     }
                 }
             }
@@ -211,8 +214,9 @@ bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, i
     // Check block
     if (blockVtx.Exists("Posts")) {
         for (auto& mtx : blockVtx.Data["Posts"]) {
-            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["time"].get_int64() <= _time && mtx["txidEdit"].get_str() == "") {
-                postsCount += 1;
+            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["txidEdit"].get_str() == "") {
+                if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                    postsCount += 1;
             }
         }
     }
@@ -229,7 +233,7 @@ bool AntiBot::check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, i
     return true;
 }
 
-bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();// Original post id
@@ -237,7 +241,7 @@ bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     int64_t _time = oitm["time"].get_int64();
 
     // User registered?
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -297,7 +301,7 @@ bool AntiBot::check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     return true;
 }
 
-bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -310,7 +314,7 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -393,12 +397,14 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
 
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Scores");
                 if (t_itm.FromJSON(t_src).ok()) {
-                    if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address) {
-                        scoresCount += 1;
-                    }
-                    if (t_itm["address"].As<string>() == _address && t_itm["posttxid"].As<string>() == _post) {
-                        result = ANTIBOTRESULT::DoubleScore;
-                        return false;
+                    if (t_itm["address"].As<string>() == _address) {
+                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                            scoresCount += 1;
+
+                        if (t_itm["posttxid"].As<string>() == _post) {
+                            result = ANTIBOTRESULT::DoubleScore;
+                            return false;
+                        }
                     }
                 }
             }
@@ -408,13 +414,14 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
     // Check block
     if (blockVtx.Exists("Scores")) {
         for (auto& mtx : blockVtx.Data["Scores"]) {
-            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["time"].get_int64() <= _time) {
-                scoresCount += 1;
-            }
+            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
+                if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                    scoresCount += 1;
 
-            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["posttxid"].get_str() == _post) {
-                result = ANTIBOTRESULT::DoubleScore;
-                return false;
+                if (mtx["posttxid"].get_str() == _post) {
+                    result = ANTIBOTRESULT::DoubleScore;
+                    return false;
+                }
             }
         }
     }
@@ -449,14 +456,14 @@ bool AntiBot::check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, 
     return true;
 }
 
-bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
     std::string _post = oitm["posttxid"].get_str();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -540,12 +547,14 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
 
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Complains");
                 if (t_itm.FromJSON(t_src).ok()) {
-                    if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address) {
-                        complainCount += 1;
-                    }
-                    if (t_itm["address"].As<string>() == _address && t_itm["posttxid"].As<string>() == _post) {
-                        result = ANTIBOTRESULT::DoubleComplain;
-                        return false;
+                    if (t_itm["address"].As<string>() == _address) {
+                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                            complainCount += 1;
+
+                        if (t_itm["posttxid"].As<string>() == _post) {
+                            result = ANTIBOTRESULT::DoubleComplain;
+                            return false;
+                        }
                     }
                 }
             }
@@ -555,13 +564,14 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     // Check block
     if (blockVtx.Exists("Complains")) {
         for (auto& mtx : blockVtx.Data["Complains"]) {
-            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["time"].get_int64() <= _time) {
-                complainCount += 1;
-            }
+            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
+                if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                    complainCount += 1;
 
-            if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["posttxid"].get_str() == _post) {
-                result = ANTIBOTRESULT::DoubleComplain;
-                return false;
+                if (mtx["posttxid"].get_str() == _post) {
+                    result = ANTIBOTRESULT::DoubleComplain;
+                    return false;
+                }
             }
         }
     }
@@ -575,7 +585,7 @@ bool AntiBot::check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     return true;
 }
 
-bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -618,7 +628,7 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == _address) {
-                        if (t_itm["time"].As<int64_t>() <= _time) {
+                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
                             result = ANTIBOTRESULT::ChangeInfoLimit;
                             return false;
                         }
@@ -631,11 +641,9 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
     // Check block
     if (blockVtx.Exists("Users")) {
         for (auto& mtx : blockVtx.Data["Users"]) {
-            if (mtx["address"].get_str() == _address) {
-                if (mtx["txid"].get_str() != _txid) {
-                    result = ANTIBOTRESULT::ChangeInfoLimit;
-                    return false;
-                }
+            if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid) {
+                result = ANTIBOTRESULT::ChangeInfoLimit;
+                return false;
             }
         }
     }
@@ -662,7 +670,7 @@ bool AntiBot::check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMemp
     return true;
 }
 
-bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -671,11 +679,11 @@ bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     bool _unsubscribe = oitm["unsubscribe"].get_bool();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address_to, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address_to, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -689,9 +697,11 @@ bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
 
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Subscribes");
                 if (t_itm.FromJSON(t_src).ok()) {
-                    if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
-                        result = ANTIBOTRESULT::ManyTransactions;
-                        return false;
+                    if (t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
+                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
+                            result = ANTIBOTRESULT::ManyTransactions;
+                            return false;
+                        }
                     }
                 }
             }
@@ -738,7 +748,7 @@ bool AntiBot::check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempo
     return true;
 }
 
-bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -746,11 +756,11 @@ bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     bool _unblocking = oitm["unblocking"].get_bool();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address_to, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address_to, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -770,9 +780,11 @@ bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
 
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Blocking");
                 if (t_itm.FromJSON(t_src).ok()) {
-                    if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
-                        result = ANTIBOTRESULT::ManyTransactions;
-                        return false;
+                    if (t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
+                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
+                            result = ANTIBOTRESULT::ManyTransactions;
+                            return false;
+                        }
                     }
                 }
             }
@@ -809,7 +821,7 @@ bool AntiBot::check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempoo
     return true;
 }
 
-bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();
@@ -821,7 +833,7 @@ bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool
     std::string _parentid = oitm["parentid"].get_str();
     std::string _answerid = oitm["answerid"].get_str();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -869,8 +881,9 @@ bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool
 
                     reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Comment");
                     if (t_itm.FromJSON(t_src).ok()) {
-                        if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address && t_itm["otxid"].As<string>() == t_itm["txid"].As<string>()) {
-                            commentsCount += 1;
+                        if (t_itm["address"].As<string>() == _address && t_itm["otxid"].As<string>() == t_itm["txid"].As<string>()) {
+                            if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                                commentsCount += 1;
                         }
                     }
                 }
@@ -880,8 +893,9 @@ bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool
         // Check block
         if (blockVtx.Exists("Comment")) {
             for (auto& mtx : blockVtx.Data["Comment"]) {
-                if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["time"].get_int64() <= _time && mtx["otxid"].get_str() == mtx["txid"].get_str()) {
-                    commentsCount += 1;
+                if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["otxid"].get_str() == mtx["txid"].get_str()) {
+                    if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                        commentsCount += 1;
                 }
             }
         }
@@ -899,7 +913,7 @@ bool AntiBot::check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool
     return true;
 }
 
-bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result) {
+bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result) {
     std::string _address = oitm["address"].get_str();
     int64_t _time = oitm["time"].get_int64();
     
@@ -911,7 +925,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
     std::string _answerid = oitm["answerid"].get_str();
 
     // User registered?
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -1009,7 +1023,7 @@ bool AntiBot::check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMe
     return true;
 }
 
-bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result) {
+bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result) {
     std::string _address = oitm["address"].get_str();
     int64_t _time = oitm["time"].get_int64();
     
@@ -1019,7 +1033,7 @@ bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool check
     std::string _answerid = oitm["answerid"].get_str();
 
     // User registered?
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -1080,7 +1094,7 @@ bool AntiBot::check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool check
     return true;
 }
 
-bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -1093,7 +1107,7 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address, checkMempool, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, blockVtx, result)) {
         return false;
     }
 
@@ -1174,13 +1188,15 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
 
                     reindexer::Item t_itm = g_pocketdb->DB()->NewItem("CommentScores");
                     if (t_itm.FromJSON(t_src).ok()) {
-                        if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address) {
-                            scoresCount += 1;
-                        }
-                        if (t_itm["address"].As<string>() == _address && t_itm["commentid"].As<string>() == _comment_id) {
-                            result = ANTIBOTRESULT::DoubleCommentScore;
-                            return false;
-                        }
+                        if (t_itm["address"].As<string>() == _address) {
+                            if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                                scoresCount += 1;
+                            
+                            if (t_itm["commentid"].As<string>() == _comment_id) {
+                                result = ANTIBOTRESULT::DoubleCommentScore;
+                                return false;
+                            }
+                        }                        
                     }
                 }
             }
@@ -1189,13 +1205,14 @@ bool AntiBot::check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkM
         // Check block
         if (blockVtx.Exists("CommentScores")) {
             for (auto& mtx : blockVtx.Data["CommentScores"]) {
-                if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["time"].get_int64() <= _time) {
-                    scoresCount += 1;
-                }
+                if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
+                    if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                        scoresCount += 1;
 
-                if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["commentid"].get_str() == _comment_id) {
-                    result = ANTIBOTRESULT::DoubleCommentScore;
-                    return false;
+                    if (mtx["commentid"].get_str() == _comment_id) {
+                        result = ANTIBOTRESULT::DoubleCommentScore;
+                        return false;
+                    }
                 }
             }
         }
@@ -1243,6 +1260,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     resultCode = ANTIBOTRESULT::Success;
     std::string table = oitm["table"].get_str();
     std::string tx_type = oitm["type"].get_str();
+    bool checkWithTime = height < Params().GetConsensus().checkpoint_0_19_3;
     
     // If `item` with `txid` already in reindexer db - skip checks
     std::string _txid_check_exists = oitm["txid"].get_str();
@@ -1274,34 +1292,34 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     if (table == "Posts") {
         if (!check_item_size(oitm, Post, height, resultCode)) return;
         if (oitm["txidEdit"].get_str() != "") {
-            check_post_edit(oitm, blockVtx, checkMempool, height, resultCode);
+            check_post_edit(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
         } else {
-            check_post(oitm, blockVtx, checkMempool, height, resultCode);
+            check_post(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
         }
     }
     else if (table == "Scores") {
-        check_score(oitm, blockVtx, checkMempool, height, resultCode);
+        check_score(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
     }
     else if (table == "Complains") {
-        check_complain(oitm, blockVtx, checkMempool, height, resultCode);
+        check_complain(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
     }
     else if (table == "Subscribes") {
-        check_subscribe(oitm, blockVtx, checkMempool, height, resultCode);
+        check_subscribe(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
     }
 	else if (table == "Blocking") {
-        check_blocking(oitm, blockVtx, checkMempool, height, resultCode);
+        check_blocking(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
     }
     else if (table == "Users") {
         if (!check_item_size(oitm, User, height, resultCode)) return;
-        check_changeInfo(oitm, blockVtx, checkMempool, height, resultCode);
+        check_changeInfo(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
     }
 	else if (table == "Comment") {
-        if (tx_type == OR_COMMENT) check_comment(oitm, blockVtx, checkMempool, height, resultCode);
-        else if (tx_type == OR_COMMENT_EDIT) check_comment_edit(oitm, blockVtx, checkMempool, height, resultCode);
-        else if (tx_type == OR_COMMENT_DELETE) check_comment_delete(oitm, blockVtx, checkMempool, height, resultCode);
+        if (tx_type == OR_COMMENT) check_comment(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+        else if (tx_type == OR_COMMENT_EDIT) check_comment_edit(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+        else if (tx_type == OR_COMMENT_DELETE) check_comment_delete(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
     }
 	else if (table == "CommentScores") {
-        check_comment_score(oitm, blockVtx, checkMempool, height, resultCode);
+        check_comment_score(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
     }
     else {
         resultCode = ANTIBOTRESULT::Unknown;
@@ -1397,7 +1415,7 @@ bool AntiBot::AllowModifyReputation(std::string _score_address, int height) {
     if (_user_reputation < _min_user_reputation) return false;
 
     // Ignore scores from users with non verificated reputation
-    if (height >= Params().GetConsensus().threshold_likers) {
+    if (height >= Params().GetConsensus().checkpoint_0_19_3) {
         int64_t _min_likers = GetActualLimit(Limit::threshold_likers_count, height);
         int userId = g_pocketdb->GetUserId(_score_address);
         if (userId < 0) return false;

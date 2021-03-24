@@ -102,8 +102,7 @@ struct Params {
     unsigned int opreturn_check;
     unsigned int lottery_referral_beg;
     unsigned int lottery_referral_limitation;
-    unsigned int lottery_refactor_20210316;
-    unsigned int threshold_likers;
+    unsigned int checkpoint_0_19_3;
 };
 } // namespace Consensus
 
