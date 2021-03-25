@@ -2784,7 +2784,7 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
         postsRaited.push_back(std::make_pair(iPostRank.second[POSTRF], iPostRank.first));
     }
 
-    std::sort(postsRaited.begin(), postsRaited.end(), std::greater());
+    std::sort(postsRaited.begin(), postsRaited.end(), std::greater{});
 
     for(auto v : postsRaited) {
         reindexer::Item postItm;
