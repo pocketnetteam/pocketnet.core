@@ -2184,7 +2184,7 @@ UniValue getlastcomments(const JSONRPCRequest& request)
             .Limit(resultCount)
             //.InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
             //.LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1))
-            .InnerJoin("postid", "txid", CondEq, Query("Posts").Where("lang", (lang == "" ? CondGe : CondEq), lang).Limit(1))
+            //.InnerJoin("postid", "txid", CondEq, Query("Posts").Where("lang", (lang == "" ? CondGe : CondEq), lang).Limit(1))
         ,commRes);
 
     UniValue aResult(UniValue::VARR);
