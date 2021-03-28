@@ -666,6 +666,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             g_pocketdb->DropTable("UserRatings");
             g_pocketdb->DropTable("PostRatings");
             g_pocketdb->DropTable("CommentRatings");
+            g_pocketdb->DropTable("UTXO");
             LogPrintf("Rating tables cleared\n");
 
             int nFile = 0;
