@@ -441,8 +441,7 @@ static UniValue getcoininfo(const JSONRPCRequest& request)
     int height;
     if (request.params.size() == 0 || !request.params[0].isNum()) {
         height = chainActive.Height();
-    }
-    else {
+    } else {
         height = request.params[0].get_int();
     }
 
@@ -538,7 +537,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "echojson",               &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 
     { "util",               "getnodeinfo",            &getnodeinfo,            {}, false},
-	 {"util",               "getcoininfo",            &getcoininfo,            {"height", false}},
+    { "util",               "getcoininfo",            &getcoininfo,            {"height"}, false},
 
     /* For ReindexerDB */
     { "hidden",             "getristat",              &getristat,              {"table"}},
