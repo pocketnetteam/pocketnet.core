@@ -188,6 +188,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getrawtransactionwithmessage", 6, "contenttypes" },
     { "gethotposts", 4, "count" },
     { "gethotposts", 5, "contenttypes" },
+    { "getcoininfo", 0, "height" },
 };
 // clang-format on
 
