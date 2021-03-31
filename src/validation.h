@@ -10,6 +10,8 @@
 #include <config/pocketcoin-config.h>
 #endif
 
+#include "primitives/rtransaction.h"
+
 #include <amount.h>
 #include <coins.h>
 #include <consensus/consensus.h>
@@ -31,8 +33,6 @@
 #include <utility>
 #include <vector>
 #include <atomic>
-
-#include <primitives/rtransaction.h>
 
 #include <websocket/ws.h>
 extern std::map<std::string, WSUser> WSConnections;

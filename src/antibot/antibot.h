@@ -5,44 +5,46 @@
 #ifndef ANTIBOT_H
 #define ANTIBOT_H
 //-----------------------------------------------------
+#include "html.h"
 #include "pocketdb/pocketdb.h"
 #include "pocketdb/pocketnet.h"
 #include "validation.h"
-#include <timedata.h>
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string.hpp>
-#include "html.h"
+#include <boost/algorithm/string/predicate.hpp>
+#include <timedata.h>
 //-----------------------------------------------------
 struct UserStateItem {
-	std::string address;
-	int64_t user_registration_date;
-	int64_t address_registration_date;
-	int reputation;
-	int64_t balance;
-	bool trial;
+    std::string address;
+    int64_t user_registration_date;
+    int64_t address_registration_date;
+    int reputation;
+    int64_t balance;
+    bool trial;
 
-	int post_unspent;
-	int post_spent;
+    int post_unspent;
+    int post_spent;
 
-	int score_unspent;
-	int score_spent;
+    int score_unspent;
+    int score_spent;
 
-	int complain_unspent;
-	int complain_spent;
+    int complain_unspent;
+    int complain_spent;
 
     int comment_unspent;
-	int comment_spent;
+    int comment_spent;
 
     int comment_score_unspent;
-	int comment_score_spent;
-    
-	int number_of_blocking;
+    int comment_score_spent;
 
-	UserStateItem(std::string _address) {
-		address = _address;
-	}
+    int number_of_blocking;
 
-    UniValue Serialize() {
+    UserStateItem(std::string _address)
+    {
+        address = _address;
+    }
+
+    UniValue Serialize()
+    {
         UniValue result(UniValue::VOBJ);
 
         result.pushKV("address", address);
@@ -69,19 +71,19 @@ struct UserStateItem {
 };
 //-----------------------------------------------------
 enum CHECKTYPE {
-	User,
-	Post,
+    User,
+    Post,
     PostEdit,
-	Score,
-	Complain,
+    Score,
+    Complain,
     Comment,
     CommentEdit,
     CommentScore
 };
 //-----------------------------------------------------
 enum ABMODE {
-	Trial,
-	Full
+    Trial,
+    Full
 };
 //-----------------------------------------------------
 enum ANTIBOTRESULT {
@@ -127,26 +129,30 @@ enum ANTIBOTRESULT {
     DoubleCommentScore = 40,
     OpReturnFailed = 41,
     CommentDeletedEdit = 42,
-    ReferrerAfterRegistration = 43
+    ReferrerAfterRegistration = 43,
+    NotAllowed = 43
 };
 //-----------------------------------------------------
 struct BlockVTX {
     std::map<std::string, std::vector<UniValue>> Data;
 
-    size_t Size() {
+    size_t Size()
+    {
         return Data.size();
     }
 
-    void Add(std::string table, UniValue itm) {
+    void Add(std::string table, UniValue itm)
+    {
         if (Data.find(table) == Data.end()) {
             std::vector<UniValue> vtxri;
             Data.insert_or_assign(table, vtxri);
         }
-        
+
         Data[table].push_back(itm);
     }
 
-    bool Exists(std::string table) {
+    bool Exists(std::string table)
+    {
         return Data.find(table) != Data.end();
     }
 };
@@ -154,53 +160,52 @@ struct BlockVTX {
 class AntiBot
 {
 private:
-	void getMode(std::string _address, ABMODE &mode, int &reputation, int64_t &balance, int height);
-	void getMode(std::string _address, ABMODE &mode, int height);
-	int getLimit(CHECKTYPE _type, ABMODE _mode, int height);
+    void getMode(std::string _address, ABMODE& mode, int& reputation, int64_t& balance, int height);
+    void getMode(std::string _address, ABMODE& mode, int height);
+    int getLimit(CHECKTYPE _type, ABMODE _mode, int height);
 
-	// Maximum size for reindexer item with switch for type
-	bool check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result);
+    // Maximum size for reindexer item with switch for type
+    bool check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result);
 
-	// Check new post and edited post from address
-	bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
-    bool check_post_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    // Check new post and edited post from address
+    bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
 
-	// Check new score to post from address
-	bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    // Check new score to post from address
+    bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
 
-	// Check new complain to post from address
-	bool check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    // Check new complain to post from address
+    bool check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
 
-	// Check change profile
-	bool check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    // Check change profile
+    bool check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
 
-	// Check subscribe/unsubscribe
-	bool check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    // Check subscribe/unsubscribe
+    bool check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
 
-	// Check blocking/unblocking
-	bool check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    // Check blocking/unblocking
+    bool check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
 
     // Check new comment
-    bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
-    bool check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
-    bool check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
 
     // Check new score to comment
-    bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
 
 public:
     explicit AntiBot();
     ~AntiBot();
 
     // Check user is a registration. Need one record in DB Users
-    bool CheckRegistration(std::string _address, std::string _txid, int64_t time, bool checkMempool, BlockVTX& blockVtx);
-    bool CheckRegistration(std::string _address);
+    bool CheckRegistration(UniValue oitm, std::string address, bool checkMempool, bool checkWithTime, int height, BlockVTX& blockVtx, ANTIBOTRESULT& result);
 
-	/*
+    /*
 		Check conditions for new transaction.
 		PocketNET data must be in RIMempool
 	*/
-	void CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& resultCode);
+    void CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& resultCode);
     void CheckTransactionRIItem(UniValue oitm, int height, ANTIBOTRESULT& resultCode);
     /*
         Check inputs for exists utxo
@@ -211,11 +216,11 @@ public:
         Include this transactions as parents
     */
     bool CheckBlock(BlockVTX& blockVtx, int height);
-	/*
+    /*
 		Return array of user states.
 		Contains info about spent and unspent posts and scores. Also current reputation value
 	*/
-	bool GetUserState(std::string _address, int64_t _time, UserStateItem& _state);
+    bool GetUserState(std::string _address, int64_t _time, UserStateItem& _state);
     /*
         to test the possibility of changing that reputation
     */

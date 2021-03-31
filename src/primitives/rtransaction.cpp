@@ -7,7 +7,8 @@ RTransaction::RTransaction(CTransaction tx) : CTransactionRef(MakeTransactionRef
 RTransaction::RTransaction(CMutableTransaction mtx) : CTransactionRef(MakeTransactionRef(std::move(mtx)))
 { }
 
-RTransaction::~RTransaction()
+RTransaction::RTransaction(CTransactionRef mtx) : CTransactionRef(mtx)
 { }
 
-bool Write();
+RTransaction::~RTransaction()
+{ }

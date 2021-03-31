@@ -66,13 +66,7 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
         ri_table = "Posts";
     else if (op == OR_VIDEO)
         ri_table = "Posts";
-    else if (op == OR_VERIFICATION)
-        ri_table = "Posts";
-    else if (op == OR_SERVER_PUBLISH)
-        ri_table = "Posts";
-    else if (op == OR_POLL)
-        ri_table = "Posts";
-    else if (op == OR_TRANSLATE)
+    else if (op == OR_SERVER_PING)
         ri_table = "Posts";
 
     else if (op == OR_SCORE)
@@ -89,7 +83,9 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
 
     else if (op == OR_USERINFO)
         ri_table = "Users";
-    else if (op == OR_SERVER)
+    else if (op == OR_VIDEO_SERVER)
+        ri_table = "Users";
+    else if (op == OR_MESSAGE_SERVER)
         ri_table = "Users";
 
     else if (op == OR_BLOCKING)
@@ -151,6 +147,12 @@ void FillLimits(const CChainParams& params) {
     std::map<int, int64_t> _threshold_balance;
     _threshold_balance.insert({ 0, 50 * COIN });
     Limits.insert(std::make_pair(Limit::threshold_balance, _threshold_balance));
+
+    // threshold_likers_count
+    std::map<int, int64_t> _threshold_likers_count;
+    _threshold_likers_count.insert({ 0, 0 });
+    _threshold_likers_count.insert({ (int)params.GetConsensus().checkpoint_0_19_3, 100 });
+    Limits.insert(std::make_pair(Limit::threshold_likers_count, _threshold_likers_count));
 
     // trial_post_limit
     std::map<int, int64_t> _trial_post_limit;
@@ -392,6 +394,7 @@ void FillCheckpointsBlocks(const CChainParams& params)
     CheckpointsBlocks.emplace(1060299, "b3828d8e2e23e9d050f331fa06b758de18c0c0ea79e3ad2c8a48c6e73c21d528");
     CheckpointsBlocks.emplace(1060628, "6adf39fc7d403669d30276aea9c018ba3273f71a462152448e32dc3599711efd");
     CheckpointsBlocks.emplace(1060668, "0139923c13886b5f809ca889c321e12c2631cdbeb7bd9ff5c31f18fdad638f05");
+    CheckpointsBlocks.emplace(1065391, "48e23029a977dbabaeee52a01ba12e2a14e4347b82f2d8fee5110f3d1f2dc89e");
 }
 
 bool IsCheckpointBlock(int height, std::string hash) {
