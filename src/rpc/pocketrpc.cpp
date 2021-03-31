@@ -831,14 +831,20 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
             tags.push_back(request.params[5].get_str());
         } else if (request.params[5].isArray()) {
             UniValue tgs = request.params[5].get_array();
-            for (unsigned int idx = 0; idx < tgs.size(); idx++) {
-                tags.push_back(tgs[idx].get_str());
+            if (tgs.empty()) {
+                tags.push_back("");
+            } else {
+                for (unsigned int idx = 0; idx < tgs.size(); idx++) {
+                    tags.push_back(tgs[idx].get_str());
+                }
             }
         }
     } else {
         tags.push_back("");
     }
 
+    // TODO (brangr): contentTypes
+    /*
     std::vector<int> contentTypes = { 0, 1, 2, 4, 5 };
     if (request.params.size() > 6) {
         if (request.params[6].isNum()) {
@@ -851,6 +857,7 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
             }
         }
     }
+    */
 
     vector<string> addrsblock;
     if (address_from != "" && (address_to == "" || address_to == "1")) {
@@ -904,7 +911,8 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
 
     query = query.Not().Where("address", CondSet, addrsblock);
     query = query.Where("time", CondLe, GetAdjustedTime());
-    query = query.Where("type", CondSet, contentTypes);
+    // TODO (brangr): contentTypes
+    //query = query.Where("type", CondSet, contentTypes);
 
     if (resultCount > 0 && resultStart > 0) {
         query = query.Where("time", CondLt, resultStart);
@@ -1946,14 +1954,20 @@ UniValue gethotposts(const JSONRPCRequest& request)
             tags.push_back(request.params[4].get_str());
         } else if (request.params[4].isArray()) {
             UniValue tgs = request.params[4].get_array();
-            for (unsigned int idx = 0; idx < tgs.size(); idx++) {
-                tags.push_back(tgs[idx].get_str());
+            if (tgs.empty()) {
+                tags.push_back("");
+            } else {
+                for (unsigned int idx = 0; idx < tgs.size(); idx++) {
+                    tags.push_back(tgs[idx].get_str());
+                }
             }
         }
     } else {
         tags.push_back("");
     }
 
+    // TODO (brangr): contentTypes
+    /*
     std::vector<int> contentTypes = { 0, 1, 2, 4, 5 };
     if (request.params.size() > 5) {
         if (request.params[5].isNum()) {
@@ -1966,6 +1980,7 @@ UniValue gethotposts(const JSONRPCRequest& request)
             }
         }
     }
+    */
 
     int64_t curTime = GetAdjustedTime();
 
@@ -2005,7 +2020,9 @@ UniValue gethotposts(const JSONRPCRequest& request)
     if (tags[0] != "") {
         query = query.Where("tags", CondSet, tags);
     }
-    query = query.Where("type", CondSet, contentTypes);
+  
+    // TODO (brangr): contentTypes
+    //query = query.Where("type", CondSet, contentTypes);
     query = query.Where("time", CondGt, curTime - depth);
     query = query.Not().Where("address", CondSet, addrsblock);
     query = query.Sort("reputation", true);
@@ -2013,17 +2030,7 @@ UniValue gethotposts(const JSONRPCRequest& request)
 
     g_pocketdb->Select(query, postsRes);
 
-    //g_pocketdb->Select(reindexer::Query("Posts", 0, count * 5)
-    //                       .Where("lang", (lang == "" ? CondGe : CondEq), lang)
-    //                       .Where("time", CondGt, curTime - depth)
-    //                       .Not()
-    //                       .Where("address", CondSet, addrsblock)
-    //                       .Sort("reputation", true)
-    //                       .Sort("scoreSum", true),
-    //    postsRes);
-
     UniValue result(UniValue::VARR);
-
     for (auto& p : postsRes) {
         reindexer::Item postItm = p.GetItem();
 
@@ -2680,18 +2687,6 @@ UniValue getpagescores(const JSONRPCRequest& request)
     return result;
 }
 //----------------------------------------------------------
-UniValue debug(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "debug\n"
-            "\nFor debugging purposes.\n");
-
-    UniValue result(UniValue::VOBJ);
-
-    return result;
-}
-//----------------------------------------------------------
 //----------------------------------------------------------
 //----------------------------------------------------------
 //--METHODS 2.0
@@ -2816,190 +2811,45 @@ UniValue converttxidaddress(const JSONRPCRequest& request)
     result.pushKV("addressshort", addressshort);
     return result;
 }
-UniValue gethistoricalstrip(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "gethistoricalstrip\n"
-            "\n.\n");
-
-
-
-    UniValue result(UniValue::VARR);
-    return result;
-}
-
-UniValue gethierarchicalstrip(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "gethierarchicalstrip\n"
-            "\n.\n");
-
-    //int nLastBlock = 1089897;
-    int nLastBlock = chainActive.Height();
-
-    //int cntPostsForResult = 500;
-    int cntBlocksForResult = 300;
-    int cntPrevPosts = 5;
-    int durationBlocksForPrevPosts = 24 * 60; // about 1 day
-    double dekayRep = 0.7;
-    double dekayPost = 0.96;
-
-    UniValue result(UniValue::VARR);
-
-    std::map<string, std::map<Ranks, double>> postsRanks;
-
-    reindexer::Error err;
-
-    reindexer::Query query;
-    reindexer::QueryResults queryResults;
-
-    query = reindexer::Query("Posts")
-                .Where("block", CondLe, nLastBlock)
-                .Where("block", CondGt, nLastBlock - cntBlocksForResult)
-                .Sort("block", true).Sort("time", true)
-                .InnerJoin("address", "address", CondEq, reindexer::Query("UsersView").Limit(1));
-
-    err = g_pocketdb->DB()->Select(query, queryResults);
-    if (err.ok()) {
-        for (auto it : queryResults) {
-            reindexer::Item itm(it.GetItem());
-            reindexer::Item jntItm = it.GetJoined()[0][0].GetItem();
-
-            reindexer::Query queryLastFivePosts;
-            reindexer::QueryResults queryLastFivePostsResult;
-
-            int cntPositiveScores = 0;
-            std::string posttxid = itm["txid"].As<string>();
-            std::string postaddress = itm["address"].As<string>();
-            int postblock = itm["block"].As<int>();
-
-            queryLastFivePosts = reindexer::Query("Posts", 0, cntPrevPosts)
-                                     .Where("address", CondEq, postaddress)
-                                     .Where("block", CondLt, postblock)
-                                     .Where("block", CondGe, postblock - durationBlocksForPrevPosts);
-            err = g_pocketdb->DB()->Select(queryLastFivePosts, queryLastFivePostsResult);
-            if (err.ok()) {
-                std::vector<std::string> prevPostsIds;
-                for (auto itPrevPost : queryLastFivePostsResult) {
-                    reindexer::Item itmPP(itPrevPost.GetItem());
-                    prevPostsIds.push_back(itmPP["txid"].As<string>());
-                }
-                cntPositiveScores = g_pocketdb->SelectCount(reindexer::Query("Scores").Where("posttxid", CondSet, prevPostsIds).Where("value", CondEq, 5));
-            }
-            postsRanks[posttxid][LAST5] = 1.0 * cntPositiveScores;
-            postsRanks[posttxid][UREP] = 1.0 * jntItm["reputation"].As<int>() / 10;
-            postsRanks[posttxid][PREP] = 1.0 * itm["reputation"].As<int>();
-            postsRanks[posttxid][DREP] = pow(dekayRep, (nLastBlock - postblock));
-            postsRanks[posttxid][DPOST] = pow(dekayPost, (nLastBlock - postblock));
-        }
-
-        std::map<Ranks,int> count;
-        int nElements = postsRanks.size();
-        for(auto iPostRank : postsRanks) {
-            count[LAST5R] = 0;
-            count[UREPR] = 0;
-            count[PREPR] = 0;
-            for(auto jPostRank : postsRanks) {
-                if (iPostRank.second[LAST5] > jPostRank.second[LAST5]) {
-                    count[LAST5R] += 1;
-                }
-                if (iPostRank.second[UREP] > jPostRank.second[UREP]) {
-                    count[UREPR] += 1;
-                }
-                if (iPostRank.second[PREP] > jPostRank.second[PREP]) {
-                    count[PREPR] += 1;
-                }
-            }
-            double boost = 0;
-            postsRanks[iPostRank.first][LAST5R] = 1.0 * (count[LAST5R] * 100) / (nElements - 1);
-            postsRanks[iPostRank.first][UREPR] = 1.0 * (count[UREPR] * 100) / (nElements - 1);
-            postsRanks[iPostRank.first][PREPR] = 1.0 * (count[PREPR] * 100) / (nElements - 1);
-            postsRanks[iPostRank.first][POSTRF] = 0.4 *
-                                                      (0.75 *
-                                                              (postsRanks[iPostRank.first][LAST5R] + boost) +
-                                                          0.25 * postsRanks[iPostRank.first][UREPR]) *
-                                                      postsRanks[iPostRank.first][DREP] +
-                                                  0.6 * postsRanks[iPostRank.first][PREPR] * postsRanks[iPostRank.first][DPOST];
-        }
-    }
-
-    std::vector<std::pair<double, string> > postsRaited;
-
-    UniValue oPost(UniValue::VOBJ);
-    for(auto iPostRank : postsRanks) {
-        postsRaited.push_back(std::make_pair(iPostRank.second[POSTRF], iPostRank.first));
-    }
-
-    std::sort(postsRaited.begin(), postsRaited.end());
-
-    for(auto v : postsRaited) {
-        reindexer::Item postItm;
-        reindexer::Error errS = g_pocketdb->SelectOne(
-            reindexer::Query("Posts").Where("txid", CondEq, v.second),
-            postItm);
-
-        UniValue entry(UniValue::VOBJ);
-        entry = getPostData(postItm, "");
-
-        UniValue postRaiting(UniValue::VOBJ);
-        postRaiting.pushKV("LAST5", postsRanks[v.second][LAST5]);
-        postRaiting.pushKV("LAST5R", postsRanks[v.second][LAST5R]);
-        postRaiting.pushKV("BOOST", postsRanks[v.second][BOOST]);
-        postRaiting.pushKV("UREP", postsRanks[v.second][UREP]);
-        postRaiting.pushKV("UREPR", postsRanks[v.second][UREPR]);
-        postRaiting.pushKV("DREP", postsRanks[v.second][DREP]);
-        postRaiting.pushKV("PREP", postsRanks[v.second][PREP]);
-        postRaiting.pushKV("PREPR", postsRanks[v.second][PREPR]);
-        postRaiting.pushKV("DPOST", postsRanks[v.second][DPOST]);
-        postRaiting.pushKV("POSTRF", postsRanks[v.second][POSTRF]);
-        entry.pushKV("postRaitings", postRaiting);
-
-        result.push_back(entry);
-    }
-
-    return result;
-}
 //----------------------------------------------------------
 
 static const CRPCCommand commands[] =
-    {
-        {"pocketnetrpc", "getrawtransactionwithmessage",      &getrawtransactionwithmessage,      {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}, false},
-        {"pocketnetrpc", "getrawtransactionwithmessage2",     &getrawtransactionwithmessage2,     {"address_from", "address_to", "start_txid", "count"},                                 false},
-        {"pocketnetrpc", "getrawtransactionwithmessagebyid",  &getrawtransactionwithmessagebyid,  {"txs", "address"},                                                                    false},
-        {"pocketnetrpc", "getrawtransactionwithmessagebyid2", &getrawtransactionwithmessagebyid2, {"txs", "address"},                                                                    false},
-        {"pocketnetrpc", "getuserprofile",                    &getuserprofile,                    {"addresses", "short"},                                                                false},
-        {"pocketnetrpc", "getmissedinfo",                     &getmissedinfo,                     {"address", "blocknumber"},                                                            false},
-        {"pocketnetrpc", "getmissedinfo2",                    &getmissedinfo2,                    {"address", "blocknumber"},                                                            false},
-        {"pocketnetrpc", "txunspent",                         &txunspent,                         {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"},                false},
-        {"pocketnetrpc", "getaddressregistration",            &getaddressregistration,            {"addresses"},                                                                         false},
-        {"pocketnetrpc", "getuserstate",                      &getuserstate,                      {"address", "time"},                                                                   false},
-        {"pocketnetrpc", "gettime",                           &gettime,                           {},                                                                                    false},
-        {"pocketnetrpc", "getrecommendedposts",               &getrecommendedposts,               {"address", "count"},                                                                  false},
-        {"pocketnetrpc", "getrecommendedposts2",              &getrecommendedposts2,              {"address", "count"},                                                                  false},
-        {"pocketnetrpc", "searchtags",                        &searchtags,                        {"search_string", "count"},                                                            false},
-        {"pocketnetrpc", "search",                            &search,                            {"search_string", "type", "count"},                                                    false},
-        {"pocketnetrpc", "search2",                           &search2,                           {"search_string", "type", "count"},                                                    false},
-        {"pocketnetrpc", "gethotposts",                       &gethotposts,                       {"count", "depth", "address", "lang", "tags", "contenttypes"},                         false},
-        {"pocketnetrpc", "gethotposts2",                      &gethotposts2,                      {"count", "depth"},                                                                    false},
-        {"pocketnetrpc", "getuseraddress",                    &getuseraddress,                    {"name", "count"},                                                                     false},
-        {"pocketnetrpc", "getreputations",                    &getreputations,                    {},                                                                                    false},
-        {"pocketnetrpc", "getcontents",                       &getcontents,                       {"address"},                                                                           false},
-        {"pocketnetrpc", "gettags",                           &gettags,                           {"address", "count"},                                                                  false},
-        {"pocketnetrpc", "getlastcomments2",                  &getlastcomments,                   {"count", "address"},                                                                  false},
-        {"pocketnetrpc", "getlastcomments",                   &getlastcomments,                   {"count", "address"},                                                                  false},
-        {"pocketnetrpc", "getcomments2",                      &getcomments,                       {"postid", "parentid", "address", "ids"},                                              false},
-        {"pocketnetrpc", "getcomments",                       &getcomments,                       {"postid", "parentid", "address", "ids"},                                              false},
-        {"pocketnetrpc", "getaddressscores",                  &getaddressscores,                  {"address", "txs"},                                                                    false},
-        {"pocketnetrpc", "getpostscores",                     &getpostscores,                     {"txs", "address"},                                                                    false},
-        {"pocketnetrpc", "getpagescores",                     &getpagescores,                     {"txs", "address", "cmntids"},                                                         false},
-        {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                                   false},
-        {"pocketnetrpc", "gethierarchicalstrip",              &gethierarchicalstrip,              {},                                                                                    false},
+{
+    {"pocketnetrpc", "getrawtransactionwithmessage",      &getrawtransactionwithmessage,      {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}, false},
+    {"pocketnetrpc", "getrawtransactionwithmessage2",     &getrawtransactionwithmessage2,     {"address_from", "address_to", "start_txid", "count"},                                 false},
+    {"pocketnetrpc", "getrawtransactionwithmessagebyid",  &getrawtransactionwithmessagebyid,  {"txs", "address"},                                                                    false},
+    {"pocketnetrpc", "getrawtransactionwithmessagebyid2", &getrawtransactionwithmessagebyid2, {"txs", "address"},                                                                    false},
+    {"pocketnetrpc", "getuserprofile",                    &getuserprofile,                    {"addresses", "short"},                                                                false},
+    {"pocketnetrpc", "getmissedinfo",                     &getmissedinfo,                     {"address", "blocknumber"},                                                            false},
+    {"pocketnetrpc", "getmissedinfo2",                    &getmissedinfo2,                    {"address", "blocknumber"},                                                            false},
+    {"pocketnetrpc", "txunspent",                         &txunspent,                         {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"},                false},
+    {"pocketnetrpc", "getaddressregistration",            &getaddressregistration,            {"addresses"},                                                                         false},
+    {"pocketnetrpc", "getuserstate",                      &getuserstate,                      {"address", "time"},                                                                   false},
+    {"pocketnetrpc", "gettime",                           &gettime,                           {},                                                                                    false},
+    {"pocketnetrpc", "getrecommendedposts",               &getrecommendedposts,               {"address", "count"},                                                                  false},
+    {"pocketnetrpc", "getrecommendedposts2",              &getrecommendedposts2,              {"address", "count"},                                                                  false},
+    {"pocketnetrpc", "searchtags",                        &searchtags,                        {"search_string", "count"},                                                            false},
+    {"pocketnetrpc", "search",                            &search,                            {"search_string", "type", "count"},                                                    false},
+    {"pocketnetrpc", "search2",                           &search2,                           {"search_string", "type", "count"},                                                    false},
+    {"pocketnetrpc", "gethotposts",                       &gethotposts,                       {"count", "depth", "address", "lang", "tags", "contenttypes"},                         false},
+    {"pocketnetrpc", "gethotposts2",                      &gethotposts2,                      {"count", "depth"},                                                                    false},
+    {"pocketnetrpc", "getuseraddress",                    &getuseraddress,                    {"name", "count"},                                                                     false},
+    {"pocketnetrpc", "getreputations",                    &getreputations,                    {},                                                                                    false},
+    {"pocketnetrpc", "getcontents",                       &getcontents,                       {"address"},                                                                           false},
+    {"pocketnetrpc", "gettags",                           &gettags,                           {"address", "count"},                                                                  false},
+    {"pocketnetrpc", "getlastcomments2",                  &getlastcomments,                   {"count", "address"},                                                                  false},
+    {"pocketnetrpc", "getlastcomments",                   &getlastcomments,                   {"count", "address"},                                                                  false},
+    {"pocketnetrpc", "getcomments2",                      &getcomments,                       {"postid", "parentid", "address", "ids"},                                              false},
+    {"pocketnetrpc", "getcomments",                       &getcomments,                       {"postid", "parentid", "address", "ids"},                                              false},
+    {"pocketnetrpc", "getaddressscores",                  &getaddressscores,                  {"address", "txs"},                                                                    false},
+    {"pocketnetrpc", "getpostscores",                     &getpostscores,                     {"txs", "address"},                                                                    false},
+    {"pocketnetrpc", "getpagescores",                     &getpagescores,                     {"txs", "address", "cmntids"},                                                         false},
+    {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                                   false},
 
-        // Pocketnet transactions
-        {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"}, false},
+    // Pocketnet transactions
+    {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"}, false},
 
+// TODO (brangr): new types
 //        {"pocketnetrpc", "setshare",                          &SetShare,                          {"hexstring", "message"},         false},
 //        {"pocketnetrpc", "setvideo",                          &SetVideo,                          {"hexstring", "message"},         false},
 //        {"pocketnetrpc", "setserverping",                     &SetServerPing,                     {"hexstring", "message"},         false},
@@ -3020,8 +2870,6 @@ static const CRPCCommand commands[] =
 //        {"pocketnetrpc", "setuserinfo",                       &SetUserInfo,                       {"hexstring", "message"},         false},
 //        {"pocketnetrpc", "setvideoserver",                    &SetVideoServer,                    {"hexstring", "message"},         false},
 //        {"pocketnetrpc", "setmessageserver",                  &SetMessageServer,                  {"hexstring", "message"},         false},
-
-        {"hidden", "debug",     &debug, {}},
 };
 
 void RegisterPocketnetRPCCommands(CRPCTable& t)

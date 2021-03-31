@@ -179,16 +179,19 @@ static const CRPCConvertParam vRPCConvertParams[] =
 	{ "getlastblocks", 1, "last_height" },
 	{ "getlastblocks", 2, "verbose" },
 
-    { "getstatistic", 0, "end_time" },
-    { "getstatistic", 1, "start_time" },
-    { "getstatistic", 2, "round" },
+  { "getstatistic", 0, "end_time" },
+  { "getstatistic", 1, "start_time" },
+  { "getstatistic", 2, "round" },
 
-    { "getrawtransactionwithmessage", 3, "count" },
-    { "getrawtransactionwithmessage", 5, "tags" },
-    { "getrawtransactionwithmessage", 6, "contenttypes" },
-    { "gethotposts", 4, "count" },
-    { "gethotposts", 5, "contenttypes" },
-    { "getcoininfo", 0, "height" },
+  { "getrawtransactionwithmessage", 3, "count" },
+  { "getrawtransactionwithmessage", 5, "tags" },
+  // TODO (brangr): contentTypes
+  //{ "getrawtransactionwithmessage", 6, "contenttypes" },
+  
+  { "gethotposts", 4, "count" },
+  //{ "gethotposts", 5, "contenttypes" },
+  
+  { "getcoininfo", 0, "height" },
 };
 // clang-format on
 
