@@ -1446,14 +1446,12 @@ bool AntiBot::AllowModifyReputation(std::string _score_address, int height)
     if (_user_reputation < _min_user_reputation) return false;
 
     // Ignore scores from users with non verificated reputation
-    if (height >= Params().GetConsensus().checkpoint_0_19_3) {
-        int64_t _min_likers = GetActualLimit(Limit::threshold_likers_count, height);
-        int userId = g_pocketdb->GetUserId(_score_address);
-        if (userId < 0) return false;
+    int64_t _min_likers = GetActualLimit(Limit::threshold_likers_count, height);
+    int userId = g_pocketdb->GetUserId(_score_address);
+    if (userId < 0) return false;
 
-        int _user_likers = g_pocketdb->GetUserLikersCount(userId, height);
-        if (_user_likers < _min_likers) return false;
-    }
+    int _user_likers = g_pocketdb->GetUserLikersCount(userId, height);
+    if (_user_likers < _min_likers) return false;
 
     // All is OK
     return true;
@@ -1480,16 +1478,20 @@ bool AntiBot::AllowModifyReputationOverPost(std::string _score_address, std::str
         values.push_back(5);
     }
 
+    // For calculate ratings include current block
+    // For check lottery not include current block (for reindex)
+    int blockHeight = height + (lottery ? 0 : 1);
+
     size_t scores_one_to_one_count = g_pocketdb->SelectCount(
         reindexer::Query("Scores")
             .Where("address", CondEq, _score_address)
             .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth)
             .Where("time", CondLt, (int64_t)tx->nTime)
-            .Where("block", CondLt, height)
+            .Where("block", CondLe, blockHeight)
             .Where("value", CondSet, values)
-            .Not()
-            .Where("txid", CondEq, tx->GetHash().GetHex())
+            .Not().Where("txid", CondEq, tx->GetHash().GetHex())
             .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, _post_address)));
+
     if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
 
     // All is OK
@@ -1513,15 +1515,18 @@ bool AntiBot::AllowModifyReputationOverComment(std::string _score_address, std::
         values.push_back(1);
     }
 
+    // For calculate ratings include current block
+    // For check lottery not include current block (for reindex)
+    int blockHeight = height + (lottery ? 0 : 1);
+
     size_t scores_one_to_one_count = g_pocketdb->SelectCount(
         reindexer::Query("CommentScores")
             .Where("address", CondEq, _score_address)
             .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth)
             .Where("time", CondLt, (int64_t)tx->nTime)
-            .Where("block", CondLt, height)
+            .Where("block", CondLe, blockHeight)
             .Where("value", CondSet, values)
-            .Not()
-            .Where("txid", CondEq, tx->GetHash().GetHex())
+            .Not().Where("txid", CondEq, tx->GetHash().GetHex())
             // join by original id with txid, not otxid
             .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, _comment_address)));
 

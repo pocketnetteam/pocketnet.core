@@ -554,11 +554,11 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
 
                     // Get address of score initiator
                     reindexer::Item _score_itm;
-                    if (g_pocketdb->SelectOne(reindexer::Query("Scores").Where("txid", CondEq, tx->GetHash().GetHex()).Where("block", CondLe, height), _score_itm).ok())
+                    if (g_pocketdb->SelectOne(reindexer::Query("Scores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm).ok())
                         _score_address = _score_itm["address"].As<string>();
 
                     reindexer::Item _post_itm;
-                    if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _score_itm["posttxid"].As<string>()).Where("block", CondLe, height), _post_itm).ok())
+                    if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _score_itm["posttxid"].As<string>()), _post_itm).ok())
                         _post_address = _post_itm["address"].As<string>();
 
                     if (_score_address.empty() || _post_address.empty()) {
@@ -566,7 +566,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         continue;
                     }
 
-                    if (_address == _post_address && g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, height + 1, tx, true)) {
+                    if (_address == _post_address && g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, height, tx, true)) {
                         if (allPostRatings.find(_post_address) == allPostRatings.end()) allPostRatings.insert(std::make_pair(_post_address, 0));
                         allPostRatings[_post_address] += (_value - 3);
 
@@ -574,7 +574,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         if (height >= Params().GetConsensus().lottery_referral_beg) {
                             reindexer::Item _referrer_itm;
 
-                            reindexer::Query _referrer_query = reindexer::Query("UsersView").Where("address", CondEq, _post_address).Not().Where("referrer", CondEq, "").Not().Where("referrer", CondEq, _score_address).Where("block", CondLe, height);
+                            reindexer::Query _referrer_query = reindexer::Query("UsersView").Where("address", CondEq, _post_address).Not().Where("referrer", CondEq, "").Not().Where("referrer", CondEq, _score_address);
                             if (height >= Params().GetConsensus().lottery_referral_limitation) {
                                 _referrer_query.Where("regdate", CondGe, (int64_t)tx->nTime - _lottery_referral_depth);
                             }
@@ -596,11 +596,11 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
 
                     // Get address of score initiator
                     reindexer::Item _score_itm;
-                    if (g_pocketdb->SelectOne(reindexer::Query("CommentScores").Where("txid", CondEq, tx->GetHash().GetHex()).Where("block", CondLe, height), _score_itm).ok())
+                    if (g_pocketdb->SelectOne(reindexer::Query("CommentScores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm).ok())
                         _score_address = _score_itm["address"].As<string>();
 
                     reindexer::Item _comment_itm;
-                    if (g_pocketdb->SelectOne(reindexer::Query("Comment").Where("txid", CondEq, _score_itm["commentid"].As<string>()).Where("block", CondLe, height), _comment_itm).ok())
+                    if (g_pocketdb->SelectOne(reindexer::Query("Comment").Where("txid", CondEq, _score_itm["commentid"].As<string>()), _comment_itm).ok())
                         _comment_address = _comment_itm["address"].As<string>();
 
                     if (_score_address.empty() || _comment_address.empty()) {
@@ -608,7 +608,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         continue;
                     }
 
-                    if (_address == _comment_address && g_antibot->AllowModifyReputationOverComment(_score_address, _comment_address, height + 1, tx, true)) {
+                    if (_address == _comment_address && g_antibot->AllowModifyReputationOverComment(_score_address, _comment_address, height, tx, true)) {
                         if (allCommentRatings.find(_comment_address) == allCommentRatings.end()) allCommentRatings.insert(std::make_pair(_comment_address, 0));
                         allCommentRatings[_comment_address] += _value;
 
@@ -616,7 +616,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                         if (height >= Params().GetConsensus().lottery_referral_beg) {
                             reindexer::Item _referrer_itm;
 
-                            reindexer::Query _referrer_query = reindexer::Query("UsersView").Where("address", CondEq, _comment_address).Not().Where("referrer", CondEq, "").Not().Where("referrer", CondEq, _score_address).Where("block", CondLe, height);
+                            reindexer::Query _referrer_query = reindexer::Query("UsersView").Where("address", CondEq, _comment_address).Not().Where("referrer", CondEq, "").Not().Where("referrer", CondEq, _score_address);
                             if (height >= Params().GetConsensus().lottery_referral_limitation) {
                                 _referrer_query.Where("regdate", CondGe, (int64_t)tx->nTime - _lottery_referral_depth);
                             }
@@ -645,7 +645,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                 CDataStream ss(hashProofOfStakeSource);
                 ss << it.first;
                 arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
-                allPostSorted.emplace_back(it.first, std::make_pair(it.second, hashSortRating));
+                allPostSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
             }
 
             // Users with scores by comment
@@ -653,15 +653,15 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
                 CDataStream ss(hashProofOfStakeSource);
                 ss << it.first;
                 arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
-                allCommentSorted.emplace_back(it.first, std::make_pair(it.second, hashSortRating));
+                allCommentSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
             }
         }
 
         // Shrink founded users
         {
             // Users with scores by post
-            if (!allPostSorted.empty()) {
-                std::sort(allPostSorted.begin(), allPostSorted.end(), [](auto& a, auto& b) {
+            if (allPostSorted.size() > 0) {
+                std::sort(allPostSorted.begin(), allPostSorted.end(), [](auto & a, auto & b) {
                     return a.second.second < b.second.second;
                 });
 
@@ -675,8 +675,8 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& to
             }
 
             // Users with scores by comment
-            if (!allCommentSorted.empty()) {
-                std::sort(allCommentSorted.begin(), allCommentSorted.end(), [](auto& a, auto& b) {
+            if (allCommentSorted.size() > 0) {
+                std::sort(allCommentSorted.begin(), allCommentSorted.end(), [](auto & a, auto & b) {
                     return a.second.second < b.second.second;
                 });
 
@@ -719,9 +719,9 @@ void GetReferrers(std::vector<std::string>& winners, std::map<std::string, std::
     }
 }
 
-bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, std::vector<std::string> winners, opcodetype op_code_type, int height, std::vector<opcodetype>& winner_types)
-{
-    if (!winners.empty() && winners.size() <= 25) {
+bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, std::vector<std::string> winners, opcodetype op_code_type, int height, std::vector<opcodetype>& winner_types) {
+    if (winners.size() > 0 && winners.size() <= 25)
+    {
         CAmount ratingReward = 0;
         if (height >= Params().GetConsensus().checkpoint_0_19_3) {
             // Referrer program 5 - 100%; 4.75 - nodes; 0.25 - all for lottery;
@@ -750,7 +750,7 @@ bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalA
         CAmount rewardsPool = ratingReward;
         CAmount reward = ratingReward / rewardsCount;
 
-        for (const auto& addr : boost::adaptors::reverse(winners)) {
+        for (auto addr : boost::adaptors::reverse(winners)) {
             CAmount re;
             if (++current == rewardsCount) {
                 re = rewardsPool;
@@ -765,7 +765,7 @@ bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalA
             if (height >= Params().GetConsensus().lottery_referral_beg)
                 winner_types.push_back(op_code_type);
 
-            results.emplace_back(re, scriptPubKey); // send to ratings
+            results.push_back(CTxOut(re, scriptPubKey)); // send to ratings
         }
 
         return true;
