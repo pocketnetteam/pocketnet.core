@@ -172,10 +172,10 @@ public:
             {}};
 
         chainTxData = ChainTxData{
-            // Data from rpc: getchaintxstats 4096 6daf01fe9c7f825d88f977446dd35c9ecd4549de3f3daaba7219debd9fab33e6
-            /* nTime    */ 1558711664,
-            /* nTxCount */ 381469,
-            /* dTxRate  */ 0.04910714285714286};
+            // Data from rpc: getchaintxstats 4096 afb95bb18c88b1306208771a4d6dde19aa5d426f679d06ceb776b3603df67952
+            /* nTime    */ 1617188640,
+            /* nTxCount */ 69367,
+            /* dTxRate  */ 0.2777524184765199};
 
         /* disable fallback fee on mainnet */
         m_fallback_fee_enabled = true;
