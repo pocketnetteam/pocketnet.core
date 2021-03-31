@@ -1,5 +1,5 @@
 ---
-name: "pocketcoin-osx-0.18"
+name: "pocketcoin-osx-0.19"
 enable_cache: true
 suites:
 - "bionic"

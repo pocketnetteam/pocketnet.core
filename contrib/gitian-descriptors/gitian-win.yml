@@ -1,5 +1,5 @@
 ---
-name: "pocketcoin-win-0.18"
+name: "pocketcoin-win-0.19"
 enable_cache: true
 suites:
 - "bionic"

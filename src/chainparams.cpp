@@ -122,14 +122,13 @@ public:
         consensus.opreturn_check = 514185;
         consensus.lottery_referral_beg = 514185;
         consensus.lottery_referral_limitation = 1035000;
-        // TODO (brangr): !!!
-        consensus.checkpoint_0_19_3 = 2095722;
+        consensus.checkpoint_0_19_3 = 1133000; // ~ 20210413
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000020a01baf8603ab2d0f");
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000021de71238d1983e3cd"); // 1112930
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x014a4b038933d7a78a320aa89a08c06e1ec6742ac83b87fba6a66e79eea2a9dc"); // 1082899
+        consensus.defaultAssumeValid = uint256S("0xafb95bb18c88b1306208771a4d6dde19aa5d426f679d06ceb776b3603df67952"); // 1112930
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -173,10 +172,10 @@ public:
             {}};
 
         chainTxData = ChainTxData{
-            // Data from rpc: getchaintxstats 4096 6daf01fe9c7f825d88f977446dd35c9ecd4549de3f3daaba7219debd9fab33e6
-            /* nTime    */ 1558711664,
-            /* nTxCount */ 381469,
-            /* dTxRate  */ 0.04910714285714286};
+            // Data from rpc: getchaintxstats 4096 afb95bb18c88b1306208771a4d6dde19aa5d426f679d06ceb776b3603df67952
+            /* nTime    */ 1617188640,
+            /* nTxCount */ 69367,
+            /* dTxRate  */ 0.2777524184765199};
 
         /* disable fallback fee on mainnet */
         m_fallback_fee_enabled = true;
@@ -245,7 +244,6 @@ public:
         consensus.opreturn_check = 0;
         consensus.lottery_referral_beg = 0;
         consensus.lottery_referral_limitation = 0;
-        // TODO (brangr): !!! for testing
         consensus.checkpoint_0_19_3 = 889524;
 
         // The best chain should have at least this much work.

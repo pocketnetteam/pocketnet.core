@@ -426,9 +426,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     cachedInnerUsage -= memusage::DynamicUsage(mapLinks[it].parents) + memusage::DynamicUsage(mapLinks[it].children);
     mapLinks.erase(it);
     mapTx.erase(it);
-
-    // TODO (brangr): add IsPocketTX
-    // LogPrintf("--- CTxMemPool::removeUnchecked (%d): %s\n", (int)reason, hash.GetHex());
     g_addrindex->ClearMempool(hash.GetHex());
 
     nTransactionsUpdated++;
