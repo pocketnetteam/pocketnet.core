@@ -63,9 +63,7 @@ You can get the full list of parameters:
 # Initialize blockhain data via torrent
 1. Stop the node.
 2. Download database via your torrent client:
-```
-magnet:?xt=urn:btih:86742995ecc2bb9d3646c9869a0336e2d120a0d7&dn=pocketnet.checkpoint.1113210.tar.gz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
-```
+> magnet:?xt=urn:btih:86742995ecc2bb9d3646c9869a0336e2d120a0d7&dn=pocketnet.checkpoint.1113210.tar.gz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
 4. There must be archive tar.gz with 4 directories:
 ```
 blocks\
