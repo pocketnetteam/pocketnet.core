@@ -155,6 +155,12 @@ struct BlockVTX {
     {
         return Data.find(table) != Data.end();
     }
+
+    void RemoveLast(std::string table) {
+        if (Data.find(table) != Data.end()) {
+            Data[table].pop_back();
+        }
+    }
 };
 //-----------------------------------------------------
 class AntiBot
