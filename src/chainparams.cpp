@@ -122,7 +122,7 @@ public:
         consensus.opreturn_check = 514185;
         consensus.lottery_referral_beg = 514185;
         consensus.lottery_referral_limitation = 1035000;
-        consensus.checkpoint_0_19_3 = 1133000; // ~ 20210413
+        consensus.checkpoint_0_19_3 = 1124000; // ~ 20210408
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000021de71238d1983e3cd"); // 1112930
