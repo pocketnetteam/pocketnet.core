@@ -258,6 +258,7 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx) {
         if (chainActive.Height()+1 < Params().GetConsensus().checkpoint_0_19_3) {
             if (ri_table == "Scores" && !g_antibot->CheckBlock(blockVtx, chainActive.Height() + 1)) {
                 blockVtx.RemoveLast(ri_table);
+                return false;
             }
         }
     }
