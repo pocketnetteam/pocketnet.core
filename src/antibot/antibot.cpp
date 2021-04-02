@@ -157,9 +157,12 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
     }
 
     // For server accounts allowed only change self info & serverPing post
-    if (txType != OR_SERVER_PING && (userType == AccountType::AccountVideoServer || userType == AccountType::AccountMessageServer)) {
-        result = ANTIBOTRESULT::NotAllowed;
-        return false;
+    // TODO (brangr): remove or refactor after checkpoint
+    if (height < Params().GetConsensus().checkpoint_0_19_3) {
+        if (txType != OR_SERVER_PING && (userType == AccountType::AccountVideoServer || userType == AccountType::AccountMessageServer)) {
+            result = ANTIBOTRESULT::NotAllowed;
+            return false;
+        }
     }
 
     return true;
