@@ -724,7 +724,7 @@ UniValue SetUserInfo(const JSONRPCRequest& request, RTransaction& tx) {
     if (request.fHelp)
         throw std::runtime_error("userInfo\n\nCreate new pocketnet user.\n");
     
-    return setAccount(request, tx, AccountType::AccountMessageServer, "Account");
+    return setAccount(request, tx, AccountType::AccountUser, "Account");
 }
 
 //----------------------------------------------------------
