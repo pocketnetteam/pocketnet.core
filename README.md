@@ -1,5 +1,5 @@
-![PocketnetLogo](https://pocketnet.app/img/pocketnet-logo-12.svg)
-===
+
+# Pocketnet CORE
 ![GitHub](https://img.shields.io/github/license/pocketnetteam/pocketnet.api)
 ![contributors](https://img.shields.io/github/contributors/pocketnetteam/pocketnet.core)
 ![last_commit](https://img.shields.io/github/last-commit/pocketnetteam/pocketnet.core)
