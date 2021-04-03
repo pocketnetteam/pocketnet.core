@@ -18,7 +18,7 @@ in each block go to content creators based on ratings their content gathers
 from users. [Read more in the article.](https://pocketnet.app/docs/Pocketnet%20Whitepaper%20Draft%20v2.pdf)
 
 # What should I know?
-This software allows you to participate in the work of the blockchain network - [Help center `https://pocketnet.app/help`](https://pocketnet.app/help?page=faq).
+This software allows you to participate in the work of the blockchain network - [`https://pocketnet.app/help`](https://pocketnet.app/help?page=faq).
 
 To start a node independently, you need basic skills of working with the operating system, understanding the principle of the blockchain network. A deeper level of personal computer proficiency is welcome.
 
@@ -39,9 +39,8 @@ Install package with root privilegies. To do this, open the terminal in the dire
 sudo dpkg -i pocketnetcore_*_linux_x64_setup.deb
 ```
 ## Windows
-Run the **pocketnetcore_*_win_x64_setup.exe** and follow the instructions of the installer.
-
-  Follow the installer's instructions to install. When you first start, the pocketnetcore desktop utility will ask for the location of the blockchain data directory. Default for Windows `%APPDATA%/Pocketcoin`, for linux `~/.pocketcoin`.
+Run the `pocketnetcore_*_win_x64_setup.exe` and follow the instructions of the installer.\
+When you first start, the pocketnetcore desktop utility will ask for the location of the blockchain data directory. Default for Windows `%APPDATA%/Pocketcoin`, for linux `~/.pocketcoin`.
 
 
 # Build from source code
