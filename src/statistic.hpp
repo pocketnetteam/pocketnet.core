@@ -163,27 +163,27 @@ public:
 
         auto unique_ips = GetUniqueSourceIPsSince(since);
         auto unique_ips_count = unique_ips.size();
-        auto top_tm = GetTopHeavyTimeSamplesSince(top_limit, since);
-        auto top_in = GetTopHeavyInputSamplesSince(top_limit, since);
-        auto top_out = GetTopHeavyOutputSamplesSince(top_limit, since);
+        //auto top_tm = GetTopHeavyTimeSamplesSince(top_limit, since);
+        //auto top_in = GetTopHeavyInputSamplesSince(top_limit, since);
+        //auto top_out = GetTopHeavyOutputSamplesSince(top_limit, since);
 
         UniValue result{UniValue::VOBJ};
         //UniValue unique_ips_json{UniValue::VARR};
-        UniValue top_tm_json{UniValue::VARR};
-        UniValue top_in_json{UniValue::VARR};
-        UniValue top_out_json{UniValue::VARR};
+        //UniValue top_tm_json{UniValue::VARR};
+        //UniValue top_in_json{UniValue::VARR};
+        //UniValue top_out_json{UniValue::VARR};
 
         //for (auto& ip : unique_ips)
         //    unique_ips_json.push_back(ip);
 
-        for (auto& sample : top_tm)
-            top_tm_json.push_back(sample_to_json(sample));
+        //for (auto& sample : top_tm)
+        //    top_tm_json.push_back(sample_to_json(sample));
 
-        for (auto& sample : top_in)
-            top_in_json.push_back(sample_to_json(sample));
+        //for (auto& sample : top_in)
+        //    top_in_json.push_back(sample_to_json(sample));
 
-        for (auto& sample : top_out)
-            top_out_json.push_back(sample_to_json(sample));
+        //for (auto& sample : top_out)
+        //    top_out_json.push_back(sample_to_json(sample));
 
         UniValue chainStat(UniValue::VOBJ);
         chainStat.pushKV("Chain", Params().NetworkIDString());
@@ -198,9 +198,9 @@ public:
         rpcStat.pushKV("NumSamples", (int)GetNumSamplesSince(since));
         rpcStat.pushKV("AverageTime", GetAvgRequestTimeSince(since).count());
         rpcStat.pushKV("UniqueIPs", (int)unique_ips_count);
-        rpcStat.pushKV("TopTime", top_tm_json);
-        rpcStat.pushKV("TopInputSize", top_in_json);
-        rpcStat.pushKV("TopOutputSize", top_out_json);
+        //rpcStat.pushKV("TopTime", top_tm_json);
+        //rpcStat.pushKV("TopInputSize", top_in_json);
+        //rpcStat.pushKV("TopOutputSize", top_out_json);
         result.pushKV("RPC", rpcStat);
 
         return result;
