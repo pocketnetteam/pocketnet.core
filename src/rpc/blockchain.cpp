@@ -846,19 +846,6 @@ static UniValue getblock(const JSONRPCRequest& request)
     return blockToJSON(block, pblockindex, verbosity >= 2);
 }
 
-static UniValue getcompactblock(CBlockIndex* pindex) {
-	UniValue oblock(UniValue::VOBJ);
-	CBlock block = GetBlockChecked(pindex);
-
-	oblock.pushKV("height", pindex->nHeight);
-	oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
-	oblock.pushKV("time", (int64_t)pindex->nTime);
-	oblock.pushKV("size", (int)::GetSerializeSize(block, PROTOCOL_VERSION));
-	oblock.pushKV("ntx", (int)pindex->nTx);
-
-	return oblock;
-}
-
 static UniValue getlastblocks(const JSONRPCRequest& request) {
     if (request.fHelp || request.params.size() < 1)
         throw std::runtime_error(
@@ -892,8 +879,7 @@ static UniValue getlastblocks(const JSONRPCRequest& request) {
 
     // Prepare statistic from Reindexer in dictionary (table, (block, count))
     std::map<std::string, std::map<int, int>> rStat;
-    if (verbose) {
-        
+    if (verbose) {        
         reindexer::AggregationResult aggRes;
 
         std::map<int, int> oUsers;
@@ -947,21 +933,26 @@ static UniValue getlastblocks(const JSONRPCRequest& request) {
 
 	CBlockIndex* pindex = chainActive[last_height];
 	while (pindex && count > 0) {
-        UniValue ublock = getcompactblock(pindex);
-        UniValue types(UniValue::VOBJ);
-
+        UniValue ublock(UniValue::VOBJ);
+        ublock.pushKV("height", pindex->nHeight);
+        ublock.pushKV("hash", pindex->GetBlockHash().GetHex());
+        ublock.pushKV("time", (int64_t)pindex->nTime);
+        ublock.pushKV("ntx", (int)pindex->nTx);
+        
         if (verbose) {
+            UniValue types(UniValue::VOBJ);
+
             for (auto s: rStat) {
                 auto f = s.second.find(pindex->nHeight);
                 if (f != s.second.end()) {
                     types.pushKV(s.first, f->second);
                 }
             }
+
+            ublock.pushKV("types", types);
         }
 
-		ublock.pushKV("types", types);
 		result.push_back(ublock);
-
 		pindex = pindex->pprev;
 		count -= 1;
 	}
