@@ -10,8 +10,6 @@
 #include <config/pocketcoin-config.h>
 #endif
 
-#include "primitives/rtransaction.h"
-
 #include <amount.h>
 #include <coins.h>
 #include <consensus/consensus.h>
@@ -420,8 +418,8 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex
 /** Context-independent validity checks */
 bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckMerkleRoot = true, bool fCheckSig = true);
 
-bool FindRTransaction(UniValue& _txs_src, const CTransactionRef& tx, std::string ri_table, reindexer::Item& itm);
-bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationState& state);
+// bool FindRTransaction(UniValue& _txs_src, const CTransactionRef& tx, std::string ri_table, reindexer::Item& itm);
+//bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationState& state);
 
 /** Check a block is completely valid from start to finish (only works on top of our current best block) */
 bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);

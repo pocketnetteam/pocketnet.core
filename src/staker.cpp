@@ -152,11 +152,6 @@ void Staker::worker(
             auto blocktemplate = assembler.CreateNewBlock(
                 coinbaseScript->reserveScript, true, true, &nFees
             );
-
-            // Write ReindexerDB current state to coinbase transaction
-            if (chainActive.Tip()->nHeight >= Params().GetConsensus().nHeight_version_1_0_0) {
-                g_addrindex->WriteRHash(blocktemplate->block, chainActive.Tip());
-            }
             
             std::shared_ptr<CBlock> block = std::make_shared<CBlock>(blocktemplate->block);
 

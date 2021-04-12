@@ -19,7 +19,6 @@
 #include <policy/policy.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
-#include <primitives/rtransaction.h>
 #include <random.h>
 #include <reverse_iterator.h>
 #include <scheduler.h>
@@ -647,7 +646,7 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 // We wouldn't download this block or its descendants from this peer.
                 return;
             }
-			// We need download data forcing - reindexer data must be loss
+			// We need download data forcing - pocketnet data must be loss
 			// pindex->nStatus & BLOCK_HAVE_DATA ||
             if (chainActive.Contains(pindex)) {
                 if (pindex->nChainTx)
@@ -1397,23 +1396,25 @@ void static ProcessGetData(CNode* pfrom, const CChainParams& chainparams, CConnm
             auto mi = mapRelay.find(inv.hash);
             int nSendFlags = (inv.type == MSG_TX ? SERIALIZE_TRANSACTION_NO_WITNESS : 0);
             if (mi != mapRelay.end()) {
-				// Join PocketNet data from ReindexerDB to transaction stream
-				std::string pocket_data;
-                if (g_addrindex->GetTXRIData(mi->second, pocket_data)) {
-                    connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second, pocket_data));
+                // TODO (brangr): REINDEXER -> SQLITE
+				// Join PocketNet data from PocketDB to transaction stream
+				// std::string pocket_data;
+                //if (g_addrindex->GetTXRIData(mi->second, pocket_data)) {
+                    connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second, "POCKET_DB_DATA"));
                     push = true;
-                }
+                //}
             } else if (pfrom->timeLastMempoolReq) {
                 auto txinfo = mempool.info(inv.hash);
                 // To protect privacy, do not answer getdata using the mempool when
                 // that TX couldn't have been INVed in reply to a MEMPOOL request.
                 if (txinfo.tx && txinfo.nTime <= pfrom->timeLastMempoolReq) {
-					// Join PocketNet data from ReindexerDB to transaction stream
-					std::string pocket_data;
-					if (g_addrindex->GetTXRIData(txinfo.tx, pocket_data)) {
-                        connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *txinfo.tx, pocket_data));
+                    // TODO (brangr): REINDEXER -> SQLITE
+					// Join PocketNet data from PocketDB to transaction stream
+					//std::string pocket_data;
+					//if (g_addrindex->GetTXRIData(txinfo.tx, pocket_data)) {
+                        connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *txinfo.tx, "POCKET_DB_DATA"));
                         push = true;
-                    }
+                    //}
                 }
             }
             if (!push) {

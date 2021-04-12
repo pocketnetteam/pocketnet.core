@@ -45,7 +45,8 @@
 #include <mutex>
 #include <condition_variable>
 
-#include <pocketdb/pocketdb.h>
+// TODO (brangr): REINDEXER -> SQLITE
+// #include <pocketdb/pocketdb.h>
 #include <math.h>
 
 struct CUpdatedBlock
@@ -890,60 +891,61 @@ static UniValue getlastblocks(const JSONRPCRequest& request) {
 	
     UniValue result(UniValue::VARR);
 
+    // TODO (brangr): REINDEXER -> SQLITE
     // Prepare statistic from Reindexer in dictionary (table, (block, count))
-    std::map<std::string, std::map<int, int>> rStat;
-    if (verbose) {
+    // std::map<std::string, std::map<int, int>> rStat;
+    // if (verbose) {
         
-        reindexer::AggregationResult aggRes;
+    //     reindexer::AggregationResult aggRes;
 
-        std::map<int, int> oUsers;
-        if (g_pocketdb->SelectAggr(reindexer::Query("UsersView").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-            for (const auto& f : aggRes.facets) {
-                oUsers.emplace(std::stoi(f.value), f.count);
-            }
-        }
-        rStat.emplace("users", oUsers);
+    //     std::map<int, int> oUsers;
+    //     if (g_pocketdb->SelectAggr(reindexer::Query("UsersView").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+    //         for (const auto& f : aggRes.facets) {
+    //             oUsers.emplace(std::stoi(f.value), f.count);
+    //         }
+    //     }
+    //     rStat.emplace("users", oUsers);
 
-        std::map<int, int> oPosts;
-        if (g_pocketdb->SelectAggr(reindexer::Query("Posts").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-            for (const auto& f : aggRes.facets) {
-                oPosts.emplace(std::stoi(f.value), f.count);
-            }
-        }
-        rStat.emplace("posts", oPosts);
+    //     std::map<int, int> oPosts;
+    //     if (g_pocketdb->SelectAggr(reindexer::Query("Posts").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+    //         for (const auto& f : aggRes.facets) {
+    //             oPosts.emplace(std::stoi(f.value), f.count);
+    //         }
+    //     }
+    //     rStat.emplace("posts", oPosts);
 
-        std::map<int, int> oScores;
-        if (g_pocketdb->SelectAggr(reindexer::Query("Scores").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-            for (const auto& f : aggRes.facets) {
-                oScores.emplace(std::stoi(f.value), f.count);
-            }
-        }
-        rStat.emplace("scores", oScores);
+    //     std::map<int, int> oScores;
+    //     if (g_pocketdb->SelectAggr(reindexer::Query("Scores").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+    //         for (const auto& f : aggRes.facets) {
+    //             oScores.emplace(std::stoi(f.value), f.count);
+    //         }
+    //     }
+    //     rStat.emplace("scores", oScores);
 
-        std::map<int, int> oCommentScores;
-        if (g_pocketdb->SelectAggr(reindexer::Query("CommentScores").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-            for (const auto& f : aggRes.facets) {
-                oCommentScores.emplace(std::stoi(f.value), f.count);
-            }
-        }
-        rStat.emplace("commentScores", oCommentScores);
+    //     std::map<int, int> oCommentScores;
+    //     if (g_pocketdb->SelectAggr(reindexer::Query("CommentScores").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+    //         for (const auto& f : aggRes.facets) {
+    //             oCommentScores.emplace(std::stoi(f.value), f.count);
+    //         }
+    //     }
+    //     rStat.emplace("commentScores", oCommentScores);
 
-        std::map<int, int> oSubscribes;
-        if (g_pocketdb->SelectAggr(reindexer::Query("SubscribesView").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-            for (const auto& f : aggRes.facets) {
-                oSubscribes.emplace(std::stoi(f.value), f.count);
-            }
-        }
-        rStat.emplace("subscribes", oSubscribes);
+    //     std::map<int, int> oSubscribes;
+    //     if (g_pocketdb->SelectAggr(reindexer::Query("SubscribesView").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+    //         for (const auto& f : aggRes.facets) {
+    //             oSubscribes.emplace(std::stoi(f.value), f.count);
+    //         }
+    //     }
+    //     rStat.emplace("subscribes", oSubscribes);
 
-        std::map<int, int> oComments;
-        if (g_pocketdb->SelectAggr(reindexer::Query("Comment").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-            for (const auto& f : aggRes.facets) {
-                oComments.emplace(std::stoi(f.value), f.count);
-            }
-        }
-        rStat.emplace("comments", oComments);
-    }
+    //     std::map<int, int> oComments;
+    //     if (g_pocketdb->SelectAggr(reindexer::Query("Comment").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
+    //         for (const auto& f : aggRes.facets) {
+    //             oComments.emplace(std::stoi(f.value), f.count);
+    //         }
+    //     }
+    //     rStat.emplace("comments", oComments);
+    // }
 
 	CBlockIndex* pindex = chainActive[last_height];
 	while (pindex && count > 0) {
@@ -1000,21 +1002,22 @@ static UniValue getaddressinfo(const JSONRPCRequest& request) {
 	UniValue txs(UniValue::VARR);
     std::unordered_set<std::string> s_txs;
 
-	reindexer::QueryResults utxo;
-	if (g_pocketdb->Select(reindexer::Query("UTXO").Where("address", CondEq, address).Sort("time", true), utxo).ok()) {
-		for (auto& u : utxo) {
-			reindexer::Item it = u.GetItem();
+    // TODO (brangr): REINDEXER -> SQLITE
+	// reindexer::QueryResults utxo;
+	// if (g_pocketdb->Select(reindexer::Query("UTXO").Where("address", CondEq, address).Sort("time", true), utxo).ok()) {
+	// 	for (auto& u : utxo) {
+	// 		reindexer::Item it = u.GetItem();
 
-			int64_t amount = it["amount"].As<int64_t>();
-			if (it["spent_block"].As<int>() == 0) unspent += amount;
-			else spent += amount;
+	// 		int64_t amount = it["amount"].As<int64_t>();
+	// 		if (it["spent_block"].As<int>() == 0) unspent += amount;
+	// 		else spent += amount;
 
-            std::string txid = it["txid"].As<string>();
-            if (s_txs.emplace(txid).second) {
-                txs.push_back(txid);
-            }
-		}
-	}
+    //         std::string txid = it["txid"].As<string>();
+    //         if (s_txs.emplace(txid).second) {
+    //             txs.push_back(txid);
+    //         }
+	// 	}
+	// }
 	//-----------------------------------------
 	addressInfo.pushKV("txids", txs);
 	addressInfo.pushKV("spent", spent);
@@ -1063,27 +1066,29 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
 				in.pushKV("txinwitness", txinwitness);
 			}
 
-			reindexer::Item utxo;
-			if (g_pocketdb->SelectOne(reindexer::Query("UTXO").Where("txid", CondEq, txin.prevout.hash.GetHex()).Where("txout", CondEq, (int)txin.prevout.n), utxo).ok()) {
-				CAmount value = utxo["amount"].As<int64_t>();
-				in.pushKV("address", utxo["address"].As<string>());
-				in.pushKV("value", value);
-				fee += value;
-			}
+            // TODO (brangr): REINDEXER -> SQLITE
+			// reindexer::Item utxo;
+			// if (g_pocketdb->SelectOne(reindexer::Query("UTXO").Where("txid", CondEq, txin.prevout.hash.GetHex()).Where("txout", CondEq, (int)txin.prevout.n), utxo).ok()) {
+			// 	CAmount value = utxo["amount"].As<int64_t>();
+			// 	in.pushKV("address", utxo["address"].As<string>());
+			// 	in.pushKV("value", value);
+			// 	fee += value;
+			// }
 		}
 		in.pushKV("sequence", (int64_t)txin.nSequence);
 		vin.push_back(in);
 	}
 	entry.pushKV("vin", vin);
 	//---------------------------------------
-	reindexer::QueryResults utxos;
-	std::map<int, bool> utxo_outs;
-	if (g_pocketdb->Select(reindexer::Query("UTXO").Where("txid", CondEq, tx.GetHash().GetHex()), utxos).ok()) {
-		for (auto& u : utxos) {
-			reindexer::Item utxo = u.GetItem();
-			utxo_outs.insert(std::make_pair(utxo["txout"].As<int>(), utxo["spent_block"].As<int>() == 0));
-		}
-	}
+    // TODO (brangr): REINDEXER -> SQLITE
+	// reindexer::QueryResults utxos;
+	// std::map<int, bool> utxo_outs;
+	// if (g_pocketdb->Select(reindexer::Query("UTXO").Where("txid", CondEq, tx.GetHash().GetHex()), utxos).ok()) {
+	// 	for (auto& u : utxos) {
+	// 		reindexer::Item utxo = u.GetItem();
+	// 		utxo_outs.insert(std::make_pair(utxo["txout"].As<int>(), utxo["spent_block"].As<int>() == 0));
+	// 	}
+	// }
 	//---------------------------------------
 	UniValue vout(UniValue::VARR);
 	for (unsigned int i = 0; i < tx.vout.size(); i++) {
@@ -1180,10 +1185,11 @@ static UniValue checkstringtype(const JSONRPCRequest& request) {
 
 	if (value.size() == 34) {
 		if (IsValidDestination(DecodeDestination(value))) {
-			if (g_pocketdb->SelectCount(reindexer::Query("Addresses").Where("address", CondEq, value)) > 0) {
-				result.pushKV("type", "address");
-				return result;
-			}
+            // TODO (brangr): REINDEXER -> SQLITE
+			// if (g_pocketdb->SelectCount(reindexer::Query("Addresses").Where("address", CondEq, value)) > 0) {
+			// 	result.pushKV("type", "address");
+			// 	return result;
+			// }
 		}
 	}
 	else if (value.size() == 64) {
@@ -1245,29 +1251,30 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
     UniValue result(UniValue::VOBJ);
     int stat_count = 300;
 
+    // TODO (brangr): REINDEXER -> SQLITE
     // Loop all days in period start_time - end_time
-    int64_t dt_end = end_time;
-    int64_t dt_start = end_time - round;
-    while (dt_start >= start_time && stat_count > 0) {
-        std::string cacheKey = std::to_string(dt_start) + std::to_string(round);
-        if (g_statistic_cache.find(cacheKey) == g_statistic_cache.end()) {
-            UniValue rStat(UniValue::VOBJ);
-            rStat.pushKV("UsersAcc", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondLt, dt_end)));
-            rStat.pushKV("Users", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondGe, dt_start).Where("regdate", CondLt, dt_end)));
-            rStat.pushKV("Posts", (int)g_pocketdb->SelectCount(reindexer::Query("Posts").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-            rStat.pushKV("Ratings", (int)g_pocketdb->SelectCount(reindexer::Query("Scores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-            rStat.pushKV("CommentRatings", (int)g_pocketdb->SelectCount(reindexer::Query("CommentScores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-            rStat.pushKV("Subscribes", (int)g_pocketdb->SelectCount(reindexer::Query("SubscribesView").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-            rStat.pushKV("Comments", (int)g_pocketdb->SelectCount(reindexer::Query("Comment").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-            g_statistic_cache.insert_or_assign(cacheKey, rStat);
-        }
+    // int64_t dt_end = end_time;
+    // int64_t dt_start = end_time - round;
+    // while (dt_start >= start_time && stat_count > 0) {
+    //     std::string cacheKey = std::to_string(dt_start) + std::to_string(round);
+    //     if (g_statistic_cache.find(cacheKey) == g_statistic_cache.end()) {
+    //         UniValue rStat(UniValue::VOBJ);
+    //         rStat.pushKV("UsersAcc", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondLt, dt_end)));
+    //         rStat.pushKV("Users", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondGe, dt_start).Where("regdate", CondLt, dt_end)));
+    //         rStat.pushKV("Posts", (int)g_pocketdb->SelectCount(reindexer::Query("Posts").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
+    //         rStat.pushKV("Ratings", (int)g_pocketdb->SelectCount(reindexer::Query("Scores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
+    //         rStat.pushKV("CommentRatings", (int)g_pocketdb->SelectCount(reindexer::Query("CommentScores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
+    //         rStat.pushKV("Subscribes", (int)g_pocketdb->SelectCount(reindexer::Query("SubscribesView").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
+    //         rStat.pushKV("Comments", (int)g_pocketdb->SelectCount(reindexer::Query("Comment").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
+    //         g_statistic_cache.insert_or_assign(cacheKey, rStat);
+    //     }
 
-        result.pushKV(std::to_string(dt_start), g_statistic_cache[cacheKey]);
+    //     result.pushKV(std::to_string(dt_start), g_statistic_cache[cacheKey]);
 
-        stat_count -= 1;
-        dt_end -= round;
-        dt_start -= round;
-    }
+    //     stat_count -= 1;
+    //     dt_end -= round;
+    //     dt_start -= round;
+    // }
     
     return result;
 }

@@ -31,7 +31,7 @@ bench_bench_pocketcoin_SOURCES = \
   bench/lockedpool.cpp \
   bench/prevector.cpp
 
-nodist_bench_bench_pocketcoin_SOURCES = $(GENERATED_BENCH_FILES) $(REINDEXER_H) $(REINDEXER_CC)
+nodist_bench_bench_pocketcoin_SOURCES = $(GENERATED_BENCH_FILES)
 
 bench_bench_pocketcoin_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(EVENT_CLFAGS) $(EVENT_PTHREADS_CFLAGS) -I$(builddir)/bench/
 bench_bench_pocketcoin_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)

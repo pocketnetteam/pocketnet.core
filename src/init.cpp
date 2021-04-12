@@ -52,9 +52,10 @@
 
 #include <websocket/ws.h>
 
-#include <antibot/antibot.h>
-#include <index/addrindex.h>
-#include <pocketdb/pocketdb.h>
+// TODO (brangr): REINDEXER -> SQLITE
+// #include <antibot/antibot.h>
+// #include <index/addrindex.h>
+// #include <pocketdb/pocketdb.h>
 
 #ifndef WIN32
 #include <signal.h>
@@ -254,8 +255,9 @@ void Shutdown()
     g_wallet_init_interface.Stop();
 
     // Stoping reindexer DB
-    g_pocketdb->~PocketDB();
-    LogPrintf("Close reindexer DB\n");
+    // TODO (brangr): REINDEXER -> SQLITE
+    // g_pocketdb->~PocketDB();
+    // LogPrintf("Close reindexer DB\n");
 
 #if ENABLE_ZMQ
     if (g_zmq_notification_interface) {
@@ -1395,11 +1397,12 @@ bool AppInitMain()
     }
 
     // ********************************************************* Step 4.1: Start PocketDB
-    uiInterface.InitMessage(_("Loading Reindexer DB..."));
-    g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
-    if (!g_pocketdb->Init()) {
-        return InitError(_("Unable to start reindexer database."));
-    }
+    // TODO (brangr): REINDEXER -> SQLITE
+    // uiInterface.InitMessage(_("Loading Reindexer DB..."));
+    // g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
+    // if (!g_pocketdb->Init()) {
+    //     return InitError(_("Unable to start reindexer database."));
+    // }
     // ********************************************************* Step 4.2: Start AddrIndex
     g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
     // ********************************************************* Step 4.3: Start AntiBot
@@ -1672,32 +1675,33 @@ bool AppInitMain()
                         break;
                     }
 
-                    {
-                        LogPrintf("Check Reindexer DB...");
+                    // TODO (brangr): REINDEXER -> SQLITE
+                    // {
+                    //     LogPrintf("Check Reindexer DB...");
 
-                        std::vector<reindexer::NamespaceDef> nss;
-                        reindexer::Error err = g_pocketdb->DB()->EnumNamespaces(nss, false);
-                        if (err.ok()) {
-                            bool rChecked = true;
-                            for (auto& ns : nss) {
-                                reindexer::QueryResults res;
-                                err = g_pocketdb->DB()->Select(reindexer::Query(ns.name), res);
-                                if (!err.ok()) {
-                                    LogPrintf(" error check table %s - %d (%s)\n", ns.name, err.code(), err.what());
-                                    rChecked = false;
-                                    break;
-                                }
-                            }
+                    //     std::vector<reindexer::NamespaceDef> nss;
+                    //     reindexer::Error err = g_pocketdb->DB()->EnumNamespaces(nss, false);
+                    //     if (err.ok()) {
+                    //         bool rChecked = true;
+                    //         for (auto& ns : nss) {
+                    //             reindexer::QueryResults res;
+                    //             err = g_pocketdb->DB()->Select(reindexer::Query(ns.name), res);
+                    //             if (!err.ok()) {
+                    //                 LogPrintf(" error check table %s - %d (%s)\n", ns.name, err.code(), err.what());
+                    //                 rChecked = false;
+                    //                 break;
+                    //             }
+                    //         }
 
-                            if (rChecked)
-                                LogPrintf(" success.\n");
-                            else
-                                break;
-                        } else {
-                            LogPrintf(" error get namespaces - %d (%s)\n", err.code(), err.what());
-                            break;
-                        }
-                    }
+                    //         if (rChecked)
+                    //             LogPrintf(" success.\n");
+                    //         else
+                    //             break;
+                    //     } else {
+                    //         LogPrintf(" error get namespaces - %d (%s)\n", err.code(), err.what());
+                    //         break;
+                    //     }
+                    // }
 
                     if (!CVerifyDB().VerifyDB(chainparams, pcoinsdbview.get(), gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL),
                             gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS))) {

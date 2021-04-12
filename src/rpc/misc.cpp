@@ -25,7 +25,7 @@
 
 #include <stdint.h>
 
-#include "pocketdb/pocketdb.h"
+// #include "pocketdb/pocketdb.h"
 
 #ifdef HAVE_MALLOC_INFO
 #include <malloc.h>
@@ -510,16 +510,6 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
     return entry;
 }
 
-static UniValue getristat(const JSONRPCRequest& request)
-{
-    std::string table = request.params[0].isNull() ? "" : request.params[0].get_str();
-    UniValue ri_stat(UniValue::VOBJ);
-    //------------------------
-    g_pocketdb->GetStatistic(table, ri_stat);
-    //------------------------
-    return ri_stat;
-}
-
 // clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
@@ -538,9 +528,6 @@ static const CRPCCommand commands[] =
 
     { "util",               "getnodeinfo",            &getnodeinfo,            {}, false},
     { "util",               "getcoininfo",            &getcoininfo,            {"height"}, false},
-
-    /* For ReindexerDB */
-    { "hidden",             "getristat",              &getristat,              {"table"}},
 };
 // clang-format on
 

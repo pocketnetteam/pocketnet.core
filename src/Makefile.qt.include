@@ -375,7 +375,7 @@ qt_libpocketcoinqt_a_CXXFLAGS = $(AM_CXXFLAGS) $(QT_PIE_FLAGS)
 qt_libpocketcoinqt_a_OBJCXXFLAGS = $(AM_OBJCXXFLAGS) $(QT_PIE_FLAGS)
 
 qt_libpocketcoinqt_a_SOURCES = $(POCKETCOIN_QT_CPP) $(POCKETCOIN_QT_H) $(QT_FORMS_UI) \
-  $(QT_QRC) $(QT_QRC_LOCALE) $(QT_TS) $(PROTOBUF_PROTO) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES) $(REINDEXER_H) $(REINDEXER_CC)
+  $(QT_QRC) $(QT_QRC_LOCALE) $(QT_TS) $(PROTOBUF_PROTO) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES)
 
 nodist_qt_libpocketcoinqt_a_SOURCES = $(QT_MOC_CPP) $(QT_MOC) $(PROTOBUF_CC) \
   $(PROTOBUF_H) $(QT_QRC_CPP) $(QT_QRC_LOCALE_CPP)
@@ -398,14 +398,14 @@ qt_pocketcoin_qt_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(POCKETCOIN_Q
   $(QT_INCLUDES) $(PROTOBUF_CFLAGS) $(QR_CFLAGS)
 qt_pocketcoin_qt_CXXFLAGS = $(AM_CXXFLAGS) $(QT_PIE_FLAGS)
 
-qt_pocketcoin_qt_SOURCES = qt/pocketcoin.cpp $(REINDEXER_H) $(REINDEXER_CC)
+qt_pocketcoin_qt_SOURCES = qt/pocketcoin.cpp
 if TARGET_DARWIN
   qt_pocketcoin_qt_SOURCES += $(POCKETCOIN_MM)
 endif
 if TARGET_WINDOWS
   qt_pocketcoin_qt_SOURCES += $(POCKETCOIN_RC)
 endif
-qt_pocketcoin_qt_LDADD = qt/libpocketcoinqt.a $(LIBREINDEXER) $(LIBPOCKETCOIN_SERVER)
+qt_pocketcoin_qt_LDADD = qt/libpocketcoinqt.a $(LIBPOCKETCOIN_SERVER)
 if ENABLE_WALLET
 qt_pocketcoin_qt_LDADD += $(LIBPOCKETCOIN_UTIL) $(LIBPOCKETCOIN_WALLET)
 endif
