@@ -26,11 +26,12 @@
 #include <map>
 #include <memory>
 #include <set>
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 #include <atomic>
+#include <pubkey.h>
 
 #include <websocket/ws.h>
 extern std::map<std::string, WSUser> WSConnections;
@@ -318,10 +319,6 @@ void PruneBlockFilesManual(int nManualPruneHeight);
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransactionRef &tx,
     bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced,
     bool bypass_limits, const CAmount nAbsurdFee, bool test_accept = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-
-bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, RTransaction &rtx,
-    bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced,
-    bool bypass_limits, const CAmount nAbsurdFee, bool test_accept=false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /** Convert CValidationState to a human-readable message for logging */
 std::string FormatStateMessage(const CValidationState &state);

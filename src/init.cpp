@@ -50,12 +50,14 @@
 #include <walletinitinterface.h>
 #include <warnings.h>
 
+#include "pocketdb/pocketnet.h"
 #include <websocket/ws.h>
 
 // TODO (brangr): REINDEXER -> SQLITE
 // #include <antibot/antibot.h>
 // #include <index/addrindex.h>
 // #include <pocketdb/pocketdb.h>
+
 
 #ifndef WIN32
 #include <signal.h>
@@ -664,12 +666,13 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
 
         // -reindex
         if (fReindex) {
-            // Clear ratings for clear reindexing
-            g_pocketdb->DropTable("UserRatings");
-            g_pocketdb->DropTable("PostRatings");
-            g_pocketdb->DropTable("CommentRatings");
-            g_pocketdb->DropTable("UTXO");
-            LogPrintf("Rating tables cleared\n");
+            // TODO (brangr): REINDEXER -> SQLITE
+            //            // Clear ratings for clear reindexing
+            //            g_pocketdb->DropTable("UserRatings");
+            //            g_pocketdb->DropTable("PostRatings");
+            //            g_pocketdb->DropTable("CommentRatings");
+            //            g_pocketdb->DropTable("UTXO");
+            //            LogPrintf("Rating tables cleared\n");
 
             int nFile = 0;
             while (true) {
@@ -729,13 +732,14 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             return;
         }
 
-        if (g_addrindex->RollbackDB(chainActive.Height(), false)) {
-            LogPrintf("RIDB rollback to block height %d success!\n", chainActive.Height());
-        } else {
-            LogPrintf("Error: RIDB rollback failed!\n");
-            StartShutdown();
-            return;
-        }
+        // TODO (brangr): REINDEXER -> SQLITE
+        //        if (g_addrindex->RollbackDB(chainActive.Height(), false)) {
+        //            LogPrintf("RIDB rollback to block height %d success!\n", chainActive.Height());
+        //        } else {
+        //            LogPrintf("Error: RIDB rollback failed!\n");
+        //            StartShutdown();
+        //            return;
+        //        }
     } // End scope of CImportingNow
 
     if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
@@ -1292,7 +1296,7 @@ static void StartWS()
         //    WSConnections.push_back(connection);
     };
 
-    ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const string& /*reason*/) {
+    ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/) {
         if (WSConnections.find(connection->ID()) != WSConnections.end()) {
             WSConnections.erase(connection->ID());
         }
@@ -1404,9 +1408,9 @@ bool AppInitMain()
     //     return InitError(_("Unable to start reindexer database."));
     // }
     // ********************************************************* Step 4.2: Start AddrIndex
-    g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
+    //g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
     // ********************************************************* Step 4.3: Start AntiBot
-    g_antibot = std::unique_ptr<AntiBot>(new AntiBot());
+    //g_antibot = std::unique_ptr<AntiBot>(new AntiBot());
 
     // ********************************************************* Step 5: verify wallet database integrity
     if (!g_wallet_init_interface.Verify()) return false;

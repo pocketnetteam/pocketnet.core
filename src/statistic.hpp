@@ -139,14 +139,14 @@ public:
         return result;
     }
 
-    std::set<RequestIP> GetUniqueSourceIPs()
-    {
-        return GetUniqueSourceIPsSince(RequestTime::min());
-    }
+//    std::set<RequestIP> GetUniqueSourceIPs()
+//    {
+//        return GetUniqueSourceIPsSince(RequestTime::min());
+//    }
 
     UniValue CompileStatsAsJsonSince(RequestTime since)
     {
-        constexpr auto top_limit = 1;
+        //constexpr auto top_limit = 1;
         const auto sample_to_json = [](const RequestSample& sample) {
             UniValue value{UniValue::VOBJ};
 

@@ -24,7 +24,6 @@
 #include <pow.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
-#include <primitives/rtransaction.h>
 #include <random.h>
 #include <reverse_iterator.h>
 #include <script/script.h>
@@ -51,8 +50,9 @@
 #include <boost/thread.hpp>
 #include <univalue.h>
 
-#include <antibot/antibot.h>
-#include <index/addrindex.h>
+// TODO (brangr): REINDEXER -> SQLITE
+//#include <antibot/antibot.h>
+//#include <index/addrindex.h>
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 std::map<std::string, WSUser> WSConnections;
@@ -570,9 +570,9 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
     return CheckInputs(tx, state, view, true, flags, cacheSigStore, true, txdata);
 }
 
-static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state, CTransactionRef& tx, bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount& nAbsurdFee, std::vector<COutPoint>& coins_to_uncache, bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state, const CTransactionRef& ptx, bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount& nAbsurdFee, std::vector<COutPoint>& coins_to_uncache, bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
-    const CTransaction& tx = *tx;
+    const CTransaction& tx = *ptx;
     const uint256 hash = tx.GetHash();
     AssertLockHeld(cs_main);
     LOCK(pool.cs); // mempool "read lock" (held through GetMainSignals().TransactionAddedToMempool())
@@ -718,7 +718,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
         }
 
-        CTxMemPoolEntry entry(rtx, nFees, nAcceptTime, chainActive.Height(),
+        CTxMemPoolEntry entry(ptx, nFees, nAcceptTime, chainActive.Height(),
             fSpendsCoinbase, nSigOpsCost, lp);
         unsigned int nSize = entry.GetTxSize();
 
@@ -738,16 +738,17 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
         // For PocketNET transaction allow minimal fee
         if (!bypass_limits) {
-            if (g_addrindex->IsPocketnetTransaction(rtx)) {
-                if (nModifiedFees < DEFAULT_MIN_POCKETNET_TX_FEE) {
-                    return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min PocketNet TX fee not met", false, strprintf("%d < %d", nModifiedFees, DEFAULT_MIN_POCKETNET_TX_FEE));
-                }
-            } else {
+            // TODO (brangr): REINDEXER -> SQLITE
+//            if (g_addrindex->IsPocketnetTransaction(rtx)) {
+//                if (nModifiedFees < DEFAULT_MIN_POCKETNET_TX_FEE) {
+//                    return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min PocketNet TX fee not met", false, strprintf("%d < %d", nModifiedFees, DEFAULT_MIN_POCKETNET_TX_FEE));
+//                }
+//            } else {
                 // No transactions are allowed below minRelayTxFee except from disconnected blocks
                 if (nModifiedFees < ::minRelayTxFee.GetFee(nSize)) {
                     return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min relay fee not met", false, strprintf("%d < %d", nModifiedFees, ::minRelayTxFee.GetFee(nSize)));
                 }
-            }
+//            }
         }
 
         if (nAbsurdFee && nFees > nAbsurdFee)
@@ -981,20 +982,20 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         if (!bypass_limits) {
             LimitMempoolSize(pool, gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000, gArgs.GetArg("-mempoolexpiry", DEFAULT_MEMPOOL_EXPIRY) * 60 * 60);
             if (!pool.exists(hash)) {
-                LogPrintf("--- validation:986: %s\n", hash.GetHex());
-                g_addrindex->ClearMempool(hash.GetHex());
+                // TODO (brangr): REINDEXER -> SQLITE
+//                g_addrindex->ClearMempool(hash.GetHex());
                 return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "mempool full");
             }
         }
     }
 
-    GetMainSignals().TransactionAddedToMempool(rtx);
+    GetMainSignals().TransactionAddedToMempool(ptx);
 
     return true;
 }
 
 /** (try to) add transaction to memory pool with a specified acceptance time **/
-static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state, CTransactionRef& tx, bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount nAbsurdFee, bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state, const CTransactionRef& tx, bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount nAbsurdFee, bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     std::vector<COutPoint> coins_to_uncache;
     bool res = AcceptToMemoryPoolWorker(chainparams, pool, state, tx, pfMissingInputs, nAcceptTime, plTxnReplaced, bypass_limits, nAbsurdFee, coins_to_uncache, test_accept);
@@ -1014,14 +1015,8 @@ static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPo
 
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransactionRef& tx, bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount nAbsurdFee, bool test_accept)
 {
-    RTransaction rtx(*tx);
-    return AcceptToMemoryPool(pool, state, rtx, pfMissingInputs, plTxnReplaced, bypass_limits, nAbsurdFee, test_accept);
-}
-
-bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, RTransaction& rtx, bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount nAbsurdFee, bool test_accept)
-{
     const CChainParams& chainparams = Params();
-    return AcceptToMemoryPoolWithTime(chainparams, pool, state, rtx, pfMissingInputs, GetTime(), plTxnReplaced, bypass_limits, nAbsurdFee, test_accept);
+    return AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pfMissingInputs, GetTime(), plTxnReplaced, bypass_limits, nAbsurdFee, test_accept);
 }
 
 /**
@@ -1345,7 +1340,8 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo& txund
         }
     }
     // add outputs
-    AddCoins(inputs, tx, nHeight, false, g_addrindex->IsPocketnetTransaction(tx));
+    // TODO (brangr): REINDEXER -> SQLITE
+    AddCoins(inputs, tx, nHeight, false, false /*g_addrindex->IsPocketnetTransaction(tx)*/);
 }
 
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
@@ -2185,12 +2181,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
-        if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource)) {
-            if (IsCheckpointBlock(pindex->nHeight, block.GetHash().ToString()))
-                LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
-            else
-                return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
-        }
+        // TODO (brangr): REINDEXER -> SQLITE
+//        if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource)) {
+//            if (IsCheckpointBlock(pindex->nHeight, block.GetHash().ToString()))
+//                LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
+//            else
+//                return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
+//        }
     }
 
     if (!control.Wait())
@@ -2519,13 +2516,14 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
 
     chainActive.SetTip(pindexDelete->pprev);
 
+    // TODO (brangr): REINDEXER -> SQLITE
     // Fix RI tables - clear RI DB from best block height
-    if (g_addrindex->RollbackDB(chainActive.Height(), true)) {
-        LogPrintf("RIDB rollback to block height %d success!\n", chainActive.Height());
-    } else {
-        LogPrintf("Error: RIDB rollback failed!\n");
-        return false;
-    }
+//    if (g_addrindex->RollbackDB(chainActive.Height(), true)) {
+//        LogPrintf("RIDB rollback to block height %d success!\n", chainActive.Height());
+//    } else {
+//        LogPrintf("Error: RIDB rollback failed!\n");
+//        return false;
+//    }
 
     UpdateTip(pindexDelete->pprev, chainparams);
 
@@ -3886,7 +3884,7 @@ bool CheckBlockSignature(const CBlock& block)
         return false;
     }
 
-    vector<std::vector<unsigned char>> vSolutions;
+    std::vector<std::vector<unsigned char>> vSolutions;
 
     const CTxOut& txout = block.vtx[1]->vout[1];
 
@@ -4939,7 +4937,8 @@ bool CChainState::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& i
             }
         }
         // Pass check = true as every addition may be an overwrite.
-        AddCoins(inputs, *tx, pindex->nHeight, true, g_addrindex->IsPocketnetTransaction(tx));
+        // TODO (brangr): REINDEXER -> SQLITE
+        AddCoins(inputs, *tx, pindex->nHeight, true, /*g_addrindex->IsPocketnetTransaction(tx)*/ false);
     }
     return true;
 }

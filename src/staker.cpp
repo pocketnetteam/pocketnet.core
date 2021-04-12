@@ -12,7 +12,8 @@
 #include <script/sign.h>
 #include <consensus/merkle.h>
 
-#include "index/addrindex.h"
+// TODO (brangr): REINDEXER -> SQLITE
+//#include "index/addrindex.h"
 
 Staker *Staker::getInstance() {
     static Staker instance;

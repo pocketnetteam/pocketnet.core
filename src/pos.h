@@ -7,6 +7,7 @@
 
 #include <validation.h>
 #include <streams.h>
+#include <key_io.h>
 
 static const int STAKE_TIMESTAMP_MASK = 15;
 

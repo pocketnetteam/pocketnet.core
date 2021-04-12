@@ -15,7 +15,8 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
-#include "antibot/antibot.h"
+// TODO (brangr): REINDEXER -> SQLITE
+//#include "antibot/antibot.h"
 
 class CBlockIndex;
 class CChainParams;
@@ -142,7 +143,9 @@ private:
     uint64_t nBlockSigOpsCost;
     CAmount nFees;
     CTxMemPool::setEntries inBlock;
-    BlockVTX blockVtx;
+
+    // TODO (brangr): REINDEXER -> SQLITE
+    //BlockVTX blockVtx;
 
     // Chain context for the block
     int nHeight;

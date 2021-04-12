@@ -7,7 +7,8 @@
 #include <chainparams.h>
 #include <core_io.h>
 #include <sstream>
-#include <rpc/rawtransaction.h>
+
+#include <boost/algorithm/string.hpp>
 
 // Antibot limits
 enum Limit {
@@ -102,9 +103,9 @@ bool IsCheckpointBlock(int height, std::string hash);
 void FillCheckpointsTransactions(const CChainParams& params);
 bool IsCheckpointTransaction(std::string hash);
 
-bool GetInputAddress(uint256 txhash, int n, std::string& address);
-bool GetTransactionData(std::string txid, std::string& address);
-bool GetTransactionData(std::string txid, std::string& address, CTransactionRef& tx);
+//bool GetInputAddress(uint256 txhash, int n, std::string& address);
+//bool GetTransactionData(std::string txid, std::string& address);
+//bool GetTransactionData(std::string txid, std::string& address, CTransactionRef& tx);
 
 /*
     Find asm string with OP_RETURN for check type transaction

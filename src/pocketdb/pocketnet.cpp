@@ -522,35 +522,35 @@ bool IsCheckpointTransaction(std::string hash) {
     return (std::find(CheckpointsTransactions.begin(), CheckpointsTransactions.end(), hash) != CheckpointsTransactions.end());
 }
 
-
-bool GetInputAddress(uint256 txhash, int n, std::string& address)
-{
-    uint256 hash_block;
-    CTransactionRef tx;
-    //-------------------------
-    if (!GetTransaction(txhash, tx, Params().GetConsensus(), hash_block)) return false;
-    const CTxOut& txout = tx->vout[n];
-    CTxDestination destAddress;
-    const CScript& scriptPubKey = txout.scriptPubKey;
-    bool fValidAddress = ExtractDestination(scriptPubKey, destAddress);
-    if (!fValidAddress) return false;
-    address = EncodeDestination(destAddress);
-    //-------------------------
-    return true;
-}
-bool GetTransactionData(std::string txid, std::string& address)
-{
-    CTransactionRef tx;
-    return GetTransactionData(txid, address, tx);
-}
-bool GetTransactionData(std::string txid, std::string& address, CTransactionRef& tx)
-{
-    uint256 hash_block;
-    uint256 hash_tx;
-    hash_tx.SetHex(txid);
-    if (!GetTransaction(hash_tx, tx, Params().GetConsensus(), hash_block, true, nullptr)) return false;
-    return GetInputAddress(tx->vin[0].prevout.hash, tx->vin[0].prevout.n, address);
-}
+// TODO (brangr): REINDEXER -> SQLITE
+//bool GetInputAddress(uint256 txhash, int n, std::string& address)
+//{
+//    uint256 hash_block;
+//    CTransactionRef tx;
+//    //-------------------------
+//    if (!GetTransaction(txhash, tx, Params().GetConsensus(), hash_block)) return false;
+//    const CTxOut& txout = tx->vout[n];
+//    CTxDestination destAddress;
+//    const CScript& scriptPubKey = txout.scriptPubKey;
+//    bool fValidAddress = ExtractDestination(scriptPubKey, destAddress);
+//    if (!fValidAddress) return false;
+//    address = EncodeDestination(destAddress);
+//    //-------------------------
+//    return true;
+//}
+//bool GetTransactionData(std::string txid, std::string& address)
+//{
+//    CTransactionRef tx;
+//    return GetTransactionData(txid, address, tx);
+//}
+//bool GetTransactionData(std::string txid, std::string& address, CTransactionRef& tx)
+//{
+//    uint256 hash_block;
+//    uint256 hash_tx;
+//    hash_tx.SetHex(txid);
+//    if (!GetTransaction(hash_tx, tx, Params().GetConsensus(), hash_block, true, nullptr)) return false;
+//    return GetInputAddress(tx->vin[0].prevout.hash, tx->vin[0].prevout.n, address);
+//}
 
 
 bool FindPocketNetAsmString(const CTransactionRef& tx, std::vector<std::string>& vasm)

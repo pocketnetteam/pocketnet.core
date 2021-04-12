@@ -4,7 +4,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <antibot/antibot.h>
+// TODO (brangr): REINDEXER -> SQLITE
+// #include <antibot/antibot.h>
 #include <boost/range/adaptor/reversed.hpp>
 #include <chain.h>
 #include <chainparams.h>

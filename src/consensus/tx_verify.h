@@ -7,10 +7,12 @@
 
 #include <amount.h>
 
+#include <chainparams.h>
 #include <stdint.h>
 #include <vector>
 
-#include "index/addrindex.h"
+// TODO (brangr): REINDEXER -> SQLITE
+// #include "index/addrindex.h"
 
 class CBlockIndex;
 class CCoinsViewCache;

@@ -14,7 +14,8 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
     // data into the returned UniValue.
     TxToUniv(tx, uint256(), entry, true, RPCSerializationFlags());
 
-    entry.pushKV("pockettx", g_addrindex->IsPocketnetTransaction(tx));
+    // TODO (brangr): REINDEXER -> SQLITE
+    //entry.pushKV("pockettx", g_addrindex->IsPocketnetTransaction(tx));
 
     if (!hashBlock.IsNull()) {
         entry.pushKV("blockhash", hashBlock.GetHex());

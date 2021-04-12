@@ -17,7 +17,6 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <utiltime.h>
-#include "pocketdb/pocketnet.h"
 
 CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
                                  int64_t _nTime, unsigned int _entryHeight,
@@ -426,7 +425,9 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     cachedInnerUsage -= memusage::DynamicUsage(mapLinks[it].parents) + memusage::DynamicUsage(mapLinks[it].children);
     mapLinks.erase(it);
     mapTx.erase(it);
-    g_addrindex->ClearMempool(hash.GetHex());
+
+    // TODO (brangr): REINDEXER -> SQLITE
+    //g_addrindex->ClearMempool(hash.GetHex());
 
     nTransactionsUpdated++;
     if (minerPolicyEstimator) {minerPolicyEstimator->removeTx(hash, false);}

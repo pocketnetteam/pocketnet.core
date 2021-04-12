@@ -27,6 +27,8 @@
 #include <boost/multi_index/sequenced_index.hpp>
 #include <boost/signals2/signal.hpp>
 
+#include "pocketdb/pocketnet.h"
+
 class CBlockIndex;
 extern CCriticalSection cs_main;
 

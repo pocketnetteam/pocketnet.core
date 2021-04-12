@@ -29,7 +29,9 @@ static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
     RegisterMiscRPCCommands(t);
     RegisterMiningRPCCommands(t);
     RegisterRawTransactionRPCCommands(t);
-    RegisterPocketnetRPCCommands(t);
+
+    // TODO (brangr): REINDEXER -> SQLITE
+    //RegisterPocketnetRPCCommands(t);
 }
 
 #endif // POCKETCOIN_RPC_REGISTER_H

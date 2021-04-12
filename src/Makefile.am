@@ -224,11 +224,6 @@ POCKETCOIN_CORE_H = \
     zmq/zmqnotificationinterface.h \
     zmq/zmqpublishnotifier.h \
     zmq/zmqrpc.h \
-    # rpc/pocketrpc.h \
-    # pocketdb/pocketdb.h \
-    # antibot/antibot.h \
-    # index/addrindex.h \
-    # primitives/rtransaction.h \
     websocket/ws.h \
     html.h \
     pocketdb/pocketnet.h \
@@ -291,11 +286,6 @@ libpocketcoin_server_a_SOURCES = \
     validation.cpp \
     validationinterface.cpp \
     versionbits.cpp \
-    # pocketdb/pocketdb.cpp \
-    # antibot/antibot.cpp \
-    # index/addrindex.cpp \
-    # rpc/pocketrpc.cpp \
-    # primitives/rtransaction.cpp \
     websocket/ws.cpp \
     html.cpp \
     pocketdb/pocketnet.cpp \
