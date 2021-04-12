@@ -35,6 +35,7 @@ LIBPOCKETCOIN_CRYPTO_BASE=crypto/libpocketcoin_crypto_base.a
 LIBPOCKETCOINQT=qt/libpocketcoinqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
 LIBREINDEXER=libreindexer.a
+LIBSQLITE3 = -lsqlite3
 
 if ENABLE_ZMQ
 LIBPOCKETCOIN_ZMQ=libpocketcoin_zmq.a
@@ -858,7 +859,8 @@ pocketcoind_LDADD = \
   $(LIBLEVELDB) \
   $(LIBLEVELDB_SSE42) \
   $(LIBMEMENV) \
-  $(LIBSECP256K1)
+  $(LIBSECP256K1) \
+  $(LIBSQLITE3)
 
 pocketcoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
