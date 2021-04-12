@@ -1,12 +1,10 @@
-#ifndef TESTDEMO_SQLITEDATABASE_H
-#define TESTDEMO_SQLITEDATABASE_H
+#ifndef POCKETDB_SQLITEDATABASE_H
+#define POCKETDB_SQLITEDATABASE_H
 
-#include "../sqlite/sqlite3.h"
-
+#include "sqlite3.h"
+#include "logging.h"
 #include <iostream>
 #include <filesystem>
-
-#define fs std::filesystem //TODO move out
 
 class SQLiteDatabase {
 private:
@@ -18,7 +16,7 @@ private:
 public:
     SQLiteDatabase() = delete;
 
-    SQLiteDatabase(const fs::path& dir_path, const fs::path& file_path);
+    SQLiteDatabase(const std::filesystem::path& dir_path, const std::filesystem::path& file_path);
 
     void Open();
     void Close();
@@ -31,4 +29,4 @@ public:
 };
 
 
-#endif //TESTDEMO_SQLITEDATABASE_H
+#endif // POCKETDB_SQLITEDATABASE_H

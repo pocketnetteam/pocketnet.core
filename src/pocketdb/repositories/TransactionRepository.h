@@ -2,7 +2,7 @@
 #define TESTDEMO_TRANSACTIONREPOSITORY_H
 
 #include "BaseRepository.h"
-#include "../models/Transaction.h"
+#include "pocketdb/models/Transaction.h"
 
 class TransactionRepository : public BaseRepository {
 public:

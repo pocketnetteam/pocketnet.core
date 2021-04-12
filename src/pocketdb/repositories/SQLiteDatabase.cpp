@@ -1,11 +1,7 @@
-#define fs std::experimental::filesystem //TODO move out
 
 #include "SQLiteDatabase.h"
-#include "../tinyformat.h"
-#include "../sync.h"
-
-#include <iostream>
-#include <cstdio>
+#include "tinyformat.h"
+#include "sync.h"
 
 static Mutex g_sqlite_mutex;
 static int g_sqlite_count = 0; //GUARDED_BY(g_sqlite_mutex)
@@ -18,10 +14,10 @@ static void ErrorLogCallback(void* arg, int code, const char* msg)
     // invoked."
     // Assert that this is the case:
     assert(arg == nullptr);
-    std::cout << strprintf("SQLite Error. Code: %d. Message: %s\n", code, msg); //TODO LogPrintf
+    LogPrintf("SQLite Error. Code: %d. Message: %s\n", code, msg); //TODO LogPrintf
 }
 
-SQLiteDatabase::SQLiteDatabase(const fs::path& dir_path,const fs::path& file_path)
+SQLiteDatabase::SQLiteDatabase(const std::filesystem::path& dir_path,const std::filesystem::path& file_path)
     : m_dir_path(dir_path.string()), m_file_path(file_path.string())
 {
     if (++g_sqlite_count == 1) {
@@ -148,7 +144,7 @@ void SQLiteDatabase::Cleanup() noexcept
     if (--g_sqlite_count == 0) {
         int ret = sqlite3_shutdown();
         if (ret != SQLITE_OK) {
-            std::cout << strprintf("SQLiteDatabase: Failed to shutdown SQLite: %s\n", sqlite3_errstr(ret));
+            LogPrintf("SQLiteDatabase: Failed to shutdown SQLite: %s\n", sqlite3_errstr(ret));
         }
     }
 }
@@ -157,7 +153,7 @@ bool SQLiteDatabase::BeginTransaction() {
     if (!m_db || sqlite3_get_autocommit(m_db) == 0) return false;
     int res = sqlite3_exec(m_db, "BEGIN TRANSACTION", nullptr, nullptr, nullptr);
     if (res != SQLITE_OK) {
-        std::cout << strprintf("SQLiteBatch: Failed to begin the transaction\n");
+        LogPrintf("SQLiteBatch: Failed to begin the transaction\n");
     }
     return res == SQLITE_OK;
 }
@@ -166,7 +162,7 @@ bool SQLiteDatabase::CommitTransaction() {
     if (!m_db || sqlite3_get_autocommit(m_db) != 0) return false;
     int res = sqlite3_exec(m_db, "COMMIT TRANSACTION", nullptr, nullptr, nullptr);
     if (res != SQLITE_OK) {
-        std::cout << strprintf("SQLiteBatch: Failed to commit the transaction\n");
+        LogPrintf("SQLiteBatch: Failed to commit the transaction\n");
     }
     return res == SQLITE_OK;
 }
@@ -175,7 +171,7 @@ bool SQLiteDatabase::AbortTransaction() {
     if (!m_db || sqlite3_get_autocommit(m_db) != 0) return false;
     int res = sqlite3_exec(m_db, "ROLLBACK TRANSACTION", nullptr, nullptr, nullptr);
     if (res != SQLITE_OK) {
-        std::cout << strprintf("SQLiteBatch: Failed to abort the transaction\n");
+        LogPrintf("SQLiteBatch: Failed to abort the transaction\n");
     }
     return res == SQLITE_OK;
 }

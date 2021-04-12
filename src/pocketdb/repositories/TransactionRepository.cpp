@@ -1,6 +1,4 @@
 #include "TransactionRepository.h"
-#include "../tinyformat.h"
-#include "../sqlite/sqlite3.h"
 
 TransactionRepository::TransactionRepository(SQLiteDatabase &database)
         : BaseRepository(database) {
@@ -26,7 +24,7 @@ void TransactionRepository::Insert(const Transaction &transaction) {
     int res = sqlite3_step(m_insert_stmt);
     if (res != SQLITE_ROW) {
         if (res != SQLITE_DONE) {
-            std::cout << strprintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
+            LogPrintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
         }
     }
 
@@ -46,7 +44,7 @@ void TransactionRepository::Delete(string id) {
 
     int res = sqlite3_step(m_delete_stmt);
     if (res != SQLITE_DONE) {
-        std::cout << strprintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
+        LogPrintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
     }
 
     sqlite3_clear_bindings(m_delete_stmt);
@@ -72,7 +70,7 @@ void TransactionRepository::BulkInsert(const std::vector<Transaction>& transacti
             int res = sqlite3_step(m_insert_stmt);
             if (res != SQLITE_ROW) {
                 if (res != SQLITE_DONE) {
-                    std::cout << strprintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
+                    LogPrintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
                 }
             }
 

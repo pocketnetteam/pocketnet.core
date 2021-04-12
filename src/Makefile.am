@@ -451,6 +451,21 @@ REINDEXER_CC = \
     reindexer/vendor/yaml/yaml.cc
 #
 
+# PocketDB
+POCKETDB_H = \
+    pocketdb/models/Transaction.h \
+    pocketdb/models/Post.h \
+    pocketdb/repositories/SQLiteDatabase.h \
+    pocketdb/repositories/BaseRepository.h \
+    pocketdb/repositories/TransactionRepository.h
+
+POCKETDB_CPP = \
+    pocketdb/models/Transaction.cpp \
+    pocketdb/models/Post.cpp \
+    pocketdb/repositories/SQLiteDatabase.cpp \
+    pocketdb/repositories/BaseRepository.cpp \
+    pocketdb/repositories/TransactionRepository.cpp
+
 # pocketcoin core #
 POCKETCOIN_CORE_H = \
     addrdb.h \
@@ -576,12 +591,10 @@ POCKETCOIN_CORE_H = \
     antibot/antibot.h \
     index/addrindex.h \
     websocket/ws.h \
-    primitives/rtransaction.cpp \
     primitives/rtransaction.h \
-    html.cpp \
     html.h \
-    pocketdb/pocketnet.cpp \
-    pocketdb/pocketnet.h
+    pocketdb/pocketnet.h \
+    $(POCKETDB_H)
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -645,7 +658,11 @@ libpocketcoin_server_a_SOURCES = \
     antibot/antibot.cpp \
     index/addrindex.cpp \
     websocket/ws.cpp \
-    $(POCKETCOIN_CORE_H)
+    primitives/rtransaction.cpp \
+    html.cpp \
+    pocketdb/pocketnet.cpp \
+    $(POCKETCOIN_CORE_H) \
+    $(POCKETDB_CPP)
 
 if !ENABLE_WALLET
 libpocketcoin_server_a_SOURCES += dummywallet.cpp

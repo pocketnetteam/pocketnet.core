@@ -1,7 +1,6 @@
 #ifndef TESTDEMO_BASEREPOSITORY_H
 #define TESTDEMO_BASEREPOSITORY_H
 
-#include "../sqlite/sqlite3.h"
 #include "SQLiteDatabase.h"
 
 class BaseRepository {

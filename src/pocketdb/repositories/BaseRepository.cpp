@@ -1,5 +1,4 @@
 #include "BaseRepository.h"
-#include "../tinyformat.h"
 
 bool BaseRepository::TryBindStatementText(sqlite3_stmt *stmt, int index, const std::string * value) {
     if (!value) {
