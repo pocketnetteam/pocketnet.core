@@ -35,7 +35,7 @@ Minimum system requirements:
 # Installation
 ## Linux (Ubuntu, Debian, Mint, etc.)
 Install package with root privilegies. To do this, open the terminal in the directory where you downloaded the installer and execute commands:
-```sh
+```shell
 $ sudo dpkg -i pocketnetcore_*_linux_x64_setup.deb
 ```
 ## Windows
@@ -45,7 +45,7 @@ When you first start, the pocketnetcore desktop utility will ask for the locatio
 ## Docker
 Make sure that enough resources are allocated in your docker settings for the node to work from the section https://github.com/pocketnetteam/pocketnet.core#usage \
 You can start your node with a single command from Docker.
-``` sh
+```shell
 $ docker run -d \
     --name=pocketnet.main \
     -p 37070:37070 \
@@ -55,7 +55,7 @@ $ docker run -d \
     pocketnetteam/pocketnet.core:latest
 ```
 Control
-``` sh
+```shell
 $ docker ps --format '{{.ID}}\t{{.Names}}\t{{.Image}}'
 ea7759a47250    pocketnet.main      pocketnetteam/pocketnet.core:latest
 $
@@ -78,7 +78,7 @@ To quickly synchronize and minimize traffic costs, you can run an empty node wit
 **After full synchronization, it is strongly recommended to disable these settings for the full operation of the node.**
 
 You can get the full list of parameters:
-```sh
+```shell
 $ pocketcoind --help
 ```
 
@@ -87,14 +87,14 @@ $ pocketcoind --help
 2. Download database via your torrent client:
     > magnet:?xt=urn:btih:6a8acaac9b8603488664d6292421ca15cfcd70e0&dn=pocketnet.checkpoint.1124538.tar.gz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
 4. There must be archive tar.gz with 4 directories:
-    ```
+    ```shell
     blocks\
     chainstate\
     indexes\
     pocketdb\
     ```
 4. Clean out everything except **wallet.dat** file, **wallets/** directory and **pocketcoin.conf** config file in the blockchain working directory and unpack the archive:
-    ```sh
+    ```shell
     # for unix
     $ cd ~/.pocketcoin/
      
