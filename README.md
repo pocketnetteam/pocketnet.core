@@ -42,6 +42,28 @@ sudo dpkg -i pocketnetcore_*_linux_x64_setup.deb
 Run the `pocketnetcore_*_win_x64_setup.exe` and follow the instructions of the installer.\
 When you first start, the pocketnetcore desktop utility will ask for the location of the blockchain data directory. Default for Windows `%APPDATA%/Pocketcoin`, for linux `~/.pocketcoin`.
 
+## Docker
+You can start your node with a single command from Docker
+``` sh
+$ docker run -d \
+    --name=pocketnet.main \
+    -p 37070:37070 \
+    -p 37071:37071 \
+    -p 8087:8087 \
+    -v /var/pocketnet/.data:/home/pocketcoin/.pocketcoin \
+    pocketnetteam/pocketnet.core:latest
+```
+Control
+``` sh
+$ docker ps --format '{{.Names}} > {{.Image}}'
+pocketnet.main > pocketnetteam/pocketnet.core:0.19.5.0-d46aee1
+$
+$ docker exec -it pocketnet.main /bin/sh
+$
+$ pocketcoin-cli --help
+$ pocketcoin-tx --help
+```
+
 
 # Build from source code
 See `doc/build-*.md` files for build instructions.
