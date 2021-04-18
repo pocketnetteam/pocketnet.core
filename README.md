@@ -26,7 +26,7 @@ To start a node independently, you need basic skills of working with the operati
 PocketnetCore is distributed in two ways: binary installer and build from source code.
 
 Minimum system requirements:
-- 8 core CPU
+- 4 core CPU
 - 12GB RAM
 - 15GB free disk space
 - 10Mbps internet connection
@@ -43,7 +43,8 @@ Run the `pocketnetcore_*_win_x64_setup.exe` and follow the instructions of the i
 When you first start, the pocketnetcore desktop utility will ask for the location of the blockchain data directory. Default for Windows `%APPDATA%/Pocketcoin`, for linux `~/.pocketcoin`.
 
 ## Docker
-You can start your node with a single command from Docker
+Make sure that enough resources are allocated in your docker settings for the node to work from the section https://github.com/pocketnetteam/pocketnet.core#usage \
+You can start your node with a single command from Docker.
 ``` sh
 $ docker run -d \
     --name=pocketnet.main \
