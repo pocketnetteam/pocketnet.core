@@ -96,22 +96,22 @@ $ pocketcoind --help
 4. Clean out everything except **wallet.dat** file, **wallets/** directory and **pocketcoin.conf** config file in the blockchain working directory and unpack the archive:
     ```sh
     # for unix
-    > cd ~/.pocketcoin/
-    > 
+    $ cd ~/.pocketcoin/
+     
     # or for windows
-    > cd %APPDATA%\Pocketcoin\
-    > 
+    $ cd %APPDATA%\Pocketcoin\
+    
     # or for macos
-    > cd ~/Library/Application\ Support/Pocketcoin/
-    > 
+    $ cd ~/Library/Application\ Support/Pocketcoin/
+     
     # delete exists DB
-    > rm -r ./blocks
-    > rm -r ./chainstate
-    > rm -r ./indexes
-    > rm -r ./pocketdb
-    >
+    $ rm -r ./blocks
+    $ rm -r ./chainstate
+    $ rm -r ./indexes
+    $ rm -r ./pocketdb
+    
     # unpack new checkpoint DB
-    > tar -xzvf pocketnet.checkpoint.*.tar.gz -C ./
+    $ tar -xzvf pocketnet.checkpoint.*.tar.gz -C ./
     ```
 5. Make sure the folders and files inside are not set to "read only"
 6. Start the node.
