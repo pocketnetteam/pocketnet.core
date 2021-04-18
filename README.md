@@ -36,7 +36,7 @@ Minimum system requirements:
 ## Linux (Ubuntu, Debian, Mint, etc.)
 Install package with root privilegies. To do this, open the terminal in the directory where you downloaded the installer and execute commands:
 ```sh
-sudo dpkg -i pocketnetcore_*_linux_x64_setup.deb
+$ sudo dpkg -i pocketnetcore_*_linux_x64_setup.deb
 ```
 ## Windows
 Run the `pocketnetcore_*_win_x64_setup.exe` and follow the instructions of the installer.\
@@ -55,8 +55,8 @@ $ docker run -d \
 ```
 Control
 ``` sh
-$ docker ps --format '{{.Names}} > {{.Image}}'
-pocketnet.main > pocketnetteam/pocketnet.core:0.19.5.0-d46aee1
+$ docker ps --format '{{.ID}}\t{{.Names}}\t{{.Image}}'
+ea7759a47250    pocketnet.main      pocketnetteam/pocketnet.core:latest
 $
 $ docker exec -it pocketnet.main /bin/sh
 $
@@ -78,7 +78,7 @@ To quickly synchronize and minimize traffic costs, you can run an empty node wit
 
 You can get the full list of parameters:
 ```sh
-> pocketcoind --help
+$ pocketcoind --help
 ```
 
 # Initialize blockhain data via torrent
