@@ -17,8 +17,8 @@ static void ErrorLogCallback(void* arg, int code, const char* msg)
     LogPrintf("SQLite Error. Code: %d. Message: %s\n", code, msg); //TODO LogPrintf
 }
 
-SQLiteDatabase::SQLiteDatabase(const std::filesystem::path& dir_path,const std::filesystem::path& file_path)
-    : m_dir_path(dir_path.string()), m_file_path(file_path.string())
+SQLiteDatabase::SQLiteDatabase(const std::string& dir_path,const std::string& file_path)
+    : m_dir_path(dir_path), m_file_path(file_path)
 {
     if (++g_sqlite_count == 1) {
         // Setup logging
