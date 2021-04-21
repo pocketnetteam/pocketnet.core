@@ -1,21 +1,30 @@
-#ifndef TESTDEMO_POST_H
-#define TESTDEMO_POST_H
+#ifndef POCKETTX_POST_H
+#define POCKETTX_POST_H
 
 
+#include <utility>
 #include "Transaction.h"
 
-class Post : public Transaction {
+namespace PocketTx {
+
+class Post : public Transaction
+{
 public:
-    string * GetLang() const { return m_string1; }
-    void SetLang(string value) { m_string1 = new string(value); }
+    ~Post();
+    Post() { SetTxType(PocketTxType::POSTCONTENT); }
+    void Deserialize(const UniValue& src) override;
 
-    string * GetRootTxId() const { return m_string2; }
-    void SetRootTxId(string value) { m_string2 = new string(value); }
+    [[nodiscard]] std::string* GetLang() const { return m_string1; }
+    void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
 
-    string * GetRelay() const { return m_string3; }
-    void SetRelay(string value) { m_string3 = new string(value); }
+    [[nodiscard]] std::string* GetRootTxId() const { return m_string2; }
+    void SetRootTxId(std::string value) { m_string2 = new std::string(std::move(value)); }
 
-    ~Post() override {};
+    [[nodiscard]] std::string* GetRelayTxId() const { return m_string3; }
+    void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
+
 };
 
-#endif //TESTDEMO_POST_H
+}
+
+#endif // POCKETTX_POST_H

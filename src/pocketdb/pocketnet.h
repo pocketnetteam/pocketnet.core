@@ -9,6 +9,17 @@
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
+#include <pocketdb/repositories/TransactionRepository.h>
+#include <util.h>
+
+
+namespace PocketDb {
+
+extern SQLiteDatabase SQLiteDbInst;
+extern TransactionRepository TransRepoInst;
+
+}; // namespace PocketDb
+
 
 // Antibot limits
 enum Limit {
@@ -70,17 +81,17 @@ int64_t GetActualLimit(Limit type, int height);
 #define OR_COMMENT_DELETE "636f6d6d656e7444656c657465"
 #define OR_COMMENT_SCORE "6353636f7265"
 
-#define OR_VIDEO "766964656f" // Post for video hosting
+#define OR_VIDEO "766964656f"                      // Post for video hosting
 #define OR_VERIFICATION "766572696669636174696f6e" // User verification post
 
-#define OR_POLL "706f6c6c" // Polling post
-#define OR_POLL_SCORE "706f6c6c53636f7265" // Score for poll posts
-#define OR_TRANSLATE "7472616e736c617465" // Post for translating words
+#define OR_POLL "706f6c6c"                                // Polling post
+#define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
+#define OR_TRANSLATE "7472616e736c617465"                 // Post for translating words
 #define OR_TRANSLATE_SCORE "7472616e736c61746553636f7265" // Score for translate posts
 
-#define OR_VIDEO_SERVER "766964656f536572766572" // Video server registration over User (userType = 1)
+#define OR_VIDEO_SERVER "766964656f536572766572"       // Video server registration over User (userType = 1)
 #define OR_MESSAGE_SERVER "6d657373616765536572766572" // Messaging server registration over User (userType = 2)
-#define OR_SERVER_PING "73657276657250696e67" // Server ping over Posts
+#define OR_SERVER_PING "73657276657250696e67"          // Server ping over Posts
 
 
 // Check transaction type is pocketnet

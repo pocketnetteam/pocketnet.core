@@ -1,17 +1,31 @@
 #include "TransactionRepository.h"
+#include "pocketdb/pocketnet.h"
 
-TransactionRepository::TransactionRepository(SQLiteDatabase &database)
-        : BaseRepository(database) {
+using namespace PocketDb;
+using namespace PocketTx;
+
+
+TransactionRepository::TransactionRepository(SQLiteDatabase& db) : BaseRepository(db)
+{
+}
+
+void TransactionRepository::Init() {
     SetupSqlStatements();
 }
 
-void TransactionRepository::SetupSqlStatements() {
-    m_insert_stmt = SetupSqlStatement(m_insert_stmt, "INSERT INTO Transactions (TxType, TxId, TxTime, Block, Address, Int1, Int2, Int3, Int4, Int5, String1, String2, String3, String4, String5)  VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+void TransactionRepository::SetupSqlStatements()
+{
+    m_insert_stmt = SetupSqlStatement(
+        m_insert_stmt,
+        " INSERT INTO Transactions (TxType, TxId, TxTime, Address, Int1, Int2, Int3, Int4, Int5, String1, String2, String3, String4, String5)"
+        " SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?"
+        " WHERE not exists (select 1 from Transactions t where t.TxId=?);");
 
     m_delete_stmt = SetupSqlStatement(m_delete_stmt, "DELETE FROM Transactions WHERE TxId = ?");
 }
 
-void TransactionRepository::Insert(const Transaction &transaction) {
+void TransactionRepository::Insert(const Transaction* transaction)
+{
     if (!m_database.m_db) {
         throw std::runtime_error(strprintf("SQLiteDatabase: database didn't opened: %s\n"));
     }
@@ -32,7 +46,8 @@ void TransactionRepository::Insert(const Transaction &transaction) {
     sqlite3_reset(m_insert_stmt);
 }
 
-void TransactionRepository::Delete(string id) {
+void TransactionRepository::Delete(std::string id)
+{
     if (!m_database.m_db) {
         throw std::runtime_error(strprintf("SQLiteDatabase: database didn't opened: %s\n"));
     }
@@ -51,7 +66,8 @@ void TransactionRepository::Delete(string id) {
     sqlite3_reset(m_delete_stmt);
 }
 
-void TransactionRepository::BulkInsert(const std::vector<Transaction>& transactions) {
+void TransactionRepository::BulkInsert(const std::vector<Transaction*>& transactions)
+{
     if (!m_database.m_db) {
         throw std::runtime_error(strprintf("SQLiteDatabase: database didn't opened: %s\n"));
     }
@@ -78,10 +94,9 @@ void TransactionRepository::BulkInsert(const std::vector<Transaction>& transacti
         }
 
         if (!m_database.CommitTransaction()) {
-            throw std::runtime_error(strprintf("SQLiteDatabase: can't commit transaction: %s\n"));
+            throw std::runtime_error(strprintf("SQLiteDatabase: can't commit transaction\n"));
         }
-    }
-    catch (std::exception & ex) {
+    } catch (std::exception& ex) {
         m_database.AbortTransaction();
     }
 
@@ -89,22 +104,23 @@ void TransactionRepository::BulkInsert(const std::vector<Transaction>& transacti
     sqlite3_reset(m_insert_stmt);
 }
 
-bool TransactionRepository::TryBindInsertStatement(sqlite3_stmt *stmt, const Transaction &transaction) {
-    if (TryBindStatementInt(stmt, 1, transaction.GetTxType())
-        && TryBindStatementText(stmt, 2, transaction.GetTxId())
-        && TryBindStatementInt (stmt, 3, transaction.GetTxTime())
-        && TryBindStatementInt (stmt, 4, transaction.GetBlock())
-        && TryBindStatementText(stmt, 5, transaction.GetAddress())
-        && TryBindStatementInt (stmt, 6, transaction.GetInt1())
-        && TryBindStatementInt (stmt, 7, transaction.GetInt2())
-        && TryBindStatementInt (stmt, 8, transaction.GetInt3())
-        && TryBindStatementInt (stmt, 9, transaction.GetInt4())
-        && TryBindStatementInt (stmt, 10, transaction.GetInt5())
-        && TryBindStatementText(stmt, 11, transaction.GetString1())
-        && TryBindStatementText(stmt, 12, transaction.GetString2())
-        && TryBindStatementText(stmt, 13, transaction.GetString3())
-        && TryBindStatementText(stmt, 14, transaction.GetString4())
-        && TryBindStatementText(stmt, 15, transaction.GetString5())) {
+bool TransactionRepository::TryBindInsertStatement(sqlite3_stmt* stmt, const Transaction* transaction)
+{
+    if (TryBindStatementInt(stmt, 1, (int*)(transaction->GetTxType())) &&
+        TryBindStatementText(stmt, 2, transaction->GetTxId()) &&
+        TryBindStatementInt64(stmt, 3, transaction->GetTxTime()) &&
+        TryBindStatementText(stmt, 4, transaction->GetAddress()) &&
+        TryBindStatementInt64(stmt, 5, transaction->GetInt1()) &&
+        TryBindStatementInt64(stmt, 6, transaction->GetInt2()) &&
+        TryBindStatementInt64(stmt, 7, transaction->GetInt3()) &&
+        TryBindStatementInt64(stmt, 8, transaction->GetInt4()) &&
+        TryBindStatementInt64(stmt, 9, transaction->GetInt5()) &&
+        TryBindStatementText(stmt, 10, transaction->GetString1()) &&
+        TryBindStatementText(stmt, 11, transaction->GetString2()) &&
+        TryBindStatementText(stmt, 12, transaction->GetString3()) &&
+        TryBindStatementText(stmt, 13, transaction->GetString4()) &&
+        TryBindStatementText(stmt, 14, transaction->GetString5()) &&
+        TryBindStatementText(stmt, 15, transaction->GetTxId())) {
         return true;
     }
 

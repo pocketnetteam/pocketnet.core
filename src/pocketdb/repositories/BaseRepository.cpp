@@ -1,9 +1,14 @@
 #include "BaseRepository.h"
 
-bool BaseRepository::TryBindStatementText(sqlite3_stmt *stmt, int index, const std::string * value) {
-    if (!value) {
-        return true;
-    }
+
+BaseRepository::BaseRepository(SQLiteDatabase& db) :
+    m_database(db)
+{
+}
+
+bool BaseRepository::TryBindStatementText(sqlite3_stmt* stmt, int index, const std::string* value)
+{
+    if (!value) return true;
 
     int res = sqlite3_bind_text(stmt, index, value->c_str(), value->size(), SQLITE_STATIC);
     if (!CheckValidResult(stmt, res)) {
@@ -13,8 +18,11 @@ bool BaseRepository::TryBindStatementText(sqlite3_stmt *stmt, int index, const s
     return true;
 }
 
-bool BaseRepository::TryBindStatementInt(sqlite3_stmt *stmt, int index, int value) {
-    int res = sqlite3_bind_int(stmt, index, value);
+bool BaseRepository::TryBindStatementInt(sqlite3_stmt* stmt, int index, const int* value)
+{
+    if (!value) return true;
+
+    int res = sqlite3_bind_int(stmt, index, *value);
     if (!CheckValidResult(stmt, res)) {
         return false;
     }
@@ -22,7 +30,20 @@ bool BaseRepository::TryBindStatementInt(sqlite3_stmt *stmt, int index, int valu
     return true;
 }
 
-sqlite3_stmt* BaseRepository::SetupSqlStatement(sqlite3_stmt* stmt, const std::string& sql) const {
+bool BaseRepository::TryBindStatementInt64(sqlite3_stmt* stmt, int index, const int64_t* value)
+{
+    if (!value) return true;
+
+    int res = sqlite3_bind_int64(stmt, index, *value);
+    if (!CheckValidResult(stmt, res)) {
+        return false;
+    }
+
+    return true;
+}
+
+sqlite3_stmt* BaseRepository::SetupSqlStatement(sqlite3_stmt* stmt, const std::string& sql) const
+{
     int res;
 
     if (!stmt) {
@@ -34,7 +55,8 @@ sqlite3_stmt* BaseRepository::SetupSqlStatement(sqlite3_stmt* stmt, const std::s
     return stmt;
 }
 
-bool BaseRepository::CheckValidResult(sqlite3_stmt *stmt, int result) {
+bool BaseRepository::CheckValidResult(sqlite3_stmt* stmt, int result)
+{
     if (result != SQLITE_OK) {
         std::cout << strprintf("%s: Unable to bind statement: %s\n", __func__, sqlite3_errstr(result));
         sqlite3_clear_bindings(stmt);
@@ -43,8 +65,4 @@ bool BaseRepository::CheckValidResult(sqlite3_stmt *stmt, int result) {
     }
 
     return true;
-}
-
-BaseRepository::BaseRepository(SQLiteDatabase &database)
-    : m_database(database) {
 }

@@ -2,6 +2,12 @@
 #include "logging.h"
 
 
+namespace PocketDb
+{
+    SQLiteDatabase SQLiteDbInst;
+    TransactionRepository TransRepoInst(PocketDb::SQLiteDbInst);
+}
+
 bool IsPocketTX(const CTxOut& out) {
     if (out.scriptPubKey.size() > 0 && out.scriptPubKey[0] == OP_RETURN) {
         std::string asmStr = ScriptToAsmStr(out.scriptPubKey);

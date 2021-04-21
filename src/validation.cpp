@@ -4380,7 +4380,10 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     return true;
 }
 
-bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool fReceived, bool* fNewBlock)
+bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams,
+    const std::shared_ptr<const CBlock> pblock,
+    const std::vector<PocketTx::Transaction*>& pocketTxn,
+    bool fForceProcessing, bool fReceived, bool* fNewBlock)
 {
     AssertLockNotHeld(cs_main);
 
@@ -4397,9 +4400,16 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams, c
         // belt-and-suspenders.
         ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
 
+        // TODO (brangr): check pocket transactions
+
+
         // Store to disk
         if (ret) {
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
+
+            // TODO (brangr): save transactions to DB
+            if (!pocketTxn.empty())
+                PocketDb::TransRepoInst.BulkInsert(pocketTxn);
         }
 
         // Check FAILED

@@ -1,9 +1,10 @@
+//
+// Created by Andrey Brunenko on 21.04.2021.
+//
 
-#include "Post.h"
+#include "Blocking.h"
 
-using namespace PocketTx;
-
-void Post::Deserialize(const UniValue &src)
+void Blocking::Deserialize(const UniValue &src)
 {
     Transaction::Deserialize(src);
 
@@ -17,4 +18,4 @@ void Post::Deserialize(const UniValue &src)
         SetRelayTxId(src["txidRepost"].get_str());
 }
 
-Post::~Post() = default;
+Blocking::~Blocking() = default;

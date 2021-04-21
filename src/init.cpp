@@ -50,13 +50,12 @@
 #include <walletinitinterface.h>
 #include <warnings.h>
 
-#include "pocketdb/pocketnet.h"
 #include <websocket/ws.h>
 
 // TODO (brangr): REINDEXER -> SQLITE
+#include "pocketdb/pocketnet.h"
 // #include <antibot/antibot.h>
 // #include <index/addrindex.h>
-// #include <pocketdb/pocketdb.h>
 
 
 #ifndef WIN32
@@ -1402,11 +1401,14 @@ bool AppInitMain()
 
     // ********************************************************* Step 4.1: Start PocketDB
     // TODO (brangr): REINDEXER -> SQLITE
-    // uiInterface.InitMessage(_("Loading Reindexer DB..."));
-    // g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
-    // if (!g_pocketdb->Init()) {
-    //     return InitError(_("Unable to start reindexer database."));
-    // }
+    uiInterface.InitMessage(_("Loading Pocket DB..."));
+
+    PocketDb::SQLiteDbInst.Init(
+        (GetDataDir() / "pocketdb").string(),
+        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
+
+    PocketDb::TransRepoInst.Init();
+
     // ********************************************************* Step 4.2: Start AddrIndex
     //g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
     // ********************************************************* Step 4.3: Start AntiBot

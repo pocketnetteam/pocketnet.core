@@ -2,58 +2,85 @@
 #define TESTDEMO_TRANSACTION_H
 
 #include <string>
+#include <utility>
+#include <univalue.h>
+#include <utilstrencodings.h>
 
-using std::string;
+namespace PocketTx {
 
-class Transaction {
+enum PocketTxType {
+    USERACCOUNT = 100,
+    VIDEOSERVERACCOUNT = 101,
+    MESSAGESERVERACCOUNT = 102,
+
+    POSTCONTENT = 200,
+    VIDEOCONTENT = 201,
+    TRANSLATECONTENT = 202,
+    SERVERPINGCONTENT = 203,
+    COMMENTCONTENT = 204,
+
+    SCOREPOSTACTION = 300,
+    SCORECOMMENTACTION = 301,
+    SUBSCRIBEACTION = 302,
+    BLOCKACTION = 303,
+    COMPLAINACTION = 304,
+};
+
+class Transaction
+{
 public:
-    int GetTxType() const { return m_txType; }
-    void SetTxType(int value) { m_txType = value; }
+    Transaction() = default;
 
-    string * GetTxId() const { return m_txId; }
-    void SetTxId(string value) { m_txId = new string(value); }
 
-    int GetTxTime() const { return m_txTime; }
-    void SetTxTime(int value) { m_txTime = value; }
+    PocketTxType* GetTxType() const { return m_txType; }
+    void SetTxType(PocketTxType value) { m_txType = new PocketTxType(value); }
 
-    int GetBlock() const { return m_block; }
-    void SetBlock(int value) { m_block = value; }
+    std::string* GetTxId() const { return m_txId; }
+    void SetTxId(std::string value) { m_txId = new std::string(std::move(value)); }
 
-    string * GetAddress() const { return m_address; }
-    void SetAddress(string value) { m_address = new string(value); }
+    int64_t * GetTxTime() const { return m_txTime; }
+    void SetTxTime(int64_t value) { m_txTime = new int64_t(value); }
 
-    int GetInt1() const { return m_int1; }
-    int GetInt2() const { return m_int2; }
-    int GetInt3() const { return m_int3; }
-    int GetInt4() const { return m_int4; }
-    int GetInt5() const { return m_int5; }
+//    int* GetBlock() const { return m_block; }
+//    void SetBlock(int value) { m_block = &value; }
 
-    string * GetString1() const { return m_string1; }
-    string * GetString2() const { return m_string2; }
-    string * GetString3() const { return m_string3; }
-    string * GetString4() const { return m_string4; }
-    string * GetString5() const { return m_string5; }
+    std::string* GetAddress() const { return m_address; }
+    void SetAddress(std::string value) { m_address = new std::string(std::move(value)); }
+
+    int64_t* GetInt1() const { return m_int1; }
+    int64_t* GetInt2() const { return m_int2; }
+    int64_t* GetInt3() const { return m_int3; }
+    int64_t* GetInt4() const { return m_int4; }
+    int64_t* GetInt5() const { return m_int5; }
+
+    std::string* GetString1() const { return m_string1; }
+    std::string* GetString2() const { return m_string2; }
+    std::string* GetString3() const { return m_string3; }
+    std::string* GetString4() const { return m_string4; }
+    std::string* GetString5() const { return m_string5; }
+
+    virtual void Deserialize(const UniValue& src);
+    std::string Serialize(const PocketTxType& txType);
 
 protected:
-    virtual ~Transaction() = 0;
+    PocketTxType* m_txType = nullptr;
+    std::string* m_txId = nullptr;
+    int64_t* m_txTime = nullptr;
+    std::string* m_address = nullptr;
 
-    int m_txType;
-    string * m_txId;
-    int m_txTime;
-    int m_block;
-    string * m_address;
+    int64_t* m_int1 = nullptr;
+    int64_t* m_int2 = nullptr;
+    int64_t* m_int3 = nullptr;
+    int64_t* m_int4 = nullptr;
+    int64_t* m_int5 = nullptr;
 
-    int m_int1;
-    int m_int2;
-    int m_int3;
-    int m_int4;
-    int m_int5;
-
-    string * m_string1;
-    string * m_string2;
-    string * m_string3;
-    string * m_string4;
-    string * m_string5;
+    std::string* m_string1 = nullptr;
+    std::string* m_string2 = nullptr;
+    std::string* m_string3 = nullptr;
+    std::string* m_string4 = nullptr;
+    std::string* m_string5 = nullptr;
 };
+
+} // namespace PocketTx
 
 #endif //TESTDEMO_TRANSACTION_H

@@ -1,18 +1,22 @@
-#ifndef TESTDEMO_TRANSACTIONREPOSITORY_H
-#define TESTDEMO_TRANSACTIONREPOSITORY_H
+#ifndef POCKETDB_TRANSACTIONREPOSITORY_H
+#define POCKETDB_TRANSACTIONREPOSITORY_H
 
 #include "BaseRepository.h"
 #include "pocketdb/models/Transaction.h"
 
-class TransactionRepository : public BaseRepository {
+namespace PocketDb {
+
+using namespace PocketTx;
+
+class TransactionRepository : public BaseRepository
+{
 public:
-    explicit TransactionRepository(SQLiteDatabase &database);
+    TransactionRepository(SQLiteDatabase& db);
+    void Init() override;
 
-    void Insert(const Transaction& transaction);
-
-    void BulkInsert(const std::vector<Transaction>& transactions);
-
-    void Delete(string id);
+    void Insert(const Transaction* transaction);
+    void BulkInsert(const std::vector<Transaction*>& transactions);
+    void Delete(std::string id);
 
 private:
     sqlite3_stmt* m_insert_stmt{nullptr};
@@ -20,8 +24,9 @@ private:
 
     void SetupSqlStatements();
 
-    bool TryBindInsertStatement(sqlite3_stmt* stmt, const Transaction& transaction);
+    bool TryBindInsertStatement(sqlite3_stmt* stmt, const Transaction* transaction);
 };
 
+} // namespace PocketTx
 
-#endif //TESTDEMO_TRANSACTIONREPOSITORY_H
+#endif // POCKETDB_TRANSACTIONREPOSITORY_H

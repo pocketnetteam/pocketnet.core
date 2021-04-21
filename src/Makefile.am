@@ -91,18 +91,28 @@ endif
 
 # PocketDB
 POCKETDB_H = \
+    pocketdb/SQLiteDatabase.h \
+    pocketdb/repositories/BaseRepository.h \
+    pocketdb/repositories/TransactionRepository.h \
+    pocketdb/models/TransactionSerializer.h \
     pocketdb/models/Transaction.h \
     pocketdb/models/Post.h \
-    pocketdb/repositories/SQLiteDatabase.h \
-    pocketdb/repositories/BaseRepository.h \
-    pocketdb/repositories/TransactionRepository.h
+    pocketdb/models/User.h \
+    pocketdb/models/ScorePost.h \
+    pocketdb/models/ScoreComment.h \
+    pocketdb/models/Subscribe.h
 
 POCKETDB_CPP = \
+    pocketdb/SQLiteDatabase.cpp \
+    pocketdb/repositories/BaseRepository.cpp \
+    pocketdb/repositories/TransactionRepository.cpp \
+    pocketdb/models/TransactionSerializer.cpp \
     pocketdb/models/Transaction.cpp \
     pocketdb/models/Post.cpp \
-    pocketdb/repositories/SQLiteDatabase.cpp \
-    pocketdb/repositories/BaseRepository.cpp \
-    pocketdb/repositories/TransactionRepository.cpp
+    pocketdb/models/User.cpp \
+    pocketdb/models/ScorePost.h \
+    pocketdb/models/ScoreComment.h \
+    pocketdb/models/Subscribe.h
 
 # pocketcoin core #
 POCKETCOIN_CORE_H = \
