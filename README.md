@@ -82,10 +82,17 @@ You can get the full list of parameters:
 $ pocketcoind --help
 ```
 
-# Initialize blockhain data via torrent
+# Initialize blockhain data with database checkpoint
 1. Stop the node.
-2. Download database via your torrent client:
-    > magnet:?xt=urn:btih:6a8acaac9b8603488664d6292421ca15cfcd70e0&dn=pocketnet.checkpoint.1124538.tar.gz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
+2. Download database archive:
+    * With torrent:
+        ```
+        magnet:?xt=urn:btih:6a8acaac9b8603488664d6292421ca15cfcd70e0&dn=pocketnet.checkpoint.1124538.tar.gz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
+        ```
+    * With direct link from pocketnet.app host:
+        ```
+        http://pocketnet.app/checkpoints/pocketnet.checkpoint.latest.tar.gz
+        ```
 4. There must be archive tar.gz with 4 directories:
     ```shell
     blocks\
