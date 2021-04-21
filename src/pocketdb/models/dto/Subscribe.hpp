@@ -3,23 +3,22 @@
 
 #include "pocketdb/models/base/Transaction.hpp"
 
-namespace PocketTx {
-
-class Subscribe : public Transaction
+namespace PocketTx
 {
-public:
-    ~Subscribe()
-    {
-    }
 
-    Subscribe()
+    class Subscribe : public Transaction
     {
-        SetTxType(PocketTxType::SUBSCRIBE_ACTION);
-    }
+    public:
+        ~Subscribe() = default;
 
-    void Deserialize(const UniValue& src)
-    {
-    }
+        Subscribe()
+        {
+            SetTxType(PocketTxType::SUBSCRIBE_ACTION);
+        }
+
+        void Deserialize(const UniValue &src) override
+        {
+        }
 
 //    [[nodiscard]] std::string* GetLang() const { return m_string1; }
 //    1void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
@@ -29,7 +28,7 @@ public:
 //
 //    [[nodiscard]] std::string* GetRelayTxId() const { return m_string3; }
 //    1void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
-};
+    };
 
 } // namespace PocketTx
 

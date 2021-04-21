@@ -3,23 +3,22 @@
 
 #include "pocketdb/models/base/Transaction.hpp"
 
-namespace PocketTx {
-
-class Blocking : public Transaction
+namespace PocketTx
 {
-public:
-    ~Blocking()
-    {
-    }
 
-    Blocking()
+    class Blocking : public Transaction
     {
-        SetTxType(PocketTxType::BLOCKING_ACTION);
-    }
+    public:
+        ~Blocking() = default;
 
-    void Deserialize(const UniValue& src)
-    {
-        Transaction::Deserialize(src);
+        Blocking()
+        {
+            SetTxType(PocketTxType::BLOCKING_ACTION);
+        }
+
+        void Deserialize(const UniValue &src) override
+        {
+            Transaction::Deserialize(src);
 
 //        if (src.exists("lang"))
 //            SetLang(src["lang"].get_str());
@@ -29,7 +28,7 @@ public:
 //
 //        if (src.exists("txidRepost"))
 //            SetRelayTxId(src["txidRepost"].get_str());
-    }
+        }
 
 //    [[nodiscard]] std::string* GetLang() const { return m_string1; }
 //    1void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
@@ -39,7 +38,7 @@ public:
 //
 //    [[nodiscard]] std::string* GetRelayTxId() const { return m_string3; }
 //    1void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
-};
+    };
 
 } // namespace PocketTx
 

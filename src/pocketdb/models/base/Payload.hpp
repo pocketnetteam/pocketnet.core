@@ -6,28 +6,21 @@
 #include <utility>
 #include <utilstrencodings.h>
 
-namespace PocketTx {
-
-class Payload
+namespace PocketTx
 {
-public:
-    ~Payload()
-    {
-    }
 
-    Payload()
+    class Payload
     {
-        
-    }
+    public:
+        ~Payload() = default;
 
-    Payload(const UniValue& src)
-    {
-        Payload();
-        Deserialize(src);
-    }
+        Payload(const UniValue &src)
+        {
+            Deserialize(src);
+        }
 
-    void Deserialize(const UniValue& src)
-    {
+        void Deserialize(const UniValue &src)
+        {
 //        if (src.exists("lang"))
 //            SetLang(src["lang"].get_str());
 //
@@ -36,7 +29,7 @@ public:
 //
 //        if (src.exists("txidRepost"))
 //            SetRelayTxId(src["txidRepost"].get_str());
-    }
+        }
 
 //    [[nodiscard]] std::string* GetLang() const { return m_string1; }
 //    void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
@@ -46,7 +39,7 @@ public:
 //
 //    [[nodiscard]] std::string* GetRelayTxId() const { return m_string3; }
 //    void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
-};
+    };
 
 } // namespace PocketTx
 

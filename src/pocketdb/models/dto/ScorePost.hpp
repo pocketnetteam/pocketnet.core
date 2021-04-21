@@ -4,23 +4,22 @@
 
 #include "pocketdb/models/base/Transaction.hpp"
 
-namespace PocketTx {
-
-class ScorePost : public Transaction
+namespace PocketTx
 {
-public:
-    ~ScorePost()
-    {
-    }
 
-    ScorePost()
+    class ScorePost : public Transaction
     {
-        SetTxType(PocketTxType::SCORE_POST_ACTION);
-    }
+    public:
+        ~ScorePost() = default;
 
-    void Deserialize(const UniValue& src)
-    {
-    }
+        ScorePost()
+        {
+            SetTxType(PocketTxType::SCORE_POST_ACTION);
+        }
+
+        void Deserialize(const UniValue &src) override
+        {
+        }
 //
 //    [[nodiscard]] std::string* GetLang() const { return m_string1; }
 //    1void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
@@ -30,7 +29,7 @@ public:
 //
 //    [[nodiscard]] std::string* GetRelayTxId() const { return m_string3; }
 //    1void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
-};
+    };
 
 } // namespace PocketTx
 
