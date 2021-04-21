@@ -5,10 +5,11 @@
 #include "Transaction.h"
 using namespace PocketTx;
 
-class Subscribe : Transaction
+class Subscribe : public Transaction
 {
+public:
     ~Subscribe();
-    Subscribe() { SetTxType(PocketTxType::SUBSCRIBEACTION); }
+    Subscribe() { SetTxType(PocketTxType::SUBSCRIBE_ACTION); }
     void Deserialize(const UniValue& src) override;
 
     [[nodiscard]] std::string* GetLang() const { return m_string1; }
@@ -19,7 +20,6 @@ class Subscribe : Transaction
 
     [[nodiscard]] std::string* GetRelayTxId() const { return m_string3; }
     1void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
-
 };
 
 

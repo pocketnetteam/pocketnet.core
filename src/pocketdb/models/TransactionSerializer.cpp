@@ -35,11 +35,23 @@ namespace PocketTx
             case TRANSLATE_CONTENT:
             case SERVERPING_CONTENT:
             case COMMENT_CONTENT:
+                tx = new Comment();
+                break;
             case SCORE_POST_ACTION:
+                tx = new ScorePost();
+                break;
             case SCORE_COMMENT_ACTION:
+                tx = new ScoreComment();
+                break;
             case SUBSCRIBE_ACTION:
+                tx = new Subscribe();
+                break;
             case BLOCKING_ACTION:
+                tx = new Blocking();
+                break;
             case COMPLAIN_ACTION:
+                tx = new Complain();
+                break;
             default:
                 tx = nullptr;
         }

@@ -6,7 +6,7 @@
 #include <univalue.h>
 #include <utilstrencodings.h>
 
-namespace PocketTx {
+using namespace PocketTx;
 
 enum PocketTxType {
     USER_ACCOUNT = 100,
@@ -80,7 +80,5 @@ protected:
     std::string* m_string4 = nullptr;
     std::string* m_string5 = nullptr;
 };
-
-} // namespace PocketTx
 
 #endif //TESTDEMO_TRANSACTION_H

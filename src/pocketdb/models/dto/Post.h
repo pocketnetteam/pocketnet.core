@@ -11,7 +11,7 @@ class Post : public Transaction
 {
 public:
     ~Post();
-    Post() { SetTxType(PocketTxType::POSTCONTENT); }
+    Post() { SetTxType(PocketTxType::POST_CONTENT); }
     void Deserialize(const UniValue& src) override;
 
     [[nodiscard]] std::string* GetLang() const { return m_string1; }

@@ -1,6 +1,6 @@
 #include "Comment.h"
 
-void Comment::Deserialize(cons± UniValue &src)
+void Comment::Deserialize(const UniValue &src)
 {
     Transaction::Deserialize(src);
 

@@ -94,13 +94,18 @@ POCKETDB_H = \
     pocketdb/SQLiteDatabase.h \
     pocketdb/repositories/BaseRepository.h \
     pocketdb/repositories/TransactionRepository.h \
+    pocketdb/models/models.h \
     pocketdb/models/TransactionSerializer.h \
-    pocketdb/models/Transaction.h \
-    pocketdb/models/Post.h \
-    pocketdb/models/User.h \
-    pocketdb/models/ScorePost.h \
-    pocketdb/models/ScoreComment.h \
-    pocketdb/models/Subscribe.h
+    pocketdb/models/base/Transaction.h \
+    pocketdb/models/base/Payload.hpp \
+    pocketdb/models/dto/Post.h \
+    pocketdb/models/dto/User.h \
+    pocketdb/models/dto/ScorePost.h \
+    pocketdb/models/dto/ScoreComment.h \
+    pocketdb/models/dto/Blocking.h \
+    pocketdb/models/dto/Comment.h \
+    pocketdb/models/dto/Subscribe.h \
+    pocketdb/models/dto/Complain.hpp
 
 POCKETDB_CPP = \
     pocketdb/SQLiteDatabase.cpp \
@@ -110,9 +115,11 @@ POCKETDB_CPP = \
     pocketdb/models/Transaction.cpp \
     pocketdb/models/Post.cpp \
     pocketdb/models/User.cpp \
-    pocketdb/models/ScorePost.h \
-    pocketdb/models/ScoreComment.h \
-    pocketdb/models/Subscribe.h
+    pocketdb/models/ScorePost.cpp \
+    pocketdb/models/ScoreComment.cpp \
+    pocketdb/models/Subscribe.cpp \
+    pocketdb/models/Blocking.cpp \
+    pocketdb/models/Comment.cpp
 
 # pocketcoin core #
 POCKETCOIN_CORE_H = \

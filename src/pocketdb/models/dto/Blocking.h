@@ -1,14 +1,14 @@
-
-#ifndef SRC_SCORECOMMENT_H
-#define SRC_SCORECOMMENT_H
+#ifndef SRC_BLOCKING_H
+#define SRC_BLOCKING_H
 
 #include "Transaction.h"
 using namespace PocketTx;
 
-class ScoreComment : Transaction
+class Blocking : public Transaction
 {
-    ~ScoreComment();
-    ScoreComment() { SetTxType(PocketTxType::SCORE_COMMENT_ACTION); }
+public:
+    ~Blocking();
+    Blocking() { SetTxType(PocketTxType::BLOCKING_ACTION); }
     void Deserialize(const UniValue& src) override;
 
     [[nodiscard]] std::string* GetLang() const { return m_string1; }
@@ -19,8 +19,7 @@ class ScoreComment : Transaction
 
     [[nodiscard]] std::string* GetRelayTxId() const { return m_string3; }
     1void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
-
 };
 
 
-#endif //SRC_SCORECOMMENT_H
+#endif //SRC_BLOCKING_H

@@ -1,9 +1,7 @@
 #ifndef SRC_TRANSACTIONSERIALIZER_H
 #define SRC_TRANSACTIONSERIALIZER_H
 
-#include "Transaction.h"
-#include "User.h"
-#include "Post.h"
+#include "Models.h"
 
 namespace PocketTx
 {
