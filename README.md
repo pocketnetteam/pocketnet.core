@@ -65,11 +65,6 @@ $ pocketcoin-cli --help
 $ pocketcoin-tx --help
 ```
 
-
-# Build from source code
-See `doc/build-*.md` files for build instructions.
-
-
 # First full synchronization
 To quickly synchronize and minimize traffic costs, you can run an empty node with additional parameters:
 - `-listen=0` - disable the visibility of your node so that other novice nodes can't connect to you to download the blockchain.
@@ -124,6 +119,10 @@ $ pocketcoind --help
 6. Start the node.
 
 **VERY IMPORTANT**: save the **wallet.dat** file or **wallets/** files before cleaning the directory. It is recommended to even save these files somewhere for backup. 
+
+
+# Build from source code
+See `doc/build-*.md` files for build instructions.
 
 
 # Help
