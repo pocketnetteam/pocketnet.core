@@ -92,9 +92,13 @@ endif
 # PocketDB
 POCKETDB_HPP = \
     pocketdb/pocketnet.h \
+    pocketdb/pocketnet.cpp \
     pocketdb/SQLiteDatabase.h \
+    pocketdb/SQLiteDatabase.cpp \
     pocketdb/repositories/BaseRepository.h \
+    pocketdb/repositories/BaseRepository.cpp \
     pocketdb/repositories/TransactionRepository.h \
+    pocketdb/repositories/TransactionRepository.cpp \
     pocketdb/models/TransactionSerializer.hpp \
     pocketdb/models/base/Transaction.hpp \
     pocketdb/models/base/Payload.hpp \
@@ -291,7 +295,6 @@ libpocketcoin_server_a_SOURCES = \
     versionbits.cpp \
     websocket/ws.cpp \
     html.cpp \
-    pocketdb/pocketnet.cpp \
     $(POCKETCOIN_CORE_H)
 
 if !ENABLE_WALLET

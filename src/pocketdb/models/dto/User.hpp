@@ -1,7 +1,7 @@
 #ifndef POCKETTX_USER_HPP
 #define POCKETTX_USER_HPP
 
-#include "Transaction.hpp"
+#include "pocketdb/models/base/Transaction.hpp"
 
 namespace PocketTx {
 

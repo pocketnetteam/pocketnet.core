@@ -33,7 +33,7 @@
 #include <memory>
 
 // TODO (brangr): REINDEXER -> SQLITE
-#include <pocketdb/models/TransactionSerializer.h>
+#include <pocketdb/models/TransactionSerializer.hpp>
 //#include "index/addrindex.h"
 //#include "antibot/antibot.h"
 

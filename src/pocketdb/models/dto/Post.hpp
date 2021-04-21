@@ -1,7 +1,7 @@
 #ifndef POCKETTX_POST_HPP
 #define POCKETTX_POST_HPP
 
-#include "Transaction.hpp"
+#include "pocketdb/models/base/Transaction.hpp"
 
 namespace PocketTx {
 

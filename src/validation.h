@@ -33,8 +33,8 @@
 #include <atomic>
 #include <pubkey.h>
 
-#include <pocketdb/models/Transaction.h>
-#include <websocket/ws.h>
+#include "pocketdb/models/base/Transaction.hpp"
+#include "websocket/ws.h"
 extern std::map<std::string, WSUser> WSConnections;
 
 class CBlockIndex;
