@@ -1,33 +1,26 @@
-#ifndef POCKETTX_COMPLAIN_HPP
-#define POCKETTX_COMPLAIN_HPP
+#ifndef POCKETTX_COMMENT_HPP
+#define POCKETTX_COMMENT_HPP
 
 #include "Transaction.hpp"
 
 namespace PocketTx {
 
-class Complain : public Transaction
+class Comment : public Transaction
 {
 public:
-    ~Complain()
+    ~Comment()
     {
     }
 
-    Complain()
+    Comment()
     {
-        SetTxType(PocketTxType::COMPLAIN_ACTION);
+        SetTxType(PocketTxType::COMMENT_CONTENT);
     }
 
-    Complain(const UniValue& src)
-    {
-        Complain();
-        Deserialize(src);
-    }
-
-    void Deserialize(const UniValue& src) override
+    void Deserialize(const UniValue& src)
     {
         Transaction::Deserialize(src);
 
-        // TODO (brangr): 1111111111111
         if (src.exists("lang"))
             SetLang(src["lang"].get_str());
 
@@ -50,4 +43,4 @@ public:
 
 } // namespace PocketTx
 
-#endif // POCKETTX_COMPLAIN_HPP
+#endif //POCKETTX_COMMENT_HPP

@@ -1,8 +1,23 @@
-#include "TransactionSerializer.h"
+#ifndef POCKETTX_TRANSACTIONSERIALIZER_HPP
+#define POCKETTX_TRANSACTIONSERIALIZER_HPP
 
-namespace PocketTx
+#include "Transaction.hpp"
+#include "User.hpp"
+#include "Post.hpp"
+#include "Blocking.hpp"
+#include "Comment.hpp"
+#include "Payload.hpp"
+#include "ScorePost.hpp"
+#include "Subscribe.hpp"
+#include "ScoreComment.hpp"
+#include "Complain.hpp"
+
+using namespace PocketTx;
+
+class TransactionSerializer
 {
-    static PocketTxType ParseType(const std::string &strType)
+public:
+    static PocketTxType ParseType(const std::string& strType)
     {
         // TODO (brangr): implement enum for tx types
         if (strType == "Users") return PocketTxType::USER_ACCOUNT;
@@ -15,45 +30,44 @@ namespace PocketTx
         if (strType == "CommentScores") return PocketTxType::SCORE_COMMENT_ACTION;
     }
 
-    static Transaction *BuildInstance(const UniValue &src)
+    static Transaction* BuildInstance(const UniValue& src)
     {
         auto txTypeSrc = src["t"].get_str();
         PocketTxType txType = ParseType(txTypeSrc);
 
         Transaction* tx;
-        switch (txType)
-        {
-            case USER_ACCOUNT:
-                tx = new User();
-                break;
-            case VIDEO_SERVER_ACCOUNT:
-            case MESSAGE_SERVER_ACCOUNT:
-            case POST_CONTENT:
-                tx = new Post();
-                break;
-            case VIDEO_CONTENT:
-            case TRANSLATE_CONTENT:
-            case SERVERPING_CONTENT:
-            case COMMENT_CONTENT:
-                tx = new Comment();
-                break;
-            case SCORE_POST_ACTION:
-                tx = new ScorePost();
-                break;
-            case SCORE_COMMENT_ACTION:
-                tx = new ScoreComment();
-                break;
-            case SUBSCRIBE_ACTION:
-                tx = new Subscribe();
-                break;
-            case BLOCKING_ACTION:
-                tx = new Blocking();
-                break;
-            case COMPLAIN_ACTION:
-                tx = new Complain();
-                break;
-            default:
-                tx = nullptr;
+        switch (txType) {
+        case USER_ACCOUNT:
+            tx = new User();
+            break;
+        case VIDEO_SERVER_ACCOUNT:
+        case MESSAGE_SERVER_ACCOUNT:
+        case POST_CONTENT:
+            tx = new Post();
+            break;
+        case VIDEO_CONTENT:
+        case TRANSLATE_CONTENT:
+        case SERVERPING_CONTENT:
+        case COMMENT_CONTENT:
+            tx = new Comment();
+            break;
+        case SCORE_POST_ACTION:
+            tx = new ScorePost();
+            break;
+        case SCORE_COMMENT_ACTION:
+            tx = new ScoreComment();
+            break;
+        case SUBSCRIBE_ACTION:
+            tx = new Subscribe();
+            break;
+        case BLOCKING_ACTION:
+            tx = new Blocking();
+            break;
+        case COMPLAIN_ACTION:
+            tx = new Complain();
+            break;
+        default:
+            tx = nullptr;
         }
 
         if (tx == nullptr)
@@ -63,11 +77,12 @@ namespace PocketTx
         auto txDataBase64 = src["d"].get_str();
         auto txJson = DecodeBase64(txDataBase64);
         txSrc.read(txJson);
+
         tx->Deserialize(txSrc);
         return tx;
     }
 
-    std::vector<PocketTx::Transaction *> TransactionSerializer::DeserializeBlock(std::string &src)
+    std::vector<PocketTx::Transaction*> DeserializeBlock(std::string& src)
     {
         std::vector<PocketTx::Transaction*> pocketTxn;
 
@@ -86,6 +101,8 @@ namespace PocketTx
         }
 
         return pocketTxn;
-    };
+    }
+};
 
-}
+
+#endif // POCKETTX_TRANSACTIONSERIALIZER_HPP

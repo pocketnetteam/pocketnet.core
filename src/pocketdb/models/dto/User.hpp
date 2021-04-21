@@ -1,18 +1,38 @@
-#ifndef POCKETTX_ACCOUNT_H
-#define POCKETTX_ACCOUNT_H
+#ifndef POCKETTX_USER_HPP
+#define POCKETTX_USER_HPP
 
-#include <utility>
-#include "Transaction.h"
+#include "Transaction.hpp"
 
 namespace PocketTx {
 
 class User : public PocketTx::Transaction
 {
 public:
-    ~User();
+    ~User() {
 
-    User() { SetTxType(PocketTxType::USERACCOUNT); }
-    void Deserialize(const UniValue& src) override;
+    }
+
+    User() { SetTxType(PocketTxType::USER_ACCOUNT); 
+    }
+
+    void Deserialize(const UniValue& src)  {
+    Transaction::Deserialize(src);
+
+    if (src.exists("id"))
+        SetId(src["id"].get_int64());
+
+    if (src.exists("regdate"))
+        SetRegistration(src["regdate"].get_int64());
+
+    if (src.exists("lang"))
+        SetLang(src["lang"].get_str());
+
+    if (src.exists("name"))
+        SetName(src["name"].get_str());
+
+    if (src.exists("referrer"))
+        SetReferrer(src["referrer"].get_str());
+}
 
     [[nodiscard]] int64_t* GetId() const { return m_int1; }
     void SetId(int64_t id) { m_int1 = new int64_t(id); }
@@ -32,4 +52,4 @@ public:
 
 } // namespace PocketTx
 
-#endif // POCKETTX_ACCOUNT_H
+#endif // POCKETTX_USER_HPP

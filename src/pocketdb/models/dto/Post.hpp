@@ -1,33 +1,26 @@
-#ifndef POCKETTX_PAYLOAD_HPP
-#define POCKETTX_PAYLOAD_HPP
+#ifndef POCKETTX_POST_HPP
+#define POCKETTX_POST_HPP
 
-#include <string>
-#include <univalue.h>
-#include <utility>
-#include <utilstrencodings.h>
+#include "Transaction.hpp"
 
 namespace PocketTx {
 
-class Payload
+class Post : public Transaction
 {
 public:
-    ~Payload()
+    ~Post()
     {
     }
 
-    Payload()
+    Post()
     {
-        
-    }
-
-    Payload(const UniValue& src)
-    {
-        Payload();
-        Deserialize(src);
+        SetTxType(PocketTxType::POST_CONTENT);
     }
 
     void Deserialize(const UniValue& src)
     {
+        Transaction::Deserialize(src);
+
         if (src.exists("lang"))
             SetLang(src["lang"].get_str());
 
@@ -50,4 +43,4 @@ public:
 
 } // namespace PocketTx
 
-#endif // POCKETTX_PAYLOAD_HPP
+#endif // POCKETTX_POST_HPP

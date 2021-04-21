@@ -90,38 +90,24 @@ endif
 .PHONY: FORCE check-symbols check-security
 
 # PocketDB
-POCKETDB_H = \
+POCKETDB_HPP = \
+    pocketdb/pocketnet.h \
     pocketdb/SQLiteDatabase.h \
     pocketdb/repositories/BaseRepository.h \
     pocketdb/repositories/TransactionRepository.h \
-    pocketdb/models/models.h \
-    pocketdb/models/TransactionSerializer.h \
-    pocketdb/models/base/Transaction.h \
+    pocketdb/models/TransactionSerializer.hpp \
+    pocketdb/models/base/Transaction.hpp \
     pocketdb/models/base/Payload.hpp \
-    pocketdb/models/dto/Post.h \
-    pocketdb/models/dto/User.h \
-    pocketdb/models/dto/ScorePost.h \
-    pocketdb/models/dto/ScoreComment.h \
-    pocketdb/models/dto/Blocking.h \
-    pocketdb/models/dto/Comment.h \
-    pocketdb/models/dto/Subscribe.h \
+    pocketdb/models/dto/Post.hpp \
+    pocketdb/models/dto/User.hpp \
+    pocketdb/models/dto/ScorePost.hpp \
+    pocketdb/models/dto/ScoreComment.hpp \
+    pocketdb/models/dto/Blocking.hpp \
+    pocketdb/models/dto/Comment.hpp \
+    pocketdb/models/dto/Subscribe.hpp \
     pocketdb/models/dto/Complain.hpp
 
-POCKETDB_CPP = \
-    pocketdb/SQLiteDatabase.cpp \
-    pocketdb/repositories/BaseRepository.cpp \
-    pocketdb/repositories/TransactionRepository.cpp \
-    pocketdb/models/TransactionSerializer.cpp \
-    pocketdb/models/Transaction.cpp \
-    pocketdb/models/Post.cpp \
-    pocketdb/models/User.cpp \
-    pocketdb/models/ScorePost.cpp \
-    pocketdb/models/ScoreComment.cpp \
-    pocketdb/models/Subscribe.cpp \
-    pocketdb/models/Blocking.cpp \
-    pocketdb/models/Comment.cpp
-
-# pocketcoin core #
+# CORE
 POCKETCOIN_CORE_H = \
     addrdb.h \
     addrman.h \
@@ -243,8 +229,8 @@ POCKETCOIN_CORE_H = \
     zmq/zmqrpc.h \
     websocket/ws.h \
     html.h \
-    pocketdb/pocketnet.h \
-    $(POCKETDB_H)
+    $(POCKETDB_HPP)
+
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -306,8 +292,7 @@ libpocketcoin_server_a_SOURCES = \
     websocket/ws.cpp \
     html.cpp \
     pocketdb/pocketnet.cpp \
-    $(POCKETCOIN_CORE_H) \
-    $(POCKETDB_CPP)
+    $(POCKETCOIN_CORE_H)
 
 if !ENABLE_WALLET
 libpocketcoin_server_a_SOURCES += dummywallet.cpp

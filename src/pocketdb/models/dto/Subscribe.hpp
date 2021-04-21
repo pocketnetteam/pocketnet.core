@@ -1,16 +1,25 @@
+#ifndef SRC_SUBSCRIBE_HPP
+#define SRC_SUBSCRIBE_HPP
 
-#ifndef SRC_SUBSCRIBE_H
-#define SRC_SUBSCRIBE_H
+#include "Transaction.hpp"
 
-#include "Transaction.h"
-using namespace PocketTx;
+namespace PocketTx {
 
 class Subscribe : public Transaction
 {
 public:
-    ~Subscribe();
-    Subscribe() { SetTxType(PocketTxType::SUBSCRIBE_ACTION); }
-    void Deserialize(const UniValue& src) override;
+    ~Subscribe()
+    {
+    }
+
+    Subscribe()
+    {
+        SetTxType(PocketTxType::SUBSCRIBE_ACTION);
+    }
+
+    void Deserialize(const UniValue& src)
+    {
+    }
 
     [[nodiscard]] std::string* GetLang() const { return m_string1; }
     1void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
@@ -22,5 +31,6 @@ public:
     1void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
 };
 
+} // namespace PocketTx
 
-#endif //SRC_SUBSCRIBE_H
+#endif //SRC_SUBSCRIBE_HPP

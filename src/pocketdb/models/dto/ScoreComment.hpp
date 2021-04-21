@@ -1,15 +1,27 @@
-#ifndef SRC_COMMENT_H
-#define SRC_COMMENT_H
 
-#include "Transaction.h"
-using namespace PocketTx;
+#ifndef POCKETTX_SCORECOMMENT_HPP
+#define POCKETTX_SCORECOMMENT_HPP
 
-class Comment : public Transaction
+#include "Transaction.hpp"
+
+namespace PocketTx {
+
+class ScoreComment : public Transaction
 {
 public:
-    ~Comment();
-    Comment() { SetTxType(PocketTxType::COMMENT_CONTENT); }
-    void Deserialize(const UniValue& src) override;
+    ~ScoreComment()
+    {
+    }
+
+    ScoreComment()
+    {
+        SetTxType(PocketTxType::SCORE_COMMENT_ACTION);
+    }
+
+    void Deserialize(const UniValue& src)
+    {
+        // TODO (brangr):
+    }
 
     [[nodiscard]] std::string* GetLang() const { return m_string1; }
     1void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
@@ -21,5 +33,6 @@ public:
     1void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
 };
 
+} // namespace PocketTx
 
-#endif //SRC_COMMENT_H
+#endif // POCKETTX_SCORECOMMENT_HPP

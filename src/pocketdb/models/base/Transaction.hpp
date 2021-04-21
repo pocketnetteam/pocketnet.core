@@ -1,12 +1,12 @@
-#ifndef TESTDEMO_TRANSACTION_H
-#define TESTDEMO_TRANSACTION_H
+#ifndef POCKETTX_TRANSACTION_H
+#define POCKETTX_TRANSACTION_H
 
 #include <string>
-#include <utility>
 #include <univalue.h>
+#include <utility>
 #include <utilstrencodings.h>
 
-using namespace PocketTx;
+namespace PocketTx {
 
 enum PocketTxType {
     USER_ACCOUNT = 100,
@@ -38,11 +38,11 @@ public:
     std::string* GetTxId() const { return m_txId; }
     void SetTxId(std::string value) { m_txId = new std::string(std::move(value)); }
 
-    int64_t * GetTxTime() const { return m_txTime; }
+    int64_t* GetTxTime() const { return m_txTime; }
     void SetTxTime(int64_t value) { m_txTime = new int64_t(value); }
 
-//    int* GetBlock() const { return m_block; }
-//    void SetBlock(int value) { m_block = &value; }
+    //    int* GetBlock() const { return m_block; }
+    //    void SetBlock(int value) { m_block = &value; }
 
     std::string* GetAddress() const { return m_address; }
     void SetAddress(std::string value) { m_address = new std::string(std::move(value)); }
@@ -59,8 +59,26 @@ public:
     std::string* GetString4() const { return m_string4; }
     std::string* GetString5() const { return m_string5; }
 
-    virtual void Deserialize(const UniValue& src);
-    std::string Serialize(const PocketTxType& txType);
+    virtual void Deserialize(const UniValue& src)
+    {
+        assert(src.exists("txid"));
+        SetTxId(src["txid"].get_str());
+
+        assert(src.exists("time"));
+        SetTxTime(src["time"].get_int64());
+
+        assert(src.exists("address"));
+        SetAddress(src["address"].get_str());
+    }
+
+    std::string Serialize(const PocketTxType& txType)
+    {
+        std::string data;
+        // TODO (brangr): implement
+
+        return data;
+    }
+
 
 protected:
     PocketTxType* m_txType = nullptr;
@@ -81,4 +99,6 @@ protected:
     std::string* m_string5 = nullptr;
 };
 
-#endif //TESTDEMO_TRANSACTION_H
+} // namespace PocketTx
+
+#endif // POCKETTX_TRANSACTION_H

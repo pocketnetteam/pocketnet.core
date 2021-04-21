@@ -1,33 +1,26 @@
-#ifndef POCKETTX_COMPLAIN_HPP
-#define POCKETTX_COMPLAIN_HPP
+#ifndef POCKETTX_BLOCKING_HPP
+#define POCKETTX_BLOCKING_HPP
 
 #include "Transaction.hpp"
 
 namespace PocketTx {
 
-class Complain : public Transaction
+class Blocking : public Transaction
 {
 public:
-    ~Complain()
+    ~Blocking()
     {
     }
 
-    Complain()
+    Blocking()
     {
-        SetTxType(PocketTxType::COMPLAIN_ACTION);
+        SetTxType(PocketTxType::BLOCKING_ACTION);
     }
 
-    Complain(const UniValue& src)
-    {
-        Complain();
-        Deserialize(src);
-    }
-
-    void Deserialize(const UniValue& src) override
+    void Deserialize(const UniValue& src)
     {
         Transaction::Deserialize(src);
 
-        // TODO (brangr): 1111111111111
         if (src.exists("lang"))
             SetLang(src["lang"].get_str());
 
@@ -50,4 +43,4 @@ public:
 
 } // namespace PocketTx
 
-#endif // POCKETTX_COMPLAIN_HPP
+#endif // POCKETTX_BLOCKING_HPP
