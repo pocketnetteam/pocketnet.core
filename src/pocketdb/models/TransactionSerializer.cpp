@@ -5,14 +5,14 @@ namespace PocketTx
     static PocketTxType ParseType(const std::string &strType)
     {
         // TODO (brangr): implement enum for tx types
-        if (strType == "Users") return PocketTxType::USERACCOUNT;
-        if (strType == "Posts") return PocketTxType::POSTCONTENT;
-        if (strType == "Scores") return PocketTxType::SCOREPOSTACTION;
-        if (strType == "Comment") return PocketTxType::COMMENTCONTENT;
-        if (strType == "Blocking") return PocketTxType::BLOCKACTION;
-        if (strType == "Subscribes") return PocketTxType::SUBSCRIBEACTION;
-        if (strType == "Complains") return PocketTxType::COMPLAINACTION;
-        if (strType == "CommentScores") return PocketTxType::SCORECOMMENTACTION;
+        if (strType == "Users") return PocketTxType::USER_ACCOUNT;
+        if (strType == "Posts") return PocketTxType::POST_CONTENT;
+        if (strType == "Scores") return PocketTxType::SCORE_POST_ACTION;
+        if (strType == "Comment") return PocketTxType::COMMENT_CONTENT;
+        if (strType == "Blocking") return PocketTxType::BLOCKING_ACTION;
+        if (strType == "Subscribes") return PocketTxType::SUBSCRIBE_ACTION;
+        if (strType == "Complains") return PocketTxType::COMPLAIN_ACTION;
+        if (strType == "CommentScores") return PocketTxType::SCORE_COMMENT_ACTION;
     }
 
     static Transaction *BuildInstance(const UniValue &src)
@@ -23,23 +23,23 @@ namespace PocketTx
         Transaction* tx;
         switch (txType)
         {
-            case USERACCOUNT:
+            case USER_ACCOUNT:
                 tx = new User();
                 break;
-            case VIDEOSERVERACCOUNT:
-            case MESSAGESERVERACCOUNT:
-            case POSTCONTENT:
+            case VIDEO_SERVER_ACCOUNT:
+            case MESSAGE_SERVER_ACCOUNT:
+            case POST_CONTENT:
                 tx = new Post();
                 break;
-            case VIDEOCONTENT:
-            case TRANSLATECONTENT:
-            case SERVERPINGCONTENT:
-            case COMMENTCONTENT:
-            case SCOREPOSTACTION:
-            case SCORECOMMENTACTION:
-            case SUBSCRIBEACTION:
-            case BLOCKACTION:
-            case COMPLAINACTION:
+            case VIDEO_CONTENT:
+            case TRANSLATE_CONTENT:
+            case SERVERPING_CONTENT:
+            case COMMENT_CONTENT:
+            case SCORE_POST_ACTION:
+            case SCORE_COMMENT_ACTION:
+            case SUBSCRIBE_ACTION:
+            case BLOCKING_ACTION:
+            case COMPLAIN_ACTION:
             default:
                 tx = nullptr;
         }

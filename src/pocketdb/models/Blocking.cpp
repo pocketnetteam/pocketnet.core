@@ -1,7 +1,3 @@
-//
-// Created by Andrey Brunenko on 21.04.2021.
-//
-
 #include "Blocking.h"
 
 void Blocking::Deserialize(const UniValue &src)
