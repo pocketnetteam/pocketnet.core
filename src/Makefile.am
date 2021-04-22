@@ -95,10 +95,8 @@ POCKETDB_HPP = \
     pocketdb/pocketnet.cpp \
     pocketdb/SQLiteDatabase.h \
     pocketdb/SQLiteDatabase.cpp \
-    pocketdb/repositories/BaseRepository.h \
-    pocketdb/repositories/BaseRepository.cpp \
-    pocketdb/repositories/TransactionRepository.h \
-    pocketdb/repositories/TransactionRepository.cpp \
+    pocketdb/repositories/BaseRepository.hpp \
+    pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/models/TransactionSerializer.hpp \
     pocketdb/models/base/Transaction.hpp \
     pocketdb/models/base/Payload.hpp \
