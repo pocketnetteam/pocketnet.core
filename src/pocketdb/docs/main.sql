@@ -7,8 +7,10 @@ create table Transactions
     Address string not null,
 
     -- User.Id
-    -- Subscribe.Private
-    -- Score.Value
+    -- Post.Id
+    -- ScorePost.Value
+    -- ScoreComment.Value
+    -- Complain.Reason
     Int1    int null,
 
     -- User.Registration
@@ -29,25 +31,24 @@ create table Transactions
     -- Subscribe.AddressTo
     -- Blocking.AddressTo
     -- Complain.PostTxId
-    -- Comment.RootTxId
-    -- Score.PostTxId
-    -- CommentScore.CommentTxId
+    -- ScorePost.PostTxId
+    -- ScoreComment.CommentTxId
     String1 string null,
 
     -- User.Name
     -- Post.Root
-    -- Comment.PostTxId
+    -- Comment.RootTxId
     String2 string null,
 
     -- User.Referrer
     -- Post.RelayTxId
-    -- Comment.ParentTxId
+    -- Comment.PostTxId
     String3 string null,
 
-    -- Comment.AnswerTxId
+    -- Comment.ParentTxId
     String4 string null,
 
-    -- Empty
+    -- Comment.AnswerTxId
     String5 string null,
 
     primary key (TxId)
@@ -167,7 +168,7 @@ select t.TxType,
        t.String3 as Referrer
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 100;
+where t.TxType in (100);
 
 drop view if exists VideoServers;
 create view VideoServers as
@@ -179,11 +180,10 @@ select t.TxType,
        t.Int1    as Id,
        t.Int2    as Registration,
        t.String1 as Lang,
-       t.String2 as Name,
-       t.String3 as Referrer
+       t.String2 as Name
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 101;
+where t.TxType in (101);
 
 drop view if exists MessageServers;
 create view MessageServers as
@@ -195,11 +195,10 @@ select t.TxType,
        t.Int1    as Id,
        t.Int2    as Registration,
        t.String1 as Lang,
-       t.String2 as Name,
-       t.String3 as Referrer
+       t.String2 as Name
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 102;
+where t.TxType in (102);
 
 --------------------------------------------
 drop view if exists Posts;
@@ -209,12 +208,13 @@ select t.TxType,
        t.TxTime,
        c.Block,
        t.Address,
+       t.Int1 as Id,
        t.String1 as Lang,
        t.String2 as RootTxId,
        t.String3 as RelayTxId
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 200;
+where t.TxType in (200);
 
 drop view if exists Videos;
 create view Videos as
@@ -228,7 +228,7 @@ select t.TxType,
        t.String3 as RelayTxId
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 201;
+where t.TxType in (201);
 
 drop view if exists Translates;
 create view Translates as
@@ -242,7 +242,7 @@ select t.TxType,
        t.String3 as RelayTxId
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 202;
+where t.TxType in (202);
 
 drop view if exists ServerPings;
 create view ServerPings as
@@ -256,7 +256,7 @@ select t.TxType,
        t.String3 as RelayTxId
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 203;
+where t.TxType in (203);
 
 drop view if exists Comments;
 create view Comments as
@@ -265,17 +265,18 @@ select t.TxType,
        t.TxTime,
        c.Block,
        t.Address,
-       t.String1 as RootTxId,
-       t.String2 as PostTxId,
-       t.String3 as ParentTxId,
-       t.String4 as AnswerTxId
+       t.String1 as Lang,
+       t.String2 as RootTxId,
+       t.String3 as PostTxId,
+       t.String4 as ParentTxId,
+       t.String5 as AnswerTxId
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 204;
+where t.TxType in (204);
 
 --------------------------------------------
-drop view if exists PostScores;
-create view PostScores as
+drop view if exists ScorePosts;
+create view ScorePosts as
 select t.TxType,
        t.TxId,
        t.TxTime,
@@ -285,10 +286,10 @@ select t.TxType,
        t.String1 as PostTxId
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType=300;
+where t.TxType in (300);
 
-drop view if exists CommentScores;
-create view CommentScores as
+drop view if exists ScoreComments;
+create view ScoreComment ass
 select t.TxType,
        t.TxId,
        t.TxTime,
@@ -298,7 +299,7 @@ select t.TxType,
        t.String1 as CommentTxId
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType=301;
+where t.TxType in (301);
 
 
 drop view if exists Subscribes;
@@ -308,11 +309,10 @@ select t.TxType,
        t.TxTime,
        c.Block,
        t.Address,
-       t.Int1    as Private,
        t.String1 as AddressTo
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 302;
+where t.TxType in (302, 303);
 
 
 drop view if exists Blockings;
@@ -325,7 +325,7 @@ select t.TxType,
        t.String1 as AddressTo
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 303;
+where t.TxType in (304, 305);
 
 
 drop view if exists Complains;
@@ -335,7 +335,8 @@ select t.TxType,
        t.TxTime,
        c.Block,
        t.Address,
-       t.String1 as AddressTo
+       t.String1 as AddressTo,
+       t.Int1 as Reason
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType = 304;
+where t.TxType in (306);

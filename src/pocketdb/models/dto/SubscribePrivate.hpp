@@ -12,14 +12,14 @@
 namespace PocketTx
 {
 
-    class Subscribe : public Transaction
+    class SubscribePrivate : public Transaction
     {
     public:
-        ~Subscribe() = default;
+        ~SubscribePrivate() = default;
 
-        Subscribe(const UniValue &src) : base(src)
+        SubscribePrivate(const UniValue &src) : base(src)
         {
-            SetTxType(PocketTxType::SUBSCRIBE_ACTION);
+            SetTxType(PocketTxType::SUBSCRIBE_PRIVATE_ACTION);
 
             assert(src.exists("address_to") && src["address_to"].isStr());
             SetAddressTo(src["address_to"].get_str());

@@ -1,7 +1,7 @@
 #ifndef POCKETDB_BASEREPOSITORY_HPP
 #define POCKETDB_BASEREPOSITORY_HPP
 
-#include "pocketdb/SQLiteDatabase.h"
+#include "pocketdb/SQLiteDatabase.hpp"
 
 using namespace PocketDb;
 

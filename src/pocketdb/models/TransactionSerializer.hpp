@@ -1,3 +1,9 @@
+// Copyright (c) 2009-2010 Satoshi Nakamoto
+// Copyright (c) 2009-2018 Bitcoin developers
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 #ifndef POCKETTX_TRANSACTIONSERIALIZER_HPP
 #define POCKETTX_TRANSACTIONSERIALIZER_HPP
 
@@ -17,70 +23,89 @@ namespace PocketTx {
 class TransactionSerializer
 {
 public:
-    static PocketTxType ParseType(const std::string &strType)
+    static PocketTxType ParseType(const std::string &strType, const UniValue& txDataSrc)
     {
         // TODO (brangr): implement enum for tx types
         if (strType == "Users") return PocketTxType::USER_ACCOUNT;
+        
         if (strType == "Posts") return PocketTxType::POST_CONTENT;
-        if (strType == "Scores") return PocketTxType::SCORE_POST_ACTION;
         if (strType == "Comment") return PocketTxType::COMMENT_CONTENT;
-        if (strType == "Blocking") return PocketTxType::BLOCKING_ACTION;
-        if (strType == "Subscribes") return PocketTxType::SUBSCRIBE_ACTION;
-        if (strType == "Complains") return PocketTxType::COMPLAIN_ACTION;
+        
+        if (strType == "Scores") return PocketTxType::SCORE_POST_ACTION;
         if (strType == "CommentScores") return PocketTxType::SCORE_COMMENT_ACTION;
+                
+        if (strType == "Blocking") {
+            if (txDataSrc.exists("unblocking") &&
+                txDataSrc.isBool("unblocking") &&
+                txDataSrc["unblocking"].get_bool())
+                return PocketTXType::BLOCKING_CANCEL_ACTION;
+
+            return PocketTxType::BLOCKING_ACTION;
+        }
+
+        if (strType == "Subscribes") {
+            if (txDataSrc.exists("unsubscribe") &&
+                txDataSrc.isBool("unsubscribe") &&
+                txDataSrc["unsubscribe"].get_bool())
+                return PocketTXType::SUBSCRIBE_CANCEL_ACTION;
+
+            if (txDataSrc.exists("private") &&
+                txDataSrc.isBool("private") &&
+                txDataSrc["private"].get_bool())
+                return PocketTXType::SUBSCRIBE_PRIVATE_ACTION;
+
+            return PocketTxType::SUBSCRIBE_ACTION;
+        }
+        
+        if (strType == "Complains") return PocketTxType::COMPLAIN_ACTION;
     }
 
     static Transaction *BuildInstance(const UniValue &src)
     {
         auto txTypeSrc = src["t"].get_str();
-        PocketTxType txType = ParseType(txTypeSrc);
+
+        UniValue txDataSrc(UniValue::VOBJ);
+        auto txDataBase64 = src["d"].get_str();
+        auto txJson = DecodeBase64(txDataBase64);
+        txDataSrc.read(txJson);
+
+        PocketTxType txType = ParseType(txTypeSrc, txDataSrc);
 
         Transaction *tx;
         switch (txType)
         {
             case USER_ACCOUNT:
-                tx = new User();
-                break;
+                return new User(txDataSrc);
             case VIDEO_SERVER_ACCOUNT:
             case MESSAGE_SERVER_ACCOUNT:
+            return nullptr;
             case POST_CONTENT:
-                tx = new Post();
-                break;
+                return new Post(txDataSrc);
             case VIDEO_CONTENT:
             case TRANSLATE_CONTENT:
             case SERVERPING_CONTENT:
+                return nullptr;
             case COMMENT_CONTENT:
-                tx = new Comment();
-                break;
+                return new Comment(txDataSrc);
             case SCORE_POST_ACTION:
-                tx = new ScorePost();
-                break;
+                return new ScorePost(txDataSrc);
             case SCORE_COMMENT_ACTION:
-                tx = new ScoreComment();
-                break;
+                return new ScoreComment(txDataSrc);
             case SUBSCRIBE_ACTION:
-                tx = new Subscribe();
-                break;
+                return new Subscribe(txDataSrc);
+            case SUBSCRIBE_PRIVATE_ACTION:
+                return new SubscribePrivate(txDataSrc);
+            case SUBSCRIBE_CANCEL_ACTION:
+                return new SubscribeCancel(txDataSrc);
             case BLOCKING_ACTION:
-                tx = new Blocking();
-                break;
+                return new Blocking(txDataSrc);
+            case BLOCKING_CANCEL_ACTION:
+                return new BlockingCancel(txDataSrc);
             case COMPLAIN_ACTION:
-                tx = new Complain();
-                break;
+                return new Complain(txDataSrc);
             default:
-                tx = nullptr;
+                return nullptr;
         }
-
-        if (tx == nullptr)
-            return nullptr;
-
-        UniValue txSrc(UniValue::VOBJ);
-        auto txDataBase64 = src["d"].get_str();
-        auto txJson = DecodeBase64(txDataBase64);
-        txSrc.read(txJson);
-
-        tx->Deserialize(txSrc);
-        return tx;
     }
 
     static std::vector<PocketTx::Transaction *> DeserializeBlock(std::string &src)

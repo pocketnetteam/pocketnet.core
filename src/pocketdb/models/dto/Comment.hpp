@@ -1,3 +1,10 @@
+// Copyright (c) 2009-2010 Satoshi Nakamoto
+// Copyright (c) 2009-2018 Bitcoin developers
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
+
 #ifndef POCKETTX_COMMENT_HPP
 #define POCKETTX_COMMENT_HPP
 
@@ -11,33 +18,41 @@ namespace PocketTx
     public:
         ~Comment() = default;
 
-        Comment()
+        Comment(const UniValue &src) : base(src)
         {
             SetTxType(PocketTxType::COMMENT_CONTENT);
+
+            if (src.exists("lang"))
+                SetLang(src["lang"].get_str());
+
+            if (src.exists("otxid"))
+                SetRootTxId(src["otxid"].get_str());
+
+            if (src.exists("postid"))
+                SetPostTxId(src["postid"].get_str());
+
+            if (src.exists("parentid"))
+                SetParentTxId(src["parentid"].get_str());
+
+            if (src.exists("answerid"))
+                SetAnswerTxId(src["answerid"].get_str());
         }
+        
 
-        void Deserialize(const UniValue &src) override
-        {
-            Transaction::Deserialize(src);
+        [[nodiscard]] std::string* GetLang() const { return m_string1; }
+        void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
 
-//        if (src.exists("lang"))
-//            SetLang(src["lang"].get_str());
-//
-//        if (src.exists("txidEdit"))
-//            SetRootTxId(src["txidEdit"].get_str());
-//
-//        if (src.exists("txidRepost"))
-//            SetRelayTxId(src["txidRepost"].get_str());
-        }
+        [[nodiscard]] std::string* GetRootTxId() const { return m_string2; }
+        void SetRootTxId(std::string value) { m_string2 = new std::string(std::move(value)); }
 
-//    [[nodiscard]] std::string* GetLang() const { return m_string1; }
-//    1void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
-//
-//    [[nodiscard]] std::string* GetRootTxId() const { return m_string2; }
-//    1void SetRootTxId(std::string value) { m_string2 = new std::string(std::move(value)); }
-//
-//    [[nodiscard]] std::string* GetRelayTxId() const { return m_string3; }
-//    1void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
+        [[nodiscard]] std::string* GetPostTxId() const { return m_string3; }
+        void SetPostTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
+
+        [[nodiscard]] std::string* GetParentTxId() const { return m_string4; }
+        void SetParentTxId(std::string value) { m_string4 = new std::string(std::move(value)); }
+
+        [[nodiscard]] std::string* GetAnswerTxId() const { return m_string5; }
+        void SetAnswerTxId(std::string value) { m_string5 = new std::string(std::move(value)); }
     };
 
 } // namespace PocketTx

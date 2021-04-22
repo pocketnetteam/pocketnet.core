@@ -93,8 +93,7 @@ endif
 POCKETDB_HPP = \
     pocketdb/pocketnet.h \
     pocketdb/pocketnet.cpp \
-    pocketdb/SQLiteDatabase.h \
-    pocketdb/SQLiteDatabase.cpp \
+    pocketdb/SQLiteDatabase.hpp \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/models/TransactionSerializer.hpp \
@@ -105,8 +104,11 @@ POCKETDB_HPP = \
     pocketdb/models/dto/ScorePost.hpp \
     pocketdb/models/dto/ScoreComment.hpp \
     pocketdb/models/dto/Blocking.hpp \
+    pocketdb/models/dto/BlockingCancel.hpp \
     pocketdb/models/dto/Comment.hpp \
     pocketdb/models/dto/Subscribe.hpp \
+    pocketdb/models/dto/SubscribePrivate.hpp \
+    pocketdb/models/dto/SubscribeCancel.hpp \
     pocketdb/models/dto/Complain.hpp
 
 # CORE

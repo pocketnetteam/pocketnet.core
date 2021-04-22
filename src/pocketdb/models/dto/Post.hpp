@@ -11,17 +11,17 @@ namespace PocketTx
     public:
         ~Post() = default;
 
-        Post()
+        Post(const UniValue &src) : base(src)
         {
             SetTxType(PocketTxType::POST_CONTENT);
-        }
 
-        void Deserialize(const UniValue &src) override
-        {
-            Transaction::Deserialize(src);
+            // TODO (brangr): ID должен вычислять при индексировании транзакции
+            // SetId(src["id"].get_int64());
 
             if (src.exists("lang"))
                 SetLang(src["lang"].get_str());
+            
+            // TODO (brangr): нужно ли проставить `en` по-умолчанию?
 
             if (src.exists("txidEdit"))
                 SetRootTxId(src["txidEdit"].get_str());
@@ -31,15 +31,12 @@ namespace PocketTx
         }
 
         [[nodiscard]] std::string *GetLang() const { return m_string1; }
-
         void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
 
         [[nodiscard]] std::string *GetRootTxId() const { return m_string2; }
-
         void SetRootTxId(std::string value) { m_string2 = new std::string(std::move(value)); }
 
         [[nodiscard]] std::string *GetRelayTxId() const { return m_string3; }
-
         void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
     };
 

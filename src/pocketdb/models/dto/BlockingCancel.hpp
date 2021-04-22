@@ -4,22 +4,22 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_SUBSCRIBE_HPP
-#define POCKETTX_SUBSCRIBE_HPP
+#ifndef POCKETTX_BLOCKING_CANCEL_HPP
+#define POCKETTX_BLOCKING_CANCEL_HPP
 
 #include "pocketdb/models/base/Transaction.hpp"
 
 namespace PocketTx
 {
 
-    class Subscribe : public Transaction
+    class BlockingCancel : public Transaction
     {
     public:
-        ~Subscribe() = default;
+        ~BlockingCancel() = default;
 
-        Subscribe(const UniValue &src) : base(src)
+        BlockingCancel(const UniValue &src) : base(src)
         {
-            SetTxType(PocketTxType::SUBSCRIBE_ACTION);
+            SetTxType(PocketTxType::BLOCKING_CANCEL_ACTION);
 
             assert(src.exists("address_to") && src["address_to"].isStr());
             SetAddressTo(src["address_to"].get_str());
@@ -31,4 +31,4 @@ namespace PocketTx
 
 } // namespace PocketTx
 
-#endif //POCKETTX_SUBSCRIBE_HPP
+#endif // POCKETTX_BLOCKING_CANCEL_HPP

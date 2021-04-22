@@ -1,3 +1,9 @@
+// Copyright (c) 2009-2010 Satoshi Nakamoto
+// Copyright (c) 2009-2018 Bitcoin developers
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 #ifndef POCKETTX_BLOCKING_HPP
 #define POCKETTX_BLOCKING_HPP
 
@@ -11,33 +17,16 @@ namespace PocketTx
     public:
         ~Blocking() = default;
 
-        Blocking()
+        Blocking(const UniValue &src) : base(src)
         {
             SetTxType(PocketTxType::BLOCKING_ACTION);
+
+            assert(src.exists("address_to") && src["address_to"].isStr());
+            SetAddressTo(src["address_to"].get_str());
         }
 
-        void Deserialize(const UniValue &src) override
-        {
-            Transaction::Deserialize(src);
-
-//        if (src.exists("lang"))
-//            SetLang(src["lang"].get_str());
-//
-//        if (src.exists("txidEdit"))
-//            SetRootTxId(src["txidEdit"].get_str());
-//
-//        if (src.exists("txidRepost"))
-//            SetRelayTxId(src["txidRepost"].get_str());
-        }
-
-//    [[nodiscard]] std::string* GetLang() const { return m_string1; }
-//    1void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
-//
-//    [[nodiscard]] std::string* GetRootTxId() const { return m_string2; }
-//    1void SetRootTxId(std::string value) { m_string2 = new std::string(std::move(value)); }
-//
-//    [[nodiscard]] std::string* GetRelayTxId() const { return m_string3; }
-//    1void SetRelayTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
+        [[nodiscard]] std::string* GetAddressTo() const { return m_string1; }
+        void SetAddressTo(std::string value) { m_string1 = new std::string(std::move(value)); }
     };
 
 } // namespace PocketTx

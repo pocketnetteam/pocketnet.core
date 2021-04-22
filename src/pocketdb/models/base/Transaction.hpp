@@ -1,3 +1,9 @@
+// Copyright (c) 2009-2010 Satoshi Nakamoto
+// Copyright (c) 2009-2018 Bitcoin developers
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 #ifndef POCKETTX_TRANSACTION_H
 #define POCKETTX_TRANSACTION_H
 
@@ -21,15 +27,30 @@ enum PocketTxType {
 
     SCORE_POST_ACTION = 300,
     SCORE_COMMENT_ACTION = 301,
+
     SUBSCRIBE_ACTION = 302,
-    BLOCKING_ACTION = 303,
-    COMPLAIN_ACTION = 304,
+    SUBSCRIBE_PRIVATE_ACTION = 303,
+    SUBSCRIBE_CANCEL_ACTION = 304,
+
+    BLOCKING_ACTION = 304,
+    BLOCKING_CANCEL_ACTION = 305,
+
+    COMPLAIN_ACTION = 306,
 };
 
 class Transaction
 {
 public:
-    Transaction() = default;
+    Transaction(const UniValue& src) {
+        assert(src.exists("txid") && src["txid"].isStr());
+        SetTxId(src["txid"].get_str());
+
+        assert(src.exists("time") && src["time"].isNum());
+        SetTxTime(src["time"].get_int64());
+
+        assert(src.exists("address") && src["address"].isStr());
+        SetAddress(src["address"].get_str());
+    }
 
 
     PocketTxType* GetTxType() const { return m_txType; }
@@ -59,17 +80,6 @@ public:
     std::string* GetString4() const { return m_string4; }
     std::string* GetString5() const { return m_string5; }
 
-    virtual void Deserialize(const UniValue& src)
-    {
-        assert(src.exists("txid"));
-        SetTxId(src["txid"].get_str());
-
-        assert(src.exists("time"));
-        SetTxTime(src["time"].get_int64());
-
-        assert(src.exists("address"));
-        SetAddress(src["address"].get_str());
-    }
 
     std::string Serialize(const PocketTxType& txType)
     {
