@@ -38,7 +38,7 @@ private:
     Mutex g_sqlite_mutex;
     int g_sqlite_count = 0; //GUARDED_BY(g_sqlite_mutex)
 
-    void ErrorLogCallback(void* arg, int code, const char* msg)
+    static void ErrorLogCallback(void* arg, int code, const char* msg)
     {
         // From sqlite3_config() documentation for the SQLITE_CONFIG_LOG option:
         // "The void pointer that is the second argument to SQLITE_CONFIG_LOG is passed through as

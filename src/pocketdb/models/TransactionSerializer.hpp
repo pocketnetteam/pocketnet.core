@@ -12,9 +12,12 @@
 #include "pocketdb/models/dto/User.hpp"
 #include "pocketdb/models/dto/Post.hpp"
 #include "pocketdb/models/dto/Blocking.hpp"
+#include "pocketdb/models/dto/BlockingCancel.hpp"
 #include "pocketdb/models/dto/Comment.hpp"
 #include "pocketdb/models/dto/ScorePost.hpp"
 #include "pocketdb/models/dto/Subscribe.hpp"
+#include "pocketdb/models/dto/SubscribePrivate.hpp"
+#include "pocketdb/models/dto/SubscribeCancel.hpp"
 #include "pocketdb/models/dto/ScoreComment.hpp"
 #include "pocketdb/models/dto/Complain.hpp"
 
@@ -26,38 +29,46 @@ public:
     static PocketTxType ParseType(const std::string &strType, const UniValue& txDataSrc)
     {
         // TODO (brangr): implement enum for tx types
-        if (strType == "Users") return PocketTxType::USER_ACCOUNT;
+        if (strType == "Users")
+            return PocketTxType::USER_ACCOUNT;
         
-        if (strType == "Posts") return PocketTxType::POST_CONTENT;
-        if (strType == "Comment") return PocketTxType::COMMENT_CONTENT;
+        if (strType == "Posts") 
+            return PocketTxType::POST_CONTENT;
+
+        if (strType == "Comment") 
+            return PocketTxType::COMMENT_CONTENT;
         
-        if (strType == "Scores") return PocketTxType::SCORE_POST_ACTION;
-        if (strType == "CommentScores") return PocketTxType::SCORE_COMMENT_ACTION;
+        if (strType == "Scores") 
+            return PocketTxType::SCORE_POST_ACTION;
+
+        if (strType == "CommentScores") 
+            return PocketTxType::SCORE_COMMENT_ACTION;
                 
         if (strType == "Blocking") {
             if (txDataSrc.exists("unblocking") &&
-                txDataSrc.isBool("unblocking") &&
+                txDataSrc["unblocking"].isBool() &&
                 txDataSrc["unblocking"].get_bool())
-                return PocketTXType::BLOCKING_CANCEL_ACTION;
+                return PocketTxType::BLOCKING_CANCEL_ACTION;
 
             return PocketTxType::BLOCKING_ACTION;
         }
 
         if (strType == "Subscribes") {
             if (txDataSrc.exists("unsubscribe") &&
-                txDataSrc.isBool("unsubscribe") &&
+                txDataSrc["unsubscribe"].isBool() &&
                 txDataSrc["unsubscribe"].get_bool())
-                return PocketTXType::SUBSCRIBE_CANCEL_ACTION;
+                return PocketTxType::SUBSCRIBE_CANCEL_ACTION;
 
             if (txDataSrc.exists("private") &&
-                txDataSrc.isBool("private") &&
+                txDataSrc["private"].isBool() &&
                 txDataSrc["private"].get_bool())
-                return PocketTXType::SUBSCRIBE_PRIVATE_ACTION;
+                return PocketTxType::SUBSCRIBE_PRIVATE_ACTION;
 
             return PocketTxType::SUBSCRIBE_ACTION;
         }
         
-        if (strType == "Complains") return PocketTxType::COMPLAIN_ACTION;
+        if (strType == "Complains")
+            return PocketTxType::COMPLAIN_ACTION;
     }
 
     static Transaction *BuildInstance(const UniValue &src)
@@ -70,15 +81,13 @@ public:
         txDataSrc.read(txJson);
 
         PocketTxType txType = ParseType(txTypeSrc, txDataSrc);
-
-        Transaction *tx;
         switch (txType)
         {
             case USER_ACCOUNT:
                 return new User(txDataSrc);
             case VIDEO_SERVER_ACCOUNT:
             case MESSAGE_SERVER_ACCOUNT:
-            return nullptr;
+                return nullptr;
             case POST_CONTENT:
                 return new Post(txDataSrc);
             case VIDEO_CONTENT:

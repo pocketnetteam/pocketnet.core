@@ -17,20 +17,20 @@ namespace PocketTx
     public:
         ~Complain() = default;
 
-        Complain(const UniValue &src) : base(src)
+        Complain(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::COMPLAIN_ACTION);
 
-            if (src.exists("reason"))
-                SetReason(src["reason"].get_str());
+            assert(src.exists("reason") && src["reason"].isNum());
+            SetReason(src["reason"].get_int());
 
-            if (src.exists("posttxid"))
-                SetPostTxId(src["posttxid"].get_str());
+            assert(src.exists("posttxid") && src["posttxid"].isStr());
+            SetPostTxId(src["posttxid"].get_str());
         }
         
 
-        [[nodiscard]] int46_t* GetReason() const { return m_int1; }
-        void SetReason(int46_t value) { m_int1 = new int46_t(value); }
+        [[nodiscard]] int64_t* GetReason() const { return m_int1; }
+        void SetReason(int64_t value) { m_int1 = new int64_t(value); }
 
         [[nodiscard]] std::string* GetPostTxId() const { return m_string1; }
         void SetPostTxId(std::string value) { m_string1 = new std::string(std::move(value)); }

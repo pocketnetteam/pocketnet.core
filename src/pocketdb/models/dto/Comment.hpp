@@ -18,7 +18,7 @@ namespace PocketTx
     public:
         ~Comment() = default;
 
-        Comment(const UniValue &src) : base(src)
+        Comment(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::COMMENT_CONTENT);
 

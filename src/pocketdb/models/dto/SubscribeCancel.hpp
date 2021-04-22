@@ -17,7 +17,7 @@ namespace PocketTx
     public:
         ~SubscribeCancel() = default;
 
-        SubscribeCancel(const UniValue &src) : base(src)
+        SubscribeCancel(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::SUBSCRIBE_CANCEL_ACTION);
 

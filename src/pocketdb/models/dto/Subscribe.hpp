@@ -17,7 +17,7 @@ namespace PocketTx
     public:
         ~Subscribe() = default;
 
-        Subscribe(const UniValue &src) : base(src)
+        Subscribe(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::SUBSCRIBE_ACTION);
 

@@ -17,7 +17,7 @@ namespace PocketTx
     public:
         ~BlockingCancel() = default;
 
-        BlockingCancel(const UniValue &src) : base(src)
+        BlockingCancel(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::BLOCKING_CANCEL_ACTION);
 

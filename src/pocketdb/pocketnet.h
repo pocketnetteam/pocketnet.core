@@ -9,7 +9,7 @@
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
-#include <pocketdb/repositories/TransactionRepository.h>
+#include <pocketdb/repositories/TransactionRepository.hpp>
 #include <util.h>
 
 

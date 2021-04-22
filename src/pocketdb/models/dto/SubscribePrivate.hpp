@@ -4,8 +4,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_SUBSCRIBE_HPP
-#define POCKETTX_SUBSCRIBE_HPP
+#ifndef POCKETTX_SUBSCRIBE_PRIVATE_HPP
+#define POCKETTX_SUBSCRIBE_PRIVATE_HPP
 
 #include "pocketdb/models/base/Transaction.hpp"
 
@@ -17,7 +17,7 @@ namespace PocketTx
     public:
         ~SubscribePrivate() = default;
 
-        SubscribePrivate(const UniValue &src) : base(src)
+        SubscribePrivate(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::SUBSCRIBE_PRIVATE_ACTION);
 
@@ -31,4 +31,4 @@ namespace PocketTx
 
 } // namespace PocketTx
 
-#endif //POCKETTX_SUBSCRIBE_HPP
+#endif //POCKETTX_SUBSCRIBE_PRIVATE_HPP

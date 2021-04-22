@@ -17,7 +17,7 @@ namespace PocketTx
     public:
         ~User() = default;
 
-        User(const UniValue &src) : base(src)
+        User(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::USER_ACCOUNT);
 

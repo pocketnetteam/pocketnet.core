@@ -11,7 +11,7 @@ namespace PocketTx
     public:
         ~Post() = default;
 
-        Post(const UniValue &src) : base(src)
+        Post(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::POST_CONTENT);
 

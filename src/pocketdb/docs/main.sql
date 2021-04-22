@@ -312,7 +312,7 @@ select t.TxType,
        t.String1 as AddressTo
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType in (302, 303);
+where t.TxType in (302, 303, 304);
 
 
 drop view if exists Blockings;
@@ -325,7 +325,7 @@ select t.TxType,
        t.String1 as AddressTo
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType in (304, 305);
+where t.TxType in (305, 306);
 
 
 drop view if exists Complains;
@@ -339,4 +339,4 @@ select t.TxType,
        t.Int1 as Reason
 from Transactions t
          left join Chain c on c.TxId = t.TxId
-where t.TxType in (306);
+where t.TxType in (307);

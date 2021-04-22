@@ -1,3 +1,9 @@
+// Copyright (c) 2009-2010 Satoshi Nakamoto
+// Copyright (c) 2009-2018 Bitcoin developers
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 
 #ifndef SRC_SCOREPOST_HPP
 #define SRC_SCOREPOST_HPP
@@ -12,7 +18,7 @@ namespace PocketTx
     public:
         ~ScorePost() = default;
 
-        ScorePost(const UniValue &src) : base(src)
+        ScorePost(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::SCORE_POST_ACTION);
 

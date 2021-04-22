@@ -12,7 +12,7 @@ namespace PocketTx
     public:
         ~ScoreComment() = default;
 
-        ScoreComment(const UniValue &src) : base(src)
+        ScoreComment(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::SCORE_COMMENT_ACTION);
 
