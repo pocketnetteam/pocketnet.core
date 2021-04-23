@@ -2777,7 +2777,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // compact blocks with less work than our tip, it is safe to treat
             // reconstructed compact blocks as having been requested.
             CValidationState state;
-            std::vector<PocketTx::Transaction*> pocketTxn;
+            std::vector<std::shared_ptr<PocketTx::Transaction>> pocketTxn;
             ProcessNewBlock(state, chainparams, pblock, pocketTxn, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
@@ -2876,7 +2876,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // protections in the compact block handler -- see related comment
             // in compact block optimistic reconstruction handling.
             CValidationState state;
-            std::vector<PocketTx::Transaction*> pocketTxn;
+            std::vector<std::shared_ptr<PocketTx::Transaction>> pocketTxn;
             ProcessNewBlock(state, chainparams, pblock, pocketTxn, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
@@ -2920,7 +2920,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         vRecv >> *pblock;
 
         // TODO (brangr): REINDEXER -> SQLITE
-        std::vector<PocketTx::Transaction*> pocketTxn;
+        std::vector<std::shared_ptr<PocketTx::Transaction>> pocketTxn;
         if (!vRecv.empty()) {
             std::string _data;
             vRecv >> _data;

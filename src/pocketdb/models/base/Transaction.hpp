@@ -11,149 +11,132 @@
 #include <univalue.h>
 #include <utility>
 #include <utilstrencodings.h>
+#include <crypto/sha256.h>
+#include "pocketdb/models/base/Base.hpp"
 
 namespace PocketTx
 {
-
-    enum PocketTxType
-    {
-        USER_ACCOUNT = 100,
-        VIDEO_SERVER_ACCOUNT = 101,
-        MESSAGE_SERVER_ACCOUNT = 102,
-
-        POST_CONTENT = 200,
-        VIDEO_CONTENT = 201,
-        TRANSLATE_CONTENT = 202,
-        SERVERPING_CONTENT = 203,
-        COMMENT_CONTENT = 204,
-
-        SCORE_POST_ACTION = 300,
-        SCORE_COMMENT_ACTION = 301,
-
-        SUBSCRIBE_ACTION = 302,
-        SUBSCRIBE_PRIVATE_ACTION = 303,
-        SUBSCRIBE_CANCEL_ACTION = 304,
-
-        BLOCKING_ACTION = 305,
-        BLOCKING_CANCEL_ACTION = 306,
-
-        COMPLAIN_ACTION = 307,
-    };
-
-    class Transaction
+    class Transaction : public Base
     {
     public:
 
-        Transaction(const UniValue &src)
+        Transaction() = default;
+
+        virtual void Deserialize(const UniValue &src)
         {
-            assert(src.exists("txid") && src["txid"].isStr());
-            SetTxId(src["txid"].get_str());
+            BuildPayload(src);
+            BuildHash(src);
 
-            assert(src.exists("time") && src["time"].isNum());
-            SetTxTime(src["time"].get_int64());
-
-            assert(src.exists("address") && src["address"].isStr());
-            SetAddress(src["address"].get_str());
+            if (auto[ok, val] = TryGetStr(src, "txid"); ok) SetTxId(val);
+            if (auto[ok, val] = TryGetInt64(src, "time"); ok) SetTxTime(val);
+            if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
         }
 
-        ~Transaction() {
-            // TODO (brangr): remove all pointers
-        }
-
-        std::string Serialize(const PocketTxType &txType)
+        string Serialize(const PocketTxType &txType)
         {
-            std::string data;
+            string data;
             // TODO (brangr): implement
 
             return data;
         }
 
-
-        PocketTxType *GetTxType() const { return m_txType; }
-
-        void SetTxType(PocketTxType value) { m_txType = new PocketTxType(value); }
-
-        std::string *GetTxId() const { return m_txId; }
-
-        void SetTxId(std::string value) { m_txId = new std::string(std::move(value)); }
-
-        int64_t *GetTxTime() const { return m_txTime; }
-
-        void SetTxTime(int64_t value) { m_txTime = new int64_t(value); }
-
-        //    int* GetBlock() const { return m_block; }
-        //    void SetBlock(int value) { m_block = &value; }
-
-        std::string *GetAddress() const { return m_address; }
-
-        void SetAddress(std::string value) { m_address = new std::string(std::move(value)); }
-
-        int64_t *GetInt1() const { return m_int1; }
-
-        void SetInt1(int64_t value) { m_int1 = new int64_t(value); }
-
-        int64_t *GetInt2() const { return m_int2; }
-
-        void SetInt2(int64_t value) { m_int2 = new int64_t(value); }
-
-        int64_t *GetInt3() const { return m_int3; }
-
-        void SetInt3(int64_t value) { m_int3 = new int64_t(value); }
-
-        int64_t *GetInt4() const { return m_int4; }
-
-        void SetInt4(int64_t value) { m_int4 = new int64_t(value); }
-
-        int64_t *GetInt5() const { return m_int5; }
-
-        void SetInt5(int64_t value) { m_int5 = new int64_t(value); }
+        bool IsValid() const
+        {
+            return m_txId &&
+                   m_txTime &&
+                   m_address;
+        }
 
 
-        std::string *GetString1() const { return m_string1; }
+        shared_ptr<PocketTxType> GetTxType() const { return m_txType; }
+        shared_ptr<int> GetTxTypeInt() const { return make_shared<int>((int) *m_txType); }
+        void SetTxType(PocketTxType value) { m_txType = make_shared<PocketTxType>(value); }
 
-        void SetString1(std::string value) { m_string1 = new std::string(std::move(value)); }
+        shared_ptr<string> GetTxId() const { return m_txId; }
+        void SetTxId(string value) { m_txId = make_shared<string>(value); }
 
-        std::string *GetString2() const { return m_string2; }
+        shared_ptr<int64_t> GetTxTime() const { return m_txTime; }
+        void SetTxTime(int64_t value) { m_txTime = make_shared<int64_t>(value); }
 
-        void SetString2(std::string value) { m_string2 = new std::string(std::move(value)); }
+        shared_ptr<int64_t> GetBlock() const { return m_block; }
+        void SetBlock(int64_t value) { m_block = make_shared<int64_t>(value); }
 
-        std::string *GetString3() const { return m_string3; }
+        shared_ptr<string> GetAddress() const { return m_address; }
+        void SetAddress(string value) { m_address = make_shared<string>(value); }
 
-        void SetString3(std::string value) { m_string3 = new std::string(std::move(value)); }
+        shared_ptr<int64_t> GetInt1() const { return m_int1; }
+        void SetInt1(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
-        std::string *GetString4() const { return m_string4; }
+        shared_ptr<int64_t> GetInt2() const { return m_int2; }
+        void SetInt2(int64_t value) { m_int2 = make_shared<int64_t>(value); }
 
-        void SetString4(std::string value) { m_string4 = new std::string(std::move(value)); }
+        shared_ptr<int64_t> GetInt3() const { return m_int3; }
+        void SetInt3(int64_t value) { m_int3 = make_shared<int64_t>(value); }
 
-        std::string *GetString5() const { return m_string5; }
+        shared_ptr<int64_t> GetInt4() const { return m_int4; }
+        void SetInt4(int64_t value) { m_int4 = make_shared<int64_t>(value); }
 
-        void SetString5(std::string value) { m_string5 = new std::string(std::move(value)); }
+        shared_ptr<int64_t> GetInt5() const { return m_int5; }
+        void SetInt5(int64_t value) { m_int5 = make_shared<int64_t>(value); }
 
 
-        std::string *GetPayload() const { return m_payload; }
-        bool HasPayload() const { return m_payload; };
+        shared_ptr<string> GetString1() const { return m_string1; }
+        void SetString1(string value) { m_string1 = make_shared<string>(value); }
 
-        void SetPayload(std::string value) { m_payload = new std::string(std::move(value)); }
+        shared_ptr<string> GetString2() const { return m_string2; }
+        void SetString2(string value) { m_string2 = make_shared<string>(value); }
+
+        shared_ptr<string> GetString3() const { return m_string3; }
+        void SetString3(string value) { m_string3 = make_shared<string>(value); }
+
+        shared_ptr<string> GetString4() const { return m_string4; }
+        void SetString4(string value) { m_string4 = make_shared<string>(value); }
+
+        shared_ptr<string> GetString5() const { return m_string5; }
+        void SetString5(string value) { m_string5 = make_shared<string>(value); }
+
+
+        shared_ptr<string> GetPayload() const { return m_payload; }
+        bool HasPayload() const { return m_payload && true; };
+        void SetPayload(string value) { m_payload = make_shared<string>(value); }
 
     protected:
-        PocketTxType *m_txType = nullptr;
-        std::string *m_txId = nullptr;
-        int64_t *m_txTime = nullptr;
-        std::string *m_address = nullptr;
+        shared_ptr<string> m_hash = nullptr;
 
-        int64_t *m_int1 = nullptr;
-        int64_t *m_int2 = nullptr;
-        int64_t *m_int3 = nullptr;
-        int64_t *m_int4 = nullptr;
-        int64_t *m_int5 = nullptr;
+        shared_ptr<PocketTxType> m_txType = nullptr;
+        shared_ptr<string> m_txId = nullptr;
+        shared_ptr<int64_t> m_block = nullptr;
+        shared_ptr<int64_t> m_txTime = nullptr;
+        shared_ptr<string> m_address = nullptr;
 
-        std::string *m_string1 = nullptr;
-        std::string *m_string2 = nullptr;
-        std::string *m_string3 = nullptr;
-        std::string *m_string4 = nullptr;
-        std::string *m_string5 = nullptr;
+        shared_ptr<int64_t> m_int1 = nullptr;
+        shared_ptr<int64_t> m_int2 = nullptr;
+        shared_ptr<int64_t> m_int3 = nullptr;
+        shared_ptr<int64_t> m_int4 = nullptr;
+        shared_ptr<int64_t> m_int5 = nullptr;
 
-        std::string *m_payload = nullptr;
+        shared_ptr<string> m_string1 = nullptr;
+        shared_ptr<string> m_string2 = nullptr;
+        shared_ptr<string> m_string3 = nullptr;
+        shared_ptr<string> m_string4 = nullptr;
+        shared_ptr<string> m_string5;
+
+        shared_ptr<string> m_payload = nullptr;
+
+        virtual void BuildPayload(const UniValue &src) = 0;
+        virtual void BuildHash(const UniValue &src) = 0;
+
+        void GenerateHash(string &dataSrc)
+        {
+            unsigned char hash[32] = {};
+            CSHA256().Write((const unsigned char *) dataSrc.data(), dataSrc.size()).Finalize(hash);
+            CSHA256().Write(hash, 32).Finalize(hash);
+            std::vector<unsigned char> vec(hash, hash + sizeof(hash));
+            m_hash = make_shared<string>(HexStr(vec));
+        }
+
+    private:
+
     };
 
 } // namespace PocketTx

@@ -7,26 +7,19 @@
 #ifndef POCKETTX_SUBSCRIBE_PRIVATE_HPP
 #define POCKETTX_SUBSCRIBE_PRIVATE_HPP
 
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/dto/Subscribe.hpp"
 
 namespace PocketTx
 {
 
-    class SubscribePrivate : public Transaction
+    class SubscribePrivate : public Subscribe
     {
     public:
-        ~SubscribePrivate() = default;
 
-        SubscribePrivate(const UniValue &src) : Transaction(src)
+        SubscribePrivate() : Subscribe()
         {
             SetTxType(PocketTxType::SUBSCRIBE_PRIVATE_ACTION);
-
-            assert(src.exists("address_to") && src["address_to"].isStr());
-            SetAddressTo(src["address_to"].get_str());
         }
-
-        [[nodiscard]] std::string* GetAddressTo() const { return m_string1; }
-        void SetAddressTo(std::string value) { m_string1 = new std::string(std::move(value)); }
     };
 
 } // namespace PocketTx

@@ -8,7 +8,6 @@
 #define POCKETTX_TRANSACTIONSERIALIZER_HPP
 
 #include "pocketdb/models/base/Transaction.hpp"
-#include "pocketdb/models/base/Payload.hpp"
 #include "pocketdb/models/dto/User.hpp"
 #include "pocketdb/models/dto/Post.hpp"
 #include "pocketdb/models/dto/Blocking.hpp"
@@ -69,9 +68,11 @@ public:
         
         if (strType == "Complains")
             return PocketTxType::COMPLAIN_ACTION;
+
+        return PocketTxType::NOT_SUPPORTED;
     }
 
-    static Transaction *BuildInstance(const UniValue &src)
+    static shared_ptr<Transaction> BuildInstance(const UniValue &src)
     {
         auto txTypeSrc = src["t"].get_str();
 
@@ -80,46 +81,64 @@ public:
         auto txJson = DecodeBase64(txDataBase64);
         txDataSrc.read(txJson);
 
+        shared_ptr<Transaction> tx;
         PocketTxType txType = ParseType(txTypeSrc, txDataSrc);
         switch (txType)
         {
             case USER_ACCOUNT:
-                return new User(txDataSrc);
+                tx = make_shared<User>();
+                break;
             case VIDEO_SERVER_ACCOUNT:
             case MESSAGE_SERVER_ACCOUNT:
-                return nullptr;
+                break;
             case POST_CONTENT:
-                return new Post(txDataSrc);
+                tx = make_shared<Post>();
+                break;
             case VIDEO_CONTENT:
             case TRANSLATE_CONTENT:
             case SERVERPING_CONTENT:
-                return nullptr;
+                break;
             case COMMENT_CONTENT:
-                return new Comment(txDataSrc);
+                tx = make_shared<Comment>();
+                break;
             case SCORE_POST_ACTION:
-                return new ScorePost(txDataSrc);
+                tx = make_shared<ScorePost>();
+                break;
             case SCORE_COMMENT_ACTION:
-                return new ScoreComment(txDataSrc);
+                tx = make_shared<ScoreComment>();
+                break;
             case SUBSCRIBE_ACTION:
-                return new Subscribe(txDataSrc);
+                tx = make_shared<Subscribe>();
+                break;
             case SUBSCRIBE_PRIVATE_ACTION:
-                return new SubscribePrivate(txDataSrc);
+                tx = make_shared<SubscribePrivate>();
+                break;
             case SUBSCRIBE_CANCEL_ACTION:
-                return new SubscribeCancel(txDataSrc);
+                tx = make_shared<SubscribeCancel>();
+                break;
             case BLOCKING_ACTION:
-                return new Blocking(txDataSrc);
+                tx = make_shared<Blocking>();
+                break;
             case BLOCKING_CANCEL_ACTION:
-                return new BlockingCancel(txDataSrc);
+                tx = make_shared<BlockingCancel>();
+                break;
             case COMPLAIN_ACTION:
-                return new Complain(txDataSrc);
+                tx = make_shared<Complain>();
+                break;
             default:
                 return nullptr;
         }
+
+        if (!tx)
+            return nullptr;
+
+        tx->Deserialize(txDataSrc);
+        return tx;
     }
 
-    static std::vector<PocketTx::Transaction *> DeserializeBlock(std::string &src)
+    static std::vector<shared_ptr<Transaction>> DeserializeBlock(std::string &src)
     {
-        std::vector<PocketTx::Transaction *> pocketTxn;
+        std::vector<shared_ptr<Transaction>> pocketTxn;
 
         UniValue pocketData(UniValue::VOBJ);
         pocketData.read(src);

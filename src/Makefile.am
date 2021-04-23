@@ -97,8 +97,8 @@ POCKETDB_HPP = \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/models/TransactionSerializer.hpp \
+    pocketdb/models/base/Base.hpp \
     pocketdb/models/base/Transaction.hpp \
-    pocketdb/models/base/Payload.hpp \
     pocketdb/models/dto/Post.hpp \
     pocketdb/models/dto/User.hpp \
     pocketdb/models/dto/ScorePost.hpp \

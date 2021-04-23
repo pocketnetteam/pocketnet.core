@@ -15,18 +15,31 @@ namespace PocketTx
     class Blocking : public Transaction
     {
     public:
-        ~Blocking() = default;
 
-        explicit Blocking(const UniValue &src) : Transaction(src)
+        Blocking() : Transaction()
         {
             SetTxType(PocketTxType::BLOCKING_ACTION);
-
-            assert(src.exists("address_to") && src["address_to"].isStr());
-            SetAddressTo(src["address_to"].get_str());
         }
 
-        [[nodiscard]] std::string* GetAddressTo() const { return m_string1; }
-        void SetAddressTo(std::string value) { m_string1 = new std::string(std::move(value)); }
+        void Deserialize(const UniValue &src) override {
+            Transaction::Deserialize(src);
+            if (auto[ok, val] = TryGetStr(src, "address_to"); ok) SetAddressTo(val);
+        }
+
+        shared_ptr<string> GetAddressTo() const { return m_string1; }
+        void SetAddressTo(std::string value) { m_string1 = make_shared<string>(value); }
+
+    private:
+
+        void BuildPayload(const UniValue &src) override { }
+
+        void BuildHash(const UniValue &src) override
+        {
+            std::string data;
+            if (auto[ok, val] = TryGetStr(src, "address_to"); ok) data += val;
+
+            Transaction::GenerateHash(data);
+        }
     };
 
 } // namespace PocketTx

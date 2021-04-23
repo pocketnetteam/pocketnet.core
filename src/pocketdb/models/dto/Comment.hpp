@@ -16,45 +16,54 @@ namespace PocketTx
     class Comment : public Transaction
     {
     public:
-        ~Comment() = default;
 
-        Comment(const UniValue &src) : Transaction(src)
+        Comment() : Transaction()
         {
             SetTxType(PocketTxType::COMMENT_CONTENT);
-
-            if (src.exists("lang"))
-                SetLang(src["lang"].get_str());
-
-            if (src.exists("otxid"))
-                SetRootTxId(src["otxid"].get_str());
-
-            if (src.exists("postid"))
-                SetPostTxId(src["postid"].get_str());
-
-            if (src.exists("parentid"))
-                SetParentTxId(src["parentid"].get_str());
-
-            if (src.exists("answerid"))
-                SetAnswerTxId(src["answerid"].get_str());
-
-            // TODO (brangr): set payload
         }
-        
 
-        [[nodiscard]] std::string* GetLang() const { return m_string1; }
-        void SetLang(std::string value) { m_string1 = new std::string(std::move(value)); }
+        void Deserialize(const UniValue& src) override {
+            Transaction::Deserialize(src);
+            if (auto[ok, val] = TryGetStr(src, "lang"); ok) SetLang(val);
+            if (auto[ok, val] = TryGetStr(src, "otxid"); ok) SetRootTxId(val);
+            if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxId(val);
+            if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxId(val);
+            if (auto[ok, val] = TryGetStr(src, "answerid"); ok) SetAnswerTxId(val);
+        }
 
-        [[nodiscard]] std::string* GetRootTxId() const { return m_string2; }
-        void SetRootTxId(std::string value) { m_string2 = new std::string(std::move(value)); }
+        shared_ptr<string> GetLang() const { return m_string1; }
+        void SetLang(std::string value) { m_string1 = make_shared<string>(value); }
 
-        [[nodiscard]] std::string* GetPostTxId() const { return m_string3; }
-        void SetPostTxId(std::string value) { m_string3 = new std::string(std::move(value)); }
+        shared_ptr<string> GetRootTxId() const { return m_string2; }
+        void SetRootTxId(std::string value) { m_string2 = make_shared<string>(value); }
 
-        [[nodiscard]] std::string* GetParentTxId() const { return m_string4; }
-        void SetParentTxId(std::string value) { m_string4 = new std::string(std::move(value)); }
+        shared_ptr<string> GetPostTxId() const { return m_string3; }
+        void SetPostTxId(std::string value) { m_string3 = make_shared<string>(value); }
 
-        [[nodiscard]] std::string* GetAnswerTxId() const { return m_string5; }
-        void SetAnswerTxId(std::string value) { m_string5 = new std::string(std::move(value)); }
+        shared_ptr<string> GetParentTxId() const { return m_string4; }
+        void SetParentTxId(std::string value) { m_string4 = make_shared<string>(value); }
+
+        shared_ptr<string> GetAnswerTxId() const { return m_string5; }
+        void SetAnswerTxId(std::string value) { m_string5 = make_shared<string>(value); }
+
+    private:
+
+        void BuildPayload(const UniValue &src) override
+        {
+            UniValue payload(UniValue::VOBJ);
+            if (auto[ok, val] = TryGetStr(src, "msg"); ok) payload.pushKV("msg", val);
+            SetPayload(payload.write());
+        }
+
+        void BuildHash(const UniValue &src) override
+        {
+            std::string data;
+            if (auto[ok, val] = TryGetStr(src, "postid"); ok) data += val;
+            if (auto[ok, val] = TryGetStr(src, "msg"); ok) data += val;
+            if (auto[ok, val] = TryGetStr(src, "parentid"); ok) data += val;
+            if (auto[ok, val] = TryGetStr(src, "answerid"); ok) data += val;
+            Transaction::GenerateHash(data);
+        }
     };
 
 } // namespace PocketTx
