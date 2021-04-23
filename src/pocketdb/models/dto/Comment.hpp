@@ -36,6 +36,8 @@ namespace PocketTx
 
             if (src.exists("answerid"))
                 SetAnswerTxId(src["answerid"].get_str());
+
+            // TODO (brangr): set payload
         }
         
 

@@ -21,118 +21,140 @@ namespace PocketDb
             SetupSqlStatements();
         }
 
-        void Insert(const Transaction *transaction)
+        bool Insert(const Transaction *transaction)
         {
-            if (!m_database.m_db)
-            {
-                throw std::runtime_error(strprintf("SQLiteDatabase: database didn't opened: %s\n"));
-            }
+            assert(m_database.m_db);
 
-            if (!TryBindInsertStatement(m_insert_stmt, transaction))
+            if (transaction)
             {
-                //TODO
-                return;
-            }
+                // First set transaction
+                auto result = TryBindInsertTransactionStatement(m_insert_transaction_stmt, transaction);
+                if (result)
+                    result = TryStepStatement(m_insert_transaction_stmt);
 
-            int res = sqlite3_step(m_insert_stmt);
-            if (res != SQLITE_ROW)
-            {
-                if (res != SQLITE_DONE)
+                sqlite3_clear_bindings(m_insert_transaction_stmt);
+                sqlite3_reset(m_insert_transaction_stmt);
+
+                // Second set payload if transaction inserted
+                if (result && transaction->HasPayload())
                 {
-                    LogPrintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
+                    result = TryBindInsertPayloadStatement(m_insert_payload_stmt, transaction);
+                    if (result)
+                        result = TryStepStatement(m_insert_transaction_stmt);
+
+                    sqlite3_clear_bindings(m_insert_payload_stmt);
+                    sqlite3_reset(m_insert_payload_stmt);
                 }
+
+                return result;
             }
 
-            sqlite3_clear_bindings(m_insert_stmt);
-            sqlite3_reset(m_insert_stmt);
+            return true;
         }
 
-        void BulkInsert(const std::vector<Transaction *> &transactions)
+        bool BulkInsert(const std::vector<Transaction *> &transactions)
         {
-            if (!m_database.m_db)
-            {
-                throw std::runtime_error(strprintf("SQLiteDatabase: database didn't opened: %s\n"));
-            }
+            assert(m_database.m_db);
 
             if (!m_database.BeginTransaction())
-            {
-                throw std::runtime_error(strprintf("SQLiteDatabase: can't begin transaction: %s\n"));
-            }
+                return false;
 
             try
             {
                 for (const auto &transaction : transactions)
                 {
-                    if (!TryBindInsertStatement(m_insert_stmt, transaction))
-                    {
-                        //TODO
-                        return;
-                    }
-
-                    int res = sqlite3_step(m_insert_stmt);
-                    if (res != SQLITE_ROW)
-                    {
-                        if (res != SQLITE_DONE)
-                        {
-                            LogPrintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
-                        }
-                    }
-
-                    sqlite3_reset(m_insert_stmt);
+                    if (!Insert(transaction))
+                        throw std::runtime_error(strprintf("SQLiteDatabase: can't insert in transaction\n"));
                 }
 
                 if (!m_database.CommitTransaction())
-                {
                     throw std::runtime_error(strprintf("SQLiteDatabase: can't commit transaction\n"));
-                }
+
             } catch (std::exception &ex)
             {
                 m_database.AbortTransaction();
+                return false;
             }
 
-            sqlite3_clear_bindings(m_insert_stmt);
-            sqlite3_reset(m_insert_stmt);
+            return true;
         }
 
-        void Delete(const std::string& id)
+        void Delete(const std::string &id)
         {
             if (!m_database.m_db)
             {
-                throw std::runtime_error(strprintf("SQLiteDatabase: database didn't opened: %s\n"));
+                throw std::runtime_error(strprintf("SQLiteDatabase: database didn't opened\n"));
             }
 
-            if (!TryBindStatementText(m_delete_stmt, 1, &id))
+            if (!TryBindStatementText(m_delete_transaction_stmt, 1, &id))
             {
                 //TODO
                 return;
             }
 
-            int res = sqlite3_step(m_delete_stmt);
+            int res = sqlite3_step(m_delete_transaction_stmt);
             if (res != SQLITE_DONE)
             {
                 LogPrintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
             }
 
-            sqlite3_clear_bindings(m_delete_stmt);
-            sqlite3_reset(m_delete_stmt);
+            sqlite3_clear_bindings(m_delete_transaction_stmt);
+            sqlite3_reset(m_delete_transaction_stmt);
         }
 
     private:
-        sqlite3_stmt *m_insert_stmt{nullptr};
-        sqlite3_stmt *m_delete_stmt{nullptr};
+        sqlite3_stmt *m_insert_transaction_stmt{nullptr};
+        sqlite3_stmt *m_delete_transaction_stmt{nullptr};
+
+        sqlite3_stmt *m_insert_payload_stmt{nullptr};
+        sqlite3_stmt *m_delete_payload_stmt{nullptr};
 
         void SetupSqlStatements()
         {
-            m_insert_stmt = SetupSqlStatement(
-                m_insert_stmt,
-                " INSERT INTO Transactions (TxType, TxId, TxTime, Address, Int1, Int2, Int3, Int4, Int5, String1, String2, String3, String4, String5)"
+            m_insert_transaction_stmt = SetupSqlStatement(
+                m_insert_transaction_stmt,
+                " INSERT INTO Transactions ("
+                "   TxType,"
+                "   TxId,"
+                "   TxTime,"
+                "   Address,"
+                "   Int1,"
+                "   Int2,"
+                "   Int3,"
+                "   Int4,"
+                "   Int5,"
+                "   String1,"
+                "   String2,"
+                "   String3,"
+                "   String4,"
+                "   String5)"
                 " SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?"
-                " WHERE not exists (select 1 from Transactions t where t.TxId=?);");
+                " WHERE not exists (select 1 from Transactions t where t.TxId = ?)"
+                " ;");
 
-            m_delete_stmt = SetupSqlStatement(m_delete_stmt, "DELETE FROM Transactions WHERE TxId = ?");
+            m_delete_transaction_stmt = SetupSqlStatement(
+                m_delete_transaction_stmt,
+                " DELETE FROM Transactions"
+                " WHERE TxId = ?"
+                " ;");
+
+            m_insert_payload_stmt = SetupSqlStatement(
+                m_insert_payload_stmt,
+                " INSERT INTO Payload ("
+                " TxID,"
+                " Data)"
+                " SELECT ?,?"
+                " WHERE not exists (select 1 from Payload p where p.TxId = ?)"
+                " ;");
+
+            m_delete_payload_stmt = SetupSqlStatement(
+                m_delete_payload_stmt,
+                " DELETE FROM PAYLOAD"
+                " WHERE TxId = ?"
+                " ;");
         }
 
-        static bool TryBindInsertStatement(sqlite3_stmt *stmt, const Transaction *transaction)
+        static bool TryBindInsertTransactionStatement(sqlite3_stmt *stmt, const Transaction *transaction)
         {
             if (TryBindStatementInt(stmt, 1, (int *) (transaction->GetTxType())) &&
                 TryBindStatementText(stmt, 2, transaction->GetTxId()) &&
@@ -155,6 +177,26 @@ namespace PocketDb
 
             //TODO reset bindings
             return false;
+        }
+
+        static bool TryBindInsertPayloadStatement(sqlite3_stmt *stmt, const Transaction *transaction)
+        {
+            if (TryBindStatementText(stmt, 1, transaction->GetTxId()) &&
+                TryBindStatementText(stmt, 2, transaction->GetPayload()))
+            {
+                return true;
+            }
+
+            //TODO reset bindings
+            return false;
+        }
+
+        bool TryStepStatement(sqlite3_stmt *stmt)
+        {
+            int res = sqlite3_step(stmt);
+            if (res != SQLITE_ROW && res != SQLITE_DONE)
+                LogPrintf("%s: Unable to execute statement: %s: %s\n", __func__, sqlite3_sql(stmt),
+                    sqlite3_errstr(res));
         }
     };
 

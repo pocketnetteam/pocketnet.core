@@ -35,6 +35,8 @@ namespace PocketTx
 
             if (src.exists("referrer"))
                 SetReferrer(src["referrer"].get_str());
+
+            // TODO (brangr): set payload
         }
 
 

@@ -17,7 +17,7 @@ namespace PocketTx
     public:
         ~Blocking() = default;
 
-        Blocking(const UniValue &src) : Transaction(src)
+        explicit Blocking(const UniValue &src) : Transaction(src)
         {
             SetTxType(PocketTxType::BLOCKING_ACTION);
 

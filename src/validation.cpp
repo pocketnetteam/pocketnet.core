@@ -51,7 +51,7 @@
 #include <univalue.h>
 
 // TODO (brangr): REINDEXER -> SQLITE
-#include "pocketdb/repositories/TransactionRepository.h"
+#include "pocketdb/repositories/TransactionRepository.hpp"
 //#include <antibot/antibot.h>
 //#include <index/addrindex.h>
 

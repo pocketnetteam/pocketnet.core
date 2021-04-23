@@ -28,6 +28,8 @@ namespace PocketTx
 
             if (src.exists("txidRepost"))
                 SetRelayTxId(src["txidRepost"].get_str());
+
+            // TODO (brangr): set payload
         }
 
         [[nodiscard]] std::string *GetLang() const { return m_string1; }

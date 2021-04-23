@@ -11,19 +11,19 @@ create table Transactions
     -- ScorePost.Value
     -- ScoreComment.Value
     -- Complain.Reason
-    Int1    int null,
+    Int1    int    null,
 
     -- User.Registration
-    Int2    int null,
+    Int2    int    null,
 
     -- Empty
-    Int3    int null,
+    Int3    int    null,
 
     -- Empty
-    Int4    int null,
+    Int4    int    null,
 
     -- Empty
-    Int5    int null,
+    Int5    int    null,
 
     -- User.Lang
     -- Post.Lang
@@ -116,7 +116,7 @@ drop table if exists Payload;
 create table Payload
 (
     TxId string not null,
-    Data blob   not null,
+    Data string not null,
 
     primary key (TxId)
 );
@@ -129,7 +129,7 @@ create table Utxo
     TxOut      int    not null,
     TxTime     int    not null,
     Block      int    not null,
-    BlockSpent int null,
+    BlockSpent int    null,
     Address    string not null,
     Amount     int    not null,
 
@@ -147,7 +147,6 @@ create table Ratings
 
     primary key (Block, RatingType, Key)
 );
-
 
 
 
@@ -208,7 +207,7 @@ select t.TxType,
        t.TxTime,
        c.Block,
        t.Address,
-       t.Int1 as Id,
+       t.Int1    as Id,
        t.String1 as Lang,
        t.String2 as RootTxId,
        t.String3 as RelayTxId
@@ -282,20 +281,20 @@ select t.TxType,
        t.TxTime,
        c.Block,
        t.Address,
-       t.Int1 as Value,
+       t.Int1    as Value,
        t.String1 as PostTxId
 from Transactions t
          left join Chain c on c.TxId = t.TxId
 where t.TxType in (300);
 
 drop view if exists ScoreComments;
-create view ScoreComment ass
+create view ScoreComment as
 select t.TxType,
        t.TxId,
        t.TxTime,
        c.Block,
        t.Address,
-       t.Int1 as Value,
+       t.Int1    as Value,
        t.String1 as CommentTxId
 from Transactions t
          left join Chain c on c.TxId = t.TxId
@@ -336,7 +335,7 @@ select t.TxType,
        c.Block,
        t.Address,
        t.String1 as AddressTo,
-       t.Int1 as Reason
+       t.Int1    as Reason
 from Transactions t
          left join Chain c on c.TxId = t.TxId
 where t.TxType in (307);
