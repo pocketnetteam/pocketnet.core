@@ -21,35 +21,30 @@ namespace PocketDb
             SetupSqlStatements();
         }
 
-        bool Insert(const shared_ptr<Transaction>& transaction)
+        bool Insert(const shared_ptr<Transaction> &transaction)
         {
             assert(m_database.m_db);
+            auto result = true;
 
-            if (transaction)
+            // First set transaction
+            if (TryBindInsertTransactionStatement(m_insert_transaction_stmt, transaction))
             {
-                // First set transaction
-                auto result = TryBindInsertTransactionStatement(m_insert_transaction_stmt, transaction);
-                if (result)
-                    result = TryStepStatement(m_insert_transaction_stmt);
+                result &= TryStepStatement(m_insert_transaction_stmt);
 
                 sqlite3_clear_bindings(m_insert_transaction_stmt);
                 sqlite3_reset(m_insert_transaction_stmt);
-
-                // Second set payload if transaction inserted
-                if (result && transaction->HasPayload())
-                {
-                    result = TryBindInsertPayloadStatement(m_insert_payload_stmt, transaction);
-                    if (result)
-                        result = TryStepStatement(m_insert_payload_stmt);
-
-                    sqlite3_clear_bindings(m_insert_payload_stmt);
-                    sqlite3_reset(m_insert_payload_stmt);
-                }
-
-                return result;
             }
 
-            return true;
+            // Second set payload
+            if (TryBindInsertPayloadStatement(m_insert_payload_stmt, transaction))
+            {
+                result &= TryStepStatement(m_insert_payload_stmt);
+
+                sqlite3_clear_bindings(m_insert_payload_stmt);
+                sqlite3_reset(m_insert_payload_stmt);
+            }
+
+            return result;
         }
 
         bool BulkInsert(const std::vector<shared_ptr<Transaction>> &transactions)
@@ -64,11 +59,11 @@ namespace PocketDb
                 for (const auto &transaction : transactions)
                 {
                     if (!Insert(transaction))
-                        throw std::runtime_error(strprintf("SQLiteDatabase: can't insert in transaction\n"));
+                        throw std::runtime_error(strprintf("%s: can't insert in transaction\n", __func__));
                 }
 
                 if (!m_database.CommitTransaction())
-                    throw std::runtime_error(strprintf("SQLiteDatabase: can't commit transaction\n"));
+                    throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));
 
             } catch (std::exception &ex)
             {
@@ -79,6 +74,7 @@ namespace PocketDb
             return true;
         }
 
+        // TODO (brangr): implement
         void Delete(const shared_ptr<std::string> &id)
         {
             if (!m_database.m_db)
@@ -157,50 +153,50 @@ namespace PocketDb
                 " ;");
         }
 
-        static bool TryBindInsertTransactionStatement(sqlite3_stmt *stmt, const shared_ptr<Transaction>& transaction)
+        static bool TryBindInsertTransactionStatement(sqlite3_stmt *stmt, const shared_ptr<Transaction> &transaction)
         {
-            if (TryBindStatementInt(stmt, 1, transaction->GetTxTypeInt()) &&
-                TryBindStatementText(stmt, 2, transaction->GetTxId()) &&
-                TryBindStatementInt64(stmt, 3, transaction->GetBlock()) &&
-                TryBindStatementInt64(stmt, 4, transaction->GetTxTime()) &&
-                TryBindStatementText(stmt, 5, transaction->GetAddress()) &&
-                TryBindStatementInt64(stmt, 6, transaction->GetInt1()) &&
-                TryBindStatementInt64(stmt, 7, transaction->GetInt2()) &&
-                TryBindStatementInt64(stmt, 8, transaction->GetInt3()) &&
-                TryBindStatementInt64(stmt, 9, transaction->GetInt4()) &&
-                TryBindStatementInt64(stmt, 10, transaction->GetInt5()) &&
-                TryBindStatementText(stmt, 11, transaction->GetString1()) &&
-                TryBindStatementText(stmt, 12, transaction->GetString2()) &&
-                TryBindStatementText(stmt, 13, transaction->GetString3()) &&
-                TryBindStatementText(stmt, 14, transaction->GetString4()) &&
-                TryBindStatementText(stmt, 15, transaction->GetString5()) &&
-                TryBindStatementText(stmt, 16, transaction->GetTxId()))
-            {
-                return true;
-            }
+            auto result = TryBindStatementInt(stmt, 1, transaction->GetTxTypeInt());
+            result &= TryBindStatementText(stmt, 2, transaction->GetTxId());
+            result &= TryBindStatementInt64(stmt, 3, transaction->GetTxOut());
+            result &= TryBindStatementInt64(stmt, 4, transaction->GetBlock());
+            result &= TryBindStatementInt64(stmt, 5, transaction->GetTxTime());
+            result &= TryBindStatementText(stmt, 6, transaction->GetAddress());
+            result &= TryBindStatementInt64(stmt, 7, transaction->GetInt1());
+            result &= TryBindStatementInt64(stmt, 8, transaction->GetInt2());
+            result &= TryBindStatementInt64(stmt, 9, transaction->GetInt3());
+            result &= TryBindStatementInt64(stmt, 10, transaction->GetInt4());
+            result &= TryBindStatementInt64(stmt, 11, transaction->GetInt5());
+            result &= TryBindStatementText(stmt, 12, transaction->GetString1());
+            result &= TryBindStatementText(stmt, 13, transaction->GetString2());
+            result &= TryBindStatementText(stmt, 14, transaction->GetString3());
+            result &= TryBindStatementText(stmt, 15, transaction->GetString4());
+            result &= TryBindStatementText(stmt, 16, transaction->GetString5());
+            result &= TryBindStatementText(stmt, 17, transaction->GetTxId());
 
-            //TODO reset bindings
-            return false;
+            if (!result)
+                sqlite3_clear_bindings(stmt);
+
+            return result;
         }
 
-        static bool TryBindInsertPayloadStatement(sqlite3_stmt *stmt, const shared_ptr<Transaction>& transaction)
+        static bool TryBindInsertPayloadStatement(sqlite3_stmt *stmt, const shared_ptr<Transaction> &transaction)
         {
-            if (TryBindStatementText(stmt, 1, transaction->GetTxId()) &&
-                TryBindStatementText(stmt, 2, transaction->GetPayload()) &&
-                TryBindStatementText(stmt, 3, transaction->GetTxId()))
-            {
-                return true;
-            }
+            auto result = TryBindStatementText(stmt, 1, transaction->GetTxId());
+            result &= TryBindStatementText(stmt, 2, transaction->GetPayload());
+            result &= TryBindStatementText(stmt, 3, transaction->GetTxId());
 
-            return false;
+            if (!result)
+                sqlite3_clear_bindings(stmt);
+
+            return result;
         }
 
         static bool TryStepStatement(sqlite3_stmt *stmt)
         {
             int res = sqlite3_step(stmt);
             if (res != SQLITE_ROW && res != SQLITE_DONE)
-                LogPrintf("%s: Unable to execute statement: %s: %s\n", __func__, sqlite3_sql(stmt),
-                    sqlite3_errstr(res));
+                LogPrintf("%s: Unable to execute statement: %s: %s\n",
+                    __func__, sqlite3_sql(stmt), sqlite3_errstr(res));
 
             return !(res != SQLITE_ROW && res != SQLITE_DONE);
         }

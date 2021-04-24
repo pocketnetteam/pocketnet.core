@@ -4,17 +4,17 @@ create table Transactions
     TxType  int    not null,
     TxId    string not null,
     Block   int    null,
+    TxOut   int    null,
     TxTime  int    not null,
     Address string not null,
 
-    -- User.Id
-    -- Post.Id
+    -- User.Registration
     -- ScorePost.Value
     -- ScoreComment.Value
     -- Complain.Reason
     Int1    int    null,
 
-    -- User.Registration
+    -- Empty
     Int2    int    null,
 
     -- Empty
@@ -146,9 +146,9 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
-       t.Int1    as Id,
-       t.Int2    as Registration,
+       t.Int1    as Registration,
        t.String1 as Lang,
        t.String2 as Name,
        t.String3 as Referrer
@@ -161,9 +161,9 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
-       t.Int1    as Id,
-       t.Int2    as Registration,
+       t.Int1    as Registration,
        t.String1 as Lang,
        t.String2 as Name
 from Transactions t
@@ -175,9 +175,9 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
-       t.Int1    as Id,
-       t.Int2    as Registration,
+       t.Int1    as Registration,
        t.String1 as Lang,
        t.String2 as Name
 from Transactions t
@@ -190,8 +190,8 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
-       t.Int1    as Id,
        t.String1 as Lang,
        t.String2 as RootTxId,
        t.String3 as RelayTxId
@@ -204,6 +204,7 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
        t.String1 as Lang,
        t.String2 as RootTxId,
@@ -217,6 +218,7 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
        t.String1 as Lang,
        t.String2 as RootTxId,
@@ -230,6 +232,7 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
        t.String1 as Lang,
        t.String2 as RootTxId,
@@ -243,6 +246,7 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
        t.String1 as Lang,
        t.String2 as RootTxId,
@@ -259,6 +263,7 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
        t.Int1    as Value,
        t.String1 as PostTxId
@@ -271,6 +276,7 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
        t.Int1    as Value,
        t.String1 as CommentTxId
@@ -284,6 +290,7 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
        t.String1 as AddressTo
 from Transactions t
@@ -296,6 +303,7 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
        t.String1 as AddressTo
 from Transactions t
@@ -308,8 +316,11 @@ select t.TxType,
        t.TxId,
        t.TxTime,
        t.Block,
+       t.TxOut,
        t.Address,
        t.String1 as AddressTo,
        t.Int1    as Reason
 from Transactions t
 where t.TxType in (307);
+
+vacuum;

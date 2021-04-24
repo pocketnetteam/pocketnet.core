@@ -32,7 +32,7 @@ namespace PocketDb
                 int ret = sqlite3_shutdown();
                 if (ret != SQLITE_OK)
                 {
-                    LogPrintf("SQLiteDatabase: Failed to shutdown SQLite: %s\n", sqlite3_errstr(ret));
+                    LogPrintf("%s: %d; Failed to shutdown SQLite: %s\n", __func__, ret, sqlite3_errstr(ret));
                 }
             }
         }
@@ -48,7 +48,7 @@ namespace PocketDb
             // invoked."
             // Assert that this is the case:
             assert(arg == nullptr);
-            LogPrintf("SQLite Error. Code: %d. Message: %s\n", code, msg);
+            LogPrintf("%s: %d; Message: %s\n", __func__, code, msg);
         }
 
     public:
@@ -68,22 +68,22 @@ namespace PocketDb
                 if (ret != SQLITE_OK)
                 {
                     throw std::runtime_error(
-                        strprintf("SQLiteDatabase: Failed to setup error log: %s\n", sqlite3_errstr(ret)));
+                        strprintf("%s: %sd Failed to setup error log: %s\n", __func__, ret, sqlite3_errstr(ret)));
                 }
                 // Force serialized threading mode
                 ret = sqlite3_config(SQLITE_CONFIG_SERIALIZED);
                 if (ret != SQLITE_OK)
                 {
                     throw std::runtime_error(
-                        strprintf("SQLiteDatabase: Failed to configure serialized threading mode: %s\n",
-                            sqlite3_errstr(ret)));
+                        strprintf("%s: %d; Failed to configure serialized threading mode: %s\n",
+                            __func__, ret, sqlite3_errstr(ret)));
                 }
             }
             int ret = sqlite3_initialize(); // This is a no-op if sqlite3 is already initialized
             if (ret != SQLITE_OK)
             {
                 throw std::runtime_error(
-                    strprintf("SQLiteDatabase: Failed to initialize SQLite: %s\n", sqlite3_errstr(ret)));
+                    strprintf("%s: %d; Failed to initialize SQLite: %s\n", __func__, ret, sqlite3_errstr(ret)));
             }
 
 
@@ -107,15 +107,15 @@ namespace PocketDb
                 //TryCreateDirectories(m_dir_path); //TODO
                 int ret = sqlite3_open_v2(m_file_path.c_str(), &m_db, flags, nullptr);
                 if (ret != SQLITE_OK)
-                    throw std::runtime_error(strprintf("SQLiteDatabase: Failed to open database: %s\n",
-                        sqlite3_errstr(ret)));
+                    throw std::runtime_error(strprintf("%s: %d; Failed to open database: %s\n",
+                        __func__, ret, sqlite3_errstr(ret)));
             }
 
             if (sqlite3_db_readonly(m_db, "main") != 0)
-                throw std::runtime_error("SQLiteDatabase: Database opened in readonly");
+                throw std::runtime_error("Database opened in readonly");
 
             if (sqlite3_exec(m_db, "PRAGMA journal_mode = wal;", nullptr, nullptr, nullptr) != 0)
-                throw std::runtime_error("SQLiteDatabase: Failed apply journal_mode = wal");
+                throw std::runtime_error("Failed apply journal_mode = wal");
 
             //    // Acquire an exclusive lock on the database
             //    // First change the locking mode to exclusive
@@ -189,7 +189,7 @@ namespace PocketDb
             if (res != SQLITE_OK)
             {
                 throw std::runtime_error(
-                    strprintf("SQLiteDatabase: Failed to close database: %s\n", sqlite3_errstr(res)));
+                    strprintf("%s: %d; Failed to close database: %s\n", __func__, res, sqlite3_errstr(res)));
             }
             m_db = nullptr;
         }
@@ -200,7 +200,7 @@ namespace PocketDb
             int res = sqlite3_exec(m_db, "BEGIN TRANSACTION", nullptr, nullptr, nullptr);
             if (res != SQLITE_OK)
             {
-                LogPrintf("SQLiteBatch: Failed to begin the transaction: %s\n", sqlite3_errstr(res));
+                LogPrintf("%s: %d; Failed to begin the transaction: %s\n", __func__, res, sqlite3_errstr(res));
             }
             return res == SQLITE_OK;
         }
@@ -211,7 +211,7 @@ namespace PocketDb
             int res = sqlite3_exec(m_db, "COMMIT TRANSACTION", nullptr, nullptr, nullptr);
             if (res != SQLITE_OK)
             {
-                LogPrintf("SQLiteBatch: Failed to commit the transaction: %s\n", sqlite3_errstr(res));
+                LogPrintf("%s: %d; Failed to commit the transaction: %s\n", __func__, res, sqlite3_errstr(res));
             }
             return res == SQLITE_OK;
         }
@@ -222,7 +222,7 @@ namespace PocketDb
             int res = sqlite3_exec(m_db, "ROLLBACK TRANSACTION", nullptr, nullptr, nullptr);
             if (res != SQLITE_OK)
             {
-                LogPrintf("SQLiteBatch: Failed to abort the transaction: %s\n", sqlite3_errstr(res));
+                LogPrintf("%s: %d; Failed to abort the transaction: %s\n", __func__, res, sqlite3_errstr(res));
             }
             return res == SQLITE_OK;
         }

@@ -61,6 +61,9 @@ namespace PocketTx
         shared_ptr<int64_t> GetBlock() const { return m_block; }
         void SetBlock(int64_t value) { m_block = make_shared<int64_t>(value); }
 
+        shared_ptr<int64_t> GetTxOut() const { return m_block; }
+        void SetTxOut(int64_t value) { m_txOut = make_shared<int64_t>(value); }
+
         shared_ptr<string> GetAddress() const { return m_address; }
         void SetAddress(string value) { m_address = make_shared<string>(value); }
 
@@ -106,6 +109,7 @@ namespace PocketTx
         shared_ptr<PocketTxType> m_txType = nullptr;
         shared_ptr<string> m_txId = nullptr;
         shared_ptr<int64_t> m_block = nullptr;
+        shared_ptr<int64_t> m_txOut = nullptr;
         shared_ptr<int64_t> m_txTime = nullptr;
         shared_ptr<string> m_address = nullptr;
 
