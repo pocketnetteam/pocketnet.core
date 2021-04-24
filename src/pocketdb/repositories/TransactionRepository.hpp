@@ -113,6 +113,7 @@ namespace PocketDb
                 "   TxType,"
                 "   TxId,"
                 "   Block,"
+                "   TxOut,"
                 "   TxTime,"
                 "   Address,"
                 "   Int1,"
@@ -125,7 +126,7 @@ namespace PocketDb
                 "   String3,"
                 "   String4,"
                 "   String5)"
-                " SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
+                " SELECT ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
                 " WHERE not exists (select 1 from Transactions t where t.TxId = ?)"
                 " ;");
 
@@ -157,8 +158,8 @@ namespace PocketDb
         {
             auto result = TryBindStatementInt(stmt, 1, transaction->GetTxTypeInt());
             result &= TryBindStatementText(stmt, 2, transaction->GetTxId());
-            result &= TryBindStatementInt64(stmt, 3, transaction->GetTxOut());
-            result &= TryBindStatementInt64(stmt, 4, transaction->GetBlock());
+            result &= TryBindStatementInt64(stmt, 3, transaction->GetBlock());
+            result &= TryBindStatementInt64(stmt, 4, transaction->GetTxOut());
             result &= TryBindStatementInt64(stmt, 5, transaction->GetTxTime());
             result &= TryBindStatementText(stmt, 6, transaction->GetAddress());
             result &= TryBindStatementInt64(stmt, 7, transaction->GetInt1());
@@ -182,7 +183,7 @@ namespace PocketDb
         static bool TryBindInsertPayloadStatement(sqlite3_stmt *stmt, const shared_ptr<Transaction> &transaction)
         {
             auto result = TryBindStatementText(stmt, 1, transaction->GetTxId());
-            result &= TryBindStatementText(stmt, 2, transaction->GetPayload());
+            result &= TryBindStatementText(stmt, 2, transaction->GetPayloadStr());
             result &= TryBindStatementText(stmt, 3, transaction->GetTxId());
 
             if (!result)

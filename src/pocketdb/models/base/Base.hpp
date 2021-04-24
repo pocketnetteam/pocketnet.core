@@ -47,7 +47,7 @@ namespace PocketTx
 
         static std::tuple<bool, string> TryGetStr(const UniValue &o, const string &key)
         {
-            auto exists = o.exists(key) && o[key].isStr();
+            auto exists = o.exists(key) && o[key].isStr() && o[key].get_str().size() > 0;
             if (exists)
                 return std::make_tuple(true, o[key].get_str());
 

@@ -30,15 +30,11 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrer(val);
         }
 
-
-        shared_ptr<int64_t> GetId() const { return m_int1; }
-        void SetId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+        shared_ptr<int64_t> GetRegistration() const { return m_int1; }
+        void SetRegistration(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
         shared_ptr<string> GetLang() const { return m_string1; }
         void SetLang(string value) { m_string1 = make_shared<string>(value); }
-
-        shared_ptr<int64_t> GetRegistration() const { return m_int2; }
-        void SetRegistration(int64_t value) { m_int2 = make_shared<int64_t>(value); }
 
         shared_ptr<string> GetName() const { return m_string2; }
         void SetName(std::string value) { m_string2 = make_shared<string>(value); }
@@ -58,14 +54,14 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "url"); ok) payload.pushKV("url", val);
             if (auto[ok, val] = TryGetStr(src, "pubkey"); ok) payload.pushKV("pubkey", val);
             if (auto[ok, val] = TryGetStr(src, "donations"); ok) payload.pushKV("donations", val);
-            SetPayload(payload.write());
+            SetPayload(payload);
         }
 
         void BuildHash(const UniValue &src) override
         {
             std::string data;
-            if (auto[ok, val] = TryGetInt64(src, "name"); ok) data += std::to_string(val);
-            if (auto[ok, val] = TryGetInt64(src, "url"); ok) data += std::to_string(val);
+            if (auto[ok, val] = TryGetStr(src, "name"); ok) data += val;
+            if (auto[ok, val] = TryGetStr(src, "url"); ok) data += val;
             if (auto[ok, val] = TryGetStr(src, "lang"); ok) data += val;
             if (auto[ok, val] = TryGetStr(src, "about"); ok) data += val;
             if (auto[ok, val] = TryGetStr(src, "avatar"); ok) data += val;

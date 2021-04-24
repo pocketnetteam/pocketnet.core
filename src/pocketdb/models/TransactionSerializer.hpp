@@ -133,6 +133,8 @@ public:
             return nullptr;
 
         tx->Deserialize(txDataSrc);
+        tx->BuildPayload(txDataSrc);
+        tx->BuildHash(txDataSrc);
         return tx;
     }
 

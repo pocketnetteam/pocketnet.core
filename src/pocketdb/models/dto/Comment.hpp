@@ -52,7 +52,7 @@ namespace PocketTx
         {
             UniValue payload(UniValue::VOBJ);
             if (auto[ok, val] = TryGetStr(src, "msg"); ok) payload.pushKV("msg", val);
-            SetPayload(payload.write());
+            SetPayload(payload);
         }
 
         void BuildHash(const UniValue &src) override

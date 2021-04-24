@@ -24,9 +24,6 @@ namespace PocketTx
 
         virtual void Deserialize(const UniValue &src)
         {
-            BuildPayload(src);
-            BuildHash(src);
-
             if (auto[ok, val] = TryGetStr(src, "txid"); ok) SetTxId(val);
             if (auto[ok, val] = TryGetInt64(src, "time"); ok) SetTxTime(val);
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
@@ -99,9 +96,19 @@ namespace PocketTx
         void SetString5(string value) { m_string5 = make_shared<string>(value); }
 
 
-        shared_ptr<string> GetPayload() const { return m_payload; }
-        bool HasPayload() const { return m_payload && true; };
-        void SetPayload(string value) { m_payload = make_shared<string>(value); }
+        shared_ptr<string> GetPayloadStr() const { return make_shared<string>(m_payload->write()); }
+        shared_ptr<UniValue> GetPayload() const { return m_payload; }
+        bool HasPayload() const { return !m_payload->empty(); };
+        void SetPayload(UniValue& value) { m_payload = make_shared<UniValue>(value); }
+        void SetPayload(string value)
+        {
+            UniValue payload(UniValue::VOBJ);
+            payload.read(value);
+            m_payload = make_shared<UniValue>(payload);
+        }
+
+        virtual void BuildPayload(const UniValue &src) = 0;
+        virtual void BuildHash(const UniValue &src) = 0;
 
     protected:
         shared_ptr<string> m_hash = nullptr;
@@ -125,10 +132,7 @@ namespace PocketTx
         shared_ptr<string> m_string4 = nullptr;
         shared_ptr<string> m_string5;
 
-        shared_ptr<string> m_payload = nullptr;
-
-        virtual void BuildPayload(const UniValue &src) = 0;
-        virtual void BuildHash(const UniValue &src) = 0;
+        shared_ptr<UniValue> m_payload = nullptr;
 
         void GenerateHash(string &dataSrc)
         {

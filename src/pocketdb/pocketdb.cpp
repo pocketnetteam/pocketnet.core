@@ -208,14 +208,15 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Posts", {"address", "hash", "string", IndexOpts()});
         db->AddIndex("Posts", {"type", "hash", "int", IndexOpts()}); // enum ContentType
         db->AddIndex("Posts", {"lang", "hash", "string", IndexOpts()});
+
         db->AddIndex("Posts", {"caption", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("Posts", {"caption_", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"message", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("Posts", {"message_", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"tags", "-", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"url", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"images", "-", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
-        db->AddIndex("Posts", {"settings", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"", "-", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"", "-", "string", IndexOpts().Array().SetCollateMode(CollateUTF8)});
+        db->AddIndex("Posts", {"", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
         db->AddIndex("Posts", {"scoreSum", "-", "int", IndexOpts()});
         db->AddIndex("Posts", {"scoreCnt", "-", "int", IndexOpts()});
         db->AddIndex("Posts", {"reputation", "-", "int", IndexOpts()});
