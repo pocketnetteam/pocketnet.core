@@ -96,9 +96,11 @@ POCKETDB_HPP = \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
-    pocketdb/models/TransactionSerializer.hpp \
+    pocketdb/services/TransactionSerializer.hpp \
+    pocketdb/services/BlockIndexer.hpp \
     pocketdb/models/base/Base.hpp \
     pocketdb/models/base/Transaction.hpp \
+    pocketdb/models/base/Block.hpp \
     pocketdb/models/dto/Post.hpp \
     pocketdb/models/dto/User.hpp \
     pocketdb/models/dto/ScorePost.hpp \

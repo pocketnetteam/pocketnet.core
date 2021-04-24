@@ -7,18 +7,18 @@
 #ifndef POCKETTX_TRANSACTIONSERIALIZER_HPP
 #define POCKETTX_TRANSACTIONSERIALIZER_HPP
 
-#include "pocketdb/models/base/Transaction.hpp"
-#include "pocketdb/models/dto/User.hpp"
-#include "pocketdb/models/dto/Post.hpp"
-#include "pocketdb/models/dto/Blocking.hpp"
-#include "pocketdb/models/dto/BlockingCancel.hpp"
-#include "pocketdb/models/dto/Comment.hpp"
-#include "pocketdb/models/dto/ScorePost.hpp"
-#include "pocketdb/models/dto/Subscribe.hpp"
-#include "pocketdb/models/dto/SubscribePrivate.hpp"
-#include "pocketdb/models/dto/SubscribeCancel.hpp"
-#include "pocketdb/models/dto/ScoreComment.hpp"
-#include "pocketdb/models/dto/Complain.hpp"
+#include "../models/base/Transaction.hpp"
+#include "../models/dto/User.hpp"
+#include "../models/dto/Post.hpp"
+#include "../models/dto/Blocking.hpp"
+#include "../models/dto/BlockingCancel.hpp"
+#include "../models/dto/Comment.hpp"
+#include "../models/dto/ScorePost.hpp"
+#include "../models/dto/Subscribe.hpp"
+#include "../models/dto/SubscribePrivate.hpp"
+#include "../models/dto/SubscribeCancel.hpp"
+#include "../models/dto/ScoreComment.hpp"
+#include "../models/dto/Complain.hpp"
 
 namespace PocketTx {
 

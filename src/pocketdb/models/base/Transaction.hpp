@@ -96,10 +96,18 @@ namespace PocketTx
         void SetString5(string value) { m_string5 = make_shared<string>(value); }
 
 
-        shared_ptr<string> GetPayloadStr() const { return make_shared<string>(m_payload->write()); }
+        shared_ptr<string> GetPayloadStr() const
+        {
+            if (!m_payload)
+                return nullptr;
+
+            return make_shared<string>(m_payload->write());
+        }
+
         shared_ptr<UniValue> GetPayload() const { return m_payload; }
-        bool HasPayload() const { return !m_payload->empty(); };
-        void SetPayload(UniValue& value) { m_payload = make_shared<UniValue>(value); }
+
+        bool HasPayload() const { return m_payload && !m_payload->empty(); };
+        void SetPayload(UniValue &value) { m_payload = make_shared<UniValue>(value); }
         void SetPayload(string value)
         {
             UniValue payload(UniValue::VOBJ);

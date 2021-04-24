@@ -3,6 +3,7 @@
 
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/repositories/BaseRepository.hpp"
+#include "pocketdb/models/base/Block.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 
 namespace PocketDb

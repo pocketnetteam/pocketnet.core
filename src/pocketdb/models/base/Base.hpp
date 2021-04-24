@@ -7,6 +7,8 @@
 #ifndef POCKETTX_BASE_HPP
 #define POCKETTX_BASE_HPP
 
+#include <univalue.h>
+
 namespace PocketTx
 {
     using std::string;
@@ -47,7 +49,7 @@ namespace PocketTx
 
         static std::tuple<bool, string> TryGetStr(const UniValue &o, const string &key)
         {
-            auto exists = o.exists(key) && o[key].isStr() && o[key].get_str().size() > 0;
+            auto exists = o.exists(key) && o[key].isStr();
             if (exists)
                 return std::make_tuple(true, o[key].get_str());
 
