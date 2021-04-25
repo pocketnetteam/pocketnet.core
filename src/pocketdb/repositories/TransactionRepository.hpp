@@ -37,7 +37,7 @@ namespace PocketDb
             }
 
             // Second set payload
-            if (TryBindInsertPayloadStatement(m_insert_payload_stmt, transaction))
+            if (transaction->HasPayload() && TryBindInsertPayloadStatement(m_insert_payload_stmt, transaction))
             {
                 result &= TryStepStatement(m_insert_payload_stmt);
 
