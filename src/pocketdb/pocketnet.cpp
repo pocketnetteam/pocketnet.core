@@ -6,7 +6,7 @@ namespace PocketDb
 {
     SQLiteDatabase SQLiteDbInst;
     TransactionRepository TransRepoInst(PocketDb::SQLiteDbInst);
-    BlockIndexer BlockIndexerInst();
+    BlockRepository BlockRepoInst(PocketDb::SQLiteDbInst);
 }
 
 bool IsPocketTX(const CTxOut& out) {

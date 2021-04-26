@@ -113,9 +113,9 @@ drop table if exists Utxo;
 create table Utxo
 (
     TxId       string not null,
+    Block      int    not null,
     TxOut      int    not null,
     TxTime     int    not null,
-    Block      int    not null,
     BlockSpent int    null,
     Address    string not null,
     Amount     int    not null,

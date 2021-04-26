@@ -12,7 +12,7 @@ namespace PocketDb
     protected:
         SQLiteDatabase &m_database;
 
-        static bool TryBindStatementText(sqlite3_stmt *stmt, int index, const shared_ptr<std::string> &value)
+        bool TryBindStatementText(sqlite3_stmt *stmt, int index, const shared_ptr<std::string> &value)
         {
             if (!value) return true;
 
@@ -25,7 +25,7 @@ namespace PocketDb
             return true;
         }
 
-        static bool TryBindStatementInt(sqlite3_stmt *stmt, int index, const shared_ptr<int> &value)
+        bool TryBindStatementInt(sqlite3_stmt *stmt, int index, const shared_ptr<int> &value)
         {
             if (!value) return true;
 
@@ -38,7 +38,7 @@ namespace PocketDb
             return true;
         }
 
-        static bool TryBindStatementInt64(sqlite3_stmt *stmt, int index, const shared_ptr<int64_t> &value)
+        bool TryBindStatementInt64(sqlite3_stmt *stmt, int index, const shared_ptr<int64_t> &value)
         {
             if (!value) return true;
 
@@ -52,7 +52,7 @@ namespace PocketDb
         }
 
 
-        static bool CheckValidResult(sqlite3_stmt *stmt, int result)
+        bool CheckValidResult(sqlite3_stmt *stmt, int result)
         {
             if (result != SQLITE_OK)
             {

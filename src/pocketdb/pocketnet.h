@@ -11,20 +11,21 @@
 #include <boost/algorithm/string.hpp>
 #include <pocketdb/services/BlockIndexer.hpp>
 #include <pocketdb/repositories/TransactionRepository.hpp>
+#include <pocketdb/repositories/BlockRepository.hpp>
 #include <util.h>
 
 
-namespace PocketDb {
-
-extern SQLiteDatabase SQLiteDbInst;
-extern TransactionRepository TransRepoInst;
-extern BlockIndexer BlockIndexerInst;
-
+namespace PocketDb
+{
+    extern SQLiteDatabase SQLiteDbInst;
+    extern TransactionRepository TransRepoInst;
+    extern BlockRepository BlockRepoInst;
 }; // namespace PocketDb
 
 
 // Antibot limits
-enum Limit {
+enum Limit
+{
     threshold_reputation,
     threshold_reputation_score,
     threshold_reputation_complains,
@@ -59,7 +60,7 @@ enum Limit {
     lottery_referral_depth
 };
 
-void FillLimits(const CChainParams& params);
+void FillLimits(const CChainParams &params);
 
 // Get actual limit for current height
 int64_t GetActualLimit(Limit type, int height);
@@ -97,23 +98,23 @@ int64_t GetActualLimit(Limit type, int height);
 
 
 // Check transaction type is pocketnet
-bool IsPocketTX(const CTxOut& out);
-bool IsPocketTX(const CTransaction& tx);
-bool IsPocketTX(const CTransactionRef& tx);
-std::string PocketTXType(const CTransactionRef& tx);
+bool IsPocketTX(const CTxOut &out);
+bool IsPocketTX(const CTransaction &tx);
+bool IsPocketTX(const CTransactionRef &tx);
+std::string PocketTXType(const CTransactionRef &tx);
 
 
 // Transaction type convert to reindexer table name
-bool ConvertOPToTableName(std::string op, std::string& ri_table);
+bool ConvertOPToTableName(std::string op, std::string &ri_table);
 
 
 // Checkpoints for blocks
-void FillCheckpointsBlocks(const CChainParams& params);
+void FillCheckpointsBlocks(const CChainParams &params);
 bool IsCheckpointBlock(int height, std::string hash);
 
 
 // Checkpoints for transactions
-void FillCheckpointsTransactions(const CChainParams& params);
+void FillCheckpointsTransactions(const CChainParams &params);
 bool IsCheckpointTransaction(std::string hash);
 
 //bool GetInputAddress(uint256 txhash, int n, std::string& address);
@@ -123,14 +124,14 @@ bool IsCheckpointTransaction(std::string hash);
 /*
     Find asm string with OP_RETURN for check type transaction
 */
-bool FindPocketNetAsmString(const CTransactionRef& tx, std::vector<std::string>& vasm);
-bool FindPocketNetAsmString(const CTransactionRef& tx, std::string& asmStr);
+bool FindPocketNetAsmString(const CTransactionRef &tx, std::vector<std::string> &vasm);
+bool FindPocketNetAsmString(const CTransactionRef &tx, std::string &asmStr);
 /*
     Return table name for transaction if is PocketNET transaction
 */
-bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table);
-bool IsPocketnetTransaction(const CTransactionRef& tx);
-bool IsPocketnetTransaction(const CTransaction& tx);
+bool GetPocketnetTXType(const CTransactionRef &tx, std::string &ri_table);
+bool IsPocketnetTransaction(const CTransactionRef &tx);
+bool IsPocketnetTransaction(const CTransaction &tx);
 
 
 #endif // POCKETNET_H

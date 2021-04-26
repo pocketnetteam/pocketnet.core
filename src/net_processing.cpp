@@ -2925,7 +2925,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             std::string _data;
             vRecv >> _data;
             if (!_data.empty())
-                pocketTxn = PocketTx::TransactionSerializer::DeserializeBlock(_data);
+                pocketTxn = PocketServices::TransactionSerializer::DeserializeBlock(_data);
         }
 
         std::string new_block_hash = pblock->GetHash().ToString();

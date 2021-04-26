@@ -51,7 +51,7 @@
 #include <univalue.h>
 
 // TODO (brangr): REINDEXER -> SQLITE
-#include "pocketdb/repositories/TransactionRepository.hpp"
+#include "pocketdb/pocketnet.h"
 //#include <antibot/antibot.h>
 //#include <index/addrindex.h>
 
@@ -2236,7 +2236,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // }
 
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
-    BlockIndexerInst->Index(block, pindex)
+    PocketServices::BlockIndexer::Index(block, pindex);
 
     //-----------------------------------------------------
     int64_t nTime4 = GetTimeMicros();

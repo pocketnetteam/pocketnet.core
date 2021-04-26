@@ -155,7 +155,7 @@ namespace PocketDb
                 " ;");
         }
 
-        static bool TryBindInsertTransactionStatement(sqlite3_stmt *stmt, const shared_ptr<Transaction> &transaction)
+        bool TryBindInsertTransactionStatement(sqlite3_stmt *stmt, const shared_ptr<Transaction> &transaction)
         {
             auto result = TryBindStatementInt(stmt, 1, transaction->GetTxTypeInt());
             result &= TryBindStatementText(stmt, 2, transaction->GetTxId());
@@ -181,7 +181,7 @@ namespace PocketDb
             return result;
         }
 
-        static bool TryBindInsertPayloadStatement(sqlite3_stmt *stmt, const shared_ptr<Transaction> &transaction)
+        bool TryBindInsertPayloadStatement(sqlite3_stmt *stmt, const shared_ptr<Transaction> &transaction)
         {
             auto result = TryBindStatementText(stmt, 1, transaction->GetTxId());
             result &= TryBindStatementText(stmt, 2, transaction->GetPayloadStr());
@@ -193,7 +193,7 @@ namespace PocketDb
             return result;
         }
 
-        static bool TryStepStatement(sqlite3_stmt *stmt)
+        bool TryStepStatement(sqlite3_stmt *stmt)
         {
             int res = sqlite3_step(stmt);
             if (res != SQLITE_ROW && res != SQLITE_DONE)
