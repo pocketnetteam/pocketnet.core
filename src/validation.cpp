@@ -2234,6 +2234,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     //         return false;
     //     }
     // }
+
+    // Block indexing (Utxo, Ratings, setting block & txout for transactions)
+    BlockIndexerInst->Index(block, pindex)
+
     //-----------------------------------------------------
     int64_t nTime4 = GetTimeMicros();
     nTimeVerify += nTime4 - nTime2;

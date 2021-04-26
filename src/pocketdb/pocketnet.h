@@ -9,6 +9,7 @@
 #include <sstream>
 
 #include <boost/algorithm/string.hpp>
+#include <pocketdb/services/BlockIndexer.hpp>
 #include <pocketdb/repositories/TransactionRepository.hpp>
 #include <util.h>
 
@@ -17,6 +18,7 @@ namespace PocketDb {
 
 extern SQLiteDatabase SQLiteDbInst;
 extern TransactionRepository TransRepoInst;
+extern BlockIndexer BlockIndexerInst;
 
 }; // namespace PocketDb
 
