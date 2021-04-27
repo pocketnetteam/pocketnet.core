@@ -119,10 +119,16 @@ namespace PocketDb
             return sqlite3_finalize(stmt);
         }
 
-        static std::string ReadString(sqlite3_stmt *stmt, int index)
+        static std::string GetColumnString(sqlite3_stmt *stmt, int index)
         {
             return std::string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, index)));
         }
+
+        static int64_t GetColumnInt64(sqlite3_stmt *stmt, int index)
+        {
+            return sqlite3_column_int64(stmt, index);
+        }
+
 
     public:
         explicit BaseRepository(SQLiteDatabase &db) :

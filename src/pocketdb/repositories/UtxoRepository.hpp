@@ -150,8 +150,8 @@ namespace PocketDb
                 while (sqlite3_step(m_select_top_stmt) == SQLITE_ROW)
                 {
                     UniValue utxo(UniValue::VOBJ);
-                    utxo.pushKV("address", ReadString(m_select_top_stmt, 0));
-                    utxo.pushKV("balance", sqlite3_column_int64(m_select_top_stmt, 1));
+                    utxo.pushKV("address", GetColumnString(m_select_top_stmt, 0));
+                    utxo.pushKV("balance", GetColumnInt64(m_select_top_stmt, 1));
                     result.push_back(utxo);
                 }
             } catch (std::exception &ex)
