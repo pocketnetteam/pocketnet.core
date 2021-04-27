@@ -1,3 +1,9 @@
+// Copyright (c) 2009-2010 Satoshi Nakamoto
+// Copyright (c) 2009-2018 Bitcoin developers
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 #ifndef POCKETDB_BASEREPOSITORY_HPP
 #define POCKETDB_BASEREPOSITORY_HPP
 
@@ -12,11 +18,34 @@ namespace PocketDb
     protected:
         SQLiteDatabase &m_database;
 
+        bool TryStepStatement(sqlite3_stmt *stmt)
+        {
+            int res = sqlite3_step(stmt);
+            if (res != SQLITE_ROW && res != SQLITE_DONE)
+                LogPrintf("%s: Unable to execute statement: %s: %s\n",
+                    __func__, sqlite3_sql(stmt), sqlite3_errstr(res));
+
+            return !(res != SQLITE_ROW && res != SQLITE_DONE);
+        }
+
         bool TryBindStatementText(sqlite3_stmt *stmt, int index, const shared_ptr<std::string> &value)
         {
             if (!value) return true;
 
             int res = sqlite3_bind_text(stmt, index, value->c_str(), (int) value->size(), SQLITE_STATIC);
+            if (!CheckValidResult(stmt, res))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        bool TryBindStatementInt(sqlite3_stmt *stmt, int index, int value)
+        {
+            if (!value) return true;
+
+            int res = sqlite3_bind_int(stmt, index, value);
             if (!CheckValidResult(stmt, res))
             {
                 return false;

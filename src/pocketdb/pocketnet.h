@@ -7,19 +7,19 @@
 #include <chainparams.h>
 #include <core_io.h>
 #include <sstream>
-
-#include <boost/algorithm/string.hpp>
-#include <pocketdb/services/BlockIndexer.hpp>
-#include <pocketdb/repositories/TransactionRepository.hpp>
-#include <pocketdb/repositories/BlockRepository.hpp>
 #include <util.h>
 
+#include <boost/algorithm/string.hpp>
+#include <pocketdb/repositories/TransactionRepository.hpp>
+#include <pocketdb/repositories/BlockRepository.hpp>
+#include <pocketdb/repositories/UtxoRepository.hpp>
 
 namespace PocketDb
 {
     extern SQLiteDatabase SQLiteDbInst;
     extern TransactionRepository TransRepoInst;
     extern BlockRepository BlockRepoInst;
+    extern UtxoRepository UtxoRepoInst;
 }; // namespace PocketDb
 
 

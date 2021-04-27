@@ -50,10 +50,8 @@
 #include <boost/thread.hpp>
 #include <univalue.h>
 
-// TODO (brangr): REINDEXER -> SQLITE
 #include "pocketdb/pocketnet.h"
-//#include <antibot/antibot.h>
-//#include <index/addrindex.h>
+#include "pocketdb/services/BlockIndexer.hpp"
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 std::map<std::string, WSUser> WSConnections;
@@ -1668,6 +1666,9 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
+    // Rollback PocketDb
+    fClean &= PocketDb::BlockRepoInst.BulkRollback(pindex->nHeight);
+
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }
 
@@ -2236,7 +2237,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // }
 
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
-    PocketServices::BlockIndexer::Index(block, pindex);
+    PocketServices::BlockIndexer::Index(block, pindex->nHeight);
 
     //-----------------------------------------------------
     int64_t nTime4 = GetTimeMicros();
@@ -2504,12 +2505,12 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         bool flushed = view.Flush();
         assert(flushed);
     }
+
     LogPrint(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * MILLI);
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
 
-    // TODO (brangr): merge disconnectTip and rollbackDB
     if (disconnectpool) {
         // Save transactions to re-add to mempool at end of reorg
         for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it) {
@@ -2524,16 +2525,6 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     }
 
     chainActive.SetTip(pindexDelete->pprev);
-
-    // TODO (brangr): REINDEXER -> SQLITE
-    // Fix RI tables - clear RI DB from best block height
-//    if (g_addrindex->RollbackDB(chainActive.Height(), true)) {
-//        LogPrintf("RIDB rollback to block height %d success!\n", chainActive.Height());
-//    } else {
-//        LogPrintf("Error: RIDB rollback failed!\n");
-//        return false;
-//    }
-
     UpdateTip(pindexDelete->pprev, chainparams);
 
     // Let wallets know transactions went from 1-confirmed to
@@ -4422,8 +4413,7 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams,
         if (ret) {
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
 
-            // TODO (brangr): save transactions to DB
-            if (!pocketTxn.empty())
+            if (ret && !pocketTxn.empty())
                 PocketDb::TransRepoInst.BulkInsert(pocketTxn);
         }
 

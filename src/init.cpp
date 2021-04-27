@@ -255,10 +255,8 @@ void Shutdown()
     }
     g_wallet_init_interface.Stop();
 
-    // Stoping reindexer DB
-    // TODO (brangr): REINDEXER -> SQLITE
-    // g_pocketdb->~PocketDB();
-    // LogPrintf("Close reindexer DB\n");
+    // Stoping Pocket Db
+    PocketDb::SQLiteDbInst.Close();
 
 #if ENABLE_ZMQ
     if (g_zmq_notification_interface) {
@@ -665,13 +663,11 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
 
         // -reindex
         if (fReindex) {
-            // TODO (brangr): REINDEXER -> SQLITE
-            //            // Clear ratings for clear reindexing
-            //            g_pocketdb->DropTable("UserRatings");
-            //            g_pocketdb->DropTable("PostRatings");
-            //            g_pocketdb->DropTable("CommentRatings");
-            //            g_pocketdb->DropTable("UTXO");
-            //            LogPrintf("Rating tables cleared\n");
+
+            // Clear all calculating pocket tables
+            // TODO (brangr): clear ratings
+            PocketDb::UtxoRepoInst.ClearAll();
+            LogPrintf("PocketDb tables cleared\n");
 
             int nFile = 0;
             while (true) {
@@ -1408,6 +1404,8 @@ bool AppInitMain()
         (GetDataDir() / "pocketdb" / "main.sqlite3").string());
 
     PocketDb::TransRepoInst.Init();
+    PocketDb::BlockRepoInst.Init();
+    PocketDb::UtxoRepoInst.Init();
 
     // ********************************************************* Step 4.2: Start AddrIndex
     //g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());

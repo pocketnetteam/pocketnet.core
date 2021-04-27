@@ -1,9 +1,14 @@
+// Copyright (c) 2009-2010 Satoshi Nakamoto
+// Copyright (c) 2009-2018 Bitcoin developers
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 #ifndef POCKETDB_BLOCKREPOSITORY_HPP
 #define POCKETDB_BLOCKREPOSITORY_HPP
 
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/repositories/BaseRepository.hpp"
-#include "pocketdb/models/base/Utxo.hpp"
 
 namespace PocketDb
 {
@@ -21,23 +26,7 @@ namespace PocketDb
             SetupSqlStatements();
         }
 
-        bool Insert(const shared_ptr<Utxo> &utxo)
-        {
-            assert(m_database.m_db);
-            auto result = true;
-
-            if (TryBindInsertUtxoStatement(m_insert_utxo_stmt, utxo))
-            {
-                result &= TryStepStatement(m_insert_utxo_stmt);
-
-                sqlite3_clear_bindings(m_insert_utxo_stmt);
-                sqlite3_reset(m_insert_utxo_stmt);
-            }
-
-            return result;
-        }
-
-        bool BulkInsert(const std::vector<shared_ptr<Utxo>> &utxos)
+        bool BulkRollback(int height)
         {
             assert(m_database.m_db);
 
@@ -46,14 +35,13 @@ namespace PocketDb
 
             try
             {
-                for (const auto &utxo : utxos)
-                {
-                    if (!Insert(utxo))
-                        throw std::runtime_error(strprintf("%s: can't insert in Utxo\n", __func__));
-                }
+                if (!TryBindRollbackStatement(height) || !TryStepStatement(m_rollback_stmt))
+                    throw std::runtime_error(strprintf("%s: can't step rollback block %d\n", __func__, height));
+                sqlite3_clear_bindings(m_rollback_stmt);
+                sqlite3_reset(m_rollback_stmt);
 
                 if (!m_database.CommitTransaction())
-                    throw std::runtime_error(strprintf("%s: can't commit Utxo\n", __func__));
+                    throw std::runtime_error(strprintf("%s: can't commit rollback block\n", __func__));
 
             } catch (std::exception &ex)
             {
@@ -64,69 +52,33 @@ namespace PocketDb
             return true;
         }
 
-        bool BulkSpentUtxo(const std::vector<shared_ptr<Utxo>> &utxos)
-        {
-            // TODO (joni): update SpentBlock for utxo records
-        }
-
     private:
-        sqlite3_stmt *m_insert_utxo_stmt{nullptr};
-        sqlite3_stmt *m_spent_utxo_stmt{nullptr};
+        sqlite3_stmt *m_rollback_stmt{nullptr};
 
         void SetupSqlStatements()
         {
-            m_insert_utxo_stmt = SetupSqlStatement(
-                m_insert_utxo_stmt,
-                " INSERT INTO Utxo ("
-                "   TxId,"
-                "   Block,"
-                "   TxOut,"
-                "   TxTime,"
-                "   Address,"
-                "   BlockSpent,"
-                "   Amount"
-                " )"
-                " SELECT ?,?,?,?,?,?,?"
-                " WHERE not exists (select 1 from Transactions t where t.TxId = ? and t.TxOut = ?)"
-                " ;");
-
-            // TODO (joni): ...
+            m_rollback_stmt = SetupSqlStatement(
+                m_rollback_stmt,
+                " update Transactions set"
+                "   Block = null,"
+                "   TxOut = null"
+                " where Block >= ?;"
+                " "
+                " delete from Utxo where Block >= ?;"
+                " delete from Ratings where Block >= ?;"
+            );
         }
 
-        bool TryBindInsertUtxoStatement(sqlite3_stmt *stmt, const shared_ptr<Utxo> &utxo)
+        bool TryBindRollbackStatement(int height)
         {
-//            auto result = TryBindStatementInt(stmt, 1, transaction->GetTxTypeInt());
-//            result &= TryBindStatementText(stmt, 2, transaction->GetTxId());
-//            result &= TryBindStatementInt64(stmt, 3, transaction->GetBlock());
-//            result &= TryBindStatementInt64(stmt, 4, transaction->GetTxOut());
-//            result &= TryBindStatementInt64(stmt, 5, transaction->GetTxTime());
-//            result &= TryBindStatementText(stmt, 6, transaction->GetAddress());
-//            result &= TryBindStatementInt64(stmt, 7, transaction->GetInt1());
-//            result &= TryBindStatementInt64(stmt, 8, transaction->GetInt2());
-//            result &= TryBindStatementInt64(stmt, 9, transaction->GetInt3());
-//            result &= TryBindStatementInt64(stmt, 10, transaction->GetInt4());
-//            result &= TryBindStatementInt64(stmt, 11, transaction->GetInt5());
-//            result &= TryBindStatementText(stmt, 12, transaction->GetString1());
-//            result &= TryBindStatementText(stmt, 13, transaction->GetString2());
-//            result &= TryBindStatementText(stmt, 14, transaction->GetString3());
-//            result &= TryBindStatementText(stmt, 15, transaction->GetString4());
-//            result &= TryBindStatementText(stmt, 16, transaction->GetString5());
-//            result &= TryBindStatementText(stmt, 17, transaction->GetTxId());
-//
-//            if (!result)
-//                sqlite3_clear_bindings(stmt);
-//
-//            return result;
-        }
+            auto result = TryBindStatementInt(m_rollback_stmt, 1, height);
+            result &= TryBindStatementInt(m_rollback_stmt, 2, height);
+            result &= TryBindStatementInt(m_rollback_stmt, 3, height);
 
-        bool TryStepStatement(sqlite3_stmt *stmt)
-        {
-            int res = sqlite3_step(stmt);
-            if (res != SQLITE_ROW && res != SQLITE_DONE)
-                LogPrintf("%s: Unable to execute statement: %s: %s\n",
-                    __func__, sqlite3_sql(stmt), sqlite3_errstr(res));
+            if (!result)
+                sqlite3_clear_bindings(m_rollback_stmt);
 
-            return !(res != SQLITE_ROW && res != SQLITE_DONE);
+            return result;
         }
     };
 

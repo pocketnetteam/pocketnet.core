@@ -28,7 +28,7 @@ namespace PocketTx
         shared_ptr<int64_t> GetBlock() const { return m_block; }
         void SetBlock(int64_t value) { m_block = make_shared<int64_t>(value); }
 
-        shared_ptr<int64_t> GetTxOut() const { return m_block; }
+        shared_ptr<int64_t> GetTxOut() const { return m_txOut; }
         void SetTxOut(int64_t value) { m_txOut = make_shared<int64_t>(value); }
 
         shared_ptr<int64_t> GetTxTime() const { return m_txTime; }
