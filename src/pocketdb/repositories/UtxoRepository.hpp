@@ -138,6 +138,9 @@ namespace PocketDb
 
             UniValue result(UniValue::VARR);
 
+            if (ShutdownRequested())
+                return false;
+
             if (!TryBindStatementInt(m_select_top_stmt, 0, count))
                 return result;
 
