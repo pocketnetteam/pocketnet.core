@@ -23,21 +23,35 @@ namespace PocketDb
 
         void Init() override
         {
-            m_rollback_stmt = SetupSqlStatement(
-                m_rollback_stmt,
+            m_rollback_transactions_stmt = SetupSqlStatement(
+                m_rollback_transactions_stmt,
                 " update Transactions set"
                 "   Block = null,"
                 "   TxOut = null"
-                " where Block >= ?;"
-                " "
-                " delete from Utxo where Block >= ?;"
-                " delete from Ratings where Block >= ?;"
+                " where Block >= ?"
+                " ;"
+            );
+
+            m_rollback_utxo_stmt = SetupSqlStatement(
+                m_rollback_utxo_stmt,
+                " delete from Utxo"
+                " where Block >= ?"
+                " ;"
+            );
+
+            m_rollback_ratings_stmt = SetupSqlStatement(
+                m_rollback_ratings_stmt,
+                " delete from Ratings"
+                " where Block >= ?"
+                " ;"
             );
         }
 
         void Destroy() override
         {
-            FinalizeSqlStatement(m_rollback_stmt);
+            FinalizeSqlStatement(m_rollback_transactions_stmt);
+            FinalizeSqlStatement(m_rollback_utxo_stmt);
+            FinalizeSqlStatement(m_rollback_ratings_stmt);
         }
 
         bool BulkRollback(int height)
@@ -52,10 +66,22 @@ namespace PocketDb
 
             try
             {
-                if (!TryBindRollbackStatement(height) || !TryStepStatement(m_rollback_stmt))
+                auto result =TryBindRollbackStatement(height);
+
+                result &= TryStepStatement(m_rollback_transactions_stmt);
+                sqlite3_clear_bindings(m_rollback_transactions_stmt);
+                sqlite3_reset(m_rollback_transactions_stmt);
+
+                result &= TryStepStatement(m_rollback_utxo_stmt);
+                sqlite3_clear_bindings(m_rollback_utxo_stmt);
+                sqlite3_reset(m_rollback_utxo_stmt);
+
+                result &= TryStepStatement(m_rollback_ratings_stmt);
+                sqlite3_clear_bindings(m_rollback_ratings_stmt);
+                sqlite3_reset(m_rollback_ratings_stmt);
+
+                if (!result)
                     throw std::runtime_error(strprintf("%s: can't step rollback block %d\n", __func__, height));
-                sqlite3_clear_bindings(m_rollback_stmt);
-                sqlite3_reset(m_rollback_stmt);
 
                 if (!m_database.CommitTransaction())
                     throw std::runtime_error(strprintf("%s: can't commit rollback block\n", __func__));
@@ -70,16 +96,22 @@ namespace PocketDb
         }
 
     private:
-        sqlite3_stmt *m_rollback_stmt{nullptr};
+        sqlite3_stmt *m_rollback_transactions_stmt{nullptr};
+        sqlite3_stmt *m_rollback_utxo_stmt{nullptr};
+        sqlite3_stmt *m_rollback_ratings_stmt{nullptr};
 
         bool TryBindRollbackStatement(int height)
         {
-            auto result = TryBindStatementInt(m_rollback_stmt, 1, height);
-            result &= TryBindStatementInt(m_rollback_stmt, 2, height);
-            result &= TryBindStatementInt(m_rollback_stmt, 3, height);
+            auto result = TryBindStatementInt(m_rollback_transactions_stmt, 1, height);
+            result &= TryBindStatementInt(m_rollback_utxo_stmt, 1, height);
+            result &= TryBindStatementInt(m_rollback_ratings_stmt, 1, height);
 
             if (!result)
-                sqlite3_clear_bindings(m_rollback_stmt);
+            {
+                sqlite3_clear_bindings(m_rollback_transactions_stmt);
+                sqlite3_clear_bindings(m_rollback_utxo_stmt);
+                sqlite3_clear_bindings(m_rollback_ratings_stmt);
+            }
 
             return result;
         }

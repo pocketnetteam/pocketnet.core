@@ -139,18 +139,6 @@ create table Ratings
     primary key (Block, RatingType, Key)
 );
 
---------------------------------------------
-drop table if exists Addresses;
-create table Addresses
-(
-    Address not null,
-    Block      int not null,
-    Key        int not null,
-    Value      int not null,
-
-    primary key (Block, RatingType, Key)
-);
-
 
 --------------------------------------------
 --                VIEWS                   --

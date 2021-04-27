@@ -34,6 +34,7 @@ namespace PocketDb
             FinalizeSqlStatement(m_clear_all_stmt);
             FinalizeSqlStatement(m_insert_stmt);
             FinalizeSqlStatement(m_spent_stmt);
+            FinalizeSqlStatement(m_select_top_stmt);
         }
 
         bool ClearAll()
@@ -132,48 +133,35 @@ namespace PocketDb
             return true;
         }
 
-        UniValue SelectTopUtxo(int count)
+        tuple<bool, UniValue> SelectTopAddresses(int count)
         {
-            assert(m_database.m_db);
-
             UniValue result(UniValue::VARR);
 
             if (ShutdownRequested())
-                return false;
+                return make_tuple(false, result);
 
-            if (!TryBindStatementInt(m_select_top_stmt, 0, count))
-                return result;
+            assert(m_database.m_db);
 
             try
             {
-                auto res = sqlite3_step(m_select_top_stmt);
-                if (res != SQLITE_ROW)
-                {
-                    if (res != SQLITE_DONE)
-                    {
-                        return result;
-                    }
-                }
+                if (!TryBindStatementInt(m_select_top_stmt, 1, count))
+                    return make_tuple(false, result);
 
-                while(sqlite3_column_text(m_select_top_stmt, 0))
+                while (sqlite3_step(m_select_top_stmt) == SQLITE_ROW)
                 {
                     UniValue utxo(UniValue::VOBJ);
-                    utxo.pushKV("address", sqlite3_column_text(m_select_top_stmt, 0));
-                    utxo.pushKV("balance", sqlite3_column_int(m_select_top_stmt, 1));
-
+                    utxo.pushKV("address", ReadString(m_select_top_stmt, 0));
+                    utxo.pushKV("balance", sqlite3_column_int64(m_select_top_stmt, 1));
                     result.push_back(utxo);
-
-                    sqlite3_step(m_select_top_stmt);
                 }
             } catch (std::exception &ex)
             {
-                return result;
+                return make_tuple(false, result);
             }
 
             sqlite3_clear_bindings(m_select_top_stmt);
             sqlite3_reset(m_select_top_stmt);
-
-            return result;
+            return make_tuple(true, result);
         }
 
     private:
@@ -216,12 +204,15 @@ namespace PocketDb
 
             m_select_top_stmt = SetupSqlStatement(
                 m_select_top_stmt,
-                "SELECT u.Address, SUM(u.Amount)Balance"
-                "FROM Utxo u"
-                "WHERE u.BlockSpent is null"
-                "GROUP BY u.Address"
-                "ORDER BY sum(u.Amount) desc"
-                "LIMIT ?"
+                " SELECT"
+                "   u.Address,"
+                "   SUM(u.Amount)Balance"
+                " FROM Utxo u"
+                " WHERE u.BlockSpent is null"
+                " GROUP BY u.Address"
+                " ORDER BY sum(u.Amount) desc"
+                " LIMIT ?"
+                " ;"
             );
         }
 

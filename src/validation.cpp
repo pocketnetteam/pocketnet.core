@@ -4407,14 +4407,14 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams,
         ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
 
         // TODO (brangr): check pocket transactions
-
+        //
 
         // Store to disk
         if (ret) {
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
 
             if (ret && !pocketTxn.empty())
-                PocketDb::TransRepoInst.BulkInsert(pocketTxn);
+                ret = PocketDb::TransRepoInst.BulkInsert(pocketTxn);
         }
 
         // Check FAILED

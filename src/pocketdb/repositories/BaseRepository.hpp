@@ -7,18 +7,21 @@
 #ifndef POCKETDB_BASEREPOSITORY_HPP
 #define POCKETDB_BASEREPOSITORY_HPP
 
+#include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.hpp"
 
 namespace PocketDb
 {
     using std::shared_ptr;
+    using std::tuple;
+    using std::make_tuple;
 
     class BaseRepository
     {
     protected:
         SQLiteDatabase &m_database;
 
-        bool TryStepStatement(sqlite3_stmt *stmt)
+        static bool TryStepStatement(sqlite3_stmt *stmt)
         {
             int res = sqlite3_step(stmt);
             if (res != SQLITE_ROW && res != SQLITE_DONE)
@@ -81,7 +84,7 @@ namespace PocketDb
         }
 
 
-        bool CheckValidResult(sqlite3_stmt *stmt, int result)
+        static bool CheckValidResult(sqlite3_stmt *stmt, int result)
         {
             if (result != SQLITE_OK)
             {
@@ -111,9 +114,14 @@ namespace PocketDb
             return stmt;
         }
 
-        int FinalizeSqlStatement(sqlite3_stmt *stmt)
+        static int FinalizeSqlStatement(sqlite3_stmt *stmt)
         {
             return sqlite3_finalize(stmt);
+        }
+
+        static std::string ReadString(sqlite3_stmt *stmt, int index)
+        {
+            return std::string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, index)));
         }
 
     public:
