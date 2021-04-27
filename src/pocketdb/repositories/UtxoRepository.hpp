@@ -27,6 +27,13 @@ namespace PocketDb
             SetupSqlStatements();
         }
 
+        void Destroy() override
+        {
+            FinalizeSqlStatement(m_clear_all_stmt);
+            FinalizeSqlStatement(m_insert_stmt);
+            FinalizeSqlStatement(m_spent_stmt);
+        }
+
         bool ClearAll()
         {
             assert(m_database.m_db);

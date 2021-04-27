@@ -111,12 +111,19 @@ namespace PocketDb
             return stmt;
         }
 
+        int FinalizeSqlStatement(sqlite3_stmt *stmt)
+        {
+            return sqlite3_finalize(stmt);
+        }
+
     public:
         explicit BaseRepository(SQLiteDatabase &db) :
             m_database(db)
         {
         }
+
         virtual void Init() = 0;
+        virtual void Destroy() = 0;
     };
 
 }

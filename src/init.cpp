@@ -256,6 +256,9 @@ void Shutdown()
     g_wallet_init_interface.Stop();
 
     // Stoping Pocket Db
+    PocketDb::TransRepoInst.Destroy();
+    PocketDb::BlockRepoInst.Destroy();
+    PocketDb::UtxoRepoInst.Destroy();
     PocketDb::SQLiteDbInst.Close();
 
 #if ENABLE_ZMQ

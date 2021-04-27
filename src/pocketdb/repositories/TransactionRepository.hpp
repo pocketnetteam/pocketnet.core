@@ -28,6 +28,14 @@ namespace PocketDb
             SetupSqlStatements();
         }
 
+        void Destroy() override
+        {
+            FinalizeSqlStatement(m_insert_transaction_stmt);
+            FinalizeSqlStatement(m_delete_transaction_stmt);
+            FinalizeSqlStatement(m_insert_payload_stmt);
+            FinalizeSqlStatement(m_delete_payload_stmt);
+        }
+
         bool Insert(const shared_ptr<Transaction> &transaction)
         {
             assert(m_database.m_db);
