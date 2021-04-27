@@ -48,12 +48,11 @@ namespace PocketDb
 
         bool Insert(const shared_ptr<Utxo> &utxo)
         {
+            if (ShutdownRequested())
+                return false;
+
             assert(m_database.m_db);
-            auto result = false;
-
-            if (TryBindInsertStatement(m_insert_stmt, utxo) && TryStepStatement(m_insert_stmt))
-                result = true;
-
+            auto result = TryBindInsertStatement(m_insert_stmt, utxo) && TryStepStatement(m_insert_stmt);
             sqlite3_clear_bindings(m_insert_stmt);
             sqlite3_reset(m_insert_stmt);
             return result;
@@ -61,6 +60,9 @@ namespace PocketDb
 
         bool BulkInsert(const std::vector<shared_ptr<Utxo>> &utxos)
         {
+            if (ShutdownRequested())
+                return false;
+
             assert(m_database.m_db);
 
             if (!m_database.BeginTransaction())
@@ -88,12 +90,11 @@ namespace PocketDb
 
         bool Spent(const shared_ptr<Utxo> &utxo)
         {
+            if (ShutdownRequested())
+                return false;
+
             assert(m_database.m_db);
-            auto result = false;
-
-            if (TryBindSpentStatement(m_spent_stmt, utxo) && TryStepStatement(m_spent_stmt))
-                result = true;
-
+            auto result = TryBindSpentStatement(m_spent_stmt, utxo) && TryStepStatement(m_spent_stmt);
             sqlite3_clear_bindings(m_spent_stmt);
             sqlite3_reset(m_spent_stmt);
             return result;
@@ -101,6 +102,9 @@ namespace PocketDb
 
         bool BulkSpent(const std::vector<shared_ptr<Utxo>> &utxos)
         {
+            if (ShutdownRequested())
+                return false;
+
             assert(m_database.m_db);
 
             if (!m_database.BeginTransaction())

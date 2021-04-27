@@ -42,6 +42,9 @@ namespace PocketDb
 
         bool BulkRollback(int height)
         {
+            if (ShutdownRequested())
+                return false;
+
             assert(m_database.m_db);
 
             if (!m_database.BeginTransaction())
