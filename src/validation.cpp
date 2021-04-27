@@ -1667,7 +1667,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
     // Rollback PocketDb
-    fClean &= PocketDb::BlockRepoInst.BulkRollback(pindex->nHeight);
+    fClean &= PocketServices::BlockIndexer::Rollback(pindex->nHeight);
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }

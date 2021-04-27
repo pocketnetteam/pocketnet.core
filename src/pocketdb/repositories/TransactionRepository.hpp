@@ -28,25 +28,28 @@ namespace PocketDb
             SetupSqlStatements();
         }
 
+        void Destroy() override
+        {
+            FinalizeSqlStatement(m_insert_transaction_stmt);
+            FinalizeSqlStatement(m_delete_transaction_stmt);
+            FinalizeSqlStatement(m_insert_payload_stmt);
+            FinalizeSqlStatement(m_delete_payload_stmt);
+        }
+
         bool Insert(const shared_ptr<Transaction> &transaction)
         {
+            if (ShutdownRequested())
+                return false;
+
             assert(m_database.m_db);
-            auto result = true;
+            
+            auto result = TryBindInsertTransactionStatement(m_insert_transaction_stmt, transaction) && TryStepStatement(m_insert_transaction_stmt);
+            sqlite3_clear_bindings(m_insert_transaction_stmt);
+            sqlite3_reset(m_insert_transaction_stmt);
 
-            // First set transaction
-            if (TryBindInsertTransactionStatement(m_insert_transaction_stmt, transaction))
+            if (transaction->HasPayload())
             {
-                result &= TryStepStatement(m_insert_transaction_stmt);
-
-                sqlite3_clear_bindings(m_insert_transaction_stmt);
-                sqlite3_reset(m_insert_transaction_stmt);
-            }
-
-            // Second set payload
-            if (transaction->HasPayload() && TryBindInsertPayloadStatement(m_insert_payload_stmt, transaction))
-            {
-                result &= TryStepStatement(m_insert_payload_stmt);
-
+                result &= TryBindInsertPayloadStatement(m_insert_payload_stmt, transaction) && TryStepStatement(m_insert_payload_stmt);
                 sqlite3_clear_bindings(m_insert_payload_stmt);
                 sqlite3_reset(m_insert_payload_stmt);
             }
@@ -56,6 +59,9 @@ namespace PocketDb
 
         bool BulkInsert(const std::vector<shared_ptr<Transaction>> &transactions)
         {
+            if (ShutdownRequested())
+                return false;
+
             assert(m_database.m_db);
 
             if (!m_database.BeginTransaction())
@@ -79,30 +85,6 @@ namespace PocketDb
             }
 
             return true;
-        }
-
-        // TODO (brangr): implement
-        void Delete(const shared_ptr<std::string> &id)
-        {
-            if (!m_database.m_db)
-            {
-                throw std::runtime_error(strprintf("SQLiteDatabase: database didn't opened\n"));
-            }
-
-            if (!TryBindStatementText(m_delete_transaction_stmt, 1, id))
-            {
-                //TODO
-                return;
-            }
-
-            int res = sqlite3_step(m_delete_transaction_stmt);
-            if (res != SQLITE_DONE)
-            {
-                LogPrintf("%s: Unable to execute statement: %s\n", __func__, sqlite3_errstr(res));
-            }
-
-            sqlite3_clear_bindings(m_delete_transaction_stmt);
-            sqlite3_reset(m_delete_transaction_stmt);
         }
 
     private:

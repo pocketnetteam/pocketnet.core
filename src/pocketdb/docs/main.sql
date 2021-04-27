@@ -8,13 +8,14 @@ create table Transactions
     TxTime  int    not null,
     Address string not null,
 
-    -- User.Registration
+    -- User.Id
+    -- Post.Id
     -- ScorePost.Value
     -- ScoreComment.Value
     -- Complain.Reason
     Int1    int    null,
 
-    -- Empty
+    -- User.Registration
     Int2    int    null,
 
     -- Empty
@@ -113,15 +114,18 @@ drop table if exists Utxo;
 create table Utxo
 (
     TxId       string not null,
-    Block      int    not null,
     TxOut      int    not null,
     TxTime     int    not null,
+    Block      int    not null,
     BlockSpent int    null,
     Address    string not null,
     Amount     int    not null,
 
     primary key (TxId, TxOut)
 );
+
+drop index if exists Utxo_BlockSpent_Address_Amount_index;
+create index Utxo_BlockSpent_Address_Amount_index on Utxo (BlockSpent, Address, Amount);
 
 --------------------------------------------
 drop table if exists Ratings;
@@ -135,6 +139,17 @@ create table Ratings
     primary key (Block, RatingType, Key)
 );
 
+--------------------------------------------
+drop table if exists Addresses;
+create table Addresses
+(
+    Address not null,
+    Block      int not null,
+    Key        int not null,
+    Value      int not null,
+
+    primary key (Block, RatingType, Key)
+);
 
 
 --------------------------------------------

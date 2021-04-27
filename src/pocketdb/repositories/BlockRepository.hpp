@@ -23,11 +23,28 @@ namespace PocketDb
 
         void Init() override
         {
-            SetupSqlStatements();
+            m_rollback_stmt = SetupSqlStatement(
+                m_rollback_stmt,
+                " update Transactions set"
+                "   Block = null,"
+                "   TxOut = null"
+                " where Block >= ?;"
+                " "
+                " delete from Utxo where Block >= ?;"
+                " delete from Ratings where Block >= ?;"
+            );
+        }
+
+        void Destroy() override
+        {
+            FinalizeSqlStatement(m_rollback_stmt);
         }
 
         bool BulkRollback(int height)
         {
+            if (ShutdownRequested())
+                return false;
+
             assert(m_database.m_db);
 
             if (!m_database.BeginTransaction())
@@ -54,20 +71,6 @@ namespace PocketDb
 
     private:
         sqlite3_stmt *m_rollback_stmt{nullptr};
-
-        void SetupSqlStatements()
-        {
-            m_rollback_stmt = SetupSqlStatement(
-                m_rollback_stmt,
-                " update Transactions set"
-                "   Block = null,"
-                "   TxOut = null"
-                " where Block >= ?;"
-                " "
-                " delete from Utxo where Block >= ?;"
-                " delete from Ratings where Block >= ?;"
-            );
-        }
 
         bool TryBindRollbackStatement(int height)
         {

@@ -24,7 +24,7 @@ namespace PocketServices
     class BlockIndexer
     {
     public:
-        static void Index(const CBlock &block, int height)
+        static bool Index(const CBlock &block, int height)
         {
             vector<shared_ptr<Utxo>> utxoNew;
             vector<shared_ptr<Utxo>> utxoSpent;
@@ -41,6 +41,14 @@ namespace PocketServices
             UtxoRepoInst.BulkInsert(utxoNew);
             UtxoRepoInst.BulkSpent(utxoSpent);
             //BlockRepository.UtxoSpent(height, vector<tuple<unit256, int>> txs)
+
+            // todo (brangr): кинуть false наверх при неудаче индексации
+            return true;
+        }
+
+        static bool Rollback(int height) {
+            // todo (brangr): кинуть false наверх при неудаче индексации
+            return BlockRepoInst.BulkRollback(height);
         }
 
     protected:
