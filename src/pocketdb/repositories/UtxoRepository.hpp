@@ -11,6 +11,8 @@
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Utxo.hpp"
 
+#include <univalue.h>
+
 namespace PocketDb
 {
     using namespace PocketTx;
@@ -119,10 +121,52 @@ namespace PocketDb
             return true;
         }
 
+        UniValue SelectTopUtxo(int count)
+        {
+            assert(m_database.m_db);
+
+            UniValue result(UniValue::VARR);
+
+            if (!TryBindStatementInt(m_select_top_stmt, 0, count))
+                return result;
+
+            try
+            {
+                auto res = sqlite3_step(m_select_top_stmt);
+                if (res != SQLITE_ROW)
+                {
+                    if (res != SQLITE_DONE)
+                    {
+                        return result;
+                    }
+                }
+
+                while(sqlite3_column_text(m_select_top_stmt, 0))
+                {
+                    UniValue utxo(UniValue::VOBJ);
+                    utxo.pushKV("address", sqlite3_column_text(m_select_top_stmt, 0));
+                    utxo.pushKV("balance", sqlite3_column_int(m_select_top_stmt, 1));
+
+                    result.push_back(utxo);
+
+                    sqlite3_step(m_select_top_stmt);
+                }
+            } catch (std::exception &ex)
+            {
+                return result;
+            }
+
+            sqlite3_clear_bindings(m_select_top_stmt);
+            sqlite3_reset(m_select_top_stmt);
+
+            return result;
+        }
+
     private:
         sqlite3_stmt *m_clear_all_stmt{nullptr};
         sqlite3_stmt *m_insert_stmt{nullptr};
         sqlite3_stmt *m_spent_stmt{nullptr};
+        sqlite3_stmt *m_select_top_stmt{nullptr};
 
         void SetupSqlStatements()
         {
@@ -154,6 +198,16 @@ namespace PocketDb
                 " WHERE TxId = ?"
                 "   AND TxOut = ?"
                 " ;"
+            );
+
+            m_select_top_stmt = SetupSqlStatement(
+                m_select_top_stmt,
+                "SELECT u.Address, SUM(u.Amount)Balance"
+                "FROM Utxo u"
+                "WHERE u.BlockSpent is null"
+                "GROUP BY u.Address"
+                "ORDER BY sum(u.Amount) desc"
+                "LIMIT ?"
             );
         }
 
