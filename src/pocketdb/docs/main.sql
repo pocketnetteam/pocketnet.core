@@ -127,6 +127,9 @@ create table Utxo
 drop index if exists Utxo_BlockSpent_Address_Amount_index;
 create index Utxo_BlockSpent_Address_Amount_index on Utxo (BlockSpent, Address, Amount);
 
+drop index if exists Utxo_Block_index;
+create index Utxo_Block_index on Utxo (Block);
+
 --------------------------------------------
 drop table if exists Ratings;
 create table Ratings

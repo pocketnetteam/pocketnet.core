@@ -735,15 +735,15 @@ static bool rest_getemission(HTTPRequest *req, const std::string &strURIPart)
 
             req->WriteHeader("Content-Type", "application/json");
             req->WriteReply(HTTP_OK, result.write() + "\n");
+            return true;
         }
         default:
         {
             req->WriteHeader("Content-Type", "text/plain");
             req->WriteReply(HTTP_OK, std::to_string(emission) + "\n");
+            return false;
         }
     }
-
-    return true;
 }
 
 static const struct
