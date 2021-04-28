@@ -697,32 +697,9 @@ static bool rest_getemission(HTTPRequest *req, const std::string &strURIPart)
         }
     }
 
-    req->WriteHeader("Content-Type", "plain/text");
+    req->WriteHeader("Content-Type", "text/plain");
     req->WriteReply(HTTP_OK, std::to_string(emission) + "\n");
     return true;
-
-//    std::string param;
-//    const RetFormat rf = ParseDataFormat(param, strURIPart);
-//
-//    switch (rf)
-//    {
-//        case RetFormat::JSON:
-//        {
-//            if (auto[ok, val] = PocketDb::UtxoRepoInst.SelectTopAddresses(30); ok)
-//            {
-//                req->WriteHeader("Content-Type", "application/json");
-//                req->WriteReply(HTTP_OK, val.write() + "\n");
-//                return true;
-//            } else
-//            {
-//                return RESTERR(req, HTTP_INTERNAL_SERVER_ERROR, "internal error");
-//            }
-//        }
-//        default:
-//        {
-//            return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
-//        }
-//    }
 }
 
 
