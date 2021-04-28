@@ -92,6 +92,21 @@ static RetFormat ParseDataFormat(std::string &param, const std::string &strReq)
     return rf_names[0].rf;
 }
 
+static std::tuple<RetFormat, std::vector<std::string>> ParseParams(const std::string &strURIPart)
+{
+    std::string param;
+    RetFormat rf = ParseDataFormat(param, strURIPart);
+
+    std::vector<std::string> uriParts;
+    if (param.length() > 1)
+    {
+        std::string strUriParams = param.substr(1);
+        boost::split(uriParts, strUriParams, boost::is_any_of("/"));
+    }
+
+    return std::make_tuple(rf, uriParts);
+};
+
 static std::string AvailableDataFormatsString()
 {
     std::string formats;
@@ -639,14 +654,22 @@ static bool rest_gettopaddresses(HTTPRequest *req, const std::string &strURIPart
 {
     if (!CheckWarmup(req))
         return false;
-    std::string param;
-    const RetFormat rf = ParseDataFormat(param, strURIPart);
+
+    auto[rf, uriParts] = ParseParams(strURIPart);
+
+    int count = 30;
+    if (!uriParts.empty())
+    {
+        count = std::stoi(uriParts[0]);
+        if (count > 1000)
+            count = 1000;
+    }
 
     switch (rf)
     {
         case RetFormat::JSON:
         {
-            if (auto[ok, val] = PocketDb::UtxoRepoInst.SelectTopAddresses(30); ok)
+            if (auto[ok, val] = PocketDb::UtxoRepoInst.SelectTopAddresses(count); ok)
             {
                 req->WriteHeader("Content-Type", "application/json");
                 req->WriteReply(HTTP_OK, val.write() + "\n");
@@ -668,7 +691,12 @@ static bool rest_getemission(HTTPRequest *req, const std::string &strURIPart)
     if (!CheckWarmup(req))
         return false;
 
+    auto[rf, uriParts] = ParseParams(strURIPart);
+
     int height = chainActive.Height();
+    if (!uriParts.empty())
+        height = std::stoi(uriParts[0]);
+
     int first75 = 3750000;
     int halvblocks = 2'100'000;
     double emission = 0;
@@ -697,11 +725,26 @@ static bool rest_getemission(HTTPRequest *req, const std::string &strURIPart)
         }
     }
 
-    req->WriteHeader("Content-Type", "text/plain");
-    req->WriteReply(HTTP_OK, std::to_string(emission) + "\n");
+    switch (rf)
+    {
+        case RetFormat::JSON:
+        {
+            UniValue result(UniValue::VOBJ);
+            result.pushKV("height", height);
+            result.pushKV("emission", emission);
+
+            req->WriteHeader("Content-Type", "application/json");
+            req->WriteReply(HTTP_OK, result.write() + "\n");
+        }
+        default:
+        {
+            req->WriteHeader("Content-Type", "text/plain");
+            req->WriteReply(HTTP_OK, std::to_string(emission) + "\n");
+        }
+    }
+
     return true;
 }
-
 
 static const struct
 {
@@ -709,16 +752,16 @@ static const struct
     bool (*handler)(HTTPRequest *req, const std::string &strReq);
 } uri_prefixes[] = {
 
-    {"/rest/tx/",                rest_tx},
-    {"/rest/block/notxdetails/", rest_block_notxdetails},
-    {"/rest/block/",             rest_block_extended},
-    {"/rest/chaininfo",          rest_chaininfo},
-    {"/rest/mempool/info",       rest_mempool_info},
-    {"/rest/mempool/contents",   rest_mempool_contents},
-    {"/rest/headers/",           rest_headers},
-    {"/rest/getutxos",           rest_getutxos},
-    {"/rest/getemission",        rest_getemission},
-    {"/rest/gettopaddresses",    rest_gettopaddresses},
+//    {"/rest/tx/",                rest_tx},
+//    {"/rest/block/notxdetails/", rest_block_notxdetails},
+//    {"/rest/block/",             rest_block_extended},
+//    {"/rest/chaininfo",          rest_chaininfo},
+//    {"/rest/mempool/info",       rest_mempool_info},
+//    {"/rest/mempool/contents",   rest_mempool_contents},
+//    {"/rest/headers/",           rest_headers},
+//    {"/rest/getutxos",           rest_getutxos},
+    {"/rest/getemission",     rest_getemission},
+    {"/rest/gettopaddresses", rest_gettopaddresses},
 };
 
 void StartREST()
