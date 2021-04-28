@@ -1,0 +1,44 @@
+version: '3.7'
+
+services:
+
+  pocketnet.core:
+    container_name: pocketnet.core
+    image: pocketnetteam/pocketnet.core:latest
+    volumes:
+      - ./data/pocketcoin:/home/pocketcore/.pocketcoin
+    ports:
+      - 37071:37071
+    networks:
+      nginx_net:
+
+
+  nginx:
+    container_name: nginx
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      nginx_net:
+    command: '/bin/sh -c ''while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+
+  certbot:
+    container_name: certbot
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    networks:
+      nginx_net:
+    entrypoint:  "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+
+networks:
+  nginx_net:
+    name: nginx_net
