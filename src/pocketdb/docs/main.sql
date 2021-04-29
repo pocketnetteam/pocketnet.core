@@ -60,6 +60,12 @@ create table Transactions
 drop index if exists Transactions_TxType;
 create index Transactions_TxType on Transactions (TxType);
 
+drop index if exists Transactions_Block;
+create index Transactions_Block on Transactions (Block);
+
+drop index if exists Transactions_TxOut;
+create index Transactions_TxOut on Transactions (TxOut);
+
 drop index if exists Transactions_TxTime;
 create index Transactions_TxTime on Transactions (TxTime desc);
 
