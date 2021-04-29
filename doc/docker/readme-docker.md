@@ -32,7 +32,10 @@ $ sudo ufw allow https
 
 # Settings
 $ echo "alias dc='docker-compose'" >> ~/.bashrc
+$ echo "alias lg='tail -f data/pocketcoin/debug.log'" >> ~/.bashrc
 $ . ~/.bashrc
+$ sudo nano /etc/default/grub
+# GRUB_CMDLINE_LINUX_DEFAULT="vsyscall=emulate"
 
 # For launch create dirs and put conf
 $ mkdir -p ~/docker/data/certbot
