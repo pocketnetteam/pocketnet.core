@@ -21,21 +21,21 @@ namespace PocketDb
     protected:
         SQLiteDatabase &m_database;
 
-        static bool TryStepStatement(sqlite3_stmt *stmt)
+        static bool TryStepStatement(shared_ptr<sqlite3_stmt *> stmt)
         {
-            int res = sqlite3_step(stmt);
+            int res = sqlite3_step(*stmt);
             if (res != SQLITE_ROW && res != SQLITE_DONE)
                 LogPrintf("%s: Unable to execute statement: %s: %s\n",
-                    __func__, sqlite3_sql(stmt), sqlite3_errstr(res));
+                    __func__, sqlite3_sql(*stmt), sqlite3_errstr(res));
 
             return !(res != SQLITE_ROW && res != SQLITE_DONE);
         }
 
-        bool TryBindStatementText(sqlite3_stmt *stmt, int index, const shared_ptr<std::string> &value)
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt *> stmt, int index, const shared_ptr<std::string> &value)
         {
             if (!value) return true;
 
-            int res = sqlite3_bind_text(stmt, index, value->c_str(), (int) value->size(), SQLITE_STATIC);
+            int res = sqlite3_bind_text(*stmt, index, value->c_str(), (int) value->size(), SQLITE_STATIC);
             if (!CheckValidResult(stmt, res))
             {
                 return false;
@@ -44,11 +44,11 @@ namespace PocketDb
             return true;
         }
 
-        bool TryBindStatementInt(sqlite3_stmt *stmt, int index, int value)
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt *> stmt, int index, int value)
         {
             if (!value) return true;
 
-            int res = sqlite3_bind_int(stmt, index, value);
+            int res = sqlite3_bind_int(*stmt, index, value);
             if (!CheckValidResult(stmt, res))
             {
                 return false;
@@ -57,11 +57,11 @@ namespace PocketDb
             return true;
         }
 
-        bool TryBindStatementInt(sqlite3_stmt *stmt, int index, const shared_ptr<int> &value)
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt *> stmt, int index, const shared_ptr<int> &value)
         {
             if (!value) return true;
 
-            int res = sqlite3_bind_int(stmt, index, *value);
+            int res = sqlite3_bind_int(*stmt, index, *value);
             if (!CheckValidResult(stmt, res))
             {
                 return false;
@@ -70,11 +70,11 @@ namespace PocketDb
             return true;
         }
 
-        bool TryBindStatementInt64(sqlite3_stmt *stmt, int index, const shared_ptr<int64_t> &value)
+        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt *> stmt, int index, const shared_ptr<int64_t> &value)
         {
             if (!value) return true;
 
-            int res = sqlite3_bind_int64(stmt, index, *value);
+            int res = sqlite3_bind_int64(*stmt, index, *value);
             if (!CheckValidResult(stmt, res))
             {
                 return false;
@@ -84,34 +84,30 @@ namespace PocketDb
         }
 
 
-        static bool CheckValidResult(sqlite3_stmt *stmt, int result)
+        static bool CheckValidResult(shared_ptr<sqlite3_stmt *> stmt, int result)
         {
             if (result != SQLITE_OK)
             {
                 std::cout << strprintf("%s: Unable to bind statement: %s\n", __func__, sqlite3_errstr(result));
-                sqlite3_clear_bindings(stmt);
-                sqlite3_reset(stmt);
+                sqlite3_clear_bindings(*stmt);
+                sqlite3_reset(*stmt);
                 return false;
             }
 
             return true;
         }
 
-        sqlite3_stmt *SetupSqlStatement(sqlite3_stmt *stmt, const std::string &sql) const
+        [[nodiscard]]
+        shared_ptr<sqlite3_stmt *> SetupSqlStatement(const std::string &sql) const
         {
-            int res;
+            sqlite3_stmt *stmt;
 
-            if (!stmt)
-            {
-                if ((res = sqlite3_prepare_v2(m_database.m_db, sql.c_str(), (int) sql.size(), &stmt, nullptr)) !=
-                    SQLITE_OK)
-                {
-                    throw std::runtime_error(
-                        strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
-                }
-            }
+            int res = sqlite3_prepare_v2(m_database.m_db, sql.c_str(), (int) sql.size(), &stmt, nullptr);
+            if (res != SQLITE_OK)
+                throw std::runtime_error(
+                    strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
 
-            return stmt;
+            return std::make_shared<sqlite3_stmt *>(stmt);
         }
 
         static int FinalizeSqlStatement(sqlite3_stmt *stmt)

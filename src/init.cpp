@@ -668,8 +668,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (fReindex) {
 
             // Clear all calculating pocket tables
-            // TODO (brangr): clear ratings
-            PocketDb::UtxoRepoInst.ClearAll();
+            PocketDb::BlockRepoInst.BulkRollback(0);
             LogPrintf("PocketDb tables cleared\n");
 
             int nFile = 0;

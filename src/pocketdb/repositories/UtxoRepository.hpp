@@ -20,53 +20,56 @@ namespace PocketDb
     class UtxoRepository : public BaseRepository
     {
     public:
-        explicit UtxoRepository(SQLiteDatabase &db) : BaseRepository(db)
-        {
-        }
+        explicit UtxoRepository(SQLiteDatabase &db) : BaseRepository(db) {}
 
-        void Init() override
-        {
-            SetupSqlStatements();
-        }
+        void Init() override {}
 
-        void Destroy() override
-        {
-            FinalizeSqlStatement(m_clear_all_stmt);
-            FinalizeSqlStatement(m_insert_stmt);
-            FinalizeSqlStatement(m_spent_stmt);
-            FinalizeSqlStatement(m_select_top_stmt);
-        }
+        void Destroy() override {}
 
-        bool ClearAll()
-        {
-            assert(m_database.m_db);
-            auto result = false;
-
-            if (TryStepStatement(m_clear_all_stmt))
-                result = true;
-
-            sqlite3_reset(m_clear_all_stmt);
-            return result;
-        }
 
         bool Insert(const shared_ptr<Utxo> &utxo)
         {
             if (ShutdownRequested())
                 return false;
 
-            assert(m_database.m_db);
-            auto result = TryBindInsertStatement(m_insert_stmt, utxo) && TryStepStatement(m_insert_stmt);
-            sqlite3_clear_bindings(m_insert_stmt);
-            sqlite3_reset(m_insert_stmt);
-            return result;
+            auto stmt = SetupSqlStatement(
+                " INSERT INTO Utxo ("
+                "   TxId,"
+                "   Block,"
+                "   TxOut,"
+                "   TxTime,"
+                "   Address,"
+                "   BlockSpent,"
+                "   Amount"
+                " )"
+                " SELECT ?,?,?,?,?,?,?"
+                " WHERE NOT EXISTS (select 1 from Utxo t where t.TxId = ? and t.TxOut = ?)"
+                " ;"
+            );
+
+            auto result = TryBindStatementText(stmt, 1, utxo->GetTxId());
+            result &= TryBindStatementInt64(stmt, 2, utxo->GetBlock());
+            result &= TryBindStatementInt64(stmt, 3, utxo->GetTxOut());
+            result &= TryBindStatementInt64(stmt, 4, utxo->GetTxTime());
+            result &= TryBindStatementText(stmt, 5, utxo->GetAddress());
+            result &= TryBindStatementInt64(stmt, 6, utxo->GetBlockSpent());
+            result &= TryBindStatementInt64(stmt, 7, utxo->GetAmount());
+            result &= TryBindStatementText(stmt, 8, utxo->GetTxId());
+            result &= TryBindStatementInt64(stmt, 9, utxo->GetTxOut());
+            if (!result)
+                return false;
+
+            if (!TryStepStatement(stmt))
+                return false;
+
+            return true;
         }
 
         bool BulkInsert(const std::vector<shared_ptr<Utxo>> &utxos)
         {
+            assert(m_database.m_db);
             if (ShutdownRequested())
                 return false;
-
-            assert(m_database.m_db);
 
             if (!m_database.BeginTransaction())
                 return false;
@@ -91,24 +94,37 @@ namespace PocketDb
             return true;
         }
 
+
         bool Spent(const shared_ptr<Utxo> &utxo)
         {
             if (ShutdownRequested())
                 return false;
 
-            assert(m_database.m_db);
-            auto result = TryBindSpentStatement(m_spent_stmt, utxo) && TryStepStatement(m_spent_stmt);
-            sqlite3_clear_bindings(m_spent_stmt);
-            sqlite3_reset(m_spent_stmt);
-            return result;
+            auto stmt = SetupSqlStatement(
+                " UPDATE Utxo set"
+                "   BlockSpent = ?"
+                " WHERE TxId = ?"
+                "   AND TxOut = ?"
+                " ;"
+            );
+
+            auto result = TryBindStatementInt64(stmt, 1, utxo->GetBlockSpent());
+            result &= TryBindStatementText(stmt, 2, utxo->GetTxId());
+            result &= TryBindStatementInt64(stmt, 3, utxo->GetTxOut());
+            if (!result)
+                return false;
+
+            if (!TryStepStatement(stmt))
+                return false;
+
+            return true;
         }
 
         bool BulkSpent(const std::vector<shared_ptr<Utxo>> &utxos)
         {
+            assert(m_database.m_db);
             if (ShutdownRequested())
                 return false;
-
-            assert(m_database.m_db);
 
             if (!m_database.BeginTransaction())
                 return false;
@@ -137,114 +153,44 @@ namespace PocketDb
         {
             UniValue result(UniValue::VARR);
 
+            assert(m_database.m_db);
             if (ShutdownRequested())
                 return make_tuple(false, result);
 
-            assert(m_database.m_db);
-
             try
             {
-                if (!TryBindStatementInt(m_select_top_stmt, 1, count))
+                auto stmt = SetupSqlStatement(
+                    " SELECT"
+                    "   u.Address,"
+                    "   SUM(u.Amount)Balance"
+                    " FROM Utxo u"
+                    " WHERE u.BlockSpent is null"
+                    " GROUP BY u.Address"
+                    " ORDER BY sum(u.Amount) desc"
+                    " LIMIT ?"
+                    " ;"
+                );
+
+                if (!TryBindStatementInt(stmt, 1, count))
                     return make_tuple(false, result);
 
-                while (sqlite3_step(m_select_top_stmt) == SQLITE_ROW)
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
                     UniValue utxo(UniValue::VOBJ);
-                    utxo.pushKV("address", GetColumnString(m_select_top_stmt, 0));
-                    utxo.pushKV("balance", GetColumnInt64(m_select_top_stmt, 1));
+                    utxo.pushKV("address", GetColumnString(*stmt, 0));
+                    utxo.pushKV("balance", GetColumnInt64(*stmt, 1));
                     result.push_back(utxo);
                 }
-            } catch (std::exception &ex)
+            }
+            catch (std::exception &ex)
             {
                 return make_tuple(false, result);
             }
 
-            sqlite3_clear_bindings(m_select_top_stmt);
-            sqlite3_reset(m_select_top_stmt);
             return make_tuple(true, result);
         }
 
     private:
-        sqlite3_stmt *m_clear_all_stmt{nullptr};
-        sqlite3_stmt *m_insert_stmt{nullptr};
-        sqlite3_stmt *m_spent_stmt{nullptr};
-        sqlite3_stmt *m_select_top_stmt{nullptr};
-
-        void SetupSqlStatements()
-        {
-            m_clear_all_stmt = SetupSqlStatement(
-                m_clear_all_stmt,
-                "DELETE FROM Utxo;"
-            );
-
-            m_insert_stmt = SetupSqlStatement(
-                m_insert_stmt,
-                " INSERT INTO Utxo ("
-                "   TxId,"
-                "   Block,"
-                "   TxOut,"
-                "   TxTime,"
-                "   Address,"
-                "   BlockSpent,"
-                "   Amount"
-                " )"
-                " SELECT ?,?,?,?,?,?,?"
-                " WHERE not exists (select 1 from Utxo t where t.TxId = ? and t.TxOut = ?)"
-                " ;"
-            );
-
-            m_spent_stmt = SetupSqlStatement(
-                m_spent_stmt,
-                " UPDATE Utxo set"
-                "   BlockSpent = ?"
-                " WHERE TxId = ?"
-                "   AND TxOut = ?"
-                " ;"
-            );
-
-            m_select_top_stmt = SetupSqlStatement(
-                m_select_top_stmt,
-                " SELECT"
-                "   u.Address,"
-                "   SUM(u.Amount)Balance"
-                " FROM Utxo u"
-                " WHERE u.BlockSpent is null"
-                " GROUP BY u.Address"
-                " ORDER BY sum(u.Amount) desc"
-                " LIMIT ?"
-                " ;"
-            );
-        }
-
-        bool TryBindInsertStatement(sqlite3_stmt *stmt, const shared_ptr<Utxo> &utxo)
-        {
-            auto result = TryBindStatementText(stmt, 1, utxo->GetTxId());
-            result &= TryBindStatementInt64(stmt, 2, utxo->GetBlock());
-            result &= TryBindStatementInt64(stmt, 3, utxo->GetTxOut());
-            result &= TryBindStatementInt64(stmt, 4, utxo->GetTxTime());
-            result &= TryBindStatementText(stmt, 5, utxo->GetAddress());
-            result &= TryBindStatementInt64(stmt, 6, utxo->GetBlockSpent());
-            result &= TryBindStatementInt64(stmt, 7, utxo->GetAmount());
-            result &= TryBindStatementText(stmt, 8, utxo->GetTxId());
-            result &= TryBindStatementInt64(stmt, 9, utxo->GetTxOut());
-
-            if (!result)
-                sqlite3_clear_bindings(stmt);
-
-            return result;
-        }
-
-        bool TryBindSpentStatement(sqlite3_stmt *stmt, const shared_ptr<Utxo> &utxo)
-        {
-            auto result = TryBindStatementInt64(stmt, 1, utxo->GetBlockSpent());
-            result &= TryBindStatementText(stmt, 2, utxo->GetTxId());
-            result &= TryBindStatementInt64(stmt, 3, utxo->GetTxOut());
-
-            if (!result)
-                sqlite3_clear_bindings(stmt);
-
-            return result;
-        }
 
     };
 
