@@ -302,8 +302,13 @@ static bool rest_blockhash(HTTPRequest *req, const std::string &strURIPart)
     auto[rf, uriParts] = ParseParams(strURIPart);
 
     int height = chainActive.Height();
-    if (!uriParts.empty())
-        height = std::stoi(uriParts[0]);
+
+    try
+    {
+        if (!uriParts.empty())
+            height = std::stoi(uriParts[0]);
+    }
+    catch (...) {}
 
     if (height < 0 || height > chainActive.Height())
         return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
@@ -327,7 +332,7 @@ static bool rest_blockhash(HTTPRequest *req, const std::string &strURIPart)
         {
             req->WriteHeader("Content-Type", "text/plain");
             req->WriteReply(HTTP_OK, blockHash + "\n");
-            return false;
+            return true;
         }
     }
 }
@@ -779,7 +784,7 @@ static bool rest_emission(HTTPRequest *req, const std::string &strURIPart)
         {
             req->WriteHeader("Content-Type", "text/plain");
             req->WriteReply(HTTP_OK, std::to_string(emission) + "\n");
-            return false;
+            return true;
         }
     }
 }
