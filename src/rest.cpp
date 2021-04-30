@@ -294,6 +294,44 @@ static bool rest_block(HTTPRequest *req,
     }
 }
 
+static bool rest_blockhash(HTTPRequest *req, const std::string &strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    auto[rf, uriParts] = ParseParams(strURIPart);
+
+    int height = chainActive.Height();
+    if (!uriParts.empty())
+        height = std::stoi(uriParts[0]);
+
+    if (height < 0 || height > chainActive.Height())
+        return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
+
+    CBlockIndex *pblockindex = chainActive[height];
+    std::string blockHash = pblockindex->GetBlockHash().GetHex();
+
+    switch (rf)
+    {
+        case RetFormat::JSON:
+        {
+            UniValue result(UniValue::VOBJ);
+            result.pushKV("height", height);
+            result.pushKV("blockhash", blockHash);
+
+            req->WriteHeader("Content-Type", "application/json");
+            req->WriteReply(HTTP_OK, result.write() + "\n");
+            return true;
+        }
+        default:
+        {
+            req->WriteHeader("Content-Type", "text/plain");
+            req->WriteReply(HTTP_OK, blockHash + "\n");
+            return false;
+        }
+    }
+}
+
 static bool rest_block_extended(HTTPRequest *req, const std::string &strURIPart)
 {
     return rest_block(req, strURIPart, true);
@@ -650,7 +688,7 @@ static bool rest_getutxos(HTTPRequest *req, const std::string &strURIPart)
     }
 }
 
-static bool rest_gettopaddresses(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_topaddresses(HTTPRequest *req, const std::string &strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -686,7 +724,7 @@ static bool rest_gettopaddresses(HTTPRequest *req, const std::string &strURIPart
     }
 }
 
-static bool rest_getemission(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_emission(HTTPRequest *req, const std::string &strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -760,8 +798,11 @@ static const struct
 //    {"/rest/mempool/contents",   rest_mempool_contents},
 //    {"/rest/headers/",           rest_headers},
 //    {"/rest/getutxos",           rest_getutxos},
-    {"/rest/getemission",     rest_getemission},
-    {"/rest/gettopaddresses", rest_gettopaddresses},
+    {"/rest/emission",        rest_emission},
+    {"/rest/topaddresses",    rest_topaddresses},
+    {"/rest/getemission",     rest_emission},
+    {"/rest/gettopaddresses", rest_topaddresses},
+    {"/rest/blockhash",       rest_blockhash},
 };
 
 void StartREST()
