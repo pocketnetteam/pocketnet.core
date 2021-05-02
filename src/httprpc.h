@@ -8,7 +8,6 @@
 #include <string>
 #include <map>
 #include <boost/thread.hpp>
-#include "statistic.hpp"
 #include "init.h"
 
 /** Start HTTP RPC subsystem.
