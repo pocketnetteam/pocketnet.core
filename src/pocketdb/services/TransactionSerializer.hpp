@@ -27,50 +27,65 @@ namespace PocketServices
     class TransactionSerializer
     {
     public:
-        static PocketTxType ParseType(const std::string &strType, const UniValue &txDataSrc)
+
+        static PocketTxType ParseType(const CTransactionRef &tx, std::vector<std::string> &vasm)
+        {
+            const CTxOut &txout = tx->vout[0];
+            if (txout.scriptPubKey[0] == OP_RETURN)
+            {
+                auto asmStr = ScriptToAsmStr(txout.scriptPubKey);
+                boost::split(vasm, asmStr, boost::is_any_of("\t "));
+                if (vasm.size() >= 2)
+                    return ConvertOpReturnToType(vasm[1]);
+            }
+
+            return PocketTxType::NOT_SUPPORTED;
+        }
+
+        static PocketTxType ParseType(const std::string &reindexerTable, const UniValue &reindexerSrc)
         {
             // TODO (brangr): implement enum for tx types
-            if (strType == "Users")
+            if (reindexerTable == "Users")
                 return PocketTxType::USER_ACCOUNT;
 
-            if (strType == "Posts")
+            if (reindexerTable == "Posts")
                 return PocketTxType::POST_CONTENT;
 
-            if (strType == "Comment")
+            if (reindexerTable == "Comment")
                 return PocketTxType::COMMENT_CONTENT;
 
-            if (strType == "Scores")
+            if (reindexerTable == "Scores")
                 return PocketTxType::SCORE_POST_ACTION;
 
-            if (strType == "CommentScores")
+            if (reindexerTable == "CommentScores")
                 return PocketTxType::SCORE_COMMENT_ACTION;
 
-            if (strType == "Blocking")
+            if (reindexerTable == "Blocking")
             {
-                if (txDataSrc.exists("unblocking") &&
-                    txDataSrc["unblocking"].isBool() &&
-                    txDataSrc["unblocking"].get_bool())
+                if (reindexerSrc.exists("unblocking") &&
+                    reindexerSrc["unblocking"].isBool() &&
+                    reindexerSrc["unblocking"].get_bool())
                     return PocketTxType::BLOCKING_CANCEL_ACTION;
 
                 return PocketTxType::BLOCKING_ACTION;
             }
 
-            if (strType == "Subscribes")
+            if (reindexerTable == "Subscribes")
             {
-                if (txDataSrc.exists("unsubscribe") &&
-                    txDataSrc["unsubscribe"].isBool() &&
-                    txDataSrc["unsubscribe"].get_bool())
+                if (reindexerSrc.exists("unsubscribe") &&
+                    reindexerSrc["unsubscribe"].isBool() &&
+                    reindexerSrc["unsubscribe"].get_bool())
                     return PocketTxType::SUBSCRIBE_CANCEL_ACTION;
 
-                if (txDataSrc.exists("private") &&
-                    txDataSrc["private"].isBool() &&
-                    txDataSrc["private"].get_bool())
+                if (reindexerSrc.exists("private") &&
+                    reindexerSrc["private"].isBool() &&
+                    reindexerSrc["private"].get_bool())
                     return PocketTxType::SUBSCRIBE_PRIVATE_ACTION;
 
                 return PocketTxType::SUBSCRIBE_ACTION;
             }
 
-            if (strType == "Complains")
+            if (reindexerTable == "Complains")
                 return PocketTxType::COMPLAIN_ACTION;
 
             return PocketTxType::NOT_SUPPORTED;
@@ -163,6 +178,49 @@ namespace PocketServices
 
             return pocketTxn;
         }
+
+    private:
+
+        static PocketTxType ConvertOpReturnToType(const std::string &op)
+        {
+            if (op == OR_POST || op == OR_POSTEDIT)
+                return PocketTxType::POST_CONTENT;
+            else if (op == OR_VIDEO)
+                return PocketTxType::VIDEO_CONTENT;
+            else if (op == OR_SERVER_PING)
+                return PocketTxType::SERVERPING_CONTENT;
+            else if (op == OR_SCORE)
+                return PocketTxType::SCORE_POST_ACTION;
+            else if (op == OR_COMPLAIN)
+                return PocketTxType::COMPLAIN_ACTION;
+            else if (op == OR_SUBSCRIBE)
+                return PocketTxType::SUBSCRIBE_ACTION;
+            else if (op == OR_SUBSCRIBEPRIVATE)
+                return PocketTxType::SUBSCRIBE_PRIVATE_ACTION;
+            else if (op == OR_UNSUBSCRIBE)
+                return PocketTxType::SUBSCRIBE_CANCEL_ACTION;
+            else if (op == OR_USERINFO)
+                return PocketTxType::USER_ACCOUNT;
+            else if (op == OR_VIDEO_SERVER)
+                return PocketTxType::VIDEO_SERVER_ACCOUNT;
+            else if (op == OR_MESSAGE_SERVER)
+                return PocketTxType::MESSAGE_SERVER_ACCOUNT;
+            else if (op == OR_BLOCKING)
+                return PocketTxType::BLOCKING_ACTION;
+            else if (op == OR_UNBLOCKING)
+                return PocketTxType::BLOCKING_CANCEL_ACTION;
+            else if (op == OR_COMMENT || op == OR_COMMENT_EDIT)
+                return PocketTxType::COMMENT_CONTENT;
+            else if (op == OR_COMMENT_DELETE)
+                return PocketTxType::COMMENT_DELETE_CONTENT;
+            else if (op == OR_COMMENT_SCORE)
+                return PocketTxType::SCORE_COMMENT_ACTION;
+
+            // TODO (brangr): new types
+
+            return PocketTxType::NOT_SUPPORTED;
+        }
+
     };
 
 }

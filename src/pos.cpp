@@ -612,7 +612,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut> &results, CAmount &to
         totalAmount += ratingReward;
 
         int current = 0;
-        const int rewardsCount = vWin.second.size();
+        const int rewardsCount = (int)vWin.second.size();
         CAmount rewardsPool = ratingReward;
         CAmount reward = ratingReward / rewardsCount;
 

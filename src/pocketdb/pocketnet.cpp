@@ -69,57 +69,57 @@ std::string PocketTXType(const CTransactionRef& tx)
 }
 
 // Transaction type convert to pocket transaction type
-bool ConvertOPToTableName(std::string op, std::string& ri_table)
-{
-    bool ret = true;
-
-    if (op == OR_POST)
-        ri_table = "Posts";
-    else if (op == OR_POSTEDIT)
-        ri_table = "Posts";
-    else if (op == OR_VIDEO)
-        ri_table = "Posts";
-    else if (op == OR_SERVER_PING)
-        ri_table = "Posts";
-
-    else if (op == OR_SCORE)
-        ri_table = "Scores";
-    else if (op == OR_COMPLAIN)
-        ri_table = "Complains";
-
-    else if (op == OR_SUBSCRIBE)
-        ri_table = "Subscribes";
-    else if (op == OR_SUBSCRIBEPRIVATE)
-        ri_table = "Subscribes";
-    else if (op == OR_UNSUBSCRIBE)
-        ri_table = "Subscribes";
-
-    else if (op == OR_USERINFO)
-        ri_table = "Users";
-    else if (op == OR_VIDEO_SERVER)
-        ri_table = "Users";
-    else if (op == OR_MESSAGE_SERVER)
-        ri_table = "Users";
-
-    else if (op == OR_BLOCKING)
-        ri_table = "Blocking";
-    else if (op == OR_UNBLOCKING)
-        ri_table = "Blocking";
-
-    else if (op == OR_COMMENT)
-        ri_table = "Comment";
-    else if (op == OR_COMMENT_EDIT)
-        ri_table = "Comment";
-    else if (op == OR_COMMENT_DELETE)
-        ri_table = "Comment";
-    else if (op == OR_COMMENT_SCORE)
-        ri_table = "CommentScores";
-
-    else
-        ret = false;
-
-    return ret;
-}
+//bool ConvertOPToTableName(std::string op, std::string& ri_table)
+//{
+//    bool ret = true;
+//
+//    if (op == OR_POST)
+//        ri_table = "Posts";
+//    else if (op == OR_POSTEDIT)
+//        ri_table = "Posts";
+//    else if (op == OR_VIDEO)
+//        ri_table = "Posts";
+//    else if (op == OR_SERVER_PING)
+//        ri_table = "Posts";
+//
+//    else if (op == OR_SCORE)
+//        ri_table = "Scores";
+//    else if (op == OR_COMPLAIN)
+//        ri_table = "Complains";
+//
+//    else if (op == OR_SUBSCRIBE)
+//        ri_table = "Subscribes";
+//    else if (op == OR_SUBSCRIBEPRIVATE)
+//        ri_table = "Subscribes";
+//    else if (op == OR_UNSUBSCRIBE)
+//        ri_table = "Subscribes";
+//
+//    else if (op == OR_USERINFO)
+//        ri_table = "Users";
+//    else if (op == OR_VIDEO_SERVER)
+//        ri_table = "Users";
+//    else if (op == OR_MESSAGE_SERVER)
+//        ri_table = "Users";
+//
+//    else if (op == OR_BLOCKING)
+//        ri_table = "Blocking";
+//    else if (op == OR_UNBLOCKING)
+//        ri_table = "Blocking";
+//
+//    else if (op == OR_COMMENT)
+//        ri_table = "Comment";
+//    else if (op == OR_COMMENT_EDIT)
+//        ri_table = "Comment";
+//    else if (op == OR_COMMENT_DELETE)
+//        ri_table = "Comment";
+//    else if (op == OR_COMMENT_SCORE)
+//        ri_table = "CommentScores";
+//
+//    else
+//        ret = false;
+//
+//    return ret;
+//}
 
 // User reputation - double value in integer
 // i.e. 213 = 21.3
@@ -585,18 +585,18 @@ bool FindPocketNetAsmString(const CTransactionRef& tx, std::string& asmStr)
     return false;
 }
 
-bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table)
-{
-    std::vector<std::string> vasm;
-    if (!FindPocketNetAsmString(tx, vasm)) return false;
-    return ConvertOPToTableName(vasm[1], ri_table);
-}
-bool IsPocketnetTransaction(const CTransactionRef& tx)
-{
-    std::string _ri_table = "";
-    return GetPocketnetTXType(tx, _ri_table);
-}
-bool IsPocketnetTransaction(const CTransaction& tx)
-{
-    return IsPocketnetTransaction(MakeTransactionRef(tx));
-}
+//bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table)
+//{
+//    std::vector<std::string> vasm;
+//    if (!FindPocketNetAsmString(tx, vasm)) return false;
+//    return ConvertOPToTableName(vasm[1], ri_table);
+//}
+//bool IsPocketnetTransaction(const CTransactionRef& tx)
+//{
+//    std::string _ri_table = "";
+//    return GetPocketnetTXType(tx, _ri_table);
+//}
+//bool IsPocketnetTransaction(const CTransaction& tx)
+//{
+//    return IsPocketnetTransaction(MakeTransactionRef(tx));
+//}
