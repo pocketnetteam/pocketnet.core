@@ -7,6 +7,7 @@
 #ifndef POCKETDB_BLOCKINDEXER_HPP
 #define POCKETDB_BLOCKINDEXER_HPP
 
+#include "util.h"
 #include "script/standard.h"
 #include "chain.h"
 #include "primitives/block.h"
@@ -26,6 +27,8 @@ namespace PocketServices
     public:
         static bool Index(const CBlock &block, int height)
         {
+            auto result = true;
+
             vector<shared_ptr<Utxo>> utxoNew;
             vector<shared_ptr<Utxo>> utxoSpent;
 
@@ -37,21 +40,36 @@ namespace PocketServices
                 // расчитали рейтинги
             }
 
-            // проставить утхо чреез BlockRepository
-            UtxoRepoInst.BulkInsert(utxoNew);
-            UtxoRepoInst.BulkSpent(utxoSpent);
-            //BlockRepository.UtxoSpent(height, vector<tuple<unit256, int>> txs)
+            result &= UtxoRepoInst.BulkInsert(utxoNew);
+            result &= UtxoRepoInst.BulkSpent(utxoSpent);
 
-            // todo (brangr): кинуть false наверх при неудаче индексации
-            return true;
+            // For explorer database is optional
+            if (gArgs.GetBoolArg("-explorer", false))
+                result &= IndexChain(block, height);
+
+            return result;
         }
 
-        static bool Rollback(int height) {
-            // todo (brangr): кинуть false наверх при неудаче индексации
-            return BlockRepoInst.BulkRollback(height);
+        static bool Rollback(int height)
+        {
+            auto result = BlockRepoInst.BulkRollback(height);
+
+            if (gArgs.GetBoolArg("-explorer", false))
+                result &= RollbackChain(height);
+
+            return result;
         }
 
     protected:
+
+        static bool IndexChain(const CBlock &block, int height)
+        {
+            // TODO (joni): записать транзакции и блок в БД
+        }
+
+        static bool RollbackChain(int height) {
+            // TODO (joni): откатиться транзакции и блок в БД
+        }
 
         static void IndexOuts(const CTransactionRef &tx, int height,
             vector<shared_ptr<Utxo>> &vUtxoNew,
