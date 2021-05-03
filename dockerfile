@@ -1,4 +1,4 @@
-FROM debian:stable-slim
+FROM ubuntu:20.04
 
 ENV POCKETCORE_HOME=/home/pocketcore
 ENV POCKETCOIN_DATA=${POCKETCORE_HOME}/.pocketcoin
