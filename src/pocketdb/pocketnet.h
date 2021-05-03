@@ -10,9 +10,10 @@
 #include <util.h>
 
 #include <boost/algorithm/string.hpp>
-#include <pocketdb/repositories/TransactionRepository.hpp>
-#include <pocketdb/repositories/BlockRepository.hpp>
-#include <pocketdb/repositories/UtxoRepository.hpp>
+#include "pocketdb/consensus/Lottery.hpp"
+#include "pocketdb/repositories/TransactionRepository.hpp"
+#include "pocketdb/repositories/BlockRepository.hpp"
+#include "pocketdb/repositories/UtxoRepository.hpp"
 
 namespace PocketDb
 {
@@ -21,6 +22,11 @@ namespace PocketDb
     extern BlockRepository BlockRepoInst;
     extern UtxoRepository UtxoRepoInst;
 }; // namespace PocketDb
+
+namespace PocketConsensus
+{
+    extern LotteryFactory LotteryFactoryInst;
+}; // namespace PocketConsensus
 
 
 // Antibot limits

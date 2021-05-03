@@ -98,6 +98,8 @@ POCKETDB_HPP = \
     pocketdb/repositories/BlockRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/repositories/UtxoRepository.hpp \
+    pocketdb/consensus/Base.hpp \
+    pocketdb/consensus/Lottery.hpp \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/BlockIndexer.hpp \
     pocketdb/models/base/Base.hpp \

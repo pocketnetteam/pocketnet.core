@@ -55,7 +55,6 @@ bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock, int64_t nTimeTx);
 bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64_t& nStakeModifier, bool& fGeneratedStakeModifier);
 
 bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, const CBlockIndex* pindex, CDataStream& hashProofOfStakeSource, std::vector<opcodetype>& winner_types, const CBlock* block = nullptr);
-void GetReferrers(std::vector<std::string>& winners, std::map<std::string, std::string> all_referrers, std::vector<std::string>& referrers);
 bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalAmount, std::vector<std::string> winners, opcodetype op_code_type, int height, std::vector<opcodetype>& winner_types);
 
 #endif // POCKETCOIN_POS_H

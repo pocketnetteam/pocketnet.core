@@ -7,17 +7,23 @@
 #ifndef POCKETCONSENSUS_BASE_HPP
 #define POCKETCONSENSUS_BASE_HPP
 
-#include <univalue.h>
+#include "univalue/include/univalue.h"
+#include "pocketdb/pocketnet.h"
 
 namespace PocketConsensus
 {
     using std::string;
     using std::shared_ptr;
     using std::make_shared;
+    using std::map;
 
-    class Base
+    //using namespace PocketTx;
+    //using namespace PocketDb;
+
+    class BaseConsensus
     {
     public:
+        BaseConsensus() = default;
     protected:
     private:
     };

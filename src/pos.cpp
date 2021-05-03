@@ -596,251 +596,27 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut> &results, CAmount &to
     const CBlockIndex *pindexPrev, CDataStream &hashProofOfStakeSource, std::vector<opcodetype> &winner_types,
     const CBlock *block)
 {
-    // TODO (brangr): REINDEXER -> SQLITE
-    return true;
+    // Read previous block data from disk
+    CBlock blockPrev;
+    ReadBlockFromDisk(blockPrev, pindexPrev, Params().GetConsensus());
 
-//     const int RATINGS_PAYOUT_MAX = 25;
-     int height = pindexPrev->nHeight;
+    // Get all winners from block
+    // LotteryFactory get actual version of consensus service by current height
+    auto lotteryInst = PocketConsensus::LotteryFactoryInst.Instance(pindexPrev->nHeight);
+    auto winners = lotteryInst->Winners(blockPrev);
 
-//     std::vector<std::string> vLotteryPost;
-//     std::vector<std::string> vLotteryComment;
-//
-//     std::map<std::string, std::string> mLotteryPostRef;
-//     std::map<std::string, std::string> mLotteryCommentRef;
-//
-//     std::map<std::string, int> allPostRatings;
-//     std::map<std::string, int> allCommentRatings;
-
-     CBlock blockPrev;
-     ReadBlockFromDisk(blockPrev, pindexPrev, Params().GetConsensus());
-
-     int64_t _lottery_referral_depth = GetActualLimit(Limit::lottery_referral_depth, height);
-
-     // Get all users from prev block for current lottery
-//     for (const auto& tx : blockPrev.vtx) {
-//         std::vector<std::string> vasm;
-//         if (!FindPocketNetAsmString(tx, vasm)) continue;
-//         if ((vasm[1] == OR_SCORE || vasm[1] == OR_COMMENT_SCORE) && vasm.size() >= 4) {
-//             std::vector<unsigned char> _data_hex = ParseHex(vasm[3]);
-//             std::string _data_str(_data_hex.begin(), _data_hex.end());
-//             std::vector<std::string> _data;
-//             boost::split(_data, _data_str, boost::is_any_of("\t "));
-//             if (_data.size() >= 2) {
-//                 std::string _address = _data[0];
-//                 int _value = std::stoi(_data[1]);
-
-                 // For lottery use scores as 4=1 and 5=2 - Scores to posts
-                 if (vasm[1] == OR_SCORE && (_value == 4 || _value == 5)) {
-                     std::string _score_address;
-                     std::string _post_address;
-
-                     // Get address of score initiator
-                     reindexer::Item _score_itm;
-                     if (g_pocketdb->SelectOne(reindexer::Query("Scores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm).ok())
-                         _score_address = _score_itm["address"].As<string>();
-
-                     reindexer::Item _post_itm;
-                     if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _score_itm["posttxid"].As<string>()), _post_itm).ok())
-                         _post_address = _post_itm["address"].As<string>();
-
-                     if (_score_address.empty() || _post_address.empty()) {
-                         LogPrintf("GetRatingRewards error: _score_address='%s' _post_address='%s'\n", _score_address, _post_address);
-                         continue;
-                     }
-
-                     if (_address == _post_address && g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, height, tx, true)) {
-                         if (allPostRatings.find(_post_address) == allPostRatings.end()) allPostRatings.insert(std::make_pair(_post_address, 0));
-                         allPostRatings[_post_address] += (_value - 3);
-
-                         // Find winners with referral program
-                         if (height >= Params().GetConsensus().lottery_referral_beg) {
-                             reindexer::Item _referrer_itm;
-
-                             reindexer::Query _referrer_query = reindexer::Query("UsersView").Where("address", CondEq, _post_address).Not().Where("referrer", CondEq, "").Not().Where("referrer", CondEq, _score_address);
-                             if (height >= Params().GetConsensus().lottery_referral_limitation) {
-                                 _referrer_query.Where("regdate", CondGe, (int64_t)tx->nTime - _lottery_referral_depth);
-                             }
-
-                             if (g_pocketdb->SelectOne(_referrer_query, _referrer_itm).ok()) {
-                                 if (mLotteryPostRef.find(_post_address) == mLotteryPostRef.end()) {
-                                     auto _referrer_address = _referrer_itm["referrer"].As<string>();
-                                     mLotteryPostRef.emplace(_post_address, _referrer_address);
-                                 }
-                             }
-                         }
-                     }
-                 }
-
-                 // For lottery use scores as 1 and -1 - Scores to comments
-                 if (vasm[1] == OR_COMMENT_SCORE && (_value == 1)) {
-                     std::string _score_address;
-                     std::string _comment_address;
-
-                     // Get address of score initiator
-                     reindexer::Item _score_itm;
-                     if (g_pocketdb->SelectOne(reindexer::Query("CommentScores").Where("txid", CondEq, tx->GetHash().GetHex()), _score_itm).ok())
-                         _score_address = _score_itm["address"].As<string>();
-
-                     reindexer::Item _comment_itm;
-                     if (g_pocketdb->SelectOne(reindexer::Query("Comment").Where("txid", CondEq, _score_itm["commentid"].As<string>()), _comment_itm).ok())
-                         _comment_address = _comment_itm["address"].As<string>();
-
-                     if (_score_address.empty() || _comment_address.empty()) {
-                         LogPrintf("GetRatingRewards error: _score_address='%s' _comment_address='%s'\n", _score_address, _comment_address);
-                         continue;
-                     }
-
-                     if (_address == _comment_address && g_antibot->AllowModifyReputationOverComment(_score_address, _comment_address, height, tx, true)) {
-                         if (allCommentRatings.find(_comment_address) == allCommentRatings.end()) allCommentRatings.insert(std::make_pair(_comment_address, 0));
-                         allCommentRatings[_comment_address] += _value;
-
-                         // Find winners with referral program
-                         if (height >= Params().GetConsensus().lottery_referral_beg) {
-                             reindexer::Item _referrer_itm;
-
-                             reindexer::Query _referrer_query = reindexer::Query("UsersView").Where("address", CondEq, _comment_address).Not().Where("referrer", CondEq, "").Not().Where("referrer", CondEq, _score_address);
-                             if (height >= Params().GetConsensus().lottery_referral_limitation) {
-                                 _referrer_query.Where("regdate", CondGe, (int64_t)tx->nTime - _lottery_referral_depth);
-                             }
-
-                             if (g_pocketdb->SelectOne(_referrer_query, _referrer_itm).ok()) {
-                                 if (mLotteryCommentRef.find(_comment_address) == mLotteryCommentRef.end()) {
-                                     auto _referrer_address = _referrer_itm["referrer"].As<string>();
-                                     mLotteryCommentRef.emplace(_comment_address, _referrer_address);
-                                 }
-                             }
-                         }
-                     }
-                 }
-             }
-         }
-     }
-
-     // Sort founded users
-     {
-         std::vector<std::pair<std::string, std::pair<int, arith_uint256>>> allPostSorted;
-         std::vector<std::pair<std::string, std::pair<int, arith_uint256>>> allCommentSorted;
-
-         {
-             // Users with scores by post
-             for (auto& it : allPostRatings) {
-                 CDataStream ss(hashProofOfStakeSource);
-                 ss << it.first;
-                 arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
-                 allPostSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
-             }
-
-             // Users with scores by comment
-             for (auto& it : allCommentRatings) {
-                 CDataStream ss(hashProofOfStakeSource);
-                 ss << it.first;
-                 arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
-                 allCommentSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
-             }
-         }
-
-         // Shrink founded users
-         {
-             // Users with scores by post
-             if (allPostSorted.size() > 0) {
-                 std::sort(allPostSorted.begin(), allPostSorted.end(), [](auto & a, auto & b) {
-                     return a.second.second < b.second.second;
-                 });
-
-                 if (allPostSorted.size() > RATINGS_PAYOUT_MAX) {
-                     allPostSorted.resize(RATINGS_PAYOUT_MAX);
-                 }
-
-                 for (auto& it : allPostSorted) {
-                     vLotteryPost.push_back(it.first);
-                 }
-             }
-
-             // Users with scores by comment
-             if (allCommentSorted.size() > 0) {
-                 std::sort(allCommentSorted.begin(), allCommentSorted.end(), [](auto & a, auto & b) {
-                     return a.second.second < b.second.second;
-                 });
-
-                 if (allCommentSorted.size() > RATINGS_PAYOUT_MAX) {
-                     allCommentSorted.resize(RATINGS_PAYOUT_MAX);
-                 }
-
-                 for (auto& it : allCommentSorted) {
-                     vLotteryComment.push_back(it.first);
-                 }
-             }
-         }
-     }
-
-     // Create transactions for all winners
-     bool ret = false;
-     ret = GenerateOuts(nCredit, results, totalAmount, vLotteryPost, OP_WINNER_POST, height, winner_types) || ret;
-     ret = GenerateOuts(nCredit, results, totalAmount, vLotteryComment, OP_WINNER_COMMENT, height, winner_types) || ret;
-
-     if (height >= Params().GetConsensus().lottery_referral_beg) {
-         std::vector<std::string> vLotteryPostRef;
-         GetReferrers(vLotteryPost, mLotteryPostRef, vLotteryPostRef);
-
-         std::vector<std::string> vLotteryCommentRef;
-         GetReferrers(vLotteryComment, mLotteryCommentRef, vLotteryCommentRef);
-
-         ret = GenerateOuts(nCredit, results, totalAmount, vLotteryPostRef, OP_WINNER_POST_REFERRAL, height, winner_types) || ret;
-         ret = GenerateOuts(nCredit, results, totalAmount, vLotteryCommentRef, OP_WINNER_COMMENT_REFERRAL, height, winner_types) || ret;
-     }
-
-     return ret;
-}
-
-void GetReferrers(std::vector<std::string> &winners, std::map<std::string, std::string> all_referrers,
-    std::vector<std::string> &referrers)
-{
-    for (auto &addr : winners)
+    // Generate new outs in transaction for all winners
+    for (const auto &vWin : winners)
     {
-        if (all_referrers.find(addr) != all_referrers.end())
-        {
-            referrers.push_back(all_referrers[addr]);
-        }
-    }
-}
-
-bool GenerateOuts(CAmount nCredit, std::vector<CTxOut> &results, CAmount &totalAmount, std::vector<std::string> winners,
-    opcodetype op_code_type, int height, std::vector<opcodetype> &winner_types)
-{
-    if (winners.size() > 0 && winners.size() <= 25)
-    {
-        CAmount ratingReward = 0;
-        if (height >= Params().GetConsensus().checkpoint_0_19_3)
-        {
-            // Referrer program 5 - 100%; 4.75 - nodes; 0.25 - all for lottery;
-            // .1 - posts (2%); .1 - referrer over posts (2%); 0.025 - comment (.5%); 0.025 - referrer over comment (.5%);
-            if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.02;
-            if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.02;
-            if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.005;
-            if (op_code_type == OP_WINNER_COMMENT_REFERRAL) ratingReward = nCredit * 0.005;
-            totalAmount += ratingReward;
-        } else if (height >= Params().GetConsensus().lottery_referral_beg)
-        {
-            // Referrer program 5 - 100%; 2.0 - nodes; 3.0 - all for lottery;
-            // 2.0 - posts; 0.4 - referrer over posts (20%); 0.5 - comment; 0.1 - referrer over comment (20%);
-            if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.40;
-            if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.08;
-            if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.10;
-            if (op_code_type == OP_WINNER_COMMENT_REFERRAL) ratingReward = nCredit * 0.02;
-            totalAmount += ratingReward;
-        } else
-        {
-            ratingReward = nCredit * 0.5;
-            if (op_code_type == OP_WINNER_COMMENT) ratingReward = ratingReward / 10;
-            totalAmount += ratingReward;
-        }
+        CAmount ratingReward = lotteryInst->RatingReward(vWin.first);
+        totalAmount += ratingReward;
 
         int current = 0;
-        const int rewardsCount = winners.size();
+        const int rewardsCount = vWin.second.size();
         CAmount rewardsPool = ratingReward;
         CAmount reward = ratingReward / rewardsCount;
 
-        for (auto addr : boost::adaptors::reverse(winners))
+        for (const auto &addr : boost::adaptors::reverse(vWin.second))
         {
             CAmount re;
             if (++current == rewardsCount)
@@ -855,14 +631,13 @@ bool GenerateOuts(CAmount nCredit, std::vector<CTxOut> &results, CAmount &totalA
             CTxDestination dest = DecodeDestination(addr);
             CScript scriptPubKey = GetScriptForDestination(dest);
 
-            if (height >= Params().GetConsensus().lottery_referral_beg)
-                winner_types.push_back(op_code_type);
+            // TODO (brangr): update over LotteryInstance
+//            if (height >= Params().GetConsensus().lottery_referral_beg)
+//                winner_types.push_back(op_code_type);
 
-            results.push_back(CTxOut(re, scriptPubKey)); // send to ratings
+            results.emplace_back(re, scriptPubKey);
         }
-
-        return true;
     }
 
-    return false;
+    return true;
 }
