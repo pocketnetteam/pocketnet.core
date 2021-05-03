@@ -14,19 +14,34 @@ namespace PocketConsensus
 {
     typedef std::map<opcodetype, std::vector<std::string>> LotteryWinners;
 
+    /*******************************************************************************************************************
+    *
+    *  Lottery base class
+    *
+    *******************************************************************************************************************/
     class LotteryConsensus : public BaseConsensus
     {
     public:
+
         LotteryConsensus() = default;
-        virtual LotteryWinners &Winners(const CBlock &block) = 0;
-        virtual CAmount RatingReward(opcodetype code) = 0;
+
+        virtual LotteryWinners &
+        Winners(const CBlock &block, CDataStream &hashProofOfStakeSource) = 0;
+
+        virtual CAmount
+        RatingReward(opcodetype code) = 0;
+
+        virtual void
+        ExtendReferrers(const CTransactionRef &tx, PocketTxType txType, string scoreAddress, string destAddress) = 0;
+
     };
 
-    /******************************************************
-     *
-     * Lottery start checkpoint
-     *
-    *******************************************************/
+
+    /*******************************************************************************************************************
+    *
+    *  Lottery start checkpoint
+    *
+    *******************************************************************************************************************/
     class LotteryConsensus_checkpoint_0 : public LotteryConsensus
     {
     private:
@@ -36,7 +51,7 @@ namespace PocketConsensus
         const int CheckpointHeight = 0;
 
         const int RATINGS_PAYOUT_MAX = 25;
-        const int64_t _lottery_referral_depth; // todo (brangr): inherited in checkpoints
+        //const int64_t _lottery_referral_depth; // todo (brangr): inherited in checkpoints
 
         void GetReferrers(std::vector<std::string> &winners, std::map<std::string, std::string> all_referrers,
             std::vector<std::string> &referrers)
@@ -67,6 +82,7 @@ namespace PocketConsensus
         }
 
     public:
+
         LotteryConsensus_checkpoint_0() = default;
 
 
@@ -97,7 +113,7 @@ namespace PocketConsensus
 
         // Get all potencial lottery participants
         // Filter and sort
-        LotteryWinners &Winners(const CBlock &block)
+        virtual LotteryWinners &Winners(const CBlock &block, CDataStream &hashProofOfStakeSource) override
         {
             std::vector<std::string> vLotteryPost;
             std::map<std::string, std::string> mLotteryPostRef;
@@ -124,6 +140,7 @@ namespace PocketConsensus
                     // vasm[1] == OR_COMMENT_SCORE && (_value == 1)
 
                     // нужен адрес лайкера
+                    auto scoreAddress = "";
                     // адрес получателя есть
 
                     //g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, height, tx, true)
@@ -139,6 +156,8 @@ namespace PocketConsensus
                     //    allCommentRatings.end())
                     //    allCommentRatings.insert(std::make_pair(_comment_address, 0));
                     //allCommentRatings[_comment_address] += _value;
+
+                    ExtendReferrers(tx, txType, scoreAddress, destAddress);
                 }
             } // for (const auto &tx : block.vtx)
 
@@ -211,87 +230,90 @@ namespace PocketConsensus
                 _winners;
         }
 
+    }; // class LotteryConsensus_checkpoint_0
 
-    }
 
-
-};
-
-/******************************************************
- *
- * Lottery checkpoint at ... block
- *
-*******************************************************/
-class LotteryConsensus_checkpoint_1 : public LotteryConsensus_checkpoint_0
-{
-    winners()
+    /*******************************************************************************************************************
+    *
+    *  Lottery checkpoint at ... block
+    *
+    *******************************************************************************************************************/
+    class LotteryConsensus_checkpoint_1 : public LotteryConsensus_checkpoint_0
     {
-        // Find winners with referral program
-        if (height >= Params().GetConsensus().lottery_referral_beg)
-        {
-            reindexer::Item _referrer_itm;
+    protected:
 
-            reindexer::Query _referrer_query = reindexer::Query("UsersView").Where(
-                "address",
-                CondEq, _post_address).Not().Where("referrer", CondEq, "").Not().Where(
-                "referrer", CondEq, _score_address);
-            if (height >= Params().GetConsensus().lottery_referral_limitation)
-            {
-                _referrer_query.Where("regdate", CondGe,
-                    (int64_t) tx->nTime - _lottery_referral_depth);
-            }
 
-            if (g_pocketdb->SelectOne(_referrer_query, _referrer_itm).ok())
-            {
-                if (mLotteryPostRef.find(_post_address) == mLotteryPostRef.end())
-                {
-                    auto _referrer_address = _referrer_itm["referrer"].As<string>();
-                    mLotteryPostRef.emplace(_post_address, _referrer_address);
-                }
-            }
-        }
+    public:
+//    winners()
+//    {
+//        // Find winners with referral program
+//        if (height >= Params().GetConsensus().lottery_referral_beg)
+//        {
+//            reindexer::Item _referrer_itm;
+//
+//            reindexer::Query _referrer_query = reindexer::Query("UsersView").Where(
+//                "address",
+//                CondEq, _post_address).Not().Where("referrer", CondEq, "").Not().Where(
+//                "referrer", CondEq, _score_address);
+//            if (height >= Params().GetConsensus().lottery_referral_limitation)
+//            {
+//                _referrer_query.Where("regdate", CondGe,
+//                    (int64_t) tx->nTime - _lottery_referral_depth);
+//            }
+//
+//            if (g_pocketdb->SelectOne(_referrer_query, _referrer_itm).ok())
+//            {
+//                if (mLotteryPostRef.find(_post_address) == mLotteryPostRef.end())
+//                {
+//                    auto _referrer_address = _referrer_itm["referrer"].As<string>();
+//                    mLotteryPostRef.emplace(_post_address, _referrer_address);
+//                }
+//            }
+//        }
+//
+//        // Find winners with referral program
+//        if (height >= Params().GetConsensus().lottery_referral_beg)
+//        {
+//            reindexer::Item _referrer_itm;
+//
+//            reindexer::Query _referrer_query = reindexer::Query("UsersView").Where(
+//                "address",
+//                CondEq, _comment_address).Not().Where("referrer", CondEq, "").Not().Where(
+//                "referrer", CondEq, _score_address);
+//            if (height >= Params().GetConsensus().lottery_referral_limitation)
+//            {
+//                _referrer_query.Where("regdate", CondGe,
+//                    (int64_t) tx->nTime - _lottery_referral_depth);
+//            }
+//
+//            if (g_pocketdb->SelectOne(_referrer_query, _referrer_itm).ok())
+//            {
+//                if (mLotteryCommentRef.find(_comment_address) == mLotteryCommentRef.end())
+//                {
+//                    auto _referrer_address = _referrer_itm["referrer"].As<string>();
+//                    mLotteryCommentRef.emplace(_comment_address, _referrer_address);
+//                }
+//            }
+//        }
+//    }
+    };
 
-        // Find winners with referral program
-        if (height >= Params().GetConsensus().lottery_referral_beg)
-        {
-            reindexer::Item _referrer_itm;
 
-            reindexer::Query _referrer_query = reindexer::Query("UsersView").Where(
-                "address",
-                CondEq, _comment_address).Not().Where("referrer", CondEq, "").Not().Where(
-                "referrer", CondEq, _score_address);
-            if (height >= Params().GetConsensus().lottery_referral_limitation)
-            {
-                _referrer_query.Where("regdate", CondGe,
-                    (int64_t) tx->nTime - _lottery_referral_depth);
-            }
-
-            if (g_pocketdb->SelectOne(_referrer_query, _referrer_itm).ok())
-            {
-                if (mLotteryCommentRef.find(_comment_address) == mLotteryCommentRef.end())
-                {
-                    auto _referrer_address = _referrer_itm["referrer"].As<string>();
-                    mLotteryCommentRef.emplace(_comment_address, _referrer_address);
-                }
-            }
-        }
-    }
-};
-
-/******************************************************
- *
- * Lottery factory for select actual rules version
- *
-*******************************************************/
-class LotteryFactory
-{
-private:
-public:
-    shared_ptr <LotteryConsensus> Instance(int height)
+    /*******************************************************************************************************************
+    *
+    *  Lottery factory for select actual rules version
+    *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
+    *
+    *******************************************************************************************************************/
+    class LotteryFactory
     {
-        // TODO (brangr): достать подходящий чекпойнт реализацию
-    }
-};
+    private:
+    public:
+        shared_ptr<LotteryConsensus> Instance(int height)
+        {
+            // TODO (brangr): достать подходящий чекпойнт реализацию
+        }
+    };
 
 }
 

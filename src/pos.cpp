@@ -603,7 +603,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut> &results, CAmount &to
     // Get all winners from block
     // LotteryFactory get actual version of consensus service by current height
     auto lotteryInst = PocketConsensus::LotteryFactoryInst.Instance(pindexPrev->nHeight);
-    auto winners = lotteryInst->Winners(blockPrev);
+    auto winners = lotteryInst->Winners(blockPrev, hashProofOfStakeSource);
 
     // Generate new outs in transaction for all winners
     for (const auto &vWin : winners)
