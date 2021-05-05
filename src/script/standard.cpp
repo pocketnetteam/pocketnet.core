@@ -89,31 +89,34 @@ static bool MatchPayToPubkey(const CScript& script, valtype& pubkey)
 static bool HTLCScript(const CScript& script)
 {
     if (script.size() == 86) {
-        if (
-            script[0] == OP_IF &&
-            script[1] == OP_SHA256 && script[2] == 32 && script[35] == OP_EQUALVERIFY &&
+        if (script[0] == OP_IF &&
+            script[1] == OP_SHA256 &&
+            script[2] == 32 &&
+            script[35] == OP_EQUALVERIFY &&
             script[36] == OP_DUP &&
-            script[37] == OP_HASH160 && script[38] = 20 &&
+            script[37] == OP_HASH160 &&
+            script[38] == 20 &&
             script[59] == OP_ELSE &&
-
             script[60] == OP_DROP &&
             script[61] == OP_DUP &&
             script[62] == OP_HASH160 &&
             script[63] == 20 &&
             script[84] == OP_ENDIF &&
             script[85] == OP_EQUALVERIFY &&
-            script[86] == OP_CHECKSIG) 
+            script[86] == OP_CHECKSIG)
         {
                 return true;
         }
     }
 
     if (script.size() == 91) {
-
         if (script[0] == OP_IF &&
-            script[1] == OP_SHA256 && script[2] == 32 && script[35] == OP_EQUALVERIFY &&
+            script[1] == OP_SHA256 &&
+            script[2] == 32 &&
+            script[35] == OP_EQUALVERIFY &&
             script[36] == OP_DUP &&
-            script[37] == OP_HASH160 && script[38] = 20 &&
+            script[37] == OP_HASH160 &&
+            script[38] == 20 &&
             script[59] == OP_ELSE &&
             script[60] == 3 &&
             script[64] == OP_CHECKLOCKTIMEVERIFY &&
@@ -130,7 +133,6 @@ static bool HTLCScript(const CScript& script)
     }
 
     return false;
-    
 }
 
 static bool MatchPayToPubkeyHash(const CScript& script, valtype& pubkeyhash)
