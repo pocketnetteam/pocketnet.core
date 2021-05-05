@@ -50,6 +50,10 @@ namespace PocketTx
     {
         NOT_SUPPORTED = 0,
 
+        DEFAULT = 1,
+        COINBASE = 2,
+        COINSTAKE = 3,
+
         USER_ACCOUNT = 100,
         VIDEO_SERVER_ACCOUNT = 101,
         MESSAGE_SERVER_ACCOUNT = 102,
@@ -59,7 +63,7 @@ namespace PocketTx
         TRANSLATE_CONTENT = 202,
         SERVERPING_CONTENT = 203,
         COMMENT_CONTENT = 204,
-        COMMENT_DELETE_CONTENT = 204,
+        COMMENT_DELETE_CONTENT = 205,
 
         SCORE_POST_ACTION = 300,
         SCORE_COMMENT_ACTION = 301,
