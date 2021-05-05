@@ -290,7 +290,7 @@ void FillLimits(const CChainParams& params) {
     std::map<int, int64_t> _lottery_referral_depth;
     _lottery_referral_depth.insert({ 0, 30*24*3600 });
     Limits.insert(std::make_pair(Limit::lottery_referral_depth, _lottery_referral_depth));
-    
+        
 };
 
 // Get actual limit for current height
@@ -587,3 +587,22 @@ bool IsPocketnetTransaction(const CTransaction& tx)
 {
     return IsPocketnetTransaction(MakeTransactionRef(tx));
 }
+/*
+void FindHierarchicalTxIds(int height)
+{
+    reindexer::Error err;
+
+    reindexer::Query query;
+    reindexer::QueryResults queryResults;
+
+    query = reindexer::Query("Posts")
+        .Where("block", CondLe, height)
+        .Where("block", CondGt, height - cntBlocksForResult)
+        .Sort("block", true)
+        .Sort("time", true)
+        .LeftJoin("txid", "posttxid", CondEq, reindexer::Query("PostRatings").Where("block", CondLe, height).Limit(1))
+        .LeftJoin("address", "address", CondEq, reindexer::Query("UserRaiting").Where("block", CondLe, height).Limit(1));
+    err = g_pocketdb->DB()->Select(query, queryResults);
+    if (err.ok()) {
+    }
+}*/

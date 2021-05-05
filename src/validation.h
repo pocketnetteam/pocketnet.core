@@ -463,6 +463,12 @@ inline CBlockIndex* LookupBlockIndex(const uint256& hash)
     return it == mapBlockIndex.end() ? nullptr : it->second;
 }
 
+inline CBlockIndex* LookupBlockIndexWithoutAssert(const uint256& hash)
+{
+    BlockMap::const_iterator it = mapBlockIndex.find(hash);
+    return it == mapBlockIndex.end() ? nullptr : it->second;
+}
+
 inline CBlockIndex* LookupBlockIndexWithoutLock(const uint256& hash)
 {
     BlockMap::const_iterator it = mapBlockIndex.find(hash);

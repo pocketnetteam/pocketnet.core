@@ -116,7 +116,7 @@ public:
 
     // Returns sum of all unspent transactions for address
     int64_t GetUserBalance(std::string _address, int height);
-    int GetUserId(std::string address);
+    std::tuple<int, int> GetUserData(std::string address);
 
     // Search tags in DB
     void SearchTags(std::string search, int count, std::map<std::string, int>& tags, int& totalCount);
