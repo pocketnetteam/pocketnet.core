@@ -104,10 +104,10 @@ int64_t GetActualLimit(Limit type, int height);
 
 
 // Check transaction type is pocketnet
-bool IsPocketTX(const CTxOut &out);
-bool IsPocketTX(const CTransaction &tx);
-bool IsPocketTX(const CTransactionRef &tx);
-std::string PocketTXType(const CTransactionRef &tx);
+//bool IsPocketTX(const CTxOut &out);
+//bool IsPocketTX(const CTransaction &tx);
+//bool IsPocketTX(const CTransactionRef &tx);
+//std::string PocketTXType(const CTransactionRef &tx);
 
 
 // Transaction type convert to reindexer table name

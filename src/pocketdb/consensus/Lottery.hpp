@@ -7,6 +7,7 @@
 #ifndef POCKETCONSENSUS_LOTTERY_HPP
 #define POCKETCONSENSUS_LOTTERY_HPP
 
+#include "streams.h"
 #include "pocketdb/consensus/Base.hpp"
 #include "pocketdb/services/TransactionSerializer.hpp"
 
@@ -166,26 +167,26 @@ namespace PocketConsensus
             std::vector<std::pair<std::string, std::pair<int, arith_uint256>>> allCommentSorted;
 
             // Users with scores by post
-            for (
-                auto &it: allPostRatings
-                )
-            {
-                CDataStream ss(hashProofOfStakeSource);
-                ss << it.first;
-                arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
-                allPostSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
-            }
+//            for (
+//                auto &it: allPostRatings
+//                )
+//            {
+//                CDataStream ss(hashProofOfStakeSource);
+//                ss << it.first;
+//                arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
+//                allPostSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
+//            }
 
             // Users with scores by comment
-            for (
-                auto &it: allCommentRatings
-                )
-            {
-                CDataStream ss(hashProofOfStakeSource);
-                ss << it.first;
-                arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
-                allCommentSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
-            }
+//            for (
+//                auto &it: allCommentRatings
+//                )
+//            {
+//                CDataStream ss(hashProofOfStakeSource);
+//                ss << it.first;
+//                arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
+//                allCommentSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
+//            }
 
             // Shrink founded users
             // Users with scores by post

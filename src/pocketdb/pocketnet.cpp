@@ -15,58 +15,58 @@ namespace PocketConsensus
     LotteryFactory LotteryFactoryInst;
 }; // namespace PocketConsensus
 
-bool IsPocketTX(const CTxOut& out) {
-    if (out.scriptPubKey.size() > 0 && out.scriptPubKey[0] == OP_RETURN) {
-        std::string asmStr = ScriptToAsmStr(out.scriptPubKey);
-        std::istringstream iss(asmStr);
-        std::vector<std::string> vasm(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
+//bool IsPocketTX(const CTxOut& out) {
+//    if (out.scriptPubKey.size() > 0 && out.scriptPubKey[0] == OP_RETURN) {
+//        std::string asmStr = ScriptToAsmStr(out.scriptPubKey);
+//        std::istringstream iss(asmStr);
+//        std::vector<std::string> vasm(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
+//
+//        if (vasm.size() > 1) {
+//            std::string rTable;
+//            return ConvertOPToTableName(vasm[1], rTable);
+//        }
+//    }
+//
+//    return false;
+//}
 
-        if (vasm.size() > 1) {
-            std::string rTable;
-            return ConvertOPToTableName(vasm[1], rTable);
-        }
-    }
-
-    return false;
-}
-
-bool IsPocketTX(const CTransaction& tx)
-{
-    if (tx.vout.size() > 0) {
-        const CTxOut out = tx.vout[0];
-        return IsPocketTX(out);
-    }
-
-    return false;
-}
-
-bool IsPocketTX(const CTransactionRef& tx)
-{
-    if (tx->vout.size() > 0) {
-        const CTxOut out = tx->vout[0];
-        return IsPocketTX(out);
-    }
-
-    return false;
-}
-
-std::string PocketTXType(const CTransactionRef& tx)
-{
-    if (tx->vout.size() > 0) {
-        const CTxOut out = tx->vout[0];
-        if (out.scriptPubKey.size() > 0 && out.scriptPubKey[0] == OP_RETURN) {
-            std::string asmStr = ScriptToAsmStr(out.scriptPubKey);
-            std::istringstream iss(asmStr);
-            std::vector<std::string> vasm(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
-
-            if (vasm.size() > 1) {
-                return vasm[1];
-            }
-        }
-    }
-    
-    return "";
-}
+//bool IsPocketTX(const CTransaction& tx)
+//{
+//    if (tx.vout.size() > 0) {
+//        const CTxOut out = tx.vout[0];
+//        return IsPocketTX(out);
+//    }
+//
+//    return false;
+//}
+//
+//bool IsPocketTX(const CTransactionRef& tx)
+//{
+//    if (tx->vout.size() > 0) {
+//        const CTxOut out = tx->vout[0];
+//        return IsPocketTX(out);
+//    }
+//
+//    return false;
+//}
+//
+//std::string PocketTXType(const CTransactionRef& tx)
+//{
+//    if (tx->vout.size() > 0) {
+//        const CTxOut out = tx->vout[0];
+//        if (out.scriptPubKey.size() > 0 && out.scriptPubKey[0] == OP_RETURN) {
+//            std::string asmStr = ScriptToAsmStr(out.scriptPubKey);
+//            std::istringstream iss(asmStr);
+//            std::vector<std::string> vasm(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
+//
+//            if (vasm.size() > 1) {
+//                return vasm[1];
+//            }
+//        }
+//    }
+//
+//    return "";
+//}
 
 // Transaction type convert to pocket transaction type
 //bool ConvertOPToTableName(std::string op, std::string& ri_table)
