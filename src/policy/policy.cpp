@@ -170,7 +170,7 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
         txnouttype whichType = Solver(prev.scriptPubKey, vSolutions);
         if (whichType == TX_NONSTANDARD) {
             return false;
-        } else if (whichType == TX_SCRIPTHASH) {
+        } else if (whichType == TX_SCRIPTHASH || whichType == TX_HTLC) {
             std::vector<std::vector<unsigned char> > stack;
             // convert the scriptSig into a stack, so we can inspect the redeemScript
             if (!EvalScript(stack, tx.vin[i].scriptSig, SCRIPT_VERIFY_NONE, BaseSignatureChecker(), SigVersion::BASE))

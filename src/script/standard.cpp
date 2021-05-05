@@ -29,6 +29,7 @@ const char* GetTxnOutputType(txnouttype t)
     switch (t)
     {
     case TX_NONSTANDARD: return "nonstandard";
+    case TX_HTLC: return "nft";
     case TX_PUBKEY: return "pubkey";
     case TX_PUBKEYHASH: return "pubkeyhash";
     case TX_SCRIPTHASH: return "scripthash";
@@ -52,6 +53,84 @@ static bool MatchPayToPubkey(const CScript& script, valtype& pubkey)
         return CPubKey::ValidSize(pubkey);
     }
     return false;
+}
+
+/*
+
+            OP_IF
+                OP_SHA256 ${bitcoin.crypto.sha256(hash).toString('hex')} OP_EQUALVERIFY
+                OP_DUP 
+                OP_HASH160 ${recieverhash.toString('hex')}
+            OP_ELSE
+                ${lockbuf.toString('hex')} OP_CHECKLOCKTIMEVERIFY 
+                OP_DROP 
+                OP_DUP 
+                OP_HASH160 ${senderhash.toString('hex')}
+            OP_ENDIF
+            OP_EQUALVERIFY
+            OP_CHECKSIG
+
+            _____________________
+
+            OP_IF
+                OP_SHA256 ${bitcoin.crypto.sha256(hash).toString('hex')} OP_EQUALVERIFY
+                OP_DUP 
+                OP_HASH160 ${senderhash.toString('hex')}
+            OP_ELSE
+                OP_DROP
+                OP_DUP 
+                OP_HASH160 ${recieverhash.toString('hex')}
+            OP_ENDIF
+            OP_EQUALVERIFY
+            OP_CHECKSIG
+
+*/
+
+static bool HTLCScript(const CScript& script)
+{
+    if (script.size() == 86) {
+        if (
+            script[0] == OP_IF &&
+            script[1] == OP_SHA256 && script[2] == 32 && script[35] == OP_EQUALVERIFY &&
+            script[36] == OP_DUP &&
+            script[37] == OP_HASH160 && script[38] = 20 &&
+            script[59] == OP_ELSE &&
+
+            script[60] == OP_DROP &&
+            script[61] == OP_DUP &&
+            script[62] == OP_HASH160 &&
+            script[63] == 20 &&
+            script[84] == OP_ENDIF &&
+            script[85] == OP_EQUALVERIFY &&
+            script[86] == OP_CHECKSIG) 
+        {
+                return true;
+        }
+    }
+
+    if (script.size() == 91) {
+
+        if (script[0] == OP_IF &&
+            script[1] == OP_SHA256 && script[2] == 32 && script[35] == OP_EQUALVERIFY &&
+            script[36] == OP_DUP &&
+            script[37] == OP_HASH160 && script[38] = 20 &&
+            script[59] == OP_ELSE &&
+            script[60] == 3 &&
+            script[64] == OP_CHECKLOCKTIMEVERIFY &&
+            script[65] == OP_DROP &&
+            script[66] == OP_DUP &&
+            script[67] == OP_HASH160 &&
+            script[68] == 20 &&
+            script[89] == OP_ENDIF &&
+            script[90] == OP_EQUALVERIFY &&
+            script[91] == OP_CHECKSIG) 
+        {
+            return true;
+        }
+    }
+
+    return false;
+    
 }
 
 static bool MatchPayToPubkeyHash(const CScript& script, valtype& pubkeyhash)
@@ -139,6 +218,15 @@ txnouttype Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned 
         return TX_PUBKEYHASH;
     }
 
+    if (HTLCScript(scriptPubKey)) {
+
+
+        std::vector<unsigned char> hashBytes(scriptPubKey.begin(), scriptPubKey.begin() + 93);
+        vSolutionsRet.push_back(hashBytes);
+
+        return TX_HTLC;
+    }
+
     unsigned int required;
     std::vector<std::vector<unsigned char>> keys;
     if (MatchMultisig(scriptPubKey, required, keys)) {
@@ -169,11 +257,14 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
     {
         addressRet = CKeyID(uint160(vSolutions[0]));
         return true;
-    }
-    else if (whichType == TX_SCRIPTHASH)
-    {
+    } else if (whichType == TX_SCRIPTHASH) {
         addressRet = CScriptID(uint160(vSolutions[0]));
         return true;
+
+    } else if (whichType == TX_HTLC) {
+        addressRet = CScriptID(uint160(vSolutions[0]));
+        return true;
+
     } else if (whichType == TX_WITNESS_V0_KEYHASH) {
         WitnessV0KeyHash hash;
         std::copy(vSolutions[0].begin(), vSolutions[0].end(), hash.begin());

@@ -105,6 +105,8 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             ret = std::max(ret, IsMineResult::SPENDABLE);
         }
         break;
+
+    case TX_HTLC:
     case TX_SCRIPTHASH:
     {
         if (sigversion != IsMineSigVersion::TOP) {

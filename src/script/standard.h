@@ -56,6 +56,8 @@ static const unsigned int MANDATORY_SCRIPT_VERIFY_FLAGS = SCRIPT_VERIFY_P2SH;
 enum txnouttype
 {
     TX_NONSTANDARD,
+    // 'pocketnet' transaction types:
+    TX_HTLC,
     // 'standard' transaction types:
     TX_PUBKEY,
     TX_PUBKEYHASH,
