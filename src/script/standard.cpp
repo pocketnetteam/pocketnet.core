@@ -260,11 +260,6 @@ bool ExtractDestination(const CScript &scriptPubKey, CTxDestination &addressRet)
         addressRet = CScriptID(uint160(vSolutions[0]));
         return true;
 
-    } else if (whichType == TX_HTLC)
-    {
-        addressRet = CScriptID(uint160(vSolutions[0]));
-        return true;
-
     } else if (whichType == TX_WITNESS_V0_KEYHASH)
     {
         WitnessV0KeyHash hash;
