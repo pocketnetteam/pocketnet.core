@@ -1648,7 +1648,6 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
     if (table == "Posts") {
         oitm.pushKV("txidEdit", item["txidEdit"].As<string>());
         oitm.pushKV("txidRepost", item["txidRepost"].As<string>());
-        oitm.pushKV("postType", item["type"].As<string>());
     }
     
     if (table == "Scores") {

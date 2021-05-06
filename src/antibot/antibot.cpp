@@ -1334,7 +1334,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
 {
     resultCode = ANTIBOTRESULT::Success;
     std::string table = oitm["table"].get_str();
-    std::string tx_type = oitm["contentType"].get_str();
+    std::string tx_type = oitm["type"].get_str();
     bool checkWithTime = height < Params().GetConsensus().checkpoint_0_19_3;
 
     // If `item` with `txid` already in reindexer db - skip checks
