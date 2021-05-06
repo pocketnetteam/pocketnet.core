@@ -1903,6 +1903,7 @@ bool AppInitMain()
     // Start WebSocket server
     if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
 
+    // Start statistic server
     gStatEngineInstance.Run(threadGroup);
 
     SetRPCWarmupFinished();

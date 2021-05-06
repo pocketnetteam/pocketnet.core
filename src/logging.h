@@ -56,6 +56,7 @@ namespace BCLog {
         STAKEMODIF  = (1 << 21),
         STAT        = (1 << 22),
         SYNC        = (1 << 23),
+        STATDETAIL  = (1 << 24),
         ALL         = ~(uint32_t)0,
     };
 

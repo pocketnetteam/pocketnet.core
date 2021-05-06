@@ -723,7 +723,15 @@ bool GenerateOuts(CAmount nCredit, std::vector<CTxOut>& results, CAmount& totalA
     if (winners.size() > 0 && winners.size() <= 25)
     {
         CAmount ratingReward = 0;
-        if (height >= Params().GetConsensus().checkpoint_0_19_3) {
+        if (height >= Params().GetConsensus().checkpoint_0_19_6) {
+            // Reduce all winnings by 10 times
+            // Referrer program 5 - 100%; 4.975 - nodes; 0.025 - all for lottery;
+            if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.002;
+            if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.002;
+            if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.0005;
+            if (op_code_type == OP_WINNER_COMMENT_REFERRAL) ratingReward = nCredit * 0.0005;
+            totalAmount += ratingReward;
+        } else if (height >= Params().GetConsensus().checkpoint_0_19_3) {
             // Referrer program 5 - 100%; 4.75 - nodes; 0.25 - all for lottery;
             // .1 - posts (2%); .1 - referrer over posts (2%); 0.025 - comment (.5%); 0.025 - referrer over comment (.5%);
             if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.02;
