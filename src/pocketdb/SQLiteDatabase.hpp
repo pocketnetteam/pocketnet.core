@@ -14,10 +14,12 @@
 #include "tinyformat.h"
 
 #include <iostream>
-#include <filesystem>
+#include <experimental/filesystem>
 
 namespace PocketDb
 {
+    namespace fs = std::experimental::filesystem;
+
     class SQLiteDatabase
     {
     private:
@@ -55,14 +57,14 @@ namespace PocketDb
         }
 
         bool TryCreateDbIfNotExists() {
-            if (std::filesystem::exists(m_file_path)) {
+            if (fs::exists(m_file_path)) {
                 return true;
             }
 
             m_is_first_init = true;
 
-            if (!std::filesystem::exists(m_dir_path)) {
-                std::filesystem::create_directory(m_dir_path);
+            if (!fs::exists(m_dir_path)) {
+                fs::create_directory(m_dir_path);
             }
 
             return true;
