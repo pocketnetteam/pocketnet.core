@@ -624,7 +624,7 @@ std::string getcontenttype(int type)
 }
 int getcontenttype(std::string type)
 {
-    if (type == "share" || type == OR_POST) return ContentType::ContentPost;
+    if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return ContentType::ContentPost;
     else if (type == "video" || type == OR_VIDEO) return ContentType::ContentVideo;
     else if (type == "verification" || type == OR_VERIFICATION) return ContentType::ContentVerification;
     else if (type == "serverPing" || type == OR_SERVER_PING) return ContentType::ContentServerPing;

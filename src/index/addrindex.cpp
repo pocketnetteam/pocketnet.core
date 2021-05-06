@@ -519,6 +519,11 @@ bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, 
 
     if (CheckRItemExists(table, _txid_check_exists)) return true;
 
+    // Detect tx type
+    auto txType = getcontenttype(PocketTXType(tx));
+    if (txType == ContentType::ContentNotSupported)
+        return true;
+
     // For all tables, except Mempool, need set `block` number
     item["block"] = height;
 
@@ -542,16 +547,13 @@ bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, 
 
     // New Post
     if (table == "Posts") {
+        item["type"] = txType;
+
         std::string caption_decoded = UrlDecode(item["caption"].As<string>());
         item["caption_"] = ClearHtmlTags(caption_decoded);
 
         std::string message_decoded = UrlDecode(item["message"].As<string>());
         item["message_"] = ClearHtmlTags(message_decoded);
-
-        // find ContentType
-        auto txType = getcontenttype(PocketTXType(tx));
-        if (txType == ContentType::ContentNotSupported) return false;
-        item["type"] = txType;
 
         if (!g_pocketdb->CommitPostItem(item, height).ok()) return false;
     }
@@ -1633,6 +1635,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
     oitm.pushKV("address", item["address"].As<string>());
     oitm.pushKV("size", (int)(item.GetJSON().ToString().size()));
     oitm.pushKV("time", (int64_t)tx->nTime);
+    oitm.pushKV("contentType", getcontenttype(PocketTXType(tx)));
 
     std::string itm_hash;
     g_pocketdb->GetHashItem(item, table, true, itm_hash);
@@ -1644,6 +1647,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
 
     if (table == "Posts") {
         oitm.pushKV("txidEdit", item["txidEdit"].As<string>());
+        oitm.pushKV("txidRepost", item["txidRepost"].As<string>());
         oitm.pushKV("postType", item["type"].As<string>());
     }
     

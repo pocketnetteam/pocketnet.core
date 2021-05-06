@@ -2739,8 +2739,20 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                                 sharesCntLang.emplace(lang, 1);
                         }
                     }
-                    // else if (spl[1] == OR_POSTEDIT)
-                    // 	optype = "shareEdit";
+                    else if (spl[1] == OR_VIDEO) {
+                        optype = "video";
+                        sharesCnt += 1;
+
+                        reindexer::Item shr_itm;
+                        if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, txid), shr_itm).ok()) {
+                            std::string lang = shr_itm["lang"].As<string>();
+                            std::map<std::string, int>::iterator itl = sharesCntLang.find(lang);
+                            if (itl != sharesCntLang.end())
+                                itl->second += 1;
+                            else
+                                sharesCntLang.emplace(lang, 1);
+                        }
+                    }
                     else if (spl[1] == OR_SCORE)
                         optype = "upvoteShare";
                     else if (spl[1] == OR_SUBSCRIBE)
@@ -2782,7 +2794,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
             PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
             // Event for new PocketNET transaction
-            if (optype == "share") {
+            if (optype == "share" || optype == "video") {
                 reindexer::Item _repost_itm;
                 if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
                     txidpocketnet = txidpocketnet + txid + ",";

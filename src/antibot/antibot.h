@@ -130,7 +130,8 @@ enum ANTIBOTRESULT {
     OpReturnFailed = 41,
     CommentDeletedEdit = 42,
     ReferrerAfterRegistration = 43,
-    NotAllowed = 44
+    NotAllowed = 44,
+    ChangeTxType = 45
 };
 //-----------------------------------------------------
 struct BlockVTX {

@@ -222,36 +222,6 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addres
 
     return result;
 }
-//----------------------------------------------------------
-std::string getcontenttype (int type)
-{
-    switch (type) {
-    case ContentPost:
-        return "share";
-    case ContentVideo:
-        return "video";
-    case ContentVerification:
-        return "verification";
-    case ContentServerPing:
-        return "serverPing";
-    case ContentPoll:
-        return "poll";
-    case ContentTranslate:
-        return "translate";
-    default:
-        return "";
-    }
-}
-int getcontenttype (std::string type) {
-    if (type == "share") return ContentType::ContentPost;
-    else if (type == "video") return ContentType::ContentVideo;
-    else if (type == "verification") return ContentType::ContentVerification;
-    else if (type == "serverPing") return ContentType::ContentServerPing;
-    else if (type == "poll") return ContentType::ContentPoll;
-    else if (type == "translate") return ContentType::ContentTranslate;
-    else return -1;
-}
-//----------------------------------------------------------
 UniValue getPostData(reindexer::Item& itm, std::string address)
 {
     UniValue entry(UniValue::VOBJ);
@@ -1283,6 +1253,8 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
                 if (spl.size() == 3) {
                     if (spl[1] == OR_POST || spl[1] == OR_POSTEDIT)
                         optype = "share";
+                    else if (spl[1] == OR_VIDEO)
+                        optype = "video";
                     else if (spl[1] == OR_SCORE)
                         optype = "upvoteShare";
                     else if (spl[1] == OR_SUBSCRIBE)

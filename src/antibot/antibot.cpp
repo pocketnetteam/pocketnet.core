@@ -190,10 +190,26 @@ bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMemp
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();
+    std::string _txidRepost = oitm["txidRepost"].get_str();
+    int _tx_content_type = oitm["contentType"].get_int();
     int64_t _time = oitm["time"].get_int64();
 
     if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
         return false;
+    }
+
+    if (_txidRepost != "")
+    {
+        reindexer::Item _repost_post_itm;
+        if (!g_pocketdb->SelectOne(Query("Posts").Where("txid", CondEq, _txidRepost).Where("block", CondLt, height), _repost_post_itm).ok()) {
+            result = ANTIBOTRESULT::NotFound;
+            return false;
+        }
+
+        if (_tx_content_type != ContentType::ContentPost) {
+            result = ANTIBOTRESULT::NotAllowed;
+            return false;
+        }
     }
 
     // Compute count of posts for last 24 hours
@@ -265,6 +281,8 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();         // Original post id
     std::string _txidEdit = oitm["txidEdit"].get_str(); // new transaction txid
+    std::string _txidRepost = oitm["txidRepost"].get_str();
+    int _tx_content_type = oitm["contentType"].get_int();
     int64_t _time = oitm["time"].get_int64();
 
     // User registered?
@@ -281,6 +299,13 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
         }
     }
 
+    // Disable change type
+    if (_tx_content_type != _original_post_itm["type"].As<int>())
+    {
+        result = ANTIBOTRESULT::ChangeTxType;
+        return false;
+    }
+
     // You are author? Really?
     if (_original_post_itm["address"].As<string>() != _address) {
         result = ANTIBOTRESULT::PostEditUnauthorized;
@@ -291,6 +316,21 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
     if (_time - _original_post_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_post_timeout, height)) {
         result = ANTIBOTRESULT::PostEditLimit;
         return false;
+    }
+
+    // Check repost
+    if (_txidRepost != "")
+    {
+        reindexer::Item _repost_post_itm;
+        if (!g_pocketdb->SelectOne(Query("Posts").Where("txid", CondEq, _txidRepost).Where("block", CondLt, height), _repost_post_itm).ok()) {
+            result = ANTIBOTRESULT::NotFound;
+            return false;
+        }
+
+        if (_tx_content_type != ContentType::ContentPost) {
+            result = ANTIBOTRESULT::NotAllowed;
+            return false;
+        }
     }
 
     // Double edit in block denied
@@ -349,10 +389,8 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
     bool not_found = false;
     std::string _post_address;
     reindexer::Item postItm;
-    ContentType postType = ContentType::ContentPost;
     if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _post).Where("block", CondLt, height), postItm).ok()) {
         _post_address = postItm["address"].As<string>();
-        postType = ContentType(postItm["type"].As<int>());
 
         // Score to self post
         if (_post_address == _address) {
@@ -368,7 +406,6 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
             for (auto& mtx : blockVtx.Data["Posts"]) {
                 if (mtx["txid"].get_str() == _post) {
                     _post_address = mtx["address"].get_str();
-                    postType = ContentType(mtx["postType"].get_int());
                     not_found = false;
                     break;
                 }
@@ -1297,7 +1334,7 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
 {
     resultCode = ANTIBOTRESULT::Success;
     std::string table = oitm["table"].get_str();
-    std::string tx_type = oitm["type"].get_str();
+    std::string tx_type = oitm["contentType"].get_str();
     bool checkWithTime = height < Params().GetConsensus().checkpoint_0_19_3;
 
     // If `item` with `txid` already in reindexer db - skip checks
