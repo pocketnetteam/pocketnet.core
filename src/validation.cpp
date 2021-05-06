@@ -2210,7 +2210,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // Write received PocketNET data to RIDB
         if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
             std::string _pocket_data = POCKETNET_DATA[blockhash];
-            if (!g_addrindex->SetBlockRIData(_pocket_data, pindex->nHeight)) {
+            if (!g_addrindex->SetBlockRIData(block, _pocket_data, pindex->nHeight)) {
                 LogPrintf("--- Failed restore received data (%s) (AddrIndex::SetBlockRIData)\n", blockhash.GetHex());
                 return false;
             }

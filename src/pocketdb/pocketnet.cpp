@@ -2,13 +2,16 @@
 #include "logging.h"
 
 
-bool IsPocketTX(const CTxOut& out) {
-    if (out.scriptPubKey.size() > 0 && out.scriptPubKey[0] == OP_RETURN) {
+bool IsPocketTX(const CTxOut &out)
+{
+    if (out.scriptPubKey.size() > 0 && out.scriptPubKey[0] == OP_RETURN)
+    {
         std::string asmStr = ScriptToAsmStr(out.scriptPubKey);
         std::istringstream iss(asmStr);
         std::vector<std::string> vasm(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
 
-        if (vasm.size() > 1) {
+        if (vasm.size() > 1)
+        {
             std::string rTable;
             return ConvertOPToTableName(vasm[1], rTable);
         }
@@ -17,9 +20,10 @@ bool IsPocketTX(const CTxOut& out) {
     return false;
 }
 
-bool IsPocketTX(const CTransaction& tx)
+bool IsPocketTX(const CTransaction &tx)
 {
-    if (tx.vout.size() > 0) {
+    if (tx.vout.size() > 0)
+    {
         const CTxOut out = tx.vout[0];
         return IsPocketTX(out);
     }
@@ -27,9 +31,10 @@ bool IsPocketTX(const CTransaction& tx)
     return false;
 }
 
-bool IsPocketTX(const CTransactionRef& tx)
+bool IsPocketTX(const CTransactionRef &tx)
 {
-    if (tx->vout.size() > 0) {
+    if (tx->vout.size() > 0)
+    {
         const CTxOut out = tx->vout[0];
         return IsPocketTX(out);
     }
@@ -37,26 +42,30 @@ bool IsPocketTX(const CTransactionRef& tx)
     return false;
 }
 
-std::string PocketTXType(const CTransactionRef& tx)
+std::string PocketTXType(const CTransactionRef &tx)
 {
-    if (tx->vout.size() > 0) {
+    if (tx->vout.size() > 0)
+    {
         const CTxOut out = tx->vout[0];
-        if (out.scriptPubKey.size() > 0 && out.scriptPubKey[0] == OP_RETURN) {
+        if (out.scriptPubKey.size() > 0 && out.scriptPubKey[0] == OP_RETURN)
+        {
             std::string asmStr = ScriptToAsmStr(out.scriptPubKey);
             std::istringstream iss(asmStr);
-            std::vector<std::string> vasm(std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>());
+            std::vector<std::string> vasm(std::istream_iterator<std::string>{iss},
+                std::istream_iterator<std::string>());
 
-            if (vasm.size() > 1) {
+            if (vasm.size() > 1)
+            {
                 return vasm[1];
             }
         }
     }
-    
+
     return "";
 }
 
 // Transaction type convert to reindexer table name
-bool ConvertOPToTableName(std::string op, std::string& ri_table)
+bool ConvertOPToTableName(std::string op, std::string &ri_table)
 {
     bool ret = true;
 
@@ -112,7 +121,8 @@ bool ConvertOPToTableName(std::string op, std::string& ri_table)
 // i.e. 213 = 21.3
 // i.e. 45  = 4.5
 static std::map<Limit, std::map<int, int64_t>> Limits;
-void FillLimits(const CChainParams& params) {
+void FillLimits(const CChainParams &params)
+{
 
     // Forks
     int64_t fork_20190830 = 292800;
@@ -120,187 +130,187 @@ void FillLimits(const CChainParams& params) {
 
     // threshold_reputation
     std::map<int, int64_t> _threshold_reputation;
-    _threshold_reputation.insert({ 0, 500 });
-    _threshold_reputation.insert({ fork_20190830, 1000 });
+    _threshold_reputation.insert({0, 500});
+    _threshold_reputation.insert({fork_20190830, 1000});
     Limits.insert(std::make_pair(Limit::threshold_reputation, _threshold_reputation));
 
     // threshold_reputation_score
     std::map<int, int64_t> _threshold_reputation_score;
-    _threshold_reputation_score.insert({ 0, -10000 });
-    _threshold_reputation_score.insert({ (int)params.GetConsensus().nHeight_version_1_0_0, 500 });
-    _threshold_reputation_score.insert({ fork_20190830, 1000 });
+    _threshold_reputation_score.insert({0, -10000});
+    _threshold_reputation_score.insert({(int) params.GetConsensus().nHeight_version_1_0_0, 500});
+    _threshold_reputation_score.insert({fork_20190830, 1000});
     Limits.insert(std::make_pair(Limit::threshold_reputation_score, _threshold_reputation_score));
 
     // threshold_reputation_complains
     std::map<int, int64_t> _threshold_reputation_complains;
-    _threshold_reputation_complains.insert({ 0, 500 });
-    _threshold_reputation_complains.insert({ fork_20190830, 1000 });
+    _threshold_reputation_complains.insert({0, 500});
+    _threshold_reputation_complains.insert({fork_20190830, 1000});
     Limits.insert(std::make_pair(Limit::threshold_reputation_complains, _threshold_reputation_complains));
 
     // threshold_reputation_blocking
     std::map<int, int64_t> _threshold_reputation_blocking;
-    _threshold_reputation_blocking.insert({ 0, 500 });
-    _threshold_reputation_blocking.insert({ fork_20190830, 1000 });
+    _threshold_reputation_blocking.insert({0, 500});
+    _threshold_reputation_blocking.insert({fork_20190830, 1000});
     Limits.insert(std::make_pair(Limit::threshold_reputation_blocking, _threshold_reputation_blocking));
 
     // threshold_balance
     std::map<int, int64_t> _threshold_balance;
-    _threshold_balance.insert({ 0, 50 * COIN });
+    _threshold_balance.insert({0, 50 * COIN});
     Limits.insert(std::make_pair(Limit::threshold_balance, _threshold_balance));
 
     // threshold_likers_count
     std::map<int, int64_t> _threshold_likers_count;
-    _threshold_likers_count.insert({ 0, 0 });
-    _threshold_likers_count.insert({ (int)params.GetConsensus().checkpoint_0_19_3, 100 });
+    _threshold_likers_count.insert({0, 0});
+    _threshold_likers_count.insert({(int) params.GetConsensus().checkpoint_0_19_3, 100});
     Limits.insert(std::make_pair(Limit::threshold_likers_count, _threshold_likers_count));
 
     // trial_post_limit
     std::map<int, int64_t> _trial_post_limit;
-    _trial_post_limit.insert({ 0, 15 });
+    _trial_post_limit.insert({0, 15});
     Limits.insert(std::make_pair(Limit::trial_post_limit, _trial_post_limit));
 
     // trial_post_edit_limit
     std::map<int, int64_t> _trial_post_edit_limit;
-    _trial_post_edit_limit.insert({ 0, 5 });
+    _trial_post_edit_limit.insert({0, 5});
     Limits.insert(std::make_pair(Limit::trial_post_edit_limit, _trial_post_edit_limit));
 
     // trial_score_limit
     std::map<int, int64_t> _trial_score_limit;
-    _trial_score_limit.insert({ 0, 45 });
-    _trial_score_limit.insert({ 175600, 100 });
+    _trial_score_limit.insert({0, 45});
+    _trial_score_limit.insert({175600, 100});
     Limits.insert(std::make_pair(Limit::trial_score_limit, _trial_score_limit));
 
     // trial_complain_limit
     std::map<int, int64_t> _trial_complain_limit;
-    _trial_complain_limit.insert({ 0, 6 });
+    _trial_complain_limit.insert({0, 6});
     Limits.insert(std::make_pair(Limit::trial_complain_limit, _trial_complain_limit));
 
     // full_post_limit
     std::map<int, int64_t> _full_post_limit;
-    _full_post_limit.insert({ 0, 30 });
+    _full_post_limit.insert({0, 30});
     Limits.insert(std::make_pair(Limit::full_post_limit, _full_post_limit));
 
     // full_post_edit_limit
     std::map<int, int64_t> _full_post_edit_limit;
-    _full_post_edit_limit.insert({ 0, 5 });
+    _full_post_edit_limit.insert({0, 5});
     Limits.insert(std::make_pair(Limit::full_post_edit_limit, _full_post_edit_limit));
 
     // full_score_limit
     std::map<int, int64_t> _full_score_limit;
-    _full_score_limit.insert({ 0, 90 });
-    _full_score_limit.insert({ 175600, 200 });
+    _full_score_limit.insert({0, 90});
+    _full_score_limit.insert({175600, 200});
     Limits.insert(std::make_pair(Limit::full_score_limit, _full_score_limit));
 
     // full_complain_limit
     std::map<int, int64_t> _full_complain_limit;
-    _full_complain_limit.insert({ 0, 12 });
+    _full_complain_limit.insert({0, 12});
     Limits.insert(std::make_pair(Limit::full_complain_limit, _full_complain_limit));
 
     // change_info_timeout
     std::map<int, int64_t> _change_info_timeout;
-    _change_info_timeout.insert({ 0, 3600 });
+    _change_info_timeout.insert({0, 3600});
     Limits.insert(std::make_pair(Limit::change_info_timeout, _change_info_timeout));
 
     // edit_post_timeout
     std::map<int, int64_t> _edit_post_timeout;
-    _edit_post_timeout.insert({ 0, 86400 });
+    _edit_post_timeout.insert({0, 86400});
     Limits.insert(std::make_pair(Limit::edit_post_timeout, _edit_post_timeout));
 
     // max_user_size
     std::map<int, int64_t> _max_user_size;
-    _max_user_size.insert({ 0, 2000 });
+    _max_user_size.insert({0, 2000});
     Limits.insert(std::make_pair(Limit::max_user_size, _max_user_size)); // 2Kb
 
     // max_post_size
     std::map<int, int64_t> _max_post_size;
-    _max_post_size.insert({ 0, 60000 });
+    _max_post_size.insert({0, 60000});
     Limits.insert(std::make_pair(Limit::max_post_size, _max_post_size)); // 60Kb
 
     // bad_reputation
     std::map<int, int64_t> _bad_reputation;
-    _bad_reputation.insert({ 0, -500 });
+    _bad_reputation.insert({0, -500});
     Limits.insert(std::make_pair(Limit::bad_reputation, _bad_reputation));
-    
+
     // scores_one_to_one
     std::map<int, int64_t> _scores_one_to_one;
-    _scores_one_to_one.insert({ 0, 99999 });
-    _scores_one_to_one.insert({ 225000, 2 });
+    _scores_one_to_one.insert({0, 99999});
+    _scores_one_to_one.insert({225000, 2});
     Limits.insert(std::make_pair(Limit::scores_one_to_one, _scores_one_to_one));
 
     // scores_one_to_one_over_comment
     std::map<int, int64_t> _scores_one_to_one_over_comment;
-    _scores_one_to_one_over_comment.insert({ 0, 20 });
+    _scores_one_to_one_over_comment.insert({0, 20});
     Limits.insert(std::make_pair(Limit::scores_one_to_one_over_comment, _scores_one_to_one_over_comment));
 
     // scores_one_to_one time
     std::map<int, int64_t> _scores_one_to_one_depth;
-    _scores_one_to_one_depth.insert({ 0, 336*24*3600 });
-    _scores_one_to_one_depth.insert({ 225000, 1*24*3600 });
-    _scores_one_to_one_depth.insert({ fork_20190830, 7*24*3600 });
-    _scores_one_to_one_depth.insert({ fork_20190920, 2*24*3600 });
+    _scores_one_to_one_depth.insert({0, 336 * 24 * 3600});
+    _scores_one_to_one_depth.insert({225000, 1 * 24 * 3600});
+    _scores_one_to_one_depth.insert({fork_20190830, 7 * 24 * 3600});
+    _scores_one_to_one_depth.insert({fork_20190920, 2 * 24 * 3600});
     Limits.insert(std::make_pair(Limit::scores_one_to_one_depth, _scores_one_to_one_depth));
 
     // trial_comment_limit
     std::map<int, int64_t> _trial_comment_limit;
-    _trial_comment_limit.insert({ 0, 150 });
+    _trial_comment_limit.insert({0, 150});
     Limits.insert(std::make_pair(Limit::trial_comment_limit, _trial_comment_limit));
 
     // trial_comment_edit_limit
     std::map<int, int64_t> _trial_comment_edit_limit;
-    _trial_comment_edit_limit.insert({ 0, 5 });
+    _trial_comment_edit_limit.insert({0, 5});
     Limits.insert(std::make_pair(Limit::trial_comment_edit_limit, _trial_comment_edit_limit));
 
     // trial_comment_score_limit
     std::map<int, int64_t> _trial_comment_score_limit;
-    _trial_comment_score_limit.insert({ 0, 300 });
+    _trial_comment_score_limit.insert({0, 300});
     Limits.insert(std::make_pair(Limit::trial_comment_score_limit, _trial_comment_score_limit));
 
     // full_comment_limit
     std::map<int, int64_t> _full_comment_limit;
-    _full_comment_limit.insert({ 0, 300 });
+    _full_comment_limit.insert({0, 300});
     Limits.insert(std::make_pair(Limit::full_comment_limit, _full_comment_limit));
 
     // full_comment_edit_limit
     std::map<int, int64_t> _full_comment_edit_limit;
-    _full_comment_edit_limit.insert({ 0, 5 });
+    _full_comment_edit_limit.insert({0, 5});
     Limits.insert(std::make_pair(Limit::full_comment_edit_limit, _full_comment_edit_limit));
 
     // full_comment_score_limit
     std::map<int, int64_t> _full_comment_score_limit;
-    _full_comment_score_limit.insert({ 0, 600 });
+    _full_comment_score_limit.insert({0, 600});
     Limits.insert(std::make_pair(Limit::full_comment_score_limit, _full_comment_score_limit));
 
     // comment_size_limit
     std::map<int, int64_t> _comment_size_limit;
-    _comment_size_limit.insert({ 0, 2000 });
+    _comment_size_limit.insert({0, 2000});
     Limits.insert(std::make_pair(Limit::comment_size_limit, _comment_size_limit));
 
     // edit_comment_timeout
     std::map<int, int64_t> _edit_comment_timeout;
-    _edit_comment_timeout.insert({ 0, 86400 });
+    _edit_comment_timeout.insert({0, 86400});
     Limits.insert(std::make_pair(Limit::edit_comment_timeout, _edit_comment_timeout));
 
     // scores_depth_modify_reputation
     std::map<int, int64_t> _scores_depth_modify_reputation;
-    _scores_depth_modify_reputation.insert({ 0, 336*24*3600 });
-    _scores_depth_modify_reputation.insert({ fork_20190920, 30*24*3600 });
+    _scores_depth_modify_reputation.insert({0, 336 * 24 * 3600});
+    _scores_depth_modify_reputation.insert({fork_20190920, 30 * 24 * 3600});
     Limits.insert(std::make_pair(Limit::scores_depth_modify_reputation, _scores_depth_modify_reputation));
 
     // lottery_referral_depth
     std::map<int, int64_t> _lottery_referral_depth;
-    _lottery_referral_depth.insert({ 0, 30*24*3600 });
+    _lottery_referral_depth.insert({0, 30 * 24 * 3600});
     Limits.insert(std::make_pair(Limit::lottery_referral_depth, _lottery_referral_depth));
-        
 };
 
 // Get actual limit for current height
-int64_t GetActualLimit(Limit type, int height) {
+int64_t GetActualLimit(Limit type, int height)
+{
     return (--Limits[type].upper_bound(height))->second;
 }
 
 
 static std::map<int, std::string> CheckpointsBlocks;
-void FillCheckpointsBlocks(const CChainParams& params)
+void FillCheckpointsBlocks(const CChainParams &params)
 {
     // PoS
     CheckpointsBlocks.emplace(355728, "ff718a5f0d8fb33aa5454a77cb34d0d009a421a86ff67e81275c68a9220f0ecd");
@@ -367,9 +377,9 @@ void FillCheckpointsBlocks(const CChainParams& params)
     CheckpointsBlocks.emplace(413599, "2383eff8a73d146ca7fca1472b352adf7fc642d40a0600dc99fe273ab7e0c242");
     CheckpointsBlocks.emplace(413613, "5d906b2dc460c935b18b4ef8fc248df576d7a794eed1c49092f90d8a8ec0866a");
     CheckpointsBlocks.emplace(413635, "723a3eb018307912220582bf1271d459c7d0401aec0a7836a4b8858620ce022d");
-    CheckpointsBlocks.emplace(413662, "1b4fa351d7e89b659daf9b9fd8f4e0c9cdfaf7b9b393b61e32fb4cee55b980cc");    
+    CheckpointsBlocks.emplace(413662, "1b4fa351d7e89b659daf9b9fd8f4e0c9cdfaf7b9b393b61e32fb4cee55b980cc");
 
-	// Antibot
+    // Antibot
     CheckpointsBlocks.emplace(373222, "b8a1527d921a9903fb1020c370595116a9a609dff7d3f5524458e7eef04efde1");
     CheckpointsBlocks.emplace(382536, "46d5831c2f7e3ac1e719db7909e77d3f5aba1415931b851ad50768e97c54391a");
     CheckpointsBlocks.emplace(543507, "46abb8928c80c9f5fe75a412f2a241128677fbc83c52f52107085b1b0d754dab");
@@ -397,13 +407,14 @@ void FillCheckpointsBlocks(const CChainParams& params)
     CheckpointsBlocks.emplace(1065391, "48e23029a977dbabaeee52a01ba12e2a14e4347b82f2d8fee5110f3d1f2dc89e");
 }
 
-bool IsCheckpointBlock(int height, std::string hash) {
+bool IsCheckpointBlock(int height, std::string hash)
+{
     if (CheckpointsBlocks.find(height) == CheckpointsBlocks.end()) return false;
     return CheckpointsBlocks[height] == hash;
 }
 
 static std::vector<std::string> CheckpointsTransactions;
-void FillCheckpointsTransactions(const CChainParams& params)
+void FillCheckpointsTransactions(const CChainParams &params)
 {
     CheckpointsTransactions.push_back("f00f8d35c512ab282130ad8609d4ffa01f3a67011230ecdd903dfe12abde5fcf");
     CheckpointsTransactions.push_back("9ec4404eaf8d3e16e5b02da9e3ec468e3d471cb5b3632c31fcc7388544e6e3cc");
@@ -518,32 +529,34 @@ void FillCheckpointsTransactions(const CChainParams& params)
     CheckpointsTransactions.push_back("e48505877db1563304523d13a5057922a8adc9d0c8aaa4f488b56e18f318545e");
 }
 
-bool IsCheckpointTransaction(std::string hash) {
-    return (std::find(CheckpointsTransactions.begin(), CheckpointsTransactions.end(), hash) != CheckpointsTransactions.end());
+bool IsCheckpointTransaction(std::string hash)
+{
+    return (std::find(CheckpointsTransactions.begin(), CheckpointsTransactions.end(), hash) !=
+            CheckpointsTransactions.end());
 }
 
 
-bool GetInputAddress(uint256 txhash, int n, std::string& address)
+bool GetInputAddress(uint256 txhash, int n, std::string &address)
 {
     uint256 hash_block;
     CTransactionRef tx;
     //-------------------------
     if (!GetTransaction(txhash, tx, Params().GetConsensus(), hash_block)) return false;
-    const CTxOut& txout = tx->vout[n];
+    const CTxOut &txout = tx->vout[n];
     CTxDestination destAddress;
-    const CScript& scriptPubKey = txout.scriptPubKey;
+    const CScript &scriptPubKey = txout.scriptPubKey;
     bool fValidAddress = ExtractDestination(scriptPubKey, destAddress);
     if (!fValidAddress) return false;
     address = EncodeDestination(destAddress);
     //-------------------------
     return true;
 }
-bool GetTransactionData(std::string txid, std::string& address)
+bool GetTransactionData(std::string txid, std::string &address)
 {
     CTransactionRef tx;
     return GetTransactionData(txid, address, tx);
 }
-bool GetTransactionData(std::string txid, std::string& address, CTransactionRef& tx)
+bool GetTransactionData(std::string txid, std::string &address, CTransactionRef &tx)
 {
     uint256 hash_block;
     uint256 hash_tx;
@@ -553,7 +566,7 @@ bool GetTransactionData(std::string txid, std::string& address, CTransactionRef&
 }
 
 
-bool FindPocketNetAsmString(const CTransactionRef& tx, std::vector<std::string>& vasm)
+bool FindPocketNetAsmString(const CTransactionRef &tx, std::vector<std::string> &vasm)
 {
     std::string asmStr;
     if (!FindPocketNetAsmString(tx, asmStr)) return false;
@@ -561,10 +574,11 @@ bool FindPocketNetAsmString(const CTransactionRef& tx, std::vector<std::string>&
     //-------------------------
     return true;
 }
-bool FindPocketNetAsmString(const CTransactionRef& tx, std::string& asmStr)
+bool FindPocketNetAsmString(const CTransactionRef &tx, std::string &asmStr)
 {
-    const CTxOut& txout = tx->vout[0];
-    if (txout.scriptPubKey[0] == OP_RETURN) {
+    const CTxOut &txout = tx->vout[0];
+    if (txout.scriptPubKey[0] == OP_RETURN)
+    {
         asmStr = ScriptToAsmStr(txout.scriptPubKey);
         return true;
     }
@@ -572,21 +586,53 @@ bool FindPocketNetAsmString(const CTransactionRef& tx, std::string& asmStr)
     return false;
 }
 
-bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table)
+bool GetPocketnetTXType(const CTransactionRef &tx, std::string &ri_table)
 {
     std::vector<std::string> vasm;
     if (!FindPocketNetAsmString(tx, vasm)) return false;
     return ConvertOPToTableName(vasm[1], ri_table);
 }
-bool IsPocketnetTransaction(const CTransactionRef& tx)
+bool IsPocketnetTransaction(const CTransactionRef &tx)
 {
     std::string _ri_table = "";
     return GetPocketnetTXType(tx, _ri_table);
 }
-bool IsPocketnetTransaction(const CTransaction& tx)
+bool IsPocketnetTransaction(const CTransaction &tx)
 {
     return IsPocketnetTransaction(MakeTransactionRef(tx));
 }
+
+std::string getcontenttype(int type)
+{
+    switch (type)
+    {
+        case ContentPost:
+            return "share";
+        case ContentVideo:
+            return "video";
+        case ContentVerification:
+            return "verification";
+        case ContentServerPing:
+            return "serverPing";
+        case ContentPoll:
+            return "poll";
+        case ContentTranslate:
+            return "translate";
+        default:
+            return "";
+    }
+}
+int getcontenttype(std::string type)
+{
+    if (type == "share" || type == OR_POST) return ContentType::ContentPost;
+    else if (type == "video" || type == OR_VIDEO) return ContentType::ContentVideo;
+    else if (type == "verification" || type == OR_VERIFICATION) return ContentType::ContentVerification;
+    else if (type == "serverPing" || type == OR_SERVER_PING) return ContentType::ContentServerPing;
+    else if (type == "poll" || type == OR_POLL) return ContentType::ContentPoll;
+    else if (type == "translate" || type == OR_TRANSLATE) return ContentType::ContentTranslate;
+    else return ContentType::ContentNotSupported;
+}
+
 /*
 void FindHierarchicalTxIds(int height)
 {

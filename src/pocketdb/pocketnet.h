@@ -126,6 +126,8 @@ bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table);
 bool IsPocketnetTransaction(const CTransactionRef& tx);
 bool IsPocketnetTransaction(const CTransaction& tx);
 
+std::string getcontenttype(int type);
+int getcontenttype(std::string type);
 //void FindHierarchicalTxIds(int height);
 
 #endif // POCKETNET_H
