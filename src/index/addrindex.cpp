@@ -519,11 +519,6 @@ bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, 
 
     if (CheckRItemExists(table, _txid_check_exists)) return true;
 
-    // Detect tx type
-    auto txType = getcontenttype(PocketTXType(tx));
-    if (txType == ContentType::ContentNotSupported)
-        return true;
-
     // For all tables, except Mempool, need set `block` number
     item["block"] = height;
 
@@ -547,6 +542,11 @@ bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, 
 
     // New Post
     if (table == "Posts") {
+        // Detect tx type
+        auto txType = getcontenttype(PocketTXType(tx));
+        if (txType == ContentType::ContentNotSupported)
+            return true;
+
         item["type"] = txType;
 
         std::string caption_decoded = UrlDecode(item["caption"].As<string>());
