@@ -31,7 +31,7 @@ const char *GetTxnOutputType(txnouttype t)
         case TX_NONSTANDARD:
             return "nonstandard";
         case TX_HTLC:
-            return "nft";
+            return "htlc";
         case TX_PUBKEY:
             return "pubkey";
         case TX_PUBKEYHASH:
