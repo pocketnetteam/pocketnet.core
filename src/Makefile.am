@@ -31,7 +31,7 @@ LIBPOCKETCOIN_UTIL=libpocketcoin_util.a
 LIBPOCKETCOIN_CRYPTO_BASE=crypto/libpocketcoin_crypto_base.a
 LIBPOCKETCOINQT=qt/libpocketcoinqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
-LIBSQLITE3 = -lsqlite3
+LIBSQLITE3 = -lsqlite3 -lstdc++fs
 
 if ENABLE_ZMQ
 LIBPOCKETCOIN_ZMQ=libpocketcoin_zmq.a
