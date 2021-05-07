@@ -255,12 +255,12 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx) {
         blockVtx.Add(ri_table, oitm);
 
         // For temporary test block
-        if (chainActive.Height()+1 < Params().GetConsensus().checkpoint_0_19_3) {
-            if (ri_table == "Scores" && !g_antibot->CheckBlock(blockVtx, chainActive.Height() + 1)) {
+         if (chainActive.Height()+1 < Params().GetConsensus().checkpoint_0_19_7) {
+            if (!g_antibot->CheckBlock(blockVtx, chainActive.Height() + 1)) {
                 blockVtx.RemoveLast(ri_table);
                 return false;
             }
-        }
+         }
     }
 
     return true;
