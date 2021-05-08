@@ -71,6 +71,7 @@ int getLimitsCount(std::string _table, std::string _address)
     int count = 0;
 
     auto query = reindexer::Query(_table).Where("address", CondEq, _address).Where("block", CondGe, chainActive.Height() - 1440);
+    if (_table == "Comment") query = query.Where("last", CondEq, true);
     count += g_pocketdb->SelectCount(query);
 
     // Also check mempool
