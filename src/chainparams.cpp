@@ -246,7 +246,7 @@ public:
         consensus.lottery_referral_beg = 0;
         consensus.lottery_referral_limitation = 0;
         consensus.checkpoint_0_19_3 = 0;
-        consensus.checkpoint_0_19_6 = 0;
+        consensus.checkpoint_0_19_6 = 1;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
