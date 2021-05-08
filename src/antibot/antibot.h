@@ -175,38 +175,38 @@ private:
     bool check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result);
 
     // Check new post and edited post from address
-    bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
-    bool check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check new score to post from address
-    bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check new complain to post from address
-    bool check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check change profile
-    bool check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check subscribe/unsubscribe
-    bool check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check blocking/unblocking
-    bool check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check new comment
-    bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
-    bool check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
-    bool check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check new score to comment
-    bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result);
+    bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
 public:
     explicit AntiBot();
     ~AntiBot();
 
     // Check user is a registration. Need one record in DB Users
-    bool CheckRegistration(UniValue oitm, std::string address, bool checkMempool, bool checkWithTime, int height, BlockVTX& blockVtx, ANTIBOTRESULT& result);
+    bool CheckRegistration(UniValue oitm, std::string address, bool checkMempool, bool checkTime_19_3, int height, BlockVTX& blockVtx, ANTIBOTRESULT& result);
 
     /*
 		Check conditions for new transaction.
@@ -227,7 +227,7 @@ public:
 		Return array of user states.
 		Contains info about spent and unspent posts and scores. Also current reputation value
 	*/
-    bool GetUserState(std::string _address, int64_t _time, UserStateItem& _state);
+    bool GetUserState(std::string _address, UserStateItem& _state);
     /*
         to test the possibility of changing that reputation
     */

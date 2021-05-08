@@ -123,7 +123,6 @@ bool ConvertOPToTableName(std::string op, std::string &ri_table)
 static std::map<Limit, std::map<int, int64_t>> Limits;
 void FillLimits(const CChainParams &params)
 {
-
     // Forks
     int64_t fork_20190830 = 292800;
     int64_t fork_20190920 = 322700;
@@ -208,12 +207,14 @@ void FillLimits(const CChainParams &params)
 
     // change_info_timeout
     std::map<int, int64_t> _change_info_timeout;
-    _change_info_timeout.insert({0, 3600});
+    _change_info_timeout.insert({0, 3600}); // seconds
+    _change_info_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 60}); // blocks
     Limits.insert(std::make_pair(Limit::change_info_timeout, _change_info_timeout));
 
     // edit_post_timeout
     std::map<int, int64_t> _edit_post_timeout;
-    _edit_post_timeout.insert({0, 86400});
+    _edit_post_timeout.insert({0, 86400}); // seconds
+    _edit_post_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 1440}); // blocks
     Limits.insert(std::make_pair(Limit::edit_post_timeout, _edit_post_timeout));
 
     // max_user_size
@@ -287,7 +288,8 @@ void FillLimits(const CChainParams &params)
 
     // edit_comment_timeout
     std::map<int, int64_t> _edit_comment_timeout;
-    _edit_comment_timeout.insert({0, 86400});
+    _edit_comment_timeout.insert({0, 86400}); // seconds
+    _edit_comment_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 1440}); // blocks
     Limits.insert(std::make_pair(Limit::edit_comment_timeout, _edit_comment_timeout));
 
     // scores_depth_modify_reputation

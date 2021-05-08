@@ -172,7 +172,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"txunspent",                     4, "query_options"},
         {"getaddressregistration",        0, "addresses"},
         {"getuserprofile",                0, "addresses"},
-        {"getuserstate",                  1, "time"},
 
         {"gettransactions",               0, "transactions"},
         {"getlastblocks",                 0, "count"},

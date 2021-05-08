@@ -1608,7 +1608,7 @@ UniValue getuserstate(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1) {
         throw std::runtime_error(
-            "getuserstate [\"addresses\",...]\n"
+            "getuserstate \"address\"\n"
             "\nReturns array of limits.\n"
             "\nArguments:\n"
             "1. \"address\"        (string) A pocketcoin addresses to filter\n"
@@ -1640,14 +1640,9 @@ UniValue getuserstate(const JSONRPCRequest& request)
         address = request.params[0].get_str();
     }
 
-    int64_t time = GetAdjustedTime();
-    if (request.params.size() > 1 && request.params[1].isNum()) {
-        time = request.params[1].get_int64();
-    }
-
     // Get transaction ids from UTXO index
     UserStateItem userStateItm(address);
-    if (!g_antibot->GetUserState(address, time, userStateItm)) {
+    if (!g_antibot->GetUserState(address, userStateItm)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error get from address index");
     }
 
@@ -3469,14 +3464,14 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc", "getmissedinfo2",                    &getmissedinfo2,                    {"address", "blocknumber"},                                                            false},
     {"pocketnetrpc", "txunspent",                         &txunspent,                         {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"},                false},
     {"pocketnetrpc", "getaddressregistration",            &getaddressregistration,            {"addresses"},                                                                         false},
-    {"pocketnetrpc", "getuserstate",                      &getuserstate,                      {"address", "time"},                                                                   false},
+    {"pocketnetrpc", "getuserstate",                      &getuserstate,                      {"address"},                                                                           false},
     {"pocketnetrpc", "gettime",                           &gettime,                           {},                                                                                    false},
     {"pocketnetrpc", "getrecommendedposts",               &getrecommendedposts,               {"address", "count"},                                                                  false},
     {"pocketnetrpc", "getrecommendedposts2",              &getrecommendedposts2,              {"address", "count"},                                                                  false},
     {"pocketnetrpc", "searchtags",                        &searchtags,                        {"search_string", "count"},                                                            false},
     {"pocketnetrpc", "search",                            &search,                            {"search_string", "type", "count"},                                                    false},
     {"pocketnetrpc", "search2",                           &search2,                           {"search_string", "type", "count"},                                                    false},
-    {"pocketnetrpc", "gethotposts",                       &gethotposts,                       {"count", "depth", "height", "lang", "contenttypes"},                         false},
+    {"pocketnetrpc", "gethotposts",                       &gethotposts,                       {"count", "depth", "height", "lang", "contenttypes"},                                  false},
     {"pocketnetrpc", "gethotposts2",                      &gethotposts2,                      {"count", "depth"},                                                                    false},
     {"pocketnetrpc", "getuseraddress",                    &getuseraddress,                    {"name", "count"},                                                                     false},
     {"pocketnetrpc", "getreputations",                    &getreputations,                    {},                                                                                    false},
