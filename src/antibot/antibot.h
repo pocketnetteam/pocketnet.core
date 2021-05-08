@@ -130,7 +130,8 @@ enum ANTIBOTRESULT {
     OpReturnFailed = 41,
     CommentDeletedEdit = 42,
     ReferrerAfterRegistration = 43,
-    NotAllowed = 44
+    NotAllowed = 44,
+    ChangeTxType = 45
 };
 //-----------------------------------------------------
 struct BlockVTX {
@@ -231,6 +232,7 @@ public:
         to test the possibility of changing that reputation
     */
     bool AllowModifyReputation(std::string _score_address, int height);
+    bool AllowModifyReputationOverPost(std::string _score_address, std::string _post_address, int height, int64_t tx_time, std::string txid, bool lottery);
     bool AllowModifyReputationOverPost(std::string _score_address, std::string _post_address, int height, const CTransactionRef& tx, bool lottery);
     bool AllowModifyReputationOverComment(std::string _score_address, std::string _comment_address, int height, const CTransactionRef& tx, bool lottery);
 };

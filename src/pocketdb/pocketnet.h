@@ -42,9 +42,17 @@ enum Limit {
     comment_size_limit,
     edit_comment_timeout,
     scores_depth_modify_reputation,
-    lottery_referral_depth
+    lottery_referral_depth,
 };
 
+/*enum PostRanks {LAST5, LAST5R, BOOST, UREP, UREPR, DREP, PREP, PREPR, DPOST, POSTRF};
+
+#define cntBlocksForResult 300
+#define cntPrevPosts 5
+#define durationBlocksForPrevPosts 24 * 60 // about 1 day
+#define decayRep 0.7
+#define decayPost 0.96
+*/
 void FillLimits(const CChainParams& params);
 
 // Get actual limit for current height
@@ -118,5 +126,8 @@ bool GetPocketnetTXType(const CTransactionRef& tx, std::string& ri_table);
 bool IsPocketnetTransaction(const CTransactionRef& tx);
 bool IsPocketnetTransaction(const CTransaction& tx);
 
+std::string getcontenttype(int type);
+int getcontenttype(std::string type);
+//void FindHierarchicalTxIds(int height);
 
 #endif // POCKETNET_H

@@ -131,7 +131,7 @@ public:
 
     /* Write new transaction to mempool */
     bool WriteMemRTransaction(reindexer::Item& item);
-    bool WriteRTransaction(std::string table, reindexer::Item& item, int height);
+    bool WriteRTransaction(const CTransactionRef& tx, std::string table, reindexer::Item& item, int height);
     /*
 		Find asm string with OP_RETURN for check type transaction
 	*/
@@ -192,7 +192,7 @@ public:
     /*
 		Write transaction for block received from another node
 	*/
-    bool SetBlockRIData(std::string& data, int height);
+    bool SetBlockRIData(const CBlock& block, std::string& data, int height);
     /*
 		Get RI data for transaction for send to another node.
 		Check transaction is PocketNet type transaction
@@ -204,7 +204,7 @@ public:
     /*
 		Write PocketNet data for this transaction
 	*/
-    bool SetTXRIData(std::string& data, int height);
+    bool SetTXRIData(const CTransactionRef& tx, std::string& data, int height);
     /*
 		Write RI Mempool data to general tables
 	*/

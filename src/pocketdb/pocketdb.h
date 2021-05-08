@@ -18,6 +18,7 @@
 using namespace reindexer;
 //-----------------------------------------------------
 enum RatingType {
+    RatingNotSupported = -1,
     RatingUserReputation = 0,
     RatingUserLikers = 1,
     RatingPostRating = 2,
@@ -25,12 +26,14 @@ enum RatingType {
 };
 
 enum AccountType {
+    AccountNotSupported = -1,
     AccountUser = 0,
     AccountVideoServer = 1,
     AccountMessageServer = 2,
 };
 
 enum ContentType {
+    ContentNotSupported = -1,
     ContentPost = 0,
     ContentVideo = 1,
     ContentVerification = 2,
@@ -116,7 +119,7 @@ public:
 
     // Returns sum of all unspent transactions for address
     int64_t GetUserBalance(std::string _address, int height);
-    int GetUserId(std::string address);
+    std::tuple<int, int> GetUserData(std::string address);
 
     // Search tags in DB
     void SearchTags(std::string search, int count, std::map<std::string, int>& tags, int& totalCount);

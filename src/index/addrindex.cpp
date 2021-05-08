@@ -296,7 +296,7 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
     // Save likers
     for (auto& ul : userLikers) {
         // get id for user
-        int userId = g_pocketdb->GetUserId(ul.first);
+        auto[userId, userRegBlock] = g_pocketdb->GetUserData(ul.first);
         if (userId < 0) {
             LogPrintf("Bad userId for %s\n", ul.first);
             return false;
@@ -304,7 +304,7 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
 
         for (auto& liker : ul.second) {
             // get id for liker address
-            int likerId = g_pocketdb->GetUserId(liker);
+            auto[likerId, likerRegBlock] = g_pocketdb->GetUserData(liker);
             if (likerId < 0) {
                 LogPrintf("Bad userId (liker) for %s\n", liker);
                 return false;
@@ -497,10 +497,10 @@ bool AddrIndex::CheckRItemExists(std::string table, std::string txid)
 
 bool AddrIndex::WriteMemRTransaction(reindexer::Item& item)
 {
-    return WriteRTransaction("Mempool", item, -1);
+    return WriteRTransaction(nullptr, "Mempool", item, -1);
 }
 
-bool AddrIndex::WriteRTransaction(std::string table, reindexer::Item& item, int height)
+bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, reindexer::Item& item, int height)
 {
     std::string _txid_check_exists = item["txid"].As<string>();
 
@@ -542,6 +542,13 @@ bool AddrIndex::WriteRTransaction(std::string table, reindexer::Item& item, int 
 
     // New Post
     if (table == "Posts") {
+        // Detect tx type
+        auto txType = getcontenttype(PocketTXType(tx));
+        if (txType == ContentType::ContentNotSupported)
+            return true;
+
+        item["type"] = txType;
+
         std::string caption_decoded = UrlDecode(item["caption"].As<string>());
         item["caption_"] = ClearHtmlTags(caption_decoded);
 
@@ -1158,16 +1165,21 @@ bool AddrIndex::GetBlockRIData(CBlock block, std::string& data)
     return true;
 }
 
-bool AddrIndex::SetBlockRIData(std::string& data, int height)
+bool AddrIndex::SetBlockRIData(const CBlock& block, std::string& data, int height)
 {
     UniValue _data(UniValue::VOBJ);
     _data.read(data);
-    //----------------------
-    for (unsigned int i = 0; i < _data.size(); i++) {
-        std::string _d = _data[i].get_str();
-        SetTXRIData(_d, height);
+
+    for (const auto& tx : block.vtx) {
+        auto key = tx->GetHash().GetHex();
+        if (_data.exists(key))
+        {
+            std::string _d = _data[key].get_str();
+            if (!SetTXRIData(tx, _d, height))
+                return false;
+        }
     }
-    //----------------------
+
     return true;
 }
 
@@ -1250,7 +1262,7 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
     return true;
 }
 
-bool AddrIndex::SetTXRIData(std::string& data, int height)
+bool AddrIndex::SetTXRIData(const CTransactionRef& tx, std::string& data, int height)
 {
     UniValue _data(UniValue::VOBJ);
     if (!_data.read(data)) return false;
@@ -1260,7 +1272,7 @@ bool AddrIndex::SetTXRIData(std::string& data, int height)
 
     reindexer::Item itm = g_pocketdb->DB()->NewItem(table);
     if (!itm.FromJSON(itm_src).ok()) return false;
-    if (!WriteRTransaction(table, itm, height)) return false;
+    if (!WriteRTransaction(tx, table, itm, height)) return false;
     //----------------------
     return true;
 }
@@ -1286,20 +1298,12 @@ bool AddrIndex::CommitRIMempool(const CBlock& block, int height)
             }
         }
 
-        //------------------------
-        if (gArgs.GetBoolArg("-debug_pocketnet_tx", false)) {
-            std::ofstream outfile;
-            outfile.open("debug_pocketnet_tx.txt", std::ios_base::app);
-            outfile << txid + ": " + mpItm["data"].As<string>() << std::endl; 
-        }
-        //------------------------
-
         // Parse mempool data
         std::string ri_table = mpItm["table"].As<string>();
         reindexer::Item new_item = g_pocketdb->DB()->NewItem(ri_table);
         new_item.FromJSON(DecodeBase64(mpItm["data"].As<string>()));
 
-        if (!WriteRTransaction(ri_table, new_item, height)) return false;
+        if (!WriteRTransaction(tx, ri_table, new_item, height)) return false;
         if (!ClearMempool(txid)) return false;
         if (!CheckRItemExists(rTable, txid)) {
             LogPrintf("--- AddrIndex::CommitRIMempool Error after write: %s\n", txid);
@@ -1631,6 +1635,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
     oitm.pushKV("address", item["address"].As<string>());
     oitm.pushKV("size", (int)(item.GetJSON().ToString().size()));
     oitm.pushKV("time", (int64_t)tx->nTime);
+    oitm.pushKV("contentType", getcontenttype(PocketTXType(tx)));
 
     std::string itm_hash;
     g_pocketdb->GetHashItem(item, table, true, itm_hash);
@@ -1642,7 +1647,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
 
     if (table == "Posts") {
         oitm.pushKV("txidEdit", item["txidEdit"].As<string>());
-        oitm.pushKV("postType", item["type"].As<string>());
+        oitm.pushKV("txidRepost", item["txidRepost"].As<string>());
     }
     
     if (table == "Scores") {

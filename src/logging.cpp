@@ -107,6 +107,7 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::DB, "db"},
     {BCLog::RPC, "rpc"},
     {BCLog::STAT, "stat"},
+    {BCLog::STATDETAIL, "statdetail"},
     {BCLog::ESTIMATEFEE, "estimatefee"},
     {BCLog::ADDRMAN, "addrman"},
     {BCLog::SELECTCOINS, "selectcoins"},

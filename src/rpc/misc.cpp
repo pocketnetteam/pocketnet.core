@@ -427,11 +427,11 @@ static UniValue echo(const JSONRPCRequest& request)
     return request.params;
 }
 
-static UniValue getcoininfo(const JSONRPCRequest& request)
+static UniValue getemission(const JSONRPCRequest& request)
 {
     if (request.fHelp)
         throw std::runtime_error(
-            "getcoininfo height\n"
+            "getemission height\n"
             "\n Returns current Pocketcoin emission for any given block\n"
             "\nArguments:\n"
             "1. height (integer optional) to calculate emission as of that block number\n"
@@ -469,9 +469,7 @@ static UniValue getcoininfo(const JSONRPCRequest& request)
         }
     }
 
-    entry.pushKV("emission", emission);
-    entry.pushKV("height", height);
-    return entry;
+    return emission;
 }
 
 static UniValue getnodeinfo(const JSONRPCRequest& request)
@@ -537,7 +535,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "echojson",               &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 
     { "util",               "getnodeinfo",            &getnodeinfo,            {}, false},
-    { "util",               "getcoininfo",            &getcoininfo,            {"height"}, false},
+    { "util",               "getemission",            &getemission,            {"height"}, false},
 
     /* For ReindexerDB */
     { "hidden",             "getristat",              &getristat,              {"table"}},

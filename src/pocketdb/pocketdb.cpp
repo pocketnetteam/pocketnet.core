@@ -107,17 +107,17 @@ bool PocketDB::Init()
     UpsertWithCommit("Service", service_new_item);
 
     // Turn on/off statistic
-    Item conf_item = db->NewItem("#config");
-    conf_item.FromJSON(R"json({
-		"type":"profiling", 
-		"profiling":{
-			"queriesperfstats":false,
-			"perfstats":false,
-			"memstats":false,
-            "activitystats": false
-		}
-	})json");
-    UpsertWithCommit("#config", conf_item);
+    // Item conf_item = db->NewItem("#config");
+    // conf_item.FromJSON(R"json({
+	// 	"type":"profiling", 
+	// 	"profiling":{
+	// 		"queriesperfstats":false,
+	// 		"perfstats":false,
+	// 		"memstats":false,
+    //         "activitystats": false
+	// 	}
+	// })json");
+    // UpsertWithCommit("#config", conf_item);
 
     return true;
 }
@@ -956,13 +956,13 @@ int64_t PocketDB::GetUserBalance(std::string _address, int height)
     }
 }
 
-int PocketDB::GetUserId(std::string address)
+std::tuple<int, int> PocketDB::GetUserData(std::string address)
 {
     Item itmUserView;
-    if (SelectOne(Query("UsersView").Where("address", CondEq, address), itmUserView).ok())
-        return itmUserView["id"].As<int>();
+    if (SelectOne(Query("Users").Where("address", CondEq, address).Sort("block", false).Limit(1), itmUserView).ok())
+        return std::make_tuple(itmUserView["id"].As<int>(), itmUserView["block"].As<int>());
 
-    return -1;
+    return std::make_tuple(-1, -1);
 }
 
 int PocketDB::GetUserReputation(std::string _address, int height)
