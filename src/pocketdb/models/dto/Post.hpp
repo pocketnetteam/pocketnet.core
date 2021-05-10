@@ -12,38 +12,45 @@ namespace PocketTx
 
         Post() : Transaction()
         {
-            SetType(PocketTxType::POST_CONTENT);
+            SetType(PocketTxType::CONTENT_POST);
         }
 
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
 
-            if (auto[ok, val] = TryGetStr(src, "lang"); ok) SetLang(val);
-            if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxId(val);
+            if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
 
             if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok) {
-                SetTxId(valTxIdEdit);
+                SetHash(valTxIdEdit);
 
                 if (auto[ok, valTxId] = TryGetStr(src, "txid"); ok)
-                    SetRootTxId(valTxId);
+                    SetRootTxHash(valTxId);
             }
 
         }
 
-        shared_ptr<string> GetLang() const { return m_string1; }
-        void SetLang(string value) { m_string1 = make_shared<string>(value); }
 
-        shared_ptr<string> GetRootTxId() const { return m_string2; }
-        void SetRootTxId(string value) { m_string2 = make_shared<string>(value); }
+        shared_ptr<int64_t> GetRootTxId() const { return m_int1; }
+        shared_ptr<string> GetRootTxHash() const { return m_root_tx_hash; }
+        void SetRootTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+        void SetRootTxHash(string value) { m_root_tx_hash = make_shared<string>(value); }
+        
+        shared_ptr<int64_t> GetRelayTxId() const { return m_int2; }
+        shared_ptr<string> GetRelayTxHash() const { return m_relay_tx_hash; }
+        void SetRelayTxId(int64_t value) { m_int2 = make_shared<int64_t>(value); }
+        void SetRelayTxHash(string value) { m_relay_tx_hash = make_shared<string>(value); }
 
-        shared_ptr<string> GetRelayTxId() const { return m_string3; }
-        void SetRelayTxId(string value) { m_string3 = make_shared<string>(value); }
+    protected:
+
+        shared_ptr<string> m_root_tx_hash = nullptr;
+        shared_ptr<string> m_relay_tx_hash = nullptr;
 
     private:
 
         void BuildPayload(const UniValue &src) override
         {
+            // TODO (brangr): payload as object
             UniValue payload(UniValue::VOBJ);
             if (auto[ok, val] = TryGetStr(src, "caption"); ok) payload.pushKV("caption", val);
             if (auto[ok, val] = TryGetStr(src, "message"); ok) payload.pushKV("message", val);

@@ -19,37 +19,46 @@ namespace PocketTx
 
         Comment() : Transaction()
         {
-            SetTxType(PocketTxType::COMMENT_CONTENT);
+            SetTxType(PocketTxType::CONTENT_COMMENT);
         }
 
         void Deserialize(const UniValue& src) override {
             Transaction::Deserialize(src);
-            if (auto[ok, val] = TryGetStr(src, "lang"); ok) SetLang(val);
-            if (auto[ok, val] = TryGetStr(src, "otxid"); ok) SetRootTxId(val);
-            if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxId(val);
-            if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxId(val);
-            if (auto[ok, val] = TryGetStr(src, "answerid"); ok) SetAnswerTxId(val);
+
+            if (auto[ok, val] = TryGetStr(src, "otxid"); ok) SetRootTxHash(val);
+            if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
+            if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxHash(val);
+            if (auto[ok, val] = TryGetStr(src, "answerid"); ok) SetAnswerTxHash(val);
         }
 
-        shared_ptr<string> GetLang() const { return m_string1; }
-        void SetLang(std::string value) { m_string1 = make_shared<string>(value); }
+        shared_ptr<int64_t> GetRootTxId() const { return m_int1; }
+        void SetRootTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+        void SetRootTxHash(string value) { m_root_tx_hash = make_shared<string>(value); }
 
-        shared_ptr<string> GetRootTxId() const { return m_string2; }
-        void SetRootTxId(std::string value) { m_string2 = make_shared<string>(value); }
+        shared_ptr<int64_t> GetPostTxId() const { return m_int2; }
+        void SetPostTxId(int64_t value) { m_int2 = make_shared<int64_t>(value); }
+        void SetPostTxHash(string value) { m_post_tx_hash = make_shared<string>(value); }
 
-        shared_ptr<string> GetPostTxId() const { return m_string3; }
-        void SetPostTxId(std::string value) { m_string3 = make_shared<string>(value); }
+        shared_ptr<int64_t> GetParentTxId() const { return m_int3; }
+        void SetParentTxId(int64_t value) { m_int3 = make_shared<int64_t>(value); }
+        void SetParentTxHash(string value) { m_parent_tx_hash = make_shared<string>(value); }
 
-        shared_ptr<string> GetParentTxId() const { return m_string4; }
-        void SetParentTxId(std::string value) { m_string4 = make_shared<string>(value); }
+        shared_ptr<int64_t> GetAnswerTxId() const { return m_int4; }
+        void SetAnswerTxId(int64_t value) { m_int4 = make_shared<int64_t>(value); }
+        void SetAnswerTxHash(string value) { m_answer_tx_hash = make_shared<string>(value); }
 
-        shared_ptr<string> GetAnswerTxId() const { return m_string5; }
-        void SetAnswerTxId(std::string value) { m_string5 = make_shared<string>(value); }
+    protected:
+
+        shared_ptr<string> m_root_tx_hash = nullptr;
+        shared_ptr<string> m_post_tx_hash = nullptr;
+        shared_ptr<string> m_parent_tx_hash = nullptr;
+        shared_ptr<string> m_answer_tx_hash = nullptr;
 
     private:
 
         void BuildPayload(const UniValue &src) override
         {
+            // TODO (brangr): payload as object
             UniValue payload(UniValue::VOBJ);
             if (auto[ok, val] = TryGetStr(src, "msg"); ok) payload.pushKV("msg", val);
             SetPayload(payload);

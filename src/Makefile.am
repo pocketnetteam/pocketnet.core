@@ -104,6 +104,7 @@ POCKETDB_HPP = \
     pocketdb/services/BlockIndexer.hpp \
     pocketdb/models/base/Base.hpp \
     pocketdb/models/base/Transaction.hpp \
+    pocketdb/models/base/TransactionOutput.hpp \
     pocketdb/models/base/Payload.hpp \
     pocketdb/models/dto/Post.hpp \
     pocketdb/models/dto/User.hpp \

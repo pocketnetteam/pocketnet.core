@@ -19,21 +19,26 @@ namespace PocketTx
 
         ScorePost() : Transaction()
         {
-            SetTxType(PocketTxType::SCORE_POST_ACTION);
+            SetTxType(PocketTxType::ACTION_SCORE_POST);
         }
 
         void Deserialize(const UniValue &src) override
         {
             Transaction::Deserialize(src);
+
+            if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxHash(val);
             if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
-            if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxId(val);
         }
 
-        shared_ptr<int64_t> GetValue() const { return m_int1; }
-        void SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+        shared_ptr<int64_t> GetPostTxId() const { return m_int1; }
+        void SetPostTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+        void SetPostTxHash(string value) { m_post_tx_hash = make_shared<string>(value); }
 
-        shared_ptr<string> GetPostTxId() const { return m_string1; }
-        void SetPostTxId(string value) { m_string1 = make_shared<string>(value); }
+        shared_ptr<int64_t> GetValue() const { return m_int2; }
+        void SetValue(int64_t value) { m_int2 = make_shared<int64_t>(value); }
+
+    protected:
+        shared_ptr<string> m_post_tx_hash = nullptr;
 
     private:
 

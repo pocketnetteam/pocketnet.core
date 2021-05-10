@@ -46,28 +46,28 @@ namespace PocketServices
         {
             // TODO (brangr): implement enum for tx types
             if (reindexerTable == "Users")
-                return PocketTxType::USER_ACCOUNT;
+                return PocketTxType::ACCOUNT_USER;
 
             if (reindexerTable == "Posts")
-                return PocketTxType::POST_CONTENT;
+                return PocketTxType::CONTENT_POST;
 
             if (reindexerTable == "Comment")
-                return PocketTxType::COMMENT_CONTENT;
+                return PocketTxType::CONTENT_COMMENT;
 
             if (reindexerTable == "Scores")
-                return PocketTxType::SCORE_POST_ACTION;
+                return PocketTxType::ACTION_SCORE_POST;
 
             if (reindexerTable == "CommentScores")
-                return PocketTxType::SCORE_COMMENT_ACTION;
+                return PocketTxType::ACTION_SCORE_COMMENT;
 
             if (reindexerTable == "Blocking")
             {
                 if (reindexerSrc.exists("unblocking") &&
                     reindexerSrc["unblocking"].isBool() &&
                     reindexerSrc["unblocking"].get_bool())
-                    return PocketTxType::BLOCKING_CANCEL_ACTION;
+                    return PocketTxType::ACTION_BLOCKING_CANCEL;
 
-                return PocketTxType::BLOCKING_ACTION;
+                return PocketTxType::ACTION_BLOCKING;
             }
 
             if (reindexerTable == "Subscribes")
@@ -75,18 +75,18 @@ namespace PocketServices
                 if (reindexerSrc.exists("unsubscribe") &&
                     reindexerSrc["unsubscribe"].isBool() &&
                     reindexerSrc["unsubscribe"].get_bool())
-                    return PocketTxType::SUBSCRIBE_CANCEL_ACTION;
+                    return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
 
                 if (reindexerSrc.exists("private") &&
                     reindexerSrc["private"].isBool() &&
                     reindexerSrc["private"].get_bool())
-                    return PocketTxType::SUBSCRIBE_PRIVATE_ACTION;
+                    return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
 
-                return PocketTxType::SUBSCRIBE_ACTION;
+                return PocketTxType::ACTION_SUBSCRIBE;
             }
 
             if (reindexerTable == "Complains")
-                return PocketTxType::COMPLAIN_ACTION;
+                return PocketTxType::ACTION_COMPLAIN;
 
             return PocketTxType::NOT_SUPPORTED;
         }
@@ -104,44 +104,44 @@ namespace PocketServices
             PocketTxType txType = ParseType(txTypeSrc, txDataSrc);
             switch (txType)
             {
-                case USER_ACCOUNT:
+                case ACCOUNT_USER:
                     tx = make_shared<User>();
                     break;
-                case VIDEO_SERVER_ACCOUNT:
-                case MESSAGE_SERVER_ACCOUNT:
+                case ACCOUNT_VIDEO_SERVER:
+                case ACCOUNT_MESSAGE_SERVER:
                     break;
-                case POST_CONTENT:
+                case CONTENT_POST:
                     tx = make_shared<Post>();
                     break;
-                case VIDEO_CONTENT:
-                case TRANSLATE_CONTENT:
-                case SERVERPING_CONTENT:
+                case CONTENT_VIDEO:
+                case CONTENT_TRANSLATE:
+                case CONTENT_SERVERPING:
                     break;
-                case COMMENT_CONTENT:
+                case CONTENT_COMMENT:
                     tx = make_shared<Comment>();
                     break;
-                case SCORE_POST_ACTION:
+                case ACTION_SCORE_POST:
                     tx = make_shared<ScorePost>();
                     break;
-                case SCORE_COMMENT_ACTION:
+                case ACTION_SCORE_COMMENT:
                     tx = make_shared<ScoreComment>();
                     break;
-                case SUBSCRIBE_ACTION:
+                case ACTION_SUBSCRIBE:
                     tx = make_shared<Subscribe>();
                     break;
-                case SUBSCRIBE_PRIVATE_ACTION:
+                case ACTION_SUBSCRIBE_PRIVATE:
                     tx = make_shared<SubscribePrivate>();
                     break;
-                case SUBSCRIBE_CANCEL_ACTION:
+                case ACTION_SUBSCRIBE_CANCEL:
                     tx = make_shared<SubscribeCancel>();
                     break;
-                case BLOCKING_ACTION:
+                case ACTION_BLOCKING:
                     tx = make_shared<Blocking>();
                     break;
-                case BLOCKING_CANCEL_ACTION:
+                case ACTION_BLOCKING_CANCEL:
                     tx = make_shared<BlockingCancel>();
                     break;
-                case COMPLAIN_ACTION:
+                case ACTION_COMPLAIN:
                     tx = make_shared<Complain>();
                     break;
                 default:
@@ -184,37 +184,37 @@ namespace PocketServices
         static PocketTxType ConvertOpReturnToType(const std::string &op)
         {
             if (op == OR_POST || op == OR_POSTEDIT)
-                return PocketTxType::POST_CONTENT;
+                return PocketTxType::CONTENT_POST;
             else if (op == OR_VIDEO)
-                return PocketTxType::VIDEO_CONTENT;
+                return PocketTxType::CONTENT_VIDEO;
             else if (op == OR_SERVER_PING)
-                return PocketTxType::SERVERPING_CONTENT;
+                return PocketTxType::CONTENT_SERVERPING;
             else if (op == OR_SCORE)
-                return PocketTxType::SCORE_POST_ACTION;
+                return PocketTxType::ACTION_SCORE_POST;
             else if (op == OR_COMPLAIN)
-                return PocketTxType::COMPLAIN_ACTION;
+                return PocketTxType::ACTION_COMPLAIN;
             else if (op == OR_SUBSCRIBE)
-                return PocketTxType::SUBSCRIBE_ACTION;
+                return PocketTxType::ACTION_SUBSCRIBE;
             else if (op == OR_SUBSCRIBEPRIVATE)
-                return PocketTxType::SUBSCRIBE_PRIVATE_ACTION;
+                return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
             else if (op == OR_UNSUBSCRIBE)
-                return PocketTxType::SUBSCRIBE_CANCEL_ACTION;
+                return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
             else if (op == OR_USERINFO)
-                return PocketTxType::USER_ACCOUNT;
+                return PocketTxType::ACCOUNT_USER;
             else if (op == OR_VIDEO_SERVER)
-                return PocketTxType::VIDEO_SERVER_ACCOUNT;
+                return PocketTxType::ACCOUNT_VIDEO_SERVER;
             else if (op == OR_MESSAGE_SERVER)
-                return PocketTxType::MESSAGE_SERVER_ACCOUNT;
+                return PocketTxType::ACCOUNT_MESSAGE_SERVER;
             else if (op == OR_BLOCKING)
-                return PocketTxType::BLOCKING_ACTION;
+                return PocketTxType::ACTION_BLOCKING;
             else if (op == OR_UNBLOCKING)
-                return PocketTxType::BLOCKING_CANCEL_ACTION;
+                return PocketTxType::ACTION_BLOCKING_CANCEL;
             else if (op == OR_COMMENT || op == OR_COMMENT_EDIT)
-                return PocketTxType::COMMENT_CONTENT;
+                return PocketTxType::CONTENT_COMMENT;
             else if (op == OR_COMMENT_DELETE)
-                return PocketTxType::COMMENT_DELETE_CONTENT;
+                return PocketTxType::CONTENT_COMMENT_DELETE;
             else if (op == OR_COMMENT_SCORE)
-                return PocketTxType::SCORE_COMMENT_ACTION;
+                return PocketTxType::ACTION_SCORE_COMMENT;
 
             // TODO (brangr): new types
 

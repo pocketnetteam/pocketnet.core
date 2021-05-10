@@ -129,8 +129,8 @@ namespace PocketConsensus
                 // In lottery allowed only likes to posts and comments
                 std::vector<std::string> vasm;
                 auto txType = PocketServices::TransactionSerializer::ParseType(tx, vasm);
-                if (txType != PocketTx::PocketTxType::SCORE_COMMENT_ACTION &&
-                    txType != PocketTx::PocketTxType::SCORE_POST_ACTION)
+                if (txType != PocketTx::PocketTxType::ACTION_SCORE_COMMENT &&
+                    txType != PocketTx::PocketTxType::ACTION_SCORE_POST)
                     continue;
 
                 // Parse asm and get destination address and score value

@@ -18,21 +18,25 @@ namespace PocketTx
 
         Complain() : Transaction()
         {
-            SetTxType(PocketTxType::COMPLAIN_ACTION);
+            SetTxType(PocketTxType::ACTION_COMPLAIN);
         }
 
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetInt64(src, "reason"); ok) SetReason(val);
-            if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxId(val);
+            if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxHash(val);
         }
 
-        shared_ptr<int64_t> GetReason() const { return m_int1; }
-        void SetReason(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+        shared_ptr<string> GetPostTxId() const { return m_int1; }
+        void SetPostTxId(std::string value) { m_int1 = make_shared<string>(value); }
+        void SetPostTxHash(string value) { m_address_to = make_shared<string>(value); }
+        
+        shared_ptr<int64_t> GetReason() const { return m_int2; }
+        void SetReason(int64_t value) { m_int2 = make_shared<int64_t>(value); }
 
-        shared_ptr<string> GetPostTxId() const { return m_string1; }
-        void SetPostTxId(std::string value) { m_string1 = make_shared<string>(value); }
+    protected:
+        shared_ptr<string> m_post_tx_hash = nullptr;
 
     private:
 
@@ -42,6 +46,7 @@ namespace PocketTx
 
         void BuildHash(const UniValue &src) override
         {
+            // TODO (brangr): optimize with array
             std::string data;
             if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) data += val;
             data += "_";

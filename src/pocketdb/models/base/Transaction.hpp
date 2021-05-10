@@ -26,20 +26,19 @@ namespace PocketTx
 
         virtual void Deserialize(const UniValue &src)
         {
-            if (auto[ok, val] = TryGetStr(src, "hash"); ok) SetHash(val);
+            if (auto[ok, val] = TryGetStr(src, "txid"); ok) SetHash(val);
             if (auto[ok, val] = TryGetInt64(src, "time"); ok) SetTime(val);
         }
 
 
         [[nodiscard]] shared_ptr<int64_t> GetId() const { return m_id; }
+        [[nodiscard]] shared_ptr<string> GetHash() const { return m_hash; }
         void SetId(int64_t value) { m_id = make_shared<int64_t>(value); }
+        void SetHash(string value) { m_hash = make_shared<string>(value); }
 
         [[nodiscard]] shared_ptr<PocketTxType> GetType() const { return m_type; }
         [[nodiscard]] shared_ptr<int> GetTypeInt() const { return make_shared<int>((int) *m_type); }
         void SetType(PocketTxType value) { m_type = make_shared<PocketTxType>(value); }
-
-        [[nodiscard]] shared_ptr<string> GetHash() const { return m_hash; }
-        void SetHash(string value) { m_hash = make_shared<string>(value); }
 
         [[nodiscard]] shared_ptr<int64_t> GetTime() const { return m_time; }
         void SetTime(int64_t value) { m_time = make_shared<int64_t>(value); }
@@ -49,6 +48,11 @@ namespace PocketTx
 
         [[nodiscard]] shared_ptr<int64_t> GetNumber() const { return m_number; }
         void SetNumber(int64_t value) { m_number = make_shared<int64_t>(value); }
+
+        [[nodiscard]] shared_ptr<int64_t> GetAccountAddressId() const { return m_account_address_id; }
+        [[nodiscard]] shared_ptr<string> GetAccountAddress() const { return m_account_address; }
+        void SetAccountAddressId(int64_t value) { m_account_address_id = make_shared<int64_t>(value); }
+        void SetAccountAddress(string value) { m_account_address = make_shared<string>(value); }
 
         [[nodiscard]] shared_ptr<int64_t> GetInt1() const { return m_int1; }
         void SetInt1(int64_t value) { m_int1 = make_shared<int64_t>(value); }
@@ -67,6 +71,7 @@ namespace PocketTx
         void SetPayload(Payload value) { m_payload = make_shared<Payload>(value); }
         [[nodiscard]] bool HasPayload() const { return m_payload != nullptr; };
 
+
         virtual void BuildPayload(const UniValue &src) = 0;
         virtual void BuildHash(const UniValue &src) = 0;
 
@@ -77,6 +82,9 @@ namespace PocketTx
         shared_ptr<int64_t> m_height = nullptr;
         shared_ptr<int64_t> m_number = nullptr;
         shared_ptr<int64_t> m_time = nullptr;
+
+        shared_ptr<int64_t> m_account_address_id = nullptr;
+        shared_ptr<string> m_account_address = nullptr;
 
         shared_ptr<int64_t> m_int1 = nullptr;
         shared_ptr<int64_t> m_int2 = nullptr;

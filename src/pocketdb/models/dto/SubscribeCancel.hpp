@@ -18,7 +18,7 @@ namespace PocketTx
 
         SubscribeCancel() : Subscribe()
         {
-            SetTxType(PocketTxType::SUBSCRIBE_CANCEL_ACTION);
+            SetTxType(PocketTxType::ACTION_SUBSCRIBE_CANCEL);
         }
     };
 

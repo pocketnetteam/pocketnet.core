@@ -6,28 +6,29 @@ create table Transactions
     Hash string not null,
     Time int    not null,
 
-    -- User.AddressId
-    -- Post.AddressId
+    AddressId int null,
+
+    -- User.Registration
+    -- Post.RootTxId
     -- Comment.RootTxId
     -- ScorePost.PostTxId
     -- ScoreComment.CommentTxId
     -- Subscribe.AddressToId
     -- Blocking.AddressToId
-    Int1 int    null,
-
-    -- User.Registration
-    -- Post.RootTxId
-    -- Comment.PostTxId
     -- Complain.PostTxId
-    -- ScorePost.Value
-    -- ScoreComment.Value
-    Int2 int    null,
+    Int1 int    null,
 
     -- User.ReferrerId
     -- Post.RelayTxId
+    -- Comment.PostTxId
+    -- ScorePost.Value
+    -- ScoreComment.Value
+    -- Complain.Reason
+    Int2 int    null,
+
     -- Comment.ParentTxId
     Int3 int    null,
-
+    
     -- Comment.AnswerTxId
     Int4 int    null
 );
@@ -123,7 +124,6 @@ create table TxOutput
     TxId      int not null, -- Transactions.Id
     Number    int not null, -- Number in tx.vout
     Value     int not null, -- Amount
-    TxSpentId int null,     -- from next tx.vin
     primary key (TxId, Number)
 );
 

@@ -18,7 +18,7 @@ namespace PocketTx
 
         SubscribePrivate() : Subscribe()
         {
-            SetTxType(PocketTxType::SUBSCRIBE_PRIVATE_ACTION);
+            SetTxType(PocketTxType::ACTION_SUBSCRIBE_PRIVATE);
         }
     };
 

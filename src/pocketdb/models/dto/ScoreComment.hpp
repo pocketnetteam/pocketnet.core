@@ -13,21 +13,26 @@ namespace PocketTx
 
         ScoreComment() : Transaction()
         {
-            SetTxType(PocketTxType::SCORE_COMMENT_ACTION);
+            SetTxType(PocketTxType::ACTION_SCORE_COMMENT);
         }
 
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
+            
+            if (auto[ok, val] = TryGetStr(src, "commentid"); ok) SetCommentTxHash(val);
             if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
-            if (auto[ok, val] = TryGetStr(src, "commentid"); ok) SetCommentTxId(val);
         }
 
-        shared_ptr<int64_t> GetValue() const { return m_int1; }
-        void SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+        shared_ptr<int64_t> GetCommentTxId() const { return m_int1; }
+        void SetCommentTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+        void SetCommentTxHash(string value) { m_comment_tx_hash = make_shared<string>(value); }
 
-        shared_ptr<string> GetCommentTxId() const { return m_string1; }
-        void SetCommentTxId(string value) { m_string1 = make_shared<string>(value); }
+        shared_ptr<int64_t> GetValue() const { return m_int2; }
+        void SetValue(int64_t value) { m_int2 = make_shared<int64_t>(value); }
+
+    protected:
+        shared_ptr<string> m_comment_tx_hash = nullptr;
 
     private:
 

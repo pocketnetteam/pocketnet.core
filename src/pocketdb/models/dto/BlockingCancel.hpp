@@ -18,7 +18,7 @@ namespace PocketTx
 
         BlockingCancel() : Blocking()
         {
-            SetTxType(PocketTxType::BLOCKING_CANCEL_ACTION);
+            SetTxType(PocketTxType::ACTION_BLOCKING_CANCEL);
         }
     };
 

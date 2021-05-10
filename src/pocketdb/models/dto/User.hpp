@@ -18,34 +18,35 @@ namespace PocketTx
 
         User() : Transaction()
         {
-            SetTxType(PocketTxType::USER_ACCOUNT);
+            SetTxType(PocketTxType::ACCOUNT_USER);
         }
 
         void Deserialize(const UniValue &src) override
         {
             Transaction::Deserialize(src);
 
-            if (auto[ok, val] = TryGetStr(src, "lang"); ok) SetLang(val);
-            if (auto[ok, val] = TryGetStr(src, "name"); ok) SetName(val);
-            if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrer(val);
+            if (auto[ok, val] = TryGetStr(src, "regdate"); ok) SetRegistration(val);
+            if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrerAddress(val);
         }
 
         shared_ptr<int64_t> GetRegistration() const { return m_int1; }
         void SetRegistration(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
-        shared_ptr<string> GetLang() const { return m_string1; }
-        void SetLang(string value) { m_string1 = make_shared<string>(value); }
+        shared_ptr<int64_t> GetReferrerId() const { return m_int2; }
+        shared_ptr<string> GetReferrerAddress() const { return m_referrer_address; }
+        void SetReferrer(std::int64_t value) { m_int2 = make_shared<int64_t>(value); }
+        void SetReferrerAddress(std::string value) { m_referrer_address = make_shared<string>(value); }
 
-        shared_ptr<string> GetName() const { return m_string2; }
-        void SetName(std::string value) { m_string2 = make_shared<string>(value); }
+    protected:
 
-        shared_ptr<string> GetReferrer() const { return m_string3; }
-        void SetReferrer(std::string value) { m_string3 = make_shared<string>(value); }
+        shared_ptr<string> m_referrer_address = nullptr;
 
     private:
 
         void BuildPayload(const UniValue &src) override
         {
+            // TODO (brangr): payload as object
+
             UniValue payload(UniValue::VOBJ);
             if (auto[ok, val] = TryGetInt64(src, "birthday"); ok) payload.pushKV("birthday", val);
             if (auto[ok, val] = TryGetInt64(src, "gender"); ok) payload.pushKV("gender", val);
