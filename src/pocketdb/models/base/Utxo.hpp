@@ -22,34 +22,26 @@ namespace PocketTx
 
         Utxo() = default;
 
-        //shared_ptr<PocketTxType> GetTxOutType() const { return m_txOutType; }
-        //shared_ptr<int> GetTxOutTypeInt() const { return make_shared<int>((int) *m_txOutType); }
-        //void SetTxOutType(PocketTxType value) { m_txOutType = make_shared<string>(value); }
+        [[nodiscard]] shared_ptr <int64_t> GetTxId() const { return m_txId; }
+        void SetTxId(int64_t value) { m_txId = make_shared<int64_t>(value); }
 
-        shared_ptr <string> GetTxId() const { return m_txId; }
-        void SetTxId(string value) { m_txId = make_shared<string>(value); }
-
-        shared_ptr <int64_t> GetBlock() const { return m_block; }
+        [[nodiscard]] shared_ptr <int64_t> GetBlock() const { return m_block; }
         void SetBlock(int64_t value) { m_block = make_shared<int64_t>(value); }
 
-        shared_ptr <int64_t> GetTxOut() const { return m_txOut; }
+        [[nodiscard]] shared_ptr <int64_t> GetTxOut() const { return m_txOut; }
         void SetTxOut(int64_t value) { m_txOut = make_shared<int64_t>(value); }
 
-        shared_ptr <int64_t> GetTxTime() const { return m_txTime; }
-        void SetTxTime(int64_t value) { m_txTime = make_shared<int64_t>(value); }
-
-        shared_ptr <string> GetAddress() const { return m_address; }
+        [[nodiscard]] shared_ptr <string> GetAddress() const { return m_address; }
         void SetAddress(string value) { m_address = make_shared<string>(value); }
 
-        shared_ptr <int64_t> GetBlockSpent() const { return m_block_spent; }
+        [[nodiscard]] shared_ptr <int64_t> GetBlockSpent() const { return m_block_spent; }
         void SetBlockSpent(int64_t value) { m_block_spent = make_shared<int64_t>(value); }
 
-        shared_ptr <int64_t> GetAmount() const { return m_amount; }
+        [[nodiscard]] shared_ptr <int64_t> GetAmount() const { return m_amount; }
         void SetAmount(int64_t value) { m_amount = make_shared<int64_t>(value); }
 
     protected:
-        //shared_ptr<PocketTxType> m_txOutType = nullptr;
-        shared_ptr <string> m_txId = nullptr;
+        shared_ptr <int64_t> m_txId = nullptr;
         shared_ptr <int64_t> m_block = nullptr;
         shared_ptr <int64_t> m_txOut = nullptr;
         shared_ptr <int64_t> m_txTime = nullptr;

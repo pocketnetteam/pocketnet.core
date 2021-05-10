@@ -12,7 +12,7 @@ namespace PocketTx
 
         Post() : Transaction()
         {
-            SetTxType(PocketTxType::POST_CONTENT);
+            SetType(PocketTxType::POST_CONTENT);
         }
 
         void Deserialize(const UniValue& src) override
