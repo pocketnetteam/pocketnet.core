@@ -2341,73 +2341,45 @@ UniValue getlastcomments(const JSONRPCRequest& request)
     reindexer::Query query;
     reindexer::QueryResults queryResults;
 
-//    query = reindexer::Query("Comment");
-//    query = query.Where("last", CondEq, true);
-//    query = query.Where("block", CondLe, nHeight);
-//    if (!lang.empty()) {
-//        query = query.InnerJoin("postid", "txid", CondEq, Query("Posts").Where("lang", CondEq, lang).Limit(1));
-//    }
-//    query = query.Sort("block", true);
-//    query = query.Sort("time", true);
-//    query = query.Limit(resultCount);
-    query = reindexer::Query("Posts");
+    query = reindexer::Query("Comment");
+    query = query.Where("last", CondEq, true);
     query = query.Where("block", CondLe, nHeight);
     query = query.Where("block", CondGt, nHeight - 600);
     query = query.Where("time", CondLe, GetAdjustedTime());
-    if (!lang.empty()) {
-        query = query.Where("lang", CondEq, lang);
-    }
-    query = query.InnerJoin("txid", "postid", CondEq, reindexer::Query("Comment").Where("block", CondLe, nHeight).Where("last", CondEq, true).Sort("block", true).Sort("time", true).Limit(1));
-    query = query.Sort("Comment.block", true);
-    query = query.Sort("Comment.time", true);
-    query = query.Limit(resultCount);
+    query = query.Sort("block", true);
+    query = query.Sort("time", true);
+    query = query.InnerJoin("postid", "txid", CondEq, Query("Posts").Limit(1));
 
     g_pocketdb->Select(query, queryResults);
 
-    /*
-    reindexer::QueryResults commRes;
-    g_pocketdb->Select(
-        Query("Comment")
-            .Where("last", CondEq, true)
-            .Where("time", CondLe, GetAdjustedTime())
-            .Sort("time", true)
-            .Limit(resultCount)
-            //.InnerJoin("otxid", "txid", CondEq, Query("Comment").Limit(1))
-            //.LeftJoin("otxid", "commentid", CondEq, Query("CommentScores").Where("address", CondEq, address).Limit(1))
-            //.InnerJoin("postid", "txid", CondEq, Query("Posts").Where("lang", (lang == "" ? CondGe : CondEq), lang).Limit(1))
-        ,commRes);
-    */
-
     UniValue aResult(UniValue::VARR);
     for (auto& it : queryResults) {
-        //reindexer::Item cmntItm = it.GetItem();
-        reindexer::Item cmntItm = it.GetJoined()[0][0].GetItem();
-        //reindexer::Item ocmntItm = it.GetJoined()[0][0].GetItem();
+        reindexer::Item cmntItm = it.GetItem();
 
-        /*int myScore = 0;
-        if (it.GetJoined().size() > 1 && it.GetJoined()[1].Count() > 0) {
-            reindexer::Item ocmntScoreItm = it.GetJoined()[1][0].GetItem();
-            myScore = ocmntScoreItm["value"].As<int>();
-        }*/
+        string cmntLang = it.GetJoined()[0][0].GetItem()["lang"].As<string>();
 
-        UniValue oCmnt(UniValue::VOBJ);
-        oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
-        oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
-        oCmnt.pushKV("address", cmntItm["address"].As<string>());
-        oCmnt.pushKV("time", cmntItm["time"].As<string>());
-        oCmnt.pushKV("timeUpd", cmntItm["time"].As<string>());
-        oCmnt.pushKV("block", cmntItm["block"].As<string>());
-        oCmnt.pushKV("msg", cmntItm["msg"].As<string>());
-        oCmnt.pushKV("parentid", cmntItm["parentid"].As<string>());
-        oCmnt.pushKV("answerid", cmntItm["answerid"].As<string>());
-        oCmnt.pushKV("scoreUp", cmntItm["scoreUp"].As<string>());
-        oCmnt.pushKV("scoreDown", cmntItm["scoreDown"].As<string>());
-        oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
-        oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
-        oCmnt.pushKV("deleted", cmntItm["msg"].As<string>() == "");
-        //oCmnt.pushKV("myScore", myScore);
+        if(!lang.empty() && cmntLang == lang) {
+            UniValue oCmnt(UniValue::VOBJ);
+            oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
+            oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
+            oCmnt.pushKV("address", cmntItm["address"].As<string>());
+            oCmnt.pushKV("time", cmntItm["time"].As<string>());
+            oCmnt.pushKV("timeUpd", cmntItm["time"].As<string>());
+            oCmnt.pushKV("block", cmntItm["block"].As<string>());
+            oCmnt.pushKV("msg", cmntItm["msg"].As<string>());
+            oCmnt.pushKV("parentid", cmntItm["parentid"].As<string>());
+            oCmnt.pushKV("answerid", cmntItm["answerid"].As<string>());
+            oCmnt.pushKV("scoreUp", cmntItm["scoreUp"].As<string>());
+            oCmnt.pushKV("scoreDown", cmntItm["scoreDown"].As<string>());
+            oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
+            oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
+            oCmnt.pushKV("deleted", cmntItm["msg"].As<string>() == "");
 
-        aResult.push_back(oCmnt);
+            aResult.push_back(oCmnt);
+        }
+        if (aResult.size() >= resultCount) {
+            break;
+        }
     }
 
     return aResult;
