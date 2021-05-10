@@ -1,76 +1,55 @@
 drop table if exists Transactions;
 create table Transactions
 (
-    TxType  int    not null,
-    TxId    string not null,
-    Block   int    null,
-    TxOut   int    null,
-    TxTime  int    not null,
-    Address string not null,
+    Id     int    not null primary key autoincrement,
+    Type   int    not null,
+    Hash   string not null,
+    Height int    null,
+    Number int    null,
+    Time   int    not null,
 
     -- User.Id
     -- Post.Id
-    -- ScorePost.Value
-    -- ScoreComment.Value
-    -- Complain.Reason
-    Int1    int    null,
-
-    -- User.Registration
-    Int2    int    null,
-
-    -- Empty
-    Int3    int    null,
-
-    -- Empty
-    Int4    int    null,
-
-    -- Empty
-    Int5    int    null,
-
-    -- User.Lang
-    -- Post.Lang
-    -- Comment.Lang
-    -- Subscribe.AddressTo
-    -- Blocking.AddressTo
-    -- Complain.PostTxId
+    -- Comment.RootTxId
     -- ScorePost.PostTxId
     -- ScoreComment.CommentTxId
-    String1 string null,
+    -- Complain.Reason
+    -- Subscribe.AddressToId
+    -- Blocking.AddressToId
+    Int1   int    null,
 
-    -- User.Name
-    -- Post.Root
-    -- Comment.RootTxId
-    String2 string null,
-
-    -- User.Referrer
-    -- Post.RelayTxId
+    -- User.Registration
+    -- Post.RootTxId
     -- Comment.PostTxId
-    String3 string null,
+    -- Complain.PostTxId
+    -- ScorePost.Value
+    -- ScoreComment.Value
+    Int2   int    null,
 
+    -- User.ReferrerId
+    -- Post.RelayTxId
     -- Comment.ParentTxId
-    String4 string null,
+    Int3   int    null,
 
     -- Comment.AnswerTxId
-    String5 string null,
-
-    primary key (TxId)
+    Int4   int    null
 );
 
 --------------------------------------------
-drop index if exists Transactions_TxType;
-create index Transactions_TxType on Transactions (TxType);
+drop index if exists Transactions_Type;
+create index Transactions_Type on Transactions (Type);
 
-drop index if exists Transactions_Block;
-create index Transactions_Block on Transactions (Block);
+drop index if exists Transactions_Hash;
+create index Transactions_Hash on Transactions (Hash);
 
-drop index if exists Transactions_TxOut;
-create index Transactions_TxOut on Transactions (TxOut);
+drop index if exists Transactions_Height;
+create index Transactions_Height on Transactions (Height);
 
-drop index if exists Transactions_TxTime;
-create index Transactions_TxTime on Transactions (TxTime desc);
+drop index if exists Transactions_Number;
+create index Transactions_Number on Transactions (Number);
 
-drop index if exists Transactions_Address;
-create index Transactions_Address on Transactions (Address);
+drop index if exists Transactions_Time;
+create index Transactions_Time on Transactions (Time);
 
 drop index if exists Transactions_Int1;
 create index Transactions_Int1 on Transactions (Int1);
@@ -84,24 +63,6 @@ create index Transactions_Int3 on Transactions (Int3);
 drop index if exists Transactions_Int4;
 create index Transactions_Int4 on Transactions (Int4);
 
-drop index if exists Transactions_Int5;
-create index Transactions_Int5 on Transactions (Int5);
-
-drop index if exists Transactions_String1;
-create index Transactions_String1 on Transactions (String1);
-
-drop index if exists Transactions_String2;
-create index Transactions_String2 on Transactions (String2);
-
-drop index if exists Transactions_String3;
-create index Transactions_String3 on Transactions (String3);
-
-drop index if exists Transactions_String4;
-create index Transactions_String4 on Transactions (String4);
-
-drop index if exists Transactions_String5;
-create index Transactions_String5 on Transactions (String5);
-
 
 --------------------------------------------
 --               EXT TABLES               --
@@ -109,32 +70,41 @@ create index Transactions_String5 on Transactions (String5);
 drop table if exists Payload;
 create table Payload
 (
-    TxId string not null,
-    Data string not null,
+    TxId    string not null primary key,
 
-    primary key (TxId)
+    -- User.Name
+    String1 string null,
+
+    -- User.Lang
+    -- Post.Lang
+    -- Comment.Lang
+    String2 string not null,
+    String3 string not null
 );
 
 --------------------------------------------
-drop table if exists Utxo;
-create table Utxo
+create table TxOutput
 (
-    TxId       string not null,
-    TxOut      int    not null,
-    TxTime     int    not null,
-    Block      int    not null,
-    BlockSpent int    null,
-    Address    string not null,
-    Amount     int    not null,
-
-    primary key (TxId, TxOut)
+    TxId      int not null, -- Transactions.Id
+    Number    int not null, -- Number in tx.vout
+    Value     int not null, -- Amount
+    TxSpentId int null,     -- from next tx.vin
+    primary key (TxId, Number)
 );
 
-drop index if exists Utxo_BlockSpent_Address_Amount_index;
-create index Utxo_BlockSpent_Address_Amount_index on Utxo (BlockSpent, Address, Amount);
+drop index if exists TxOutput_TxSpentId;
+create index TxOutput_TxSpentId on TxOutput (TxSpentId);
 
-drop index if exists Utxo_Block_index;
-create index Utxo_Block_index on Utxo (Block);
+
+--------------------------------------------
+create table TxOutputDestinations
+(
+    TxId      int not null, -- Transactions.Id
+    Number    int not null, -- Number in tx.vout
+    AddressId int not null,
+    primary key (TxId, Number, AddressId)
+);
+
 
 --------------------------------------------
 drop table if exists Ratings;
@@ -147,192 +117,3 @@ create table Ratings
 
     primary key (Block, RatingType, Key)
 );
-
-
---------------------------------------------
---                VIEWS                   --
---------------------------------------------
-drop view if exists Users;
-create view Users as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.Int1    as Registration,
-       t.String1 as Lang,
-       t.String2 as Name,
-       t.String3 as Referrer
-from Transactions t
-where t.TxType in (100);
-
-drop view if exists VideoServers;
-create view VideoServers as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.Int1    as Registration,
-       t.String1 as Lang,
-       t.String2 as Name
-from Transactions t
-where t.TxType in (101);
-
-drop view if exists MessageServers;
-create view MessageServers as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.Int1    as Registration,
-       t.String1 as Lang,
-       t.String2 as Name
-from Transactions t
-where t.TxType in (102);
-
---------------------------------------------
-drop view if exists Posts;
-create view Posts as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as RelayTxId
-from Transactions t
-where t.TxType in (200);
-
-drop view if exists Videos;
-create view Videos as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as RelayTxId
-from Transactions t
-where t.TxType in (201);
-
-drop view if exists Translates;
-create view Translates as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as RelayTxId
-from Transactions t
-where t.TxType in (202);
-
-drop view if exists ServerPings;
-create view ServerPings as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as RelayTxId
-from Transactions t
-where t.TxType in (203);
-
-drop view if exists Comments;
-create view Comments as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as PostTxId,
-       t.String4 as ParentTxId,
-       t.String5 as AnswerTxId
-from Transactions t
-where t.TxType in (204);
-
---------------------------------------------
-drop view if exists ScorePosts;
-create view ScorePosts as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.Int1    as Value,
-       t.String1 as PostTxId
-from Transactions t
-where t.TxType in (300);
-
-drop view if exists ScoreComments;
-create view ScoreComments as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.Int1    as Value,
-       t.String1 as CommentTxId
-from Transactions t
-where t.TxType in (301);
-
-
-drop view if exists Subscribes;
-create view Subscribes as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as AddressTo
-from Transactions t
-where t.TxType in (302, 303, 304);
-
-
-drop view if exists Blockings;
-create view Blockings as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as AddressTo
-from Transactions t
-where t.TxType in (305, 306);
-
-
-drop view if exists Complains;
-create view Complains as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as AddressTo,
-       t.Int1    as Reason
-from Transactions t
-where t.TxType in (307);
-
-vacuum;
