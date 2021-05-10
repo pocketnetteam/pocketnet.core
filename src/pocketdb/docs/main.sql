@@ -11,7 +11,6 @@ create table Transactions
     -- Comment.RootTxId
     -- ScorePost.PostTxId
     -- ScoreComment.CommentTxId
-    -- Complain.Reason
     -- Subscribe.AddressToId
     -- Blocking.AddressToId
     Int1 int    null,
@@ -82,14 +81,38 @@ create table Payload
 (
     TxId    string not null primary key,
 
-    -- User.Name
-    String1 string null,
+    -- User.Birthday
+    -- Complain.Reason
+    Int1 int null,
 
     -- User.Lang
     -- Post.Lang
     -- Comment.Lang
-    String2 string not null,
-    String3 string not null
+    String1 string null,
+
+    -- User.Name
+    -- Post.Caption
+    -- Comment.Message
+    String2 string null,
+
+    -- User.Avatar
+    -- Post.Message
+    String3 string null,
+
+    -- User.About
+    -- Post.Tags JSON
+    String4 string null,
+
+    -- User.Url
+    -- Post.Images JSON
+    String5 string null,
+
+    -- User.Pubkey
+    -- Post.Settings JSON
+    String6 string null,
+
+    -- User.Donations JSON
+    String7 string null
 );
 
 
