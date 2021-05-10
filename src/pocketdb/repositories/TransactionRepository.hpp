@@ -29,8 +29,7 @@ namespace PocketDb
         // ================================================================================================================
         bool InsertTransactions(const vector<shared_ptr<Transaction>> &transactions)
         {
-            sqlite3* db = m_database.m_db;
-            auto loop = [&, transactions, db] () {
+            return TryBulkStep([&] () {
                 for (const auto &transaction : transactions)
                 {
                     auto stmt = SetupSqlStatement(R"sql(
@@ -59,14 +58,14 @@ namespace PocketDb
                         throw std::runtime_error(strprintf("%s: can't insert in transaction (bind tx)\n", __func__));
 
                     // Try execute with clear last rowId
-                    sqlite3_set_last_insert_rowid(db, 0);
+                    sqlite3_set_last_insert_rowid(m_database.m_db, 0);
                     if (!TryStepStatement(stmt))
                         throw std::runtime_error(strprintf("%s: can't insert in transaction (step tx)\n", __func__));
 
                     // Also need insert payload of transaction
                     // But need get new rowId
                     // If last id equal 0 - insert ignored - or already exists or error -> paylod not inserted
-                    auto newId = sqlite3_last_insert_rowid(db);
+                    auto newId = sqlite3_last_insert_rowid(m_database.m_db);
                     if (newId > 0 && transaction->HasPayload())
                     {
                         auto stmtPayload = SetupSqlStatement(R"sql(
@@ -98,9 +97,7 @@ namespace PocketDb
                             throw std::runtime_error(strprintf("%s: can't insert in transaction (step payload)\n", __func__));
                     }
                 }
-            };
-
-            return TryBulkStep(loop);
+            });
         }
 
         // ================================================================================================================
