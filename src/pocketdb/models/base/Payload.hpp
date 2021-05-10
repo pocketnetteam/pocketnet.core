@@ -40,6 +40,12 @@ namespace PocketTx
         shared_ptr <string> GetString5() const { return m_string5; }
         void SetString5(string value) { m_string5 = make_shared<string>(value); }
 
+        shared_ptr <string> GetString6() const { return m_string6; }
+        void SetString6(string value) { m_string6 = make_shared<string>(value); }
+
+        shared_ptr <string> GetString7() const { return m_string7; }
+        void SetString7(string value) { m_string7 = make_shared<string>(value); }
+
     protected:
         //shared_ptr<PocketTxType> m_txOutType = nullptr;
         shared_ptr <int64_t> m_txId = nullptr;
@@ -48,6 +54,8 @@ namespace PocketTx
         shared_ptr <string> m_string3 = nullptr;
         shared_ptr <string> m_string4 = nullptr;
         shared_ptr <string> m_string5 = nullptr;
+        shared_ptr <string> m_string6 = nullptr;
+        shared_ptr <string> m_string7 = nullptr;
 
     private:
 

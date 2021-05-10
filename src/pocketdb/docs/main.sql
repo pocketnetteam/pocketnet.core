@@ -82,10 +82,6 @@ create table Payload
 (
     TxId    string not null primary key,
 
-    -- User.Birthday
-    -- Complain.Reason
-    Int1 int null,
-
     -- User.Lang
     -- Post.Lang
     -- Comment.Lang

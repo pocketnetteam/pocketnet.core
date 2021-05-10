@@ -15,13 +15,16 @@ namespace PocketDb
     using std::shared_ptr;
     using std::tuple;
     using std::make_tuple;
+    using std::vector;
+
+    // TODO (brangr): mutext for insert/update/delete ?
 
     class BaseRepository
     {
     protected:
         SQLiteDatabase &m_database;
 
-        static bool TryStepStatement(shared_ptr<sqlite3_stmt *> stmt)
+        bool TryStepStatement(shared_ptr<sqlite3_stmt *> stmt)
         {
             int res = sqlite3_step(*stmt);
             if (res != SQLITE_ROW && res != SQLITE_DONE)
@@ -29,6 +32,32 @@ namespace PocketDb
                     __func__, sqlite3_sql(*stmt), sqlite3_errstr(res));
 
             return !(res != SQLITE_ROW && res != SQLITE_DONE);
+        }
+
+        template<typename Functor>
+        bool TryBulkStep(Functor functor)
+        {
+            assert(m_database.m_db);
+            if (ShutdownRequested())
+                return false;
+
+            if (!m_database.BeginTransaction())
+                return false;
+
+            try
+            {
+                functor();
+
+                if (!m_database.CommitTransaction())
+                    throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));
+
+            } catch (std::exception &ex)
+            {
+                m_database.AbortTransaction();
+                return false;
+            }
+
+            return true;
         }
 
         bool TryBindStatementText(shared_ptr<sqlite3_stmt *> stmt, int index, const shared_ptr<std::string> &value)
@@ -84,19 +113,6 @@ namespace PocketDb
         }
 
 
-        static bool CheckValidResult(shared_ptr<sqlite3_stmt *> stmt, int result)
-        {
-            if (result != SQLITE_OK)
-            {
-                std::cout << strprintf("%s: Unable to bind statement: %s\n", __func__, sqlite3_errstr(result));
-                sqlite3_clear_bindings(*stmt);
-                sqlite3_reset(*stmt);
-                return false;
-            }
-
-            return true;
-        }
-
         [[nodiscard]]
         shared_ptr<sqlite3_stmt *> SetupSqlStatement(const std::string &sql) const
         {
@@ -110,17 +126,31 @@ namespace PocketDb
             return std::make_shared<sqlite3_stmt *>(stmt);
         }
 
-        static int FinalizeSqlStatement(sqlite3_stmt *stmt)
+
+        bool CheckValidResult(shared_ptr<sqlite3_stmt *> stmt, int result)
+        {
+            if (result != SQLITE_OK)
+            {
+                std::cout << strprintf("%s: Unable to bind statement: %s\n", __func__, sqlite3_errstr(result));
+                sqlite3_clear_bindings(*stmt);
+                sqlite3_reset(*stmt);
+                return false;
+            }
+
+            return true;
+        }
+
+        int FinalizeSqlStatement(sqlite3_stmt *stmt)
         {
             return sqlite3_finalize(stmt);
         }
 
-        static std::string GetColumnString(sqlite3_stmt *stmt, int index)
+        std::string GetColumnString(sqlite3_stmt *stmt, int index)
         {
             return std::string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, index)));
         }
 
-        static int64_t GetColumnInt64(sqlite3_stmt *stmt, int index)
+        int64_t GetColumnInt64(sqlite3_stmt *stmt, int index)
         {
             return sqlite3_column_int64(stmt, index);
         }
