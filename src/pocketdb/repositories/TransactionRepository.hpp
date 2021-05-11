@@ -11,6 +11,7 @@
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
+#include "pocketdb/models/base/Return.hpp"
 
 namespace PocketDb
 {
@@ -186,6 +187,53 @@ namespace PocketDb
         }
 
 
+        // ================================================================================================================
+        // 
+        //  SELECTs
+        // 
+        // ================================================================================================================
+
+        // Top addresses info
+        tuple<bool, RetList<RetAddressInfo>> SelectTopAddresses(int count)
+        {
+            RetList<RetAddressInfo> result;
+
+            assert(m_database.m_db);
+            if (ShutdownRequested())
+                return make_tuple(false, result);
+
+            try
+            {
+                auto stmt = SetupSqlStatement(
+                    " SELECT"
+                    "   u.Address,"
+                    "   SUM(u.Amount)Balance"
+                    " FROM Utxo u"
+                    " WHERE u.BlockSpent is null"
+                    " GROUP BY u.Address"
+                    " ORDER BY sum(u.Amount) desc"
+                    " LIMIT ?"
+                    " ;"
+                );
+
+                if (!TryBindStatementInt(stmt, 1, count))
+                    return make_tuple(false, result);
+
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    RetAddressInfo inf;
+                    inf.Address = GetColumnString(*stmt, 0);
+                    inf.Balance = GetColumnInt64(*stmt, 1);
+                    result.Add();
+                }
+            }
+            catch (std::exception &ex)
+            {
+                return make_tuple(false, result);
+            }
+
+            return make_tuple(true, result);
+        }
 
     private:
 

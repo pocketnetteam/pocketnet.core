@@ -34,8 +34,8 @@ namespace PocketDb
             return !(res != SQLITE_ROW && res != SQLITE_DONE);
         }
 
-        template<typename Functor>
-        bool TryBulkStep(Functor functor)
+        template<typename T>
+        bool TryBulkStep(T sql)
         {
             assert(m_database.m_db);
             if (ShutdownRequested())
@@ -46,7 +46,7 @@ namespace PocketDb
 
             try
             {
-                functor();
+                sql();
 
                 if (!m_database.CommitTransaction())
                     throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));

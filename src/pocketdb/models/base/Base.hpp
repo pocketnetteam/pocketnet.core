@@ -15,6 +15,7 @@ namespace PocketTx
     using std::shared_ptr;
     using std::make_shared;
     using std::tuple;
+    using std::make_tuple;
 
     // OpReturn hex codes
     #define OR_SCORE "7570766f74655368617265"
@@ -83,31 +84,31 @@ namespace PocketTx
     public:
     protected:
 
-        static std::tuple<bool, string> TryGetStr(const UniValue &o, const string &key)
+        static tuple<bool, string> TryGetStr(const UniValue &o, const string &key)
         {
             auto exists = o.exists(key) && o[key].isStr();
             if (exists)
-                return std::make_tuple(true, o[key].get_str());
+                return make_tuple(true, o[key].get_str());
 
-            return std::make_tuple(false, "");
+            return make_tuple(false, "");
         }
 
-        static std::tuple<bool, int> TryGetInt(const UniValue &o, const string &key)
+        static tuple<bool, int> TryGetInt(const UniValue &o, const string &key)
         {
             auto exists = o.exists(key) && o[key].isNum();
             if (exists)
-                return std::make_tuple(true, o[key].get_int());
+                return make_tuple(true, o[key].get_int());
 
-            return std::make_tuple(false, 0);
+            return make_tuple(false, 0);
         }
 
-        static std::tuple<bool, int64_t> TryGetInt64(const UniValue &o, const string &key)
+        static tuple<bool, int64_t> TryGetInt64(const UniValue &o, const string &key)
         {
             auto exists = o.exists(key) && o[key].isNum();
             if (exists)
-                return std::make_tuple(true, o[key].get_int64());
+                return make_tuple(true, o[key].get_int64());
 
-            return std::make_tuple(false, 0);
+            return make_tuple(false, 0);
         }
 
 
