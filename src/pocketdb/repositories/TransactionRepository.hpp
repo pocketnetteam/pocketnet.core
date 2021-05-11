@@ -103,14 +103,14 @@ namespace PocketDb
         // ================================================================================================================
         //  Transaction outputs operations
         // ================================================================================================================
-        bool InsertTransactionOutputs(const vector<TransactionOutput> &outputs)
+        bool InsertTransactionsOutputs(const vector<TransactionOutput> &outputs)
         {
             return TryBulkStep([&] () {
                 for (const auto &output : outputs)
                 {
                     // Save transaction output
                     auto stmt = SetupSqlStatement(R"sql(
-                            INSERT OR IGNORE INTO TxOutput (
+                            INSERT OR IGNORE INTO TxOutputs (
                                 TxId,
                                 Number,
                                 Value
@@ -129,26 +129,58 @@ namespace PocketDb
                         throw std::runtime_error(strprintf("%s: can't insert in transaction (step out)\n", __func__));
 
                     // Also need save destination addresses
-                    for (const auto dest : output->GetDestinations()) {
+                    // TODO (brangr): может быть вектор нужно сначала получить, а потом в цикл пихать?
+                    for (const auto& dest : output->GetDestinations()) {
                         auto stmt = SetupSqlStatement(R"sql(
-                                INSERT OR IGNORE INTO TxOutput (
+                                INSERT OR IGNORE INTO TxOutputsDestinations (
                                     TxId,
                                     Number,
-                                    Value
+                                    AddressId
                                 ) SELECT ?,?,?;
                             )sql"
                         );
 
                         auto result = TryBindStatementInt64(stmt, 1, output->GetTxId());
                         result &= TryBindStatementInt64(stmt, 2, output->GetNumber());
-                        result &= TryBindStatementInt64(stmt, 3, output->GetValue());
+                        result &= TryBindStatementInt64(stmt, 3, dest);
                         if (!result)
-                            throw std::runtime_error(strprintf("%s: can't insert in transaction (bind out)\n", __func__));
+                            throw std::runtime_error(strprintf("%s: can't insert in transaction (bind outdest)\n", __func__));
 
                         // Try execute with clear last rowId
                         if (!TryStepStatement(stmt))
-                            throw std::runtime_error(strprintf("%s: can't insert in transaction (step out)\n", __func__));
+                            throw std::runtime_error(strprintf("%s: can't insert in transaction (step outdest)\n", __func__));
                     }
+                }
+            });
+        }
+
+        // ================================================================================================================
+        //  Transaction inputs operations - spent outputs
+        // ================================================================================================================
+        bool InsertTransactionsInputs(const vector<TransactionInput> &inputs)
+        {
+            return TryBulkStep([&] () {
+                for (const auto &input : inputs)
+                {
+                    // Save transaction input
+                    auto stmt = SetupSqlStatement(R"sql(
+                            INSERT OR IGNORE INTO TxInputs (
+                                TxId,
+                                InputTxId,
+                                InputTxNumber
+                            ) SELECT ?,?,?;
+                        )sql"
+                    );
+
+                    auto result = TryBindStatementInt64(stmt, 1, input->GetTxId());
+                    result &= TryBindStatementInt64(stmt, 2, input->GetInputTxId());
+                    result &= TryBindStatementInt64(stmt, 3, input->GetInputTxNumber());
+                    if (!result)
+                        throw std::runtime_error(strprintf("%s: can't insert in transaction (bind inp)\n", __func__));
+
+                    // Try execute with clear last rowId
+                    if (!TryStepStatement(stmt))
+                        throw std::runtime_error(strprintf("%s: can't insert in transaction (step inp)\n", __func__));
                 }
             });
         }

@@ -113,8 +113,8 @@ create table Payload
 
 
 --------------------------------------------
-drop table if exists TxOutput;
-create table TxOutput
+drop table if exists TxOutputs;
+create table TxOutputs
 (
   TxId   int not null, -- Transactions.Id
   Number int not null, -- Number in tx.vout
@@ -127,8 +127,8 @@ create index TxOutput_TxSpentId on TxOutput (TxSpentId);
 
 
 --------------------------------------------
-drop table if exists TxOutputDestinations;
-create table TxOutputDestinations
+drop table if exists TxOutputsDestinations;
+create table TxOutputsDestinations
 (
   TxId      int not null, -- TxOutput.TxId
   Number    int not null, -- TxOutput.Number
@@ -138,7 +138,7 @@ create table TxOutputDestinations
 
 
 --------------------------------------------
-create table TxInput
+create table TxInputs
 (
   TxId          int not null, -- Transactions.Id
   InputTxId     int not null, -- TxOutput.TxId

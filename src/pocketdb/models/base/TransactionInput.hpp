@@ -25,16 +25,16 @@ namespace PocketTx
         [[nodiscard]] shared_ptr <int64_t> GetTxId() const { return m_txId; }
         void SetTxId(int64_t value) { m_txId = make_shared<int64_t>(value); }
 
-        [[nodiscard]] shared_ptr <int64_t> GetNumber() const { return m_number; }
-        void SetNumber(int64_t value) { m_number = make_shared<int64_t>(value); }
+        [[nodiscard]] shared_ptr <int64_t> GetInputTxId() const { return m_inputTxId; }
+        void SetInputTxId(int64_t value) { m_inputTxId = make_shared<int64_t>(value); }
 
-        [[nodiscard]] shared_ptr <int64_t> GetValue() const { return m_value; }
-        void SetValue(int64_t value) { m_value = make_shared<int64_t>(value); }
+        [[nodiscard]] shared_ptr <int64_t> GetInputTxNumber() const { return m_inputTxNumber; }
+        void SetInputTxNumber(int64_t value) { m_inputTxNumber = make_shared<int64_t>(value); }
 
     protected:
         shared_ptr <int64_t> m_txId = nullptr;
-        shared_ptr <int64_t> m_number = nullptr;
-        shared_ptr <int64_t> m_value = nullptr;
+        shared_ptr <int64_t> m_inputTxId = nullptr;
+        shared_ptr <int64_t> m_inputTxNumber = nullptr;
 
     private:
 
