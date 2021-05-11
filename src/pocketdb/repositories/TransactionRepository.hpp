@@ -116,15 +116,18 @@ namespace PocketDb
                 {
                     // Save transaction output
                     auto stmt = SetupSqlStatement(R"sql(
-                            INSERT OR IGNORE INTO TxOutputs (
+                            INSERT OR FAIL INTO TxOutputs (
                                 TxId,
                                 Number,
                                 Value
-                            ) SELECT ?,?,?;
+                            ) SELECT
+                                (select t.Id from Transactions t where t.Hash=? limit 1),
+                                (select a.Id from Addresses a where a.Address=? limit 1),
+                                ?;
                         )sql"
                     );
 
-                    auto result = TryBindStatementInt64(stmt, 1, output.GetTxId());
+                    auto result = TryBindStatementText(stmt, 1, output.GetTxHash());
                     result &= TryBindStatementInt64(stmt, 2, output.GetNumber());
                     result &= TryBindStatementInt64(stmt, 3, output.GetValue());
                     if (!result)
@@ -143,13 +146,16 @@ namespace PocketDb
                                     TxId,
                                     Number,
                                     AddressId
-                                ) SELECT ?,?,?;
+                                ) SELECT
+                                    (select t.Id from Transactions t where t.Hash=? limit 1),
+                                    ?,
+                                    (select a.Id from Addresses a where a.Address=? limit 1);
                             )sql"
                         );
 
-                        auto resultDest = TryBindStatementInt64(stmtDest, 1, output.GetTxId());
+                        auto resultDest = TryBindStatementText(stmtDest, 1, output.GetTxHash());
                         resultDest &= TryBindStatementInt64(stmtDest, 2, output.GetNumber());
-                        resultDest &= TryBindStatementInt64(stmtDest, 3, make_shared<int64_t>(dest));
+                        resultDest &= TryBindStatementText(stmtDest, 3, make_shared<string>(dest));
                         if (!resultDest)
                             throw std::runtime_error(
                                 strprintf("%s: can't insert in transaction (bind outdest)\n", __func__));
@@ -178,12 +184,15 @@ namespace PocketDb
                                 TxId,
                                 InputTxId,
                                 InputTxNumber
-                            ) SELECT ?,?,?;
+                            ) SELECT
+                                (select t.Id from Transactions t where t.Hash=? limit 1),
+                                (select t.Id from Transactions t where t.Hash=? limit 1),
+                                ?
                         )sql"
                     );
 
-                    auto result = TryBindStatementInt64(stmt, 1, input.GetTxId());
-                    result &= TryBindStatementInt64(stmt, 2, input.GetInputTxId());
+                    auto result = TryBindStatementText(stmt, 1, input.GetTxHash());
+                    result &= TryBindStatementText(stmt, 2, input.GetInputTxHash());
                     result &= TryBindStatementInt64(stmt, 3, input.GetInputTxNumber());
                     if (!result)
                         throw std::runtime_error(strprintf("%s: can't insert in transaction (bind inp)\n", __func__));

@@ -22,18 +22,18 @@ namespace PocketTx
 
         TransactionInput() = default;
 
-        [[nodiscard]] shared_ptr <int64_t> GetTxId() const { return m_txId; }
-        void SetTxId(int64_t value) { m_txId = make_shared<int64_t>(value); }
+        [[nodiscard]] shared_ptr <string> GetTxHash() const { return m_txHash; }
+        void SetTxHash(string value) { m_txHash = make_shared<string>(value); }
 
-        [[nodiscard]] shared_ptr <int64_t> GetInputTxId() const { return m_inputTxId; }
-        void SetInputTxId(int64_t value) { m_inputTxId = make_shared<int64_t>(value); }
+        [[nodiscard]] shared_ptr <string> GetInputTxHash() const { return m_inputTxHash; }
+        void SetInputTxHash(string value) { m_inputTxHash = make_shared<string>(value); }
 
         [[nodiscard]] shared_ptr <int64_t> GetInputTxNumber() const { return m_inputTxNumber; }
         void SetInputTxNumber(int64_t value) { m_inputTxNumber = make_shared<int64_t>(value); }
 
     protected:
-        shared_ptr <int64_t> m_txId = nullptr;
-        shared_ptr <int64_t> m_inputTxId = nullptr;
+        shared_ptr <string> m_txHash = nullptr;
+        shared_ptr <string> m_inputTxHash = nullptr;
         shared_ptr <int64_t> m_inputTxNumber = nullptr;
 
     private:

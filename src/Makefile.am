@@ -104,6 +104,7 @@ POCKETDB_HPP = \
     pocketdb/models/base/Return.hpp \
     pocketdb/models/base/Base.hpp \
     pocketdb/models/base/Payload.hpp \
+    pocketdb/models/base/Block.hpp \
     pocketdb/models/base/Transaction.hpp \
     pocketdb/models/base/TransactionInput.hpp \
     pocketdb/models/base/TransactionOutput.hpp \

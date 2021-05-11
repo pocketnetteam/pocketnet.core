@@ -25,23 +25,12 @@ namespace PocketServices
     class BlockIndexer
     {
     public:
-        static bool Index(const CBlock &block, int height)
+        static bool Index(const CBlock& block, int height)
         {
             auto result = true;
-// TODO (brangr): implement
-//            vector<shared_ptr<Utxo>> utxoNew;
-//            vector<shared_ptr<Utxo>> utxoSpent;
 
-            // Build all models for sql inserts
-            for (const auto &tx : block.vtx)
-            {
-//                IndexOuts(tx, height, utxoNew, utxoSpent);
-                // проставить транзакциям высоту и оут
-                // расчитали рейтинги
-            }
 
-//            result &= TransRepoInst.BulkInsert(utxoNew);
-//            result &= TransRepoInst.BulkSpent(utxoSpent);
+
 
             // For explorer database is optional
             if (gArgs.GetBoolArg("-explorer", false))
@@ -62,58 +51,77 @@ namespace PocketServices
 
     protected:
 
-        static bool IndexChain(const CBlock &block, int height)
+        static bool RollbackChain(int height)
+        {
+            // TODO (joni): откатиться транзакции и блок в БД
+        }
+
+        static bool IndexChain(const CBlock& block, int height)
         {
             // TODO (joni): записать транзакции и блок в БД
         }
 
-        static bool RollbackChain(int height) {
-            // TODO (joni): откатиться транзакции и блок в БД
+        // Indexing outputs and inputs for transaction
+        // New inputs always spent prev outs
+        // Tables TxOutputs TxInputs
+        static bool IndexTransactions(const CBlock& block, int height)
+        {
+            vector<TransactionInput> inputs;
+            vector<TransactionOutput> outputs;
+
+            // Prepare data
+            for (const auto& tx : block.vtx)
+            {
+                // indexing Outputs
+                for (int i = 0; i < tx->vout.size(); i++)
+                {
+                    const CTxOut& txout = tx->vout[i];
+
+                    txnouttype type;
+                    std::vector<CTxDestination> vDest;
+                    int nRequired;
+                    if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))
+                    {
+                        TransactionOutput out;
+                        out.SetTxHash(tx->GetHash().GetHex());
+                        out.SetNumber(i);
+                        out.SetValue(txout.nValue);
+
+                        for (const auto& dest : vDest)
+                            out.AddDestination(EncodeDestination(dest));
+
+                        outputs.push_back(out);
+                    }
+                }
+
+                // Indexing inputs
+                if (!tx->IsCoinBase())
+                {
+                    for (const auto& txin : tx->vin)
+                    {
+                        TransactionInput inp;
+
+                        inp.SetTxHash(tx->GetHash().GetHex());
+                        inp.SetInputTxHash(txin.prevout.hash.GetHex());
+                        inp.SetInputTxNumber(txin.prevout.n);
+
+                        inputs.push_back(inp);
+                    }
+                }
+            }
+
+            // Save
+            return TransRepoInst.InsertTransactionsOutputs(outputs) &&
+                   TransRepoInst.InsertTransactionsInputs(inputs);
         }
 
-//        static void IndexOuts(const CTransactionRef &tx, int height,
-//            vector<shared_ptr<Utxo>> &vUtxoNew,
-//            vector<shared_ptr<Utxo>> &utxoSpent)
-//        {
-//            // New utxos
-//            for (int i = 0; i < tx->vout.size(); i++)
-//            {
-//                const CTxOut &txout = tx->vout[i];
-//                string txOutAddress;
-//
-//                if (TryGetOutAddress(txout, txOutAddress))
-//                {
-//                    Utxo utxo;
-//                    utxo.SetTxId(tx->GetHash().GetHex());
-//                    utxo.SetBlock(height);
-//                    utxo.SetTxOut(i);
-//                    utxo.SetTxTime(tx->nTime);
-//                    utxo.SetAddress(txOutAddress);
-//                    utxo.SetAmount(txout.nValue);
-//
-//                    vUtxoNew.push_back(make_shared<Utxo>(utxo));
-//                }
-//            }
-//
-//            // Spent exists utxo
-//            if (!tx->IsCoinBase())
-//            {
-//                for (const auto &txin : tx->vin)
-//                {
-//                    Utxo utxo;
-//                    utxo.SetTxId(txin.prevout.hash.GetHex());
-//                    utxo.SetTxOut(txin.prevout.n);
-//                    utxo.SetBlockSpent(height);
-//
-//                    utxoSpent.push_back(make_shared<Utxo>(utxo));
-//                }
-//            }
-//        }
+        static bool IndexReputations(const CBlock& block, int height) {
+            // todo (brangr): index ratings
+        }
 
-        // todo (brangr): index ratings
 
     private:
-        static bool TryGetOutAddress(const CTxOut &txout, std::string &address)
+        static bool TryGetOutAddress(const CTxOut& txout, std::string& address)
         {
             CTxDestination destAddress;
             bool fValidAddress = ExtractDestination(txout.scriptPubKey, destAddress);

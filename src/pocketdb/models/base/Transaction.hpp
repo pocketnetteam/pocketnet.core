@@ -4,8 +4,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_TRANSACTION_H
-#define POCKETTX_TRANSACTION_H
+#ifndef POCKETTX_TRANSACTION_HPP
+#define POCKETTX_TRANSACTION_HPP
 
 #include <string>
 #include <univalue.h>
@@ -108,4 +108,4 @@ namespace PocketTx
 
 } // namespace PocketTx
 
-#endif // POCKETTX_TRANSACTION_H
+#endif // POCKETTX_TRANSACTION_HPP
