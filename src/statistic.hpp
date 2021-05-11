@@ -35,10 +35,10 @@ namespace Statistic
     {
     public:
         RequestStatEngine() = default;
-        RequestStatEngine(const RequestStatEngine &) = delete;
-        RequestStatEngine(RequestStatEngine &&) = default;
+        RequestStatEngine(const RequestStatEngine&) = delete;
+        RequestStatEngine(RequestStatEngine&&) = default;
 
-        void AddSample(const RequestSample &sample)
+        void AddSample(const RequestSample& sample)
         {
             if (sample.TimestampEnd < sample.TimestampBegin)
                 return;
@@ -59,7 +59,7 @@ namespace Statistic
             return std::count_if(
                 _samples.begin(),
                 _samples.end(),
-                [=](const RequestSample &sample)
+                [=](const RequestSample& sample)
                 {
                     return sample.TimestampBegin >= begin && sample.TimestampEnd <= end;
                 });
@@ -85,7 +85,7 @@ namespace Statistic
             RequestTime sum{};
             std::size_t count{};
 
-            for (auto &sample : _samples)
+            for (auto& sample : _samples)
             {
                 if (sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
                 {
@@ -106,7 +106,7 @@ namespace Statistic
                 return {};
 
             int count = 0;
-            for (auto &sample : _samples)
+            for (auto& sample : _samples)
             {
                 if (sample.TimestampBegin >= since && sample.Key == "WorkQueue::Enqueue")
                     count++;
@@ -155,7 +155,7 @@ namespace Statistic
             std::set<RequestIP> result{};
 
             LOCK(_samplesLock);
-            for (auto &sample : _samples)
+            for (auto& sample : _samples)
                 if (sample.TimestampBegin >= since)
                     result.insert(sample.SourceIP);
 
@@ -172,7 +172,7 @@ namespace Statistic
             UniValue result{UniValue::VOBJ};
 
             constexpr auto top_limit = 1;
-            const auto sample_to_json = [](const RequestSample &sample)
+            const auto sample_to_json = [](const RequestSample& sample)
             {
                 UniValue value{UniValue::VOBJ};
 
@@ -200,16 +200,16 @@ namespace Statistic
                 auto top_in = GetTopHeavyInputSamplesSince(top_limit, since);
                 auto top_out = GetTopHeavyOutputSamplesSince(top_limit, since);
 
-                for (auto &ip : unique_ips)
+                for (auto& ip : unique_ips)
                     unique_ips_json.push_back(ip);
 
-                for (auto &sample : top_tm)
+                for (auto& sample : top_tm)
                     top_tm_json.push_back(sample_to_json(sample));
 
-                for (auto &sample : top_in)
+                for (auto& sample : top_in)
                     top_in_json.push_back(sample_to_json(sample));
 
-                for (auto &sample : top_out)
+                for (auto& sample : top_out)
                     top_out_json.push_back(sample_to_json(sample));
             }
 
@@ -223,7 +223,10 @@ namespace Statistic
             result.pushKV("General", chainStat);
 
             UniValue sync(UniValue::VOBJ);
-            sync.pushKV("MemoryStack", (int64_t)POCKETNET_DATA.size());
+            sync.pushKV("CacheItems", (int64_t) POCKETNET_DATA.size());
+            int64_t cacheSize = 0;
+            for (auto& it : POCKETNET_DATA) cacheSize += it.first.size() + it.second.size();
+            sync.pushKV("CacheSize", cacheSize);
             result.pushKV("Sync", sync);
 
             UniValue rpcStat(UniValue::VOBJ);
@@ -253,7 +256,7 @@ namespace Statistic
             return std::chrono::duration_cast<RequestTime>(std::chrono::system_clock::now().time_since_epoch());
         }
 
-        void Run(boost::thread_group &threadGroup)
+        void Run(boost::thread_group& threadGroup)
         {
             shutdown = false;
             threadGroup.create_thread(
@@ -297,7 +300,7 @@ namespace Statistic
                 std::remove_if(
                     _samples.begin(),
                     _samples.end(),
-                    [time](const RequestSample &sample)
+                    [time](const RequestSample& sample)
                     {
                         return sample.TimestampBegin < time;
                     }),
@@ -316,7 +319,7 @@ namespace Statistic
                 std::remove_if(
                     samples_copy.begin(),
                     samples_copy.end(),
-                    [since](const RequestSample &sample)
+                    [since](const RequestSample& sample)
                     {
                         return sample.TimestampBegin < since;
                     }),
@@ -325,7 +328,7 @@ namespace Statistic
             std::sort(
                 samples_copy.begin(),
                 samples_copy.end(),
-                [limit, size_field](const RequestSample &left, const RequestSample &right)
+                [limit, size_field](const RequestSample& left, const RequestSample& right)
                 {
                     return left.*size_field > right.*size_field;
                 });
@@ -345,7 +348,7 @@ namespace Statistic
                 std::remove_if(
                     samples_copy.begin(),
                     samples_copy.end(),
-                    [since](const RequestSample &sample)
+                    [since](const RequestSample& sample)
                     {
                         return sample.TimestampBegin < since;
                     }),
@@ -354,7 +357,7 @@ namespace Statistic
             std::sort(
                 samples_copy.begin(),
                 samples_copy.end(),
-                [limit](const RequestSample &left, const RequestSample &right)
+                [limit](const RequestSample& left, const RequestSample& right)
                 {
                     return left.TimestampEnd - left.TimestampBegin > right.TimestampEnd - right.TimestampBegin;
                 });
