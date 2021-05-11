@@ -7,38 +7,41 @@
 #ifndef POCKETTX_TRANSACTIONOUTPUT_H
 #define POCKETTX_TRANSACTIONOUTPUT_H
 
+#include "pocketdb/models/base/Base.hpp"
+#include <crypto/sha256.h>
 #include <string>
 #include <univalue.h>
 #include <utility>
 #include <utilstrencodings.h>
-#include <crypto/sha256.h>
-#include "pocketdb/models/base/Base.hpp"
 
-namespace PocketTx
+namespace PocketTx {
+class TransactionOutput : public Base
 {
-    class TransactionOutput : public Base
-    {
-    public:
+public:
+    TransactionOutput() = default;
 
-        TransactionOutput() = default;
+    [[nodiscard]] shared_ptr<int64_t> GetTxId() const { return m_txId; }
+    void SetTxId(int64_t value) { m_txId = make_shared<int64_t>(value); }
 
-        [[nodiscard]] shared_ptr <int64_t> GetTxId() const { return m_txId; }
-        void SetTxId(int64_t value) { m_txId = make_shared<int64_t>(value); }
+    [[nodiscard]] shared_ptr<int64_t> GetNumber() const { return m_number; }
+    void SetNumber(int64_t value) { m_number = make_shared<int64_t>(value); }
 
-        [[nodiscard]] shared_ptr <int64_t> GetNumber() const { return m_number; }
-        void SetNumber(int64_t value) { m_number = make_shared<int64_t>(value); }
+    [[nodiscard]] shared_ptr<int64_t> GetValue() const { return m_value; }
+    void SetValue(int64_t value) { m_value = make_shared<int64_t>(value); }
 
-        [[nodiscard]] shared_ptr <int64_t> GetValue() const { return m_value; }
-        void SetValue(int64_t value) { m_value = make_shared<int64_t>(value); }
 
-    protected:
-        shared_ptr <int64_t> m_txId = nullptr;
-        shared_ptr <int64_t> m_number = nullptr;
-        shared_ptr <int64_t> m_value = nullptr;
+    [[nodiscard]] vector<int64_t>& GetDestinations() const { return m_destinations; }
+    void AddDestination(int64_t value){m_destinations.push_back(value);}
 
-    private:
+protected:
+    shared_ptr<int64_t> m_txId = nullptr;
+    shared_ptr<int64_t> m_number = nullptr;
+    shared_ptr<int64_t> m_value = nullptr;
 
-    };
+    vector<int64_t> m_destinations;
+
+private:
+};
 
 } // namespace PocketTx
 
