@@ -16,10 +16,21 @@
 
 namespace PocketTx
 {
+    using std::vector;
+
     class Block : public CBlock
     {
     public:
-        Block() = default;
+
+        vector<shared_ptr<Transaction>> Transactions;
+
+        Block() : CBlock()
+        {
+        }
+
+        Block(const CBlockHeader& header) : CBlock(header)
+        {
+        }
 
     protected:
 

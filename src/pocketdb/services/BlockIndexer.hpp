@@ -13,6 +13,8 @@
 #include "primitives/block.h"
 #include "pocketdb/pocketnet.h"
 
+#include "pocketdb/models/base/Block.hpp"
+
 namespace PocketServices
 {
     using namespace PocketTx;
@@ -29,38 +31,40 @@ namespace PocketServices
         {
             auto result = true;
 
-
-
-
-            // For explorer database is optional
-            if (gArgs.GetBoolArg("-explorer", false))
-                result &= IndexChain(block, height);
+            result &= IndexChain(block, height);
+            result &= IndexTransactions(block, height);
+            result &= IndexReputations(block, height);
 
             return result;
         }
 
         static bool Rollback(int height)
         {
-            auto result = BlockRepoInst.BulkRollback(height);
+            auto result = true;
 
-            if (gArgs.GetBoolArg("-explorer", false))
-                result &= RollbackChain(height);
+            result &= BlockRepoInst.BulkRollback(height);
+            result &= RollbackChain(height);
 
             return result;
         }
 
     protected:
 
+        // =============================================================================================================
+        // Delete all calculated records for this height
         static bool RollbackChain(int height)
         {
             // TODO (joni): откатиться транзакции и блок в БД
         }
 
+        // =============================================================================================================
+        // Set block height for all transactions in block
         static bool IndexChain(const CBlock& block, int height)
         {
             // TODO (joni): записать транзакции и блок в БД
         }
 
+        // =============================================================================================================
         // Indexing outputs and inputs for transaction
         // New inputs always spent prev outs
         // Tables TxOutputs TxInputs
@@ -121,15 +125,7 @@ namespace PocketServices
 
 
     private:
-        static bool TryGetOutAddress(const CTxOut& txout, std::string& address)
-        {
-            CTxDestination destAddress;
-            bool fValidAddress = ExtractDestination(txout.scriptPubKey, destAddress);
-            if (fValidAddress)
-                address = EncodeDestination(destAddress);
 
-            return fValidAddress;
-        }
     };
 
 } // namespace PocketServices
