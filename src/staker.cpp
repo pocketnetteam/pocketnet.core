@@ -39,6 +39,8 @@ uint64_t Staker::getLastCoinStakeSearchInterval() {
 }
 
 void Staker::startWorkers(
+
+
     boost::thread_group & threadGroup,
     CChainParams const & chainparams,
     unsigned int minerSleep

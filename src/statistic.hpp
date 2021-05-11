@@ -11,6 +11,7 @@
 #include <net.h>
 #include <numeric>
 #include <set>
+#include "pocketdb/pocketdb.h"
 
 namespace Statistic
 {
@@ -220,6 +221,10 @@ namespace Statistic
             chainStat.pushKV("PeersIN", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
             chainStat.pushKV("PeersOUT", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
             result.pushKV("General", chainStat);
+
+            UniValue sync(UniValue::VOBJ);
+            sync.pushKV("MemoryStack", (int64_t)POCKETNET_DATA.size());
+            result.pushKV("Sync", sync);
 
             UniValue rpcStat(UniValue::VOBJ);
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since));
