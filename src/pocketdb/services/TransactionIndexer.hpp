@@ -4,16 +4,14 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETDB_BLOCKINDEXER_HPP
-#define POCKETDB_BLOCKINDEXER_HPP
+#ifndef POCKETDB_TRANSACTIONINDEXER_HPP
+#define POCKETDB_TRANSACTIONINDEXER_HPP
 
 #include "util.h"
 #include "script/standard.h"
 #include "chain.h"
 #include "primitives/block.h"
 #include "pocketdb/pocketnet.h"
-
-#include "pocketdb/models/base/Block.hpp"
 
 namespace PocketServices
 {
@@ -24,7 +22,7 @@ namespace PocketServices
     using std::tuple;
     using std::make_tuple;
 
-    class BlockIndexer
+    class TransactionIndexer
     {
     public:
         static bool Index(const CBlock& block, int height)
@@ -130,4 +128,4 @@ namespace PocketServices
 
 } // namespace PocketServices
 
-#endif // POCKETDB_BLOCKINDEXER_HPP
+#endif // POCKETDB_TRANSACTIONINDEXER_HPP

@@ -51,7 +51,7 @@
 #include <univalue.h>
 
 #include "pocketdb/pocketnet.h"
-#include "pocketdb/services/BlockIndexer.hpp"
+#include "pocketdb/services/TransactionIndexer.hpp"
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 std::map<std::string, WSUser> WSConnections;
@@ -4388,7 +4388,6 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 
 bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams,
     const std::shared_ptr<const CBlock> pblock,
-    const std::vector<std::shared_ptr<PocketTx::Transaction>>& pocketTxn,
     bool fForceProcessing, bool fReceived, bool* fNewBlock)
 {
     AssertLockNotHeld(cs_main);
@@ -4413,8 +4412,9 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams,
         if (ret) {
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
 
-            if (ret && !pocketTxn.empty())
-                ret = PocketDb::TransRepoInst.InsertTransactions(pocketTxn);
+            // todo: write transactions ? or in save block below?
+            // if (ret && !pocketTxn.empty())
+            //     ret = PocketDb::TransRepoInst.InsertTransactions(pocketTxn);
         }
 
         // Check FAILED

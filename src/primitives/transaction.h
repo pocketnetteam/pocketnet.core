@@ -12,6 +12,9 @@
 #include <serialize.h>
 #include <uint256.h>
 
+#include "pocketdb/models/base/Transaction.hpp"
+#include <pocketdb/services/TransactionSerializer.hpp>
+
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
@@ -255,6 +258,8 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         throw std::ios_base::failure("Unknown transaction optional data");
     }
     s >> tx.nLockTime;
+
+    PocketServices::TransactionSerializer::DeserializeBlock(s, *pblock);
 }
 
 template<typename Stream, typename TxType>
@@ -285,6 +290,8 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
         }
     }
     s << tx.nLockTime;
+
+    // TODO (brangr): deserialize pocket part to stream
 }
 
 
@@ -318,6 +325,9 @@ private:
     /** Memory only. */
     const uint256 hash;
     const uint256 m_witness_hash;
+
+    // Pocketnet transaction part
+    std::shared_ptr<PocketTx::Transaction> ptx = nullptr;
 
     uint256 ComputeHash() const;
     uint256 ComputeWitnessHash() const;
@@ -389,6 +399,11 @@ public:
             }
         }
         return false;
+    }
+
+    void SetPocketData(std::shared_ptr<PocketTx::Transaction> _ptx)
+    {
+        ptx = _ptx;
     }
 };
 

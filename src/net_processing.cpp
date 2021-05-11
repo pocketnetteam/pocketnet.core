@@ -33,7 +33,7 @@
 #include <memory>
 
 // TODO (brangr): REINDEXER -> SQLITE
-#include <pocketdb/services/TransactionSerializer.hpp>
+
 //#include "index/addrindex.h"
 //#include "antibot/antibot.h"
 
@@ -2777,8 +2777,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // compact blocks with less work than our tip, it is safe to treat
             // reconstructed compact blocks as having been requested.
             CValidationState state;
-            std::vector<std::shared_ptr<PocketTx::Transaction>> pocketTxn;
-            ProcessNewBlock(state, chainparams, pblock, pocketTxn, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            ProcessNewBlock(state, chainparams, pblock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
@@ -2876,8 +2875,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // protections in the compact block handler -- see related comment
             // in compact block optimistic reconstruction handling.
             CValidationState state;
-            std::vector<std::shared_ptr<PocketTx::Transaction>> pocketTxn;
-            ProcessNewBlock(state, chainparams, pblock, pocketTxn, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            ProcessNewBlock(state, chainparams, pblock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
@@ -2919,15 +2917,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
         vRecv >> *pblock;
 
-        // TODO (brangr): REINDEXER -> SQLITE
-        std::vector<std::shared_ptr<PocketTx::Transaction>> pocketTxn;
-        if (!vRecv.empty()) {
-            std::string _data;
-            vRecv >> _data;
-            if (!_data.empty())
-                pocketTxn = PocketServices::TransactionSerializer::DeserializeBlock(_data);
-        }
-
         std::string new_block_hash = pblock->GetHash().ToString();
         LogPrint(BCLog::NET, "received block %s peer=%d\n", pblock->GetHash().ToString(), pfrom->GetId());
 
@@ -2944,8 +2933,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
         bool fNewBlock = false;
         CValidationState state;
-        // TODO (brangr): set pocketTxn in ProcessNewBlock
-        ProcessNewBlock(state, chainparams, pblock, pocketTxn, forceProcessing, /* fReceived */ true, &fNewBlock);
+        ProcessNewBlock(state, chainparams, pblock, forceProcessing, /* fReceived */ true, &fNewBlock);
         if (fNewBlock) {
             pfrom->nLastBlockTime = GetTime();
         } else {

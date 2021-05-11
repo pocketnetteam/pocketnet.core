@@ -7,18 +7,23 @@
 #ifndef POCKETTX_TRANSACTIONSERIALIZER_HPP
 #define POCKETTX_TRANSACTIONSERIALIZER_HPP
 
-#include "../models/base/Transaction.hpp"
-#include "../models/dto/User.hpp"
-#include "../models/dto/Post.hpp"
-#include "../models/dto/Blocking.hpp"
-#include "../models/dto/BlockingCancel.hpp"
-#include "../models/dto/Comment.hpp"
-#include "../models/dto/ScorePost.hpp"
-#include "../models/dto/Subscribe.hpp"
-#include "../models/dto/SubscribePrivate.hpp"
-#include "../models/dto/SubscribeCancel.hpp"
-#include "../models/dto/ScoreComment.hpp"
-#include "../models/dto/Complain.hpp"
+#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/base/Coinbase.hpp"
+#include "pocketdb/models/base/Coinstake.hpp"
+#include "pocketdb/models/base/Default.hpp"
+#include "pocketdb/models/dto/User.hpp"
+#include "pocketdb/models/dto/Post.hpp"
+#include "pocketdb/models/dto/Blocking.hpp"
+#include "pocketdb/models/dto/BlockingCancel.hpp"
+#include "pocketdb/models/dto/Comment.hpp"
+#include "pocketdb/models/dto/ScorePost.hpp"
+#include "pocketdb/models/dto/Subscribe.hpp"
+#include "pocketdb/models/dto/SubscribePrivate.hpp"
+#include "pocketdb/models/dto/SubscribeCancel.hpp"
+#include "pocketdb/models/dto/ScoreComment.hpp"
+#include "pocketdb/models/dto/Complain.hpp"
+
+#include "streams.h"
 
 namespace PocketServices
 {
@@ -39,7 +44,13 @@ namespace PocketServices
                     return ConvertOpReturnToType(vasm[1]);
             }
 
-            return PocketTxType::NOT_SUPPORTED;
+            if (tx->IsCoinBase())
+                return PocketTxType::TX_COINBASE;
+
+            if (tx->IsCoinStake())
+                return PocketTxType::TX_COINSTAKE;
+
+            return PocketTxType::TX_DEFAULT;
         }
 
         static PocketTxType ParseType(const std::string &reindexerTable, const UniValue &reindexerSrc)
@@ -144,6 +155,16 @@ namespace PocketServices
                 case ACTION_COMPLAIN:
                     tx = make_shared<Complain>();
                     break;
+
+                case TX_COINBASE:
+                    tx = make_shared<Coinbase>();
+                    break;
+                case TX_COINSTAKE:
+                    tx = make_shared<Coinstake>();
+                    break;
+                case TX_DEFAULT:
+                    tx = make_shared<Default>();
+                    break;
                 default:
                     return nullptr;
             }
@@ -157,26 +178,30 @@ namespace PocketServices
             return tx;
         }
 
-        static std::vector<shared_ptr<Transaction>> DeserializeBlock(std::string &src)
+        template<typename Stream>
+        static void DeserializeBlock(Stream& stream, CBlock& block)
         {
-            std::vector<shared_ptr<Transaction>> pocketTxn;
+            // Prepare source data - old format (Json)
+            // TODO: speed up protocol
+            std::string src;
+            stream >> src;
 
+            // Restore json
             UniValue pocketData(UniValue::VOBJ);
             pocketData.read(src);
 
-            auto keys = pocketData.getKeys();
-            for (const auto &key : keys)
-            {
-                auto entrySrc = pocketData[key];
-                UniValue entry(UniValue::VOBJ);
-                entry.read(entrySrc.get_str());
+            // Restore pocket transaction instance
+            for (const auto& tx : block.vtx) {
+                auto txHash = tx->GetHash().GetHex();
 
-                auto tx = BuildInstance(entry);
-                if (tx != nullptr)
-                    pocketTxn.push_back(tx);
+                if (pocketData.exists(txHash)) {
+                    auto entrySrc = pocketData[txHash];
+                    UniValue entry(UniValue::VOBJ);
+                    entry.read(entrySrc.get_str());
+
+                    tx.SetPocketData(BuildInstance(entry));
+                }
             }
-
-            return pocketTxn;
         }
 
     private:

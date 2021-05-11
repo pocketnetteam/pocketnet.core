@@ -247,7 +247,6 @@ static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 bool ProcessNewBlock(CValidationState& state,
     const CChainParams& chainparams,
     const std::shared_ptr<const CBlock> pblock,
-    const std::vector<std::shared_ptr<PocketTx::Transaction>>& pocketTxn,
     bool fForceProcessing, bool fReceived, bool* fNewBlock) LOCKS_EXCLUDED(cs_main);
 
 /**

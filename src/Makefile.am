@@ -95,16 +95,14 @@ POCKETDB_HPP = \
     pocketdb/pocketnet.cpp \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/repositories/BaseRepository.hpp \
-    pocketdb/repositories/BlockRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Lottery.hpp \
     pocketdb/services/TransactionSerializer.hpp \
-    pocketdb/services/BlockIndexer.hpp \
+    pocketdb/services/TransactionIndexer.hpp \
     pocketdb/models/base/Return.hpp \
     pocketdb/models/base/Base.hpp \
     pocketdb/models/base/Payload.hpp \
-    pocketdb/models/base/Block.hpp \
     pocketdb/models/base/Transaction.hpp \
     pocketdb/models/base/TransactionInput.hpp \
     pocketdb/models/base/TransactionOutput.hpp \
