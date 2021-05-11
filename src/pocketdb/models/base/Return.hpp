@@ -33,8 +33,8 @@ namespace PocketTx
         UniValue Serialize()
         {
             UniValue ret(UniValue::VARR);
-            for (const auto& itm : _lst) {
-                ret.push_back(itm->Serialize());
+            for (auto& itm : _lst) {
+                ret.push_back(itm.Serialize());
             }
 
             return ret;
@@ -47,7 +47,7 @@ namespace PocketTx
         string Address;
         int64_t Balance;
 
-        virtual UniValue Serialize() override
+        UniValue Serialize() override
         {
             UniValue ret(UniValue::VOBJ);
             ret.pushKV("address", Address);

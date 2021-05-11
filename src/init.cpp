@@ -258,7 +258,6 @@ void Shutdown()
     // Stoping Pocket Db
     PocketDb::TransRepoInst.Destroy();
     PocketDb::BlockRepoInst.Destroy();
-    PocketDb::UtxoRepoInst.Destroy();
     PocketDb::SQLiteDbInst.Close();
 
 #if ENABLE_ZMQ
@@ -668,7 +667,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (fReindex) {
 
             // Clear all calculating pocket tables
-            PocketDb::BlockRepoInst.BulkRollback(0);
+            // TODO (brangr): implement
+            //PocketDb::BlockRepoInst.BulkRollback(0);
             LogPrintf("PocketDb tables cleared\n");
 
             int nFile = 0;
@@ -1407,7 +1407,6 @@ bool AppInitMain()
 
     PocketDb::TransRepoInst.Init();
     PocketDb::BlockRepoInst.Init();
-    PocketDb::UtxoRepoInst.Init();
 
     // ********************************************************* Step 4.2: Start AddrIndex
     //g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());

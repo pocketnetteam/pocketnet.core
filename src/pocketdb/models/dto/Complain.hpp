@@ -18,7 +18,7 @@ namespace PocketTx
 
         Complain() : Transaction()
         {
-            SetTxType(PocketTxType::ACTION_COMPLAIN);
+            SetType(PocketTxType::ACTION_COMPLAIN);
         }
 
         void Deserialize(const UniValue& src) override
@@ -28,26 +28,26 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxHash(val);
         }
 
-        shared_ptr<string> GetPostTxId() const { return m_int1; }
-        void SetPostTxId(std::string value) { m_int1 = make_shared<string>(value); }
-        void SetPostTxHash(string value) { m_address_to = make_shared<string>(value); }
-        
-        shared_ptr<int64_t> GetReason() const { return m_int2; }
+        shared_ptr <int64_t> GetPostTxId() const { return m_int1; }
+        void SetPostTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+        void SetPostTxHash(string value) { m_post_tx_hash = make_shared<string>(value); }
+
+        shared_ptr <int64_t> GetReason() const { return m_int2; }
         void SetReason(int64_t value) { m_int2 = make_shared<int64_t>(value); }
 
     protected:
-        shared_ptr<string> m_post_tx_hash = nullptr;
+        shared_ptr <string> m_post_tx_hash = nullptr;
 
     private:
 
-        void BuildPayload(const UniValue &src) override
+        void BuildPayload(const UniValue& src) override
         {
         }
 
-        void BuildHash(const UniValue &src) override
+        void BuildHash(const UniValue& src) override
         {
             // TODO (brangr): optimize with array
-            std::string data;
+            string data;
             if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) data += val;
             data += "_";
             if (auto[ok, val] = TryGetStr(src, "reason"); ok) data += val;

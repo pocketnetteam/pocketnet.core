@@ -2634,7 +2634,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     const CBlock& blockConnecting = *pthisBlock;
 
     // Read transactions data from db
-    PocketTx::Block pocketBlock;
+    //PocketTx::Block pocketBlock;
     // TODO (brangr): select * from Transactions where TxId in (block.vtx)
 
     // Apply the block atomically to the chain state.
@@ -4414,7 +4414,7 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams,
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
 
             if (ret && !pocketTxn.empty())
-                ret = PocketDb::TransRepoInst.BulkInsert(pocketTxn);
+                ret = PocketDb::TransRepoInst.InsertTransactions(pocketTxn);
         }
 
         // Check FAILED

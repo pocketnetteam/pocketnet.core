@@ -19,7 +19,7 @@ namespace PocketTx
 
         Comment() : Transaction()
         {
-            SetTxType(PocketTxType::CONTENT_COMMENT);
+            SetType(PocketTxType::CONTENT_COMMENT);
         }
 
         void Deserialize(const UniValue& src) override {
@@ -61,7 +61,7 @@ namespace PocketTx
             // TODO (brangr): payload as object
             UniValue payload(UniValue::VOBJ);
             if (auto[ok, val] = TryGetStr(src, "msg"); ok) payload.pushKV("msg", val);
-            SetPayload(payload);
+            //SetPayload(payload);
         }
 
         void BuildHash(const UniValue &src) override

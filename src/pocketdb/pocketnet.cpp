@@ -7,7 +7,6 @@ namespace PocketDb
     SQLiteDatabase SQLiteDbInst;
     TransactionRepository TransRepoInst(PocketDb::SQLiteDbInst);
     BlockRepository BlockRepoInst(PocketDb::SQLiteDbInst);
-    UtxoRepository UtxoRepoInst(PocketDb::SQLiteDbInst);
 }
 
 namespace PocketConsensus

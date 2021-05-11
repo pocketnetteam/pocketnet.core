@@ -28,20 +28,20 @@ namespace PocketServices
         static bool Index(const CBlock &block, int height)
         {
             auto result = true;
-
-            vector<shared_ptr<Utxo>> utxoNew;
-            vector<shared_ptr<Utxo>> utxoSpent;
+// TODO (brangr): implement
+//            vector<shared_ptr<Utxo>> utxoNew;
+//            vector<shared_ptr<Utxo>> utxoSpent;
 
             // Build all models for sql inserts
             for (const auto &tx : block.vtx)
             {
-                IndexOuts(tx, height, utxoNew, utxoSpent);
+//                IndexOuts(tx, height, utxoNew, utxoSpent);
                 // проставить транзакциям высоту и оут
                 // расчитали рейтинги
             }
 
-            result &= UtxoRepoInst.BulkInsert(utxoNew);
-            result &= UtxoRepoInst.BulkSpent(utxoSpent);
+//            result &= TransRepoInst.BulkInsert(utxoNew);
+//            result &= TransRepoInst.BulkSpent(utxoSpent);
 
             // For explorer database is optional
             if (gArgs.GetBoolArg("-explorer", false))
@@ -71,44 +71,44 @@ namespace PocketServices
             // TODO (joni): откатиться транзакции и блок в БД
         }
 
-        static void IndexOuts(const CTransactionRef &tx, int height,
-            vector<shared_ptr<Utxo>> &vUtxoNew,
-            vector<shared_ptr<Utxo>> &utxoSpent)
-        {
-            // New utxos
-            for (int i = 0; i < tx->vout.size(); i++)
-            {
-                const CTxOut &txout = tx->vout[i];
-                string txOutAddress;
-
-                if (TryGetOutAddress(txout, txOutAddress))
-                {
-                    Utxo utxo;
-                    utxo.SetTxId(tx->GetHash().GetHex());
-                    utxo.SetBlock(height);
-                    utxo.SetTxOut(i);
-                    utxo.SetTxTime(tx->nTime);
-                    utxo.SetAddress(txOutAddress);
-                    utxo.SetAmount(txout.nValue);
-
-                    vUtxoNew.push_back(make_shared<Utxo>(utxo));
-                }
-            }
-
-            // Spent exists utxo
-            if (!tx->IsCoinBase())
-            {
-                for (const auto &txin : tx->vin)
-                {
-                    Utxo utxo;
-                    utxo.SetTxId(txin.prevout.hash.GetHex());
-                    utxo.SetTxOut(txin.prevout.n);
-                    utxo.SetBlockSpent(height);
-
-                    utxoSpent.push_back(make_shared<Utxo>(utxo));
-                }
-            }
-        }
+//        static void IndexOuts(const CTransactionRef &tx, int height,
+//            vector<shared_ptr<Utxo>> &vUtxoNew,
+//            vector<shared_ptr<Utxo>> &utxoSpent)
+//        {
+//            // New utxos
+//            for (int i = 0; i < tx->vout.size(); i++)
+//            {
+//                const CTxOut &txout = tx->vout[i];
+//                string txOutAddress;
+//
+//                if (TryGetOutAddress(txout, txOutAddress))
+//                {
+//                    Utxo utxo;
+//                    utxo.SetTxId(tx->GetHash().GetHex());
+//                    utxo.SetBlock(height);
+//                    utxo.SetTxOut(i);
+//                    utxo.SetTxTime(tx->nTime);
+//                    utxo.SetAddress(txOutAddress);
+//                    utxo.SetAmount(txout.nValue);
+//
+//                    vUtxoNew.push_back(make_shared<Utxo>(utxo));
+//                }
+//            }
+//
+//            // Spent exists utxo
+//            if (!tx->IsCoinBase())
+//            {
+//                for (const auto &txin : tx->vin)
+//                {
+//                    Utxo utxo;
+//                    utxo.SetTxId(txin.prevout.hash.GetHex());
+//                    utxo.SetTxOut(txin.prevout.n);
+//                    utxo.SetBlockSpent(height);
+//
+//                    utxoSpent.push_back(make_shared<Utxo>(utxo));
+//                }
+//            }
+//        }
 
         // todo (brangr): index ratings
 

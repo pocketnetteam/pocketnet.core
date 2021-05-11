@@ -11,6 +11,7 @@
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
+#include "pocketdb/models/base/TransactionInput.hpp"
 #include "pocketdb/models/base/Return.hpp"
 
 namespace PocketDb
@@ -20,7 +21,7 @@ namespace PocketDb
     class TransactionRepository : public BaseRepository
     {
     public:
-        explicit TransactionRepository(SQLiteDatabase &db) : BaseRepository(db) {}
+        explicit TransactionRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
         void Init() override {}
         void Destroy() override {}
@@ -28,10 +29,11 @@ namespace PocketDb
         // ================================================================================================================
         //  Base transaction operations
         // ================================================================================================================
-        bool InsertTransactions(const vector<shared_ptr<Transaction>> &transactions)
+        bool InsertTransactions(const vector<shared_ptr<Transaction>>& transactions)
         {
-            return TryBulkStep([&] () {
-                for (const auto &transaction : transactions)
+            return TryBulkStep([&]()
+            {
+                for (const auto& transaction : transactions)
                 {
                     auto stmt = SetupSqlStatement(R"sql(
                             INSERT OR IGNORE INTO Transactions (
@@ -92,10 +94,12 @@ namespace PocketDb
                         resultPayload &= TryBindStatementText(stmtPayload, 7, transaction->GetPayload()->GetString6());
                         resultPayload &= TryBindStatementText(stmtPayload, 8, transaction->GetPayload()->GetString7());
                         if (!resultPayload)
-                            throw std::runtime_error(strprintf("%s: can't insert in transaction (bind payload)\n", __func__));
+                            throw std::runtime_error(
+                                strprintf("%s: can't insert in transaction (bind payload)\n", __func__));
 
                         if (!TryStepStatement(stmtPayload))
-                            throw std::runtime_error(strprintf("%s: can't insert in transaction (step payload)\n", __func__));
+                            throw std::runtime_error(
+                                strprintf("%s: can't insert in transaction (step payload)\n", __func__));
                     }
                 }
             });
@@ -104,10 +108,11 @@ namespace PocketDb
         // ================================================================================================================
         //  Transaction outputs operations
         // ================================================================================================================
-        bool InsertTransactionsOutputs(const vector<TransactionOutput> &outputs)
+        bool InsertTransactionsOutputs(const vector<TransactionOutput>& outputs)
         {
-            return TryBulkStep([&] () {
-                for (const auto &output : outputs)
+            return TryBulkStep([&]()
+            {
+                for (const auto& output : outputs)
                 {
                     // Save transaction output
                     auto stmt = SetupSqlStatement(R"sql(
@@ -119,9 +124,9 @@ namespace PocketDb
                         )sql"
                     );
 
-                    auto result = TryBindStatementInt64(stmt, 1, output->GetTxId());
-                    result &= TryBindStatementInt64(stmt, 2, output->GetNumber());
-                    result &= TryBindStatementInt64(stmt, 3, output->GetValue());
+                    auto result = TryBindStatementInt64(stmt, 1, output.GetTxId());
+                    result &= TryBindStatementInt64(stmt, 2, output.GetNumber());
+                    result &= TryBindStatementInt64(stmt, 3, output.GetValue());
                     if (!result)
                         throw std::runtime_error(strprintf("%s: can't insert in transaction (bind out)\n", __func__));
 
@@ -131,8 +136,9 @@ namespace PocketDb
 
                     // Also need save destination addresses
                     // TODO (brangr): может быть вектор нужно сначала получить, а потом в цикл пихать?
-                    for (const auto& dest : output->GetDestinations()) {
-                        auto stmt = SetupSqlStatement(R"sql(
+                    for (const auto& dest : *(output.GetDestinations()))
+                    {
+                        auto stmtDest = SetupSqlStatement(R"sql(
                                 INSERT OR IGNORE INTO TxOutputsDestinations (
                                     TxId,
                                     Number,
@@ -141,15 +147,17 @@ namespace PocketDb
                             )sql"
                         );
 
-                        auto result = TryBindStatementInt64(stmt, 1, output->GetTxId());
-                        result &= TryBindStatementInt64(stmt, 2, output->GetNumber());
-                        result &= TryBindStatementInt64(stmt, 3, dest);
-                        if (!result)
-                            throw std::runtime_error(strprintf("%s: can't insert in transaction (bind outdest)\n", __func__));
+                        auto resultDest = TryBindStatementInt64(stmtDest, 1, output.GetTxId());
+                        resultDest &= TryBindStatementInt64(stmtDest, 2, output.GetNumber());
+                        resultDest &= TryBindStatementInt64(stmtDest, 3, make_shared<int64_t>(dest));
+                        if (!resultDest)
+                            throw std::runtime_error(
+                                strprintf("%s: can't insert in transaction (bind outdest)\n", __func__));
 
                         // Try execute with clear last rowId
-                        if (!TryStepStatement(stmt))
-                            throw std::runtime_error(strprintf("%s: can't insert in transaction (step outdest)\n", __func__));
+                        if (!TryStepStatement(stmtDest))
+                            throw std::runtime_error(
+                                strprintf("%s: can't insert in transaction (step outdest)\n", __func__));
                     }
                 }
             });
@@ -158,10 +166,11 @@ namespace PocketDb
         // ================================================================================================================
         //  Transaction inputs operations - spent outputs
         // ================================================================================================================
-        bool InsertTransactionsInputs(const vector<TransactionInput> &inputs)
+        bool InsertTransactionsInputs(const vector<TransactionInput>& inputs)
         {
-            return TryBulkStep([&] () {
-                for (const auto &input : inputs)
+            return TryBulkStep([&]()
+            {
+                for (const auto& input : inputs)
                 {
                     // Save transaction input
                     auto stmt = SetupSqlStatement(R"sql(
@@ -173,9 +182,9 @@ namespace PocketDb
                         )sql"
                     );
 
-                    auto result = TryBindStatementInt64(stmt, 1, input->GetTxId());
-                    result &= TryBindStatementInt64(stmt, 2, input->GetInputTxId());
-                    result &= TryBindStatementInt64(stmt, 3, input->GetInputTxNumber());
+                    auto result = TryBindStatementInt64(stmt, 1, input.GetTxId());
+                    result &= TryBindStatementInt64(stmt, 2, input.GetInputTxId());
+                    result &= TryBindStatementInt64(stmt, 3, input.GetInputTxNumber());
                     if (!result)
                         throw std::runtime_error(strprintf("%s: can't insert in transaction (bind inp)\n", __func__));
 
@@ -224,10 +233,10 @@ namespace PocketDb
                     RetAddressInfo inf;
                     inf.Address = GetColumnString(*stmt, 0);
                     inf.Balance = GetColumnInt64(*stmt, 1);
-                    result.Add();
+                    result.Add(inf);
                 }
             }
-            catch (std::exception &ex)
+            catch (std::exception& ex)
             {
                 return make_tuple(false, result);
             }

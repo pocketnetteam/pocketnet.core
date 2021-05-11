@@ -58,7 +58,7 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "url"); ok) payload.pushKV("url", val);
             if (auto[ok, val] = TryGetStr(src, "images"); ok) payload.pushKV("images", val);
             if (auto[ok, val] = TryGetStr(src, "settings"); ok) payload.pushKV("settings", val);
-            SetPayload(payload);
+            //SetPayload(payload);
         }
 
         void BuildHash(const UniValue &src) override

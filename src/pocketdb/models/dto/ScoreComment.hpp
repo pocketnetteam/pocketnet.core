@@ -13,7 +13,7 @@ namespace PocketTx
 
         ScoreComment() : Transaction()
         {
-            SetTxType(PocketTxType::ACTION_SCORE_COMMENT);
+            SetType(PocketTxType::ACTION_SCORE_COMMENT);
         }
 
         void Deserialize(const UniValue& src) override

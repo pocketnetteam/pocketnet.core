@@ -18,7 +18,7 @@ namespace PocketTx
 
         Subscribe() : Transaction()
         {
-            SetTxType(PocketTxType::ACTION_SUBSCRIBE);
+            SetType(PocketTxType::ACTION_SUBSCRIBE);
         }
 
         void Deserialize(const UniValue &src) override {
@@ -27,7 +27,7 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "address_to"); ok) SetAddressTo(val);
         }
 
-        shared_ptr<string> GetAddressToId() const { return m_int1; }
+        shared_ptr<int64_t> GetAddressToId() const { return m_int1; }
         void SetAddressToId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
         void SetAddressTo(string value) { m_address_to = make_shared<string>(value); }
 

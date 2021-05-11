@@ -31,7 +31,7 @@ LIBPOCKETCOIN_UTIL=libpocketcoin_util.a
 LIBPOCKETCOIN_CRYPTO_BASE=crypto/libpocketcoin_crypto_base.a
 LIBPOCKETCOINQT=qt/libpocketcoinqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
-LIBSQLITE3 = -lsqlite3 -lstdc++fs
+LIBSQLITE3 = -lsqlite3
 
 if ENABLE_ZMQ
 LIBPOCKETCOIN_ZMQ=libpocketcoin_zmq.a
@@ -97,13 +97,15 @@ POCKETDB_HPP = \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/BlockRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
-    pocketdb/repositories/UtxoRepository.hpp \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Lottery.hpp \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/BlockIndexer.hpp \
+    pocketdb/models/base/Return.hpp \
     pocketdb/models/base/Base.hpp \
+    pocketdb/models/base/Payload.hpp \
     pocketdb/models/base/Transaction.hpp \
+    pocketdb/models/base/TransactionInput.hpp \
     pocketdb/models/base/TransactionOutput.hpp \
     pocketdb/models/base/Payload.hpp \
     pocketdb/models/dto/Post.hpp \

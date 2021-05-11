@@ -19,7 +19,7 @@ namespace PocketTx
 
         ScorePost() : Transaction()
         {
-            SetTxType(PocketTxType::ACTION_SCORE_POST);
+            SetType(PocketTxType::ACTION_SCORE_POST);
         }
 
         void Deserialize(const UniValue &src) override

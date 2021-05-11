@@ -712,10 +712,10 @@ static bool rest_topaddresses(HTTPRequest *req, const std::string &strURIPart)
     {
         case RetFormat::JSON:
         {
-            if (auto[ok, val] = PocketDb::UtxoRepoInst.SelectTopAddresses(count); ok)
+            if (auto[ok, val] = PocketDb::TransRepoInst.SelectTopAddresses(count); ok)
             {
                 req->WriteHeader("Content-Type", "application/json");
-                req->WriteReply(HTTP_OK, val.write() + "\n");
+                req->WriteReply(HTTP_OK, val.Serialize().write() + "\n");
                 return true;
             } else
             {

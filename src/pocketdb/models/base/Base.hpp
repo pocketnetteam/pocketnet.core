@@ -16,6 +16,7 @@ namespace PocketTx
     using std::make_shared;
     using std::tuple;
     using std::make_tuple;
+    using std::vector;
 
     // OpReturn hex codes
     #define OR_SCORE "7570766f74655368617265"

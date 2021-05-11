@@ -18,14 +18,14 @@ namespace PocketTx
 
         User() : Transaction()
         {
-            SetTxType(PocketTxType::ACCOUNT_USER);
+            SetType(PocketTxType::ACCOUNT_USER);
         }
 
         void Deserialize(const UniValue &src) override
         {
             Transaction::Deserialize(src);
 
-            if (auto[ok, val] = TryGetStr(src, "regdate"); ok) SetRegistration(val);
+            if (auto[ok, val] = TryGetInt64(src, "regdate"); ok) SetRegistration(val);
             if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrerAddress(val);
         }
 
@@ -55,7 +55,7 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "url"); ok) payload.pushKV("url", val);
             if (auto[ok, val] = TryGetStr(src, "pubkey"); ok) payload.pushKV("pubkey", val);
             if (auto[ok, val] = TryGetStr(src, "donations"); ok) payload.pushKV("donations", val);
-            SetPayload(payload);
+            //SetPayload(payload);
         }
 
         void BuildHash(const UniValue &src) override

@@ -13,14 +13,12 @@
 #include "pocketdb/consensus/Lottery.hpp"
 #include "pocketdb/repositories/TransactionRepository.hpp"
 #include "pocketdb/repositories/BlockRepository.hpp"
-#include "pocketdb/repositories/UtxoRepository.hpp"
 
 namespace PocketDb
 {
     extern SQLiteDatabase SQLiteDbInst;
     extern TransactionRepository TransRepoInst;
     extern BlockRepository BlockRepoInst;
-    extern UtxoRepository UtxoRepoInst;
 }; // namespace PocketDb
 
 namespace PocketConsensus
