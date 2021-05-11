@@ -3746,6 +3746,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     }
 
     // Check transactions
+    // TODO (brangr): add pocket validation for transaction
     for (const auto& tx : block.vtx) {
         if (!CheckTransaction(*tx, state, true)) {
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
@@ -3759,6 +3760,9 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     }
     if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST)
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
+
+    // TODO (brangr): add pocket validation for block
+
 
     if (fCheckPOW && fCheckMerkleRoot)
         block.fChecked = true;
@@ -4302,6 +4306,10 @@ static CDiskBlockPos SaveBlockToDisk(const CBlock& block, int nHeight, const CCh
             return CDiskBlockPos();
         }
     }
+
+    // TODO (brangr): Save pocket data to SQLite database
+    // All previous blocks already in db and transactions in block already mapped
+
     return blockPos;
 }
 
@@ -4404,9 +4412,6 @@ bool ProcessNewBlock(CValidationState& state, const CChainParams& chainparams,
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
         ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
-
-        // TODO (brangr): check pocket transactions
-        //
 
         // Store to disk
         if (ret) {

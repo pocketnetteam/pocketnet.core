@@ -400,11 +400,6 @@ public:
         }
         return false;
     }
-
-    void SetPocketData(std::shared_ptr<PocketTx::Transaction> _ptx)
-    {
-        ptx = _ptx;
-    }
 };
 
 /** A mutable version of CTransaction. */

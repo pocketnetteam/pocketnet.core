@@ -33,6 +33,82 @@ namespace PocketServices
     {
     public:
 
+        template<typename Stream>
+        static void DeserializeBlock(Stream& stream, CBlock& block)
+        {
+            // Prepare source data - old format (Json)
+            // TODO: speed up protocol
+            string src;
+            stream >> src;
+
+            // Restore json
+            UniValue pocketData(UniValue::VOBJ);
+            pocketData.read(src);
+
+            // Restore pocket transaction instance
+            for (const auto& tx : block.vtx) {
+                auto txHash = tx->GetHash().GetHex();
+
+                UniValue entry(UniValue::VOBJ);
+                if (pocketData.exists(txHash)) {
+                    auto entrySrc = pocketData[txHash];
+
+                    try
+                    {
+                        entry.read(entrySrc.get_str());
+                    }
+                    catch (std::exception &ex)
+                    {
+                        LogPrintf("Error deserialize transaction: %s: %s\n", txHash, ex.what());
+                    }
+                }
+                
+                tx.ptx = BuildInstance(tx, entry);
+            }
+        }
+
+    private:
+
+        static PocketTxType ConvertOpReturnToType(const std::string &op)
+        {
+            if (op == OR_POST || op == OR_POSTEDIT)
+                return PocketTxType::CONTENT_POST;
+            else if (op == OR_VIDEO)
+                return PocketTxType::CONTENT_VIDEO;
+            else if (op == OR_SERVER_PING)
+                return PocketTxType::CONTENT_SERVERPING;
+            else if (op == OR_SCORE)
+                return PocketTxType::ACTION_SCORE_POST;
+            else if (op == OR_COMPLAIN)
+                return PocketTxType::ACTION_COMPLAIN;
+            else if (op == OR_SUBSCRIBE)
+                return PocketTxType::ACTION_SUBSCRIBE;
+            else if (op == OR_SUBSCRIBEPRIVATE)
+                return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
+            else if (op == OR_UNSUBSCRIBE)
+                return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
+            else if (op == OR_USERINFO)
+                return PocketTxType::ACCOUNT_USER;
+            else if (op == OR_VIDEO_SERVER)
+                return PocketTxType::ACCOUNT_VIDEO_SERVER;
+            else if (op == OR_MESSAGE_SERVER)
+                return PocketTxType::ACCOUNT_MESSAGE_SERVER;
+            else if (op == OR_BLOCKING)
+                return PocketTxType::ACTION_BLOCKING;
+            else if (op == OR_UNBLOCKING)
+                return PocketTxType::ACTION_BLOCKING_CANCEL;
+            else if (op == OR_COMMENT || op == OR_COMMENT_EDIT)
+                return PocketTxType::CONTENT_COMMENT;
+            else if (op == OR_COMMENT_DELETE)
+                return PocketTxType::CONTENT_COMMENT_DELETE;
+            else if (op == OR_COMMENT_SCORE)
+                return PocketTxType::ACTION_SCORE_COMMENT;
+
+            // TODO (brangr): new types
+
+            return PocketTxType::NOT_SUPPORTED;
+        }
+
         static PocketTxType ParseType(const CTransactionRef &tx, std::vector<std::string> &vasm)
         {
             const CTxOut &txout = tx->vout[0];
@@ -102,8 +178,9 @@ namespace PocketServices
             return PocketTxType::NOT_SUPPORTED;
         }
 
-        static shared_ptr<Transaction> BuildInstance(const UniValue &src)
+        static shared_ptr<Transaction> BuildInstance(const CTransactionRef &tx, const UniValue &src)
         {
+            // TODO (brangr): change detect type
             auto txTypeSrc = src["t"].get_str();
 
             UniValue txDataSrc(UniValue::VOBJ);
@@ -176,74 +253,6 @@ namespace PocketServices
             tx->BuildPayload(txDataSrc);
             tx->BuildHash(txDataSrc);
             return tx;
-        }
-
-        template<typename Stream>
-        static void DeserializeBlock(Stream& stream, CBlock& block)
-        {
-            // Prepare source data - old format (Json)
-            // TODO: speed up protocol
-            std::string src;
-            stream >> src;
-
-            // Restore json
-            UniValue pocketData(UniValue::VOBJ);
-            pocketData.read(src);
-
-            // Restore pocket transaction instance
-            for (const auto& tx : block.vtx) {
-                auto txHash = tx->GetHash().GetHex();
-
-                if (pocketData.exists(txHash)) {
-                    auto entrySrc = pocketData[txHash];
-                    UniValue entry(UniValue::VOBJ);
-                    entry.read(entrySrc.get_str());
-
-                    tx.SetPocketData(BuildInstance(entry));
-                }
-            }
-        }
-
-    private:
-
-        static PocketTxType ConvertOpReturnToType(const std::string &op)
-        {
-            if (op == OR_POST || op == OR_POSTEDIT)
-                return PocketTxType::CONTENT_POST;
-            else if (op == OR_VIDEO)
-                return PocketTxType::CONTENT_VIDEO;
-            else if (op == OR_SERVER_PING)
-                return PocketTxType::CONTENT_SERVERPING;
-            else if (op == OR_SCORE)
-                return PocketTxType::ACTION_SCORE_POST;
-            else if (op == OR_COMPLAIN)
-                return PocketTxType::ACTION_COMPLAIN;
-            else if (op == OR_SUBSCRIBE)
-                return PocketTxType::ACTION_SUBSCRIBE;
-            else if (op == OR_SUBSCRIBEPRIVATE)
-                return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
-            else if (op == OR_UNSUBSCRIBE)
-                return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
-            else if (op == OR_USERINFO)
-                return PocketTxType::ACCOUNT_USER;
-            else if (op == OR_VIDEO_SERVER)
-                return PocketTxType::ACCOUNT_VIDEO_SERVER;
-            else if (op == OR_MESSAGE_SERVER)
-                return PocketTxType::ACCOUNT_MESSAGE_SERVER;
-            else if (op == OR_BLOCKING)
-                return PocketTxType::ACTION_BLOCKING;
-            else if (op == OR_UNBLOCKING)
-                return PocketTxType::ACTION_BLOCKING_CANCEL;
-            else if (op == OR_COMMENT || op == OR_COMMENT_EDIT)
-                return PocketTxType::CONTENT_COMMENT;
-            else if (op == OR_COMMENT_DELETE)
-                return PocketTxType::CONTENT_COMMENT_DELETE;
-            else if (op == OR_COMMENT_SCORE)
-                return PocketTxType::ACTION_SCORE_COMMENT;
-
-            // TODO (brangr): new types
-
-            return PocketTxType::NOT_SUPPORTED;
         }
 
     };
