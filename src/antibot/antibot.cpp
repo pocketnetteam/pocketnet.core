@@ -1395,7 +1395,6 @@ bool AntiBot::CheckBlock(BlockVTX& blockVtx, int height)
     return true;
 }
 
-// TODO (brangr): replace time argument to block height
 bool AntiBot::GetUserState(std::string _address, UserStateItem& _state)
 {
     _state = UserStateItem(_address);
