@@ -197,7 +197,7 @@ namespace PocketConsensus
                     return a.second.second < b.second.second;
                 });
 
-                if (allPostSorted.size() > RATINGS_PAYOUT_MAX)
+                if ((int)allPostSorted.size() > RATINGS_PAYOUT_MAX)
                 {
                     allPostSorted.resize(RATINGS_PAYOUT_MAX);
                 }
@@ -216,7 +216,7 @@ namespace PocketConsensus
                     return a.second.second < b.second.second;
                 });
 
-                if (allCommentSorted.size() > RATINGS_PAYOUT_MAX)
+                if ((int)allCommentSorted.size() > RATINGS_PAYOUT_MAX)
                 {
                     allCommentSorted.resize(RATINGS_PAYOUT_MAX);
                 }
@@ -313,6 +313,7 @@ namespace PocketConsensus
         shared_ptr<LotteryConsensus> Instance(int height)
         {
             // TODO (brangr): достать подходящий чекпойнт реализацию
+            return nullptr;
         }
     };
 

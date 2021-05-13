@@ -257,7 +257,6 @@ void Shutdown()
 
     // Stoping Pocket Db
     PocketDb::TransRepoInst.Destroy();
-    PocketDb::BlockRepoInst.Destroy();
     PocketDb::SQLiteDbInst.Close();
 
 #if ENABLE_ZMQ
@@ -1406,7 +1405,6 @@ bool AppInitMain()
         (GetDataDir() / "pocketdb" / "main.sqlite3").string());
 
     PocketDb::TransRepoInst.Init();
-    PocketDb::BlockRepoInst.Init();
 
     // ********************************************************* Step 4.2: Start AddrIndex
     //g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());

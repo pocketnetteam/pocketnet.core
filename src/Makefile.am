@@ -100,6 +100,7 @@ POCKETDB_HPP = \
     pocketdb/consensus/Lottery.hpp \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/TransactionIndexer.hpp \
+    pocketdb/models/base/PocketTypes.hpp \
     pocketdb/models/base/Return.hpp \
     pocketdb/models/base/Base.hpp \
     pocketdb/models/base/Payload.hpp \
@@ -107,6 +108,9 @@ POCKETDB_HPP = \
     pocketdb/models/base/TransactionInput.hpp \
     pocketdb/models/base/TransactionOutput.hpp \
     pocketdb/models/base/Payload.hpp \
+    pocketdb/models/dto/Default.hpp \
+    pocketdb/models/dto/Coinbase.hpp \
+    pocketdb/models/dto/Coinstake.hpp \
     pocketdb/models/dto/Post.hpp \
     pocketdb/models/dto/User.hpp \
     pocketdb/models/dto/ScorePost.hpp \

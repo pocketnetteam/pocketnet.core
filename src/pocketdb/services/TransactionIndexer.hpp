@@ -40,7 +40,8 @@ namespace PocketServices
         {
             auto result = true;
 
-            result &= BlockRepoInst.BulkRollback(height);
+            // TODO (brangr): implement rollback for transactions< ins/outs, and other
+            //result &= BlockRepoInst.BulkRollback(height);
             result &= RollbackChain(height);
 
             return result;

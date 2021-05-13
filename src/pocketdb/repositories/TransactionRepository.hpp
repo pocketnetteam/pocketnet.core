@@ -29,11 +29,11 @@ namespace PocketDb
         // ================================================================================================================
         //  Base transaction operations
         // ================================================================================================================
-        bool InsertTransactions(const vector<shared_ptr<Transaction>>& transactions)
+        bool InsertTransactions(PocketBlock& pocketBlock)
         {
             return TryBulkStep([&]()
             {
-                for (const auto& transaction : transactions)
+                for (const auto& transaction : pocketBlock)
                 {
                     auto stmt = SetupSqlStatement(R"sql(
                             INSERT OR IGNORE INTO Transactions (

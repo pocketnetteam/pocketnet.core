@@ -11,9 +11,10 @@
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
+#include "core_io.h"
+#include "streams.h"
 
 #include "pocketdb/models/base/Transaction.hpp"
-#include <pocketdb/services/TransactionSerializer.hpp>
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
@@ -24,18 +25,23 @@ public:
     uint256 hash;
     uint32_t n;
 
-    COutPoint(): n((uint32_t) -1) { }
-    COutPoint(const uint256& hashIn, uint32_t nIn): hash(hashIn), n(nIn) { }
+    COutPoint() : n((uint32_t) -1) {}
+    COutPoint(const uint256& hashIn, uint32_t nIn) : hash(hashIn), n(nIn) {}
 
     ADD_SERIALIZE_METHODS;
 
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    template<typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(hash);
         READWRITE(n);
     }
 
-    void SetNull() { hash.SetNull(); n = (uint32_t) -1; }
+    void SetNull()
+    {
+        hash.SetNull();
+        n = (uint32_t) -1;
+    }
     bool IsNull() const { return (hash.IsNull() && n == (uint32_t) -1); }
 
     friend bool operator<(const COutPoint& a, const COutPoint& b)
@@ -101,13 +107,14 @@ public:
         nSequence = SEQUENCE_FINAL;
     }
 
-    explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
-    CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
+    explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn = CScript(), uint32_t nSequenceIn = SEQUENCE_FINAL);
+    CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn = CScript(), uint32_t nSequenceIn = SEQUENCE_FINAL);
 
     ADD_SERIALIZE_METHODS;
 
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    template<typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(prevout);
         READWRITE(scriptSig);
         READWRITE(nSequence);
@@ -115,7 +122,7 @@ public:
 
     friend bool operator==(const CTxIn& a, const CTxIn& b)
     {
-        return (a.prevout   == b.prevout &&
+        return (a.prevout == b.prevout &&
                 a.scriptSig == b.scriptSig &&
                 a.nSequence == b.nSequence);
     }
@@ -146,8 +153,9 @@ public:
 
     ADD_SERIALIZE_METHODS;
 
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    template<typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(nValue);
         READWRITE(scriptPubKey);
     }
@@ -175,12 +183,14 @@ public:
         while (pc < scriptPubKey.end())
         {
             opcodetype opcode;
-            if (!scriptPubKey.GetOp(pc, opcode)) {
+            if (!scriptPubKey.GetOp(pc, opcode))
+            {
                 winners = false;
                 break;
             }
-            
-            if (opcode < OP_WINNER_POST || opcode > OP_WINNER_COMMENT_REFERRAL) {
+
+            if (opcode < OP_WINNER_POST || opcode > OP_WINNER_COMMENT_REFERRAL)
+            {
                 winners = false;
                 break;
             }
@@ -193,7 +203,7 @@ public:
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)
     {
-        return (a.nValue       == b.nValue &&
+        return (a.nValue == b.nValue &&
                 a.scriptPubKey == b.scriptPubKey);
     }
 
@@ -225,7 +235,8 @@ struct CMutableTransaction;
  * - uint32_t nLockTime
  */
 template<typename Stream, typename TxType>
-inline void UnserializeTransaction(TxType& tx, Stream& s) {
+inline void UnserializeTransaction(TxType& tx, Stream& s)
+{
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s >> tx.nVersion;
@@ -235,48 +246,56 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     tx.vout.clear();
     /* Try to read the vin. In case the dummy is there, this will be read as an empty vector. */
     s >> tx.vin;
-    if (tx.vin.size() == 0 && fAllowWitness) {
+    if (tx.vin.size() == 0 && fAllowWitness)
+    {
         /* We read a dummy or an empty vin. */
         s >> flags;
-        if (flags != 0) {
+        if (flags != 0)
+        {
             s >> tx.vin;
             s >> tx.vout;
         }
-    } else {
+    } else
+    {
         /* We read a non-empty vin. Assume a normal vout follows. */
         s >> tx.vout;
     }
-    if ((flags & 1) && fAllowWitness) {
+    if ((flags & 1) && fAllowWitness)
+    {
         /* The witness flag is present, and we support witnesses. */
         flags ^= 1;
-        for (size_t i = 0; i < tx.vin.size(); i++) {
+        for (size_t i = 0; i < tx.vin.size(); i++)
+        {
             s >> tx.vin[i].scriptWitness.stack;
         }
     }
-    if (flags) {
+    if (flags)
+    {
         /* Unknown flag in the serialization */
         throw std::ios_base::failure("Unknown transaction optional data");
     }
     s >> tx.nLockTime;
-
-    PocketServices::TransactionSerializer::DeserializeBlock(s, *pblock);
 }
 
 template<typename Stream, typename TxType>
-inline void SerializeTransaction(const TxType& tx, Stream& s) {
+inline void SerializeTransaction(const TxType& tx, Stream& s)
+{
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s << tx.nVersion;
     s << tx.nTime;
     unsigned char flags = 0;
     // Consistency check
-    if (fAllowWitness) {
+    if (fAllowWitness)
+    {
         /* Check whether witnesses need to be serialized. */
-        if (tx.HasWitness()) {
+        if (tx.HasWitness())
+        {
             flags |= 1;
         }
     }
-    if (flags) {
+    if (flags)
+    {
         /* Use extended format in case witnesses are to be serialized. */
         std::vector<CTxIn> vinDummy;
         s << vinDummy;
@@ -284,8 +303,10 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     }
     s << tx.vin;
     s << tx.vout;
-    if (flags & 1) {
-        for (size_t i = 0; i < tx.vin.size(); i++) {
+    if (flags & 1)
+    {
+        for (size_t i = 0; i < tx.vin.size(); i++)
+        {
             s << tx.vin[i].scriptWitness.stack;
         }
     }
@@ -294,7 +315,6 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     // TODO (brangr): deserialize pocket part to stream
 }
 
-
 /** The basic transaction that is broadcasted on the network and contained in
  * blocks.  A transaction can contain multiple inputs and outputs.
  */
@@ -302,13 +322,13 @@ class CTransaction
 {
 public:
     // Default transaction version.
-    static const int32_t CURRENT_VERSION=2;
+    static const int32_t CURRENT_VERSION = 2;
 
     // Changing the default transaction version requires a two step process: first
     // adapting relay policy by bumping MAX_STANDARD_VERSION, and then later date
     // bumping the default CURRENT_VERSION at which point both CURRENT_VERSION and
     // MAX_STANDARD_VERSION will be equal.
-    static const int32_t MAX_STANDARD_VERSION=2;
+    static const int32_t MAX_STANDARD_VERSION = 2;
 
     // The local variables are made const to prevent unintended modification
     // without updating the cached hash value. However, CTransaction is not
@@ -321,13 +341,13 @@ public:
     const uint32_t nTime;
     const uint32_t nLockTime;
 
+    // Pocketnet transaction part
+    std::shared_ptr<PocketTx::Transaction> ptx = nullptr;
+
 private:
     /** Memory only. */
     const uint256 hash;
     const uint256 m_witness_hash;
-
-    // Pocketnet transaction part
-    std::shared_ptr<PocketTx::Transaction> ptx = nullptr;
 
     uint256 ComputeHash() const;
     uint256 ComputeWitnessHash() const;
@@ -337,20 +357,22 @@ public:
     CTransaction();
 
     /** Convert a CMutableTransaction into a CTransaction. */
-    CTransaction(const CMutableTransaction &tx);
-    CTransaction(CMutableTransaction &&tx);
+    CTransaction(const CMutableTransaction& tx);
+    CTransaction(CMutableTransaction&& tx);
 
-    template <typename Stream>
-    inline void Serialize(Stream& s) const {
+    template<typename Stream>
+    inline void Serialize(Stream& s) const
+    {
         SerializeTransaction(*this, s);
     }
 
     /** This deserializing constructor is provided instead of an Unserialize method.
      *  Unserialize is not possible, since it would require overwriting const fields. */
-    template <typename Stream>
+    template<typename Stream>
     CTransaction(deserialize_type, Stream& s) : CTransaction(CMutableTransaction(deserialize, s)) {}
 
-    bool IsNull() const {
+    bool IsNull() const
+    {
         return vin.empty() && vout.empty();
     }
 
@@ -393,8 +415,10 @@ public:
 
     bool HasWitness() const
     {
-        for (size_t i = 0; i < vin.size(); i++) {
-            if (!vin[i].scriptWitness.IsNull()) {
+        for (size_t i = 0; i < vin.size(); i++)
+        {
+            if (!vin[i].scriptWitness.IsNull())
+            {
                 return true;
             }
         }
@@ -408,25 +432,28 @@ struct CMutableTransaction
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
     int32_t nVersion;
-	uint32_t nTime;
+    uint32_t nTime;
     uint32_t nLockTime;
 
     CMutableTransaction();
     explicit CMutableTransaction(const CTransaction& tx);
 
-    template <typename Stream>
-    inline void Serialize(Stream& s) const {
+    template<typename Stream>
+    inline void Serialize(Stream& s) const
+    {
         SerializeTransaction(*this, s);
     }
 
 
-    template <typename Stream>
-    inline void Unserialize(Stream& s) {
+    template<typename Stream>
+    inline void Unserialize(Stream& s)
+    {
         UnserializeTransaction(*this, s);
     }
 
-    template <typename Stream>
-    CMutableTransaction(deserialize_type, Stream& s) {
+    template<typename Stream>
+    CMutableTransaction(deserialize_type, Stream& s)
+    {
         Unserialize(s);
     }
 
@@ -437,21 +464,28 @@ struct CMutableTransaction
 
     bool HasWitness() const
     {
-        for (size_t i = 0; i < vin.size(); i++) {
-            if (!vin[i].scriptWitness.IsNull()) {
+        for (size_t i = 0; i < vin.size(); i++)
+        {
+            if (!vin[i].scriptWitness.IsNull())
+            {
                 return true;
             }
         }
         return false;
     }
 
-    void SetTime(uint32_t nTime) {
-      this->nTime = nTime;
+    void SetTime(uint32_t nTime)
+    {
+        this->nTime = nTime;
     }
 };
 
 typedef std::shared_ptr<const CTransaction> CTransactionRef;
 static inline CTransactionRef MakeTransactionRef() { return std::make_shared<const CTransaction>(); }
-template <typename Tx> static inline CTransactionRef MakeTransactionRef(Tx&& txIn) { return std::make_shared<const CTransaction>(std::forward<Tx>(txIn)); }
+template<typename Tx>
+static inline CTransactionRef MakeTransactionRef(Tx&& txIn)
+{
+    return std::make_shared<const CTransaction>(std::forward<Tx>(txIn));
+}
 
 #endif // POCKETCOIN_PRIMITIVES_TRANSACTION_H

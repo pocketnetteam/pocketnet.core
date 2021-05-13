@@ -20,6 +20,9 @@ namespace PocketTx
     class RetBase
     {
     public:
+        RetBase() = default;
+        virtual ~RetBase() { }
+
         virtual UniValue Serialize() = 0;
     };
 
@@ -46,6 +49,8 @@ namespace PocketTx
     public:
         string Address;
         int64_t Balance;
+
+        RetAddressInfo() : RetBase() { }
 
         UniValue Serialize() override
         {

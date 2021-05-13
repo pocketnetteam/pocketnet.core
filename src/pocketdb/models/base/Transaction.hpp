@@ -22,7 +22,7 @@ namespace PocketTx
     {
     public:
 
-        Transaction() = default;
+        Transaction() : Base() {}
 
         virtual void Deserialize(const UniValue &src)
         {
@@ -105,6 +105,8 @@ namespace PocketTx
     private:
 
     };
+
+    typedef vector<shared_ptr<Transaction>> PocketBlock;
 
 } // namespace PocketTx
 

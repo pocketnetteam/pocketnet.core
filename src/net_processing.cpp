@@ -2554,17 +2554,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     {
         CBlockHeaderAndShortTxIDs cmpctblock;
         vRecv >> cmpctblock;
-        //------------------------------
-        std::string pocket_data;
-        if (vRecv.size() > 0) {
-            vRecv >> pocket_data;
-        }
-
-        // TODO (brangr): REINDEXER -> SQLITE
-//        if (pocket_data != "") {
-//            POCKETNET_DATA.emplace(cmpctblock.header.GetHash(), pocket_data);
-//        }
-        //------------------------------
         bool received_new_header = false;
 
         {
@@ -2766,7 +2755,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 LOCK(cs_main);
                 mapBlockSource.emplace(pblock->GetHash(), std::make_pair(pfrom->GetId(), false));
             }
-            bool fNewBlock = false;
+
+            // Deserialize pocket part if exists
+            auto pocketBlock = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+
             // Setting fForceProcessing to true means that we bypass some of
             // our anti-DoS protections in AcceptBlock, which filters
             // unrequested blocks that might be trying to waste our resources
@@ -2776,8 +2768,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // we have a chain with at least nMinimumChainWork), and we ignore
             // compact blocks with less work than our tip, it is safe to treat
             // reconstructed compact blocks as having been requested.
+            bool fNewBlock = false;
             CValidationState state;
-            ProcessNewBlock(state, chainparams, pblock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            ProcessNewBlock(state, chainparams, pblock, pocketBlock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
@@ -2800,14 +2793,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     {
         BlockTransactions resp;
         vRecv >> resp;
-        //------------------------------
-        std::string pocketDataSrc;
-        if (!vRecv.empty()) {
-            vRecv >> pocketDataSrc;
-        }
-        //------------------------------
         std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
         bool fBlockRead = false;
+
         {
             LOCK(cs_main);
 
@@ -2859,14 +2847,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         } // Don't hold cs_main when we call into ProcessNewBlock
 
         if (fBlockRead) {
-            // TODO (brangr): REINDEXER -> SQLITE
-            //UniValue pocketData(UniValue::VOBJ);
-            //pocketData.read(pocketDataSrc);
+            auto pocketBlock = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
 
-//            if (pocket_data != "") {
-//                POCKETNET_DATA.emplace(pblock->GetHash(), pocket_data);
-//            }
-            //----------------------------------
             bool fNewBlock = false;
             // Since we requested this block (it was in mapBlocksInFlight), force it to be processed,
             // even if it would not be a candidate for new tip (missing previous block, chain not long enough, etc)
@@ -2875,7 +2857,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // protections in the compact block handler -- see related comment
             // in compact block optimistic reconstruction handling.
             CValidationState state;
-            ProcessNewBlock(state, chainparams, pblock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            ProcessNewBlock(state, chainparams, pblock, pocketBlock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
@@ -2931,9 +2913,13 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // so the race between here and cs_main in ProcessNewBlock is fine.
             mapBlockSource.emplace(hash, std::make_pair(pfrom->GetId(), true));
         }
+
+        // Deserialize pocket part if exists
+        auto pocketBlock = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+
         bool fNewBlock = false;
         CValidationState state;
-        ProcessNewBlock(state, chainparams, pblock, forceProcessing, /* fReceived */ true, &fNewBlock);
+        ProcessNewBlock(state, chainparams, pblock, pocketBlock, forceProcessing, /* fReceived */ true, &fNewBlock);
         if (fNewBlock) {
             pfrom->nLastBlockTime = GetTime();
         } else {
