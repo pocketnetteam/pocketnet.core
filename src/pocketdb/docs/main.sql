@@ -296,7 +296,10 @@ select
   String5 string null,
 
   -- Post.Settings JSON
-  String6 string null
+  String6 string null,
+
+  -- Post.Url
+  String7 string null
 from vWebItem WI
 where WI.Type in (200);
 
