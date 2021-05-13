@@ -55,6 +55,9 @@ create index Transactions_Int3 on Transactions (Int3);
 drop index if exists Transactions_Int4;
 create index Transactions_Int4 on Transactions (Int4);
 
+drop index if exists Transactions_AddressId;
+create index Transactions_AddressId on Transactions (AddressId);
+
 
 --------------------------------------------
 drop table if exists Chain;
@@ -63,7 +66,7 @@ create table Chain
   TxId   int not null, -- Transactions.Id
   Height int not null, -- Block height
   Number int not null,
-  primary key (TxId, Height)
+  primary key (TxId, Height, Number)
 );
 
 --------------------------------------------
@@ -167,34 +170,66 @@ select T.*, C.Height, C.Number
 from Transactions T
 left join Chain C on T.Id = C.TxId;
 
-
-drop view if exists vUsers;
-create view vUsers as
+drop view if exists vItem;
+create view vItem as
 select t.Id,
+       t.Type,
        t.Hash,
        t.Time,
        t.Height,
        t.Number,
        a.Id   as AddressId,
        a.Address,
-       t.Int2 as Registration,
-       t.Int3 as Referrer
+       t.Int1,
+       t.Int2,
+       t.Int3,
+       t.Int4
 from vTransactions t
-join Addresses a on a.Id = t.Int1
-where t.Type in (100);
+join Addresses a on a.Id = t.AddressId;
+
+drop view if exists vUsers;
+create view vUsers as
+select Id,
+       Hash,
+       Time,
+       Height,
+       Number,
+       AddressId,
+       Address,
+       Int1 as Registration,
+       Int2 as ReferrerId
+from vItem i
+where i.Type in (100);
+
+
+
+create view vWebItem as
+select I.*, P.String1, P.String2, P.String3, P.String4, P.String5, P.String6, P.String7
+from vItem I
+join Payload P on I.Id = P.TxId
+where I.Height is not null
+  and I.Height = (
+  select max( i_.Height )
+  from vItem i_
+  where i_.RootTxId = I.RootTxId
+);
+
 
 
 drop view if exists vWebUsers;
 create view vWebUsers as
-select U.*, P.String1 as Title, P.String2 as About
-from vUsers U
-join Payload P on U.Id = P.TxId
-where U.Height is not null
-  and U.Height = (
-  select max( u_.Height )
-  from vUsers u_
-  where u_.AddressId = U.AddressId
-);
+select WI.*,
+       WI.Int1 as Registration,
+       WI.Int2 as ReferrerId,
+       WI.String1 as Lang,
+       WI.String2 as Name,
+       WI.String3 as Avatar,
+       WI.String4 as About,
+       WI.String5 as Url,
+       WI.String6 as Pubkey,
+       WI.String7 as Donations
+from vWebItem WI
+where WI.Type in (100);
 
 
 drop view if exists VideoServers;
@@ -211,6 +246,23 @@ select t.TxType,
 from Transactions t
 where t.TxType in (101);
 
+/*
+drop view if exists VideoServers;
+create view VideoServers as
+select t.Id,
+       t.Hash,
+       t.Time,
+       t.Height,
+       t.Number,
+       a.Id   as AddressId,
+       a.Address,
+       t.Int1 as Registration,
+       t.Int2 as Referrer
+from vTransactions t
+join Addresses a on a.Id = t.AddressId
+where t.Type in (101);
+*/
+
 drop view if exists MessageServers;
 create view MessageServers as
 select t.TxType,
@@ -226,129 +278,152 @@ from Transactions t
 where t.TxType in (102);
 
 --------------------------------------------
-drop view if exists Posts;
-create view Posts as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as RelayTxId
-from Transactions t
-where t.TxType in (200);
+drop view if exists vWebPosts;
+create view vWebPosts as
+select 
+ *
+  String1 as Lang,
+  String2 as Caption,
 
-drop view if exists Videos;
-create view Videos as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as RelayTxId
-from Transactions t
-where t.TxType in (201);
+  -- Post.Message
+  String3 string null,
 
-drop view if exists Translates;
-create view Translates as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as RelayTxId
-from Transactions t
-where t.TxType in (202);
+  -- Post.Tags JSON
+  String4 string null,
 
-drop view if exists ServerPings;
-create view ServerPings as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as RelayTxId
-from Transactions t
-where t.TxType in (203);
+  -- Post.Images JSON
+  String5 string null,
 
-drop view if exists Comments;
-create view Comments as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as Lang,
-       t.String2 as RootTxId,
-       t.String3 as PostTxId,
-       t.String4 as ParentTxId,
-       t.String5 as AnswerTxId
-from Transactions t
-where t.TxType in (204);
+  -- Post.Settings JSON
+  String6 string null
+from vWebItem WI
+where WI.Type in (200);
+
+
+drop view if exists vWebVideos;
+create view vWebVideos as
+select 
+ *
+  String1 as Lang,
+  String2 as Caption,
+
+  -- Post.Message
+  String3 string null,
+
+  -- Post.Tags JSON
+  String4 string null,
+
+  -- Post.Images JSON
+  String5 string null,
+
+  -- Post.Settings JSON
+  String6 string null
+from vWebItem WI
+where WI.Type in (201);
+
+
+drop view if exists vWebTranslates;
+create view vWebTranslates as
+select  *
+  String1 as Lang,
+  String2 as Caption,
+
+  -- Post.Message
+  String3 string null,
+
+  -- Post.Tags JSON
+  String4 string null,
+
+  -- Post.Images JSON
+  String5 string null,
+
+  -- Post.Settings JSON
+  String6 string null
+from vWebItem WI
+where WI.Type in (202);
+
+drop view if exists vWebServerPings;
+create view vWebServerPings as
+ select *
+  String1 as Lang,
+  String2 as Caption,
+  String3 as Message,
+  String4 as Tags,
+
+  -- Post.Images JSON
+  String5 string null,
+
+  -- Post.Settings JSON
+  String6 string null
+from vWebItem WI
+where WI.Type in (203);
+
+
+drop view if exists vWebComments;
+create view vWebComments as
+ select *
+  String1 as Lang,
+  String2 as Message,
+  Int1 as RootTxId,
+  Int2 as PostTxId,
+  Int3 as ParentTxId,
+  Int4 as AnswerTxId
+from vWebItem WI
+where WI.Type in (204);
+
 
 --------------------------------------------
-drop view if exists ScorePosts;
-create view ScorePosts as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.Int1    as Value,
-       t.String1 as PostTxId
-from Transactions t
-where t.TxType in (300);
+drop view if exists vWebScorePosts;
+create view vWebScorePosts as
+ select 
+  Int1 as PostTxId,
+  Int2 as Value
+from vWebItem WI
+where WI.Type in (300);
 
-drop view if exists ScoreComments;
-create view ScoreComments as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.Int1    as Value,
-       t.String1 as CommentTxId
-from Transactions t
-where t.TxType in (301);
+drop view if exists vWebScoreComments;
+create view vWebScoreComments as
+ select 
+  Int1 as CommentTxId,
+  Int2 as Value
+from vWebItem WI
+where WI.Type in (301);
 
 
-drop view if exists Subscribes;
-create view Subscribes as
-select t.TxType, t.TxId, t.TxTime, t.Block, t.TxOut, t.Address, t.String1 as AddressTo from Transactions t where t.TxType in (302, 303, 304);
+drop view if exists vWebSubscribes;
+create view vWebSubscribes as
+ select *
+  Type,
+  Int1 as AddressToId
+  a.Address as AddressTo
+from vWebItem WI
+join Addresses a ON a.Id=WI.Int1
+where WI.Type in (302, 303, 304);
 
 
-drop view if exists Blockings;
-create view Blockings as
-select t.TxType, t.TxId, t.TxTime, t.Block, t.TxOut, t.Address, t.String1 as AddressTo from Transactions t where t.TxType in (305, 306);
+
+drop view if exists vWebBlockings;
+create view vWebBlockings as
+ select *
+  Type,
+  Int1 as AddressToId
+  a.Address as AddressTo
+from vWebItem WI
+join Addresses a ON a.Id=WI.Int1
+where WI.Type in (305, 306);
+
 
 
 drop view if exists Complains;
 create view Complains as
-select t.TxType,
-       t.TxId,
-       t.TxTime,
-       t.Block,
-       t.TxOut,
-       t.Address,
-       t.String1 as AddressTo,
-       t.Int1    as Reason
-from Transactions t
-where t.TxType in (307);
-
+ select *
+  Type,
+  Int1 as AddressToId
+  a.Address as AddressTo,
+  WI.Int2    as Reason
+from vWebItem WI
+join Addresses a ON a.Id=WI.Int1
+where WI.Type in (307);
 
 
 vacuum;
