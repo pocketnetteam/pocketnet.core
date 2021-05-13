@@ -24,7 +24,7 @@ namespace PocketTx
 
         Transaction() : Base() {}
 
-        virtual void Deserialize(const UniValue &src)
+        virtual void Deserialize(const UniValue& src)
         {
             if (auto[ok, val] = TryGetStr(src, "txid"); ok) SetHash(val);
             if (auto[ok, val] = TryGetInt64(src, "time"); ok) SetTime(val);
@@ -72,8 +72,13 @@ namespace PocketTx
         [[nodiscard]] bool HasPayload() const { return m_payload != nullptr; };
 
 
-        virtual void BuildPayload(const UniValue &src) = 0;
-        virtual void BuildHash(const UniValue &src) = 0;
+        virtual void BuildPayload(const UniValue& src)
+        {
+            m_payload = shared_ptr<Payload>(new Payload());
+            SetHash(*m_hash);
+        }
+
+        virtual void BuildHash(const UniValue& src) = 0;
 
     protected:
         shared_ptr<int64_t> m_id = nullptr;
@@ -93,10 +98,10 @@ namespace PocketTx
 
         shared_ptr<Payload> m_payload = nullptr;
 
-        void GenerateHash(string &dataSrc)
+        void GenerateHash(string& dataSrc)
         {
             unsigned char hash[32] = {};
-            CSHA256().Write((const unsigned char *) dataSrc.data(), dataSrc.size()).Finalize(hash);
+            CSHA256().Write((const unsigned char*) dataSrc.data(), dataSrc.size()).Finalize(hash);
             CSHA256().Write(hash, 32).Finalize(hash);
             std::vector<unsigned char> vec(hash, hash + sizeof(hash));
             m_hash = make_shared<string>(HexStr(vec));

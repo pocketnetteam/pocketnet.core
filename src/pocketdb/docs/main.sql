@@ -111,6 +111,7 @@ create table Payload
   String6 string null,
 
   -- User.Donations JSON
+  -- Post.Url
   String7 string null
 );
 
