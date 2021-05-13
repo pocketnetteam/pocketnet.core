@@ -33,11 +33,13 @@ namespace PocketTx
 
         shared_ptr <int64_t> GetRootTxId() const { return m_int1; }
         shared_ptr <string> GetRootTxHash() const { return m_root_tx_hash; }
+        string GetRootTxHashStr() const { return m_root_tx_hash == nullptr ? "" : *m_root_tx_hash; }
         void SetRootTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
         void SetRootTxHash(string value) { m_root_tx_hash = make_shared<string>(value); }
 
         shared_ptr <int64_t> GetRelayTxId() const { return m_int2; }
         shared_ptr <string> GetRelayTxHash() const { return m_relay_tx_hash; }
+        string GetRelayTxHashStr() const { return m_relay_tx_hash == nullptr ? "" : *m_relay_tx_hash; }
         void SetRelayTxId(int64_t value) { m_int2 = make_shared<int64_t>(value); }
         void SetRelayTxHash(string value) { m_relay_tx_hash = make_shared<string>(value); }
 
@@ -91,8 +93,8 @@ namespace PocketTx
                 }
             }
 
-            data += GetRootTxHash() == nullptr ? "" : *GetRootTxHash();
-            data += GetRelayTxHash() == nullptr ? "" : *GetRelayTxHash();
+            data += GetRootTxHashStr();
+            data += GetRelayTxHashStr();
 
             Transaction::GenerateHash(data);
         }
