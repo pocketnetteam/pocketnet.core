@@ -101,7 +101,7 @@ POCKETDB_HPP = \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/TransactionIndexer.hpp \
     pocketdb/models/base/PocketTypes.hpp \
-    pocketdb/models/base/Return.hpp \
+    pocketdb/models/base/SelectModels.hpp \
     pocketdb/models/base/Base.hpp \
     pocketdb/models/base/Payload.hpp \
     pocketdb/models/base/Transaction.hpp \
