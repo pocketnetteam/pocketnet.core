@@ -102,24 +102,25 @@ static bool MatchPayToPubkey(const CScript &script, valtype &pubkey)
 
 static bool HTLCScript(const CScript &script)
 {
-    return script.size() == 92 &&
-           script[0] == OP_IF &&
-           script[1] == OP_SHA256 &&
-           script[2] == 32 &&
-           script[35] == OP_EQUALVERIFY &&
-           script[36] == OP_DUP &&
-           script[37] == OP_HASH160 &&
-           script[38] == 20 &&
-           script[59] == OP_ELSE &&
-           script[60] == 3 &&
-           script[64] == OP_CHECKLOCKTIMEVERIFY &&
-           script[65] == OP_DROP &&
-           script[66] == OP_DUP &&
-           script[67] == OP_HASH160 &&
-           script[68] == 20 &&
-           script[89] == OP_ENDIF &&
-           script[90] == OP_EQUALVERIFY &&
-           script[91] == OP_CHECKSIG;
+    return script.size() == 93 &&
+           script[0] == OP_DUP &&
+           script[1] == OP_IF &&
+           script[2] == OP_SHA256 &&
+           script[3] == 32 &&
+           script[36] == OP_EQUALVERIFY &&
+           script[37] == OP_DUP &&
+           script[38] == OP_HASH160 &&
+           script[39] == 20 &&
+           script[60] == OP_ELSE &&
+           script[61] == 3 &&
+           script[65] == OP_CHECKLOCKTIMEVERIFY &&
+           script[66] == OP_DROP &&
+           script[67] == OP_DUP &&
+           script[68] == OP_HASH160 &&
+           script[69] == 20 &&
+           script[90] == OP_ENDIF &&
+           script[91] == OP_EQUALVERIFY &&
+           script[92] == OP_CHECKSIG;
 }
 
 static bool MatchPayToPubkeyHash(const CScript &script, valtype &pubkeyhash)
@@ -219,8 +220,13 @@ txnouttype Solver(const CScript &scriptPubKey, std::vector<std::vector<unsigned 
 
     if (HTLCScript(scriptPubKey))
     {
-        std::vector<unsigned char> hashBytes(scriptPubKey.begin(), scriptPubKey.begin() + 87);
-        vSolutionsRet.push_back(hashBytes);
+
+        std::vector<unsigned char> hashBytesReciever(scriptPubKey.begin() + 40, scriptPubKey.begin() + 60);
+        std::vector<unsigned char> hashBytesSender(scriptPubKey.begin() + 70, scriptPubKey.begin() + 90);
+        
+        vSolutionsRet.push_back(hashBytesReciever);
+        vSolutionsRet.push_back(hashBytesSender);
+
         return TX_HTLC;
     }
 
@@ -300,7 +306,7 @@ bool ExtractDestinations(const CScript &scriptPubKey, txnouttype &typeRet, std::
         return false;
     }
 
-    if (typeRet == TX_MULTISIG)
+    if (typeRet == TX_MULTISIG || typeRet == TX_HTLC)
     {
         nRequiredRet = vSolutions.front()[0];
         for (unsigned int i = 1; i < vSolutions.size() - 1; i++)
