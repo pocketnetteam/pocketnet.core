@@ -14,29 +14,38 @@ namespace PocketTx
 {
     using std::string;
     using std::vector;
+    using std::map;
     using std::shared_ptr;
 
 
-    class RetBase
+    // Base return model
+    class SelectBase
     {
     public:
-        RetBase() = default;
-        virtual ~RetBase() { }
-
-        virtual UniValue Serialize() = 0;
+        virtual ~SelectBase() {}
+        virtual UniValue Serialize() {}
     };
 
+    // Base list ofr return models
     template<class T>
-    class RetList
+    class SelectList
     {
     protected:
         vector<T> _lst;
     public:
-        void Add(T t) { _lst.push_back(t); }    
+        vector<T>& List() const
+        {
+            return _lst;
+        }
+        void Add(T t)
+        {
+            _lst.push_back(t);
+        }
         UniValue Serialize()
         {
             UniValue ret(UniValue::VARR);
-            for (auto& itm : _lst) {
+            for (auto& itm : _lst)
+            {
                 ret.push_back(itm.Serialize());
             }
 
@@ -44,13 +53,12 @@ namespace PocketTx
         }
     };
 
-    class RetAddressInfo : RetBase
+    // Base address info, etc balance
+    class SelectAddressInfo : SelectBase
     {
     public:
         string Address;
         int64_t Balance;
-
-        RetAddressInfo() : RetBase() { }
 
         UniValue Serialize() override
         {
@@ -60,8 +68,6 @@ namespace PocketTx
             return ret;
         }
     };
-
-
 
 } // namespace PocketTx
 

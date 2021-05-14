@@ -16,15 +16,16 @@ namespace PocketDb
     using std::tuple;
     using std::make_tuple;
     using std::vector;
+    using std::map;
 
     // TODO (brangr): mutext for insert/update/delete ?
 
     class BaseRepository
     {
     protected:
-        SQLiteDatabase &m_database;
+        SQLiteDatabase& m_database;
 
-        bool TryStepStatement(shared_ptr<sqlite3_stmt *> stmt)
+        bool TryStepStatement(shared_ptr<sqlite3_stmt*> stmt)
         {
             int res = sqlite3_step(*stmt);
             if (res != SQLITE_ROW && res != SQLITE_DONE)
@@ -35,7 +36,7 @@ namespace PocketDb
         }
 
         template<typename T>
-        bool TryBulkStep(T sql)
+        bool TryTransactionStep(T sql)
         {
             assert(m_database.m_db);
             if (ShutdownRequested())
@@ -51,7 +52,7 @@ namespace PocketDb
                 if (!m_database.CommitTransaction())
                     throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));
 
-            } catch (std::exception &ex)
+            } catch (std::exception& ex)
             {
                 m_database.AbortTransaction();
                 return false;
@@ -60,7 +61,8 @@ namespace PocketDb
             return true;
         }
 
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt *> stmt, int index, const shared_ptr<std::string> &value)
+
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<std::string>& value)
         {
             if (!value) return true;
 
@@ -73,7 +75,18 @@ namespace PocketDb
             return true;
         }
 
-        bool TryBindStatementInt(shared_ptr<sqlite3_stmt *> stmt, int index, int value)
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*> stmt, int index, const std::string& value)
+        {
+            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
+            if (!CheckValidResult(stmt, res))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*> stmt, int index, int value)
         {
             if (!value) return true;
 
@@ -86,7 +99,7 @@ namespace PocketDb
             return true;
         }
 
-        bool TryBindStatementInt(shared_ptr<sqlite3_stmt *> stmt, int index, const shared_ptr<int> &value)
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int>& value)
         {
             if (!value) return true;
 
@@ -99,7 +112,7 @@ namespace PocketDb
             return true;
         }
 
-        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt *> stmt, int index, const shared_ptr<int64_t> &value)
+        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int64_t>& value)
         {
             if (!value) return true;
 
@@ -114,20 +127,19 @@ namespace PocketDb
 
 
         [[nodiscard]]
-        shared_ptr<sqlite3_stmt *> SetupSqlStatement(const std::string &sql) const
+        shared_ptr<sqlite3_stmt*> SetupSqlStatement(const std::string& sql) const
         {
-            sqlite3_stmt *stmt;
+            sqlite3_stmt* stmt;
 
             int res = sqlite3_prepare_v2(m_database.m_db, sql.c_str(), (int) sql.size(), &stmt, nullptr);
             if (res != SQLITE_OK)
                 throw std::runtime_error(
                     strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\n", sqlite3_errstr(res)));
 
-            return std::make_shared<sqlite3_stmt *>(stmt);
+            return std::make_shared<sqlite3_stmt*>(stmt);
         }
 
-
-        bool CheckValidResult(shared_ptr<sqlite3_stmt *> stmt, int result)
+        bool CheckValidResult(shared_ptr<sqlite3_stmt*> stmt, int result)
         {
             if (result != SQLITE_OK)
             {
@@ -140,24 +152,28 @@ namespace PocketDb
             return true;
         }
 
-        int FinalizeSqlStatement(sqlite3_stmt *stmt)
+        int FinalizeSqlStatement(sqlite3_stmt* stmt)
         {
             return sqlite3_finalize(stmt);
         }
 
-        std::string GetColumnString(sqlite3_stmt *stmt, int index)
+        std::string GetColumnString(sqlite3_stmt* stmt, int index)
         {
-            return std::string(reinterpret_cast<const char *>(sqlite3_column_text(stmt, index)));
+            return std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, index)));
         }
 
-        int64_t GetColumnInt64(sqlite3_stmt *stmt, int index)
+        int64_t GetColumnInt64(sqlite3_stmt* stmt, int index)
         {
             return sqlite3_column_int64(stmt, index);
         }
 
+        int GetColumnInt(sqlite3_stmt* stmt, int index)
+        {
+            return sqlite3_column_int(stmt, index);
+        }
 
     public:
-        explicit BaseRepository(SQLiteDatabase &db) :
+        explicit BaseRepository(SQLiteDatabase& db) :
             m_database(db)
         {
         }

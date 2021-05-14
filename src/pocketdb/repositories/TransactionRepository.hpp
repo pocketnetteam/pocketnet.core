@@ -12,7 +12,7 @@
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
 #include "pocketdb/models/base/TransactionInput.hpp"
-#include "pocketdb/models/base/Return.hpp"
+#include "pocketdb/models/base/SelectModels.hpp"
 
 namespace PocketDb
 {
@@ -31,23 +31,22 @@ namespace PocketDb
         // ================================================================================================================
         bool InsertTransactions(PocketBlock& pocketBlock)
         {
-            return TryBulkStep([&]()
+            return TryTransactionStep([&]()
             {
                 for (const auto& transaction : pocketBlock)
                 {
                     auto stmt = SetupSqlStatement(R"sql(
-                            INSERT OR IGNORE INTO Transactions (
-                                Type,
-                                Hash,
-                                Time,
-                                AddressId,
-                                Int1,
-                                Int2,
-                                Int3,
-                                Int4
-                            ) SELECT ?,?,?,?,?,?,?,?;
-                        )sql"
-                    );
+                        INSERT OR IGNORE INTO Transactions (
+                            Type,
+                            Hash,
+                            Time,
+                            AddressId,
+                            Int1,
+                            Int2,
+                            Int3,
+                            Int4
+                        ) SELECT ?,?,?,?,?,?,?,?;
+                    )sql");
 
                     auto result = TryBindStatementInt(stmt, 1, transaction->GetTypeInt());
                     result &= TryBindStatementText(stmt, 2, transaction->GetHash());
@@ -110,7 +109,7 @@ namespace PocketDb
         // ================================================================================================================
         bool InsertTransactionsOutputs(const vector<TransactionOutput>& outputs)
         {
-            return TryBulkStep([&]()
+            return TryTransactionStep([&]()
             {
                 for (const auto& output : outputs)
                 {
@@ -174,7 +173,7 @@ namespace PocketDb
         // ================================================================================================================
         bool InsertTransactionsInputs(const vector<TransactionInput>& inputs)
         {
-            return TryBulkStep([&]()
+            return TryTransactionStep([&]()
             {
                 for (const auto& input : inputs)
                 {
@@ -211,16 +210,65 @@ namespace PocketDb
         // 
         // ================================================================================================================
 
-        // Top addresses info
-        tuple<bool, RetList<RetAddressInfo>> SelectTopAddresses(int count)
+        // Mapping TxHash (string) -> TxId (int) and Address (string) -> AddressId (int)
+        // type = 0 for transactions
+        // type = 1 for addresses
+        bool MapHashToId(int type, map<string, int>& lst)
         {
-            RetList<RetAddressInfo> result;
+            if (ShutdownRequested())
+                return false;
 
-            assert(m_database.m_db);
+            // Build bind string for select - ?,?,?
+            string values;
+            for (int i = 0; i < lst.size(); i++)
+                values += "?,";
+
+            // Trim last comma
+            values.erase(values.find_last_not_of(",") + 1);
+
+            // Build sql statement
+            string sql;
+            switch (type)
+            {
+                case 0:
+                    sql = "SELECT t.Hash, t.Id FROM Transactions t WHERE t.Hash in (" + values + ");";
+                    break;
+                case 1:
+                    sql = "SELECT a.Address, a.Id FROM Addresses a WHERE a.Address in (" + values + ");";
+                    break;
+                default:
+                    return false;
+            }
+            auto stmt = SetupSqlStatement(sql);
+
+            // Bind "where" arguments
+            int i = 1;
+            for (const auto& m : lst)
+            {
+                if (!TryBindStatementText(stmt, i, m.first))
+                    return false;
+                i += 1;
+            }
+
+            // Execute
+            return TryTransactionStep([&]()
+            {
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    lst[GetColumnString(*stmt, 0)] = GetColumnInt(*stmt, 1);
+                }
+            });
+        }
+
+        // Top addresses info
+        tuple<bool, SelectList<SelectAddressInfo>> SelectTopAddresses(int count)
+        {
+            SelectList<SelectAddressInfo> result;
+
             if (ShutdownRequested())
                 return make_tuple(false, result);
 
-            try
+            bool tryResult = TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(
                     " SELECT"
@@ -239,18 +287,14 @@ namespace PocketDb
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
-                    RetAddressInfo inf;
+                    SelectAddressInfo inf;
                     inf.Address = GetColumnString(*stmt, 0);
                     inf.Balance = GetColumnInt64(*stmt, 1);
                     result.Add(inf);
                 }
-            }
-            catch (std::exception& ex)
-            {
-                return make_tuple(false, result);
-            }
+            });
 
-            return make_tuple(true, result);
+            return make_tuple(tryResult, result);
         }
 
     private:
