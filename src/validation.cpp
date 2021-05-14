@@ -2322,7 +2322,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         nTimeForks * MICRO, nTimeForks * MILLI / nBlocksTotal);
 
     CBlockUndo blockundo;
-
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : nullptr);
 
     std::vector<int> prevheights;
@@ -2331,8 +2330,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     std::vector<PrecomputedTransactionData> txdata;
-    txdata.reserve(
-        block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
+    // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
+    txdata.reserve(block.vtx.size());
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction& tx = *(block.vtx[i]);
@@ -2400,7 +2399,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             }
 
             std::vector<CScriptCheck> vChecks;
-            bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
+            /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
+            bool fCacheResults = fJustCheck;
             if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, fCacheResults, txdata[i],
                 nScriptCheckThreads ? &vChecks : nullptr))
                 return error("ConnectBlock(): CheckInputs on %s failed with %s",
@@ -2415,6 +2415,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
     }
+
     int64_t nTime3 = GetTimeMicros();
     nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n",
@@ -2432,6 +2433,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 REJECT_INVALID, "bad-cb-amount");
     }
 
+    // -----------------------------------------------------------------------------------------------------------------
+    // Checks PoS logic
+    // TODO (brangr): need?
     if (pindex->nHeight == Params().GetConsensus().nHeight_version_1_0_0_pre)
     {
         if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
@@ -2440,6 +2444,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
     }
 
+    // TODO (brangr): need?
     if (pindex->nHeight > Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
     {
         int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
@@ -2452,7 +2457,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
-        // TODO (brangr): REINDEXER -> SQLITE
+        // TODO (brangr) (v0.20.0): check pocket lottery rules
 //        if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource)) {
 //            if (IsCheckpointBlock(pindex->nHeight, block.GetHash().ToString()))
 //                LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
@@ -2461,56 +2466,40 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 //        }
     }
 
+    int64_t nTime4 = GetTimeMicros();
+    nTimeVerify += nTime4 - nTime3;
+    LogPrint(BCLog::BENCH, "    - Checking rewards: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+        MILLI * (nTime4 - nTime3), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (nInputs - 1), nTimeVerify * MICRO,
+        nTimeVerify * MILLI / nBlocksTotal);
+
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
 
-    //----------------------------------------------------------------------------------
-    // TODO (brangr): REINDEXER -> SQLITE
+    // -----------------------------------------------------------------------------------------------------------------
+    // TODO (brangr) (v0.20.0): check all block with pocket consensus rules
     // // Check reindexer data exists and Antibot checks
     // if (!CheckBlockAdditional(pindex, block, state)) {
     //     return false;
     // }
 
-    // // Try write reindexer data
-    // // Data can received by another node or this node created new block
-    // // and data in mempool
-    // {
-    //     uint256 blockhash = block.GetHash();
+    int64_t nTime5 = GetTimeMicros();
+    nTimeVerify += nTime5 - nTime4;
+    LogPrint(BCLog::BENCH, "    - Pocket consensus: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+        MILLI * (nTime5 - nTime4), nInputs <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (nInputs - 1), nTimeVerify * MICRO,
+        nTimeVerify * MILLI / nBlocksTotal);
 
-    //     // Write received PocketNET data to RIDB
-    //     if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
-    //         std::string _pocket_data = POCKETNET_DATA[blockhash];
-    //         if (!g_addrindex->SetBlockRIData(_pocket_data, pindex->nHeight)) {
-    //             LogPrintf("--- Failed restore received data (%s) (AddrIndex::SetBlockRIData)\n", blockhash.GetHex());
-    //             return false;
-    //         }
-
-    //         POCKETNET_DATA.erase(blockhash);
-    //     }
-
-    //     // Get data from RIMempool and write to general RI tables
-    //     if (!g_addrindex->CommitRIMempool(block, pindex->nHeight)) {
-    //         LogPrintf("--- Failed restore RI Mempool block (%s) (AddrIndex::CommitRIMempool)\n", blockhash.GetHex());
-    //         return false;
-    //     }
-
-    //     // Indexing new block
-    //     if (!g_addrindex->IndexBlock(block, pindex)) {
-    //         LogPrintf("--- Failed indexing block (%s)\n", blockhash.GetHex());
-    //         return false;
-    //     }
-    // }
-
+    // -----------------------------------------------------------------------------------------------------------------
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
     PocketServices::TransactionIndexer::Index(block, pindex->nHeight);
 
-    //-----------------------------------------------------
-    int64_t nTime4 = GetTimeMicros();
-    nTimeVerify += nTime4 - nTime2;
-    LogPrint(BCLog::BENCH, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n", nInputs - 1,
-        MILLI * (nTime4 - nTime2), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime2) / (nInputs - 1), nTimeVerify * MICRO,
+    int64_t nTime6 = GetTimeMicros();
+    nTimeVerify += nTime6 - nTime5;
+    LogPrint(BCLog::BENCH, "    - Sqlite index writing: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+        MILLI * (nTime6 - nTime5), nInputs <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (nInputs - 1), nTimeVerify * MICRO,
         nTimeVerify * MILLI / nBlocksTotal);
 
+    // -----------------------------------------------------------------------------------------------------------------
+    // Finalize connect
     if (fJustCheck)
         return true;
 
@@ -2527,15 +2516,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash());
 
-    int64_t nTime5 = GetTimeMicros();
-    nTimeIndex += nTime5 - nTime4;
-    LogPrint(BCLog::BENCH, "    - Index writing: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime5 - nTime4),
+    int64_t nTime7 = GetTimeMicros();
+    nTimeIndex += nTime7 - nTime6;
+    LogPrint(BCLog::BENCH, "    - Index writing: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime7 - nTime6),
         nTimeIndex * MICRO, nTimeIndex * MILLI / nBlocksTotal);
-
-    int64_t nTime6 = GetTimeMicros();
-    nTimeCallbacks += nTime6 - nTime5;
-    LogPrint(BCLog::BENCH, "    - Callbacks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime6 - nTime5),
-        nTimeCallbacks * MICRO, nTimeCallbacks * MILLI / nBlocksTotal);
 
     return true;
 }

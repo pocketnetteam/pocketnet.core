@@ -29,6 +29,7 @@ namespace PocketServices
         {
             auto result = true;
 
+            result &= IndexAddesses(block);
             result &= IndexChain(block, height);
             result &= IndexTransactions(block, height);
             result &= IndexReputations(block, height);
@@ -57,10 +58,17 @@ namespace PocketServices
         }
 
         // =============================================================================================================
+        // Save all addresses in DB for optimize acces by integer id
+        static bool IndexAddesses(const CBlock& block)
+        {
+            // TODO (brangr): implement
+        }
+
+        // =============================================================================================================
         // Set block height for all transactions in block
         static bool IndexChain(const CBlock& block, int height)
         {
-            // TODO (joni): записать транзакции и блок в БД
+            // TODO (brangr): записать транзакции и блок в БД
         }
 
         // =============================================================================================================
@@ -118,7 +126,8 @@ namespace PocketServices
                    TransRepoInst.InsertTransactionsInputs(inputs);
         }
 
-        static bool IndexReputations(const CBlock& block, int height) {
+        static bool IndexReputations(const CBlock& block, int height)
+        {
             // todo (brangr): index ratings
         }
 
