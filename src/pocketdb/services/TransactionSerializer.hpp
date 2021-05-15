@@ -37,7 +37,7 @@ namespace PocketServices
         {
             // Prepare source data - old format (Json)
             UniValue pocketData(UniValue::VOBJ);
-            if (stream.empty())
+            if (!stream.empty())
             {
                 // TODO (brangr) (v0.21.0): speed up protocol
                 string src;
@@ -47,32 +47,45 @@ namespace PocketServices
 
             // Restore pocket transaction instance
             PocketBlock pocketBlock;
-            for (const auto& tx : block.vtx) {
+            for (const auto& tx : block.vtx)
+            {
                 auto txHash = tx->GetHash().GetHex();
 
                 UniValue entry(UniValue::VOBJ);
-                if (pocketData.exists(txHash)) {
+                if (pocketData.exists(txHash))
+                {
                     auto entrySrc = pocketData[txHash];
 
                     try
                     {
                         entry.read(entrySrc.get_str());
                     }
-                    catch (std::exception &ex)
+                    catch (std::exception& ex)
                     {
                         LogPrintf("Error deserialize transaction: %s: %s\n", txHash, ex.what());
                     }
                 }
 
-                pocketBlock.push_back(BuildInstance(tx, entry));
+                auto ptx = BuildInstance(tx, entry);
+                if (ptx)
+                    pocketBlock.push_back(ptx);
             }
 
             return pocketBlock;
         }
 
-        static PocketTxType ParseType(const CTransactionRef &tx, std::vector<std::string> &vasm)
+        static PocketTxType ParseType(const CTransactionRef& tx, std::vector<std::string>& vasm)
         {
-            const CTxOut &txout = tx->vout[0];
+            if (tx->vin.empty())
+                return PocketTxType::NOT_SUPPORTED;
+
+            if (tx->IsCoinBase())
+                return PocketTxType::TX_COINBASE;
+
+            if (tx->IsCoinStake())
+                return PocketTxType::TX_COINSTAKE;
+
+            const CTxOut& txout = tx->vout[0];
             if (txout.scriptPubKey[0] == OP_RETURN)
             {
                 auto asmStr = ScriptToAsmStr(txout.scriptPubKey);
@@ -81,18 +94,18 @@ namespace PocketServices
                     return ConvertOpReturnToType(vasm[1]);
             }
 
+            return PocketTxType::TX_DEFAULT;
+        }
+
+        static PocketTxType ParseType(const CTransactionRef& tx)
+        {
             if (tx->IsCoinBase())
                 return PocketTxType::TX_COINBASE;
 
             if (tx->IsCoinStake())
                 return PocketTxType::TX_COINSTAKE;
 
-            return PocketTxType::TX_DEFAULT;
-        }
-
-        static PocketTxType ParseType(const CTransactionRef &tx)
-        {
-            const CTxOut &txout = tx->vout[0];
+            const CTxOut& txout = tx->vout[0];
             if (txout.scriptPubKey[0] == OP_RETURN)
             {
                 auto asmStr = ScriptToAsmStr(txout.scriptPubKey);
@@ -102,16 +115,10 @@ namespace PocketServices
                     return ConvertOpReturnToType(vasm[1]);
             }
 
-            if (tx->IsCoinBase())
-                return PocketTxType::TX_COINBASE;
-
-            if (tx->IsCoinStake())
-                return PocketTxType::TX_COINSTAKE;
-
             return PocketTxType::TX_DEFAULT;
         }
 
-        static PocketTxType ParseType(const std::string &reindexerTable, const UniValue &reindexerSrc)
+        static PocketTxType ParseType(const std::string& reindexerTable, const UniValue& reindexerSrc)
         {
             // TODO (brangr): implement enum for tx types
             if (reindexerTable == "Users")
@@ -160,7 +167,7 @@ namespace PocketServices
             return PocketTxType::NOT_SUPPORTED;
         }
 
-        static PocketTxType ConvertOpReturnToType(const std::string &op)
+        static PocketTxType ConvertOpReturnToType(const std::string& op)
         {
             if (op == OR_POST || op == OR_POSTEDIT)
                 return PocketTxType::CONTENT_POST;
@@ -197,68 +204,70 @@ namespace PocketServices
 
             // TODO (brangr): new types
 
-            return PocketTxType::NOT_SUPPORTED;
+            return PocketTxType::TX_DEFAULT;
         }
 
-        static shared_ptr<Transaction> BuildInstance(const CTransactionRef &tx, const UniValue &src)
+        static shared_ptr<Transaction> BuildInstance(const CTransactionRef& tx, const UniValue& src)
         {
+            auto txHash = tx->GetHash().GetHex();
             shared_ptr<Transaction> ptx = nullptr;
             PocketTxType txType = ParseType(tx);
             switch (txType)
             {
+                case NOT_SUPPORTED:
+                    return ptx;
                 case TX_COINBASE:
-                    return make_shared<Coinbase>();
+                    return make_shared<Coinbase>(txHash, tx->nTime);
                 case TX_COINSTAKE:
-                    return make_shared<Coinstake>();
+                    return make_shared<Coinstake>(txHash, tx->nTime);
                 case TX_DEFAULT:
-                    return make_shared<Default>();
-
+                    return make_shared<Default>(txHash, tx->nTime);
                 case ACCOUNT_USER:
-                    ptx = make_shared<User>();
+                    ptx = make_shared<User>(txHash, tx->nTime);
                     break;
                 case ACCOUNT_VIDEO_SERVER:
+                    break;
                 case ACCOUNT_MESSAGE_SERVER:
                     break;
                 case CONTENT_POST:
-                    ptx = make_shared<Post>();
+                    ptx = make_shared<Post>(txHash, tx->nTime);
                     break;
                 case CONTENT_VIDEO:
+                    break;
                 case CONTENT_TRANSLATE:
+                    break;
                 case CONTENT_SERVERPING:
                     break;
                 case CONTENT_COMMENT:
-                    ptx = make_shared<Comment>();
+                    ptx = make_shared<Comment>(txHash, tx->nTime);
                     break;
                 case ACTION_SCORE_POST:
-                    ptx = make_shared<ScorePost>();
+                    ptx = make_shared<ScorePost>(txHash, tx->nTime);
                     break;
                 case ACTION_SCORE_COMMENT:
-                    ptx = make_shared<ScoreComment>();
+                    ptx = make_shared<ScoreComment>(txHash, tx->nTime);
                     break;
                 case ACTION_SUBSCRIBE:
-                    ptx = make_shared<Subscribe>();
+                    ptx = make_shared<Subscribe>(txHash, tx->nTime);
                     break;
                 case ACTION_SUBSCRIBE_PRIVATE:
-                    ptx = make_shared<SubscribePrivate>();
+                    ptx = make_shared<SubscribePrivate>(txHash, tx->nTime);
                     break;
                 case ACTION_SUBSCRIBE_CANCEL:
-                    ptx = make_shared<SubscribeCancel>();
+                    ptx = make_shared<SubscribeCancel>(txHash, tx->nTime);
                     break;
                 case ACTION_BLOCKING:
-                    ptx = make_shared<Blocking>();
+                    ptx = make_shared<Blocking>(txHash, tx->nTime);
                     break;
                 case ACTION_BLOCKING_CANCEL:
-                    ptx = make_shared<BlockingCancel>();
+                    ptx = make_shared<BlockingCancel>(txHash, tx->nTime);
                     break;
                 case ACTION_COMPLAIN:
-                    ptx = make_shared<Complain>();
+                    ptx = make_shared<Complain>(txHash, tx->nTime);
                     break;
                 default:
                     break;
             }
-
-            if (!ptx)
-                return ptx;
 
             if (src.exists("d"))
             {

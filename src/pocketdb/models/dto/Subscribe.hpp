@@ -16,32 +16,32 @@ namespace PocketTx
     {
     public:
 
-        Subscribe() : Transaction()
+        Subscribe(string hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_SUBSCRIBE);
         }
 
-        void Deserialize(const UniValue &src) override {
+        void Deserialize(const UniValue& src) override
+        {
             Transaction::Deserialize(src);
-
             if (auto[ok, val] = TryGetStr(src, "address_to"); ok) SetAddressTo(val);
         }
 
-        shared_ptr<int64_t> GetAddressToId() const { return m_int1; }
+        shared_ptr <int64_t> GetAddressToId() const { return m_int1; }
         string GetAddressToStr() const { return m_address_to == nullptr ? "" : *m_address_to; }
         void SetAddressToId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
         void SetAddressTo(string value) { m_address_to = make_shared<string>(value); }
 
     protected:
-        shared_ptr<string> m_address_to = nullptr;
+        shared_ptr <string> m_address_to = nullptr;
 
     private:
 
-        void BuildPayload(const UniValue &src) override
+        void BuildPayload(const UniValue& src) override
         {
         }
 
-        void BuildHash(const UniValue &src) override
+        void BuildHash(const UniValue& src) override
         {
             std::string data;
             data += GetAddressToStr();

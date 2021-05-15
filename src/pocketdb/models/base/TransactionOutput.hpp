@@ -39,7 +39,7 @@ namespace PocketTx
         shared_ptr <int64_t> m_number = nullptr;
         shared_ptr <int64_t> m_value = nullptr;
 
-        shared_ptr <vector<string>> m_destinations;
+        shared_ptr <vector<string>> m_destinations = make_shared<vector<string>>();
 
     private:
     };

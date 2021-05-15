@@ -17,7 +17,7 @@ namespace PocketTx
     {
     public:
 
-        ScorePost() : Transaction()
+        ScorePost(string hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_SCORE_POST);
         }
@@ -25,7 +25,6 @@ namespace PocketTx
         void Deserialize(const UniValue &src) override
         {
             Transaction::Deserialize(src);
-
             if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxHash(val);
             if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
         }

@@ -25,20 +25,12 @@ namespace PocketDb
     protected:
         SQLiteDatabase& m_database;
 
-        bool TryStepStatement(shared_ptr<sqlite3_stmt*> stmt)
-        {
-            int res = sqlite3_step(*stmt);
-            if (res != SQLITE_ROW && res != SQLITE_DONE)
-                LogPrintf("%s: Unable to execute statement: %s: %s\n",
-                    __func__, sqlite3_sql(*stmt), sqlite3_errstr(res));
-
-            return !(res != SQLITE_ROW && res != SQLITE_DONE);
-        }
-
+        // General method for SQL operations
+        // Locked with shutdownMutex
         template<typename T>
         bool TryTransactionStep(T sql)
         {
-            assert(m_database.m_db);
+            LOCK(SqliteShutdownMutex);
             if (ShutdownRequested())
                 return false;
 
@@ -54,6 +46,7 @@ namespace PocketDb
 
             } catch (std::exception& ex)
             {
+                LogPrintf("Transaction error: %s\n", ex.what());
                 m_database.AbortTransaction();
                 return false;
             }
@@ -62,7 +55,13 @@ namespace PocketDb
         }
 
 
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<std::string>& value)
+        bool TryStepStatement(shared_ptr<sqlite3_stmt*> stmt)
+        {
+            int res = sqlite3_step(*stmt);
+            return !(res != SQLITE_ROW && res != SQLITE_DONE);
+        }
+
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*> stmt, int index, shared_ptr<std::string> value)
         {
             if (!value) return true;
 
@@ -75,31 +74,7 @@ namespace PocketDb
             return true;
         }
 
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt*> stmt, int index, const std::string& value)
-        {
-            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
-            if (!CheckValidResult(stmt, res))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*> stmt, int index, int value)
-        {
-            if (!value) return true;
-
-            int res = sqlite3_bind_int(*stmt, index, value);
-            if (!CheckValidResult(stmt, res))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int>& value)
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int> value)
         {
             if (!value) return true;
 
@@ -112,7 +87,7 @@ namespace PocketDb
             return true;
         }
 
-        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int64_t>& value)
+        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int64_t> value)
         {
             if (!value) return true;
 
@@ -143,7 +118,7 @@ namespace PocketDb
         {
             if (result != SQLITE_OK)
             {
-                std::cout << strprintf("%s: Unable to bind statement: %s\n", __func__, sqlite3_errstr(result));
+                //std::cout << strprintf("%s: Unable to bind statement: %s\n", __func__, sqlite3_errstr(result));
                 sqlite3_clear_bindings(*stmt);
                 sqlite3_reset(*stmt);
                 return false;
@@ -173,6 +148,8 @@ namespace PocketDb
         }
 
     public:
+        Mutex SqliteShutdownMutex;
+
         explicit BaseRepository(SQLiteDatabase& db) :
             m_database(db)
         {

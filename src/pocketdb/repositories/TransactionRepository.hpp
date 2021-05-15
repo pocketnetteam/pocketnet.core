@@ -16,6 +16,8 @@
 
 namespace PocketDb
 {
+    using std::runtime_error;
+
     using namespace PocketTx;
 
     class TransactionRepository : public BaseRepository
@@ -26,9 +28,8 @@ namespace PocketDb
         void Init() override {}
         void Destroy() override {}
 
-        // ================================================================================================================
+        // ============================================================================================================
         //  Base transaction operations
-        // ================================================================================================================
         bool InsertTransactions(PocketBlock& pocketBlock)
         {
             return TryTransactionStep([&]()
@@ -36,7 +37,7 @@ namespace PocketDb
                 for (const auto& transaction : pocketBlock)
                 {
                     auto stmt = SetupSqlStatement(R"sql(
-                        INSERT OR IGNORE INTO Transactions (
+                        INSERT OR FAIL INTO Transactions (
                             Type,
                             Hash,
                             Time,
@@ -57,21 +58,19 @@ namespace PocketDb
                     result &= TryBindStatementInt64(stmt, 7, transaction->GetInt3());
                     result &= TryBindStatementInt64(stmt, 8, transaction->GetInt4());
                     if (!result)
-                        throw std::runtime_error(strprintf("%s: can't insert in transaction (bind tx)\n", __func__));
+                        throw runtime_error(strprintf("%s: can't insert in transaction (bind tx)\n", __func__));
 
                     // Try execute with clear last rowId
-                    sqlite3_set_last_insert_rowid(m_database.m_db, 0);
                     if (!TryStepStatement(stmt))
-                        throw std::runtime_error(strprintf("%s: can't insert in transaction (step tx)\n", __func__));
+                        throw runtime_error(strprintf("%s: can't insert in transaction (step tx)\n", __func__));
 
                     // Also need insert payload of transaction
                     // But need get new rowId
                     // If last id equal 0 - insert ignored - or already exists or error -> paylod not inserted
-                    auto newId = sqlite3_last_insert_rowid(m_database.m_db);
-                    if (newId > 0 && transaction->HasPayload())
+                    if (transaction->HasPayload())
                     {
                         auto stmtPayload = SetupSqlStatement(R"sql(
-                                INSERT OR IGNORE INTO Payload (
+                                INSERT OR FAIL INTO Payload (
                                     TxId,
                                     String1,
                                     String2,
@@ -80,11 +79,15 @@ namespace PocketDb
                                     String5,
                                     String6,
                                     String7
-                                ) SELECT ?,?,?,?,?,?,?,?;
+                                ) SELECT
+                                    (select t.Id from Transactions t where t.Hash = ? limit 1),
+                                    ?,?,?,?,?,?,?;
                             )sql"
                         );
 
-                        auto resultPayload = TryBindStatementInt64(stmtPayload, 1, make_shared<int64_t>(newId));
+                        // TODO (brangr): UNIQUE constraint failed: Payload.TxId
+                        auto resultPayload = true;
+                        resultPayload &= TryBindStatementText(stmtPayload, 1, transaction->GetPayload()->GetTxHash());
                         resultPayload &= TryBindStatementText(stmtPayload, 2, transaction->GetPayload()->GetString1());
                         resultPayload &= TryBindStatementText(stmtPayload, 3, transaction->GetPayload()->GetString2());
                         resultPayload &= TryBindStatementText(stmtPayload, 4, transaction->GetPayload()->GetString3());
@@ -93,21 +96,49 @@ namespace PocketDb
                         resultPayload &= TryBindStatementText(stmtPayload, 7, transaction->GetPayload()->GetString6());
                         resultPayload &= TryBindStatementText(stmtPayload, 8, transaction->GetPayload()->GetString7());
                         if (!resultPayload)
-                            throw std::runtime_error(
+                            throw runtime_error(
                                 strprintf("%s: can't insert in transaction (bind payload)\n", __func__));
 
                         if (!TryStepStatement(stmtPayload))
-                            throw std::runtime_error(
+                            throw runtime_error(
                                 strprintf("%s: can't insert in transaction (step payload)\n", __func__));
                     }
                 }
             });
         }
 
-        // ================================================================================================================
+        // ============================================================================================================
+        //  Transaction output addresses
+        bool InsertTransactionOutputAddresses(const vector<string>& addresses)
+        {
+            return TryTransactionStep([&]()
+            {
+                for (const auto& address : addresses)
+                {
+                    auto addressPtr = make_shared<string>(address);
+
+                    // Save transaction output address
+                    auto stmt = SetupSqlStatement(R"sql(
+                        INSERT OR FAIL INTO Addresses (Address)
+                        SELECT ?
+                        WHERE NOT EXISTS (select 1 from Addresses a where a.Address = ?);
+                    )sql");
+
+                    auto result = true;
+                    result &= TryBindStatementText(stmt, 1, addressPtr);
+                    result &= TryBindStatementText(stmt, 2, addressPtr);
+                    if (!result)
+                        throw runtime_error(strprintf("%s: can't insert in transaction (bind addr)\n", __func__));
+
+                    if (!TryStepStatement(stmt))
+                        throw runtime_error(strprintf("%s: can't insert in transaction (step addr)\n", __func__));
+                }
+            });
+        }
+
+        // ============================================================================================================
         //  Transaction outputs operations
-        // ================================================================================================================
-        bool InsertTransactionsOutputs(const vector<TransactionOutput>& outputs)
+        bool InsertTransactionOutputs(const vector<TransactionOutput>& outputs)
         {
             return TryTransactionStep([&]()
             {
@@ -121,8 +152,8 @@ namespace PocketDb
                                 Value
                             ) SELECT
                                 (select t.Id from Transactions t where t.Hash=? limit 1),
-                                (select a.Id from Addresses a where a.Address=? limit 1),
-                                ?;
+                                ?,
+                                ?
                         )sql"
                     );
 
@@ -130,18 +161,19 @@ namespace PocketDb
                     result &= TryBindStatementInt64(stmt, 2, output.GetNumber());
                     result &= TryBindStatementInt64(stmt, 3, output.GetValue());
                     if (!result)
-                        throw std::runtime_error(strprintf("%s: can't insert in transaction (bind out)\n", __func__));
+                        throw runtime_error(strprintf("%s: can't insert in transaction (bind out)\n", __func__));
 
                     // Try execute with clear last rowId
                     if (!TryStepStatement(stmt))
-                        throw std::runtime_error(strprintf("%s: can't insert in transaction (step out)\n", __func__));
+                        throw runtime_error(strprintf("%s: can't insert in transaction (step out): %s\n",
+                            __func__, *output.GetTxHash()));
 
                     // Also need save destination addresses
-                    // TODO (brangr): может быть вектор нужно сначала получить, а потом в цикл пихать?
                     for (const auto& dest : *(output.GetDestinations()))
                     {
+                        auto destPtr = make_shared<string>(dest);
                         auto stmtDest = SetupSqlStatement(R"sql(
-                                INSERT OR IGNORE INTO TxOutputsDestinations (
+                                INSERT OR FAIL INTO TxOutputsDestinations (
                                     TxId,
                                     Number,
                                     AddressId
@@ -154,32 +186,31 @@ namespace PocketDb
 
                         auto resultDest = TryBindStatementText(stmtDest, 1, output.GetTxHash());
                         resultDest &= TryBindStatementInt64(stmtDest, 2, output.GetNumber());
-                        resultDest &= TryBindStatementText(stmtDest, 3, make_shared<string>(dest));
+                        resultDest &= TryBindStatementText(stmtDest, 3, destPtr);
                         if (!resultDest)
-                            throw std::runtime_error(
+                            throw runtime_error(
                                 strprintf("%s: can't insert in transaction (bind outdest)\n", __func__));
 
                         // Try execute with clear last rowId
                         if (!TryStepStatement(stmtDest))
-                            throw std::runtime_error(
-                                strprintf("%s: can't insert in transaction (step outdest)\n", __func__));
+                            throw runtime_error(strprintf("%s: can't insert in transaction (step outdest): %s\n",
+                                __func__, dest));
                     }
                 }
             });
         }
 
-        // ================================================================================================================
+        // ============================================================================================================
         //  Transaction inputs operations - spent outputs
-        // ================================================================================================================
-        bool InsertTransactionsInputs(const vector<TransactionInput>& inputs)
+        bool InsertTransactionInputs(const vector<TransactionInput>& inputs)
         {
             return TryTransactionStep([&]()
             {
                 for (const auto& input : inputs)
                 {
-                    // Save transaction input
+                    // Build sql statement with auto select IDs
                     auto stmt = SetupSqlStatement(R"sql(
-                            INSERT OR IGNORE INTO TxInputs (
+                            INSERT OR FAIL INTO TxInputs (
                                 TxId,
                                 InputTxId,
                                 InputTxNumber
@@ -190,25 +221,22 @@ namespace PocketDb
                         )sql"
                     );
 
+                    // Bind arguments
                     auto result = TryBindStatementText(stmt, 1, input.GetTxHash());
                     result &= TryBindStatementText(stmt, 2, input.GetInputTxHash());
                     result &= TryBindStatementInt64(stmt, 3, input.GetInputTxNumber());
                     if (!result)
-                        throw std::runtime_error(strprintf("%s: can't insert in transaction (bind inp)\n", __func__));
+                        throw runtime_error(strprintf("%s: can't insert in transaction (bind inp)\n", __func__));
 
-                    // Try execute with clear last rowId
+                    // Try execute
                     if (!TryStepStatement(stmt))
-                        throw std::runtime_error(strprintf("%s: can't insert in transaction (step inp)\n", __func__));
+                        throw runtime_error(strprintf("%s: can't insert in transaction (step inp)\n", __func__));
                 }
             });
         }
 
-
-        // ================================================================================================================
-        // 
+        // ============================================================================================================
         //  SELECTs
-        // 
-        // ================================================================================================================
 
         // Mapping TxHash (string) -> TxId (int) and Address (string) -> AddressId (int)
         // type = 0 for transactions
@@ -245,7 +273,8 @@ namespace PocketDb
             int i = 1;
             for (const auto& m : lst)
             {
-                if (!TryBindStatementText(stmt, i, m.first))
+                auto mFirstPtr = make_shared<string>(m.first);
+                if (!TryBindStatementText(stmt, i, mFirstPtr))
                     return false;
                 i += 1;
             }
@@ -270,6 +299,7 @@ namespace PocketDb
 
             bool tryResult = TryTransactionStep([&]()
             {
+                auto countPtr = make_shared<int>(count);
                 auto stmt = SetupSqlStatement(
                     " SELECT"
                     "   u.Address,"
@@ -282,7 +312,7 @@ namespace PocketDb
                     " ;"
                 );
 
-                if (!TryBindStatementInt(stmt, 1, count))
+                if (!TryBindStatementInt(stmt, 1, countPtr))
                     return make_tuple(false, result);
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)

@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Blocking() : Transaction()
+        Blocking(string hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_BLOCKING);
         }
@@ -24,7 +24,6 @@ namespace PocketTx
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
-
             if (auto[ok, val] = TryGetStr(src, "address_to"); ok) SetAddressTo(val);
         }
 

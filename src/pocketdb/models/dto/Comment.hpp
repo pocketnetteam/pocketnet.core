@@ -17,14 +17,13 @@ namespace PocketTx
     {
     public:
 
-        Comment() : Transaction()
+        Comment(string hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::CONTENT_COMMENT);
         }
 
         void Deserialize(const UniValue& src) override {
             Transaction::Deserialize(src);
-
             if (auto[ok, val] = TryGetStr(src, "otxid"); ok) SetRootTxHash(val);
             if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
             if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxHash(val);

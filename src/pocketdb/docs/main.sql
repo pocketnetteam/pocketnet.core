@@ -1,36 +1,36 @@
 drop table if exists Transactions;
 create table Transactions
 (
-  Id        integer primary key,
-  Type      int    not null,
-  Hash      string not null,
-  Time      int    not null,
+    Id        integer primary key,
+    Type      int    not null,
+    Hash      string not null,
+    Time      int    not null,
 
-  AddressId int    null,
+    AddressId int    null,
 
-  -- User.RegistrationTxId
-  -- Post.RootTxId
-  -- Comment.RootTxId
-  -- ScorePost.PostTxId
-  -- ScoreComment.CommentTxId
-  -- Subscribe.AddressToId
-  -- Blocking.AddressToId
-  -- Complain.PostTxId
-  Int1      int    null,
+    -- User.RegistrationTxId
+    -- Post.RootTxId
+    -- Comment.RootTxId
+    -- ScorePost.PostTxId
+    -- ScoreComment.CommentTxId
+    -- Subscribe.AddressToId
+    -- Blocking.AddressToId
+    -- Complain.PostTxId
+    Int1      int    null,
 
-  -- User.ReferrerId
-  -- Post.RelayTxId
-  -- Comment.PostTxId
-  -- ScorePost.Value
-  -- ScoreComment.Value
-  -- Complain.Reason
-  Int2      int    null,
+    -- User.ReferrerId
+    -- Post.RelayTxId
+    -- Comment.PostTxId
+    -- ScorePost.Value
+    -- ScoreComment.Value
+    -- Complain.Reason
+    Int2      int    null,
 
-  -- Comment.ParentTxId
-  Int3      int    null,
+    -- Comment.ParentTxId
+    Int3      int    null,
 
-  -- Comment.AnswerTxId
-  Int4      int    null
+    -- Comment.AnswerTxId
+    Int4      int    null
 );
 
 --------------------------------------------
@@ -42,6 +42,9 @@ create index Transactions_Hash on Transactions (Hash);
 
 drop index if exists Transactions_Time;
 create index Transactions_Time on Transactions (Time);
+
+drop index if exists Transactions_AddressId;
+create index Transactions_AddressId on Transactions (AddressId);
 
 drop index if exists Transactions_Int1;
 create index Transactions_Int1 on Transactions (Int1);
@@ -55,27 +58,24 @@ create index Transactions_Int3 on Transactions (Int3);
 drop index if exists Transactions_Int4;
 create index Transactions_Int4 on Transactions (Int4);
 
-drop index if exists Transactions_AddressId;
-create index Transactions_AddressId on Transactions (AddressId);
-
 
 --------------------------------------------
 drop table if exists Chain;
 create table Chain
 (
-  TxId   int not null, -- Transactions.Id
-  Height int not null, -- Block height
-  Number int not null,
-  primary key (TxId, Height, Number)
+    TxId   int not null, -- Transactions.Id
+    Height int not null, -- Block height
+    primary key (TxId, Height)
 );
 
 --------------------------------------------
 drop table if exists Addresses;
 create table Addresses
 (
-  Id      integer primary key,
-  Address string not null
+    Id      integer primary key,
+    Address string not null
 );
+create unique index if not exists Addresses_Address on Addresses (Address);
 
 --------------------------------------------
 --               EXT TABLES               --
@@ -83,37 +83,37 @@ create table Addresses
 drop table if exists Payload;
 create table Payload
 (
-  TxId    int primary key, -- Transactions.Id
+    TxId    int primary key, -- Transactions.Id
 
-  -- User.Lang
-  -- Post.Lang
-  -- Comment.Lang
-  String1 string null,
+    -- User.Lang
+    -- Post.Lang
+    -- Comment.Lang
+    String1 string null,
 
-  -- User.Name
-  -- Post.Caption
-  -- Comment.Message
-  String2 string null,
+    -- User.Name
+    -- Post.Caption
+    -- Comment.Message
+    String2 string null,
 
-  -- User.Avatar
-  -- Post.Message
-  String3 string null,
+    -- User.Avatar
+    -- Post.Message
+    String3 string null,
 
-  -- User.About
-  -- Post.Tags JSON
-  String4 string null,
+    -- User.About
+    -- Post.Tags JSON
+    String4 string null,
 
-  -- User.Url
-  -- Post.Images JSON
-  String5 string null,
+    -- User.Url
+    -- Post.Images JSON
+    String5 string null,
 
-  -- User.Pubkey
-  -- Post.Settings JSON
-  String6 string null,
+    -- User.Pubkey
+    -- Post.Settings JSON
+    String6 string null,
 
-  -- User.Donations JSON
-  -- Post.Url
-  String7 string null
+    -- User.Donations JSON
+    -- Post.Url
+    String7 string null
 );
 
 
@@ -121,24 +121,20 @@ create table Payload
 drop table if exists TxOutputs;
 create table TxOutputs
 (
-  TxId   int not null, -- Transactions.Id
-  Number int not null, -- Number in tx.vout
-  Value  int not null, -- Amount
-  primary key (TxId, Number)
+    TxId   int not null, -- Transactions.Id
+    Number int not null, -- Number in tx.vout
+    Value  int not null, -- Amount
+    primary key (TxId, Number)
 );
-
-drop index if exists TxOutput_TxSpentId;
-create index TxOutput_TxSpentId on TxOutputs (TxId);
-
 
 --------------------------------------------
 drop table if exists TxOutputsDestinations;
 create table TxOutputsDestinations
 (
-  TxId      int not null, -- TxOutput.TxId
-  Number    int not null, -- TxOutput.Number
-  AddressId int not null, -- Addresses.Id
-  primary key (TxId, AddressId)
+    TxId      int not null, -- TxOutput.TxId
+    Number    int not null, -- TxOutput.Number
+    AddressId int not null, -- Addresses.Id
+    primary key (TxId, Number, AddressId)
 );
 
 
@@ -146,9 +142,10 @@ create table TxOutputsDestinations
 drop table if exists TxInputs;
 create table TxInputs
 (
-  TxId          int not null, -- Transactions.Id
-  InputTxId     int not null, -- TxOutput.TxId
-  InputTxNumber int not null  -- TxOutput.Number
+    TxId          int not null, -- Transactions.Id
+    InputTxId     int not null, -- TxOutput.TxId
+    InputTxNumber int not null, -- TxOutput.Number
+    primary key (TxId, InputTxId, InputTxNumber)
 );
 
 
@@ -156,12 +153,12 @@ create table TxInputs
 drop table if exists Ratings;
 create table Ratings
 (
-  RatingType int not null,
-  Block      int not null,
-  Key        int not null,
-  Value      int not null,
+    Type   int not null,
+    Height int not null,
+    Id     int not null,
+    Value  int not null,
 
-  primary key (Block, RatingType, Key)
+    primary key (Type, Height, Id)
 );
 
 
@@ -179,10 +176,9 @@ select T.Id,
        T.Int2,
        T.Int3,
        T.Int4,
-       C.Height,
-       C.Number
+       C.Height
 from Transactions T
-left join Chain C on T.Id = C.TxId;
+         left join Chain C on T.Id = C.TxId;
 
 drop view if exists vItem;
 create view vItem as
@@ -191,7 +187,6 @@ select t.Id,
        t.Hash,
        t.Time,
        t.Height,
-       t.Number,
        t.AddressId,
        t.Int1,
        t.Int2,
@@ -199,7 +194,7 @@ select t.Id,
        t.Int4,
        a.Address
 from vTransactions t
-join Addresses a on a.Id = t.AddressId;
+         join Addresses a on a.Id = t.AddressId;
 
 drop view if exists vUsers;
 create view vUsers as
@@ -207,7 +202,6 @@ select Id,
        Hash,
        Time,
        Height,
-       Number,
        AddressId,
        Address,
        Int1 as Registration,
@@ -224,7 +218,6 @@ select I.Id,
        I.Hash,
        I.Time,
        I.Height,
-       I.Number,
        I.AddressId,
        I.Int1,
        I.Int2,
@@ -239,12 +232,12 @@ select I.Id,
        P.String6,
        P.String7
 from vItem I
-join Payload P on I.Id = P.TxId
+         join Payload P on I.Id = P.TxId
 where I.Height is not null
   and I.Height = (
-  select max(i_.Height )
-  from vItem i_
-  where i_.Int1 = I.Int1 -- RootTxId for all except for Scores
+    select max(i_.Height)
+    from vItem i_
+    where i_.Int1 = I.Int1 -- RootTxId for all except for Scores
 );
 
 
@@ -255,11 +248,10 @@ select WI.Id,
        WI.Hash,
        WI.Time,
        WI.Height,
-       WI.Number,
        WI.AddressId,
        WI.Address,
-       WI.Int1 as Registration,
-       WI.Int2 as ReferrerId,
+       WI.Int1    as Registration,
+       WI.Int2    as ReferrerId,
        WI.String1 as Lang,
        WI.String2 as Name,
        WI.String3 as Avatar,
@@ -305,10 +297,9 @@ select WI.Id,
        WI.Hash,
        WI.Time,
        WI.Height,
-       WI.Number,
        WI.AddressId,
-       WI.Int1 as RootTxId,
-       WI.Int2 as RelayTxId,
+       WI.Int1    as RootTxId,
+       WI.Int2    as RelayTxId,
        WI.Address,
        WI.String1 as Lang,
        WI.String2 as Caption,
@@ -327,10 +318,9 @@ select WI.Id,
        WI.Hash,
        WI.Time,
        WI.Height,
-       WI.Number,
        WI.AddressId,
-       WI.Int1 as RootTxId,
-       WI.Int2 as RelayTxId,
+       WI.Int1    as RootTxId,
+       WI.Int2    as RelayTxId,
        WI.Address,
        WI.String1 as Lang,
        WI.String2 as Caption,
@@ -349,10 +339,9 @@ select WI.Id,
        WI.Hash,
        WI.Time,
        WI.Height,
-       WI.Number,
        WI.AddressId,
-       WI.Int1 as RootTxId,
-       WI.Int2 as RelayTxId,
+       WI.Int1    as RootTxId,
+       WI.Int2    as RelayTxId,
        WI.Address,
        WI.String1 as Lang,
        WI.String2 as Caption,
@@ -367,10 +356,9 @@ select WI.Id,
        WI.Hash,
        WI.Time,
        WI.Height,
-       WI.Number,
        WI.AddressId,
-       WI.Int1 as RootTxId,
-       WI.Int2 as RelayTxId,
+       WI.Int1    as RootTxId,
+       WI.Int2    as RelayTxId,
        WI.Address,
        WI.String1 as Lang,
        WI.String2 as Caption,
@@ -386,15 +374,14 @@ select WI.Id,
        WI.Hash,
        WI.Time,
        WI.Height,
-       WI.Number,
        WI.AddressId,
        WI.Address,
        WI.String1 as Lang,
        WI.String2 as Message,
-       WI.Int1 as RootTxId,
-       WI.Int2 as PostTxId,
-       WI.Int3 as ParentTxId,
-       WI.Int4 as AnswerTxId
+       WI.Int1    as RootTxId,
+       WI.Int2    as PostTxId,
+       WI.Int3    as ParentTxId,
+       WI.Int4    as AnswerTxId
 from vWebItem WI
 where WI.Type in (204);
 
@@ -402,17 +389,15 @@ where WI.Type in (204);
 --------------------------------------------
 drop view if exists vWebScorePosts;
 create view vWebScorePosts as
-select 
-  Int1 as PostTxId,
-  Int2 as Value
+select Int1 as PostTxId,
+       Int2 as Value
 from vItem I
 where I.Type in (300);
 
 drop view if exists vWebScoreComments;
 create view vWebScoreComments as
-select 
-  Int1 as CommentTxId,
-  Int2 as Value
+select Int1 as CommentTxId,
+       Int2 as Value
 from vItem I
 where I.Type in (301);
 
@@ -425,7 +410,7 @@ select WI.Type,
        WI.Int1   as AddressToId,
        A.Address as AddressTo
 from vWebItem WI
-join Addresses A ON A.Id=WI.Int1
+         join Addresses A ON A.Id = WI.Int1
 where WI.Type in (302, 303, 304);
 
 
@@ -438,7 +423,7 @@ select WI.Type,
        WI.Int1   as AddressToId,
        A.Address as AddressTo
 from vWebItem WI
-join Addresses A ON A.Id=WI.Int1
+         join Addresses A ON A.Id = WI.Int1
 where WI.Type in (305, 306);
 
 
@@ -452,7 +437,7 @@ select WI.Type,
        A.Address as AddressTo,
        WI.Int2   as Reason
 from vWebItem WI
-join Addresses A ON A.Id=WI.Int1
+         join Addresses A ON A.Id = WI.Int1
 where WI.Type in (307);
 
 

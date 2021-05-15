@@ -16,15 +16,17 @@ namespace PocketTx
     {
     public:
 
-        Default() : Transaction()
+        Default(string hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::TX_DEFAULT);
         }
 
+        void Deserialize(const UniValue& src) override {}
+
     protected:
 
-        void BuildPayload(const UniValue &src) override {}
-        void BuildHash(const UniValue &src) override {}
+        void BuildPayload(const UniValue& src) override {}
+        void BuildHash(const UniValue& src) override {}
 
     private:
 

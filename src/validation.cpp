@@ -2436,13 +2436,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // -----------------------------------------------------------------------------------------------------------------
     // Checks PoS logic
     // TODO (brangr): need?
-    if (pindex->nHeight == Params().GetConsensus().nHeight_version_1_0_0_pre)
-    {
-        if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
-        {
-            return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
-        }
-    }
+//    if (pindex->nHeight == Params().GetConsensus().nHeight_version_1_0_0_pre)
+//    {
+//        if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
+//        {
+//            return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
+//        }
+//    }
 
     // TODO (brangr): need?
     if (pindex->nHeight > Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
@@ -2936,6 +2936,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     // Read transactions data from db
     //PocketTx::Block pocketBlock;
     // TODO (brangr): select * from Transactions where TxId in (block.vtx)
+    // ????????????????
 
     // Apply the block atomically to the chain state.
     int64_t nTime2 = GetTimeMicros();

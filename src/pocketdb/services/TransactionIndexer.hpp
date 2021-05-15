@@ -29,7 +29,6 @@ namespace PocketServices
         {
             auto result = true;
 
-            result &= IndexAddesses(block);
             result &= IndexChain(block, height);
             result &= IndexTransactions(block, height);
             result &= IndexReputations(block, height);
@@ -58,13 +57,6 @@ namespace PocketServices
         }
 
         // =============================================================================================================
-        // Save all addresses in DB for optimize acces by integer id
-        static bool IndexAddesses(const CBlock& block)
-        {
-            // TODO (brangr): implement
-        }
-
-        // =============================================================================================================
         // Set block height for all transactions in block
         static bool IndexChain(const CBlock& block, int height)
         {
@@ -79,6 +71,7 @@ namespace PocketServices
         {
             vector<TransactionInput> inputs;
             vector<TransactionOutput> outputs;
+            vector<string> addresses;
 
             // Prepare data
             for (const auto& tx : block.vtx)
@@ -99,7 +92,13 @@ namespace PocketServices
                         out.SetValue(txout.nValue);
 
                         for (const auto& dest : vDest)
-                            out.AddDestination(EncodeDestination(dest));
+                        {
+                            auto address = EncodeDestination(dest);
+                            out.AddDestination(address);
+
+                            if (std::find(std::begin(addresses), std::end(addresses), address) == std::end(addresses))
+                                addresses.push_back(address);
+                        }
 
                         outputs.push_back(out);
                     }
@@ -121,9 +120,10 @@ namespace PocketServices
                 }
             }
 
-            // Save
-            return TransRepoInst.InsertTransactionsOutputs(outputs) &&
-                   TransRepoInst.InsertTransactionsInputs(inputs);
+            // Save in db
+            return TransRepoInst.InsertTransactionOutputAddresses(addresses) &&
+                   TransRepoInst.InsertTransactionOutputs(outputs) &&
+                   TransRepoInst.InsertTransactionInputs(inputs);
         }
 
         static bool IndexReputations(const CBlock& block, int height)

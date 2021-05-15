@@ -22,14 +22,16 @@ namespace PocketTx
     {
     public:
 
-        Transaction() : Base() {}
+        Transaction(string hash, int64_t time) : Base()
+        {
+            SetHash(hash);
+            SetTime(time);
+        }
 
         virtual void Deserialize(const UniValue& src)
         {
-            if (auto[ok, val] = TryGetStr(src, "txid"); ok) SetHash(val);
-            if (auto[ok, val] = TryGetInt64(src, "time"); ok) SetTime(val);
+            if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAccountAddress(val);
         }
-
 
         [[nodiscard]] shared_ptr<int64_t> GetId() const { return m_id; }
         [[nodiscard]] shared_ptr<string> GetHash() const { return m_hash; }
@@ -74,13 +76,15 @@ namespace PocketTx
 
         virtual void BuildPayload(const UniValue& src)
         {
-            m_payload = shared_ptr<Payload>(new Payload());
-            SetHash(*m_hash);
+            m_payload = make_shared<Payload>();
+            m_payload->SetTxHash(*GetHash());
         }
 
         virtual void BuildHash(const UniValue& src) = 0;
 
     protected:
+        shared_ptr<string> m_opreturn_hash = nullptr;
+
         shared_ptr<int64_t> m_id = nullptr;
         shared_ptr<PocketTxType> m_type = nullptr;
         shared_ptr<string> m_hash = nullptr;
@@ -104,7 +108,7 @@ namespace PocketTx
             CSHA256().Write((const unsigned char*) dataSrc.data(), dataSrc.size()).Finalize(hash);
             CSHA256().Write(hash, 32).Finalize(hash);
             std::vector<unsigned char> vec(hash, hash + sizeof(hash));
-            m_hash = make_shared<string>(HexStr(vec));
+            m_opreturn_hash = make_shared<string>(HexStr(vec));
         }
 
     private:

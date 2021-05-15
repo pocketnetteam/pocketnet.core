@@ -10,7 +10,7 @@ namespace PocketTx
     {
     public:
 
-        Post() : Transaction()
+        Post(string hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::CONTENT_POST);
         }
@@ -18,9 +18,7 @@ namespace PocketTx
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
-
             if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
-
             if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok)
             {
                 SetHash(valTxIdEdit);
