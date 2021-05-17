@@ -61,14 +61,19 @@ namespace PocketDb
                         throw runtime_error(strprintf("%s: can't insert in transaction (bind tx)\n", __func__));
 
                     // Try execute with clear last rowId
+                    sqlite3_set_last_insert_rowid(m_database.m_db, 0);
                     if (!TryStepStatement(stmt))
                         throw runtime_error(strprintf("%s: can't insert in transaction (step tx)\n", __func__));
+
+                    LogPrintf("  - Insert Tx %s\n", *transaction->GetHash());
 
                     // Also need insert payload of transaction
                     // But need get new rowId
                     // If last id equal 0 - insert ignored - or already exists or error -> paylod not inserted
-                    if (transaction->HasPayload())
+                    auto newId = sqlite3_last_insert_rowid(m_database.m_db);
+                    if (newId > 0 && transaction->HasPayload())
                     {
+                        auto newIdPtr = make_shared<int64_t>(newId);
                         auto stmtPayload = SetupSqlStatement(R"sql(
                                 INSERT OR FAIL INTO Payload (
                                     TxId,
@@ -80,14 +85,14 @@ namespace PocketDb
                                     String6,
                                     String7
                                 ) SELECT
-                                    (select t.Id from Transactions t where t.Hash = ? limit 1),
-                                    ?,?,?,?,?,?,?;
+                                    ?,?,?,?,?,?,?,?
+                                WHERE not exists (select 1 from Payload p where p.TxId = ?)
                             )sql"
                         );
 
                         // TODO (brangr): UNIQUE constraint failed: Payload.TxId
                         auto resultPayload = true;
-                        resultPayload &= TryBindStatementText(stmtPayload, 1, transaction->GetPayload()->GetTxHash());
+                        resultPayload &= TryBindStatementInt64(stmtPayload, 1, newIdPtr);
                         resultPayload &= TryBindStatementText(stmtPayload, 2, transaction->GetPayload()->GetString1());
                         resultPayload &= TryBindStatementText(stmtPayload, 3, transaction->GetPayload()->GetString2());
                         resultPayload &= TryBindStatementText(stmtPayload, 4, transaction->GetPayload()->GetString3());
@@ -95,13 +100,15 @@ namespace PocketDb
                         resultPayload &= TryBindStatementText(stmtPayload, 6, transaction->GetPayload()->GetString5());
                         resultPayload &= TryBindStatementText(stmtPayload, 7, transaction->GetPayload()->GetString6());
                         resultPayload &= TryBindStatementText(stmtPayload, 8, transaction->GetPayload()->GetString7());
+                        resultPayload &= TryBindStatementInt64(stmtPayload, 9, newIdPtr);
                         if (!resultPayload)
                             throw runtime_error(
                                 strprintf("%s: can't insert in transaction (bind payload)\n", __func__));
 
                         if (!TryStepStatement(stmtPayload))
                             throw runtime_error(
-                                strprintf("%s: can't insert in transaction (step payload)\n", __func__));
+                                strprintf("%s: can't insert in transaction (step payload): %s %d\n",
+                                    __func__, *transaction->GetPayload()->GetTxHash(), *transaction->GetType()));
                     }
                 }
             });

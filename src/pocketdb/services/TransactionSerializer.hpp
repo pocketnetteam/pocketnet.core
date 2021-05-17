@@ -35,6 +35,8 @@ namespace PocketServices
 
         static PocketBlock DeserializeBlock(CDataStream& stream, CBlock& block)
         {
+            LogPrintf("--- DeserializeBlock: %s\n", block.GetHash().GetHex());
+
             // Prepare source data - old format (Json)
             UniValue pocketData(UniValue::VOBJ);
             if (!stream.empty())
@@ -66,6 +68,7 @@ namespace PocketServices
                     }
                 }
 
+                LogPrintf(" -- Call BuildInstance: %s (pocketData: %b)\n", txHash, pocketData.exists(txHash));
                 auto ptx = BuildInstance(tx, entry);
                 if (ptx)
                     pocketBlock.push_back(ptx);
@@ -212,6 +215,9 @@ namespace PocketServices
             auto txHash = tx->GetHash().GetHex();
             shared_ptr<Transaction> ptx = nullptr;
             PocketTxType txType = ParseType(tx);
+
+            LogPrintf("  - BuildInstance: %s (type: %d)\n", txHash, txType);
+
             switch (txType)
             {
                 case NOT_SUPPORTED:

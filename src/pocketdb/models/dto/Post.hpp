@@ -19,10 +19,7 @@ namespace PocketTx
         {
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
-            if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok)
-            {
-                SetHash(valTxIdEdit);
-
+            if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok) {
                 if (auto[ok, valTxId] = TryGetStr(src, "txid"); ok)
                     SetRootTxHash(valTxId);
             }
