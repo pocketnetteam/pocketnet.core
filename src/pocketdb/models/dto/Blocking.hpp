@@ -28,7 +28,7 @@ namespace PocketTx
         }
 
         shared_ptr <int64_t> GetAddressToId() const { return m_int1; }
-        string GetAddressToStr() const { return m_address_to == nullptr ? "" : *m_address_to; }
+        shared_ptr<string> GetAddressTo() const { return m_address_to; }
         void SetAddressToId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
         void SetAddressTo(string value) { m_address_to = make_shared<string>(value); }
 
@@ -42,7 +42,7 @@ namespace PocketTx
         void BuildHash(const UniValue& src) override
         {
             string data;
-            data += GetAddressToStr();
+            data += GetAddressTo() ? *GetAddressTo() : "";
             Transaction::GenerateHash(data);
         }
     };

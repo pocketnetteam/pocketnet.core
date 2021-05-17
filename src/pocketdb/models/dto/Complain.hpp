@@ -29,12 +29,11 @@ namespace PocketTx
         }
 
         shared_ptr <int64_t> GetPostTxId() const { return m_int1; }
-        string GetPostTxHashStr() const { return m_post_tx_hash ? *m_post_tx_hash : ""; }
+        shared_ptr<string> GetPostTxHash() const { return m_post_tx_hash; }
         void SetPostTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
         void SetPostTxHash(string value) { m_post_tx_hash = make_shared<string>(value); }
 
         shared_ptr <int64_t> GetReason() const { return m_int2; }
-        string GetReasonStr() const { return m_int2 == nullptr ? "" : std::to_string(*m_int2); }
         void SetReason(int64_t value) { m_int2 = make_shared<int64_t>(value); }
 
     protected:
@@ -49,9 +48,10 @@ namespace PocketTx
         void BuildHash(const UniValue& src) override
         {
             string data;
-            data += GetPostTxHashStr();
+            data += GetPostTxHash() ? *GetPostTxHash() : "";
             data += "_";
-            data += GetReasonStr();
+            // TODO (brangr): try catch
+            data += GetReason() ? std::to_string(*GetReason()) : "";
             Transaction::GenerateHash(data);
         }
     };

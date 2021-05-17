@@ -8,6 +8,8 @@
 #define POCKETTX_TRANSACTIONSERIALIZER_HPP
 
 #include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/base/TransactionInput.hpp"
+#include "pocketdb/models/base/TransactionOutput.hpp"
 #include "pocketdb/models/dto/Coinbase.hpp"
 #include "pocketdb/models/dto/Coinstake.hpp"
 #include "pocketdb/models/dto/Default.hpp"
@@ -23,6 +25,7 @@
 #include "pocketdb/models/dto/ScoreComment.hpp"
 #include "pocketdb/models/dto/Complain.hpp"
 
+#include "key_io.h"
 #include "streams.h"
 
 namespace PocketServices
@@ -35,7 +38,7 @@ namespace PocketServices
 
         static PocketBlock DeserializeBlock(CDataStream& stream, CBlock& block)
         {
-            LogPrintf("--- DeserializeBlock: %s\n", block.GetHash().GetHex());
+            LogPrint(BCLog::SYNC, "--- DeserializeBlock: %s\n", block.GetHash().GetHex());
 
             // Prepare source data - old format (Json)
             UniValue pocketData(UniValue::VOBJ);
@@ -68,10 +71,11 @@ namespace PocketServices
                     }
                 }
 
-                LogPrintf(" -- Call BuildInstance: %s (pocketData: %b)\n", txHash, pocketData.exists(txHash));
+                LogPrint(BCLog::SYNC, " -- Call BuildInstance: %s (pocketData: %b)\n", txHash,
+                    pocketData.exists(txHash));
+
                 auto ptx = BuildInstance(tx, entry);
-                if (ptx)
-                    pocketBlock.push_back(ptx);
+                if (ptx) pocketBlock.push_back(ptx);
             }
 
             return pocketBlock;
@@ -102,6 +106,9 @@ namespace PocketServices
 
         static PocketTxType ParseType(const CTransactionRef& tx)
         {
+            if (tx->vin.empty())
+                return PocketTxType::NOT_SUPPORTED;
+
             if (tx->IsCoinBase())
                 return PocketTxType::TX_COINBASE;
 
@@ -210,24 +217,29 @@ namespace PocketServices
             return PocketTxType::TX_DEFAULT;
         }
 
+    private:
+
         static shared_ptr<Transaction> BuildInstance(const CTransactionRef& tx, const UniValue& src)
         {
             auto txHash = tx->GetHash().GetHex();
             shared_ptr<Transaction> ptx = nullptr;
             PocketTxType txType = ParseType(tx);
 
-            LogPrintf("  - BuildInstance: %s (type: %d)\n", txHash, txType);
+            LogPrint(BCLog::SYNC, "  - BuildInstance: %s (type: %d)\n", txHash, txType);
 
             switch (txType)
             {
                 case NOT_SUPPORTED:
-                    return ptx;
+                    return nullptr;
                 case TX_COINBASE:
-                    return make_shared<Coinbase>(txHash, tx->nTime);
+                    ptx = make_shared<Coinbase>(txHash, tx->nTime);
+                    break;
                 case TX_COINSTAKE:
-                    return make_shared<Coinstake>(txHash, tx->nTime);
+                    ptx = make_shared<Coinstake>(txHash, tx->nTime);
+                    break;
                 case TX_DEFAULT:
-                    return make_shared<Default>(txHash, tx->nTime);
+                    ptx = make_shared<Default>(txHash, tx->nTime);
+                    break;
                 case ACCOUNT_USER:
                     ptx = make_shared<User>(txHash, tx->nTime);
                     break;
@@ -272,10 +284,19 @@ namespace PocketServices
                     ptx = make_shared<Complain>(txHash, tx->nTime);
                     break;
                 default:
-                    break;
+                    return nullptr;
             }
 
-            if (src.exists("d"))
+            // Build outputs & inputs
+            if (ptx)
+                BuildInputsOutputs(tx, ptx);
+
+            // Skip if outputs empty
+            if (ptx->Outputs().empty())
+                return nullptr;
+
+            // Deserialize payload if exists
+            if (ptx && src.exists("d"))
             {
                 UniValue txDataSrc(UniValue::VOBJ);
                 auto txDataBase64 = src["d"].get_str();
@@ -288,6 +309,50 @@ namespace PocketServices
             }
 
             return ptx;
+        }
+
+        // Indexing outputs and inputs for transaction
+        // New inputs always spent prev outs
+        // Tables TxOutputs TxInputs
+        static void BuildInputsOutputs(const CTransactionRef& tx, shared_ptr<Transaction> ptx)
+        {
+            // indexing Outputs
+            for (int i = 0; i < tx->vout.size(); i++)
+            {
+                const CTxOut& txout = tx->vout[i];
+
+                txnouttype type;
+                std::vector<CTxDestination> vDest;
+                int nRequired;
+                if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))
+                {
+                    auto out = make_shared<TransactionOutput>();
+                    out->SetTxHash(tx->GetHash().GetHex());
+                    out->SetNumber(i);
+                    out->SetValue(txout.nValue);
+                    for (const auto& dest : vDest)
+                    {
+                        auto address = EncodeDestination(dest);
+                        out->AddDestination(address);
+                    }
+
+                    ptx->Outputs().push_back(out);
+                }
+            }
+
+            // Indexing inputs
+            if (!tx->IsCoinBase())
+            {
+                for (const auto& txin : tx->vin)
+                {
+                    auto inp = make_shared<TransactionInput>();
+                    inp->SetTxHash(tx->GetHash().GetHex());
+                    inp->SetInputTxHash(txin.prevout.hash.GetHex());
+                    inp->SetInputTxNumber(txin.prevout.n);
+
+                    ptx->Inputs().push_back(inp);
+                }
+            }
         }
 
     };

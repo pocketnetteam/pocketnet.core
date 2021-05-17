@@ -18,9 +18,7 @@ namespace PocketTx
         Payload() {}
         ~Payload() {}
 
-        shared_ptr <int64_t> GetTxId() const { return m_txId; }
         shared_ptr <string> GetTxHash() const { return m_txHash; }
-        void SetTxId(int64_t value) { m_txId = make_shared<int64_t>(value); }
         void SetTxHash(string value) { m_txHash = make_shared<string>(value); }
 
         shared_ptr <string> GetString1() const { return m_string1; }
@@ -53,7 +51,6 @@ namespace PocketTx
 
     protected:
 
-        shared_ptr <int64_t> m_txId = nullptr;
         shared_ptr <string> m_txHash = nullptr;
         shared_ptr <string> m_string1 = nullptr;
         shared_ptr <string> m_string2 = nullptr;

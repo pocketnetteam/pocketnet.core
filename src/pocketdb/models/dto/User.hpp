@@ -24,8 +24,8 @@ namespace PocketTx
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
-            if (auto[ok, val] = TryGetInt64(src, "regdate"); ok) SetRegistration(val);
             if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrerAddress(val);
+            SetRegistration(*GetTime());
         }
 
         shared_ptr <int64_t> GetRegistration() const { return m_int1; }

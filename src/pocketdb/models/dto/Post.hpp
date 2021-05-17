@@ -19,7 +19,8 @@ namespace PocketTx
         {
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
-            if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok) {
+            if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok)
+            {
                 if (auto[ok, valTxId] = TryGetStr(src, "txid"); ok)
                     SetRootTxHash(valTxId);
             }
@@ -28,13 +29,11 @@ namespace PocketTx
 
         shared_ptr <int64_t> GetRootTxId() const { return m_int1; }
         shared_ptr <string> GetRootTxHash() const { return m_root_tx_hash; }
-        string GetRootTxHashStr() const { return m_root_tx_hash == nullptr ? "" : *m_root_tx_hash; }
         void SetRootTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
         void SetRootTxHash(string value) { m_root_tx_hash = make_shared<string>(value); }
 
         shared_ptr <int64_t> GetRelayTxId() const { return m_int2; }
         shared_ptr <string> GetRelayTxHash() const { return m_relay_tx_hash; }
-        string GetRelayTxHashStr() const { return m_relay_tx_hash == nullptr ? "" : *m_relay_tx_hash; }
         void SetRelayTxId(int64_t value) { m_int2 = make_shared<int64_t>(value); }
         void SetRelayTxHash(string value) { m_relay_tx_hash = make_shared<string>(value); }
 
@@ -68,7 +67,8 @@ namespace PocketTx
             data += m_payload->GetString2Str();
             data += m_payload->GetString3Str();
 
-            if (m_payload->GetString4() != nullptr) {
+            if (m_payload->GetString4() != nullptr)
+            {
                 UniValue tags(UniValue::VARR);
                 tags.read(m_payload->GetString4Str());
                 for (size_t i = 0; i < tags.size(); ++i)
@@ -78,7 +78,8 @@ namespace PocketTx
                 }
             }
 
-            if (m_payload->GetString5() != nullptr) {
+            if (m_payload->GetString5() != nullptr)
+            {
                 UniValue images(UniValue::VARR);
                 images.read(m_payload->GetString5Str());
                 for (size_t i = 0; i < images.size(); ++i)
@@ -88,8 +89,8 @@ namespace PocketTx
                 }
             }
 
-            data += GetRootTxHashStr();
-            data += GetRelayTxHashStr();
+            data += GetRootTxHash() ? *GetRootTxHash() : "";
+            data += GetRelayTxHash() ? *GetRelayTxHash() : "";
 
             Transaction::GenerateHash(data);
         }

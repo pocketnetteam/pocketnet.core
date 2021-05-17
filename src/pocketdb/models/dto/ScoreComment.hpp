@@ -24,12 +24,11 @@ namespace PocketTx
         }
 
         shared_ptr<int64_t> GetCommentTxId() const { return m_int1; }
-        string GetCommentTxHashStr() const { return m_comment_tx_hash ? *m_comment_tx_hash : ""; }
+        shared_ptr<string> GetCommentTxHash() const { return m_comment_tx_hash; }
         void SetCommentTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
         void SetCommentTxHash(string value) { m_comment_tx_hash = make_shared<string>(value); }
 
         shared_ptr<int64_t> GetValue() const { return m_int2; }
-        string GetValueStr() const { return m_int2 == nullptr ? "" : std::to_string(*m_int2); }
         void SetValue(int64_t value) { m_int2 = make_shared<int64_t>(value); }
 
     protected:
@@ -37,15 +36,15 @@ namespace PocketTx
 
     private:
 
-        void BuildPayload(const UniValue &src) override
+        void BuildPayload(const UniValue& src) override
         {
         }
 
-        void BuildHash(const UniValue &src) override
+        void BuildHash(const UniValue& src) override
         {
             std::string data;
-            data += GetCommentTxHashStr();
-            data += GetValueStr();
+            data += GetCommentTxHash() ? *GetCommentTxHash() : "";
+            data += GetValue() ? std::to_string(*GetValue()) : "";
             Transaction::GenerateHash(data);
         }
     };

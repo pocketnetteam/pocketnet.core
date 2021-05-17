@@ -22,13 +22,13 @@ namespace PocketTx
 
         TransactionInput() = default;
 
-        [[nodiscard]] shared_ptr <string> GetTxHash() const { return m_txHash; }
+        shared_ptr <string> GetTxHash() const { return m_txHash; }
         void SetTxHash(string value) { m_txHash = make_shared<string>(value); }
 
-        [[nodiscard]] shared_ptr <string> GetInputTxHash() const { return m_inputTxHash; }
+        shared_ptr <string> GetInputTxHash() const { return m_inputTxHash; }
         void SetInputTxHash(string value) { m_inputTxHash = make_shared<string>(value); }
 
-        [[nodiscard]] shared_ptr <int64_t> GetInputTxNumber() const { return m_inputTxNumber; }
+        shared_ptr <int64_t> GetInputTxNumber() const { return m_inputTxNumber; }
         void SetInputTxNumber(int64_t value) { m_inputTxNumber = make_shared<int64_t>(value); }
 
     protected:
