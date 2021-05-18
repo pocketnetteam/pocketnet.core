@@ -7,8 +7,6 @@
 #ifndef POCKETTX_POCKETTYPES_HPP
 #define POCKETTX_POCKETTYPES_HPP
 
-#include <univalue.h>
-
 namespace PocketTx
 {
     // OpReturn hex codes

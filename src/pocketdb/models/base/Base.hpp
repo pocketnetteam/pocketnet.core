@@ -8,7 +8,7 @@
 #define POCKETTX_BASE_HPP
 
 #include "pocketdb/models/base/PocketTypes.hpp"
-#include <univalue.h>
+#include <univalue/include/univalue.h>
 
 namespace PocketTx
 {

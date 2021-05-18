@@ -7,7 +7,7 @@
 #ifndef POCKETTX_RETURN_DTO_HPP
 #define POCKETTX_RETURN_DTO_HPP
 
-#include <univalue.h>
+#include <univalue/include/univalue.h>
 
 namespace PocketTx
 {

@@ -154,9 +154,14 @@ static CScheduler scheduler;
 void ShutdownPocketServices()
 {
     // Before close database we must stop all repositories
+
     {
         LOCK(PocketDb::TransRepoInst.SqliteShutdownMutex);
         PocketDb::TransRepoInst.Destroy();
+    }
+
+    {
+        LOCK(PocketDb::ChainRepoInst.SqliteShutdownMutex);
         PocketDb::ChainRepoInst.Destroy();
     }
 

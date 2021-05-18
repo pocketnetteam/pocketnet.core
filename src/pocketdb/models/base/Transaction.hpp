@@ -8,7 +8,7 @@
 #define POCKETTX_TRANSACTION_HPP
 
 #include <string>
-#include <univalue.h>
+#include <univalue/include/univalue.h>
 #include <utility>
 #include <utilstrencodings.h>
 #include <crypto/sha256.h>
