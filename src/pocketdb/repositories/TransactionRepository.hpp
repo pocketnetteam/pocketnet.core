@@ -12,6 +12,7 @@
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
 #include "pocketdb/models/base/TransactionInput.hpp"
+#include "pocketdb/models/base/Rating.hpp"
 #include "pocketdb/models/base/SelectModels.hpp"
 
 namespace PocketDb
@@ -28,7 +29,6 @@ namespace PocketDb
         void Init() override {}
         void Destroy() override {}
 
-        // ============================================================================================================
         //  Base transaction operations
         bool InsertTransactions(PocketBlock& pocketBlock)
         {
@@ -54,32 +54,21 @@ namespace PocketDb
             });
         }
 
-        // ============================================================================================================
-        //  SELECTs
 
         // Top addresses info
         tuple<bool, SelectList<SelectAddressInfo>> SelectTopAddresses(int count)
         {
             SelectList<SelectAddressInfo> result;
 
-            if (ShutdownRequested())
-                return make_tuple(false, result);
-
             bool tryResult = TryTransactionStep([&]()
             {
-                auto countPtr = make_shared<int>(count);
-                auto stmt = SetupSqlStatement(
-                    " SELECT"
-                    "   u.Address,"
-                    "   SUM(u.Amount)Balance"
-                    " FROM Utxo u"
-                    " WHERE u.BlockSpent is null"
-                    " GROUP BY u.Address"
-                    " ORDER BY sum(u.Amount) desc"
-                    " LIMIT ?"
-                    " ;"
-                );
+                // TODO (brangr): implement select from outputs with join Chain
+                auto stmt = SetupSqlStatement(R"sql(
+                    SELECT u.Address, SUM(u.Amount)Balance
+                    FROM
+                )sql");
 
+                auto countPtr = make_shared<int>(count);
                 if (!TryBindStatementInt(stmt, 1, countPtr))
                     return false;
 
@@ -103,7 +92,7 @@ namespace PocketDb
         {
             for (const auto& output : ptx->Outputs())
             {
-                // Save transaction output
+                // Build transaction output
                 auto stmt = SetupSqlStatement(R"sql(
                     INSERT OR FAIL INTO TxOutputs (
                         TxHash,
@@ -157,6 +146,7 @@ namespace PocketDb
 
             LogPrint(BCLog::SYNC, "  - Insert Outputs %s : %d\n", *ptx->GetHash(), (int) ptx->Outputs().size());
         }
+
         void InsertTransactionInputs(shared_ptr<Transaction> ptx)
         {
             for (const auto& input : ptx->Inputs())
@@ -189,12 +179,13 @@ namespace PocketDb
 
                 // Try execute
                 if (!TryStepStatement(stmt))
-                    throw runtime_error(strprintf("%s: can't insert in transaction (step inp) TxId:%d InputTxId:%s\n",
+                    throw runtime_error(strprintf("%s: can't insert in transaction (step inp) Tx:%s InputTx:%s\n",
                         __func__, *ptx->GetHash(), *input->GetInputTxHash()));
             }
 
             LogPrint(BCLog::SYNC, "  - Insert Inputs %s : %d\n", *ptx->GetHash(), (int) ptx->Inputs().size());
         }
+
         void InsertTransactionPayload(shared_ptr<Transaction> ptx)
         {
             auto stmtPayload = SetupSqlStatement(R"sql(
@@ -233,12 +224,13 @@ namespace PocketDb
 
             LogPrint(BCLog::SYNC, "  - Insert Payload %s\n", *ptx->GetHash());
         }
+
         void InsertTransactionModel(shared_ptr<Transaction> ptx)
         {
             switch (*ptx->GetType())
             {
                 case ACCOUNT_USER:
-                    InsertTransactionModelSince((User*)ptx.get());
+                    InsertTransactionModelSince((User*) ptx.get());
                     break;
                 case ACCOUNT_VIDEO_SERVER:
                     // TODO (brangr): imeplement

@@ -4,14 +4,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-
 #include <config/pocketcoin-config.h>
-
 #endif
 
 #include <init.h>
-
-#include <addrman.h>
 #include <amount.h>
 #include <chain.h>
 #include <chainparams.h>
@@ -53,18 +49,12 @@
 #include <warnings.h>
 
 #include <websocket/ws.h>
-
-// TODO (brangr): REINDEXER -> SQLITE
 #include "pocketdb/pocketnet.h"
-// #include <antibot/antibot.h>
-// #include <index/addrindex.h>
 
 
 #ifndef WIN32
-
 #include <signal.h>
 #include <sys/stat.h>
-
 #endif
 
 #include <boost/algorithm/string/classification.hpp>
@@ -167,6 +157,7 @@ void ShutdownPocketServices()
     {
         LOCK(PocketDb::TransRepoInst.SqliteShutdownMutex);
         PocketDb::TransRepoInst.Destroy();
+        PocketDb::ChainRepoInst.Destroy();
     }
 
     // Now we must close database connect
@@ -910,10 +901,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         // -reindex
         if (fReindex)
         {
-
             // Clear all calculating pocket tables
-            // TODO (brangr): implement
-            //PocketDb::BlockRepoInst.BulkRollback(0);
+            PocketDb::ChainRepoInst.RollbackBlock(0);
             LogPrintf("PocketDb tables cleared\n");
 
             int nFile = 0;
@@ -1750,6 +1739,7 @@ bool AppInitMain()
         (GetDataDir() / "pocketdb" / "main.sqlite3").string());
 
     PocketDb::TransRepoInst.Init();
+    PocketDb::ChainRepoInst.Init();
 
     // ********************************************************* Step 4.2: Start AddrIndex
     //g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());

@@ -30,7 +30,7 @@ namespace PocketServices
             auto result = true;
 
             result &= IndexChain(block, height);
-            result &= IndexReputations(block, height);
+            result &= IndexRatings(block, height);
 
             return result;
         }
@@ -38,36 +38,31 @@ namespace PocketServices
         static bool Rollback(int height)
         {
             auto result = true;
-
-            // TODO (brangr): implement rollback for transactions< ins/outs, and other
-            //result &= BlockRepoInst.BulkRollback(height);
             result &= RollbackChain(height);
-
             return result;
         }
 
     protected:
 
-        // =============================================================================================================
         // Delete all calculated records for this height
         static bool RollbackChain(int height)
         {
-            // TODO (joni): откатиться транзакции и блок в БД
+            return PocketDb::ChainRepoInst.RollbackBlock(height);
         }
 
-        // =============================================================================================================
         // Set block height for all transactions in block
         static bool IndexChain(const CBlock& block, int height)
         {
-            // TODO (brangr): записать транзакции и блок в БД
+            vector<string> txs;
+            for (const auto& tx : block.vtx)
+                txs.push_back(tx->GetHash().GetHex());
+
+            return PocketDb::ChainRepoInst.InsertBlock(block.GetHash().GetHex(), height, txs);
         }
 
-        // =============================================================================================================
-
-
-        static bool IndexReputations(const CBlock& block, int height)
+        static bool IndexRatings(const CBlock& block, int height)
         {
-            // todo (brangr): index ratings
+            // todo (brangr): implement
         }
 
 

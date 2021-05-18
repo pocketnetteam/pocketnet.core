@@ -11,12 +11,14 @@
 
 #include <boost/algorithm/string.hpp>
 #include "pocketdb/consensus/Lottery.hpp"
+#include "pocketdb/repositories/ChainRepository.hpp"
 #include "pocketdb/repositories/TransactionRepository.hpp"
 
 namespace PocketDb
 {
     extern SQLiteDatabase SQLiteDbInst;
     extern TransactionRepository TransRepoInst;
+    extern ChainRepository ChainRepoInst;
 }; // namespace PocketDb
 
 namespace PocketConsensus

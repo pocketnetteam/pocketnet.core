@@ -24,7 +24,7 @@ namespace PocketTx
         shared_ptr <string> GetString1() const { return m_string1; }
         void SetString1(string value) { m_string1 = make_shared<string>(value); }
 
-        shared_ptr <string> GetString2() const { return m_string3; }
+        shared_ptr <string> GetString2() const { return m_string2; }
         void SetString2(string value) { m_string2 = make_shared<string>(value); }
 
         shared_ptr <string> GetString3() const { return m_string3; }

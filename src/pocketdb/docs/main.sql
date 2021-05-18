@@ -1,4 +1,3 @@
-drop table if exists Transactions;
 create table Transactions
 (
     Type    int    not null,
@@ -130,7 +129,6 @@ create table TxInputs
 );
 
 --------------------------------------------
-drop table if exists Ratings;
 create table Ratings
 (
     Type   int    not null,
@@ -141,6 +139,7 @@ create table Ratings
     primary key (Type, Height, Hash)
 );
 
+create index if not exists Ratings_ValInt on Ratings (Value);
 
 --------------------------------------------
 --                 VIEWS                  --

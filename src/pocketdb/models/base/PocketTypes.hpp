@@ -74,11 +74,12 @@ namespace PocketTx
     };
 
     // For transaction anonymous fields Int1, Int2, ...
-    enum AnonFieldType
+    enum RatingType
     {
-        INTEGER,
-        TXHASH,
-        ADDRHASH
+        RATING_ACCOUNT,
+        RATING_ACCOUNT_LIKERS,
+        RATING_POST,
+        RATING_COMMENT,
     };
 }
 

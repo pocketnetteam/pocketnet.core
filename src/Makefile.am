@@ -96,6 +96,7 @@ POCKETDB_HPP = \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
+    pocketdb/repositories/ChainRepository.hpp \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Lottery.hpp \
     pocketdb/services/TransactionSerializer.hpp \
@@ -107,6 +108,7 @@ POCKETDB_HPP = \
     pocketdb/models/base/Transaction.hpp \
     pocketdb/models/base/TransactionInput.hpp \
     pocketdb/models/base/TransactionOutput.hpp \
+    pocketdb/models/base/Rating.hpp \
     pocketdb/models/base/Payload.hpp \
     pocketdb/models/dto/Default.hpp \
     pocketdb/models/dto/Coinbase.hpp \
