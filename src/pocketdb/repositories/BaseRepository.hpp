@@ -58,6 +58,7 @@ namespace PocketDb
         bool TryStepStatement(shared_ptr<sqlite3_stmt*> stmt)
         {
             int res = sqlite3_step(*stmt);
+            FinalizeSqlStatement(*stmt);
             return !(res != SQLITE_ROW && res != SQLITE_DONE);
         }
 
