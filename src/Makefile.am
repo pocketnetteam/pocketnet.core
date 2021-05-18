@@ -31,7 +31,7 @@ LIBPOCKETCOIN_UTIL=libpocketcoin_util.a
 LIBPOCKETCOIN_CRYPTO_BASE=crypto/libpocketcoin_crypto_base.a
 LIBPOCKETCOINQT=qt/libpocketcoinqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
-LIBSQLITE3 = -lsqlite3
+LIBSQLITE3=-lsqlite3
 
 if ENABLE_ZMQ
 LIBPOCKETCOIN_ZMQ=libpocketcoin_zmq.a
@@ -519,6 +519,10 @@ pocketcoind_LDADD = \
 
 pocketcoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
+if TARGET_LINUX
+pocketcoind_LDADD += -lstdc++fs
+endif
+
 # pocketcoin-cli binary #
 pocketcoin_cli_SOURCES = pocketcoin-cli.cpp
 pocketcoin_cli_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(EVENT_CFLAGS)
@@ -536,7 +540,6 @@ pocketcoin_cli_LDADD = \
   $(LIBPOCKETCOIN_CRYPTO)
 
 pocketcoin_cli_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
-#
 
 # pocketcoin-tx binary #
 pocketcoin_tx_SOURCES = pocketcoin-tx.cpp

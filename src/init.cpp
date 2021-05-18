@@ -4,7 +4,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
+
 #include <config/pocketcoin-config.h>
+
 #endif
 
 #include <init.h>
@@ -53,8 +55,10 @@
 
 
 #ifndef WIN32
+
 #include <signal.h>
 #include <sys/stat.h>
+
 #endif
 
 #include <boost/algorithm/string/classification.hpp>
@@ -941,7 +945,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
                 LogPrintf("Importing bootstrap.dat...\n");
                 LoadExternalBlockFile(chainparams, file);
                 RenameOver(pathBootstrap, pathBootstrapOld);
-            } else
+            }
+            else
             {
                 LogPrintf("Warning: Could not open bootstrap file %s\n", pathBootstrap.string());
             }
@@ -955,7 +960,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             {
                 LogPrintf("Importing blocks file %s...\n", path.string());
                 LoadExternalBlockFile(chainparams, file);
-            } else
+            }
+            else
             {
                 LogPrintf("Warning: Could not open blocks file %s\n", path.string());
             }
@@ -977,14 +983,15 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             return;
         }
 
-        // TODO (brangr): REINDEXER -> SQLITE
-        //        if (g_addrindex->RollbackDB(chainActive.Height(), false)) {
-        //            LogPrintf("RIDB rollback to block height %d success!\n", chainActive.Height());
-        //        } else {
-        //            LogPrintf("Error: RIDB rollback failed!\n");
-        //            StartShutdown();
-        //            return;
-        //        }
+        // Clear all calculating pocket tables
+        if (!PocketDb::ChainRepoInst.RollbackBlock(chainActive.Height()))
+        {
+            LogPrintf("Error: PocketDb rollback failed!\n");
+            StartShutdown();
+            return;
+        }
+        LogPrintf("PocketDb rollback success to height %d\n", chainActive.Height());
+
     } // End scope of CImportingNow
 
     if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL))
@@ -1324,7 +1331,8 @@ bool AppInitParameterInteraction()
             return InitError(strprintf("Invalid non-hex (%s) minimum chain work value specified", minChainWorkStr));
         }
         nMinimumChainWork = UintToArith256(uint256S(minChainWorkStr));
-    } else
+    }
+    else
     {
         nMinimumChainWork = UintToArith256(chainparams.GetConsensus().nMinimumChainWork);
     }
@@ -1372,7 +1380,8 @@ bool AppInitParameterInteraction()
             "Block pruning enabled.  Use RPC call pruneblockchain(height) to manually prune block and undo files.\n");
         nPruneTarget = std::numeric_limits<uint64_t>::max();
         fPruneMode = true;
-    } else if (nPruneTarget)
+    }
+    else if (nPruneTarget)
     {
         if (nPruneTarget < MIN_DISK_SPACE_FOR_BLOCK_FILES)
         {
@@ -1396,7 +1405,8 @@ bool AppInitParameterInteraction()
         }
         // High fee check is done afterward in WalletParameterInteraction()
         ::minRelayTxFee = CFeeRate(n);
-    } else if (incrementalRelayFee > ::minRelayTxFee)
+    }
+    else if (incrementalRelayFee > ::minRelayTxFee)
     {
         // Allow only setting incrementalRelayFee to control both
         ::minRelayTxFee = incrementalRelayFee;
@@ -1595,7 +1605,8 @@ static void StartWS()
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
                         WSConnections.erase(connection->ID());
                         WSConnections.insert_or_assign(connection->ID(), wsUser);
-                    } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
+                    }
+                    else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
@@ -1674,11 +1685,13 @@ bool AppInitMain()
     if (fs::exists(config_file_path))
     {
         LogPrintf("Config file: %s\n", config_file_path.string());
-    } else if (gArgs.IsArgSet("-conf"))
+    }
+    else if (gArgs.IsArgSet("-conf"))
     {
         // Warn if no conf file exists at path provided by user
         InitWarning(strprintf(_("The specified config file %s does not exist\n"), config_file_path.string()));
-    } else
+    }
+    else
     {
         // Not categorizing as "Warning" because it's the default behavior
         LogPrintf("Config file: %s (not found, skipping)\n", config_file_path.string());
@@ -1839,7 +1852,8 @@ bool AppInitMain()
         if (onionArg == "0")
         {     // Handle -noonion/-onion=0
             SetLimited(NET_ONION); // set onions as unreachable
-        } else
+        }
+        else
         {
             CService onionProxy;
             if (!Lookup(onionArg.c_str(), onionProxy, 9050, fNameLookup))
@@ -2119,12 +2133,14 @@ bool AppInitMain()
                 {
                     fReindex = true;
                     AbortShutdown();
-                } else
+                }
+                else
                 {
                     LogPrintf("Aborted block database rebuild. Exiting.\n");
                     return false;
                 }
-            } else
+            }
+            else
             {
                 return InitError(strLoadError);
             }
@@ -2189,7 +2205,8 @@ bool AppInitMain()
     if (chainActive.Tip() == nullptr)
     {
         uiInterface.NotifyBlockTip_connect(BlockNotifyGenesisWait);
-    } else
+    }
+    else
     {
         fHaveGenesis = true;
     }
