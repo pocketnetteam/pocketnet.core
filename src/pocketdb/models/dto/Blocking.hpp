@@ -24,16 +24,17 @@ namespace PocketTx
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
+            if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "address_to"); ok) SetAddressTo(val);
         }
 
-        shared_ptr <int64_t> GetAddressToId() const { return m_int1; }
-        shared_ptr<string> GetAddressTo() const { return m_address_to; }
-        void SetAddressToId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
-        void SetAddressTo(string value) { m_address_to = make_shared<string>(value); }
+        shared_ptr<string> GetAddress() const { return m_string1; }
+        void SetAddress(string value) { m_string1 = make_shared<string>(value); }
+
+        shared_ptr<string> GetAddressTo() const { return m_string2; }
+        void SetAddressTo(string value) { m_string2 = make_shared<string>(value); }
 
     protected:
-        shared_ptr <string> m_address_to = nullptr;
 
     private:
 

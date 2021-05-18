@@ -25,38 +25,29 @@ namespace PocketTx
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
+            if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "otxid"); ok) SetRootTxHash(val);
             if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
             if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxHash(val);
             if (auto[ok, val] = TryGetStr(src, "answerid"); ok) SetAnswerTxHash(val);
         }
 
-        shared_ptr <int64_t> GetRootTxId() const { return m_int1; }
-        void SetRootTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
-        shared_ptr <string> GetRootTxHash() const { return m_root_tx_hash; }
-        void SetRootTxHash(string value) { m_root_tx_hash = make_shared<string>(value); }
+        shared_ptr<string> GetAddress() const { return m_string1; }
+        void SetAddress(string value) { m_string1 = make_shared<string>(value); }
 
-        shared_ptr <int64_t> GetPostTxId() const { return m_int2; }
-        void SetPostTxId(int64_t value) { m_int2 = make_shared<int64_t>(value); }
-        shared_ptr <string> GetPostTxHash() const { return m_post_tx_hash; }
-        void SetPostTxHash(string value) { m_post_tx_hash = make_shared<string>(value); }
+        shared_ptr <string> GetRootTxHash() const { return m_string2; }
+        void SetRootTxHash(string value) { m_string2 = make_shared<string>(value); }
 
-        shared_ptr <int64_t> GetParentTxId() const { return m_int3; }
-        void SetParentTxId(int64_t value) { m_int3 = make_shared<int64_t>(value); }
-        shared_ptr <string> GetParentTxHash() const { return m_parent_tx_hash; }
-        void SetParentTxHash(string value) { m_parent_tx_hash = make_shared<string>(value); }
+        shared_ptr <string> GetPostTxHash() const { return m_string3; }
+        void SetPostTxHash(string value) { m_string3 = make_shared<string>(value); }
 
-        shared_ptr <int64_t> GetAnswerTxId() const { return m_int4; }
-        void SetAnswerTxId(int64_t value) { m_int4 = make_shared<int64_t>(value); }
-        shared_ptr <string> GetAnswerTxHash() const { return m_answer_tx_hash; }
-        void SetAnswerTxHash(string value) { m_answer_tx_hash = make_shared<string>(value); }
+        shared_ptr <string> GetParentTxHash() const { return m_string4; }
+        void SetParentTxHash(string value) { m_string4 = make_shared<string>(value); }
+
+        shared_ptr <string> GetAnswerTxHash() const { return m_string5; }
+        void SetAnswerTxHash(string value) { m_string5 = make_shared<string>(value); }
 
     protected:
-
-        shared_ptr <string> m_root_tx_hash = nullptr;
-        shared_ptr <string> m_post_tx_hash = nullptr;
-        shared_ptr <string> m_parent_tx_hash = nullptr;
-        shared_ptr <string> m_answer_tx_hash = nullptr;
 
     private:
 
@@ -75,7 +66,7 @@ namespace PocketTx
             std::string data;
 
             data += GetPostTxHash() ? *GetPostTxHash() : "";
-            data += m_payload->GetString2Str();
+            data += m_payload->GetString2() ? *m_payload->GetString2() : "";
             data += GetParentTxHash() ? *GetParentTxHash() : "";
             data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
 

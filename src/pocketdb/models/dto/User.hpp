@@ -24,21 +24,21 @@ namespace PocketTx
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
+            if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrerAddress(val);
             SetRegistration(*GetTime());
         }
 
+        shared_ptr <string> GetAddress() const { return m_string1; }
+        void SetAddress(string value) { m_string1 = make_shared<string>(value); }
+
+        shared_ptr <string> GetReferrerAddress() const { return m_string2; }
+        void SetReferrerAddress(std::string value) { m_string2 = make_shared<string>(value); }
+
         shared_ptr <int64_t> GetRegistration() const { return m_int1; }
         void SetRegistration(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
-        shared_ptr <int64_t> GetReferrerId() const { return m_int2; }
-        shared_ptr <string> GetReferrerAddress() const { return m_referrer_address; }
-        void SetReferrer(std::int64_t value) { m_int2 = make_shared<int64_t>(value); }
-        void SetReferrerAddress(std::string value) { m_referrer_address = make_shared<string>(value); }
-
     protected:
-
-        shared_ptr <string> m_referrer_address = nullptr;
 
     private:
 
@@ -58,19 +58,14 @@ namespace PocketTx
         void BuildHash(const UniValue& src) override
         {
             std::string data;
-            data += m_payload->GetString2Str();
-            data += m_payload->GetString5Str();
-            data += m_payload->GetString1Str();
-            data += m_payload->GetString4Str();
-            data += m_payload->GetString3Str();
-            data += m_payload->GetString7Str();
-
-            // TODO (brangr): реферер учитывается только для новой записи
-            // в остальных случаях не использовать
-            data += GetReferrerAddress() == nullptr ? "" : *GetReferrerAddress();
-
-            data += m_payload->GetString6Str();
-
+            data += m_payload->GetString2() ? *m_payload->GetString2() : "";
+            data += m_payload->GetString5() ? *m_payload->GetString5() : "";
+            data += m_payload->GetString1() ? *m_payload->GetString1() : "";
+            data += m_payload->GetString4() ? *m_payload->GetString4() : "";
+            data += m_payload->GetString3() ? *m_payload->GetString3() : "";
+            data += m_payload->GetString7() ? *m_payload->GetString7() : "";
+            data += GetReferrerAddress() ? *GetReferrerAddress() : "";
+            data += m_payload->GetString6() ? *m_payload->GetString6() : "";
             Transaction::GenerateHash(data);
         }
 

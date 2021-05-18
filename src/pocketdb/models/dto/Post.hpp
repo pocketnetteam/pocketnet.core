@@ -18,6 +18,7 @@ namespace PocketTx
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
+            if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
             if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok)
             {
@@ -26,21 +27,16 @@ namespace PocketTx
             }
         }
 
+        shared_ptr<string> GetAddress() const { return m_string1; }
+        void SetAddress(string value) { m_string1 = make_shared<string>(value); }
 
-        shared_ptr <int64_t> GetRootTxId() const { return m_int1; }
-        shared_ptr <string> GetRootTxHash() const { return m_root_tx_hash; }
-        void SetRootTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
-        void SetRootTxHash(string value) { m_root_tx_hash = make_shared<string>(value); }
+        shared_ptr <string> GetRootTxHash() const { return m_string2; }
+        void SetRootTxHash(string value) { m_string2 = make_shared<string>(value); }
 
-        shared_ptr <int64_t> GetRelayTxId() const { return m_int2; }
-        shared_ptr <string> GetRelayTxHash() const { return m_relay_tx_hash; }
-        void SetRelayTxId(int64_t value) { m_int2 = make_shared<int64_t>(value); }
-        void SetRelayTxHash(string value) { m_relay_tx_hash = make_shared<string>(value); }
+        shared_ptr <string> GetRelayTxHash() const { return m_string3; }
+        void SetRelayTxHash(string value) { m_string3 = make_shared<string>(value); }
 
     protected:
-
-        shared_ptr <string> m_root_tx_hash = nullptr;
-        shared_ptr <string> m_relay_tx_hash = nullptr;
 
     private:
 
@@ -63,14 +59,14 @@ namespace PocketTx
         {
             std::string data;
 
-            data += m_payload->GetString7Str();
-            data += m_payload->GetString2Str();
-            data += m_payload->GetString3Str();
+            data += m_payload->GetString7() ? *m_payload->GetString7() : "";
+            data += m_payload->GetString2() ? *m_payload->GetString2() : "";
+            data += m_payload->GetString3() ? *m_payload->GetString3() : "";
 
-            if (m_payload->GetString4() != nullptr)
+            if (m_payload->GetString4() && *m_payload->GetString4() != "")
             {
                 UniValue tags(UniValue::VARR);
-                tags.read(m_payload->GetString4Str());
+                tags.read(*m_payload->GetString4());
                 for (size_t i = 0; i < tags.size(); ++i)
                 {
                     data += (i ? "," : "");
@@ -78,10 +74,10 @@ namespace PocketTx
                 }
             }
 
-            if (m_payload->GetString5() != nullptr)
+            if (m_payload->GetString5() && *m_payload->GetString5() != "")
             {
                 UniValue images(UniValue::VARR);
-                images.read(m_payload->GetString5Str());
+                images.read(*m_payload->GetString5());
                 for (size_t i = 0; i < images.size(); ++i)
                 {
                     data += (i ? "," : "");

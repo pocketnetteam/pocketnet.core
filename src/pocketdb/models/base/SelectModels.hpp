@@ -4,7 +4,6 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-
 #ifndef POCKETTX_RETURN_DTO_HPP
 #define POCKETTX_RETURN_DTO_HPP
 

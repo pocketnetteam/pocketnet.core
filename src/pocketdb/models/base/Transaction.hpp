@@ -15,8 +15,8 @@
 
 #include "pocketdb/models/base/Base.hpp"
 #include "pocketdb/models/base/Payload.hpp"
-#include "pocketdb/models/base/TransactionOutput.hpp"
 #include "pocketdb/models/base/TransactionInput.hpp"
+#include "pocketdb/models/base/TransactionOutput.hpp"
 
 namespace PocketTx
 {

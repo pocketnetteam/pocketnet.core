@@ -38,7 +38,7 @@ namespace PocketServices
 
         static PocketBlock DeserializeBlock(CDataStream& stream, CBlock& block)
         {
-            LogPrint(BCLog::SYNC, "--- DeserializeBlock: %s\n", block.GetHash().GetHex());
+            LogPrint(BCLog::SYNC, "+++ DeserializeBlock: %s\n", block.GetHash().GetHex());
 
             // Prepare source data - old format (Json)
             UniValue pocketData(UniValue::VOBJ);
@@ -71,14 +71,16 @@ namespace PocketServices
                     }
                 }
 
-                LogPrint(BCLog::SYNC, " -- Call BuildInstance: %s (pocketData: %b)\n", txHash,
-                    pocketData.exists(txHash));
-
                 auto ptx = BuildInstance(tx, entry);
                 if (ptx) pocketBlock.push_back(ptx);
             }
 
             return pocketBlock;
+        }
+
+        static shared_ptr<Transaction> DeserializeTransaction(CDataStream& stream, const CTransactionRef& tx)
+        {
+            // TODO (brangr): implement
         }
 
         static PocketTxType ParseType(const CTransactionRef& tx, std::vector<std::string>& vasm)
@@ -225,8 +227,6 @@ namespace PocketServices
             shared_ptr<Transaction> ptx = nullptr;
             PocketTxType txType = ParseType(tx);
 
-            LogPrint(BCLog::SYNC, "  - BuildInstance: %s (type: %d)\n", txHash, txType);
-
             switch (txType)
             {
                 case NOT_SUPPORTED:
@@ -307,6 +307,8 @@ namespace PocketServices
                 ptx->BuildPayload(txDataSrc);
                 ptx->BuildHash(txDataSrc);
             }
+
+            LogPrint(BCLog::SYNC, " ++ BuildInstance: %s (type: %d) (payload: %b)\n", txHash, txType, ptx->HasPayload());
 
             return ptx;
         }

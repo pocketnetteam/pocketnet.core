@@ -22,31 +22,24 @@ namespace PocketTx
         void SetTxHash(string value) { m_txHash = make_shared<string>(value); }
 
         shared_ptr <string> GetString1() const { return m_string1; }
-        string GetString1Str() const { return m_string1 == nullptr ? "" : *m_string1; }
         void SetString1(string value) { m_string1 = make_shared<string>(value); }
 
         shared_ptr <string> GetString2() const { return m_string3; }
-        string GetString2Str() const { return m_string2 == nullptr ? "" : *m_string2; }
         void SetString2(string value) { m_string2 = make_shared<string>(value); }
 
         shared_ptr <string> GetString3() const { return m_string3; }
-        string GetString3Str() const { return m_string3 == nullptr ? "" : *m_string3; }
         void SetString3(string value) { m_string3 = make_shared<string>(value); }
 
         shared_ptr <string> GetString4() const { return m_string4; }
-        string GetString4Str() const { return m_string4 == nullptr ? "" : *m_string4; }
         void SetString4(string value) { m_string4 = make_shared<string>(value); }
 
         shared_ptr <string> GetString5() const { return m_string5; }
-        string GetString5Str() const { return m_string5 == nullptr ? "" : *m_string5; }
         void SetString5(string value) { m_string5 = make_shared<string>(value); }
 
         shared_ptr <string> GetString6() const { return m_string6; }
-        string GetString6Str() const { return m_string6 == nullptr ? "" : *m_string6; }
         void SetString6(string value) { m_string6 = make_shared<string>(value); }
 
         shared_ptr <string> GetString7() const { return m_string7; }
-        string GetString7Str() const { return m_string7 == nullptr ? "" : *m_string7; }
         void SetString7(string value) { m_string7 = make_shared<string>(value); }
 
     protected:

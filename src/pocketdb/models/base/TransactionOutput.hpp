@@ -8,11 +8,7 @@
 #define POCKETTX_TRANSACTIONOUTPUT_H
 
 #include "pocketdb/models/base/Base.hpp"
-#include <crypto/sha256.h>
 #include <string>
-#include <univalue.h>
-#include <utility>
-#include <utilstrencodings.h>
 
 namespace PocketTx
 {

@@ -100,8 +100,6 @@ namespace PocketDb
             return true;
         }
 
-
-        [[nodiscard]]
         shared_ptr<sqlite3_stmt*> SetupSqlStatement(const std::string& sql) const
         {
             sqlite3_stmt* stmt;

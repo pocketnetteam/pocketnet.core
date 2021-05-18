@@ -4906,6 +4906,9 @@ bool ProcessNewBlock(CValidationState& state,
     AssertLockNotHeld(cs_main);
 
     {
+        LogPrint(BCLog::BENCH, "--- ProcessBlock: %s\n", pblock->GetHash().GetHex());
+        int64_t nTime1 = GetTimeMicros();
+
         CBlockIndex* pindex = nullptr;
         bool ret = true;
         if (fNewBlock) *fNewBlock = false;
@@ -4914,20 +4917,44 @@ bool ProcessNewBlock(CValidationState& state,
         // Therefore, the following critical section must include the CheckBlock() call as well.
         LOCK(cs_main);
 
+        int64_t nTime2 = GetTimeMicros();
+        nTimeVerify += nTime2 - nTime1;
+        LogPrint(BCLog::BENCH, " -- Lock cs_main: %.2fms (%.3fms/txin)\n",
+            MILLI * (nTime2 - nTime1),
+            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime2 - nTime1) / (pocketBlock.size() - 1));
+
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
+
         ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
 
         // TODO (brangr) (v0.20.0): check pocket block
-        // TODO (brangr) (v0.20.0): mapping transaction & address hash-id
+
+        int64_t nTime3 = GetTimeMicros();
+        nTimeVerify += nTime3 - nTime2;
+        LogPrint(BCLog::BENCH, " -- Check block: %.2fms (%.3fms/txin)\n",
+            MILLI * (nTime3 - nTime2),
+            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (pocketBlock.size() - 1));
 
         // Store generic block to disk
         if (ret)
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
 
+        int64_t nTime4 = GetTimeMicros();
+        nTimeVerify += nTime4 - nTime3;
+        LogPrint(BCLog::BENCH, " -- Accept LeveDb: %.2fms (%.3fms/txin)\n",
+            MILLI * (nTime4 - nTime3),
+            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (pocketBlock.size() - 1));
+
         // Store pocketnet block to disk
         if (ret)
             ret = PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+
+        int64_t nTime5 = GetTimeMicros();
+        nTimeVerify += nTime5 - nTime4;
+        LogPrint(BCLog::BENCH, " -- Accept SQLite: %.2fms (%.3fms/txin)\n",
+            MILLI * (nTime5 - nTime4),
+            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (pocketBlock.size() - 1));
 
         // Check FAILED
         if (!ret)

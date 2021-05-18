@@ -25,20 +25,21 @@ namespace PocketTx
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);
+            if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxHash(val);
             if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
         }
 
-        shared_ptr<int64_t> GetPostTxId() const { return m_int1; }
-        shared_ptr<string> GetPostTxHash() const { return m_post_tx_hash; }
-        void SetPostTxId(int64_t value) { m_int1 = make_shared<int64_t>(value); }
-        void SetPostTxHash(string value) { m_post_tx_hash = make_shared<string>(value); }
+        shared_ptr <string> GetAddress() const { return m_string1; }
+        void SetAddress(string value) { m_string1 = make_shared<string>(value); }
 
-        shared_ptr<int64_t> GetValue() const { return m_int2; }
-        void SetValue(int64_t value) { m_int2 = make_shared<int64_t>(value); }
+        shared_ptr<string> GetPostTxHash() const { return m_string2; }
+        void SetPostTxHash(string value) { m_string2 = make_shared<string>(value); }
+
+        shared_ptr<int64_t> GetValue() const { return m_int1; }
+        void SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
     protected:
-        shared_ptr<string> m_post_tx_hash = nullptr;
 
     private:
 
