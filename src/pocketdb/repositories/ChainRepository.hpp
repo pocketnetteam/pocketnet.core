@@ -69,7 +69,7 @@ namespace PocketDb
                 // Remove blocks from chain
                 {
                     auto stmt = SetupSqlStatement(R"sql(
-                        DELETE OR FAIL FROM Chain
+                        DELETE FROM Chain
                         WHERE Height > ?
                     )sql");
 
@@ -86,7 +86,7 @@ namespace PocketDb
                 // Remove ratings
                 {
                     auto stmt = SetupSqlStatement(R"sql(
-                        DELETE OR FAIL FROM Ratings
+                        DELETE FROM Ratings
                         WHERE Height > ?
                     )sql");
 
