@@ -28,6 +28,7 @@ namespace PocketConsensus
     public:
         BaseConsensus() = default;
     protected:
+        virtual int CheckpointHeight() { return 0; };
     private:
     };
 

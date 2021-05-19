@@ -22,6 +22,9 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class LotteryConsensus : public BaseConsensus
     {
+    protected:
+        const int RATINGS_PAYOUT_MAX = 25;
+
     public:
 
         LotteryConsensus() = default;
@@ -49,9 +52,8 @@ namespace PocketConsensus
         LotteryWinners _winners;
 
     protected:
-        const int CheckpointHeight = 0;
 
-        const int RATINGS_PAYOUT_MAX = 25;
+
         //const int64_t _lottery_referral_depth; // todo (brangr): inherited in checkpoints
 
         void GetReferrers(std::vector<std::string> &winners, std::map<std::string, std::string> all_referrers,
@@ -242,7 +244,7 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_1 : public LotteryConsensus_checkpoint_0
     {
     protected:
-
+        int CheckpointHeight() override { return 1; }
 
     public:
 //    winners()
@@ -306,7 +308,7 @@ namespace PocketConsensus
     *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
-    class LotteryFactory
+    class LotteryConsensusFactory
     {
     private:
     public:

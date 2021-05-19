@@ -11,7 +11,8 @@ namespace PocketDb
 
 namespace PocketConsensus
 {
-    LotteryFactory LotteryFactoryInst;
+    LotteryConsensusFactory LotteryConsensusFactoryInst;
+    UserConsensusFactory UserConsensusFactoryInst;
 }; // namespace PocketConsensus
 
 

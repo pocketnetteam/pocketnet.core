@@ -8,9 +8,11 @@
 #include <core_io.h>
 #include <sstream>
 #include <util.h>
-
 #include <boost/algorithm/string.hpp>
+
 #include "pocketdb/consensus/Lottery.hpp"
+#include "pocketdb/consensus/User.hpp"
+
 #include "pocketdb/repositories/ChainRepository.hpp"
 #include "pocketdb/repositories/TransactionRepository.hpp"
 
@@ -23,7 +25,8 @@ namespace PocketDb
 
 namespace PocketConsensus
 {
-    extern LotteryFactory LotteryFactoryInst;
+    extern LotteryConsensusFactory LotteryConsensusFactoryInst;
+    extern UserConsensusFactory UserConsensusFactoryInst;
 }; // namespace PocketConsensus
 
 
