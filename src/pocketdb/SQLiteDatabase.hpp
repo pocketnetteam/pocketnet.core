@@ -234,7 +234,7 @@ create index if not exists Ratings_ValInt on Ratings (Value);
             }
             catch (const std::exception&) {
                 AbortTransaction();
-                LogPrintf("FFailed to create init database structure", __func__);
+                LogPrintf("%s: Failed to create init database structure", __func__);
                 return false;
             }
 
