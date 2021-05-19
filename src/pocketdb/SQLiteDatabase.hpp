@@ -12,20 +12,17 @@
 #include "sqlite3.h"
 #include "sync.h"
 #include "tinyformat.h"
+#include "fs.h"
 
 #include <iostream>
-#include <filesystem>
 
 namespace PocketDb
 {
-    namespace fs = std::filesystem;
-
     class SQLiteDatabase
     {
     private:
         std::string m_dir_path;
         std::string m_file_path;
-        bool m_is_first_init;
 
         void Cleanup() noexcept
         {
@@ -57,18 +54,15 @@ namespace PocketDb
         }
 
         bool TryCreateDbIfNotExists() {
-            if (fs::exists(m_file_path)) {
-                return true;
+            try
+            {
+                return fs::create_directories(m_dir_path);
             }
-
-            // TODO (joni): need check also db - maybe structure changed?
-            m_is_first_init = true;
-
-            if (!fs::exists(m_dir_path)) {
-                fs::create_directory(m_dir_path);
+            catch (const fs::filesystem_error&)
+            {
+                if (!fs::exists(m_dir_path) || !fs::is_directory(m_dir_path))
+                    throw;
             }
-
-            return true;
         }
 
         bool CreateStructure() const {
@@ -306,13 +300,9 @@ create index if not exists Ratings_ValInt on Ratings (Value);
                     throw std::runtime_error(strprintf("%s: %d; Failed to open database: %s\n",
                         __func__, ret, sqlite3_errstr(ret)));
 
-                if (m_is_first_init) {
-                    if (!CreateStructure()) {
-                        throw std::runtime_error(strprintf("%s: Failed to create database\n",
-                            __func__));
-                    }
-
-                    m_is_first_init = false;
+                if (!CreateStructure()) {
+                    throw std::runtime_error(strprintf("%s: Failed to create database\n",
+                        __func__));
                 }
             }
 

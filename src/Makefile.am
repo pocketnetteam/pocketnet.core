@@ -519,10 +519,6 @@ pocketcoind_LDADD = \
 
 pocketcoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
-if TARGET_LINUX
-pocketcoind_LDADD += -lstdc++fs
-endif
-
 # pocketcoin-cli binary #
 pocketcoin_cli_SOURCES = pocketcoin-cli.cpp
 pocketcoin_cli_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(EVENT_CFLAGS)
