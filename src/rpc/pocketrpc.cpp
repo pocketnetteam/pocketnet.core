@@ -767,10 +767,10 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     if (mesType == "commentEdit") return SetCommentEdit(request, tx);
     if (mesType == "commentDelete") return SetCommentDelete(request, tx);
     if (mesType == "cScore") return SetCommentScore(request, tx);
+    if (mesType == "video") return SetVideo(request, tx);
 
     // TODO (brangr): only for pre-release tests
     if (Params().NetworkIDString() == CBaseChainParams::TESTNET) {
-        if (mesType == "video") return SetVideo(request, tx);
         if (mesType == "serverPing") return SetServerPing(request, tx);
         if (mesType == "translate") return SetTranslate(request, tx);
         if (mesType == "videoServer") return SetVideoServer(request, tx);
