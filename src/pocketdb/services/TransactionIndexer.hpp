@@ -63,6 +63,7 @@ namespace PocketServices
         static bool IndexRatings(const CBlock& block, int height)
         {
             // todo (brangr): implement
+            return true;
         }
 
 
