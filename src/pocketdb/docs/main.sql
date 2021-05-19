@@ -1,4 +1,4 @@
-create table Transactions
+create table if not exists Transactions
 (
     Type    int    not null,
     Hash    string not null primary key,
@@ -52,7 +52,7 @@ create index if not exists Transactions_String5 on Transactions (String5);
 create index if not exists Transactions_Int1 on Transactions (Int1);
 
 --------------------------------------------
-create table Chain
+create table if not exists Chain
 (
     TxHash    string not null primary key, -- Transactions.Hash
     BlockHash string not null,             -- Block hash
@@ -65,7 +65,7 @@ create index if not exists Chain_Height on Chain (Height);
 --------------------------------------------
 --               EXT TABLES               --
 --------------------------------------------
-create table Payload
+create table if not exists Payload
 (
     TxHash  string primary key, -- Transactions.Hash
 
@@ -102,7 +102,7 @@ create table Payload
 
 
 --------------------------------------------
-create table TxOutputs
+create table if not exists TxOutputs
 (
     TxHash string not null, -- Transactions.Hash
     Number int    not null, -- Number in tx.vout
@@ -111,7 +111,7 @@ create table TxOutputs
 );
 
 --------------------------------------------
-create table TxOutputsDestinations
+create table if not exists TxOutputsDestinations
 (
     TxHash      string not null, -- TxOutput.TxHash
     Number      int    not null, -- TxOutput.Number
@@ -120,7 +120,7 @@ create table TxOutputsDestinations
 );
 
 --------------------------------------------
-create table TxInputs
+create table if not exists TxInputs
 (
     TxHash        string not null, -- Transactions.Hash
     InputTxHash   string not null, -- TxOutput.TxHash
@@ -129,7 +129,7 @@ create table TxInputs
 );
 
 --------------------------------------------
-create table Ratings
+create table if not exists Ratings
 (
     Type   int    not null,
     Height int    not null,

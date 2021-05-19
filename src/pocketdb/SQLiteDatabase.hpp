@@ -67,150 +67,148 @@ namespace PocketDb
 
         bool CreateStructure() const {
             std::string generate_sql = R"sql(
+                create table if not exists Transactions
+                (
+                    Type    int    not null,
+                    Hash    string not null primary key,
+                    Time    int    not null,
 
-create table Transactions
-(
-    Type    int    not null,
-    Hash    string not null primary key,
-    Time    int    not null,
+                    -- User.AddressHash
+                    -- Post.AddressHash
+                    -- Comment.AddressHash
+                    -- ScorePost.AddressHash
+                    -- ScoreComment.AddressHash
+                    -- Subscribe.AddressHash
+                    -- Blocking.AddressHash
+                    -- Complain.AddressHash
+                    String1 string null,
 
-    -- User.AddressHash
-    -- Post.AddressHash
-    -- Comment.AddressHash
-    -- ScorePost.AddressHash
-    -- ScoreComment.AddressHash
-    -- Subscribe.AddressHash
-    -- Blocking.AddressHash
-    -- Complain.AddressHash
-    String1 string null,
+                    -- User.ReferrerAddressHash
+                    -- Post.RootTxHash
+                    -- Comment.RootTxHash
+                    -- ScorePost.PostTxHash
+                    -- ScoreComment.CommentTxHash
+                    -- Subscribe.AddressToHash
+                    -- Blocking.AddressToHash
+                    -- Complain.PostTxHash
+                    String2 string null,
 
-    -- User.ReferrerAddressHash
-    -- Post.RootTxHash
-    -- Comment.RootTxHash
-    -- ScorePost.PostTxHash
-    -- ScoreComment.CommentTxHash
-    -- Subscribe.AddressToHash
-    -- Blocking.AddressToHash
-    -- Complain.PostTxHash
-    String2 string null,
+                    -- Post.RelayTxId
+                    -- Comment.PostTxId
+                    String3 string null,
 
-    -- Post.RelayTxId
-    -- Comment.PostTxId
-    String3 string null,
+                    -- Comment.ParentTxHash
+                    String4 string null,
 
-    -- Comment.ParentTxHash
-    String4 string null,
+                    -- Comment.AnswerTxHash
+                    String5 string null,
 
-    -- Comment.AnswerTxHash
-    String5 string null,
+                    -- User.Registration
+                    -- ScorePost.Value
+                    -- ScoreComment.Value
+                    -- Complain.Reason
+                    Int1    int    null
+                );
 
-    -- User.Registration
-    -- ScorePost.Value
-    -- ScoreComment.Value
-    -- Complain.Reason
-    Int1    int    null
-);
+                create index if not exists Transactions_Type on Transactions (Type);
+                create index if not exists Transactions_Hash on Transactions (Hash);
+                create index if not exists Transactions_Time on Transactions (Time);
+                create index if not exists Transactions_String1 on Transactions (String1);
+                create index if not exists Transactions_String2 on Transactions (String2);
+                create index if not exists Transactions_String3 on Transactions (String3);
+                create index if not exists Transactions_String4 on Transactions (String4);
+                create index if not exists Transactions_String5 on Transactions (String5);
+                create index if not exists Transactions_Int1 on Transactions (Int1);
 
-create index if not exists Transactions_Type on Transactions (Type);
-create index if not exists Transactions_Hash on Transactions (Hash);
-create index if not exists Transactions_Time on Transactions (Time);
-create index if not exists Transactions_String1 on Transactions (String1);
-create index if not exists Transactions_String2 on Transactions (String2);
-create index if not exists Transactions_String3 on Transactions (String3);
-create index if not exists Transactions_String4 on Transactions (String4);
-create index if not exists Transactions_String5 on Transactions (String5);
-create index if not exists Transactions_Int1 on Transactions (Int1);
+                --------------------------------------------
+                create table if not exists Chain
+                (
+                    TxHash    string not null primary key, -- Transactions.Hash
+                    BlockHash string not null,             -- Block hash
+                    Height    int    not null              -- Block height
+                );
 
---------------------------------------------
-create table Chain
-(
-    TxHash    string not null primary key, -- Transactions.Hash
-    BlockHash string not null,             -- Block hash
-    Height    int    not null              -- Block height
-);
+                create index if not exists Chain_BlockHash on Chain (BlockHash);
+                create index if not exists Chain_Height on Chain (Height);
 
-create index if not exists Chain_BlockHash on Chain (BlockHash);
-create index if not exists Chain_Height on Chain (Height);
+                --------------------------------------------
+                --               EXT TABLES               --
+                --------------------------------------------
+                create table if not exists Payload
+                (
+                    TxHash  string primary key, -- Transactions.Hash
 
---------------------------------------------
---               EXT TABLES               --
---------------------------------------------
-create table Payload
-(
-    TxHash  string primary key, -- Transactions.Hash
+                    -- User.Lang
+                    -- Post.Lang
+                    -- Comment.Lang
+                    String1 string null,
 
-    -- User.Lang
-    -- Post.Lang
-    -- Comment.Lang
-    String1 string null,
+                    -- User.Name
+                    -- Post.Caption
+                    -- Comment.Message
+                    String2 string null,
 
-    -- User.Name
-    -- Post.Caption
-    -- Comment.Message
-    String2 string null,
+                    -- User.Avatar
+                    -- Post.Message
+                    String3 string null,
 
-    -- User.Avatar
-    -- Post.Message
-    String3 string null,
+                    -- User.About
+                    -- Post.Tags JSON
+                    String4 string null,
 
-    -- User.About
-    -- Post.Tags JSON
-    String4 string null,
+                    -- User.Url
+                    -- Post.Images JSON
+                    String5 string null,
 
-    -- User.Url
-    -- Post.Images JSON
-    String5 string null,
+                    -- User.Pubkey
+                    -- Post.Settings JSON
+                    String6 string null,
 
-    -- User.Pubkey
-    -- Post.Settings JSON
-    String6 string null,
-
-    -- User.Donations JSON
-    -- Post.Url
-    String7 string null
-);
+                    -- User.Donations JSON
+                    -- Post.Url
+                    String7 string null
+                );
 
 
---------------------------------------------
-create table TxOutputs
-(
-    TxHash string not null, -- Transactions.Hash
-    Number int    not null, -- Number in tx.vout
-    Value  int    not null, -- Amount
-    primary key (TxHash, Number)
-);
+                --------------------------------------------
+                create table if not exists TxOutputs
+                (
+                    TxHash string not null, -- Transactions.Hash
+                    Number int    not null, -- Number in tx.vout
+                    Value  int    not null, -- Amount
+                    primary key (TxHash, Number)
+                );
 
---------------------------------------------
-create table TxOutputsDestinations
-(
-    TxHash      string not null, -- TxOutput.TxHash
-    Number      int    not null, -- TxOutput.Number
-    AddressHash string not null, -- Addresses hash
-    primary key (TxHash, Number, AddressHash)
-);
+                --------------------------------------------
+                create table if not exists TxOutputsDestinations
+                (
+                    TxHash      string not null, -- TxOutput.TxHash
+                    Number      int    not null, -- TxOutput.Number
+                    AddressHash string not null, -- Addresses hash
+                    primary key (TxHash, Number, AddressHash)
+                );
 
---------------------------------------------
-create table TxInputs
-(
-    TxHash        string not null, -- Transactions.Hash
-    InputTxHash   string not null, -- TxOutput.TxHash
-    InputTxNumber int    not null, -- TxOutput.Number
-    primary key (TxHash, InputTxHash, InputTxNumber)
-);
+                --------------------------------------------
+                create table if not exists TxInputs
+                (
+                    TxHash        string not null, -- Transactions.Hash
+                    InputTxHash   string not null, -- TxOutput.TxHash
+                    InputTxNumber int    not null, -- TxOutput.Number
+                    primary key (TxHash, InputTxHash, InputTxNumber)
+                );
 
---------------------------------------------
-create table Ratings
-(
-    Type   int    not null,
-    Height int    not null,
-    Hash   string not null,
-    Value  int    not null,
+                --------------------------------------------
+                create table if not exists Ratings
+                (
+                    Type   int    not null,
+                    Height int    not null,
+                    Hash   string not null,
+                    Value  int    not null,
 
-    primary key (Type, Height, Hash)
-);
+                    primary key (Type, Height, Hash)
+                );
 
-create index if not exists Ratings_ValInt on Ratings (Value);
-
+                create index if not exists Ratings_ValInt on Ratings (Value);
             )sql";
 
             BeginTransaction();
