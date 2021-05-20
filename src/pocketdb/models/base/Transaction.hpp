@@ -63,7 +63,6 @@ namespace PocketTx
         void SetInt1(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
         vector<shared_ptr<TransactionOutput>>& Outputs() { return m_outputs; }
-        vector<shared_ptr<TransactionInput>>& Inputs() { return m_inputs; }
 
         shared_ptr<Payload> GetPayload() const { return m_payload; }
         void SetPayload(Payload value) { m_payload = make_shared<Payload>(value); }
@@ -96,7 +95,6 @@ namespace PocketTx
         shared_ptr<Payload> m_payload = nullptr;
 
         vector<shared_ptr<TransactionOutput>> m_outputs;
-        vector<shared_ptr<TransactionInput>> m_inputs;
 
         void GenerateHash(string& dataSrc)
         {

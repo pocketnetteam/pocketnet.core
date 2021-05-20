@@ -155,10 +155,7 @@ namespace PocketServices
 
             // Build outputs & inputs
             if (ptx)
-            {
                 BuildOutputs(tx, ptx);
-                BuildInputs(tx, ptx);
-            }
 
             // Skip if outputs empty
             if (ptx->Outputs().empty())
@@ -194,38 +191,19 @@ namespace PocketServices
                 int nRequired;
                 if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))
                 {
-                    auto out = make_shared<TransactionOutput>();
-                    out->SetTxHash(tx->GetHash().GetHex());
-                    out->SetNumber(i);
-                    out->SetValue(txout.nValue);
                     for (const auto& dest : vDest)
                     {
-                        auto address = EncodeDestination(dest);
-                        out->AddDestination(address);
+                        auto out = make_shared<TransactionOutput>();
+                        out->SetTxHash(tx->GetHash().GetHex());
+                        out->SetNumber(i);
+                        out->SetAddressHash(EncodeDestination(dest));
+                        out->SetValue(txout.nValue);
+
+                        ptx->Outputs().push_back(out);
                     }
-
-                    ptx->Outputs().push_back(out);
                 }
             }
         }
-
-        static void BuildInputs(const CTransactionRef& tx, shared_ptr<Transaction> ptx)
-        {
-            // Indexing inputs
-            if (!tx->IsCoinBase())
-            {
-                for (const auto& txin : tx->vin)
-                {
-                    auto inp = make_shared<TransactionInput>();
-                    inp->SetTxHash(tx->GetHash().GetHex());
-                    inp->SetInputTxHash(txin.prevout.hash.GetHex());
-                    inp->SetInputTxNumber(txin.prevout.n);
-
-                    ptx->Inputs().push_back(inp);
-                }
-            }
-        }
-
     };
 
 }

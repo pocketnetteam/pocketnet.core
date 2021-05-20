@@ -53,11 +53,18 @@ namespace PocketServices
         // Set block height for all transactions in block
         static bool IndexChain(const CBlock& block, int height)
         {
-            vector<string> txs;
+            // transaction with all inputs
+            map<string, map<string, int>> txs;
             for (const auto& tx : block.vtx)
-                txs.push_back(tx->GetHash().GetHex());
+            {
+                map<string, int> inps;
+                for (const auto& inp : tx->vin)
+                    inps.emplace(inp.prevout.hash.GetHex(), inp.prevout.n);
+                
+                txs.emplace(tx->GetHash().GetHex(), inps);
+            }
 
-            return PocketDb::ChainRepoInst.InsertBlock(block.GetHash().GetHex(), height, txs);
+            return PocketDb::ChainRepoInst.UpdateHeight(block.GetHash().GetHex(), height, txs);
         }
 
         static bool IndexRatings(const CBlock& block, int height)

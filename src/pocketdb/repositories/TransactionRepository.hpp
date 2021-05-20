@@ -39,9 +39,8 @@ namespace PocketDb
                     // Insert general transaction
                     InsertTransactionModel(ptx);
 
-                    // Outputs & inputs
+                    // Outputs
                     InsertTransactionOutputs(ptx);
-                    InsertTransactionInputs(ptx);
 
                     // Also need insert payload of transaction
                     // But need get new rowId
@@ -97,16 +96,19 @@ namespace PocketDb
                     INSERT OR FAIL INTO TxOutputs (
                         TxHash,
                         Number,
+                        AddressHash,
                         Value
-                    ) SELECT ?,?,?
-                    WHERE NOT EXISTS (select 1 from TxOutputs o where o.TxHash=? and o.Number=?)
+                    ) SELECT ?,?,?,?
+                    WHERE NOT EXISTS (select 1 from TxOutputs o where o.TxHash=? and o.Number=? and o.AddressHash=?)
                 )sql");
 
                 auto result = TryBindStatementText(stmt, 1, ptx->GetHash());
                 result &= TryBindStatementInt64(stmt, 2, output->GetNumber());
-                result &= TryBindStatementInt64(stmt, 3, output->GetValue());
-                result &= TryBindStatementText(stmt, 4, ptx->GetHash());
-                result &= TryBindStatementInt64(stmt, 5, output->GetNumber());
+                result &= TryBindStatementText(stmt, 3, output->GetAddressHash());
+                result &= TryBindStatementInt64(stmt, 4, output->GetValue());
+                result &= TryBindStatementText(stmt, 5, ptx->GetHash());
+                result &= TryBindStatementInt64(stmt, 6, output->GetNumber());
+                result &= TryBindStatementText(stmt, 7, output->GetAddressHash());
                 if (!result)
                     throw runtime_error(strprintf("%s: can't insert in transaction (bind out)\n", __func__));
 
@@ -114,76 +116,9 @@ namespace PocketDb
                 if (!TryStepStatement(stmt))
                     throw runtime_error(strprintf("%s: can't insert in transaction (step out): %s\n",
                         __func__, *output->GetTxHash()));
-
-                // Also need save destination addresses
-                for (const auto& dest : output->Destinations())
-                {
-                    auto destPtr = make_shared<string>(dest);
-                    auto stmtDest = SetupSqlStatement(R"sql(
-                        INSERT OR FAIL INTO TxOutputsDestinations (
-                            TxHash,
-                            Number,
-                            AddressHash
-                        ) SELECT ?,?,?
-                        WHERE NOT EXISTS (select 1 from TxOutputsDestinations od where od.TxHash=? and od.Number=?)
-                    )sql");
-
-                    auto resultDest = TryBindStatementText(stmtDest, 1, ptx->GetHash());
-                    resultDest &= TryBindStatementInt64(stmtDest, 2, output->GetNumber());
-                    resultDest &= TryBindStatementText(stmtDest, 3, destPtr);
-                    resultDest &= TryBindStatementText(stmtDest, 4, ptx->GetHash());
-                    resultDest &= TryBindStatementInt64(stmtDest, 5, output->GetNumber());
-                    if (!resultDest)
-                        throw runtime_error(
-                            strprintf("%s: can't insert in transaction (bind outdest)\n", __func__));
-
-                    // Try execute with clear last rowId
-                    if (!TryStepStatement(stmtDest))
-                        throw runtime_error(strprintf("%s: can't insert in transaction (step outdest): %s\n",
-                            __func__, dest));
-                }
             }
 
             LogPrint(BCLog::SYNC, "  - Insert Outputs %s : %d\n", *ptx->GetHash(), (int) ptx->Outputs().size());
-        }
-
-        void InsertTransactionInputs(shared_ptr<Transaction> ptx)
-        {
-            for (const auto& input : ptx->Inputs())
-            {
-                // Build sql statement with auto select IDs
-                auto stmt = SetupSqlStatement(R"sql(
-                    INSERT OR FAIL INTO TxInputs (
-                        TxHash,
-                        InputTxHash,
-                        InputTxNumber
-                    ) SELECT ?,?,?
-                    WHERE NOT EXISTS (
-                        select 1
-                        from TxInputs i
-                        where i.TxHash=?
-                            and i.InputTxHash=?
-                            and i.InputTxNumber=?
-                    )
-                )sql");
-
-                // Bind arguments
-                auto result = TryBindStatementText(stmt, 1, ptx->GetHash());
-                result &= TryBindStatementText(stmt, 2, input->GetInputTxHash());
-                result &= TryBindStatementInt64(stmt, 3, input->GetInputTxNumber());
-                result &= TryBindStatementText(stmt, 4, ptx->GetHash());
-                result &= TryBindStatementText(stmt, 5, input->GetInputTxHash());
-                result &= TryBindStatementInt64(stmt, 6, input->GetInputTxNumber());
-                if (!result)
-                    throw runtime_error(strprintf("%s: can't insert in transaction (bind inp)\n", __func__));
-
-                // Try execute
-                if (!TryStepStatement(stmt))
-                    throw runtime_error(strprintf("%s: can't insert in transaction (step inp) Tx:%s InputTx:%s\n",
-                        __func__, *ptx->GetHash(), *input->GetInputTxHash()));
-            }
-
-            LogPrint(BCLog::SYNC, "  - Insert Inputs %s : %d\n", *ptx->GetHash(), (int) ptx->Inputs().size());
         }
 
         void InsertTransactionPayload(shared_ptr<Transaction> ptx)

@@ -26,37 +26,16 @@ namespace PocketDb
         void Init() override {}
         void Destroy() override {}
 
-        // Link transactions with block hash & height
-        bool InsertBlock(string blockHash, int height, vector<string>& txs)
+        // Update transactions set block hash & height
+        // Also spent outputs
+        bool UpdateHeight(string blockHash, int height, map<string, map<string, int>>& txs)
         {
             return TryTransactionStep([&]()
             {
-                for (const auto& txHash : txs)
+                for (const auto& tx : txs)
                 {
-                    // Build sql statement with auto select IDs
-                    auto stmt = SetupSqlStatement(R"sql(
-                        INSERT OR FAIL INTO Chain (
-                            TxHash,
-                            BlockHash,
-                            Height
-                        ) SELECT ?,?,?
-                    )sql");
-
-                    // Bind arguments
-                    auto txHashPtr = make_shared<string>(txHash);
-                    auto blockHashPtr = make_shared<string>(blockHash);
-                    auto heightPtr = make_shared<int>(height);
-
-                    auto result = TryBindStatementText(stmt, 1, txHashPtr);
-                    result &= TryBindStatementText(stmt, 2, blockHashPtr);
-                    result &= TryBindStatementInt(stmt, 3, heightPtr);
-                    if (!result)
-                        throw runtime_error(strprintf("%s: can't insert in chain (bind)\n", __func__));
-
-                    // Try execute
-                    if (!TryStepStatement(stmt))
-                        throw runtime_error(strprintf("%s: can't insert in chain (step) Hash:%s Block:%s Height:%d\n",
-                            __func__, txHash, blockHash, height));
+                    UpdateTransactionHeight(blockHash, height, tx.first);
+                    UpdateTransactionOutputs(blockHash, height, tx.second);
                 }
             });
         }
@@ -137,6 +116,61 @@ namespace PocketDb
 
     private:
 
+        void UpdateTransactionHeight(string blockHash, int height, string txHash)
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    BlockHash=?,
+                    Height=?
+                WHERE Hash=?
+            )sql");
+
+            // Bind arguments
+            auto blockHashPtr = make_shared<string>(blockHash);
+            auto heightPtr = make_shared<int>(height);
+            auto txHashPtr = make_shared<string>(txHash);
+
+            auto result = TryBindStatementText(stmt, 1, blockHashPtr);
+            result &= TryBindStatementInt(stmt, 2, heightPtr);
+            result &= TryBindStatementText(stmt, 3, txHashPtr);
+            if (!result)
+                throw runtime_error(strprintf("%s: can't update transactions set height (bind)\n", __func__));
+
+            // Try execute
+            if (!TryStepStatement(stmt))
+                throw runtime_error(strprintf("%s: can't update transactions set height (step) Hash:%s Block:%s Height:%d\n",
+                    __func__, txHash, blockHash, height));
+        }
+        void UpdateTransactionOutputs(string txHash, int height, map<string, int> outputs)
+        {
+            for (auto& out : outputs)
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    UPDATE TxOutputs SET
+                        SpentHeight=?,
+                        SpentTxHash=?
+                    WHERE TxHash=? and Number=?
+                )sql");
+
+                // Bind arguments
+                auto heightPtr = make_shared<int>(height);
+                auto spentTxHashPtr = make_shared<string>(out.first);
+                auto txHashPtr = make_shared<string>(txHash);
+                auto numberPtr = make_shared<int>(out.second);
+
+                auto result = TryBindStatementInt(stmt, 1, heightPtr);
+                result &= TryBindStatementText(stmt, 2, spentTxHashPtr);
+                result &= TryBindStatementText(stmt, 3, txHashPtr);
+                result &= TryBindStatementInt(stmt, 4, numberPtr);
+                if (!result)
+                    throw runtime_error(strprintf("%s: can't update txoutputs set height (bind)\n", __func__));
+
+                // Try execute
+                if (!TryStepStatement(stmt))
+                    throw runtime_error(strprintf("%s: can't update txoutputs set height (step) Hash:%s Block:%s Height:%d\n",
+                        __func__, txHash, blockHash, height));
+            }
+        }
 
     };
 

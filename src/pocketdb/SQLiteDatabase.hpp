@@ -73,6 +73,9 @@ namespace PocketDb
                     Hash    string not null primary key,
                     Time    int    not null,
 
+                    BlockHash string null,
+                    Height int null,
+
                     -- User.AddressHash
                     -- Post.AddressHash
                     -- Comment.AddressHash
@@ -113,23 +116,14 @@ namespace PocketDb
                 create index if not exists Transactions_Type on Transactions (Type);
                 create index if not exists Transactions_Hash on Transactions (Hash);
                 create index if not exists Transactions_Time on Transactions (Time);
+                create index if not exists Transactions_BlockHash on Transactions (BlockHash);
+                create index if not exists Transactions_Height on Transactions (Height);
                 create index if not exists Transactions_String1 on Transactions (String1);
                 create index if not exists Transactions_String2 on Transactions (String2);
                 create index if not exists Transactions_String3 on Transactions (String3);
                 create index if not exists Transactions_String4 on Transactions (String4);
                 create index if not exists Transactions_String5 on Transactions (String5);
                 create index if not exists Transactions_Int1 on Transactions (Int1);
-
-                --------------------------------------------
-                create table if not exists Chain
-                (
-                    TxHash    string not null primary key, -- Transactions.Hash
-                    BlockHash string not null,             -- Block hash
-                    Height    int    not null              -- Block height
-                );
-
-                create index if not exists Chain_BlockHash on Chain (BlockHash);
-                create index if not exists Chain_Height on Chain (Height);
 
                 --------------------------------------------
                 --               EXT TABLES               --
@@ -175,27 +169,13 @@ namespace PocketDb
                 (
                     TxHash string not null, -- Transactions.Hash
                     Number int    not null, -- Number in tx.vout
+                    AddressHash string not null, -- Address
                     Value  int    not null, -- Amount
-                    primary key (TxHash, Number)
-                );
-
-                --------------------------------------------
-                create table if not exists TxOutputsDestinations
-                (
-                    TxHash      string not null, -- TxOutput.TxHash
-                    Number      int    not null, -- TxOutput.Number
-                    AddressHash string not null, -- Addresses hash
+                    SpentHeight int null, -- Where spent
+                    SpentTxHash string null, -- Who spent
                     primary key (TxHash, Number, AddressHash)
                 );
 
-                --------------------------------------------
-                create table if not exists TxInputs
-                (
-                    TxHash        string not null, -- Transactions.Hash
-                    InputTxHash   string not null, -- TxOutput.TxHash
-                    InputTxNumber int    not null, -- TxOutput.Number
-                    primary key (TxHash, InputTxHash, InputTxNumber)
-                );
 
                 --------------------------------------------
                 create table if not exists Ratings
@@ -209,6 +189,7 @@ namespace PocketDb
                 );
 
                 create index if not exists Ratings_ValInt on Ratings (Value);
+
             )sql";
 
             BeginTransaction();
