@@ -45,11 +45,32 @@ namespace PocketDb
         {
             return TryTransactionStep([&]()
             {
-                // Remove blocks from chain
+                // Update transactions
                 {
                     auto stmt = SetupSqlStatement(R"sql(
-                        DELETE FROM Chain
+                        UPDATE Transactions SET
+                            BlockHash = null,
+                            Height = null
                         WHERE Height > ?
+                    )sql");
+
+                    auto heightPtr = make_shared<int>(height);
+                    auto result = TryBindStatementInt(stmt, 1, heightPtr);
+                    if (!result)
+                        throw runtime_error(strprintf("%s: can't rollback chain (bind)\n", __func__));
+
+                    if (!TryStepStatement(stmt))
+                        throw runtime_error(strprintf("%s: can't rollback chain (step) Height > %d\n",
+                            __func__, height));
+                }
+
+                // Update transaction outputs
+                {
+                    auto stmt = SetupSqlStatement(R"sql(
+                        UPDATE TxOutputs SET
+                            SpentHeight = null,
+                            SpentTxHash = null
+                        WHERE SpentHeight > ?
                     )sql");
 
                     auto heightPtr = make_shared<int>(height);
@@ -153,12 +174,12 @@ namespace PocketDb
                 )sql");
 
                 // Bind arguments
-                auto heightPtr = make_shared<int>(height);
-                auto spentTxHashPtr = make_shared<string>(out.first);
-                auto txHashPtr = make_shared<string>(txHash);
+                auto spentHeightPtr = make_shared<int>(height);
+                auto spentTxHashPtr = make_shared<string>(txHash);
+                auto txHashPtr = make_shared<string>(out.first);
                 auto numberPtr = make_shared<int>(out.second);
 
-                auto result = TryBindStatementInt(stmt, 1, heightPtr);
+                auto result = TryBindStatementInt(stmt, 1, spentHeightPtr);
                 result &= TryBindStatementText(stmt, 2, spentTxHashPtr);
                 result &= TryBindStatementText(stmt, 3, txHashPtr);
                 result &= TryBindStatementInt(stmt, 4, numberPtr);

@@ -58,8 +58,12 @@ namespace PocketServices
             for (const auto& tx : block.vtx)
             {
                 map<string, int> inps;
-                for (const auto& inp : tx->vin)
-                    inps.emplace(inp.prevout.hash.GetHex(), inp.prevout.n);
+
+                if (!tx->IsCoinBase())
+                {
+                    for (const auto& inp : tx->vin)
+                        inps.emplace(inp.prevout.hash.GetHex(), inp.prevout.n);
+                }
                 
                 txs.emplace(tx->GetHash().GetHex(), inps);
             }
