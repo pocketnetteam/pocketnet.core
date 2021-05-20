@@ -606,38 +606,51 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut> &results, CAmount &to
     auto winners = lotteryInst->Winners(blockPrev, hashProofOfStakeSource);
 
     // Generate new outs in transaction for all winners
-    for (const auto &vWin : winners)
+    auto result = true;
+    result &= GenerateOuts(nCredit, results, winners.PostWinners, lotteryInst, OP_WINNER_POST, totalAmount, winner_types);
+    result &= GenerateOuts(nCredit, results, winners.CommentWinners, lotteryInst, OP_WINNER_COMMENT, totalAmount, winner_types);
+    result &= GenerateOuts(nCredit, results, winners.PostReferrerWinners, lotteryInst, OP_WINNER_POST_REFERRAL, totalAmount, winner_types);
+    result &= GenerateOuts(nCredit, results, winners.CommentReferrerWinners, lotteryInst, OP_WINNER_COMMENT_REFERRAL, totalAmount, winner_types);
+
+    return result;
+}
+
+bool GenerateOuts(CAmount nCredit,
+    std::vector<CTxOut>& results, 
+    std::vector<std::string>& winners,
+    std::shared_ptr<PocketConsensus::LotteryConsensus> lotteryInst, 
+    opcodetype type,
+    CAmount& totalAmount,
+    std::vector<opcodetype>& winner_types)
+{
+    if (winners.empty())
+        return true;
+
+    CAmount ratingReward = lotteryInst->RatingReward(nCredit, type);
+    totalAmount += ratingReward;
+
+    int current = 0;
+    const int rewardsCount = (int)winners.size();
+    CAmount rewardsPool = ratingReward;
+    CAmount reward = ratingReward / rewardsCount;
+
+    for (const auto &addr : boost::adaptors::reverse(winners))
     {
-        CAmount ratingReward = lotteryInst->RatingReward(vWin.first);
-        totalAmount += ratingReward;
-
-        int current = 0;
-        const int rewardsCount = (int)vWin.second.size();
-        CAmount rewardsPool = ratingReward;
-        CAmount reward = ratingReward / rewardsCount;
-
-        for (const auto &addr : boost::adaptors::reverse(vWin.second))
+        CAmount re;
+        if (++current == rewardsCount)
         {
-            CAmount re;
-            if (++current == rewardsCount)
-            {
-                re = rewardsPool;
-            } else
-            {
-                rewardsPool = rewardsPool - reward;
-                re = reward;
-            }
-
-            CTxDestination dest = DecodeDestination(addr);
-            CScript scriptPubKey = GetScriptForDestination(dest);
-
-            // TODO (brangr): update over LotteryInstance
-//            if (height >= Params().GetConsensus().lottery_referral_beg)
-//                winner_types.push_back(op_code_type);
-
-            results.emplace_back(re, scriptPubKey);
+            re = rewardsPool;
+        } else
+        {
+            rewardsPool = rewardsPool - reward;
+            re = reward;
         }
-    }
 
-    return true;
+        CTxDestination dest = DecodeDestination(addr);
+        CScript scriptPubKey = GetScriptForDestination(dest);
+
+        lotteryInst->ExtendWinnerTypes(type, winner_types);
+
+        results.emplace_back(re, scriptPubKey);
+    }
 }
