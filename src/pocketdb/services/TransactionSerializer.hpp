@@ -9,7 +9,6 @@
 
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
-#include "pocketdb/models/base/TransactionInput.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
 #include "pocketdb/models/dto/Coinbase.hpp"
 #include "pocketdb/models/dto/Coinstake.hpp"

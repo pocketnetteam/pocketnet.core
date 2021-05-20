@@ -7,13 +7,12 @@
 #ifndef POCKETDB_TRANSACTIONREPOSITORY_HPP
 #define POCKETDB_TRANSACTIONREPOSITORY_HPP
 
-#include "pocketdb/pocketnet.h"
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
-#include "pocketdb/models/base/TransactionInput.hpp"
 #include "pocketdb/models/base/Rating.hpp"
 #include "pocketdb/models/base/SelectModels.hpp"
+#include "pocketdb/models/dto/User.hpp"
 
 namespace PocketDb
 {

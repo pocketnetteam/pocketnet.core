@@ -7,9 +7,7 @@
 #ifndef POCKETCONSENSUS_USER_HPP
 #define POCKETCONSENSUS_USER_HPP
 
-#include "streams.h"
 #include "pocketdb/consensus/Base.hpp"
-#include "pocketdb/services/TransactionSerializer.hpp"
 
 namespace PocketConsensus
 {
@@ -28,7 +26,7 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
-    *  Lottery start checkpoint
+    *  Start checkpoint
     *
     *******************************************************************************************************************/
     class UserConsensus_checkpoint_0 : public UserConsensus
@@ -43,7 +41,7 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
-    *  User consensus checkpoint at ... block
+    *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
     class UserConsensus_checkpoint_1 : public UserConsensus_checkpoint_0
@@ -56,7 +54,7 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
-    *  Lottery factory for select actual rules version
+    *  Factory for select actual rules version
     *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
@@ -67,7 +65,7 @@ namespace PocketConsensus
         shared_ptr <UserConsensus> Instance(int height)
         {
             // TODO (brangr): достать подходящий чекпойнт реализацию
-            return nullptr;
+
         }
     };
 

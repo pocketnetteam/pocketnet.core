@@ -8,11 +8,10 @@
 #define POCKETHELPERS_TRANSACTIONHELPER_HPP
 
 #include <string>
-
-#include "pocketdb/models/base/PocketTypes.hpp"
+#include <key_io.h>
 #include "primitives/transaction.h"
 
-
+#include "pocketdb/models/base/PocketTypes.hpp"
 
 namespace PocketHelpers
 {
@@ -21,6 +20,46 @@ namespace PocketHelpers
     using std::vector;
 
     using namespace PocketTx;
+
+    static PocketTxType ConvertOpReturnToType(const string& op)
+    {
+        if (op == OR_POST || op == OR_POSTEDIT)
+            return PocketTxType::CONTENT_POST;
+        else if (op == OR_VIDEO)
+            return PocketTxType::CONTENT_VIDEO;
+        else if (op == OR_SERVER_PING)
+            return PocketTxType::CONTENT_SERVERPING;
+        else if (op == OR_SCORE)
+            return PocketTxType::ACTION_SCORE_POST;
+        else if (op == OR_COMPLAIN)
+            return PocketTxType::ACTION_COMPLAIN;
+        else if (op == OR_SUBSCRIBE)
+            return PocketTxType::ACTION_SUBSCRIBE;
+        else if (op == OR_SUBSCRIBEPRIVATE)
+            return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
+        else if (op == OR_UNSUBSCRIBE)
+            return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
+        else if (op == OR_USERINFO)
+            return PocketTxType::ACCOUNT_USER;
+        else if (op == OR_VIDEO_SERVER)
+            return PocketTxType::ACCOUNT_VIDEO_SERVER;
+        else if (op == OR_MESSAGE_SERVER)
+            return PocketTxType::ACCOUNT_MESSAGE_SERVER;
+        else if (op == OR_BLOCKING)
+            return PocketTxType::ACTION_BLOCKING;
+        else if (op == OR_UNBLOCKING)
+            return PocketTxType::ACTION_BLOCKING_CANCEL;
+        else if (op == OR_COMMENT || op == OR_COMMENT_EDIT)
+            return PocketTxType::CONTENT_COMMENT;
+        else if (op == OR_COMMENT_DELETE)
+            return PocketTxType::CONTENT_COMMENT_DELETE;
+        else if (op == OR_COMMENT_SCORE)
+            return PocketTxType::ACTION_SCORE_COMMENT;
+
+        // TODO (brangr): new types
+
+        return PocketTxType::TX_DEFAULT;
+    }
 
     static PocketTxType ParseType(const CTransactionRef& tx, vector<string>& vasm)
     {
@@ -116,46 +155,6 @@ namespace PocketHelpers
             return PocketTxType::ACTION_COMPLAIN;
 
         return PocketTxType::NOT_SUPPORTED;
-    }
-
-    static PocketTxType ConvertOpReturnToType(const string& op)
-    {
-        if (op == OR_POST || op == OR_POSTEDIT)
-            return PocketTxType::CONTENT_POST;
-        else if (op == OR_VIDEO)
-            return PocketTxType::CONTENT_VIDEO;
-        else if (op == OR_SERVER_PING)
-            return PocketTxType::CONTENT_SERVERPING;
-        else if (op == OR_SCORE)
-            return PocketTxType::ACTION_SCORE_POST;
-        else if (op == OR_COMPLAIN)
-            return PocketTxType::ACTION_COMPLAIN;
-        else if (op == OR_SUBSCRIBE)
-            return PocketTxType::ACTION_SUBSCRIBE;
-        else if (op == OR_SUBSCRIBEPRIVATE)
-            return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
-        else if (op == OR_UNSUBSCRIBE)
-            return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
-        else if (op == OR_USERINFO)
-            return PocketTxType::ACCOUNT_USER;
-        else if (op == OR_VIDEO_SERVER)
-            return PocketTxType::ACCOUNT_VIDEO_SERVER;
-        else if (op == OR_MESSAGE_SERVER)
-            return PocketTxType::ACCOUNT_MESSAGE_SERVER;
-        else if (op == OR_BLOCKING)
-            return PocketTxType::ACTION_BLOCKING;
-        else if (op == OR_UNBLOCKING)
-            return PocketTxType::ACTION_BLOCKING_CANCEL;
-        else if (op == OR_COMMENT || op == OR_COMMENT_EDIT)
-            return PocketTxType::CONTENT_COMMENT;
-        else if (op == OR_COMMENT_DELETE)
-            return PocketTxType::CONTENT_COMMENT_DELETE;
-        else if (op == OR_COMMENT_SCORE)
-            return PocketTxType::ACTION_SCORE_COMMENT;
-
-        // TODO (brangr): new types
-
-        return PocketTxType::TX_DEFAULT;
     }
 
     static tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx)

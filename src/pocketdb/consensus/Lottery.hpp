@@ -8,6 +8,8 @@
 #define POCKETCONSENSUS_LOTTERY_HPP
 
 #include "streams.h"
+#include <boost/algorithm/string.hpp>
+
 #include "pocketdb/consensus/Base.hpp"
 #include "pocketdb/helpers/TransactionHelper.hpp"
 
@@ -36,12 +38,10 @@ namespace PocketConsensus
     protected:
         LotteryWinners _winners;
         virtual int MaxWinnersCount() const { return 25; }
-
         virtual void ExtendReferrers() {}
-
     public:
         LotteryConsensus() = default;
-        virtual LotteryWinners &Winners(const CBlock &block, CDataStream &hashProofOfStakeSource) { return  }
+        virtual LotteryWinners &Winners(const CBlock &block, CDataStream &hashProofOfStakeSource) { return _winners; }
         virtual CAmount RatingReward(CAmount nCredit, opcodetype code) {}
         virtual void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) {}
     };
@@ -141,17 +141,17 @@ namespace PocketConsensus
             for (const auto &tx : block.vtx)
             {
                 vector<string> vasm;
-                auto txType = PocketServices::TransactionSerializer::ParseType(tx, vasm);
+                auto txType = PocketHelpers::ParseType(tx, vasm);
 
                 // Parse asm and get destination address and score value
                 // In lottery allowed only likes to posts and comments
                 // Also in lottery allowed only positive scores
-                auto[ok, destAddress, scoreValue] = ParseScoreAsm(txType, vasm);
-                if (!ok) continue;
+                auto[ok1, destAddress, scoreValue] = ParseScoreAsm(txType, vasm);
+                if (!ok1) continue;
                 
                 // 1st output in transaction always send money to self
-                auto[ok, scoreAddress] = TransactionHelper::GetPocketAuthorAddress(tx);
-                if (!ok) continue;
+                auto[ok2, scoreAddress] = PocketHelpers::GetPocketAuthorAddress(tx);
+                if (!ok2) continue;
 
                 // TODO (brangr): implement reputation check
                 //g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, height, tx, true)
@@ -271,7 +271,7 @@ namespace PocketConsensus
     *  Lottery checkpoint at 1124000 block
     *
     *******************************************************************************************************************/
-    class LotteryConsensus_checkpoint_1124000 : public LotteryConsensus_checkpoint_0
+    class LotteryConsensus_checkpoint_1124000 : public LotteryConsensus_checkpoint_514185
     {
     protected:
         int CheckpointHeight() override { return 1124000; }
@@ -289,37 +289,13 @@ namespace PocketConsensus
         }
     };
 
-        
-    /*******************************************************************************************************************
-    *
-    *  Lottery checkpoint at 1180000 block
-    *
-    *******************************************************************************************************************/
-    class LotteryConsensus_checkpoint_1180000 : public LotteryConsensus_checkpoint_0
-    {
-    protected:
-        int CheckpointHeight() override { return 1180000; }
-    public:
-        CAmount RatingReward(CAmount nCredit, opcodetype code) override
-        {
-            // TODO (brangr): implement
-            // Reduce all winnings by 10 times
-            // Referrer program 5 - 100%; 4.975 - nodes; 0.025 - all for lottery;
-            // if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.002;
-            // if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.002;
-            // if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.0005;
-            // if (op_code_type == OP_WINNER_COMMENT_REFERRAL) ratingReward = nCredit * 0.0005;
-            // totalAmount += ratingReward;
-        }
-    };
-
 
     /*******************************************************************************************************************
     *
     *  Lottery checkpoint at 1035000 block
     *
     *******************************************************************************************************************/
-    class LotteryConsensus_checkpoint_1035000 : public LotteryConsensus_checkpoint_0
+    class LotteryConsensus_checkpoint_1035000 : public LotteryConsensus_checkpoint_1124000
     {
     protected:
         int CheckpointHeight() override { return 1035000; }
@@ -379,6 +355,29 @@ namespace PocketConsensus
     };
 
 
+    /*******************************************************************************************************************
+    *
+    *  Lottery checkpoint at 1180000 block
+    *
+    *******************************************************************************************************************/
+    class LotteryConsensus_checkpoint_1180000 : public LotteryConsensus_checkpoint_1035000
+    {
+    protected:
+        int CheckpointHeight() override { return 1180000; }
+    public:
+        CAmount RatingReward(CAmount nCredit, opcodetype code) override
+        {
+            // TODO (brangr): implement
+            // Reduce all winnings by 10 times
+            // Referrer program 5 - 100%; 4.975 - nodes; 0.025 - all for lottery;
+            // if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.002;
+            // if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.002;
+            // if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.0005;
+            // if (op_code_type == OP_WINNER_COMMENT_REFERRAL) ratingReward = nCredit * 0.0005;
+            // totalAmount += ratingReward;
+        }
+    };
+
 
     /*******************************************************************************************************************
     *
@@ -390,10 +389,11 @@ namespace PocketConsensus
     {
     private:
     public:
+        LotteryConsensusFactory() = default;
         shared_ptr<LotteryConsensus> Instance(int height)
         {
             // TODO (brangr): implement достать подходящий чекпойнт реализацию
-            return nullptr;
+            auto instPtr = shared_ptr<LotteryConsensus_checkpoint_1180000>(new LotteryConsensus_checkpoint_1180000());
         }
     };
 

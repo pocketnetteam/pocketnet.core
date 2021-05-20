@@ -9,7 +9,6 @@
 
 #include "pocketdb/models/base/Base.hpp"
 #include "univalue/include/univalue.h"
-#include "pocketdb/pocketnet.h"
 
 namespace PocketConsensus
 {
@@ -27,6 +26,7 @@ namespace PocketConsensus
     {
     public:
         BaseConsensus() = default;
+        virtual ~BaseConsensus() = default;
     protected:
         virtual int CheckpointHeight() { return 0; };
     private:

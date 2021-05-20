@@ -167,8 +167,8 @@ namespace PocketDb
 
                 // Try execute
                 if (!TryStepStatement(stmt))
-                    throw runtime_error(strprintf("%s: can't update txoutputs set height (step) Hash:%s Block:%s Height:%d\n",
-                        __func__, txHash, blockHash, height));
+                    throw runtime_error(strprintf("%s: can't update txoutputs set height (step) Hash:%s Height:%d\n",
+                        __func__, txHash, height));
             }
         }
 

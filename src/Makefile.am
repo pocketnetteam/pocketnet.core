@@ -100,6 +100,7 @@ POCKETDB_HPP = \
     pocketdb/repositories/ChainRepository.hpp \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Lottery.hpp \
+    pocketdb/consensus/User.hpp \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/TransactionIndexer.hpp \
     pocketdb/models/base/PocketTypes.hpp \
