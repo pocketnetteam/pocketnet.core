@@ -34,8 +34,14 @@ namespace PocketDb
             {
                 for (const auto& tx : txs)
                 {
+                    // All transactions must have a blockHash & height relation
                     UpdateTransactionHeight(blockHash, height, tx.first);
+
+                    // The outputs are needed for the explorer
                     UpdateTransactionOutputs(blockHash, height, tx.second);
+
+                    // All users must have a unique digital ID
+                    UpdateUserId(tx.first);
                 }
             });
         }
@@ -191,6 +197,39 @@ namespace PocketDb
                     throw runtime_error(strprintf("%s: can't update txoutputs set height (step) Hash:%s Height:%d\n",
                         __func__, txHash, height));
             }
+        }
+        void UpdateUserId(string txHash)
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Id = ifnull(
+                        (
+                            select max( u.Id )
+                            from Transactions u
+                            where   u.Type = Transactions.Type
+                                and u.String1 = Transactions.String1
+                                and u.Height is not null
+                        ),
+                        (
+                            select max( u.Id ) + 1
+                            from Transactions u
+                            where u.Type = Transactions.Type
+                        )
+                    )
+                WHERE Hash=?
+            )sql");
+
+            // Bind arguments
+            auto hashPtr = make_shared<string>(txHash);
+
+            auto result = TryBindStatementText(stmt, 1, hashPtr);
+            if (!result)
+                throw runtime_error(strprintf("%s: can't update transactions set user Id (bind)\n", __func__));
+
+            // Try execute
+            if (!TryStepStatement(stmt))
+                throw runtime_error(strprintf("%s: can't update transactions set user Id (step) Hash:%s\n",
+                    __func__, txHash));
         }
 
     };

@@ -30,7 +30,7 @@ namespace PocketServices
             auto result = true;
 
             result &= IndexChain(block, height);
-            result &= IndexIds(block, height);
+            result &= IndexIds(block);
             result &= IndexRatings(block, height);
 
             return result;
@@ -51,20 +51,17 @@ namespace PocketServices
             return PocketDb::ChainRepoInst.RollbackBlock(height);
         }
 
-        static bool IndexIds(const CBlock& block, int height)
+        static bool IndexIds(const CBlock& block)
         {
-            map<string, map<string, int>> txs;
+            map<PocketTxType, vector<string>> txs;
             for (const auto& tx : block.vtx)
             {
-                if (tx->IsPocketTX())
-                map<string, int> inps;
-                for (const auto& inp : tx->vin)
-                    inps.emplace(inp.prevout.hash.GetHex(), inp.prevout.n);
-                
-                txs.emplace(tx->GetHash().GetHex(), inps);
+                auto txType = PocketHelpers::ParseType(tx);
+                if (txType == PocketTxType::ACCOUNT_USER)
+                    txs[PocketTxType::ACCOUNT_USER].push_back(tx->GetHash().GetHex());
             }
 
-            return PocketDb::ChainRepoInst.UpdateIds(block.GetHash().GetHex(), height, txs);
+            return PocketDb::ChainRepoInst.UpdateIds(txs);
         }
 
         // Set block height for all transactions in block

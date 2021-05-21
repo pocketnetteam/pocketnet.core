@@ -86,26 +86,8 @@ namespace PocketHelpers
 
     static PocketTxType ParseType(const CTransactionRef& tx)
     {
-        if (tx->vin.empty())
-            return PocketTxType::NOT_SUPPORTED;
-
-        if (tx->IsCoinBase())
-            return PocketTxType::TX_COINBASE;
-
-        if (tx->IsCoinStake())
-            return PocketTxType::TX_COINSTAKE;
-
-        const CTxOut& txout = tx->vout[0];
-        if (txout.scriptPubKey[0] == OP_RETURN)
-        {
-            auto asmStr = ScriptToAsmStr(txout.scriptPubKey);
-            vector<string> vasm;
-            boost::split(vasm, asmStr, boost::is_any_of("\t "));
-            if (vasm.size() >= 2)
-                return ConvertOpReturnToType(vasm[1]);
-        }
-
-        return PocketTxType::TX_DEFAULT;
+        vector<string> vasm;
+        return ParseType(tx, vasm);
     }
 
     static PocketTxType ParseType(const string& reindexerTable, const UniValue& reindexerSrc)

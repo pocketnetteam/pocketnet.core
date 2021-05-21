@@ -60,10 +60,13 @@ namespace PocketDb
 
             bool tryResult = TryTransactionStep([&]()
             {
-                // TODO (brangr): implement select from outputs with join Chain
                 auto stmt = SetupSqlStatement(R"sql(
-                    SELECT u.Address, SUM(u.Amount)Balance
-                    FROM
+                    select o.AddressHash, sum(o.Value)
+                    from TxOutputs o
+                    where o.SpentHeight is null
+                    group by o.AddressHash
+                    order by sum(o.Value) desc
+                    limit ?
                 )sql");
 
                 auto countPtr = make_shared<int>(count);
@@ -235,9 +238,11 @@ namespace PocketDb
                         then (select max(t.String2) from Transactions t where t.Type=? and t.String1=?)
                         else ?
                     end,
-                    ?
+                    ifnull(select max(t.Int1) from Transactions t where t.Type=? and t.String1=?), ?)
                 WHERE not exists (select 1 from Transactions t where t.Hash=?)
             )sql");
+
+            // TODO (brangr): implement ifnull for registration date in INT1
 
             auto result = TryBindStatementInt(stmt, 1, ptx->GetTypeInt());
             result &= TryBindStatementText(stmt, 2, ptx->GetHash());
@@ -248,8 +253,10 @@ namespace PocketDb
             result &= TryBindStatementInt(stmt, 7, ptx->GetTypeInt());
             result &= TryBindStatementText(stmt, 8, ptx->GetAddress());
             result &= TryBindStatementText(stmt, 9, ptx->GetReferrerAddress());
-            result &= TryBindStatementInt64(stmt, 10, ptx->GetRegistration());
-            result &= TryBindStatementText(stmt, 11, ptx->GetHash());
+            result &= TryBindStatementInt(stmt, 10, ptx->GetTypeInt());
+            result &= TryBindStatementText(stmt, 11, ptx->GetAddress());
+            result &= TryBindStatementInt64(stmt, 12, ptx->GetRegistration());
+            result &= TryBindStatementText(stmt, 13, ptx->GetHash());
             if (!result)
                 throw runtime_error(strprintf("can't insert in transaction (bind tx) %s %d\n",
                     *ptx->GetHash(), *ptx->GetType()));

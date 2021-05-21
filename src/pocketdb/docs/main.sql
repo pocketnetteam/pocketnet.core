@@ -112,6 +112,7 @@ create table if not exists TxOutputs
     primary key (TxHash, Number, AddressHash)
 );
 
+create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);
 
 --------------------------------------------
 create table if not exists Ratings

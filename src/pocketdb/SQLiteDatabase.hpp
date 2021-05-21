@@ -67,6 +67,7 @@ namespace PocketDb
 
         bool CreateStructure() const {
             std::string generate_sql = R"sql(
+                
                 create table if not exists Transactions
                 (
                     Type    int    not null,
@@ -75,6 +76,11 @@ namespace PocketDb
 
                     BlockHash string null,
                     Height int null,
+
+                    -- User.Id
+                    -- Post.Id
+                    -- Comment.Id
+                    Id int null,
 
                     -- User.AddressHash
                     -- Post.AddressHash
@@ -176,6 +182,7 @@ namespace PocketDb
                     primary key (TxHash, Number, AddressHash)
                 );
 
+                create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);
 
                 --------------------------------------------
                 create table if not exists Ratings
