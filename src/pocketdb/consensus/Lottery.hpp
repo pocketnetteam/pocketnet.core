@@ -55,7 +55,6 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_0 : public LotteryConsensus
     {
     protected:
-
         // in vasm placed score destination address and score value
         // We need parse and check this data for general lottery rules
         // Also wee allowed scores to comments and posts only 
@@ -388,15 +387,24 @@ namespace PocketConsensus
     class LotteryConsensusFactory
     {
     private:
+        inline static std::vector<std::pair<int, std::function<LotteryConsensus *()>>> m_rules {
+            {1180000, []() { return new LotteryConsensus_checkpoint_1180000(); }},
+            {1035000, []() { return new LotteryConsensus_checkpoint_1035000(); }},
+            {1124000, []() { return new LotteryConsensus_checkpoint_1124000(); }}, //TODO (brangr): check pls, 1035000 Inherits 1124000
+            {514185, []() { return new LotteryConsensus_checkpoint_514185(); }},
+            {0, []() { return new LotteryConsensus_checkpoint_0(); }},
+        };
     public:
         LotteryConsensusFactory() = default;
-        shared_ptr<LotteryConsensus> Instance(int height)
+        static shared_ptr<LotteryConsensus> Instance(int height)
         {
-            // TODO (brangr): implement достать подходящий чекпойнт реализацию
-            auto instPtr = shared_ptr<LotteryConsensus_checkpoint_1180000>(new LotteryConsensus_checkpoint_1180000());
+            for (const auto& rule : m_rules) {
+                if (height > rule.first) {
+                    return shared_ptr<LotteryConsensus>(rule.second());
+                }
+            }
         }
     };
-
 }
 
 #endif // POCKETCONSENSUS_LOTTERY_HPP
