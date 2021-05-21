@@ -7,6 +7,11 @@ create table if not exists Transactions
     BlockHash string null,
     Height int null,
 
+    -- User.Id
+    -- Post.Id
+    -- Comment.Id
+    Id int null,
+
     -- User.AddressHash
     -- Post.AddressHash
     -- Comment.AddressHash
