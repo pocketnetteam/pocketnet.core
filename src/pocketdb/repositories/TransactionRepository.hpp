@@ -238,7 +238,7 @@ namespace PocketDb
                         then (select max(t.String2) from Transactions t where t.Type=? and t.String1=?)
                         else ?
                     end,
-                    ifnull(select max(t.Int1) from Transactions t where t.Type=? and t.String1=?), ?)
+                    ifnull((select max(t.Int1) from Transactions t where t.Type=? and t.String1=?), ?)
                 WHERE not exists (select 1 from Transactions t where t.Hash=?)
             )sql");
 
