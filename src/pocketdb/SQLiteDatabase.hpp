@@ -112,7 +112,6 @@ namespace PocketDb
                     -- Comment.AnswerTxHash
                     String5 string null,
 
-                    -- User.Registration
                     -- ScorePost.Value
                     -- ScoreComment.Value
                     -- Complain.Reason

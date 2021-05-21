@@ -164,29 +164,6 @@ namespace PocketDb
 
         void InsertTransactionModel(shared_ptr<Transaction> ptx)
         {
-            switch (*ptx->GetType())
-            {
-                case ACCOUNT_USER:
-                    InsertTransactionModelSince((User*) ptx.get());
-                    break;
-                case ACCOUNT_VIDEO_SERVER:
-                    // TODO (brangr): imeplement
-                    break;
-                case ACCOUNT_MESSAGE_SERVER:
-                    // TODO (brangr): implement
-                    break;
-                default:
-                    InsertTransactionModelSince(ptx);
-                    break;
-
-                    // TODO (brangr): other types
-            }
-
-            LogPrint(BCLog::SYNC, "  - Insert Model body %s : %d\n", *ptx->GetHash(), *ptx->GetType());
-        }
-
-        void InsertTransactionModelSince(shared_ptr<Transaction> ptx)
-        {
             auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Transactions (
                     Type,
@@ -219,53 +196,9 @@ namespace PocketDb
             if (!TryStepStatement(stmt))
                 throw runtime_error(strprintf("%s: can't insert in transaction (step tx) %s %d\n",
                     __func__, *ptx->GetHash(), *ptx->GetType()));
+
+            LogPrint(BCLog::SYNC, "  - Insert Model body %s : %d\n", *ptx->GetHash(), *ptx->GetType());
         }
-
-        void InsertTransactionModelSince(User* ptx)
-        {
-            auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO Transactions (
-                    Type,
-                    Hash,
-                    Time,
-                    String1,
-                    String2,
-                    Int1
-                ) SELECT
-                    ?,?,?,?,
-                    case
-                        when (select count(1) from Transactions t where t.Type=? and t.String1=?)>0
-                        then (select max(t.String2) from Transactions t where t.Type=? and t.String1=?)
-                        else ?
-                    end,
-                    ifnull((select max(t.Int1) from Transactions t where t.Type=? and t.String1=?), ?)
-                WHERE not exists (select 1 from Transactions t where t.Hash=?)
-            )sql");
-
-            // TODO (brangr): implement ifnull for registration date in INT1
-
-            auto result = TryBindStatementInt(stmt, 1, ptx->GetTypeInt());
-            result &= TryBindStatementText(stmt, 2, ptx->GetHash());
-            result &= TryBindStatementInt64(stmt, 3, ptx->GetTime());
-            result &= TryBindStatementText(stmt, 4, ptx->GetAddress());
-            result &= TryBindStatementInt(stmt, 5, ptx->GetTypeInt());
-            result &= TryBindStatementText(stmt, 6, ptx->GetAddress());
-            result &= TryBindStatementInt(stmt, 7, ptx->GetTypeInt());
-            result &= TryBindStatementText(stmt, 8, ptx->GetAddress());
-            result &= TryBindStatementText(stmt, 9, ptx->GetReferrerAddress());
-            result &= TryBindStatementInt(stmt, 10, ptx->GetTypeInt());
-            result &= TryBindStatementText(stmt, 11, ptx->GetAddress());
-            result &= TryBindStatementInt64(stmt, 12, ptx->GetRegistration());
-            result &= TryBindStatementText(stmt, 13, ptx->GetHash());
-            if (!result)
-                throw runtime_error(strprintf("can't insert in transaction (bind tx) %s %d\n",
-                    *ptx->GetHash(), *ptx->GetType()));
-
-            if (!TryStepStatement(stmt))
-                throw runtime_error(strprintf("%s: can't insert in transaction (step tx) %s %d\n",
-                    __func__, *ptx->GetHash(), *ptx->GetType()));
-        }
-
     };
 
 } // namespace PocketDb

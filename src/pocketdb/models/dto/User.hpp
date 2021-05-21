@@ -26,7 +26,6 @@ namespace PocketTx
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrerAddress(val);
-            SetRegistration(*GetTime());
         }
 
         shared_ptr <string> GetAddress() const { return m_string1; }
@@ -34,9 +33,6 @@ namespace PocketTx
 
         shared_ptr <string> GetReferrerAddress() const { return m_string2; }
         void SetReferrerAddress(std::string value) { m_string2 = make_shared<string>(value); }
-
-        shared_ptr <int64_t> GetRegistration() const { return m_int1; }
-        void SetRegistration(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
     protected:
 

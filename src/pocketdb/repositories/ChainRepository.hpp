@@ -206,14 +206,16 @@ namespace PocketDb
                         (
                             select max( u.Id )
                             from Transactions u
-                            where   u.Type = Transactions.Type
+                            where u.Type = Transactions.Type
                                 and u.String1 = Transactions.String1
                                 and u.Height is not null
                         ),
                         (
-                            select max( u.Id ) + 1
+                            select count( 1 )
                             from Transactions u
                             where u.Type = Transactions.Type
+                                and u.Height is not null
+                                and u.Id is not null
                         )
                     )
                 WHERE Hash=?
