@@ -32,10 +32,7 @@
 
 #include <memory>
 
-// TODO (brangr): REINDEXER -> SQLITE
-
-//#include "index/addrindex.h"
-//#include "antibot/antibot.h"
+#include "pocketdb/services/TransactionSerializer.hpp"
 
 #if defined(NDEBUG)
 #error "Pocketcoin cannot be compiled without assertions."
