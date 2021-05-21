@@ -30,9 +30,15 @@ namespace PocketTx
 
         static tuple<bool, string> TryGetStr(const UniValue& o, const string& key)
         {
-            if (o.exists(key) && o[key].isStr())
+            if (o.exists(key))
             {
-                auto val = o[key].get_str();
+                string val;
+
+                if (o[key].isStr())
+                    val = o[key].get_str();
+                else if (o[key].isArray() || o[key].isObject())
+                    val = o[key].write();
+
                 if (val != "")
                     return make_tuple(true, val);
             }
