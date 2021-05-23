@@ -4,8 +4,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_POST_HPP
-#define POCKETCONSENSUS_POST_HPP
+#ifndef POCKETCONSENSUS_SUBSCRIBECANCEL_HPP
+#define POCKETCONSENSUS_SUBSCRIBECANCEL_HPP
 
 #include "pocketdb/consensus/Base.hpp"
 
@@ -13,14 +13,14 @@ namespace PocketConsensus
 {
     /*******************************************************************************************************************
     *
-    *  Post consensus base class
+    *  SubscribeCancel consensus base class
     *
     *******************************************************************************************************************/
-    class PostConsensus : public BaseConsensus
+    class SubscribeCancelConsensus : public BaseConsensus
     {
     protected:
     public:
-        PostConsensus() = default;
+        SubscribeCancelConsensus() = default;
     };
 
 
@@ -29,14 +29,14 @@ namespace PocketConsensus
     *  Start checkpoint
     *
     *******************************************************************************************************************/
-    class PostConsensus_checkpoint_0 : public PostConsensus
+    class SubscribeCancelConsensus_checkpoint_0 : public SubscribeCancelConsensus
     {
     protected:
     public:
 
-        PostConsensus_checkpoint_0() = default;
+        SubscribeCancelConsensus_checkpoint_0() = default;
 
-    }; // class PostConsensus_checkpoint_0
+    }; // class SubscribeCancelConsensus_checkpoint_0
 
 
     /*******************************************************************************************************************
@@ -44,7 +44,7 @@ namespace PocketConsensus
     *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
-    class PostConsensus_checkpoint_1 : public PostConsensus_checkpoint_0
+    class SubscribeCancelConsensus_checkpoint_1 : public SubscribeCancelConsensus_checkpoint_0
     {
     protected:
         int CheckpointHeight() override { return 1; }
@@ -58,24 +58,24 @@ namespace PocketConsensus
     *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
-    class PostConsensusFactory
+    class SubscribeCancelConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<PostConsensus *()>>> m_rules
+        inline static std::vector<std::pair<int, std::function<SubscribeCancelConsensus *()>>> m_rules
         {
-            {1, []() { return new PostConsensus_checkpoint_1(); }},
-            {0, []() { return new PostConsensus_checkpoint_0(); }},
+            {1, []() { return new SubscribeCancelConsensus_checkpoint_1(); }},
+            {0, []() { return new SubscribeCancelConsensus_checkpoint_0(); }},
         };
     public:
-        shared_ptr <PostConsensus> Instance(int height)
+        shared_ptr <SubscribeCancelConsensus> Instance(int height)
         {
             for (const auto& rule : m_rules) {
                 if (height >= rule.first) {
-                    return shared_ptr<PostConsensus>(rule.second());
+                    return shared_ptr<SubscribeCancelConsensus>(rule.second());
                 }
             }
         }
     };
 }
 
-#endif // POCKETCONSENSUS_POST_HPP
+#endif // POCKETCONSENSUS_SUBSCRIBECANCEL_HPP

@@ -23,7 +23,6 @@ namespace PocketConsensus
         UserConsensus() = default;
     };
 
-
     /*******************************************************************************************************************
     *
     *  Start checkpoint
@@ -38,7 +37,6 @@ namespace PocketConsensus
 
     }; // class UserConsensus_checkpoint_0
 
-
     /*******************************************************************************************************************
     *
     *  Consensus checkpoint at 1 block
@@ -51,7 +49,6 @@ namespace PocketConsensus
     public:
     };
 
-
     /*******************************************************************************************************************
     *
     *  Factory for select actual rules version
@@ -61,14 +58,21 @@ namespace PocketConsensus
     class UserConsensusFactory
     {
     private:
+        inline static std::vector<std::pair<int, std::function<UserConsensus *()>>> m_rules
+        {
+            {1, []() { return new UserConsensus_checkpoint_1(); }},
+            {0, []() { return new UserConsensus_checkpoint_0(); }},
+        };
     public:
         shared_ptr <UserConsensus> Instance(int height)
         {
-            // TODO (brangr): достать подходящий чекпойнт реализацию
-
+            for (const auto& rule : m_rules) {
+                if (height >= rule.first) {
+                    return shared_ptr<UserConsensus>(rule.second());
+                }
+            }
         }
     };
-
 }
 
 #endif // POCKETCONSENSUS_USER_HPP

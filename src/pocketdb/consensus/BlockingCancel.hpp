@@ -4,8 +4,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_POST_HPP
-#define POCKETCONSENSUS_POST_HPP
+#ifndef POCKETCONSENSUS_BLOCKINGCANCEL_HPP
+#define POCKETCONSENSUS_BLOCKINGCANCEL_HPP
 
 #include "pocketdb/consensus/Base.hpp"
 
@@ -13,14 +13,14 @@ namespace PocketConsensus
 {
     /*******************************************************************************************************************
     *
-    *  Post consensus base class
+    *  BlockingCancel consensus base class
     *
     *******************************************************************************************************************/
-    class PostConsensus : public BaseConsensus
+    class BlockingCancelConsensus : public BaseConsensus
     {
     protected:
     public:
-        PostConsensus() = default;
+        BlockingCancelConsensus() = default;
     };
 
 
@@ -29,14 +29,14 @@ namespace PocketConsensus
     *  Start checkpoint
     *
     *******************************************************************************************************************/
-    class PostConsensus_checkpoint_0 : public PostConsensus
+    class BlockingCancelConsensus_checkpoint_0 : public BlockingCancelConsensus
     {
     protected:
     public:
 
-        PostConsensus_checkpoint_0() = default;
+        BlockingCancelConsensus_checkpoint_0() = default;
 
-    }; // class PostConsensus_checkpoint_0
+    }; // class BlockingCancelConsensus_checkpoint_0
 
 
     /*******************************************************************************************************************
@@ -44,7 +44,7 @@ namespace PocketConsensus
     *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
-    class PostConsensus_checkpoint_1 : public PostConsensus_checkpoint_0
+    class BlockingCancelConsensus_checkpoint_1 : public BlockingCancelConsensus_checkpoint_0
     {
     protected:
         int CheckpointHeight() override { return 1; }
@@ -58,24 +58,24 @@ namespace PocketConsensus
     *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
-    class PostConsensusFactory
+    class BlockingCancelConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<PostConsensus *()>>> m_rules
+        inline static std::vector<std::pair<int, std::function<BlockingCancelConsensus *()>>> m_rules
         {
-            {1, []() { return new PostConsensus_checkpoint_1(); }},
-            {0, []() { return new PostConsensus_checkpoint_0(); }},
+            {1, []() { return new BlockingCancelConsensus_checkpoint_1(); }},
+            {0, []() { return new BlockingCancelConsensus_checkpoint_0(); }},
         };
     public:
-        shared_ptr <PostConsensus> Instance(int height)
+        shared_ptr <BlockingCancelConsensus> Instance(int height)
         {
             for (const auto& rule : m_rules) {
                 if (height >= rule.first) {
-                    return shared_ptr<PostConsensus>(rule.second());
+                    return shared_ptr<BlockingCancelConsensus>(rule.second());
                 }
             }
         }
     };
 }
 
-#endif // POCKETCONSENSUS_POST_HPP
+#endif // POCKETCONSENSUS_BLOCKINGCANCEL_HPP

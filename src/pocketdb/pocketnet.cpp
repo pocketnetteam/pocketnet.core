@@ -1,7 +1,6 @@
 #include "pocketdb/pocketnet.h"
 #include "logging.h"
 
-
 namespace PocketDb
 {
     SQLiteDatabase SQLiteDbInst;
@@ -11,8 +10,18 @@ namespace PocketDb
 
 namespace PocketConsensus
 {
-    LotteryConsensusFactory LotteryConsensusFactoryInst;
+    BlockingConsensusFactory BlockingConsensusFactoryInst;
+    BlockingCancelConsensusFactory BlockingCancelConsensusFactoryInst;
+    CommentConsensusFactory CommentConsensusFactoryInst;
+    ComplainConsensusFactory ComplainConsensusFactoryInst;
+    PostConsensusFactory PostConsensusFactoryInst;
+    ScoreCommentConsensusFactory ScoreCommentConsensusFactoryInst;
+    ScorePostConsensusFactory ScorePostConsensusFactoryInst;
+    SubscribeConsensusFactory SubscribeConsensusFactoryInst;
+    SubscribeCancelConsensusFactory SubscribeCancelConsensusFactoryInst;
+    SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;
     UserConsensusFactory UserConsensusFactoryInst;
+    LotteryConsensusFactory LotteryConsensusFactoryInst;
 }; // namespace PocketConsensus
 
 

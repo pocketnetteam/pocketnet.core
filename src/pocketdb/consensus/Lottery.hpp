@@ -399,7 +399,7 @@ namespace PocketConsensus
         static shared_ptr<LotteryConsensus> Instance(int height)
         {
             for (const auto& rule : m_rules) {
-                if (height > rule.first) {
+                if (height >= rule.first) {
                     return shared_ptr<LotteryConsensus>(rule.second());
                 }
             }
