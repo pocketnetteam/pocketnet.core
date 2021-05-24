@@ -60,6 +60,9 @@ create index if not exists Transactions_String4 on Transactions (String4);
 create index if not exists Transactions_String5 on Transactions (String5);
 create index if not exists Transactions_Int1 on Transactions (Int1);
 
+create index if not exists Transactions_Type_String1_index on Transactions (Type, String1);
+create index if not exists Transactions_Type_String2_index on Transactions (Type, String2);
+
 --------------------------------------------
 --               EXT TABLES               --
 --------------------------------------------
@@ -129,6 +132,47 @@ create index if not exists Ratings_ValInt on Ratings (Value);
 --------------------------------------------
 --                 VIEWS                  --
 --------------------------------------------
+
+drop view if exists vUsers;
+create view vUsers as
+select Type,
+       Hash,
+       Time,
+       BlockHash,
+       Height,
+       String1 as AddressHash,
+       String2 as ReferrerAddressHash,
+       Int1 as Registration
+from Transactions t
+where t.Type = 100;
+
+
+drop view if exists vWebUsers;
+create view vWebUsers as
+select
+       t.Hash,
+       t.Time,
+       t.BlockHash,
+       t.Height,
+       t.String1 as AddressHash,
+       t.String2 as ReferrerAddressHash,
+       t.Int1 as Registration,
+       p.String1 as Lang,
+       p.String2 as Name,
+       p.String3 as Avatar,
+       p.String4 as About,
+       p.String5 as Url,
+       p.String6 as Pubkey,
+       p.String7 as Donations
+from Transactions t
+join Payload p on t.Hash = p.TxHash
+where t.Height = (
+     select max(t_.Height)
+     from Transactions t_
+     where t_.String1 = t.String1 and t_.Type = t.Type)
+and t.Type = 100;
+
+
 -- drop view if exists vTransactions;
 -- create view vTransactions as
 -- select T.Id,
@@ -255,6 +299,30 @@ create index if not exists Ratings_ValInt on Ratings (Value);
 -- where t.Type in (102);
 --
 -- --------------------------------------------
+drop view if exists vWebPosts;
+create view vWebPosts as
+select
+       t.Hash,
+       t.Time,
+       t.BlockHash,
+       t.Height,
+       t.String1 as AddressHash,
+       t.String2 as RootTxHash,
+       p.String1 as Lang,
+       p.String2 as Caption,
+       p.String3 as Message,
+       p.String4 as Tags,
+       p.String5 as Images,
+       p.String6 as Settings,
+       p.String7 as Url
+from Transactions t
+join Payload p on t.Hash = p.TxHash
+where t.Height = (
+     select max(t_.Height)
+     from Transactions t_
+     where t_.String2 = t.String2 and t_.Type =t.Type)
+and t.Type = 200;
+
 -- drop view if exists vWebPosts;
 -- create view vWebPosts as
 -- select WI.Id,
@@ -331,6 +399,27 @@ create index if not exists Ratings_ValInt on Ratings (Value);
 -- from vWebItem WI
 -- where WI.Type in (203);
 --
+drop view if exists vWebComments;
+create view vWebComments as
+select
+       t.Hash,
+       t.Time,
+       t.BlockHash,
+       t.Height,
+       t.String1 as AddressHash,
+       t.String2 as RootTxHash,
+       t.String3 as PostTxId,
+       t.String4 as ParentTxHash,
+       t.String5 as AnswerTxHash,
+       p.String1 as Lang,
+       p.String2 as Message
+from Transactions t
+join Payload p on t.Hash = p.TxHash
+where t.Height = (
+     select max(t_.Height)
+     from Transactions t_
+     where t_.String2 = t.String2 and t_.Type =t.Type)
+and t.Type =204;
 --
 -- drop view if exists vWebComments;
 -- create view vWebComments as
