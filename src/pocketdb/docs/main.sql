@@ -440,6 +440,23 @@ and t.Type =204;
 --
 --
 -- --------------------------------------------
+drop view if exists vWebScorePosts;
+create view vWebScorePosts as
+select String1 as AddressHash,
+       String2 as PostTxHash,
+       Int1 as Value
+from Transactions
+where Type in (300);
+
+
+drop view if exists vWebScoreComments;
+create view vWebScoreComments as
+select String1 as AddressHash,
+       String2 as CommentTxHash,
+       Int1 as Value
+from Transactions
+where Type in (301);
+
 -- drop view if exists vWebScorePosts;
 -- create view vWebScorePosts as
 -- select Int1 as PostTxId,
@@ -481,6 +498,14 @@ and t.Type =204;
 --
 --
 --
+drop view if exists Complains;
+create view Complains as
+select String1 as AddressHash,
+       String2 as PostTxHash,
+       Int1   as Reason
+from Transactions
+where Type in (307);
+
 -- drop view if exists Complains;
 -- create view Complains as
 -- select WI.Type,
