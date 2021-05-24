@@ -26,8 +26,8 @@ namespace PocketTx
         shared_ptr <int> GetHeight() const { return m_height; }
         void SetHeight(int value) { m_height = make_shared<int>(value); }
 
-        shared_ptr <string> GetHash() const { return m_hash; }
-        void SetHash(string value) { m_hash = make_shared<string>(value); }
+        shared_ptr <int64_t> GetId() const { return m_id; }
+        void SetId(int64_t value) { m_id = make_shared<int64_t>(value); }
 
         shared_ptr <int64_t> GetValue() const { return m_value; }
         void SetValue(int64_t value) { m_value = make_shared<int64_t>(value); }
@@ -36,7 +36,7 @@ namespace PocketTx
 
         shared_ptr <RatingType> m_type = nullptr;
         shared_ptr <int> m_height = nullptr;
-        shared_ptr <string> m_hash = nullptr;
+        shared_ptr <int64_t> m_id = nullptr;
         shared_ptr <int64_t> m_value = nullptr;
 
     private:

@@ -42,7 +42,7 @@ namespace PocketDb
 
                     // All users must have a unique digital ID
                     if (tx.Type == PocketTxType::ACCOUNT_USER)
-                        UpdateUserId(tx.Hash);
+                        UpdateShortId(tx.Hash);
                 }
             });
         }
@@ -121,7 +121,7 @@ namespace PocketDb
                         INSERT OR FAIL INTO Ratings (
                             Type,
                             Height,
-                            Hash,
+                            Id,
                             Value
                         ) SELECT ?,?,?,?
                     )sql");
@@ -129,7 +129,7 @@ namespace PocketDb
                     // Bind arguments
                     auto result = TryBindStatementInt(stmt, 1, rating->GetTypeInt());
                     result &= TryBindStatementInt(stmt, 2, rating->GetHeight());
-                    result &= TryBindStatementText(stmt, 3, rating->GetHash());
+                    result &= TryBindStatementInt64(stmt, 3, rating->GetId());
                     result &= TryBindStatementInt64(stmt, 4, rating->GetValue());
                     if (!result)
                         throw runtime_error(strprintf("%s: can't insert in ratings (bind)\n", __func__));
@@ -137,7 +137,7 @@ namespace PocketDb
                     // Try execute
                     if (!TryStepStatement(stmt))
                         throw runtime_error(strprintf("%s: can't insert in ratings (step) Type:%d Height:%d Hash:%s\n",
-                            __func__, *rating->GetTypeInt(), *rating->GetHeight(), *rating->GetHash()));
+                            __func__, *rating->GetTypeInt(), *rating->GetHeight(), *rating->GetId()));
                 }
             });
         }

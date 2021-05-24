@@ -121,13 +121,10 @@ create table if not exists Ratings
 (
     Type   int    not null,
     Height int    not null,
-    Hash   string not null,
+    Id     int    not null,
     Value  int    not null,
-
-    primary key (Type, Height, Hash)
+    primary key (Type, Height, Id, Value)
 );
-
-create index if not exists Ratings_ValInt on Ratings (Value);
 
 --------------------------------------------
 --                 VIEWS                  --
