@@ -91,7 +91,7 @@ $(host_arch)_$(host_os)_id_string+=$(shell $(host_RANLIB) --version 2>/dev/null)
 $(host_arch)_$(host_os)_id_string+=$(shell $(host_STRIP) --version 2>/dev/null)
 
 qt_packages_$(NO_QT) = $(qt_packages) $(qt_$(host_os)_packages) $(qt_$(host_arch)_$(host_os)_packages)
-wallet_packages_$(NO_WALLET) = $(wallet_packages)
+wallet_packages_$(NO_WALLET) = $(wallet_packages) $(sqlite_packages)
 upnp_packages_$(NO_UPNP) = $(upnp_packages)
 
 rapidcheck_packages_$(RAPIDCHECK) = $(rapidcheck_packages)
