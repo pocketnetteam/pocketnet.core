@@ -25,9 +25,11 @@
 
 4.  Example of node configuration (pocketcoin.conf):
     ```
+    server=1
+    listen=1
     port=37070
     rpcport=38081
-    # This opens access to the node management interface from a non -
+    # This opens access to the node management interface from external network
     rpcallowip=0.0.0.0/0
     rpcthreads=1
     rpcworkqueue=1    
