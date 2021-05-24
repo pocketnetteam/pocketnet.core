@@ -49,7 +49,7 @@ You can start your node with a single command from Docker.
 $ docker run -d \
     --name=pocketnet.main \
     -p 37070:37070 \
-    -p 37071:37071 \
+    -p 38081:38081 \
     -p 8087:8087 \
     -v /var/pocketnet/.data:/home/pocketcoin/.pocketcoin \
     pocketnetteam/pocketnet.core:latest
