@@ -46,10 +46,10 @@ namespace PocketConsensus
             return true;
         }
 
-        bool AllowModifyReputationOverPost(std::string _score_address, std::string _post_address, int height, const CTransactionRef& tx, bool lottery)
+        bool AllowModifyReputationOverPost(std::string scoreAddress, std::string postAddress, int height, const CTransactionRef& tx, bool lottery)
         {
             // Check user reputation
-            if (!AllowModifyReputation(_score_address, height)) return false;
+            if (!AllowModifyReputation(scoreAddress, height)) return false;
 
             // Disable reputation increment if from one address to one address > 2 scores over day
             int64_t _max_scores_one_to_one = GetScoresOneToOne();
@@ -73,13 +73,13 @@ namespace PocketConsensus
 
             size_t scores_one_to_one_count = g_pocketdb->SelectCount(
                 reindexer::Query("Scores")
-                    .Where("address", CondEq, _score_address)
+                    .Where("address", CondEq, scoreAddress)
                     .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth)
                     .Where("time", CondLt, (int64_t)tx->nTime)
                     .Where("block", CondLe, blockHeight)
                     .Where("value", CondSet, values)
                     .Not().Where("txid", CondEq, tx->GetHash().GetHex())
-                    .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, _post_address)));
+                    .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, postAddress)));
 
             if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
 
@@ -87,10 +87,10 @@ namespace PocketConsensus
             return true;
         }
 
-        bool AllowModifyReputationOverComment(std::string _score_address, std::string _comment_address, int height, const CTransactionRef& tx, bool lottery)
+        bool AllowModifyReputationOverComment(std::string scoreAddress, std::string commentAddress, int height, const CTransactionRef& tx, bool lottery)
         {
             // Check user reputation
-            if (!AllowModifyReputation(_score_address, height)) return false;
+            if (!AllowModifyReputation(scoreAddress, height)) return false;
 
             // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
             int64_t _max_scores_one_to_one = GetScoresOneToOneOverComment();
@@ -110,14 +110,14 @@ namespace PocketConsensus
 
             size_t scores_one_to_one_count = g_pocketdb->SelectCount(
                 reindexer::Query("CommentScores")
-                    .Where("address", CondEq, _score_address)
+                    .Where("address", CondEq, scoreAddress)
                     .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth)
                     .Where("time", CondLt, (int64_t)tx->nTime)
                     .Where("block", CondLe, blockHeight)
                     .Where("value", CondSet, values)
                     .Not().Where("txid", CondEq, tx->GetHash().GetHex())
                         // join by original id with txid, not otxid
-                    .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, _comment_address)));
+                    .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, commentAddress)));
 
             if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
 
