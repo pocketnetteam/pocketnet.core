@@ -93,6 +93,8 @@ endif
 POCKETDB_HPP = \
     pocketdb/pocketnet.h \
     pocketdb/pocketnet.cpp \
+    pocketdb/consensus.h \
+    pocketdb/consensus.cpp \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/helpers/TransactionHelper.hpp \
     pocketdb/helpers/TypesHelper.hpp \

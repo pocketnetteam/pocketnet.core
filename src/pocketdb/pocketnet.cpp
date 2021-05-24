@@ -6,23 +6,8 @@ namespace PocketDb
     SQLiteDatabase SQLiteDbInst;
     TransactionRepository TransRepoInst(PocketDb::SQLiteDbInst);
     ChainRepository ChainRepoInst(PocketDb::SQLiteDbInst);
+    RatingsRepository RatingsRepoInst(PocketDb::SQLiteDbInst);
 }
-
-namespace PocketConsensus
-{
-    BlockingConsensusFactory BlockingConsensusFactoryInst;
-    BlockingCancelConsensusFactory BlockingCancelConsensusFactoryInst;
-    CommentConsensusFactory CommentConsensusFactoryInst;
-    ComplainConsensusFactory ComplainConsensusFactoryInst;
-    PostConsensusFactory PostConsensusFactoryInst;
-    ScoreCommentConsensusFactory ScoreCommentConsensusFactoryInst;
-    ScorePostConsensusFactory ScorePostConsensusFactoryInst;
-    SubscribeConsensusFactory SubscribeConsensusFactoryInst;
-    SubscribeCancelConsensusFactory SubscribeCancelConsensusFactoryInst;
-    SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;
-    UserConsensusFactory UserConsensusFactoryInst;
-    LotteryConsensusFactory LotteryConsensusFactoryInst;
-}; // namespace PocketConsensus
 
 
 
