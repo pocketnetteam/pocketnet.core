@@ -8,13 +8,15 @@
 #include <chain.h>
 #include <chainparams.h>
 #include <consensus/validation.h>
-#include <pocketdb/pocketnet.h>
 #include <pos.h>
 #include <pow.h>
 #include <primitives/block.h>
 #include <utiltime.h>
 #include <validation.h>
 #include <wallet/wallet.h>
+
+#include "pocketdb/pocketnet.h"
+#include "pocketdb/helpers/TypesHelper.hpp"
 
 double GetPosDifficulty(const CBlockIndex *blockindex)
 {
@@ -150,7 +152,7 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, std::shared_ptr<CWallet> w
 
     // Process this block the same as if we had received it from another node
     CValidationState state;
-    PocketTx::PocketBlock pocketBlock;
+    PocketHelpers::PocketBlock pocketBlock;
     if (!ProcessNewBlock(state, chainparams, pblock, pocketBlock, true, /* fReceived */ false, NULL))
     {
         return error("CoinStaker: ProcessNewBlock, block not accepted %s", state.GetRejectReason());

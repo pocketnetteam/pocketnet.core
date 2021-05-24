@@ -4900,7 +4900,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 bool ProcessNewBlock(CValidationState& state,
     const CChainParams& chainparams,
     const std::shared_ptr<const CBlock> pblock,
-    PocketTx::PocketBlock& pocketBlock,
+    PocketHelpers::PocketBlock& pocketBlock,
     bool fForceProcessing, bool fReceived, bool* fNewBlock)
 {
     AssertLockNotHeld(cs_main);

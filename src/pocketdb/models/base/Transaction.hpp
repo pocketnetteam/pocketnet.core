@@ -108,8 +108,6 @@ namespace PocketTx
 
     };
 
-    typedef vector<shared_ptr<Transaction>> PocketBlock;
-
 } // namespace PocketTx
 
 #endif // POCKETTX_TRANSACTION_HPP

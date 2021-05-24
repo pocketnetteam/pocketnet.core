@@ -28,20 +28,21 @@ namespace PocketDb
 
         // Update transactions set block hash & height
         // Also spent outputs
-        bool UpdateHeight(string blockHash, int height, map<string, map<string, int>>& txs)
+        bool UpdateHeight(string blockHash, int height, vector<TransactionIndexingInfo>& txs)
         {
             return TryTransactionStep([&]()
             {
                 for (const auto& tx : txs)
                 {
                     // All transactions must have a blockHash & height relation
-                    UpdateTransactionHeight(blockHash, height, tx.first);
+                    UpdateTransactionHeight(blockHash, height, tx.Hash);
 
                     // The outputs are needed for the explorer
-                    UpdateTransactionOutputs(blockHash, height, tx.second);
+                    UpdateTransactionOutputs(blockHash, height, tx.Inputs);
 
                     // All users must have a unique digital ID
-                    UpdateUserId(tx.first);
+                    if (tx.Type == PocketTxType::ACCOUNT_USER)
+                        UpdateUserId(tx.Hash);
                 }
             });
         }

@@ -151,7 +151,6 @@ namespace PocketHelpers
 
         return make_tuple(false, "");
     }
-
 }
 
 #endif // POCKETHELPERS_TRANSACTIONHELPER_HPP

@@ -11,12 +11,16 @@
 
 #include "chain.h"
 #include "primitives/block.h"
+
 #include "pocketdb/pocketnet.h"
+#include "pocketdb/helpers/TypesHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.hpp"
 
 namespace PocketServices
 {
     using namespace PocketTx;
     using namespace PocketDb;
+    using namespace PocketHelpers;
 
     using std::vector;
     using std::tuple;
@@ -54,18 +58,20 @@ namespace PocketServices
         static bool IndexChain(const CBlock& block, int height)
         {
             // transaction with all inputs
-            map<string, map<string, int>> txs;
+            vector<TransactionIndexingInfo> txs;
             for (const auto& tx : block.vtx)
             {
-                map<string, int> inps;
+                TransactionIndexingInfo txInfo;
+                txInfo.Hash = tx->GetHash().GetHex();
+                txInfo.Type = ParseType(tx);
 
                 if (!tx->IsCoinBase())
                 {
                     for (const auto& inp : tx->vin)
-                        inps.emplace(inp.prevout.hash.GetHex(), inp.prevout.n);
+                        txInfo.Inputs.emplace(inp.prevout.hash.GetHex(), inp.prevout.n);
                 }
                 
-                txs.emplace(tx->GetHash().GetHex(), inps);
+                txs.push_back(txInfo);
             }
 
             return PocketDb::ChainRepoInst.UpdateHeight(block.GetHash().GetHex(), height, txs);

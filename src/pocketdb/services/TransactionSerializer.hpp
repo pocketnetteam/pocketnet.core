@@ -8,6 +8,8 @@
 #define POCKETTX_TRANSACTIONSERIALIZER_HPP
 
 #include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TypesHelper.hpp"
+
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
 #include "pocketdb/models/dto/Coinbase.hpp"

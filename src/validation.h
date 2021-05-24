@@ -35,8 +35,7 @@
 #include <atomic>
 #include <pubkey.h>
 
-#include "pocketdb/models/base/Transaction.hpp"
-
+#include "pocketdb/helpers/TypesHelper.hpp"
 #include "websocket/ws.h"
 
 extern std::map<std::string, WSUser> WSConnections;
@@ -261,7 +260,7 @@ static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 bool ProcessNewBlock(CValidationState& state,
     const CChainParams& chainparams,
     const std::shared_ptr<const CBlock> pblock,
-    PocketTx::PocketBlock& pocketBlock,
+    PocketHelpers::PocketBlock& pocketBlock,
     bool fForceProcessing, bool fReceived, bool* fNewBlock) LOCKS_EXCLUDED(cs_main);
 
 /**
