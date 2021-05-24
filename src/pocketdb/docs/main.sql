@@ -454,6 +454,15 @@ select String1 as AddressHash,
 from Transactions
 where Type in (301);
 
+drop view if exists vWebScoresPosts;
+create view vWebScoresPosts as
+    select count(*) as cnt, avg(Int1) as average,String2 as PostTxHash from Transactions  where Type=300 group by String2;
+
+drop view if exists vWebScoresComments;
+create view vWebScoresComments as
+    select count(*) as cnt, avg(Int1) as average,String2 as CommentTxHash from Transactions  where Type=301 group by String2;
+
+
 -- drop view if exists vWebScorePosts;
 -- create view vWebScorePosts as
 -- select Int1 as PostTxId,
