@@ -95,6 +95,7 @@ POCKETDB_HPP = \
     pocketdb/pocketnet.cpp \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/helpers/TransactionHelper.hpp \
+    pocketdb/helpers/TypesHelper.hpp \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/repositories/ChainRepository.hpp \

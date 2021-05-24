@@ -18,6 +18,7 @@ namespace PocketTx
     using std::tuple;
     using std::make_tuple;
     using std::vector;
+    using std::map;
 
     class Base
     {

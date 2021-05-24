@@ -7,6 +7,7 @@
 #ifndef POCKETDB_TRANSACTIONREPOSITORY_HPP
 #define POCKETDB_TRANSACTIONREPOSITORY_HPP
 
+#include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
@@ -19,6 +20,7 @@ namespace PocketDb
     using std::runtime_error;
 
     using namespace PocketTx;
+    using namespace PocketHelpers;
 
     class TransactionRepository : public BaseRepository
     {

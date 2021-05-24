@@ -9,6 +9,7 @@
 
 #include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.hpp"
+#include "pocketdb/helpers/TypesHelper.hpp"
 
 namespace PocketDb
 {
@@ -17,6 +18,8 @@ namespace PocketDb
     using std::make_tuple;
     using std::vector;
     using std::map;
+
+    using namespace PocketHelpers;
 
     // TODO (brangr): mutext for insert/update/delete ?
 
