@@ -41,8 +41,16 @@ namespace PocketDb
                     UpdateTransactionOutputs(blockHash, height, tx.Inputs);
 
                     // All users must have a unique digital ID
-                    if (tx.Type == PocketTxType::ACCOUNT_USER)
+                    if (tx.Type == PocketTxType::ACCOUNT_USER
+                        || tx.Type == PocketTxType::ACCOUNT_VIDEO_SERVER
+                        || tx.Type == PocketTxType::ACCOUNT_MESSAGE_SERVER
+                        || tx.Type == PocketTxType::CONTENT_POST
+                        || tx.Type == PocketTxType::CONTENT_COMMENT
+                        || tx.Type == PocketTxType::CONTENT_VIDEO
+                        || tx.Type == PocketTxType::CONTENT_TRANSLATE)
+                    {
                         UpdateShortId(tx.Hash);
+                    }
                 }
             });
         }
@@ -166,8 +174,9 @@ namespace PocketDb
 
             // Try execute
             if (!TryStepStatement(stmt))
-                throw runtime_error(strprintf("%s: can't update transactions set height (step) Hash:%s Block:%s Height:%d\n",
-                    __func__, txHash, blockHash, height));
+                throw runtime_error(
+                    strprintf("%s: can't update transactions set height (step) Hash:%s Block:%s Height:%d\n",
+                        __func__, txHash, blockHash, height));
         }
         void UpdateTransactionOutputs(string txHash, int height, map<string, int> outputs)
         {
@@ -199,7 +208,7 @@ namespace PocketDb
                         __func__, txHash, height));
             }
         }
-        void UpdateUserId(string txHash)
+        void UpdateShortId(string txHash)
         {
             auto stmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
@@ -227,11 +236,11 @@ namespace PocketDb
 
             auto result = TryBindStatementText(stmt, 1, hashPtr);
             if (!result)
-                throw runtime_error(strprintf("%s: can't update transactions set user Id (bind)\n", __func__));
+                throw runtime_error(strprintf("%s: can't update transactions set Id (bind)\n", __func__));
 
             // Try execute
             if (!TryStepStatement(stmt))
-                throw runtime_error(strprintf("%s: can't update transactions set user Id (step) Hash:%s\n",
+                throw runtime_error(strprintf("%s: can't update transactions set Id (step) Hash:%s\n",
                     __func__, txHash));
         }
 
