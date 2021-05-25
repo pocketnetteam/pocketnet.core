@@ -7,6 +7,7 @@
 #ifndef POCKETCONSENSUS_REPUTATION_HPP
 #define POCKETCONSENSUS_REPUTATION_HPP
 
+#include "pocketdb/consensus/Base.hpp"
 #include "pocketdb/pocketnet.h"
 
 namespace PocketConsensus

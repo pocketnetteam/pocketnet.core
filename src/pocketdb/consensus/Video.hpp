@@ -17,11 +17,11 @@ namespace PocketConsensus
     *  User consensus base class
     *
     *******************************************************************************************************************/
-    class UserConsensus : public BaseConsensus
+    class VideoConsensus : public BaseConsensus
     {
     protected:
     public:
-        UserConsensus() = default;
+        VideoConsensus() = default;
     };
 
     /*******************************************************************************************************************
@@ -29,21 +29,21 @@ namespace PocketConsensus
     *  Start checkpoint
     *
     *******************************************************************************************************************/
-    class UserConsensus_checkpoint_0 : public UserConsensus
+    class VideoConsensus_checkpoint_0 : public VideoConsensus
     {
     protected:
     public:
 
-        UserConsensus_checkpoint_0() = default;
+        VideoConsensus_checkpoint_0() = default;
 
-    }; // class UserConsensus_checkpoint_0
+    }; // class VideoConsensus_checkpoint_0
 
     /*******************************************************************************************************************
     *
     *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
-    class UserConsensus_checkpoint_1 : public UserConsensus_checkpoint_0
+    class VideoConsensus_checkpoint_1 : public VideoConsensus_checkpoint_0
     {
     protected:
         int CheckpointHeight() override { return 1; }
@@ -56,20 +56,20 @@ namespace PocketConsensus
     *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
-    class UserConsensusFactory
+    class VideoConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<UserConsensus *()>>> m_rules
+        inline static std::vector<std::pair<int, std::function<VideoConsensus *()>>> m_rules
         {
-            {1, []() { return new UserConsensus_checkpoint_1(); }},
-            {0, []() { return new UserConsensus_checkpoint_0(); }},
+            {1, []() { return new VideoConsensus_checkpoint_1(); }},
+            {0, []() { return new VideoConsensus_checkpoint_0(); }},
         };
     public:
-        shared_ptr <UserConsensus> Instance(int height)
+        shared_ptr <VideoConsensus> Instance(int height)
         {
             for (const auto& rule : m_rules) {
                 if (height >= rule.first) {
-                    return shared_ptr<UserConsensus>(rule.second());
+                    return shared_ptr<VideoConsensus>(rule.second());
                 }
             }
         }
