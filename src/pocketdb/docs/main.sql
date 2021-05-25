@@ -478,6 +478,7 @@ create view vWebScoresComments as
 -- where I.Type in (301);
 --
 --
+
 -- drop view if exists vWebSubscribes;
 -- create view vWebSubscribes as
 -- select WI.Type,
@@ -526,3 +527,31 @@ where Type in (307);
 --
 --
 -- vacuum;
+
+
+---------------------------------------------------------
+--               FULL TEXT SEARCH TABLES               --
+---------------------------------------------------------
+/*
+DROP TABLE PayloadUsers_fts;
+CREATE VIRTUAL TABLE PayloadUsers_fts USING fts5(
+    TxHash UNINDEXED,
+    Name,
+    About
+);
+--update Payload set String2='brangr' where TxHash='eb7e1228f8c099afb8d3361de8be7f01fb96bf62b5063c90af0419ddefc8079b'
+insert into PayloadUsers_fts
+select
+       t.Hash,
+       p.String2 as Name, -- DECODE and UnEscape string
+       p.String4 as About
+from Transactions t
+join Payload p on t.Hash = p.TxHash
+where t.Type = 100;
+
+
+select * from PayloadUsers_fts f, vWebUsers wu
+where f.Name match 'loki*' and f.TxHash=wu.Hash
+limit 60;
+*/
+
