@@ -539,7 +539,7 @@ CREATE VIRTUAL TABLE PayloadUsers_fts USING fts5(
     Name,
     About
 );
---update Payload set String2='brangr' where TxHash='eb7e1228f8c099afb8d3361de8be7f01fb96bf62b5063c90af0419ddefc8079b'
+
 insert into PayloadUsers_fts
 select
        t.Hash,
@@ -563,7 +563,7 @@ CREATE VIRTUAL TABLE PayloadPosts_fts USING fts5(
     Message,
     Tags
 );
---update Payload set String2='brangr' where TxHash='eb7e1228f8c099afb8d3361de8be7f01fb96bf62b5063c90af0419ddefc8079b'
+
 insert into PayloadPosts_fts
 select
        t.Hash,
@@ -579,3 +579,22 @@ select wu.* from PayloadPosts_fts f, vWebPosts wu
 where f.message match 'Trump' and f.TxHash=wu.Hash
 limit 60;*/
 
+/*
+DROP TABLE PayloadComments_fts;
+CREATE VIRTUAL TABLE PayloadComments_fts USING fts5(
+    TxHash UNINDEXED,
+    Message
+);
+
+insert into PayloadComments_fts
+select
+       t.Hash,
+       p.String2 as Message
+from Transactions t
+join Payload p on t.Hash = p.TxHash
+where t.Type = 204;
+
+
+select wc.* from PayloadComments_fts f, vWebComments wc
+where f.message match 'nothing' and f.TxHash=wc.Hash
+limit 60;*/
