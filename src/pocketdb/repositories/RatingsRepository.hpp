@@ -33,7 +33,7 @@ namespace PocketDb {
                 auto stmt = SetupSqlStatement(R"sql(
                     select r.Value
                     from Ratings r
-                    where r.Type = ? and r.Height <= ? and r.Id = (select t.Id from vUsers t where t.Hash = ?)
+                    where r.Type = ? and r.Height <= ? and r.Id = (select t.Id from vUsers t where t.Hash = ? limit 1)
                     order by r.Height desc
                     limit 1
                 )sql");
@@ -55,6 +55,8 @@ namespace PocketDb {
                     result = GetColumnInt(*stmt, 1);
                 }
 
+                // TODO (joni): стейтмент нужно финализировать при любом исходе - даже после неудачного бинда выше
+
                 return true;
             });
 
@@ -69,7 +71,7 @@ namespace PocketDb {
               auto stmt = SetupSqlStatement(R"sql(
                     select count(1)
                     from Ratings r
-                    where r.Type = ? and r.Height <= ? and r.Id = (select t.Id from vUsers t where t.Hash = ?)
+                    where r.Type = ? and r.Height <= ? and r.Id = (select t.Id from vUsers t where t.Hash = ? limit 1)
                 )sql");
 
               //TODO (joni): check
@@ -88,6 +90,8 @@ namespace PocketDb {
               if (sqlite3_step(*stmt) == SQLITE_ROW) {
                   result = GetColumnInt(*stmt, 1);
               }
+
+              // TODO (joni): стейтмент нужно финализировать при любом исходе - даже после неудачного бинда выше
 
               return true;
             });
