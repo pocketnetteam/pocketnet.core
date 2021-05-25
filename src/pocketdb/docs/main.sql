@@ -169,6 +169,15 @@ where t.Height = (
      where t_.String1 = t.String1 and t_.Type = t.Type)
 and t.Type = 100;
 
+drop view if exists vScorePosts;
+create view vScorePosts as
+select String1 as AddressHash,
+       String2 as PostTxHash,
+       Int1 as Value,
+       Time as Time,
+       Height as Height
+from Transactions
+where Type in (300);
 
 -- drop view if exists vTransactions;
 -- create view vTransactions as

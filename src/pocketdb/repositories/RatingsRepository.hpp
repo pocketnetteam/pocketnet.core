@@ -25,9 +25,10 @@ namespace PocketDb {
         void Init() override {}
         void Destroy() override {}
 
-        tuple<bool, int> GetUserReputation(string address, int height)
+        int GetUserReputation(string address, int height)
         {
             int result = 0;
+            auto func = __func__;
 
             bool tryResult = TryTransactionStep([&]() {
                 auto stmt = SetupSqlStatement(R"sql(
@@ -40,63 +41,119 @@ namespace PocketDb {
 
                 //TODO (joni): check
                 auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT);
-                if (!TryBindStatementInt(stmt, 1, typePtr))
-                    return false;
-
                 auto heightPtr = make_shared<int>(height);
-                if (!TryBindStatementInt(stmt, 2, heightPtr))
-                    return false;
-
                 auto idPtr = make_shared<string>(address);
-                if (!TryBindStatementText(stmt, 3, idPtr))
-                    return false;
+
+                auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
+                bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
+                bindResult &= TryBindStatementText(stmt, 3, idPtr);
+
+                if (!bindResult) {
+                    FinalizeSqlStatement(*stmt);
+                    throw runtime_error(strprintf("%s: can't get user reputation (bind)\n", func));
+                }
 
                 if (sqlite3_step(*stmt) == SQLITE_ROW) {
                     result = GetColumnInt(*stmt, 1);
                 }
 
-                // TODO (joni): стейтмент нужно финализировать при любом исходе - даже после неудачного бинда выше
+                FinalizeSqlStatement(*stmt);
 
                 return true;
             });
 
-            return make_tuple(tryResult, result);
+            return result;
         }
 
-        tuple<bool, int> GetUserLikersCount(string address, int height)
+        int GetUserLikersCount(string address, int height)
         {
             int result = 0;
+            auto func = __func__;
 
             bool tryResult = TryTransactionStep([&]() {
-              auto stmt = SetupSqlStatement(R"sql(
+                auto stmt = SetupSqlStatement(R"sql(
                     select count(1)
                     from Ratings r
                     where r.Type = ? and r.Height <= ? and r.Id = (select t.Id from vUsers t where t.Hash = ? limit 1)
                 )sql");
 
-              //TODO (joni): check
-              auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT_LIKERS);
-              if (!TryBindStatementInt(stmt, 1, typePtr))
-                  return false;
+                //TODO (joni): check
+                auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT_LIKERS);
+                auto heightPtr = make_shared<int>(height);
+                auto idPtr = make_shared<string>(address);
 
-              auto heightPtr = make_shared<int>(height);
-              if (!TryBindStatementInt(stmt, 2, heightPtr))
-                  return false;
+                auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
+                bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
+                bindResult &= TryBindStatementText(stmt, 3, idPtr);
+                if (!bindResult) {
+                    FinalizeSqlStatement(*stmt);
+                    throw runtime_error(strprintf("%s: can't select user likers count (bind)\n", func));
+                }
 
-              auto idPtr = make_shared<string>(address);
-              if (!TryBindStatementText(stmt, 3, idPtr))
-                  return false;
+                if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                    result = GetColumnInt(*stmt, 1);
+                }
 
-              if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                  result = GetColumnInt(*stmt, 1);
-              }
+                FinalizeSqlStatement(*stmt);
 
-              // TODO (joni): стейтмент нужно финализировать при любом исходе - даже после неудачного бинда выше
-
-              return true;
+                return true;
             });
 
-            return make_tuple(tryResult, result);
+            return result;
+        }
+
+        int GetScorePostCount(string addressHash, string postHash, int height, std::vector<int> values, int64_t txTime, int64_t ScoresOneToOneDepth, string txHash)
+        {
+//            size_t scores_one_to_one_count = g_pocketdb->SelectCount(
+//                reindexer::Query("Scores")
+//                    .Where("address", CondEq, scoreAddress) //+
+//                    .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth) //+
+//                    .Where("time", CondLt, (int64_t)tx->nTime) //+
+//                    .Where("block", CondLe, blockHeight) //+
+//                    .Where("value", CondSet, values) //+
+//                    .Not()
+//                    .Where("txid", CondEq, tx->GetHash().GetHex())
+//                    .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, postAddress))); //+
+
+            int result = 0;
+            auto func = __func__;
+
+            bool tryResult = TryTransactionStep([&]() {
+                auto stmt = SetupSqlStatement(R"sql(
+                    select count(1)
+                    from vScorePosts s
+                    where s.AddressHash = ?
+                        and s.PostTxHash = ?
+                        and s.Height <= ?
+                        and s.Value in ?
+                        and s.Time < ?
+                        and s.Time >= ?
+                        and s.Hash != ?
+                )sql");
+
+                //TODO (joni): check
+                auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT_LIKERS);
+                auto heightPtr = make_shared<int>(height);
+                auto idPtr = make_shared<string>(addressHash);
+
+                auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
+                bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
+                bindResult &= TryBindStatementText(stmt, 3, idPtr);
+                if (!bindResult) {
+                    FinalizeSqlStatement(*stmt);
+                    throw runtime_error(strprintf("%s: can't select user likers count (bind)\n", func));
+                }
+
+                if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                    result = GetColumnInt(*stmt, 1);
+                }
+
+                FinalizeSqlStatement(*stmt);
+
+                return true;
+            });
+
+            return result;
         }
     }; // namespace PocketDb
 }
