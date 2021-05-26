@@ -231,18 +231,6 @@ select t.Hash,
 from Transactions t
 where Type in (301);
 
-drop view if exists vScores;
-create view vScores as
-select t.Hash,
-       t.Time,
-       t.BlockHash,
-       t.Height,
-       t.String1 as AddressHash,
-       t.String2 as TargetTxHash,
-       t.Int1    as Value
-from Transactions t
-where Type in (300, 301);
-
 
 --------------------------------------------
 --               WEB VIEWS                --

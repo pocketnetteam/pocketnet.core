@@ -103,7 +103,7 @@ namespace PocketDb {
             return make_tuple(true, result);
         }
 
-        tuple<bool, int> GetScoreContentCount(PocketTxType txType, const string scoreAddress, const string targetAddress, int height,
+        tuple<bool, int> GetScoreContentCount(PocketTxType txType, const string scoreAddress, const string contentAddress, int height,
             const CTransactionRef& tx, const std::vector<int> values, int64_t scoresOneToOneDepth)
         {
             int result = 0;
@@ -113,9 +113,10 @@ namespace PocketDb {
                 string sql = R"sql(
                     select count(1)
                     from vScores s
-                    inner join vContents p on p.Hash = s.TargetTxHash
+                    inner join vContents p on p.Hash = s.ContentTxHash
                     where s.AddressHash = ?
                         and p.AddressHash = ?
+                        and s.Height is not null
                         and s.Height <= ?
                         and s.Time < ?
                         and s.Time >= ?
@@ -131,24 +132,27 @@ namespace PocketDb {
                 auto stmt = SetupSqlStatement(sql);
 
                 auto scoreAddressPtr = make_shared<string>(scoreAddress);
-                auto postAddressPtr = make_shared<string>(targetAddress);
+                auto postAddressPtr = make_shared<string>(contentAddress);
                 auto heightPtr = make_shared<int>(height);
+
+                // TODO: нужна будет перегрузка для изменения отбора - время заменить на блоки
                 auto maxTimePtr = make_shared<int64_t>(tx->nTime);
                 auto minTimePtr = make_shared<int64_t>((int64_t)tx->nTime - scoresOneToOneDepth);
-                auto hashPtr = make_shared<string>(tx->GetHash().GetHex()); //TODO check
+                
+                auto scoreTxHashPtr = make_shared<string>(tx->GetHash().GetHex()); //TODO (joni): check - что смущает? Вроде правильно
                 auto scoreTypePtr = make_shared<int>(txType);;
 
-                shared_ptr<int> targetTypePtr;
+                shared_ptr<int> contentTypePtr;
 
                 switch (txType) {
                 case PocketTx::ACTION_SCORE_POST:
-                    targetTypePtr = make_shared<int>(PocketTx::CONTENT_POST);
+                    contentTypePtr = make_shared<int>(PocketTx::CONTENT_POST);
                     break;
                 case PocketTx::ACTION_SCORE_COMMENT:
-                    targetTypePtr = make_shared<int>(PocketTx::CONTENT_COMMENT);
+                    contentTypePtr = make_shared<int>(PocketTx::CONTENT_COMMENT);
                     break;
                 default:
-                    throw runtime_error(strprintf("%s: can't get score comment count (unsupported txType)\n", func));
+                    throw runtime_error(strprintf("%s: can't get score count (unsupported txType)\n", func));
                 }
 
                 auto bindResult = TryBindStatementText(stmt, 1, scoreAddressPtr);
@@ -156,16 +160,16 @@ namespace PocketDb {
                 bindResult &= TryBindStatementInt(stmt, 3, heightPtr);
                 bindResult &= TryBindStatementInt64(stmt, 4, maxTimePtr);
                 bindResult &= TryBindStatementInt64(stmt, 5, minTimePtr);
-                bindResult &= TryBindStatementText(stmt, 6, hashPtr);
+                bindResult &= TryBindStatementText(stmt, 6, scoreTxHashPtr);
                 bindResult &= TryBindStatementInt(stmt, 7, scoreTypePtr);
-                bindResult &= TryBindStatementInt(stmt, 8, targetTypePtr);
+                bindResult &= TryBindStatementInt(stmt, 8, contentTypePtr);
                 for (auto i = 0; i < values.size(); i++) {
                     auto valuePtr = make_shared<int>(values[i]);
                     bindResult &= TryBindStatementInt(stmt, 9 + i, valuePtr);
                 }
                 if (!bindResult) {
                     FinalizeSqlStatement(*stmt);
-                    throw runtime_error(strprintf("%s: can't get score comment count (bind)\n", func));
+                    throw runtime_error(strprintf("%s: can't get score count (bind)\n", func));
                 }
 
                 if (sqlite3_step(*stmt) == SQLITE_ROW) {
