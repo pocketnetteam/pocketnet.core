@@ -122,27 +122,36 @@ namespace PocketServices
                     // posts
 
                     // Scores to old posts not modify reputation
-                    bool modify_block_old_post = (tx->nTime - postItm["time"].As<int64_t>()) < GetActualLimit(Limit::scores_depth_modify_reputation, pindex->nHeight - 1);
+                    bool modify_block_old_post = (tx->nTime - postItm["time"].As<int64_t>()) <
+                                                 GetActualLimit(Limit::scores_depth_modify_reputation,
+                                                     pindex->nHeight - 1);
 
                     // USER & POST reputation
-                    if (modify_by_user_reputation && modify_block_old_post) {
+                    if (modify_by_user_reputation && modify_block_old_post)
+                    {
 
                         // User reputation
-                        if (userReputations.find(post_address) == userReputations.end()) userReputations.insert(std::make_pair(post_address, 0));
-                        userReputations[post_address] += (scoreVal - 3) * 10; // Reputation between -20 and 20 - user reputation saved in int 21 = 2.1
+                        if (userReputations.find(post_address) == userReputations.end())
+                            userReputations.insert(std::make_pair(post_address, 0));
+                        userReputations[post_address] += (scoreVal - 3) *
+                                                         10; // Reputation between -20 and 20 - user reputation saved in int 21 = 2.1
 
                         // Post reputation
-                        if (postReputations.find(posttxid) == postReputations.end()) postReputations.insert(std::make_pair(posttxid, 0));
+                        if (postReputations.find(posttxid) == postReputations.end())
+                            postReputations.insert(std::make_pair(posttxid, 0));
                         postReputations[posttxid] += scoreVal - 3; // Reputation between -2 and 2
 
                         // Save distinct liker for user
-                        if (scoreVal == 4 or scoreVal == 5) {
-                            if (userLikers.find(post_address) == userLikers.end()) {
+                        if (scoreVal == 4 or scoreVal == 5)
+                        {
+                            if (userLikers.find(post_address) == userLikers.end())
+                            {
                                 std::vector<std::string> likers;
                                 userLikers.insert(std::make_pair(post_address, likers));
                             }
 
-                            if (std::find(userLikers[post_address].begin(), userLikers[post_address].end(), score_address) == userLikers[post_address].end())
+                            if (std::find(userLikers[post_address].begin(), userLikers[post_address].end(),
+                                score_address) == userLikers[post_address].end())
                                 userLikers[post_address].push_back(score_address);
                         }
                     }
@@ -151,21 +160,26 @@ namespace PocketServices
 
                     // comment
                     // User reputation
-                    if (userReputations.find(comment_address) == userReputations.end()) userReputations.insert(std::make_pair(comment_address, 0));
+                    if (userReputations.find(comment_address) == userReputations.end())
+                        userReputations.insert(std::make_pair(comment_address, 0));
                     userReputations[comment_address] += scoreVal; // Reputation equals -0.1 or 0.1
 
                     // Comment reputation
-                    if (commentReputations.find(commentid) == commentReputations.end()) commentReputations.insert(std::make_pair(commentid, 0));
+                    if (commentReputations.find(commentid) == commentReputations.end())
+                        commentReputations.insert(std::make_pair(commentid, 0));
                     commentReputations[commentid] += scoreVal;
 
                     // Save distinct liker for user
-                    if (scoreVal == 1) {
-                        if (userLikers.find(comment_address) == userLikers.end()) {
+                    if (scoreVal == 1)
+                    {
+                        if (userLikers.find(comment_address) == userLikers.end())
+                        {
                             std::vector<std::string> likers;
                             userLikers.insert(std::make_pair(comment_address, likers));
                         }
 
-                        if (std::find(userLikers[comment_address].begin(), userLikers[comment_address].end(), score_address) == userLikers[comment_address].end())
+                        if (std::find(userLikers[comment_address].begin(), userLikers[comment_address].end(),
+                            score_address) == userLikers[comment_address].end())
                             userLikers[comment_address].push_back(score_address);
                     }
                 }
