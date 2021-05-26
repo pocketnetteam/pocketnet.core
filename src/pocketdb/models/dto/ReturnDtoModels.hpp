@@ -18,16 +18,16 @@ namespace PocketTx
 
 
     // Base return model
-    class SelectBase
+    class BaseReturnDto
     {
     public:
-        virtual ~SelectBase() {}
+        virtual ~BaseReturnDto() {}
         virtual UniValue Serialize() {}
     };
 
     // Base list ofr return models
     template<class T>
-    class SelectList
+    class ListDto
     {
     protected:
         vector<T> _lst;
@@ -53,7 +53,7 @@ namespace PocketTx
     };
 
     // Base address info, etc balance
-    class SelectAddressInfo : SelectBase
+    class AddressInfoDto : BaseReturnDto
     {
     public:
         string Address;
@@ -66,6 +66,15 @@ namespace PocketTx
             ret.pushKV("balance", Balance);
             return ret;
         }
+    };
+
+    // Score data info for indexing
+    class ScoreIdsDto : BaseReturnDto
+    {
+    public:
+        int ScoreAddressId;
+        int ContentId;
+        int ContentAddressId;
     };
 
 } // namespace PocketTx

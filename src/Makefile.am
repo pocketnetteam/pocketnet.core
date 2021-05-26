@@ -107,13 +107,13 @@ POCKETDB_HPP = \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/TransactionIndexer.hpp \
     pocketdb/models/base/PocketTypes.hpp \
-    pocketdb/models/base/SelectModels.hpp \
     pocketdb/models/base/Base.hpp \
     pocketdb/models/base/Payload.hpp \
     pocketdb/models/base/Transaction.hpp \
     pocketdb/models/base/TransactionOutput.hpp \
     pocketdb/models/base/Rating.hpp \
     pocketdb/models/base/Payload.hpp \
+    pocketdb/models/dto/ReturnDtoModels.hpp \
     pocketdb/models/dto/Default.hpp \
     pocketdb/models/dto/Coinbase.hpp \
     pocketdb/models/dto/Coinstake.hpp \

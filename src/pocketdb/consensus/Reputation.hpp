@@ -29,8 +29,7 @@ namespace PocketConsensus
         virtual int64_t GetScoresOneToOneDepth() = 0;
 
         virtual int64_t GetScoresOneToOneOverComment() = 0;
-    public:
-        ReputationConsensus() = default;
+
 
         bool AllowModifyReputation(string address, int height)
         {
@@ -47,7 +46,8 @@ namespace PocketConsensus
             return true;
         }
 
-        bool AllowModifyReputationOverPost(std::string scoreAddress, std::string postAddress, int height, const CTransactionRef& tx, bool lottery)
+        virtual bool AllowModifyReputationOverPost(std::string scoreAddress, std::string postAddress, int height,
+            const CTransactionRef& tx, bool lottery)
         {
             // Check user reputation
             if (!AllowModifyReputation(scoreAddress, height)) return false;
@@ -57,10 +57,13 @@ namespace PocketConsensus
             int64_t _scores_one_to_one_depth = GetScoresOneToOneDepth();
 
             std::vector<int> values;
-            if (lottery) {
+            if (lottery)
+            {
                 values.push_back(4);
                 values.push_back(5);
-            } else {
+            }
+            else
+            {
                 values.push_back(1);
                 values.push_back(2);
                 values.push_back(3);
@@ -75,12 +78,13 @@ namespace PocketConsensus
             size_t scores_one_to_one_count = g_pocketdb->SelectCount(
                 reindexer::Query("Scores")
                     .Where("address", CondEq, scoreAddress)
-                    .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth)
-                    .Where("time", CondLt, (int64_t)tx->nTime)
+                    .Where("time", CondGe, (int64_t) tx->nTime - _scores_one_to_one_depth)
+                    .Where("time", CondLt, (int64_t) tx->nTime)
                     .Where("block", CondLe, blockHeight)
                     .Where("value", CondSet, values)
                     .Not().Where("txid", CondEq, tx->GetHash().GetHex())
-                    .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, postAddress)));
+                    .InnerJoin("posttxid", "txid", CondEq,
+                        reindexer::Query("Posts").Where("address", CondEq, postAddress)));
 
             if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
 
@@ -88,7 +92,8 @@ namespace PocketConsensus
             return true;
         }
 
-        bool AllowModifyReputationOverComment(std::string scoreAddress, std::string commentAddress, int height, const CTransactionRef& tx, bool lottery)
+        virtual bool AllowModifyReputationOverComment(std::string scoreAddress, std::string commentAddress, int height,
+            const CTransactionRef& tx, bool lottery)
         {
             // Check user reputation
             if (!AllowModifyReputation(scoreAddress, height)) return false;
@@ -98,9 +103,12 @@ namespace PocketConsensus
             int64_t _scores_one_to_one_depth = GetScoresOneToOneDepth();
 
             std::vector<int> values;
-            if (lottery) {
+            if (lottery)
+            {
                 values.push_back(1);
-            } else {
+            }
+            else
+            {
                 values.push_back(-1);
                 values.push_back(1);
             }
@@ -112,19 +120,37 @@ namespace PocketConsensus
             size_t scores_one_to_one_count = g_pocketdb->SelectCount(
                 reindexer::Query("CommentScores")
                     .Where("address", CondEq, scoreAddress)
-                    .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth)
-                    .Where("time", CondLt, (int64_t)tx->nTime)
+                    .Where("time", CondGe, (int64_t) tx->nTime - _scores_one_to_one_depth)
+                    .Where("time", CondLt, (int64_t) tx->nTime)
                     .Where("block", CondLe, blockHeight)
                     .Where("value", CondSet, values)
                     .Not().Where("txid", CondEq, tx->GetHash().GetHex())
                         // join by original id with txid, not otxid
-                    .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, commentAddress)));
+                    .InnerJoin("commentid", "txid", CondEq,
+                        reindexer::Query("Comment").Where("address", CondEq, commentAddress)));
 
             if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
 
             // All is OK
             return true;
         }
+
+    public:
+        ReputationConsensus() = default;
+
+        bool AllowModifyReputation(PocketTxType txType, const CTransactionRef& tx,
+            std::string scoreAddress, std::string contentAddress, int height, bool lottery)
+        {
+            if (txType == PocketTxType::ACTION_SCORE_POST)
+                return AllowModifyReputationOverPost(scoreAddress, contentAddress, height, tx, lottery);
+
+            if (txType == PocketTxType::ACTION_SCORE_COMMENT)
+                return AllowModifyReputationOverComment(scoreAddress, contentAddress, height, tx, lottery);
+
+            return false;
+        }
+
+
     };
 
     /*******************************************************************************************************************
@@ -139,7 +165,7 @@ namespace PocketConsensus
         int64_t GetThresholdReputationScore() override { return -10000; }
         int64_t GetScoresOneToOneOverComment() override { return 20; }
         int64_t GetScoresOneToOne() override { return 99999; }
-        int64_t GetScoresOneToOneDepth() override { return 336*24*3600; }
+        int64_t GetScoresOneToOneDepth() override { return 336 * 24 * 3600; }
     public:
         ReputationConsensus_checkpoint_0() = default;
     }; // class ReputationConsensus_checkpoint_0
@@ -149,7 +175,8 @@ namespace PocketConsensus
     *  Consensus checkpoint at 108300 block
     *
     *******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_108300 : public ReputationConsensus_checkpoint_0 //TODO (brangr): check (int)params.GetConsensus().nHeight_version_1_0_0 == 108300
+    class ReputationConsensus_checkpoint_108300
+        : public ReputationConsensus_checkpoint_0 //TODO (brangr): check (int)params.GetConsensus().nHeight_version_1_0_0 == 108300
     {
     protected:
         int64_t GetThresholdReputationScore() override { return 500; }
@@ -166,7 +193,7 @@ namespace PocketConsensus
     {
     protected:
         int64_t GetScoresOneToOne() override { return 2; }
-        int64_t GetScoresOneToOneDepth() override { return 1*24*3600; }
+        int64_t GetScoresOneToOneDepth() override { return 1 * 24 * 3600; }
         int CheckpointHeight() override { return 225000; }
     public:
     };
@@ -180,7 +207,7 @@ namespace PocketConsensus
     {
     protected:
         int64_t GetThresholdReputationScore() override { return 1000; }
-        int64_t GetScoresOneToOneDepth() override { return 7*24*3600; }
+        int64_t GetScoresOneToOneDepth() override { return 7 * 24 * 3600; }
         int CheckpointHeight() override { return 292800; }
     public:
     };
@@ -193,7 +220,7 @@ namespace PocketConsensus
     class ReputationConsensus_checkpoint_322700 : public ReputationConsensus_checkpoint_292800
     {
     protected:
-        int64_t GetScoresOneToOneDepth() override { return 2*24*3600; }
+        int64_t GetScoresOneToOneDepth() override { return 2 * 24 * 3600; }
         int CheckpointHeight() override { return 322700; }
     public:
     };
@@ -203,7 +230,8 @@ namespace PocketConsensus
     *  Consensus checkpoint at 1124000 block
     *
     *******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_1124000 : public ReputationConsensus_checkpoint_322700 //TODO (brangr): check (int)params.GetConsensus().checkpoint_0_19_3 == 889524
+    class ReputationConsensus_checkpoint_1124000
+        : public ReputationConsensus_checkpoint_322700 //TODO (brangr): check (int)params.GetConsensus().checkpoint_0_19_3 == 889524
     {
     protected:
         int64_t GetThresholdLikersCount() override { return 100; }
@@ -220,20 +248,22 @@ namespace PocketConsensus
     class ReputationConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<ReputationConsensus *()>>> m_rules
-        {
-            {889524, []() { return new ReputationConsensus_checkpoint_1124000(); }},
-            {322700, []() { return new ReputationConsensus_checkpoint_322700(); }},
-            {292800, []() { return new ReputationConsensus_checkpoint_292800(); }},
-            {225000, []() { return new ReputationConsensus_checkpoint_225000(); }},
-            {108300, []() { return new ReputationConsensus_checkpoint_108300(); }},
-            {0,      []() { return new ReputationConsensus_checkpoint_0(); }},
-        };
+        inline static std::vector<std::pair<int, std::function<ReputationConsensus*()>>> m_rules
+            {
+                {889524, []() { return new ReputationConsensus_checkpoint_1124000(); }},
+                {322700, []() { return new ReputationConsensus_checkpoint_322700(); }},
+                {292800, []() { return new ReputationConsensus_checkpoint_292800(); }},
+                {225000, []() { return new ReputationConsensus_checkpoint_225000(); }},
+                {108300, []() { return new ReputationConsensus_checkpoint_108300(); }},
+                {0,      []() { return new ReputationConsensus_checkpoint_0(); }},
+            };
     public:
         shared_ptr <ReputationConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules) {
-                if (height >= rule.first) {
+            for (const auto& rule : m_rules)
+            {
+                if (height >= rule.first)
+                {
                     return shared_ptr<ReputationConsensus>(rule.second());
                 }
             }

@@ -12,8 +12,10 @@
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
 #include "pocketdb/models/base/Rating.hpp"
-#include "pocketdb/models/base/SelectModels.hpp"
+#include "pocketdb/models/dto/ReturnDtoModels.hpp"
 #include "pocketdb/models/dto/User.hpp"
+#include "pocketdb/models/dto/ScorePost.hpp"
+#include "pocketdb/models/dto/ScoreComment.hpp"
 
 namespace PocketDb
 {
@@ -54,11 +56,10 @@ namespace PocketDb
             });
         }
 
-
         // Top addresses info
-        tuple<bool, SelectList<SelectAddressInfo>> SelectTopAddresses(int count)
+        tuple<bool, ListDto<AddressInfoDto>> GetAddressInfo(int count)
         {
-            SelectList<SelectAddressInfo> result;
+            ListDto<AddressInfoDto> result;
 
             bool tryResult = TryTransactionStep([&]()
             {
@@ -73,16 +74,63 @@ namespace PocketDb
 
                 auto countPtr = make_shared<int>(count);
                 if (!TryBindStatementInt(stmt, 1, countPtr))
-                    return false;
+                {
+                    FinalizeSqlStatement(*stmt);
+                    throw runtime_error(strprintf("%s: can't select GetAddressInfo (bind)\n", __func__));
+                }
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
-                    SelectAddressInfo inf;
+                    AddressInfoDto inf;
                     inf.Address = GetColumnString(*stmt, 0);
                     inf.Balance = GetColumnInt64(*stmt, 1);
                     result.Add(inf);
                 }
 
+                FinalizeSqlStatement(*stmt);
+                return true;
+            });
+
+            return make_tuple(tryResult, result);
+        }
+
+        // Selects for get models data
+        tuple<bool, ScoreIdsDto> GetScoreIds(string scoreTxHash, string scoreAddress, string contentAddress)
+        {
+            ScoreIdsDto result;
+
+            bool tryResult = TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    select
+                        (select a.Id from vAccounts a where a.AddressHash=? limit 1) as scoreAddressId,
+                        (select c.Id from vContents c where c.Hash=(
+                            select s.ContentTxHash from vScores s where s.Hash=?) limit 1
+                        ) as contentId,
+                        (select a.Id from vAccounts a where a.AddressHash=? limit 1) as contentAddressId;
+                )sql");
+
+                auto scoreTxHashPtr = make_shared<string>(scoreTxHash);
+                auto scoreAddressPtr = make_shared<string>(scoreAddress);
+                auto contentAddressPtr = make_shared<string>(contentAddress);
+
+                auto bindResult = TryBindStatementText(stmt, 1, scoreTxHashPtr);
+                bindResult &= TryBindStatementText(stmt, 2, scoreAddressPtr);
+                bindResult &= TryBindStatementText(stmt, 3, contentAddressPtr);
+                if (!bindResult)
+                {
+                    FinalizeSqlStatement(*stmt);
+                    throw runtime_error(strprintf("%s: can't select GetScoreIds (bind)\n", __func__));
+                }
+
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    result.ScoreAddressId = GetColumnInt(*stmt, 1);
+                    result.ContentId = GetColumnInt(*stmt, 2);
+                    result.ContentAddressId = GetColumnInt(*stmt, 3);
+                }
+
+                FinalizeSqlStatement(*stmt);
                 return true;
             });
 
@@ -201,6 +249,7 @@ namespace PocketDb
 
             LogPrint(BCLog::SYNC, "  - Insert Model body %s : %d\n", *ptx->GetHash(), *ptx->GetType());
         }
+
     };
 
 } // namespace PocketDb

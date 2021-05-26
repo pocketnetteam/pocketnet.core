@@ -18,8 +18,23 @@ namespace PocketHelpers
     using std::tuple;
     using std::string;
     using std::vector;
+    using std::make_tuple;
 
     using namespace PocketTx;
+
+    static tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx)
+    {
+        if (tx->vout.empty())
+            return make_tuple(false, "");
+
+        CTxDestination address;
+        if (ExtractDestination(tx->vout[0].scriptPubKey, address))
+        {
+            return make_tuple(true, EncodeDestination(address));
+        }
+
+        return make_tuple(false, "");
+    }
 
     static PocketTxType ConvertOpReturnToType(const string& op)
     {
@@ -139,17 +154,39 @@ namespace PocketHelpers
         return PocketTxType::NOT_SUPPORTED;
     }
 
-    static tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx)
+    static tuple<bool, shared_ptr<ScoreData>> ParseScore(const CTransactionRef& tx)
     {
-        if (tx->vout.empty())
-            return make_tuple(false, "");
+        shared_ptr<ScoreData> scoreData;
 
-        CTxDestination address;
-        if (ExtractDestination(tx->vout[0].scriptPubKey, address)) {
-            return make_tuple(true, EncodeDestination(address));
+        vector<string> vasm;
+        scoreData->Type = PocketHelpers::ParseType(tx, vasm);
+
+        if (scoreData->Type != PocketTxType::ACTION_SCORE_POST &&
+            scoreData->Type != PocketTxType::ACTION_SCORE_COMMENT)
+            return make_tuple(false, scoreData);
+
+        if (vasm.size() == 4)
+        {
+            vector<unsigned char> _data_hex = ParseHex(vasm[3]);
+            string _data_str(_data_hex.begin(), _data_hex.end());
+            vector<string> _data;
+            boost::split(_data, _data_str, boost::is_any_of("\t "));
+
+            if (_data.size() >= 2)
+            {
+                if (auto[ok, addr] = PocketHelpers::GetPocketAuthorAddress(tx); ok)
+                    scoreData->From = addr;
+
+                scoreData->To = _data[0];
+                scoreData->Value = std::stoi(_data[1]);
+            }
         }
 
-        return make_tuple(false, "");
+        bool finalCheck = !scoreData->From.empty() &&
+                          !scoreData->To.empty();
+
+        scoreData->Hash = tx->GetHash().GetHex();
+        return make_tuple(finalCheck, scoreData);
     }
 }
 

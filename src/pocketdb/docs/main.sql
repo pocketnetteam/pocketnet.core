@@ -1,16 +1,16 @@
 create table if not exists Transactions
 (
-    Type    int    not null,
-    Hash    string not null primary key,
-    Time    int    not null,
+    Type      int    not null,
+    Hash      string not null primary key,
+    Time      int    not null,
 
     BlockHash string null,
-    Height int null,
+    Height    int    null,
 
     -- User.Id
     -- Post.Id
     -- Comment.Id
-    Id int null,
+    Id        int    null,
 
     -- User.AddressHash
     -- Post.AddressHash
@@ -20,7 +20,7 @@ create table if not exists Transactions
     -- Subscribe.AddressHash
     -- Blocking.AddressHash
     -- Complain.AddressHash
-    String1 string null,
+    String1   string null,
 
     -- User.ReferrerAddressHash
     -- Post.RootTxHash
@@ -30,22 +30,22 @@ create table if not exists Transactions
     -- Subscribe.AddressToHash
     -- Blocking.AddressToHash
     -- Complain.PostTxHash
-    String2 string null,
+    String2   string null,
 
-    -- Post.RelayTxId
-    -- Comment.PostTxId
-    String3 string null,
+    -- Post.RelayTxHash
+    -- Comment.PostTxHash
+    String3   string null,
 
     -- Comment.ParentTxHash
-    String4 string null,
+    String4   string null,
 
     -- Comment.AnswerTxHash
-    String5 string null,
+    String5   string null,
 
     -- ScorePost.Value
     -- ScoreComment.Value
     -- Complain.Reason
-    Int1    int    null
+    Int1      int    null
 );
 
 create index if not exists Transactions_Type on Transactions (Type);
@@ -105,12 +105,12 @@ create table if not exists Payload
 --------------------------------------------
 create table if not exists TxOutputs
 (
-    TxHash string not null, -- Transactions.Hash
-    Number int    not null, -- Number in tx.vout
+    TxHash      string not null, -- Transactions.Hash
+    Number      int    not null, -- Number in tx.vout
     AddressHash string not null, -- Address
-    Value  int    not null, -- Amount
-    SpentHeight int null, -- Where spent
-    SpentTxHash string null, -- Who spent
+    Value       int    not null, -- Amount
+    SpentHeight int    null,     -- Where spent
+    SpentTxHash string null,     -- Who spent
     primary key (TxHash, Number, AddressHash)
 );
 
@@ -119,41 +119,132 @@ create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs 
 --------------------------------------------
 create table if not exists Ratings
 (
-    Type   int    not null,
-    Height int    not null,
-    Id     int    not null,
-    Value  int    not null,
+    Type   int not null,
+    Height int not null,
+    Id     int not null,
+    Value  int not null,
     primary key (Type, Height, Id, Value)
 );
 
 --------------------------------------------
 --                 VIEWS                  --
 --------------------------------------------
-
-drop view if exists vUsers;
-create view vUsers as
-select Type,
-       Hash,
+drop view if exists vAccounts;
+create view vAccounts as
+select Hash,
        Time,
        BlockHash,
        Height,
+       Id,
+       String1 as AddressHash
+from Transactions t
+where t.Type in (100,101,102);
+
+drop view if exists vUsers;
+create view vUsers as
+select Hash,
+       Time,
+       BlockHash,
+       Height,
+       Id,
        String1 as AddressHash,
        String2 as ReferrerAddressHash,
-       Int1 as Registration
+       Int1    as Registration
 from Transactions t
 where t.Type = 100;
 
+--------------------------------------------
+drop view if exists vContents;
+create view vContents as
+select Hash,
+       Time,
+       BlockHash,
+       Height,
+       Id,
+       String1 as AddressHash
+from Transactions t
+where t.Type in (200,201,202,203,204,205);
+
+drop view if exists vPosts;
+create view vUsers as
+select Hash,
+       Time,
+       BlockHash,
+       Height,
+       Id,
+       String1 as AddressHash,
+       String2 as RootTxHash,
+       String3 as RelayTxHash
+from Transactions t
+where t.Type = 200;
+
+
+drop view if exists vComments;
+create view vUsers as
+select Hash,
+       Time,
+       BlockHash,
+       Height,
+       Id,
+       String1 as AddressHash,
+       String2 as RootTxHash,
+       String3 as PostTxHash,
+       String4 as ParentTxHash,
+       String5 as AnswerTxHash
+from Transactions t
+where t.Type = 204;
+
+--------------------------------------------
+drop view if exists vScores;
+create view vScores as
+select t.Hash,
+       t.Time,
+       t.BlockHash,
+       t.Height,
+       t.String1 as AddressHash,
+       t.String2 as ContentTxHash,
+       t.Int1    as Value
+from Transactions t
+where Type in (300, 301);
+
+drop view if exists vScorePosts;
+create view vScorePosts as
+select t.Hash,
+       t.Time,
+       t.BlockHash,
+       t.Height,
+       t.String1 as AddressHash,
+       t.String2 as PostTxHash,
+       t.Int1    as Value
+from Transactions t
+where Type in (300);
+
+drop view if exists vScoreComments;
+create view vScorePosts as
+select t.Hash,
+       t.Time,
+       t.BlockHash,
+       t.Height,
+       t.String1 as AddressHash,
+       t.String2 as CommentTxHash,
+       t.Int1    as Value
+from Transactions t
+where Type in (301);
+
+
+--------------------------------------------
+--               WEB VIEWS                --
+--------------------------------------------
 
 drop view if exists vWebUsers;
 create view vWebUsers as
-select
-       t.Hash,
+select t.Hash,
        t.Time,
        t.BlockHash,
        t.Height,
        t.String1 as AddressHash,
        t.String2 as ReferrerAddressHash,
-       t.Int1 as Registration,
+       t.Int1    as Registration,
        p.String1 as Lang,
        p.String2 as Name,
        p.String3 as Avatar,
@@ -162,22 +253,13 @@ select
        p.String6 as Pubkey,
        p.String7 as Donations
 from Transactions t
-join Payload p on t.Hash = p.TxHash
+         join Payload p on t.Hash = p.TxHash
 where t.Height = (
-     select max(t_.Height)
-     from Transactions t_
-     where t_.String1 = t.String1 and t_.Type = t.Type)
-and t.Type = 100;
-
-drop view if exists vScorePosts;
-create view vScorePosts as
-select String1 as AddressHash,
-       String2 as PostTxHash,
-       Int1 as Value,
-       Time as Time,
-       Height as Height
-from Transactions
-where Type in (300);
+    select max(t_.Height)
+    from Transactions t_
+    where t_.String1 = t.String1
+      and t_.Type = t.Type)
+  and t.Type = 100;
 
 -- drop view if exists vTransactions;
 -- create view vTransactions as
@@ -307,8 +389,7 @@ where Type in (300);
 -- --------------------------------------------
 drop view if exists vWebPosts;
 create view vWebPosts as
-select
-       t.Hash,
+select t.Hash,
        t.Time,
        t.BlockHash,
        t.Height,
@@ -322,12 +403,13 @@ select
        p.String6 as Settings,
        p.String7 as Url
 from Transactions t
-join Payload p on t.Hash = p.TxHash
+         join Payload p on t.Hash = p.TxHash
 where t.Height = (
-     select max(t_.Height)
-     from Transactions t_
-     where t_.String2 = t.String2 and t_.Type =t.Type)
-and t.Type = 200;
+    select max(t_.Height)
+    from Transactions t_
+    where t_.String2 = t.String2
+      and t_.Type = t.Type)
+  and t.Type = 200;
 
 -- drop view if exists vWebPosts;
 -- create view vWebPosts as
@@ -407,8 +489,7 @@ and t.Type = 200;
 --
 drop view if exists vWebComments;
 create view vWebComments as
-select
-       t.Hash,
+select t.Hash,
        t.Time,
        t.BlockHash,
        t.Height,
@@ -420,12 +501,13 @@ select
        p.String1 as Lang,
        p.String2 as Message
 from Transactions t
-join Payload p on t.Hash = p.TxHash
+         join Payload p on t.Hash = p.TxHash
 where t.Height = (
-     select max(t_.Height)
-     from Transactions t_
-     where t_.String2 = t.String2 and t_.Type =t.Type)
-and t.Type =204;
+    select max(t_.Height)
+    from Transactions t_
+    where t_.String2 = t.String2
+      and t_.Type = t.Type)
+  and t.Type = 204;
 --
 -- drop view if exists vWebComments;
 -- create view vWebComments as
@@ -450,7 +532,7 @@ drop view if exists vWebScorePosts;
 create view vWebScorePosts as
 select String1 as AddressHash,
        String2 as PostTxHash,
-       Int1 as Value
+       Int1    as Value
 from Transactions
 where Type in (300);
 
@@ -459,17 +541,23 @@ drop view if exists vWebScoreComments;
 create view vWebScoreComments as
 select String1 as AddressHash,
        String2 as CommentTxHash,
-       Int1 as Value
+       Int1    as Value
 from Transactions
 where Type in (301);
 
 drop view if exists vWebScoresPosts;
 create view vWebScoresPosts as
-    select count(*) as cnt, avg(Int1) as average,String2 as PostTxHash from Transactions  where Type=300 group by String2;
+select count(*) as cnt, avg(Int1) as average, String2 as PostTxHash
+from Transactions
+where Type = 300
+group by String2;
 
 drop view if exists vWebScoresComments;
 create view vWebScoresComments as
-    select count(*) as cnt, avg(Int1) as average,String2 as CommentTxHash from Transactions  where Type=301 group by String2;
+select count(*) as cnt, avg(Int1) as average, String2 as CommentTxHash
+from Transactions
+where Type = 301
+group by String2;
 
 
 -- drop view if exists vWebScorePosts;
@@ -518,7 +606,7 @@ drop view if exists Complains;
 create view Complains as
 select String1 as AddressHash,
        String2 as PostTxHash,
-       Int1   as Reason
+       Int1    as Reason
 from Transactions
 where Type in (307);
 

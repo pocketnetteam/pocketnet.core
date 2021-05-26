@@ -10,7 +10,7 @@
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Rating.hpp"
-#include "pocketdb/models/base/SelectModels.hpp"
+#include "pocketdb/models/dto/ReturnDtoModels.hpp"
 
 namespace PocketDb {
     using std::runtime_error;
@@ -25,7 +25,7 @@ namespace PocketDb {
         void Init() override {}
         void Destroy() override {}
 
-        int GetUserReputation(string address, int height)
+        tuple<bool, int> GetUserReputation(string address, int height)
         {
             int result = 0;
             auto func = __func__;
@@ -48,7 +48,8 @@ namespace PocketDb {
                 bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
                 bindResult &= TryBindStatementText(stmt, 3, idPtr);
 
-                if (!bindResult) {
+                if (!bindResult)
+                {
                     FinalizeSqlStatement(*stmt);
                     throw runtime_error(strprintf("%s: can't get user reputation (bind)\n", func));
                 }
@@ -58,14 +59,13 @@ namespace PocketDb {
                 }
 
                 FinalizeSqlStatement(*stmt);
-
                 return true;
             });
 
-            return result;
+            return make_tuple(true, result);
         }
 
-        int GetUserLikersCount(string address, int height)
+        tuple<bool, int> GetUserLikersCount(string address, int height)
         {
             int result = 0;
             auto func = __func__;
@@ -95,11 +95,10 @@ namespace PocketDb {
                 }
 
                 FinalizeSqlStatement(*stmt);
-
                 return true;
             });
 
-            return result;
+            return make_tuple(true, result);
         }
 
         int GetScorePostCount(string addressHash, string postHash, int height, std::vector<int> values, int64_t txTime, int64_t ScoresOneToOneDepth, string txHash)
@@ -149,7 +148,6 @@ namespace PocketDb {
                 }
 
                 FinalizeSqlStatement(*stmt);
-
                 return true;
             });
 

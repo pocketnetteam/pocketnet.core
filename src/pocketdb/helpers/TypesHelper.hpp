@@ -39,6 +39,16 @@ namespace PocketHelpers
         PocketTxType Type;
         map<string, int> Inputs;
     };
+
+    // Scores data: address from, address to, type and value
+    struct ScoreData
+    {
+        PocketTxType Type;
+        string Hash;
+        string From;
+        string To;
+        int Value;
+    };
 }
 
 #endif // POCKETHELPERS_TYPESHELPER_HPP

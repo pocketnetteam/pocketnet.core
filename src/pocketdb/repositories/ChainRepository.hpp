@@ -10,7 +10,7 @@
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Rating.hpp"
-#include "pocketdb/models/base/SelectModels.hpp"
+#include "pocketdb/models/dto/ReturnDtoModels.hpp"
 
 namespace PocketDb
 {

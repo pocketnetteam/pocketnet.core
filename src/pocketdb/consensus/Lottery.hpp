@@ -41,7 +41,7 @@ namespace PocketConsensus
         virtual void ExtendReferrers() {}
     public:
         LotteryConsensus() = default;
-        virtual LotteryWinners &Winners(const CBlock &block, CDataStream &hashProofOfStakeSource) { return _winners; }
+        virtual LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource) { return _winners; }
         virtual CAmount RatingReward(CAmount nCredit, opcodetype code) {}
         virtual void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) {}
     };
@@ -58,41 +58,12 @@ namespace PocketConsensus
         // in vasm placed score destination address and score value
         // We need parse and check this data for general lottery rules
         // Also wee allowed scores to comments and posts only 
-        virtual tuple<bool, string, int> ParseScoreAsm(PocketTxType txType, vector<string> vasm)
-        {
-            if (txType != PocketTx::PocketTxType::ACTION_SCORE_COMMENT && txType != PocketTx::PocketTxType::ACTION_SCORE_POST)
-                return make_tuple(false, "", 0);
 
-            if (vasm.size() < 4)
-                return make_tuple(false, "", 0);
 
-            vector<unsigned char> _data_hex = ParseHex(vasm[3]);
-            string _data_str(_data_hex.begin(), _data_hex.end());
-            vector<string> _data;
-            boost::split(_data, _data_str, boost::is_any_of("\t "));
-
-            if (_data.size() >= 2)
-            {
-                string addr = _data[0];
-                int val = std::stoi(_data[1]);
-
-                if (txType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT && val != 1)
-                    return make_tuple(false, "", 0);
-                
-                if (txType == PocketTx::PocketTxType::ACTION_SCORE_POST && val != 4 && val != 5)
-                    return make_tuple(false, "", 0);
-                
-                // All good
-                return make_tuple(true, addr, val);
-            }
-
-            return make_tuple(false, "", 0);
-        }
-
-        void SortWinners(map<string, int>& candidates, CDataStream &hashProofOfStakeSource, vector<string>& winners)
+        void SortWinners(map<string, int>& candidates, CDataStream& hashProofOfStakeSource, vector<string>& winners)
         {
             vector<pair<string, pair<int, arith_uint256>>> candidatesSorted;
-            for (auto &it: candidates)
+            for (auto& it: candidates)
             {
                 CDataStream ss(hashProofOfStakeSource);
                 ss << it.first;
@@ -102,15 +73,15 @@ namespace PocketConsensus
 
             if (!candidatesSorted.empty())
             {
-                std::sort(candidatesSorted.begin(), candidatesSorted.end(), [](auto &a, auto &b)
+                std::sort(candidatesSorted.begin(), candidatesSorted.end(), [](auto& a, auto& b)
                 {
                     return a.second.second < b.second.second;
                 });
 
-                if ((int)candidatesSorted.size() > MaxWinnersCount())
+                if ((int) candidatesSorted.size() > MaxWinnersCount())
                     candidatesSorted.resize(MaxWinnersCount());
 
-                for (auto &it : candidatesSorted)
+                for (auto& it : candidatesSorted)
                     winners.push_back(it.first);
             }
         }
@@ -132,35 +103,35 @@ namespace PocketConsensus
         LotteryConsensus_checkpoint_0() = default;
 
         // Get all lottery winner
-        LotteryWinners &Winners(const CBlock &block, CDataStream &hashProofOfStakeSource) override
+        LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource) override
         {
             map<string, int> postCandidates;
             map<string, int> commentCandidates;
 
-            for (const auto &tx : block.vtx)
+            for (const auto& tx : block.vtx)
             {
-                vector<string> vasm;
-                auto txType = PocketHelpers::ParseType(tx, vasm);
-
                 // Parse asm and get destination address and score value
                 // In lottery allowed only likes to posts and comments
                 // Also in lottery allowed only positive scores
-                auto[ok1, destAddress, scoreValue] = ParseScoreAsm(txType, vasm);
-                if (!ok1) continue;
-                
-                // 1st output in transaction always send money to self
-                auto[ok2, scoreAddress] = PocketHelpers::GetPocketAuthorAddress(tx);
-                if (!ok2) continue;
+                auto[ok, scoreData] = PocketHelpers::ParseScore(tx);
+                if (!ok) continue;
+
+                if (scoreData->Type == PocketTx::PocketTxType::ACTION_SCORE_COMMENT && scoreData->Value != 1)
+                    continue;
+
+                if (scoreData->Type == PocketTx::PocketTxType::ACTION_SCORE_POST &&
+                    scoreData->Value != 4 && scoreData->Value != 5)
+                    continue;
 
                 // TODO (brangr): implement reputation check
                 //g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, height, tx, true)
                 //g_antibot->AllowModifyReputationOverComment(_score_address, _comment_address, height, tx, true))
 
-                if (txType != PocketTx::PocketTxType::ACTION_SCORE_POST)
-                    postCandidates[destAddress] += (scoreValue - 3);;
+                if (scoreData->Type != PocketTx::PocketTxType::ACTION_SCORE_POST)
+                    postCandidates[scoreData->To] += (scoreData->Value - 3);;
 
-                if (txType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT)
-                    commentCandidates[destAddress] += scoreValue;
+                if (scoreData->Type == PocketTx::PocketTxType::ACTION_SCORE_COMMENT)
+                    commentCandidates[scoreData->To] += scoreData->Value;
             }
 
             // Sort founded users
@@ -266,41 +237,17 @@ namespace PocketConsensus
 
 
     /*******************************************************************************************************************
-    *
-    *  Lottery checkpoint at 1124000 block
-    *
-    *******************************************************************************************************************/
-    class LotteryConsensus_checkpoint_1124000 : public LotteryConsensus_checkpoint_514185
-    {
-    protected:
-        int CheckpointHeight() override { return 1124000; }
-    public:
-        CAmount RatingReward(CAmount nCredit, opcodetype code) override
-        {
-            // TODO (brangr): implement
-            // Referrer program 5 - 100%; 4.75 - nodes; 0.25 - all for lottery;
-            // .1 - posts (2%); .1 - referrer over posts (2%); 0.025 - comment (.5%); 0.025 - referrer over comment (.5%);
-            // if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.02;
-            // if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.02;
-            // if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.005;
-            // if (op_code_type == OP_WINNER_COMMENT_REFERRAL) ratingReward = nCredit * 0.005;
-            // totalAmount += ratingReward;
-        }
-    };
-
-
-    /*******************************************************************************************************************
-    *
-    *  Lottery checkpoint at 1035000 block
-    *
-    *******************************************************************************************************************/
-    class LotteryConsensus_checkpoint_1035000 : public LotteryConsensus_checkpoint_1124000
+*
+*  Lottery checkpoint at 1035000 block
+*
+*******************************************************************************************************************/
+    class LotteryConsensus_checkpoint_1035000 : public LotteryConsensus_checkpoint_514185
     {
     protected:
         int CheckpointHeight() override { return 1035000; }
         void ExtendReferrers() override
         {
-            // TODO (brangr): implement
+            // TODO (brangr): implement referrers with registration limit
 //        // Find winners with referral program
 //        if (height >= Params().GetConsensus().lottery_referral_beg)
 //        {
@@ -356,10 +303,34 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Lottery checkpoint at 1124000 block
+    *
+    *******************************************************************************************************************/
+    class LotteryConsensus_checkpoint_1124000 : public LotteryConsensus_checkpoint_1035000
+    {
+    protected:
+        int CheckpointHeight() override { return 1124000; }
+    public:
+        CAmount RatingReward(CAmount nCredit, opcodetype code) override
+        {
+            // TODO (brangr): implement
+            // Referrer program 5 - 100%; 4.75 - nodes; 0.25 - all for lottery;
+            // .1 - posts (2%); .1 - referrer over posts (2%); 0.025 - comment (.5%); 0.025 - referrer over comment (.5%);
+            // if (op_code_type == OP_WINNER_POST) ratingReward = nCredit * 0.02;
+            // if (op_code_type == OP_WINNER_POST_REFERRAL) ratingReward = nCredit * 0.02;
+            // if (op_code_type == OP_WINNER_COMMENT) ratingReward = nCredit * 0.005;
+            // if (op_code_type == OP_WINNER_COMMENT_REFERRAL) ratingReward = nCredit * 0.005;
+            // totalAmount += ratingReward;
+        }
+    };
+
+
+    /*******************************************************************************************************************
+    *
     *  Lottery checkpoint at 1180000 block
     *
     *******************************************************************************************************************/
-    class LotteryConsensus_checkpoint_1180000 : public LotteryConsensus_checkpoint_1035000
+    class LotteryConsensus_checkpoint_1180000 : public LotteryConsensus_checkpoint_1124000
     {
     protected:
         int CheckpointHeight() override { return 1180000; }
@@ -387,19 +358,21 @@ namespace PocketConsensus
     class LotteryConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<LotteryConsensus *()>>> m_rules {
+        inline static std::vector<std::pair<int, std::function<LotteryConsensus*()>>> m_rules{
             {1180000, []() { return new LotteryConsensus_checkpoint_1180000(); }},
+            {1124000, []() { return new LotteryConsensus_checkpoint_1124000(); }},
             {1035000, []() { return new LotteryConsensus_checkpoint_1035000(); }},
-            {1124000, []() { return new LotteryConsensus_checkpoint_1124000(); }}, //TODO (brangr): check pls, 1035000 Inherits 1124000
-            {514185, []() { return new LotteryConsensus_checkpoint_514185(); }},
-            {0, []() { return new LotteryConsensus_checkpoint_0(); }},
+            {514185,  []() { return new LotteryConsensus_checkpoint_514185(); }},
+            {0,       []() { return new LotteryConsensus_checkpoint_0(); }},
         };
     public:
         LotteryConsensusFactory() = default;
         static shared_ptr<LotteryConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules) {
-                if (height >= rule.first) {
+            for (const auto& rule : m_rules)
+            {
+                if (height >= rule.first)
+                {
                     return shared_ptr<LotteryConsensus>(rule.second());
                 }
             }

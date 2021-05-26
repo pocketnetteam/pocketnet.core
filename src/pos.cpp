@@ -15,7 +15,7 @@
 #include <validation.h>
 #include <wallet/wallet.h>
 
-#include "pocketdb/pocketnet.h"
+#include "pocketdb/consensus.h"
 #include "pocketdb/helpers/TypesHelper.hpp"
 
 double GetPosDifficulty(const CBlockIndex *blockindex)

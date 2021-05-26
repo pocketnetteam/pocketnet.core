@@ -71,9 +71,7 @@ namespace PocketDb
 
             int res = sqlite3_bind_text(*stmt, index, value->c_str(), (int) value->size(), SQLITE_STATIC);
             if (!CheckValidResult(stmt, res))
-            {
                 return false;
-            }
 
             return true;
         }
@@ -84,9 +82,7 @@ namespace PocketDb
 
             int res = sqlite3_bind_int(*stmt, index, *value);
             if (!CheckValidResult(stmt, res))
-            {
                 return false;
-            }
 
             return true;
         }
@@ -97,9 +93,7 @@ namespace PocketDb
 
             int res = sqlite3_bind_int64(*stmt, index, *value);
             if (!CheckValidResult(stmt, res))
-            {
                 return false;
-            }
 
             return true;
         }
