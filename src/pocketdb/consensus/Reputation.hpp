@@ -75,7 +75,7 @@ namespace PocketConsensus
             // For check lottery not include current block (for reindex)
             int blockHeight = height + (lottery ? 0 : 1);
 
-            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScorePostCount(scoreAddress, postAddress,
+            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(PocketTx::ACTION_SCORE_POST, scoreAddress, postAddress,
                 height, tx, values, _scores_one_to_one_depth);
 
             if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
@@ -109,7 +109,7 @@ namespace PocketConsensus
             // For check lottery not include current block (for reindex)
             int blockHeight = height + (lottery ? 0 : 1);
 
-            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreCommentCount(scoreAddress, commentAddress,
+            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(PocketTx::ACTION_SCORE_COMMENT, scoreAddress, commentAddress,
                 height, tx, values, _scores_one_to_one_depth);
 
             if (!ok || scores_one_to_one_count >= _max_scores_one_to_one) return false;

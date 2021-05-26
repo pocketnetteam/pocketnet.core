@@ -166,7 +166,7 @@ from Transactions t
 where t.Type in (200,201,202,203,204,205);
 
 drop view if exists vPosts;
-create view vUsers as
+create view vPosts as
 select Hash,
        Time,
        BlockHash,
@@ -180,7 +180,7 @@ where t.Type = 200;
 
 
 drop view if exists vComments;
-create view vUsers as
+create view vComments as
 select Hash,
        Time,
        BlockHash,
@@ -220,7 +220,7 @@ from Transactions t
 where Type in (300);
 
 drop view if exists vScoreComments;
-create view vScorePosts as
+create view vScoreComments as
 select t.Hash,
        t.Time,
        t.BlockHash,
@@ -230,6 +230,18 @@ select t.Hash,
        t.Int1    as Value
 from Transactions t
 where Type in (301);
+
+drop view if exists vScores;
+create view vScores as
+select t.Hash,
+       t.Time,
+       t.BlockHash,
+       t.Height,
+       t.String1 as AddressHash,
+       t.String2 as TargetTxHash,
+       t.Int1    as Value
+from Transactions t
+where Type in (300, 301);
 
 
 --------------------------------------------
