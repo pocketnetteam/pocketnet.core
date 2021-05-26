@@ -97,14 +97,6 @@ namespace PocketServices
                 if (scoreData->Type != PocketTxType::ACTION_SCORE_COMMENT)
                     continue;
 
-                // Need select content id for saving rating
-                auto[scoreIdsResult, scoreIds] = PocketDb::TransRepoInst.GetScoreIds(
-                    scoreData->Hash,
-                    scoreData->From,
-                    scoreData->To
-                );
-                if (!scoreIdsResult) continue;
-
                 // Check whether the current rating has the right to change the recipient's reputation
                 auto allowModifyReputation = reputationConsensus->AllowModifyReputation(
                     scoreData->Type,
@@ -117,9 +109,18 @@ namespace PocketServices
 
                 if (allowModifyReputation)
                 {
-                    // TODO (brangr): implement
+                    // Need select content id for saving rating
+                    auto[scoreDtoDataResult, scoreDtoData] = PocketDb::TransRepoInst.GetScoreData(
+                        scoreData->Hash,
+                        scoreData->From,
+                        scoreData->To
+                    );
+                    if (!scoreDtoDataResult) continue;
 
                     // posts
+
+                    if (!reputationConsensus.AllowModifyOldPosts(scoreDtoData.ScoreTime, scoreDtoData.ContentTime))
+                        continue;
 
                     // Scores to old posts not modify reputation
                     bool modify_block_old_post = (tx->nTime - postItm["time"].As<int64_t>()) <

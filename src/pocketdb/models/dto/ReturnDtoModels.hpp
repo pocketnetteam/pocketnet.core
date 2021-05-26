@@ -69,12 +69,18 @@ namespace PocketTx
     };
 
     // Score data info for indexing
-    class ScoreIdsDto : BaseReturnDto
+    class ScoreDataDto : BaseReturnDto
     {
     public:
+        PocketTxType ScoreType;
         int ScoreAddressId;
+        int64_t ScoreTime;
+
+        PocketTxType ContentType;
         int ContentId;
         int ContentAddressId;
+        int64_t ContentTime;
+
     };
 
 } // namespace PocketTx

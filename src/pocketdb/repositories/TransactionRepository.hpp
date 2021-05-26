@@ -95,19 +95,24 @@ namespace PocketDb
         }
 
         // Selects for get models data
-        tuple<bool, ScoreIdsDto> GetScoreIds(string scoreTxHash, string scoreAddress, string contentAddress)
+        tuple<bool, ScoreDataDto> GetScoreData(string scoreTxHash, string scoreAddress, string contentAddress)
         {
-            ScoreIdsDto result;
+            ScoreDataDto result;
 
             bool tryResult = TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(R"sql(
                     select
                         (select a.Id from vAccounts a where a.AddressHash=? limit 1) as scoreAddressId,
+                        (select c.Time from vContents c where c.Hash=?) as scoreTime,
+
                         (select c.Id from vContents c where c.Hash=(
-                            select s.ContentTxHash from vScores s where s.Hash=?) limit 1
-                        ) as contentId,
-                        (select a.Id from vAccounts a where a.AddressHash=? limit 1) as contentAddressId;
+                            select s.ContentTxHash from vScores s where s.Hash=?)) as contentId,
+
+                        (select a.Id from vAccounts a where a.AddressHash=? limit 1) as contentAddressId,
+
+                        (select c.Time from vContents c where c.Hash=(
+                            select s.ContentTxHash from vScores s where s.Hash=?)) as contentTime;
                 )sql");
 
                 auto scoreTxHashPtr = make_shared<string>(scoreTxHash);
@@ -115,8 +120,9 @@ namespace PocketDb
                 auto contentAddressPtr = make_shared<string>(contentAddress);
 
                 auto bindResult = TryBindStatementText(stmt, 1, scoreTxHashPtr);
-                bindResult &= TryBindStatementText(stmt, 2, scoreAddressPtr);
-                bindResult &= TryBindStatementText(stmt, 3, contentAddressPtr);
+                bindResult &= TryBindStatementText(stmt, 2, scoreTxHashPtr);
+                bindResult &= TryBindStatementText(stmt, 3, scoreAddressPtr);
+                bindResult &= TryBindStatementText(stmt, 4, contentAddressPtr);
                 if (!bindResult)
                 {
                     FinalizeSqlStatement(*stmt);
@@ -126,8 +132,10 @@ namespace PocketDb
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
                     result.ScoreAddressId = GetColumnInt(*stmt, 1);
-                    result.ContentId = GetColumnInt(*stmt, 2);
-                    result.ContentAddressId = GetColumnInt(*stmt, 3);
+                    result.ScoreTime = GetColumnInt64(*stmt, 2);
+                    result.ContentId = GetColumnInt(*stmt, 3);
+                    result.ContentAddressId = GetColumnInt(*stmt, 4);
+                    result.ContentTime = GetColumnInt64(*stmt, 5);
                 }
 
                 FinalizeSqlStatement(*stmt);

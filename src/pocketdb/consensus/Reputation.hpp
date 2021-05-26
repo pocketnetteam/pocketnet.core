@@ -121,7 +121,7 @@ namespace PocketConsensus
     public:
         ReputationConsensus() = default;
 
-        bool AllowModifyReputation(PocketTxType txType, const CTransactionRef& tx,
+        virtual bool AllowModifyReputation(PocketTxType txType, const CTransactionRef& tx,
             std::string scoreAddress, std::string contentAddress, int height, bool lottery)
         {
             if (txType == PocketTxType::ACTION_SCORE_POST)
@@ -133,6 +133,7 @@ namespace PocketConsensus
             return false;
         }
 
+        virtual bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, PocketTxType contentType) = 0;
 
     };
 
