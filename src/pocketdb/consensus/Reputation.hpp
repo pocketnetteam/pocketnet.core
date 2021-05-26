@@ -75,16 +75,8 @@ namespace PocketConsensus
             // For check lottery not include current block (for reindex)
             int blockHeight = height + (lottery ? 0 : 1);
 
-            size_t scores_one_to_one_count = g_pocketdb->SelectCount(
-                reindexer::Query("Scores")
-                    .Where("address", CondEq, scoreAddress)
-                    .Where("time", CondGe, (int64_t) tx->nTime - _scores_one_to_one_depth)
-                    .Where("time", CondLt, (int64_t) tx->nTime)
-                    .Where("block", CondLe, blockHeight)
-                    .Where("value", CondSet, values)
-                    .Not().Where("txid", CondEq, tx->GetHash().GetHex())
-                    .InnerJoin("posttxid", "txid", CondEq,
-                        reindexer::Query("Posts").Where("address", CondEq, postAddress)));
+            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScorePostCount(scoreAddress, postAddress,
+                height, tx, values, _scores_one_to_one_depth);
 
             if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
 
@@ -117,19 +109,10 @@ namespace PocketConsensus
             // For check lottery not include current block (for reindex)
             int blockHeight = height + (lottery ? 0 : 1);
 
-            size_t scores_one_to_one_count = g_pocketdb->SelectCount(
-                reindexer::Query("CommentScores")
-                    .Where("address", CondEq, scoreAddress)
-                    .Where("time", CondGe, (int64_t) tx->nTime - _scores_one_to_one_depth)
-                    .Where("time", CondLt, (int64_t) tx->nTime)
-                    .Where("block", CondLe, blockHeight)
-                    .Where("value", CondSet, values)
-                    .Not().Where("txid", CondEq, tx->GetHash().GetHex())
-                        // join by original id with txid, not otxid
-                    .InnerJoin("commentid", "txid", CondEq,
-                        reindexer::Query("Comment").Where("address", CondEq, commentAddress)));
+            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreCommentCount(scoreAddress, commentAddress,
+                height, tx, values, _scores_one_to_one_depth);
 
-            if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
+            if (!ok || scores_one_to_one_count >= _max_scores_one_to_one) return false;
 
             // All is OK
             return true;
