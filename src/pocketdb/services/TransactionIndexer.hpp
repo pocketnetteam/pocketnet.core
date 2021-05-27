@@ -12,10 +12,10 @@
 #include "chain.h"
 #include "primitives/block.h"
 
-#include "pocketdb/pocketnet.h"
 #include "pocketdb/consensus.h"
-#include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TypesHelper.hpp"
+#include "pocketdb/pocketnet.h"
 
 namespace PocketServices
 {
@@ -23,9 +23,10 @@ namespace PocketServices
     using namespace PocketDb;
     using namespace PocketHelpers;
 
-    using std::vector;
-    using std::tuple;
     using std::make_tuple;
+    using std::tuple;
+    using std::vector;
+    using std::find;
 
     class TransactionIndexer
     {
@@ -48,7 +49,6 @@ namespace PocketServices
         }
 
     protected:
-
         // Delete all calculated records for this height
         static bool RollbackChain(int height)
         {
@@ -80,115 +80,132 @@ namespace PocketServices
 
         static bool IndexRatings(const CBlock& block, int height)
         {
-            // Type, Unique Id, Value
-            map<RatingType, map<int, int>> values;
+            map<RatingType, map<int, int>> ratingValues;
+            map<int, vector<int>> accountLikers;
 
             // Actual consensus checker instance by current height
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
 
+            // Loop all transactions for find scores and increase ratings for accounts and contents
             for (const auto& tx : block.vtx)
             {
-                auto[parseResult, scoreData] = PocketHelpers::ParseScore(tx);
-                if (!parseResult) continue;
+                auto txType = PocketHelpers::ParseType(tx);
 
                 // Only scores allowed in calculating ratings
-                if (scoreData->Type != PocketTxType::ACTION_SCORE_POST)
+                if (txType != PocketTxType::ACTION_SCORE_POST &&
+                    txType != PocketTxType::ACTION_SCORE_COMMENT)
                     continue;
-                if (scoreData->Type != PocketTxType::ACTION_SCORE_COMMENT)
+
+                // Need select content id for saving rating
+                auto[scoreDataResult, scoreData] = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
+                if (!scoreDataResult) continue;
+
+                // Old posts denied change reputation
+                if (!reputationConsensus->AllowModifyOldPosts(
+                    scoreData.ScoreTime,
+                    scoreData.ContentTime,
+                    scoreData.ContentType))
+                {
                     continue;
+                }
 
                 // Check whether the current rating has the right to change the recipient's reputation
-                auto allowModifyReputation = reputationConsensus->AllowModifyReputation(
-                    scoreData->Type,
+                if (!reputationConsensus->AllowModifyReputation(
+                    scoreData.ContentType,
                     tx,
-                    scoreData->From,
-                    scoreData->To,
+                    scoreData.ScoreAddressHash,
+                    scoreData.ContentAddressHash,
                     height,
-                    false
-                );
-
-                if (allowModifyReputation)
+                    false))
                 {
-                    // Need select content id for saving rating
-                    auto[scoreDtoDataResult, scoreDtoData] = PocketDb::TransRepoInst.GetScoreData(
-                        scoreData->Hash,
-                        scoreData->From,
-                        scoreData->To
-                    );
-                    if (!scoreDtoDataResult) continue;
+                    continue;
+                }
 
-                    // posts
+                // Calculate ratings values
+                // Rating for users over posts = equals -20 and 20 - saved in int 21 = 2.1
+                // Rating for users over comments = equals -0.1 or 0.1
+                // Rating for posts equals between -2 and 2
+                // Rating for comments equals between -1 and 2 - as is
+                switch (scoreData.ScoreType)
+                {
+                    case PocketTx::ACTION_SCORE_POST:
+                        ratingValues[RatingType::RATING_ACCOUNT][scoreData.ContentAddressId] +=
+                            (scoreData.ScoreValue - 3) * 10;
 
-                    if (!reputationConsensus.AllowModifyOldPosts(scoreDtoData.ScoreTime, scoreDtoData.ContentTime))
-                        continue;
+                        ratingValues[RatingType::RATING_POST][scoreData.ContentId] +=
+                            scoreData.ScoreValue - 3;
 
-                    // Scores to old posts not modify reputation
-                    bool modify_block_old_post = (tx->nTime - postItm["time"].As<int64_t>()) <
-                                                 GetActualLimit(Limit::scores_depth_modify_reputation,
-                                                     pindex->nHeight - 1);
+                        if (scoreData.ScoreValue == 4 || scoreData.ScoreValue == 5)
+                            ExtendAccountLikers(scoreData, accountLikers);
 
-                    // USER & POST reputation
-                    if (modify_by_user_reputation && modify_block_old_post)
-                    {
+                        break;
 
-                        // User reputation
-                        if (userReputations.find(post_address) == userReputations.end())
-                            userReputations.insert(std::make_pair(post_address, 0));
-                        userReputations[post_address] += (scoreVal - 3) *
-                                                         10; // Reputation between -20 and 20 - user reputation saved in int 21 = 2.1
+                    case PocketTx::ACTION_SCORE_COMMENT:
+                        ratingValues[RatingType::RATING_ACCOUNT][scoreData.ContentAddressId] +=
+                            scoreData.ScoreValue;
 
-                        // Post reputation
-                        if (postReputations.find(posttxid) == postReputations.end())
-                            postReputations.insert(std::make_pair(posttxid, 0));
-                        postReputations[posttxid] += scoreVal - 3; // Reputation between -2 and 2
+                        ratingValues[RatingType::RATING_COMMENT][scoreData.ContentId] +=
+                            scoreData.ScoreValue;
 
-                        // Save distinct liker for user
-                        if (scoreVal == 4 or scoreVal == 5)
-                        {
-                            if (userLikers.find(post_address) == userLikers.end())
-                            {
-                                std::vector<std::string> likers;
-                                userLikers.insert(std::make_pair(post_address, likers));
-                            }
+                        if (scoreData.ScoreValue == 1)
+                            ExtendAccountLikers(scoreData, accountLikers);
 
-                            if (std::find(userLikers[post_address].begin(), userLikers[post_address].end(),
-                                score_address) == userLikers[post_address].end())
-                                userLikers[post_address].push_back(score_address);
-                        }
-                    }
+                        break;
 
-                    // ---------------------------------------------
-
-                    // comment
-                    // User reputation
-                    if (userReputations.find(comment_address) == userReputations.end())
-                        userReputations.insert(std::make_pair(comment_address, 0));
-                    userReputations[comment_address] += scoreVal; // Reputation equals -0.1 or 0.1
-
-                    // Comment reputation
-                    if (commentReputations.find(commentid) == commentReputations.end())
-                        commentReputations.insert(std::make_pair(commentid, 0));
-                    commentReputations[commentid] += scoreVal;
-
-                    // Save distinct liker for user
-                    if (scoreVal == 1)
-                    {
-                        if (userLikers.find(comment_address) == userLikers.end())
-                        {
-                            std::vector<std::string> likers;
-                            userLikers.insert(std::make_pair(comment_address, likers));
-                        }
-
-                        if (std::find(userLikers[comment_address].begin(), userLikers[comment_address].end(),
-                            score_address) == userLikers[comment_address].end())
-                            userLikers[comment_address].push_back(score_address);
-                    }
+                        // Not supported score type
+                    default:
+                        break;
                 }
             }
+
+            // Prepare all ratings model records from source values
+            vector<Rating> ratings;
+            for (const auto& tp : ratingValues)
+            {
+                for (const auto& itm : tp.second)
+                {
+                    Rating rtg;
+                    rtg.SetType(tp.first);
+                    rtg.SetHeight(height);
+                    rtg.SetId(itm.first);
+                    rtg.SetValue(itm.second);
+
+                    ratings.push_back(rtg);
+                }
+            }
+
+            for (const auto& acc : accountLikers)
+            {
+                for (const auto& lkrId : acc.second)
+                {
+                    Rating rtg;
+                    rtg.SetType(RatingType::RATING_ACCOUNT_LIKERS);
+                    rtg.SetHeight(height);
+                    rtg.SetId(acc.first);
+                    rtg.SetValue(lkrId);
+
+                    ratings.push_back(rtg);
+                }
+            }
+
+            // Save all ratings in one transaction
+            return PocketDb::ChainRepoInst.InsertRatings(ratings);
         }
 
 
     private:
+
+        void static ExtendAccountLikers(ScoreDataDto scoreData, map<int, vector<int>>& accountLikers)
+        {
+            auto found = find(
+                accountLikers[scoreData.ContentAddressId].begin(),
+                accountLikers[scoreData.ContentAddressId].end(),
+                scoreData.ScoreAddressId
+            );
+
+            if (found != accountLikers[scoreData.ContentAddressId].end())
+                accountLikers[scoreData.ContentAddressId].push_back(scoreData.ScoreAddressId);
+        }
 
     };
 

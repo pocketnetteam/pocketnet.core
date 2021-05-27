@@ -65,7 +65,8 @@ namespace PocketDb
                     auto stmt = SetupSqlStatement(R"sql(
                         UPDATE Transactions SET
                             BlockHash = null,
-                            Height = null
+                            Height = null,
+                            Id = null
                         WHERE Height > ?
                     )sql");
 
@@ -118,7 +119,7 @@ namespace PocketDb
         }
 
         // Accumulate new rating records
-        bool InsertRatings(vector<shared_ptr<Rating>>& ratings)
+        bool InsertRatings(vector<Rating>& ratings)
         {
             return TryTransactionStep([&]()
             {
@@ -135,17 +136,17 @@ namespace PocketDb
                     )sql");
 
                     // Bind arguments
-                    auto result = TryBindStatementInt(stmt, 1, rating->GetTypeInt());
-                    result &= TryBindStatementInt(stmt, 2, rating->GetHeight());
-                    result &= TryBindStatementInt64(stmt, 3, rating->GetId());
-                    result &= TryBindStatementInt64(stmt, 4, rating->GetValue());
+                    auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+                    result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
+                    result &= TryBindStatementInt64(stmt, 3, rating.GetId());
+                    result &= TryBindStatementInt64(stmt, 4, rating.GetValue());
                     if (!result)
                         throw runtime_error(strprintf("%s: can't insert in ratings (bind)\n", __func__));
 
                     // Try execute
                     if (!TryStepStatement(stmt))
                         throw runtime_error(strprintf("%s: can't insert in ratings (step) Type:%d Height:%d Hash:%s\n",
-                            __func__, *rating->GetTypeInt(), *rating->GetHeight(), *rating->GetId()));
+                            __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId()));
                 }
             });
         }

@@ -71,7 +71,7 @@ namespace PocketTx
         ACTION_COMPLAIN = 307,
     };
 
-    // For transaction anonymous fields Int1, Int2, ...
+    // Rating types
     enum RatingType
     {
         RATING_ACCOUNT,

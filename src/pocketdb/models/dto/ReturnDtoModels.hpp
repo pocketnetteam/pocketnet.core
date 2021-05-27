@@ -73,14 +73,18 @@ namespace PocketTx
     {
     public:
         PocketTxType ScoreType;
+        string ScoreTxHash;
         int ScoreAddressId;
+        string ScoreAddressHash;
         int64_t ScoreTime;
+        int ScoreValue;
 
         PocketTxType ContentType;
+        string ContentTxHash;
         int ContentId;
         int ContentAddressId;
+        string ContentAddressHash;
         int64_t ContentTime;
-
     };
 
 } // namespace PocketTx

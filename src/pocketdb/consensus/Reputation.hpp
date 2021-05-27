@@ -75,7 +75,8 @@ namespace PocketConsensus
             // For check lottery not include current block (for reindex)
             int blockHeight = height + (lottery ? 0 : 1);
 
-            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(PocketTx::ACTION_SCORE_POST, scoreAddress, postAddress,
+            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(
+                PocketTx::ACTION_SCORE_POST, scoreAddress, postAddress,
                 height, tx, values, _scores_one_to_one_depth);
 
             if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
@@ -109,7 +110,8 @@ namespace PocketConsensus
             // For check lottery not include current block (for reindex)
             int blockHeight = height + (lottery ? 0 : 1);
 
-            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(PocketTx::ACTION_SCORE_COMMENT, scoreAddress, commentAddress,
+            auto[ok, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(
+                PocketTx::ACTION_SCORE_COMMENT, scoreAddress, commentAddress,
                 height, tx, values, _scores_one_to_one_depth);
 
             if (!ok || scores_one_to_one_count >= _max_scores_one_to_one) return false;
@@ -152,6 +154,13 @@ namespace PocketConsensus
         int64_t GetScoresOneToOneDepth() override { return 336 * 24 * 3600; }
     public:
         ReputationConsensus_checkpoint_0() = default;
+
+        bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, PocketTxType contentType) override
+        {
+            bool modify_block_old_post = (tx->nTime - postItm["time"].As<int64_t>()) <
+                                         GetActualLimit(Limit::scores_depth_modify_reputation,
+                                             pindex->nHeight - 1);
+        }
     }; // class ReputationConsensus_checkpoint_0
 
     /*******************************************************************************************************************

@@ -95,7 +95,7 @@ namespace PocketDb
         }
 
         // Selects for get models data
-        tuple<bool, ScoreDataDto> GetScoreData(string scoreTxHash, string scoreAddress, string contentAddress)
+        tuple<bool, ScoreDataDto> GetScoreData(string txHash)
         {
             ScoreDataDto result;
 
@@ -103,39 +103,43 @@ namespace PocketDb
             {
                 auto stmt = SetupSqlStatement(R"sql(
                     select
-                        (select a.Id from vAccounts a where a.AddressHash=? limit 1) as scoreAddressId,
-                        (select c.Time from vContents c where c.Hash=?) as scoreTime,
-
-                        (select c.Id from vContents c where c.Hash=(
-                            select s.ContentTxHash from vScores s where s.Hash=?)) as contentId,
-
-                        (select a.Id from vAccounts a where a.AddressHash=? limit 1) as contentAddressId,
-
-                        (select c.Time from vContents c where c.Hash=(
-                            select s.ContentTxHash from vScores s where s.Hash=?)) as contentTime;
+                        s.Hash sTxHash, s.Type sType, s.Time sTime, s.Value ScoreValue,
+                        sa.Id sAddressId, sa.AddressHash sAddressHash,
+                        c.Hash cTxHash, c.Type cType, c.Time cTime, c.Id ContentId
+                        ca.Id cAddressId, ca.AddressHash cAddressHash
+                    from
+                        vScores s
+                        join vAccounts sa on sa.AddressHash=s.AddressHash
+                        join vContents c on c.Hash=s.ContentTxHash
+                        join vAccounts ca on ca.AddressHash=c.AddressHash
+                    where s.Hash = ?
+                    limit 1
                 )sql");
 
-                auto scoreTxHashPtr = make_shared<string>(scoreTxHash);
-                auto scoreAddressPtr = make_shared<string>(scoreAddress);
-                auto contentAddressPtr = make_shared<string>(contentAddress);
+                auto scoreTxHashPtr = make_shared<string>(txHash);
 
                 auto bindResult = TryBindStatementText(stmt, 1, scoreTxHashPtr);
-                bindResult &= TryBindStatementText(stmt, 2, scoreTxHashPtr);
-                bindResult &= TryBindStatementText(stmt, 3, scoreAddressPtr);
-                bindResult &= TryBindStatementText(stmt, 4, contentAddressPtr);
                 if (!bindResult)
                 {
                     FinalizeSqlStatement(*stmt);
-                    throw runtime_error(strprintf("%s: can't select GetScoreIds (bind)\n", __func__));
+                    throw runtime_error(strprintf("%s: can't select GetScoreData (bind)\n", __func__));
                 }
 
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
-                    result.ScoreAddressId = GetColumnInt(*stmt, 1);
-                    result.ScoreTime = GetColumnInt64(*stmt, 2);
-                    result.ContentId = GetColumnInt(*stmt, 3);
-                    result.ContentAddressId = GetColumnInt(*stmt, 4);
-                    result.ContentTime = GetColumnInt64(*stmt, 5);
+                    result.ScoreTxHash = GetColumnString(*stmt, 1);
+                    result.ScoreType = (PocketTxType) GetColumnInt(*stmt, 2);
+                    result.ScoreTime = GetColumnInt64(*stmt, 3);
+                    result.ScoreValue = GetColumnInt(*stmt, 4);
+                    result.ScoreAddressId = GetColumnInt(*stmt, 4);
+                    result.ScoreAddressHash = GetColumnString(*stmt, 6);
+
+                    result.ContentTxHash = GetColumnString(*stmt, 7);
+                    result.ContentType = (PocketTxType) GetColumnInt(*stmt, 8);
+                    result.ContentTime = GetColumnInt64(*stmt, 9);
+                    result.ContentId = GetColumnInt(*stmt, 10);
+                    result.ContentAddressId = GetColumnInt(*stmt, 11);
+                    result.ContentAddressHash = GetColumnString(*stmt, 12);
                 }
 
                 FinalizeSqlStatement(*stmt);
