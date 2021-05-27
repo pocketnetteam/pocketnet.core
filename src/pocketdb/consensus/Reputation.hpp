@@ -157,9 +157,10 @@ namespace PocketConsensus
 
         bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, PocketTxType contentType) override
         {
-            bool modify_block_old_post = (tx->nTime - postItm["time"].As<int64_t>()) <
-                                         GetActualLimit(Limit::scores_depth_modify_reputation,
-                                             pindex->nHeight - 1);
+            // TODO (brangr): implement
+//            bool modify_block_old_post = (tx->nTime - postItm["time"].As<int64_t>()) <
+//                                         GetActualLimit(Limit::scores_depth_modify_reputation,
+//                                             pindex->nHeight - 1);
         }
     }; // class ReputationConsensus_checkpoint_0
 
