@@ -411,26 +411,6 @@ where t.Height = (
       and t_.Type = t.Type)
   and t.Type = 200;
 
--- drop view if exists vWebPosts;
--- create view vWebPosts as
--- select WI.Id,
---        WI.Hash,
---        WI.Time,
---        WI.Height,
---        WI.AddressId,
---        WI.Int1    as RootTxId,
---        WI.Int2    as RelayTxId,
---        WI.Address,
---        WI.String1 as Lang,
---        WI.String2 as Caption,
---        WI.String3 as Message,
---        WI.String4 as Tags,
---        WI.String5 as Images,
---        WI.String6 as Settings,
---        WI.String7 as Url
--- from vWebItem WI
--- where WI.Type in (200);
---
 --
 -- drop view if exists vWebVideos;
 -- create view vWebVideos as
@@ -508,26 +488,8 @@ where t.Height = (
     where t_.String2 = t.String2
       and t_.Type = t.Type)
   and t.Type = 204;
---
--- drop view if exists vWebComments;
--- create view vWebComments as
--- select WI.Id,
---        WI.Hash,
---        WI.Time,
---        WI.Height,
---        WI.AddressId,
---        WI.Address,
---        WI.String1 as Lang,
---        WI.String2 as Message,
---        WI.Int1    as RootTxId,
---        WI.Int2    as PostTxId,
---        WI.Int3    as ParentTxId,
---        WI.Int4    as AnswerTxId
--- from vWebItem WI
--- where WI.Type in (204);
---
---
--- --------------------------------------------
+
+--------------------------------------------
 drop view if exists vWebScorePosts;
 create view vWebScorePosts as
 select String1 as AddressHash,
@@ -559,47 +521,64 @@ from Transactions
 where Type = 301
 group by String2;
 
+-----------------------------------------------
+--               SUBSCRIPTIONS               --
+-----------------------------------------------
 
--- drop view if exists vWebScorePosts;
--- create view vWebScorePosts as
--- select Int1 as PostTxId,
---        Int2 as Value
--- from vItem I
--- where I.Type in (300);
---
--- drop view if exists vWebScoreComments;
--- create view vWebScoreComments as
--- select Int1 as CommentTxId,
---        Int2 as Value
--- from vItem I
--- where I.Type in (301);
---
---
+/*
+-- My subscriptions
+WITH tmp AS (select t.String1,
+                    t.String2,
+                    t.Type,
+                    ROW_NUMBER() OVER (PARTITION BY t.String1, t.String2
+                        ORDER BY t.Height DESC) AS rank
+             FROM Transactions t
+             where Type in (302, 303, 304)
+               and String1 in ('PDCNrwP1i8BJQWh2bctuJyAaXxozgMcRYT', 'PMaqHigwsZmsMn6mbGX2PrTB83cgnyYkZn')
+)
+ SELECT String1 as AddressHash,
+        String2 as AddressHashTo,
+        Type
+   FROM tmp
+ WHERE rank = 1 and Type in (302, 303);
 
--- drop view if exists vWebSubscribes;
--- create view vWebSubscribes as
--- select WI.Type,
---        WI.AddressId,
---        WI.Address,
---        WI.Int1   as AddressToId,
---        A.Address as AddressTo
--- from vWebItem WI
---          join Addresses A ON A.Id = WI.Int1
--- where WI.Type in (302, 303, 304);
---
---
---
--- drop view if exists vWebBlockings;
--- create view vWebBlockings as
--- select WI.Type,
---        WI.AddressId,
---        WI.Address,
---        WI.Int1   as AddressToId,
---        A.Address as AddressTo
--- from vWebItem WI
---          join Addresses A ON A.Id = WI.Int1
--- where WI.Type in (305, 306);
---
+-- My subscribers
+WITH tmp AS (select t.String1,
+                    t.String2,
+                    t.Type,
+                    ROW_NUMBER() OVER (PARTITION BY t.String2, t.String1
+                        ORDER BY t.Height DESC) AS rank
+             FROM Transactions t
+             where Type in (302, 303, 304)
+               and String2 in ('PDCNrwP1i8BJQWh2bctuJyAaXxozgMcRYT', 'PMaqHigwsZmsMn6mbGX2PrTB83cgnyYkZn')
+)
+ SELECT String1 as AddressHash,
+        String2 as AddressHashTo,
+        Type
+   FROM tmp
+ WHERE rank = 1 and Type in (302, 303);
+*/
+
+
+-----------------------------------------------
+--                BLOCKINGS                  --
+-----------------------------------------------
+/*
+-- My blockings
+WITH tmp AS (select t.String1,
+                    t.String2,
+                    t.Type,
+                    ROW_NUMBER() OVER (PARTITION BY t.String1, t.String2
+                        ORDER BY t.Height DESC) AS rank
+             FROM Transactions t
+             where Type in (305,306)
+               and String1 in ('PDCNrwP1i8BJQWh2bctuJyAaXxozgMcRYT', 'PMaqHigwsZmsMn6mbGX2PrTB83cgnyYkZn')
+)
+ SELECT String1 as AddressHash,
+        String2 as AddressHashTo
+   FROM tmp
+ WHERE rank = 1 and Type=305;
+*/
 --
 --
 drop view if exists Complains;
@@ -610,19 +589,6 @@ select String1 as AddressHash,
 from Transactions
 where Type in (307);
 
--- drop view if exists Complains;
--- create view Complains as
--- select WI.Type,
---        WI.AddressId,
---        WI.Address,
---        WI.Int1   as AddressToId,
---        A.Address as AddressTo,
---        WI.Int2   as Reason
--- from vWebItem WI
---          join Addresses A ON A.Id = WI.Int1
--- where WI.Type in (307);
---
---
 -- vacuum;
 
 
