@@ -125,28 +125,10 @@ namespace PocketDb
             {
                 for (const auto& rating : ratings)
                 {
-                    // Build sql statement with auto select IDs
-                    auto stmt = SetupSqlStatement(R"sql(
-                        INSERT OR FAIL INTO Ratings (
-                            Type,
-                            Height,
-                            Id,
-                            Value
-                        ) SELECT ?,?,?,?
-                    )sql");
-
-                    // Bind arguments
-                    auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
-                    result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
-                    result &= TryBindStatementInt64(stmt, 3, rating.GetId());
-                    result &= TryBindStatementInt64(stmt, 4, rating.GetValue());
-                    if (!result)
-                        throw runtime_error(strprintf("%s: can't insert in ratings (bind)\n", __func__));
-
-                    // Try execute
-                    if (!TryStepStatement(stmt))
-                        throw runtime_error(strprintf("%s: can't insert in ratings (step) Type:%d Height:%d Hash:%s\n",
-                            __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId()));
+                    if (*rating.GetType() != RatingType::RATING_ACCOUNT_LIKERS)
+                        InsertRating(rating);
+                    else
+                        InsertLiker(rating);
                 }
             });
         }
@@ -243,6 +225,62 @@ namespace PocketDb
             if (!TryStepStatement(stmt))
                 throw runtime_error(strprintf("%s: can't update transactions set Id (step) Hash:%s\n",
                     __func__, txHash));
+        }
+
+        void InsertRating(Rating rating)
+        {
+            // Build sql statement with auto select IDs
+            auto stmt = SetupSqlStatement(R"sql(
+                INSERT OR FAIL INTO Ratings (
+                    Type,
+                    Height,
+                    Id,
+                    Value
+                ) SELECT ?,?,?,?
+            )sql");
+
+            // Bind arguments
+            auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+            result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
+            result &= TryBindStatementInt64(stmt, 3, rating.GetId());
+            result &= TryBindStatementInt64(stmt, 4, rating.GetValue());
+            if (!result)
+                throw runtime_error(strprintf("%s: can't insert in ratings (bind)\n", __func__));
+
+            // Try execute
+            if (!TryStepStatement(stmt))
+                throw runtime_error(strprintf("%s: can't insert in ratings (step) Type:%d Height:%d Hash:%s\n",
+                    __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId()));
+        }
+
+        void InsertLiker(Rating rating)
+        {
+            // Build sql statement with auto select IDs
+            auto stmt = SetupSqlStatement(R"sql(
+                INSERT OR FAIL INTO Ratings (
+                    Type,
+                    Height,
+                    Id,
+                    Value
+                ) SELECT ?,?,?,?
+                WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
+            )sql");
+
+            // Bind arguments
+            auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+            result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
+            result &= TryBindStatementInt64(stmt, 3, rating.GetId());
+            result &= TryBindStatementInt64(stmt, 4, rating.GetValue());
+            result &= TryBindStatementInt(stmt, 5, rating.GetTypeInt());
+            result &= TryBindStatementInt64(stmt, 6, rating.GetId());
+            result &= TryBindStatementInt64(stmt, 7, rating.GetValue());
+            if (!result)
+                throw runtime_error(strprintf("%s: can't insert in likers (bind)\n", __func__));
+
+            // Try execute
+            if (!TryStepStatement(stmt))
+                throw runtime_error(strprintf("%s: can't insert in likers (step) Type:%d Height:%d Hash:%s Value:%s\n",
+                    __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId(), *rating.GetValue()));
         }
 
     };

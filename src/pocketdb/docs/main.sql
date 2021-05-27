@@ -123,8 +123,9 @@ create table if not exists Ratings
     Height int not null,
     Id     int not null,
     Value  int not null,
-    primary key (Type, Height, Id, Value)
+    primary key (Type, Height, Id)
 );
+create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
 
 --------------------------------------------
 --                 VIEWS                  --
