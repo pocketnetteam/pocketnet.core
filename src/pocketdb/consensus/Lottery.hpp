@@ -116,22 +116,22 @@ namespace PocketConsensus
                 auto[ok, scoreData] = PocketHelpers::ParseScore(tx);
                 if (!ok) continue;
 
-                if (scoreData->Type == PocketTx::PocketTxType::ACTION_SCORE_COMMENT && scoreData->Value != 1)
+                if (scoreData.ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT && scoreData.ScoreValue != 1)
                     continue;
 
-                if (scoreData->Type == PocketTx::PocketTxType::ACTION_SCORE_POST &&
-                    scoreData->Value != 4 && scoreData->Value != 5)
+                if (scoreData.ScoreType == PocketTx::PocketTxType::ACTION_SCORE_POST &&
+                    scoreData.ScoreValue != 4 && scoreData.ScoreValue != 5)
                     continue;
 
-                // TODO (brangr): implement reputation check
-                //g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, height, tx, true)
-                //g_antibot->AllowModifyReputationOverComment(_score_address, _comment_address, height, tx, true))
+                // TODO (brangr): connect reputation consensus instance
+                // g_antibot->AllowModifyReputationOverPost(_score_address, _post_address, height, tx, true)
+                // g_antibot->AllowModifyReputationOverComment(_score_address, _comment_address, height, tx, true))
 
-                if (scoreData->Type != PocketTx::PocketTxType::ACTION_SCORE_POST)
-                    postCandidates[scoreData->To] += (scoreData->Value - 3);;
+                if (scoreData.ScoreType != PocketTx::PocketTxType::ACTION_SCORE_POST)
+                    postCandidates[scoreData.ContentAddressHash] += (scoreData.ScoreValue - 3);;
 
-                if (scoreData->Type == PocketTx::PocketTxType::ACTION_SCORE_COMMENT)
-                    commentCandidates[scoreData->To] += scoreData->Value;
+                if (scoreData.ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT)
+                    commentCandidates[scoreData.ContentAddressHash] += scoreData.ScoreValue;
             }
 
             // Sort founded users

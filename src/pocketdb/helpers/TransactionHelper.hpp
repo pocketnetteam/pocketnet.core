@@ -154,15 +154,15 @@ namespace PocketHelpers
         return PocketTxType::NOT_SUPPORTED;
     }
 
-    static tuple<bool, shared_ptr<ScoreData>> ParseScore(const CTransactionRef& tx)
+    static tuple<bool, ScoreDataDto> ParseScore(const CTransactionRef& tx)
     {
-        shared_ptr<ScoreData> scoreData;
+        ScoreDataDto scoreData;
 
         vector<string> vasm;
-        scoreData->Type = PocketHelpers::ParseType(tx, vasm);
+        scoreData.ScoreType = PocketHelpers::ParseType(tx, vasm);
 
-        if (scoreData->Type != PocketTxType::ACTION_SCORE_POST &&
-            scoreData->Type != PocketTxType::ACTION_SCORE_COMMENT)
+        if (scoreData.ScoreType != PocketTxType::ACTION_SCORE_POST &&
+            scoreData.ScoreType != PocketTxType::ACTION_SCORE_COMMENT)
             return make_tuple(false, scoreData);
 
         if (vasm.size() == 4)
@@ -175,17 +175,17 @@ namespace PocketHelpers
             if (_data.size() >= 2)
             {
                 if (auto[ok, addr] = PocketHelpers::GetPocketAuthorAddress(tx); ok)
-                    scoreData->From = addr;
+                    scoreData.ScoreAddressHash = addr;
 
-                scoreData->To = _data[0];
-                scoreData->Value = std::stoi(_data[1]);
+                scoreData.ContentAddressHash = _data[0];
+                scoreData.ScoreValue = std::stoi(_data[1]);
             }
         }
 
-        bool finalCheck = !scoreData->From.empty() &&
-                          !scoreData->To.empty();
+        bool finalCheck = !scoreData.ScoreAddressHash.empty() &&
+                          !scoreData.ContentAddressHash.empty();
 
-        scoreData->Hash = tx->GetHash().GetHex();
+        scoreData.ScoreTxHash = tx->GetHash().GetHex();
         return make_tuple(finalCheck, scoreData);
     }
 }
