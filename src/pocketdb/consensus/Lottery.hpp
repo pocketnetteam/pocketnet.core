@@ -40,7 +40,7 @@ namespace PocketConsensus
         virtual int MaxWinnersCount() const { return 25; }
         virtual void ExtendReferrers() {}
     public:
-        LotteryConsensus() = default;
+        LotteryConsensus(int height) : BaseConsensus(height) {}
         virtual LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource) { return _winners; }
         virtual CAmount RatingReward(CAmount nCredit, opcodetype code) {}
         virtual void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) {}
@@ -55,10 +55,6 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_0 : public LotteryConsensus
     {
     protected:
-        // in vasm placed score destination address and score value
-        // We need parse and check this data for general lottery rules
-        // Also wee allowed scores to comments and posts only 
-
 
         void SortWinners(map<string, int>& candidates, CDataStream& hashProofOfStakeSource, vector<string>& winners)
         {
@@ -100,7 +96,7 @@ namespace PocketConsensus
 
     public:
 
-        LotteryConsensus_checkpoint_0() = default;
+        LotteryConsensus_checkpoint_0(int height) : LotteryConsensus(height) {}
 
         // Get all lottery winner
         LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource) override
@@ -218,6 +214,7 @@ namespace PocketConsensus
 //        }
         }
     public:
+        LotteryConsensus_checkpoint_514185(int height) : LotteryConsensus_checkpoint_0(height) {}
         void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) override
         {
             winner_types.push_back(type);
@@ -298,6 +295,8 @@ namespace PocketConsensus
 //            }
 //        }
         }
+    public :
+        LotteryConsensus_checkpoint_1035000(int height) : LotteryConsensus_checkpoint_514185(height) {}
     };
 
 
@@ -311,6 +310,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1124000; }
     public:
+        LotteryConsensus_checkpoint_1124000(int height) : LotteryConsensus_checkpoint_1035000(height) {}
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // TODO (brangr): implement
@@ -335,6 +335,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1180000; }
     public:
+        LotteryConsensus_checkpoint_1180000(int height) : LotteryConsensus_checkpoint_1124000(height) {}
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // TODO (brangr): implement
@@ -358,24 +359,21 @@ namespace PocketConsensus
     class LotteryConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<LotteryConsensus*()>>> m_rules{
-            {1180000, []() { return new LotteryConsensus_checkpoint_1180000(); }},
-            {1124000, []() { return new LotteryConsensus_checkpoint_1124000(); }},
-            {1035000, []() { return new LotteryConsensus_checkpoint_1035000(); }},
-            {514185,  []() { return new LotteryConsensus_checkpoint_514185(); }},
-            {0,       []() { return new LotteryConsensus_checkpoint_0(); }},
-        };
+        inline static std::vector<std::pair<int, std::function<LotteryConsensus*(int height)>>> m_rules
+            {
+                {1180000, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
+                {1124000, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
+                {1035000, [](int height) { return new LotteryConsensus_checkpoint_1035000(height); }},
+                {514185,  [](int height) { return new LotteryConsensus_checkpoint_514185(height); }},
+                {0,       [](int height) { return new LotteryConsensus_checkpoint_0(height); }},
+            };
     public:
         LotteryConsensusFactory() = default;
         static shared_ptr<LotteryConsensus> Instance(int height)
         {
             for (const auto& rule : m_rules)
-            {
                 if (height >= rule.first)
-                {
-                    return shared_ptr<LotteryConsensus>(rule.second());
-                }
-            }
+                    return shared_ptr<LotteryConsensus>(rule.second(height));
         }
     };
 }

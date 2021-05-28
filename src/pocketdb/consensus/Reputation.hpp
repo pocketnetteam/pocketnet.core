@@ -121,7 +121,7 @@ namespace PocketConsensus
         }
 
     public:
-        ReputationConsensus() = default;
+        ReputationConsensus(int height) : BaseConsensus(height) {}
 
         virtual bool AllowModifyReputation(PocketTxType txType, const CTransactionRef& tx,
             std::string scoreAddress, std::string contentAddress, int height, bool lottery)
@@ -153,7 +153,7 @@ namespace PocketConsensus
         int64_t GetScoresOneToOne() override { return 99999; }
         int64_t GetScoresOneToOneDepth() override { return 336 * 24 * 3600; }
     public:
-        ReputationConsensus_checkpoint_0() = default;
+        ReputationConsensus_checkpoint_0(int height) : ReputationConsensus(height) {}
 
         bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, PocketTxType contentType) override
         {
@@ -169,13 +169,15 @@ namespace PocketConsensus
     *  Consensus checkpoint at 108300 block
     *
     *******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_108300
-        : public ReputationConsensus_checkpoint_0 //TODO (brangr): check (int)params.GetConsensus().nHeight_version_1_0_0 == 108300
+    //TODO (brangr): check (int)params.GetConsensus().nHeight_version_1_0_0 == 108300
+    // тут должна по идее начаться проверка, т.е раньше либо чекпойнты либо скип
+    class ReputationConsensus_checkpoint_108300 : public ReputationConsensus_checkpoint_0
     {
     protected:
         int64_t GetThresholdReputationScore() override { return 500; }
         int CheckpointHeight() override { return 108300; }
     public:
+        ReputationConsensus_checkpoint_108300(int height) : ReputationConsensus_checkpoint_0(height) {}
     };
 
     /*******************************************************************************************************************
@@ -190,6 +192,7 @@ namespace PocketConsensus
         int64_t GetScoresOneToOneDepth() override { return 1 * 24 * 3600; }
         int CheckpointHeight() override { return 225000; }
     public:
+        ReputationConsensus_checkpoint_225000(int height) : ReputationConsensus_checkpoint_108300(height) {}
     };
 
     /*******************************************************************************************************************
@@ -204,6 +207,7 @@ namespace PocketConsensus
         int64_t GetScoresOneToOneDepth() override { return 7 * 24 * 3600; }
         int CheckpointHeight() override { return 292800; }
     public:
+        ReputationConsensus_checkpoint_292800(int height) : ReputationConsensus_checkpoint_225000(height) {}
     };
 
     /*******************************************************************************************************************
@@ -217,6 +221,7 @@ namespace PocketConsensus
         int64_t GetScoresOneToOneDepth() override { return 2 * 24 * 3600; }
         int CheckpointHeight() override { return 322700; }
     public:
+        ReputationConsensus_checkpoint_322700(int height) : ReputationConsensus_checkpoint_292800(height) {}
     };
 
     /*******************************************************************************************************************
@@ -224,13 +229,14 @@ namespace PocketConsensus
     *  Consensus checkpoint at 1124000 block
     *
     *******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_1124000
-        : public ReputationConsensus_checkpoint_322700 //TODO (brangr): check (int)params.GetConsensus().checkpoint_0_19_3 == 889524
+    //TODO (brangr): check (int)params.GetConsensus().checkpoint_0_19_3 == 889524
+    class ReputationConsensus_checkpoint_1124000 : public ReputationConsensus_checkpoint_322700
     {
     protected:
         int64_t GetThresholdLikersCount() override { return 100; }
         int CheckpointHeight() override { return 1124000; }
     public:
+        ReputationConsensus_checkpoint_1124000(int height) : ReputationConsensus_checkpoint_322700(height) {}
     };
 
     /*******************************************************************************************************************
@@ -242,25 +248,21 @@ namespace PocketConsensus
     class ReputationConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<ReputationConsensus*()>>> m_rules
+        inline static std::vector<std::pair<int, std::function<ReputationConsensus*(int height)>>> m_rules
             {
-                {889524, []() { return new ReputationConsensus_checkpoint_1124000(); }},
-                {322700, []() { return new ReputationConsensus_checkpoint_322700(); }},
-                {292800, []() { return new ReputationConsensus_checkpoint_292800(); }},
-                {225000, []() { return new ReputationConsensus_checkpoint_225000(); }},
-                {108300, []() { return new ReputationConsensus_checkpoint_108300(); }},
-                {0,      []() { return new ReputationConsensus_checkpoint_0(); }},
+                {889524, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
+                {322700, [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
+                {292800, [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
+                {225000, [](int height) { return new ReputationConsensus_checkpoint_225000(height); }},
+                {108300, [](int height) { return new ReputationConsensus_checkpoint_108300(height); }},
+                {0,      [](int height) { return new ReputationConsensus_checkpoint_0(height); }},
             };
     public:
         shared_ptr <ReputationConsensus> Instance(int height)
         {
             for (const auto& rule : m_rules)
-            {
                 if (height >= rule.first)
-                {
-                    return shared_ptr<ReputationConsensus>(rule.second());
-                }
-            }
+                    return shared_ptr<ReputationConsensus>(rule.second(height));
         }
     };
 }

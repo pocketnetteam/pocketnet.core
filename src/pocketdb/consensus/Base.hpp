@@ -7,6 +7,7 @@
 #ifndef POCKETCONSENSUS_BASE_HPP
 #define POCKETCONSENSUS_BASE_HPP
 
+#include "pocketdb/pocketnet.h"
 #include "pocketdb/models/base/Base.hpp"
 #include "univalue/include/univalue.h"
 
@@ -20,16 +21,26 @@ namespace PocketConsensus
     using std::tuple;
 
     using namespace PocketTx;
-    //using namespace PocketDb;
+    using namespace PocketDb;
 
     class BaseConsensus
     {
     public:
-        BaseConsensus() = default;
-        virtual ~BaseConsensus() = default;
+
+        BaseConsensus(int height)
+        {
+            Height = height;
+        }
+
+        virtual ~BaseConsensus()
+        {
+
+        }
+
     protected:
         virtual int CheckpointHeight() { return 0; };
     private:
+        int Height = 0;
     };
 
 }
