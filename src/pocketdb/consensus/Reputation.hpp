@@ -29,6 +29,8 @@ namespace PocketConsensus
 
         virtual int64_t GetScoresOneToOneOverComment() = 0;
 
+        virtual int64_t GetScoresToPostModifyReputationDepth() = 0;
+
 
         bool AllowModifyReputation(string address, int height)
         {
@@ -134,7 +136,14 @@ namespace PocketConsensus
             return false;
         }
 
-        virtual bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, PocketTxType contentType) = 0;
+        // TODO (brangr): we need to limit the depth for all content types
+        virtual bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, PocketTxType contentType)
+        {
+            if (contentType == PocketTxType::CONTENT_POST)
+                return (scoreTime - contentTime) < GetScoresToPostModifyReputationDepth();
+
+            return true;
+        }
 
     };
 
@@ -151,16 +160,9 @@ namespace PocketConsensus
         int64_t GetScoresOneToOneOverComment() override { return 20; }
         int64_t GetScoresOneToOne() override { return 99999; }
         int64_t GetScoresOneToOneDepth() override { return 336 * 24 * 3600; }
+        int64_t GetScoresToPostModifyReputationDepth() override { return 336 * 24 * 3600; }
     public:
         ReputationConsensus_checkpoint_0(int height) : ReputationConsensus(height) {}
-
-        bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, PocketTxType contentType) override
-        {
-            // TODO (brangr): implement
-//            bool modify_block_old_post = (tx->nTime - postItm["time"].As<int64_t>()) <
-//                                         GetActualLimit(Limit::scores_depth_modify_reputation,
-//                                             pindex->nHeight - 1);
-        }
     }; // class ReputationConsensus_checkpoint_0
 
     /*******************************************************************************************************************
@@ -217,8 +219,9 @@ namespace PocketConsensus
     class ReputationConsensus_checkpoint_322700 : public ReputationConsensus_checkpoint_292800
     {
     protected:
-        int64_t GetScoresOneToOneDepth() override { return 2 * 24 * 3600; }
         int CheckpointHeight() override { return 322700; }
+        int64_t GetScoresOneToOneDepth() override { return 2 * 24 * 3600; }
+        int64_t GetScoresToPostModifyReputationDepth() override { return 30 * 24 * 3600; }
     public:
         ReputationConsensus_checkpoint_322700(int height) : ReputationConsensus_checkpoint_292800(height) {}
     };

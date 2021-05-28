@@ -95,9 +95,9 @@ namespace PocketDb
         }
 
         // Selects for get models data
-        tuple<bool, shared_ptr<ScoreDataDto>> GetScoreData(string txHash)
+        tuple<bool, ScoreDataDto> GetScoreData(string txHash)
         {
-            shared_ptr<ScoreDataDto> result = make_shared<ScoreDataDto>();
+            ScoreDataDto result;
 
             bool tryResult = TryTransactionStep([&]()
             {
@@ -134,19 +134,19 @@ namespace PocketDb
 
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
-                    result->ScoreTxHash = GetColumnString(*stmt, 0);
-                    result->ScoreType = (PocketTxType) GetColumnInt(*stmt, 1);
-                    result->ScoreTime = GetColumnInt64(*stmt, 2);
-                    result->ScoreValue = GetColumnInt(*stmt, 3);
-                    result->ScoreAddressId = GetColumnInt(*stmt, 4);
-                    result->ScoreAddressHash = GetColumnString(*stmt, 5);
+                    result.ScoreTxHash = GetColumnString(*stmt, 0);
+                    result.ScoreType = (PocketTxType) GetColumnInt(*stmt, 1);
+                    result.ScoreTime = GetColumnInt64(*stmt, 2);
+                    result.ScoreValue = GetColumnInt(*stmt, 3);
+                    result.ScoreAddressId = GetColumnInt(*stmt, 4);
+                    result.ScoreAddressHash = GetColumnString(*stmt, 5);
 
-                    result->ContentTxHash = GetColumnString(*stmt, 6);
-                    result->ContentType = (PocketTxType) GetColumnInt(*stmt, 7);
-                    result->ContentTime = GetColumnInt64(*stmt, 8);
-                    result->ContentId = GetColumnInt(*stmt, 9);
-                    result->ContentAddressId = GetColumnInt(*stmt, 10);
-                    result->ContentAddressHash = GetColumnString(*stmt, 11);
+                    result.ContentTxHash = GetColumnString(*stmt, 6);
+                    result.ContentType = (PocketTxType) GetColumnInt(*stmt, 7);
+                    result.ContentTime = GetColumnInt64(*stmt, 8);
+                    result.ContentId = GetColumnInt(*stmt, 9);
+                    result.ContentAddressId = GetColumnInt(*stmt, 10);
+                    result.ContentAddressHash = GetColumnString(*stmt, 11);
                 }
                 else
                 {
