@@ -12,8 +12,6 @@
 #include "pocketdb/models/base/Rating.hpp"
 #include "pocketdb/models/dto/ReturnDtoModels.hpp"
 
-#include <boost/algorithm/string/join.hpp>
-
 namespace PocketDb {
     using std::runtime_error;
 
@@ -126,6 +124,11 @@ namespace PocketDb {
                         and s.Value in )sql";
 
                 sql += "(";
+                sql += std::to_string(values[0]);
+                for (auto value : values) {
+                    sql += ',';
+                    sql += std::to_string(value);
+                }
                 sql += std::to_string(boost::algorithm::join(values, ','));
                 sql += ")";
 
