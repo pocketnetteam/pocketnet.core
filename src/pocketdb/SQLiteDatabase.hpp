@@ -42,7 +42,7 @@ namespace PocketDb
         Mutex g_sqlite_mutex;
         int g_sqlite_count = 0; //GUARDED_BY(g_sqlite_mutex)
 
-        static void ErrorLogCallback(void *arg, int code, const char *msg)
+        static void ErrorLogCallback(void* arg, int code, const char* msg)
         {
             // From sqlite3_config() documentation for the SQLITE_CONFIG_LOG option:
             // "The void pointer that is the second argument to SQLITE_CONFIG_LOG is passed through as
@@ -53,7 +53,8 @@ namespace PocketDb
             LogPrintf("%s: %d; Message: %s\n", __func__, code, msg);
         }
 
-        bool TryCreateDbIfNotExists() {
+        bool TryCreateDbIfNotExists()
+        {
             try
             {
                 return fs::create_directories(m_dir_path);
@@ -62,10 +63,13 @@ namespace PocketDb
             {
                 if (!fs::exists(m_dir_path) || !fs::is_directory(m_dir_path))
                     throw;
+
+                return false;
             }
         }
 
-        bool CreateStructure() const {
+        bool CreateStructure() const
+        {
             std::string generate_sql = R"sql(
                 create table if not exists Transactions
                 (
@@ -182,7 +186,7 @@ namespace PocketDb
                     SpentTxHash string null,     -- Who spent
                     primary key (TxHash, Number, AddressHash)
                 );
-
+                create index if not exists TxOutput_SpentHeight on TxOutputs (SpentHeight);
                 create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);
 
                 --------------------------------------------
@@ -314,15 +318,18 @@ namespace PocketDb
 
             BeginTransaction();
 
-            try {
+            try
+            {
                 char* errMsg = nullptr;
                 size_t pos;
                 std::string token;
 
-                while ((pos = generate_sql.find(';')) != std::string::npos) {
+                while ((pos = generate_sql.find(';')) != std::string::npos)
+                {
                     token = generate_sql.substr(0, pos);
 
-                    if (sqlite3_exec(m_db, token.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
+                    if (sqlite3_exec(m_db, token.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK)
+                    {
                         throw std::runtime_error("Failed to create init database");
                     }
 
@@ -331,7 +338,8 @@ namespace PocketDb
 
                 CommitTransaction();
             }
-            catch (const std::exception&) {
+            catch (const std::exception&)
+            {
                 AbortTransaction();
                 LogPrintf("%s: Failed to create init database structure", __func__);
                 return false;
@@ -341,11 +349,11 @@ namespace PocketDb
         }
 
     public:
-        sqlite3 *m_db{nullptr};
+        sqlite3* m_db{nullptr};
 
         SQLiteDatabase() = default;
 
-        void Init(const std::string &dir_path, const std::string &file_path)
+        void Init(const std::string& dir_path, const std::string& file_path)
         {
             m_dir_path = dir_path;
             m_file_path = file_path;
@@ -380,7 +388,7 @@ namespace PocketDb
             try
             {
                 Open();
-            } catch (const std::runtime_error &)
+            } catch (const std::runtime_error&)
             {
                 // If open fails, cleanup this object and rethrow the exception
                 Cleanup();
@@ -390,7 +398,8 @@ namespace PocketDb
 
         void Open()
         {
-            int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE; //SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+            int flags = SQLITE_OPEN_READWRITE |
+                        SQLITE_OPEN_CREATE; //SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 
             if (m_db == nullptr)
             {
@@ -399,7 +408,8 @@ namespace PocketDb
                     throw std::runtime_error(strprintf("%s: %d; Failed to open database: %s\n",
                         __func__, ret, sqlite3_errstr(ret)));
 
-                if (!CreateStructure()) {
+                if (!CreateStructure())
+                {
                     throw std::runtime_error(strprintf("%s: Failed to create database\n",
                         __func__));
                 }

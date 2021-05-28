@@ -52,6 +52,7 @@
 
 #include <websocket/ws.h>
 #include "pocketdb/pocketnet.h"
+//#include "pocketdb/services/TransactionIndexer.hpp"
 
 
 #ifndef WIN32
@@ -911,8 +912,9 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (fReindex)
         {
             // Clear all calculating pocket tables
-            PocketDb::ChainRepoInst.RollbackBlock(0);
-            LogPrintf("PocketDb tables cleared\n");
+            // TODO (brangr): test!
+            //PocketServices::TransactionIndexer::Rollback(0);
+            LogPrintf("PocketDb tables cleared!\n");
 
             int nFile = 0;
             while (true)
@@ -972,8 +974,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (!ActivateBestChain(state, chainparams))
         {
             LogPrintf("Failed to connect best block (%s)\n", FormatStateMessage(state));
-            // StartShutdown();
-            // return;
+            StartShutdown();
+            return;
         }
 
         if (gArgs.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT))
@@ -982,16 +984,6 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             StartShutdown();
             return;
         }
-
-        // Clear all calculating pocket tables
-        if (!PocketDb::ChainRepoInst.RollbackBlock(chainActive.Height()))
-        {
-            LogPrintf("Error: PocketDb rollback failed!\n");
-            StartShutdown();
-            return;
-        }
-        LogPrintf("PocketDb rollback success to height %d\n", chainActive.Height());
-
     } // End scope of CImportingNow
 
     if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL))

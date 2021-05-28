@@ -74,10 +74,10 @@ namespace PocketTx
     // Rating types
     enum RatingType
     {
-        RATING_ACCOUNT,
-        RATING_ACCOUNT_LIKERS,
-        RATING_POST,
-        RATING_COMMENT,
+        RATING_ACCOUNT = 0,
+        RATING_ACCOUNT_LIKERS = 1,
+        RATING_POST = 2,
+        RATING_COMMENT = 3,
     };
 }
 

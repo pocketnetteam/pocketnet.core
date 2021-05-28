@@ -113,7 +113,7 @@ create table if not exists TxOutputs
     SpentTxHash string null,     -- Who spent
     primary key (TxHash, Number, AddressHash)
 );
-
+create index if not exists TxOutput_SpentHeight on TxOutputs (SpentHeight);
 create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);
 
 --------------------------------------------

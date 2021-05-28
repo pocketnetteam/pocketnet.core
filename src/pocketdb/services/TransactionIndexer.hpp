@@ -35,18 +35,21 @@ namespace PocketServices
         {
             auto result = true;
 
+            // TODO (brangr): rollback must be before check antibot rules in validation.cpp ConnectBlock ?
+            result &= RollbackChain(height);
             result &= IndexChain(block, height);
             result &= IndexRatings(block, height);
 
             return result;
         }
 
-        static bool Rollback(int height)
-        {
-            auto result = true;
-            result &= RollbackChain(height);
-            return result;
-        }
+        // TODO (brangr): test!
+//        static bool Rollback(int height)
+//        {
+//            auto result = true;
+//            result &= RollbackChain(height);
+//            return result;
+//        }
 
     protected:
         // Delete all calculated records for this height
@@ -174,6 +177,7 @@ namespace PocketServices
                 }
             }
 
+            // TODO (brangr): check likers not inserted to DB
             for (const auto& acc : accountLikers)
             {
                 for (const auto& lkrId : acc.second)

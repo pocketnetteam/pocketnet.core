@@ -36,8 +36,8 @@ enum class RetFormat
 static const struct
 {
     RetFormat rf;
-    const char *name;
-} rf_names[] = {
+    const char* name;
+}rf_names[] = {
     {RetFormat::UNDEF,  ""},
     {RetFormat::BINARY, "bin"},
     {RetFormat::HEX,    "hex"},
@@ -52,10 +52,10 @@ struct CCoin
     ADD_SERIALIZE_METHODS;
 
     CCoin() : nHeight(0) {}
-    explicit CCoin(Coin &&in) : nHeight(in.nHeight), out(std::move(in.out)) {}
+    explicit CCoin(Coin&& in) : nHeight(in.nHeight), out(std::move(in.out)) {}
 
     template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream &s, Operation ser_action)
+    inline void SerializationOp(Stream& s, Operation ser_action)
     {
         uint32_t nTxVerDummy = 0;
         READWRITE(nTxVerDummy);
@@ -64,14 +64,14 @@ struct CCoin
     }
 };
 
-static bool RESTERR(HTTPRequest *req, enum HTTPStatusCode status, std::string message)
+static bool RESTERR(HTTPRequest* req, enum HTTPStatusCode status, std::string message)
 {
     req->WriteHeader("Content-Type", "text/plain");
     req->WriteReply(status, message + "\r\n");
     return false;
 }
 
-static RetFormat ParseDataFormat(std::string &param, const std::string &strReq)
+static RetFormat ParseDataFormat(std::string& param, const std::string& strReq)
 {
     const std::string::size_type pos = strReq.rfind('.');
     if (pos == std::string::npos)
@@ -92,7 +92,7 @@ static RetFormat ParseDataFormat(std::string &param, const std::string &strReq)
     return rf_names[0].rf;
 }
 
-static std::tuple<RetFormat, std::vector<std::string>> ParseParams(const std::string &strURIPart)
+static std::tuple<RetFormat, std::vector<std::string>> ParseParams(const std::string& strURIPart)
 {
     std::string param;
     RetFormat rf = ParseDataFormat(param, strURIPart);
@@ -124,7 +124,7 @@ static std::string AvailableDataFormatsString()
     return formats;
 }
 
-static bool ParseHashStr(const std::string &strReq, uint256 &v)
+static bool ParseHashStr(const std::string& strReq, uint256& v)
 {
     if (!IsHex(strReq) || (strReq.size() != 64))
         return false;
@@ -133,7 +133,7 @@ static bool ParseHashStr(const std::string &strReq, uint256 &v)
     return true;
 }
 
-static bool CheckWarmup(HTTPRequest *req)
+static bool CheckWarmup(HTTPRequest* req)
 {
     std::string statusmessage;
     if (RPCIsInWarmup(&statusmessage))
@@ -141,8 +141,8 @@ static bool CheckWarmup(HTTPRequest *req)
     return true;
 }
 
-static bool rest_headers(HTTPRequest *req,
-    const std::string &strURIPart)
+static bool rest_headers(HTTPRequest* req,
+    const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -163,11 +163,11 @@ static bool rest_headers(HTTPRequest *req,
     if (!ParseHashStr(hashStr, hash))
         return RESTERR(req, HTTP_BAD_REQUEST, "Invalid hash: " + hashStr);
 
-    std::vector<const CBlockIndex *> headers;
+    std::vector<const CBlockIndex*> headers;
     headers.reserve(count);
     {
         LOCK(cs_main);
-        const CBlockIndex *pindex = LookupBlockIndex(hash);
+        const CBlockIndex* pindex = LookupBlockIndex(hash);
         while (pindex != nullptr && chainActive.Contains(pindex))
         {
             headers.push_back(pindex);
@@ -178,7 +178,7 @@ static bool rest_headers(HTTPRequest *req,
     }
 
     CDataStream ssHeader(SER_NETWORK, PROTOCOL_VERSION);
-    for (const CBlockIndex *pindex : headers)
+    for (const CBlockIndex* pindex : headers)
     {
         ssHeader << pindex->GetBlockHeader();
     }
@@ -205,7 +205,7 @@ static bool rest_headers(HTTPRequest *req,
             UniValue jsonHeaders(UniValue::VARR);
             {
                 LOCK(cs_main);
-                for (const CBlockIndex *pindex : headers)
+                for (const CBlockIndex* pindex : headers)
                 {
                     jsonHeaders.push_back(blockheaderToJSON(pindex));
                 }
@@ -222,8 +222,8 @@ static bool rest_headers(HTTPRequest *req,
     }
 }
 
-static bool rest_block(HTTPRequest *req,
-    const std::string &strURIPart,
+static bool rest_block(HTTPRequest* req,
+    const std::string& strURIPart,
     bool showTxDetails)
 {
     if (!CheckWarmup(req))
@@ -236,7 +236,7 @@ static bool rest_block(HTTPRequest *req,
         return RESTERR(req, HTTP_BAD_REQUEST, "Invalid hash: " + hashStr);
 
     CBlock block;
-    CBlockIndex *pblockindex = nullptr;
+    CBlockIndex* pblockindex = nullptr;
     {
         LOCK(cs_main);
         pblockindex = LookupBlockIndex(hash);
@@ -294,7 +294,7 @@ static bool rest_block(HTTPRequest *req,
     }
 }
 
-static bool rest_blockhash(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_blockhash(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -313,7 +313,7 @@ static bool rest_blockhash(HTTPRequest *req, const std::string &strURIPart)
     if (height < 0 || height > chainActive.Height())
         return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
 
-    CBlockIndex *pblockindex = chainActive[height];
+    CBlockIndex* pblockindex = chainActive[height];
     std::string blockHash = pblockindex->GetBlockHash().GetHex();
 
     switch (rf)
@@ -337,20 +337,20 @@ static bool rest_blockhash(HTTPRequest *req, const std::string &strURIPart)
     }
 }
 
-static bool rest_block_extended(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_block_extended(HTTPRequest* req, const std::string& strURIPart)
 {
     return rest_block(req, strURIPart, true);
 }
 
-static bool rest_block_notxdetails(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_block_notxdetails(HTTPRequest* req, const std::string& strURIPart)
 {
     return rest_block(req, strURIPart, false);
 }
 
 // A bit of a hack - dependency on a function defined in rpc/blockchain.cpp
-UniValue getblockchaininfo(const JSONRPCRequest &request);
+UniValue getblockchaininfo(const JSONRPCRequest& request);
 
-static bool rest_chaininfo(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_chaininfo(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -376,7 +376,7 @@ static bool rest_chaininfo(HTTPRequest *req, const std::string &strURIPart)
     }
 }
 
-static bool rest_mempool_info(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_mempool_info(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -401,7 +401,7 @@ static bool rest_mempool_info(HTTPRequest *req, const std::string &strURIPart)
     }
 }
 
-static bool rest_mempool_contents(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_mempool_contents(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -426,7 +426,7 @@ static bool rest_mempool_contents(HTTPRequest *req, const std::string &strURIPar
     }
 }
 
-static bool rest_tx(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_tx(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -486,7 +486,7 @@ static bool rest_tx(HTTPRequest *req, const std::string &strURIPart)
     }
 }
 
-static bool rest_getutxos(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -562,7 +562,7 @@ static bool rest_getutxos(HTTPRequest *req, const std::string &strURIPart)
                     oss >> fCheckMemPool;
                     oss >> vOutPoints;
                 }
-            } catch (const std::ios_base::failure &)
+            } catch (const std::ios_base::failure&)
             {
                 // abort in case of unreadable binary data
                 return RESTERR(req, HTTP_BAD_REQUEST, "Parse error");
@@ -595,9 +595,9 @@ static bool rest_getutxos(HTTPRequest *req, const std::string &strURIPart)
     std::vector<bool> hits;
     bitmap.resize((vOutPoints.size() + 7) / 8);
     {
-        auto process_utxos = [&vOutPoints, &outs, &hits](const CCoinsView &view, const CTxMemPool &mempool)
+        auto process_utxos = [&vOutPoints, &outs, &hits](const CCoinsView& view, const CTxMemPool& mempool)
         {
-            for (const COutPoint &vOutPoint : vOutPoints)
+            for (const COutPoint& vOutPoint : vOutPoints)
             {
                 Coin coin;
                 bool hit = !mempool.isSpent(vOutPoint) && view.GetCoin(vOutPoint, coin);
@@ -610,10 +610,11 @@ static bool rest_getutxos(HTTPRequest *req, const std::string &strURIPart)
         {
             // use db+mempool as cache backend in case user likes to query mempool
             LOCK2(cs_main, mempool.cs);
-            CCoinsViewCache &viewChain = *pcoinsTip;
+            CCoinsViewCache& viewChain = *pcoinsTip;
             CCoinsViewMemPool viewMempool(&viewChain, mempool);
             process_utxos(viewMempool, mempool);
-        } else
+        }
+        else
         {
             LOCK(cs_main);  // no need to lock mempool!
             process_utxos(*pcoinsTip, CTxMemPool());
@@ -665,7 +666,7 @@ static bool rest_getutxos(HTTPRequest *req, const std::string &strURIPart)
             objGetUTXOResponse.pushKV("bitmap", bitmapStringRepresentation);
 
             UniValue utxos(UniValue::VARR);
-            for (const CCoin &coin : outs)
+            for (const CCoin& coin : outs)
             {
                 UniValue utxo(UniValue::VOBJ);
                 utxo.pushKV("height", (int32_t) coin.nHeight);
@@ -693,7 +694,7 @@ static bool rest_getutxos(HTTPRequest *req, const std::string &strURIPart)
     }
 }
 
-static bool rest_topaddresses(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_topaddresses(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -715,9 +716,10 @@ static bool rest_topaddresses(HTTPRequest *req, const std::string &strURIPart)
             if (auto[ok, val] = PocketDb::TransRepoInst.GetAddressInfo(count); ok)
             {
                 req->WriteHeader("Content-Type", "application/json");
-                req->WriteReply(HTTP_OK, val.Serialize().write() + "\n");
+                req->WriteReply(HTTP_OK, val->Serialize()->write() + "\n");
                 return true;
-            } else
+            }
+            else
             {
                 return RESTERR(req, HTTP_INTERNAL_SERVER_ERROR, "internal error");
             }
@@ -729,7 +731,7 @@ static bool rest_topaddresses(HTTPRequest *req, const std::string &strURIPart)
     }
 }
 
-static bool rest_emission(HTTPRequest *req, const std::string &strURIPart)
+static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -756,7 +758,8 @@ static bool rest_emission(HTTPRequest *req, const std::string &strURIPart)
             else if (i == 0)
             {
                 emission += first75 + (std::min(height, halvblocks) - 75000) * 5;
-            } else
+            }
+            else
             {
                 emission += 2'100'000 * mult;
             }
@@ -791,23 +794,24 @@ static bool rest_emission(HTTPRequest *req, const std::string &strURIPart)
 
 static const struct
 {
-    const char *prefix;
-    bool (*handler)(HTTPRequest *req, const std::string &strReq);
-} uri_prefixes[] = {
+    const char* prefix;
+    bool (* handler)(HTTPRequest* req, const std::string& strReq);
+}uri_prefixes[] = {
 
-//    {"/rest/tx/",                rest_tx},
-//    {"/rest/block/notxdetails/", rest_block_notxdetails},
-//    {"/rest/block/",             rest_block_extended},
-//    {"/rest/chaininfo",          rest_chaininfo},
-//    {"/rest/mempool/info",       rest_mempool_info},
-//    {"/rest/mempool/contents",   rest_mempool_contents},
-//    {"/rest/headers/",           rest_headers},
-//    {"/rest/getutxos",           rest_getutxos},
-    {"/rest/emission",        rest_emission},
-    {"/rest/topaddresses",    rest_topaddresses},
-    {"/rest/getemission",     rest_emission},
-    {"/rest/gettopaddresses", rest_topaddresses},
-    {"/rest/blockhash",       rest_blockhash},
+    {"/rest/tx/",                rest_tx},
+    {"/rest/block/notxdetails/", rest_block_notxdetails},
+    {"/rest/block/",             rest_block_extended},
+    {"/rest/chaininfo",          rest_chaininfo},
+    {"/rest/mempool/info",       rest_mempool_info},
+    {"/rest/mempool/contents",   rest_mempool_contents},
+    {"/rest/headers/",           rest_headers},
+    {"/rest/getutxos",           rest_getutxos},
+
+    {"/rest/emission",           rest_emission},
+    {"/rest/getemission",        rest_emission},
+    {"/rest/topaddresses",       rest_topaddresses},
+    {"/rest/gettopaddresses",    rest_topaddresses},
+    {"/rest/blockhash",          rest_blockhash},
 };
 
 void StartREST()

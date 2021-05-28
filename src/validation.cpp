@@ -1862,7 +1862,8 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
     // Rollback PocketDb
-    fClean &= PocketServices::TransactionIndexer::Rollback(pindex->nHeight);
+    // TODO (brangr): test!
+    //fClean &= PocketServices::TransactionIndexer::Rollback(pindex->nHeight);
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }
@@ -2944,10 +2945,12 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     int64_t nTime3;
     LogPrint(BCLog::BENCH, "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * MILLI,
         nTimeReadFromDisk * MICRO);
+
     {
         CCoinsViewCache view(pcoinsTip.get());
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams);
         GetMainSignals().BlockChecked(blockConnecting, state);
+
         if (!rv)
         {
             if (state.IsInvalid())
@@ -2964,28 +2967,35 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
             return error("%s: ConnectBlock %s failed, %s", __func__, pindexNew->GetBlockHash().ToString(),
                 FormatStateMessage(state));
         }
+
         nTime3 = GetTimeMicros();
         nTimeConnectTotal += nTime3 - nTime2;
         LogPrint(BCLog::BENCH, "  - Connect total: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime3 - nTime2) * MILLI,
             nTimeConnectTotal * MICRO, nTimeConnectTotal * MILLI / nBlocksTotal);
+
         bool flushed = view.Flush();
         assert(flushed);
     }
+
     int64_t nTime4 = GetTimeMicros();
     nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO,
         nTimeFlush * MILLI / nBlocksTotal);
+
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
+
     int64_t nTime5 = GetTimeMicros();
     nTimeChainState += nTime5 - nTime4;
     LogPrint(BCLog::BENCH, "  - Writing chainstate: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime5 - nTime4) * MILLI,
         nTimeChainState * MICRO, nTimeChainState * MILLI / nBlocksTotal);
+
     //-----------------------------------------------------
     // Remove conflicting transactions from the mempool.;
     mempool.removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
     disconnectpool.removeForBlock(blockConnecting.vtx);
+
     //-----------------------------------------------------
     // Update chainActive & related variables.
     chainActive.SetTip(pindexNew);
@@ -3009,10 +3019,10 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
         //server_thread.detach();
         NotifyWSClients(blockConnecting, pindexNew);
     }
-    //-----------------------------------------------------
+
     LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH:%s\n", pindexNew->nHeight,
         pindexNew->GetBlockHash().GetHex());
-    //-----------------------------------------------------
+
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
     return true;
 }

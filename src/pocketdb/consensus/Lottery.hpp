@@ -49,7 +49,7 @@ namespace PocketConsensus
             CDataStream& hashProofOfStakeSource,
             shared_ptr<ReputationConsensus> reputationConsensus) { return _winners; }
 
-        virtual CAmount RatingReward(CAmount nCredit, opcodetype code) {}
+        virtual CAmount RatingReward(CAmount nCredit, opcodetype code) { return 0; }
         virtual void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) {}
     };
 

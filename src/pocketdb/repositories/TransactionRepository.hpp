@@ -57,9 +57,9 @@ namespace PocketDb
         }
 
         // Top addresses info
-        tuple<bool, ListDto<AddressInfoDto>> GetAddressInfo(int count)
+        tuple<bool, shared_ptr<ListDto<AddressInfoDto>>> GetAddressInfo(int count)
         {
-            ListDto<AddressInfoDto> result;
+            shared_ptr<ListDto<AddressInfoDto>> result = make_shared<ListDto<AddressInfoDto>>();
 
             bool tryResult = TryTransactionStep([&]()
             {
@@ -84,7 +84,7 @@ namespace PocketDb
                     AddressInfoDto inf;
                     inf.Address = GetColumnString(*stmt, 0);
                     inf.Balance = GetColumnInt64(*stmt, 1);
-                    result.Add(inf);
+                    result->Add(inf);
                 }
 
                 FinalizeSqlStatement(*stmt);
@@ -180,10 +180,10 @@ namespace PocketDb
 
                 sql += " and a.AddressHash in ( ";
                 sql += addresses[0];
-                for (auto address : addresses)
+                for (size_t i = 1; i < addresses.size(); i++)
                 {
                     sql += ',';
-                    sql += address;
+                    sql += addresses[i];
                 }
                 sql += ")";
 
@@ -191,12 +191,6 @@ namespace PocketDb
 
                 auto minHeightPtr = make_shared<int>(minHeight);
                 auto bindResult = TryBindStatementInt(stmt, 0, minHeightPtr);
-
-                for (auto i = 0; i < addresses.size(); i++)
-                {
-                    auto addressPtr = make_shared<string>(addresses[i]);
-                    bindResult &= TryBindStatementText(stmt, 1 + i, addressPtr);
-                }
 
                 if (!bindResult)
                 {

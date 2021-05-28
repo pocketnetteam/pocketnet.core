@@ -60,6 +60,8 @@ namespace PocketDb
         {
             return TryTransactionStep([&]()
             {
+                auto heightPtr = make_shared<int>(height);
+
                 // Update transactions
                 {
                     auto stmt = SetupSqlStatement(R"sql(
@@ -67,10 +69,9 @@ namespace PocketDb
                             BlockHash = null,
                             Height = null,
                             Id = null
-                        WHERE Height > ?
+                        WHERE Height is not null and Height >= ?
                     )sql");
 
-                    auto heightPtr = make_shared<int>(height);
                     auto result = TryBindStatementInt(stmt, 1, heightPtr);
                     if (!result)
                         throw runtime_error(strprintf("%s: can't rollback chain (bind)\n", __func__));
@@ -86,10 +87,9 @@ namespace PocketDb
                         UPDATE TxOutputs SET
                             SpentHeight = null,
                             SpentTxHash = null
-                        WHERE SpentHeight > ?
+                        WHERE SpentHeight is not null and SpentHeight >= ?
                     )sql");
 
-                    auto heightPtr = make_shared<int>(height);
                     auto result = TryBindStatementInt(stmt, 1, heightPtr);
                     if (!result)
                         throw runtime_error(strprintf("%s: can't rollback chain (bind)\n", __func__));
@@ -103,10 +103,9 @@ namespace PocketDb
                 {
                     auto stmt = SetupSqlStatement(R"sql(
                         DELETE FROM Ratings
-                        WHERE Height > ?
+                        WHERE Height >= ?
                     )sql");
 
-                    auto heightPtr = make_shared<int>(height);
                     auto result = TryBindStatementInt(stmt, 1, heightPtr);
                     if (!result)
                         throw runtime_error(strprintf("%s: can't rollback ratings (bind)\n", __func__));
@@ -134,7 +133,6 @@ namespace PocketDb
         }
 
     private:
-
         void UpdateTransactionHeight(string blockHash, int height, string txHash)
         {
             auto stmt = SetupSqlStatement(R"sql(
@@ -226,7 +224,6 @@ namespace PocketDb
                 throw runtime_error(strprintf("%s: can't update transactions set Id (step) Hash:%s\n",
                     __func__, txHash));
         }
-
         void InsertRating(Rating rating)
         {
             // Build sql statement with auto select IDs
@@ -252,7 +249,6 @@ namespace PocketDb
                 throw runtime_error(strprintf("%s: can't insert in ratings (step) Type:%d Height:%d Hash:%s\n",
                     __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId()));
         }
-
         void InsertLiker(Rating rating)
         {
             // Build sql statement with auto select IDs

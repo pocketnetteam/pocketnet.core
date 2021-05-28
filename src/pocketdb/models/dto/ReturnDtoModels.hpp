@@ -22,7 +22,11 @@ namespace PocketTx
     {
     public:
         virtual ~BaseReturnDto() {}
-        virtual UniValue Serialize() {}
+        virtual shared_ptr<UniValue> Serialize()
+        {
+            UniValue ret(UniValue::VOBJ);
+            return make_shared<UniValue>(ret);
+        }
     };
 
     // Base list ofr return models
@@ -40,15 +44,15 @@ namespace PocketTx
         {
             _lst.push_back(t);
         }
-        UniValue Serialize()
+        shared_ptr<UniValue> Serialize()
         {
             UniValue ret(UniValue::VARR);
             for (auto& itm : _lst)
             {
-                ret.push_back(itm.Serialize());
+                ret.push_back(*itm.Serialize());
             }
 
-            return ret;
+            return make_shared<UniValue>(ret);
         }
     };
 
@@ -59,12 +63,12 @@ namespace PocketTx
         string Address;
         int64_t Balance;
 
-        UniValue Serialize() override
+        shared_ptr<UniValue> Serialize() override
         {
             UniValue ret(UniValue::VOBJ);
             ret.pushKV("address", Address);
             ret.pushKV("balance", Balance);
-            return ret;
+            return make_shared<UniValue>(ret);
         }
     };
 

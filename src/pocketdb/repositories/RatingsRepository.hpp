@@ -107,9 +107,9 @@ namespace PocketDb
             return make_tuple(tryResult, result);
         }
 
-        tuple<bool, int> GetScoreContentCount(PocketTxType txType, const string scoreAddress,
-            const string contentAddress, int height, const CTransactionRef& tx, const std::vector<int> values,
-            int64_t scoresOneToOneDepth)
+        tuple<bool, int> GetScoreContentCount(
+            PocketTxType scoreType, const string scoreAddress, const string contentAddress,
+            int height, const CTransactionRef& tx, const std::vector<int> values, int64_t scoresOneToOneDepth)
         {
             int result = 0;
             auto func = __func__;
@@ -119,27 +119,26 @@ namespace PocketDb
                 string sql = R"sql(
                     select count(1)
                     from vScores s
-                    inner join vContents p on p.Hash = s.ContentTxHash
-                    where s.AddressHash = ?
-                        and p.AddressHash = ?
+                    join vContents c on c.Hash = s.ContentTxHash
+                    where   s.AddressHash = ?
+                        and c.AddressHash = ?
                         and s.Height is not null
                         and s.Height <= ?
                         and s.Time < ?
                         and s.Time >= ?
                         and s.Hash != ?
                         and s.Type = ?
-                        and p.Type = ?
-                        and s.Value in )sql";
+                        and s.Value in
+                )sql";
 
                 sql += "(";
                 sql += std::to_string(values[0]);
-                for (auto i = 1; i < values.size(); i++) {
+                for (size_t i = 1; i < values.size(); i++)
+                {
                     sql += ',';
                     sql += std::to_string(values[i]);
                 }
                 sql += ")";
-
-                LogPrintf(sql.c_str());
 
                 auto stmt = SetupSqlStatement(sql);
 
@@ -151,23 +150,8 @@ namespace PocketDb
                 auto maxTimePtr = make_shared<int64_t>(tx->nTime);
                 auto minTimePtr = make_shared<int64_t>((int64_t) tx->nTime - scoresOneToOneDepth);
 
-                //TODO (joni): check - что смущает? Вроде правильно
                 auto scoreTxHashPtr = make_shared<string>(tx->GetHash().GetHex());
-                auto scoreTypePtr = make_shared<int>(txType);;
-
-                // TODO (joni): проверь пжл наверху - там должен быть тип контента в scoreData или подобном
-                shared_ptr<int> contentTypePtr;
-                switch (txType)
-                {
-                    case PocketTx::ACTION_SCORE_POST:
-                        contentTypePtr = make_shared<int>(PocketTx::CONTENT_POST);
-                        break;
-                    case PocketTx::ACTION_SCORE_COMMENT:
-                        contentTypePtr = make_shared<int>(PocketTx::CONTENT_COMMENT);
-                        break;
-                    default:
-                        throw runtime_error(strprintf("%s: can't get score count (unsupported txType)\n", func));
-                }
+                auto scoreTypePtr = make_shared<int>(scoreType);
 
                 auto bindResult = TryBindStatementText(stmt, 1, scoreAddressPtr);
                 bindResult &= TryBindStatementText(stmt, 2, postAddressPtr);
@@ -176,7 +160,6 @@ namespace PocketDb
                 bindResult &= TryBindStatementInt64(stmt, 5, minTimePtr);
                 bindResult &= TryBindStatementText(stmt, 6, scoreTxHashPtr);
                 bindResult &= TryBindStatementInt(stmt, 7, scoreTypePtr);
-                bindResult &= TryBindStatementInt(stmt, 8, contentTypePtr);
 
                 if (!bindResult)
                 {
