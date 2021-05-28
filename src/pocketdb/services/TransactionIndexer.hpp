@@ -111,7 +111,7 @@ namespace PocketServices
 
                 // Check whether the current rating has the right to change the recipient's reputation
                 if (!reputationConsensus->AllowModifyReputation(
-                    scoreData.ContentType,
+                    scoreData.ScoreType,
                     tx,
                     scoreData.ScoreAddressHash,
                     scoreData.ContentAddressHash,
