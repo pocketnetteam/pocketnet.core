@@ -20,7 +20,7 @@ namespace PocketConsensus
     {
     protected:
     public:
-        SubscribeCancelConsensus() = default;
+        SubscribeCancelConsensus(int height) : BaseConsensus(height) {}
     };
 
 
@@ -34,7 +34,7 @@ namespace PocketConsensus
     protected:
     public:
 
-        SubscribeCancelConsensus_checkpoint_0() = default;
+        SubscribeCancelConsensus_checkpoint_0(int height) : SubscribeCancelConsensus(height) {}
 
     }; // class SubscribeCancelConsensus_checkpoint_0
 
@@ -49,6 +49,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1; }
     public:
+        SubscribeCancelConsensus_checkpoint_1(int height) : SubscribeCancelConsensus_checkpoint_0(height) {}
     };
 
 
@@ -61,19 +62,17 @@ namespace PocketConsensus
     class SubscribeCancelConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<SubscribeCancelConsensus *()>>> m_rules
-        {
-            {1, []() { return new SubscribeCancelConsensus_checkpoint_1(); }},
-            {0, []() { return new SubscribeCancelConsensus_checkpoint_0(); }},
-        };
+        inline static std::vector<std::pair<int, std::function<SubscribeCancelConsensus*(int height)>>> m_rules
+            {
+                {1, [](int height) { return new SubscribeCancelConsensus_checkpoint_1(height); }},
+                {0, [](int height) { return new SubscribeCancelConsensus_checkpoint_0(height); }},
+            };
     public:
         shared_ptr <SubscribeCancelConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules) {
-                if (height >= rule.first) {
-                    return shared_ptr<SubscribeCancelConsensus>(rule.second());
-                }
-            }
+            for (const auto& rule : m_rules)
+                if (height >= rule.first)
+                    return shared_ptr<SubscribeCancelConsensus>(rule.second(height));
         }
     };
 }

@@ -20,7 +20,7 @@ namespace PocketConsensus
     {
     protected:
     public:
-        PostConsensus() = default;
+        PostConsensus(int height) : BaseConsensus(height) {}
     };
 
 
@@ -34,7 +34,7 @@ namespace PocketConsensus
     protected:
     public:
 
-        PostConsensus_checkpoint_0() = default;
+        PostConsensus_checkpoint_0(int height) : PostConsensus(height) {}
 
     }; // class PostConsensus_checkpoint_0
 
@@ -49,6 +49,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1; }
     public:
+        PostConsensus_checkpoint_1(int height) : PostConsensus_checkpoint_0(height) {}
     };
 
 
@@ -61,19 +62,17 @@ namespace PocketConsensus
     class PostConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<PostConsensus *()>>> m_rules
-        {
-            {1, []() { return new PostConsensus_checkpoint_1(); }},
-            {0, []() { return new PostConsensus_checkpoint_0(); }},
-        };
+        inline static std::vector<std::pair<int, std::function<PostConsensus*(int height)>>> m_rules
+            {
+                {1, [](int height) { return new PostConsensus_checkpoint_1(height); }},
+                {0, [](int height) { return new PostConsensus_checkpoint_0(height); }},
+            };
     public:
         shared_ptr <PostConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules) {
-                if (height >= rule.first) {
-                    return shared_ptr<PostConsensus>(rule.second());
-                }
-            }
+            for (const auto& rule : m_rules)
+                if (height >= rule.first)
+                    return shared_ptr<PostConsensus>(rule.second(height));
         }
     };
 }

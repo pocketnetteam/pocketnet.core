@@ -20,7 +20,7 @@ namespace PocketConsensus
     {
     protected:
     public:
-        ComplainConsensus() = default;
+        ComplainConsensus(int height) : BaseConsensus(height) {}
     };
 
 
@@ -34,7 +34,7 @@ namespace PocketConsensus
     protected:
     public:
 
-        ComplainConsensus_checkpoint_0() = default;
+        ComplainConsensus_checkpoint_0(int height) : ComplainConsensus(height) {}
 
     }; // class ComplainConsensus_checkpoint_0
 
@@ -49,6 +49,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1; }
     public:
+        ComplainConsensus_checkpoint_1(int height) : ComplainConsensus_checkpoint_0(height) {}
     };
 
 
@@ -61,19 +62,17 @@ namespace PocketConsensus
     class ComplainConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<ComplainConsensus *()>>> m_rules
-        {
-            {1, []() { return new ComplainConsensus_checkpoint_1(); }},
-            {0, []() { return new ComplainConsensus_checkpoint_0(); }},
-        };
+        inline static std::vector<std::pair<int, std::function<ComplainConsensus*(int height)>>> m_rules
+            {
+                {1, [](int height) { return new ComplainConsensus_checkpoint_1(height); }},
+                {0, [](int height) { return new ComplainConsensus_checkpoint_0(height); }},
+            };
     public:
         shared_ptr <ComplainConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules) {
-                if (height >= rule.first) {
-                    return shared_ptr<ComplainConsensus>(rule.second());
-                }
-            }
+            for (const auto& rule : m_rules)
+                if (height >= rule.first)
+                    return shared_ptr<ComplainConsensus>(rule.second(height));
         }
     };
 }

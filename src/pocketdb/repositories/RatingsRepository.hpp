@@ -129,7 +129,6 @@ namespace PocketDb {
                     sql += ',';
                     sql += std::to_string(value);
                 }
-                sql += std::to_string(boost::algorithm::join(values, ','));
                 sql += ")";
 
                 auto stmt = SetupSqlStatement(sql);

@@ -20,7 +20,7 @@ namespace PocketConsensus
     {
     protected:
     public:
-        BlockingCancelConsensus() = default;
+        BlockingCancelConsensus(int height) : BaseConsensus(height) {}
     };
 
 
@@ -34,7 +34,7 @@ namespace PocketConsensus
     protected:
     public:
 
-        BlockingCancelConsensus_checkpoint_0() = default;
+        BlockingCancelConsensus_checkpoint_0(int height) : BlockingCancelConsensus(height) {}
 
     }; // class BlockingCancelConsensus_checkpoint_0
 
@@ -49,6 +49,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1; }
     public:
+        BlockingCancelConsensus_checkpoint_1(int height) : BlockingCancelConsensus_checkpoint_0(height) {}
     };
 
 
@@ -61,17 +62,19 @@ namespace PocketConsensus
     class BlockingCancelConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<BlockingCancelConsensus *()>>> m_rules
-        {
-            {1, []() { return new BlockingCancelConsensus_checkpoint_1(); }},
-            {0, []() { return new BlockingCancelConsensus_checkpoint_0(); }},
-        };
+        inline static std::vector<std::pair<int, std::function<BlockingCancelConsensus*(int height)>>> m_rules
+            {
+                {1, [](int height) { return new BlockingCancelConsensus_checkpoint_1(height); }},
+                {0, [](int height) { return new BlockingCancelConsensus_checkpoint_0(height); }},
+            };
     public:
         shared_ptr <BlockingCancelConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules) {
-                if (height >= rule.first) {
-                    return shared_ptr<BlockingCancelConsensus>(rule.second());
+            for (const auto& rule : m_rules)
+            {
+                if (height >= rule.first)
+                {
+                    return shared_ptr<BlockingCancelConsensus>(rule.second(height));
                 }
             }
         }

@@ -21,7 +21,7 @@ namespace PocketConsensus
     {
     protected:
     public:
-        UserConsensus() = default;
+        UserConsensus(int height) : BaseConsensus(height) {}
     };
 
     /*******************************************************************************************************************
@@ -34,7 +34,7 @@ namespace PocketConsensus
     protected:
     public:
 
-        UserConsensus_checkpoint_0() = default;
+        UserConsensus_checkpoint_0(int height) : UserConsensus(height) {}
 
     }; // class UserConsensus_checkpoint_0
 
@@ -48,6 +48,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1; }
     public:
+        UserConsensus_checkpoint_1(int height) : UserConsensus_checkpoint_0(height) {}
     };
 
     /*******************************************************************************************************************
@@ -59,19 +60,17 @@ namespace PocketConsensus
     class UserConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<UserConsensus *()>>> m_rules
-        {
-            {1, []() { return new UserConsensus_checkpoint_1(); }},
-            {0, []() { return new UserConsensus_checkpoint_0(); }},
-        };
+        inline static std::vector<std::pair<int, std::function<UserConsensus*(int height)>>> m_rules
+            {
+                {1, [](int height) { return new UserConsensus_checkpoint_1(height); }},
+                {0, [](int height) { return new UserConsensus_checkpoint_0(height); }},
+            };
     public:
         shared_ptr <UserConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules) {
-                if (height >= rule.first) {
-                    return shared_ptr<UserConsensus>(rule.second());
-                }
-            }
+            for (const auto& rule : m_rules)
+                if (height >= rule.first)
+                    return shared_ptr<UserConsensus>(rule.second(height));
         }
     };
 }

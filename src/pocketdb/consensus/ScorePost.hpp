@@ -20,7 +20,7 @@ namespace PocketConsensus
     {
     protected:
     public:
-        ScorePostConsensus() = default;
+        ScorePostConsensus(int height) : BaseConsensus(height) {}
     };
 
 
@@ -34,7 +34,7 @@ namespace PocketConsensus
     protected:
     public:
 
-        ScorePostConsensus_checkpoint_0() = default;
+        ScorePostConsensus_checkpoint_0(int height) : ScorePostConsensus(height) {}
 
     }; // class ScorePostConsensus_checkpoint_0
 
@@ -49,6 +49,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1; }
     public:
+        ScorePostConsensus_checkpoint_1(int height) : ScorePostConsensus_checkpoint_0(height) {}
     };
 
 
@@ -61,19 +62,17 @@ namespace PocketConsensus
     class ScorePostConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<ScorePostConsensus *()>>> m_rules
+        inline static std::vector<std::pair<int, std::function<ScorePostConsensus *(int height)>>> m_rules
         {
-            {1, []() { return new ScorePostConsensus_checkpoint_1(); }},
-            {0, []() { return new ScorePostConsensus_checkpoint_0(); }},
+            {1, [](int height) { return new ScorePostConsensus_checkpoint_1(height); }},
+            {0, [](int height) { return new ScorePostConsensus_checkpoint_0(height); }},
         };
     public:
         shared_ptr <ScorePostConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules) {
-                if (height >= rule.first) {
-                    return shared_ptr<ScorePostConsensus>(rule.second());
-                }
-            }
+            for (const auto& rule : m_rules)
+                if (height >= rule.first)
+                    return shared_ptr<ScorePostConsensus>(rule.second(height));
         }
     };
 }
