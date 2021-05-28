@@ -133,12 +133,13 @@ namespace PocketDb
 
                 sql += "(";
                 sql += std::to_string(values[0]);
-                for (auto value : values)
-                {
+                for (auto i = 1; i < values.size(); i++) {
                     sql += ',';
-                    sql += std::to_string(value);
+                    sql += std::to_string(values[i]);
                 }
                 sql += ")";
+
+                LogPrintf(sql.c_str());
 
                 auto stmt = SetupSqlStatement(sql);
 
@@ -176,11 +177,6 @@ namespace PocketDb
                 bindResult &= TryBindStatementText(stmt, 6, scoreTxHashPtr);
                 bindResult &= TryBindStatementInt(stmt, 7, scoreTypePtr);
                 bindResult &= TryBindStatementInt(stmt, 8, contentTypePtr);
-                for (auto i = 0; i < values.size(); i++)
-                {
-                    auto valuePtr = make_shared<int>(values[i]);
-                    bindResult &= TryBindStatementInt(stmt, 9 + i, valuePtr);
-                }
 
                 if (!bindResult)
                 {
