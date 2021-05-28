@@ -67,20 +67,19 @@ namespace PocketDb
 
         bool CreateStructure() const {
             std::string generate_sql = R"sql(
-                
                 create table if not exists Transactions
                 (
-                    Type    int    not null,
-                    Hash    string not null primary key,
-                    Time    int    not null,
+                    Type      int    not null,
+                    Hash      string not null primary key,
+                    Time      int    not null,
 
                     BlockHash string null,
-                    Height int null,
+                    Height    int    null,
 
                     -- User.Id
                     -- Post.Id
                     -- Comment.Id
-                    Id int null,
+                    Id        int    null,
 
                     -- User.AddressHash
                     -- Post.AddressHash
@@ -90,7 +89,7 @@ namespace PocketDb
                     -- Subscribe.AddressHash
                     -- Blocking.AddressHash
                     -- Complain.AddressHash
-                    String1 string null,
+                    String1   string null,
 
                     -- User.ReferrerAddressHash
                     -- Post.RootTxHash
@@ -100,22 +99,22 @@ namespace PocketDb
                     -- Subscribe.AddressToHash
                     -- Blocking.AddressToHash
                     -- Complain.PostTxHash
-                    String2 string null,
+                    String2   string null,
 
-                    -- Post.RelayTxId
-                    -- Comment.PostTxId
-                    String3 string null,
+                    -- Post.RelayTxHash
+                    -- Comment.PostTxHash
+                    String3   string null,
 
                     -- Comment.ParentTxHash
-                    String4 string null,
+                    String4   string null,
 
                     -- Comment.AnswerTxHash
-                    String5 string null,
+                    String5   string null,
 
                     -- ScorePost.Value
                     -- ScoreComment.Value
                     -- Complain.Reason
-                    Int1    int    null
+                    Int1      int    null
                 );
 
                 create index if not exists Transactions_Type on Transactions (Type);
@@ -175,12 +174,12 @@ namespace PocketDb
                 --------------------------------------------
                 create table if not exists TxOutputs
                 (
-                    TxHash string not null, -- Transactions.Hash
-                    Number int    not null, -- Number in tx.vout
+                    TxHash      string not null, -- Transactions.Hash
+                    Number      int    not null, -- Number in tx.vout
                     AddressHash string not null, -- Address
-                    Value  int    not null, -- Amount
-                    SpentHeight int null, -- Where spent
-                    SpentTxHash string null, -- Who spent
+                    Value       int    not null, -- Amount
+                    SpentHeight int    null,     -- Where spent
+                    SpentTxHash string null,     -- Who spent
                     primary key (TxHash, Number, AddressHash)
                 );
 
@@ -189,404 +188,127 @@ namespace PocketDb
                 --------------------------------------------
                 create table if not exists Ratings
                 (
-                    Type   int    not null,
-                    Height int    not null,
-                    Id     int    not null,
-                    Value  int    not null,
-                    primary key (Type, Height, Id, Value)
+                    Type   int not null,
+                    Height int not null,
+                    Id     int not null,
+                    Value  int not null,
+                    primary key (Type, Height, Id)
                 );
+                create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
 
                 --------------------------------------------
                 --                 VIEWS                  --
                 --------------------------------------------
+                drop view if exists vAccounts;
+                create view vAccounts as
+                select t.Type,
+                       t.Hash,
+                       t.Time,
+                       t.BlockHash,
+                       t.Height,
+                       t.Id,
+                       t.String1 as AddressHash,
+                       t.String2 as ReferrerAddressHash
+                from Transactions t
+                where t.Height is not null and t.Type in (100,101,102);
 
                 drop view if exists vUsers;
                 create view vUsers as
-                select Type,
-                    Hash,
-                    Time,
-                    BlockHash,
-                    Height,
-                    String1 as AddressHash,
-                    String2 as ReferrerAddressHash,
-                    Int1 as Registration
+                select t.Type,
+                       t.Hash,
+                       t.Time,
+                       t.BlockHash,
+                       t.Height,
+                       t.Id,
+                       t.String1 as AddressHash,
+                       t.String2 as ReferrerAddressHash
                 from Transactions t
-                where t.Type = 100;
+                where t.Height is not null and t.Type = 100;
 
-
-                drop view if exists vWebUsers;
-                create view vWebUsers as
-                select
-                    t.Hash,
-                    t.Time,
-                    t.BlockHash,
-                    t.Height,
-                    t.String1 as AddressHash,
-                    t.String2 as ReferrerAddressHash,
-                    t.Int1 as Registration,
-                    p.String1 as Lang,
-                    p.String2 as Name,
-                    p.String3 as Avatar,
-                    p.String4 as About,
-                    p.String5 as Url,
-                    p.String6 as Pubkey,
-                    p.String7 as Donations
+                --------------------------------------------
+                drop view if exists vContents;
+                create view vContents as
+                select t.Type,
+                       t.Hash,
+                       t.Time,
+                       t.BlockHash,
+                       t.Height,
+                       t.Id,
+                       t.String1 as AddressHash
                 from Transactions t
-                join Payload p on t.Hash = p.TxHash
-                where t.Height = (
-                    select max(t_.Height)
-                    from Transactions t_
-                    where t_.String1 = t.String1 and t_.Type = t.Type)
-                and t.Type = 100;
+                where t.Height is not null and t.Type in (200,201,202,203,204,205);
 
-
-                -- drop view if exists vTransactions;
-                -- create view vTransactions as
-                -- select T.Id,
-                --        T.Type,
-                --        T.Hash,
-                --        T.Time,
-                --        T.AddressId,
-                --        T.Int1,
-                --        T.Int2,
-                --        T.Int3,
-                --        T.Int4,
-                --        C.Height
-                -- from Transactions T
-                --          left join Chain C on T.Id = C.TxId;
-                --
-                -- drop view if exists vItem;
-                -- create view vItem as
-                -- select t.Id,
-                --        t.Type,
-                --        t.Hash,
-                --        t.Time,
-                --        t.Height,
-                --        t.AddressId,
-                --        t.Int1,
-                --        t.Int2,
-                --        t.Int3,
-                --        t.Int4,
-                --        a.Address
-                -- from vTransactions t
-                --          join Addresses a on a.Id = t.AddressId;
-                --
-                -- drop view if exists vUsers;
-                -- create view vUsers as
-                -- select Id,
-                --        Hash,
-                --        Time,
-                --        Height,
-                --        AddressId,
-                --        Address,
-                --        Int1 as Registration,
-                --        Int2 as ReferrerId
-                -- from vItem i
-                -- where i.Type in (100);
-                --
-                --
-                --
-                -- drop view if exists vWebItem;
-                -- create view vWebItem as
-                -- select I.Id,
-                --        I.Type,
-                --        I.Hash,
-                --        I.Time,
-                --        I.Height,
-                --        I.AddressId,
-                --        I.Int1,
-                --        I.Int2,
-                --        I.Int3,
-                --        I.Int4,
-                --        I.Address,
-                --        P.String1,
-                --        P.String2,
-                --        P.String3,
-                --        P.String4,
-                --        P.String5,
-                --        P.String6,
-                --        P.String7
-                -- from vItem I
-                --          join Payload P on I.Id = P.TxId
-                -- where I.Height is not null
-                --   and I.Height = (
-                --     select max(i_.Height)
-                --     from vItem i_
-                --     where i_.Int1 = I.Int1 -- RootTxId for all except for Scores
-                -- );
-                --
-                --
-                -- drop view if exists vWebUsers;
-                -- create view vWebUsers as
-                -- select WI.Id,
-                --        WI.Type,
-                --        WI.Hash,
-                --        WI.Time,
-                --        WI.Height,
-                --        WI.AddressId,
-                --        WI.Address,
-                --        WI.Int1    as Registration,
-                --        WI.Int2    as ReferrerId,
-                --        WI.String1 as Lang,
-                --        WI.String2 as Name,
-                --        WI.String3 as Avatar,
-                --        WI.String4 as About,
-                --        WI.String5 as Url,
-                --        WI.String6 as Pubkey,
-                --        WI.String7 as Donations
-                -- from vWebItem WI
-                -- where WI.Type in (100);
-                --
-                --
-                -- drop view if exists VideoServers;
-                -- create view VideoServers as
-                -- select t.Id,
-                --        t.Type,
-                --        t.Time,
-                --        t.Height,
-                --        t.AddressId,
-                --        t.Int1    as Registration,
-                --        t.String1 as Lang,
-                --        t.String2 as Name
-                -- from vWebItem t
-                -- where t.Type in (101);
-                --
-                --
-                -- drop view if exists MessageServers;
-                -- create view MessageServers as
-                -- select t.Id,
-                --        t.Type,
-                --        t.Time,
-                --        t.Height,
-                --        t.AddressId,
-                --        t.Int1    as Registration,
-                --        t.String1 as Lang,
-                --        t.String2 as Name
-                -- from vWebItem t
-                -- where t.Type in (102);
-                --
-                -- --------------------------------------------
-                drop view if exists vWebPosts;
-                create view vWebPosts as
-                select
-                    t.Hash,
-                    t.Time,
-                    t.BlockHash,
-                    t.Height,
-                    t.String1 as AddressHash,
-                    t.String2 as RootTxHash,
-                    p.String1 as Lang,
-                    p.String2 as Caption,
-                    p.String3 as Message,
-                    p.String4 as Tags,
-                    p.String5 as Images,
-                    p.String6 as Settings,
-                    p.String7 as Url
+                drop view if exists vPosts;
+                create view vPosts as
+                select t.Type,
+                       t.Hash,
+                       t.Time,
+                       t.BlockHash,
+                       t.Height,
+                       t.Id,
+                       t.String1 as AddressHash,
+                       t.String2 as RootTxHash,
+                       t.String3 as RelayTxHash
                 from Transactions t
-                join Payload p on t.Hash = p.TxHash
-                where t.Height = (
-                    select max(t_.Height)
-                    from Transactions t_
-                    where t_.String2 = t.String2 and t_.Type =t.Type)
-                and t.Type = 200;
+                where t.Height is not null and t.Type = 200;
 
-                -- drop view if exists vWebPosts;
-                -- create view vWebPosts as
-                -- select WI.Id,
-                --        WI.Hash,
-                --        WI.Time,
-                --        WI.Height,
-                --        WI.AddressId,
-                --        WI.Int1    as RootTxId,
-                --        WI.Int2    as RelayTxId,
-                --        WI.Address,
-                --        WI.String1 as Lang,
-                --        WI.String2 as Caption,
-                --        WI.String3 as Message,
-                --        WI.String4 as Tags,
-                --        WI.String5 as Images,
-                --        WI.String6 as Settings,
-                --        WI.String7 as Url
-                -- from vWebItem WI
-                -- where WI.Type in (200);
-                --
-                --
-                -- drop view if exists vWebVideos;
-                -- create view vWebVideos as
-                -- select WI.Id,
-                --        WI.Hash,
-                --        WI.Time,
-                --        WI.Height,
-                --        WI.AddressId,
-                --        WI.Int1    as RootTxId,
-                --        WI.Int2    as RelayTxId,
-                --        WI.Address,
-                --        WI.String1 as Lang,
-                --        WI.String2 as Caption,
-                --        WI.String3 as Message,
-                --        WI.String4 as Tags,
-                --        WI.String5 as Images,
-                --        WI.String6 as Settings,
-                --        WI.String7 as Url
-                -- from vWebItem WI
-                -- where WI.Type in (201);
-                --
-                --
-                -- drop view if exists vWebTranslates;
-                -- create view vWebTranslates as
-                -- select WI.Id,
-                --        WI.Hash,
-                --        WI.Time,
-                --        WI.Height,
-                --        WI.AddressId,
-                --        WI.Int1    as RootTxId,
-                --        WI.Int2    as RelayTxId,
-                --        WI.Address,
-                --        WI.String1 as Lang,
-                --        WI.String2 as Caption,
-                --        WI.String3 as Message,
-                --        WI.String4 as Tags
-                -- from vWebItem WI
-                -- where WI.Type in (202);
-                --
-                -- drop view if exists vWebServerPings;
-                -- create view vWebServerPings as
-                -- select WI.Id,
-                --        WI.Hash,
-                --        WI.Time,
-                --        WI.Height,
-                --        WI.AddressId,
-                --        WI.Int1    as RootTxId,
-                --        WI.Int2    as RelayTxId,
-                --        WI.Address,
-                --        WI.String1 as Lang,
-                --        WI.String2 as Caption,
-                --        WI.String3 as Message,
-                --        WI.String4 as Tags
-                -- from vWebItem WI
-                -- where WI.Type in (203);
-                --
-                drop view if exists vWebComments;
-                create view vWebComments as
-                select
-                    t.Hash,
-                    t.Time,
-                    t.BlockHash,
-                    t.Height,
-                    t.String1 as AddressHash,
-                    t.String2 as RootTxHash,
-                    t.String3 as PostTxId,
-                    t.String4 as ParentTxHash,
-                    t.String5 as AnswerTxHash,
-                    p.String1 as Lang,
-                    p.String2 as Message
+
+                drop view if exists vComments;
+                create view vComments as
+                select t.Type,
+                       t.Hash,
+                       t.Time,
+                       t.BlockHash,
+                       t.Height,
+                       t.Id,
+                       t.String1 as AddressHash,
+                       t.String2 as RootTxHash,
+                       t.String3 as PostTxHash,
+                       t.String4 as ParentTxHash,
+                       t.String5 as AnswerTxHash
                 from Transactions t
-                join Payload p on t.Hash = p.TxHash
-                where t.Height = (
-                    select max(t_.Height)
-                    from Transactions t_
-                    where t_.String2 = t.String2 and t_.Type =t.Type)
-                and t.Type =204;
-                --
-                -- drop view if exists vWebComments;
-                -- create view vWebComments as
-                -- select WI.Id,
-                --        WI.Hash,
-                --        WI.Time,
-                --        WI.Height,
-                --        WI.AddressId,
-                --        WI.Address,
-                --        WI.String1 as Lang,
-                --        WI.String2 as Message,
-                --        WI.Int1    as RootTxId,
-                --        WI.Int2    as PostTxId,
-                --        WI.Int3    as ParentTxId,
-                --        WI.Int4    as AnswerTxId
-                -- from vWebItem WI
-                -- where WI.Type in (204);
-                --
-                --
-                -- --------------------------------------------
-                drop view if exists vWebScorePosts;
-                create view vWebScorePosts as
-                select String1 as AddressHash,
-                    String2 as PostTxHash,
-                    Int1 as Value
-                from Transactions
-                where Type in (300);
+                where t.Height is not null and t.Type = 204;
 
+                --------------------------------------------
+                drop view if exists vScores;
+                create view vScores as
+                select t.Type,
+                       t.Hash,
+                       t.Time,
+                       t.BlockHash,
+                       t.Height,
+                       t.String1 as AddressHash,
+                       t.String2 as ContentTxHash,
+                       t.Int1    as Value
+                from Transactions t
+                where t.Height is not null and t.Type in (300, 301);
 
-                drop view if exists vWebScoreComments;
-                create view vWebScoreComments as
-                select String1 as AddressHash,
-                    String2 as CommentTxHash,
-                    Int1 as Value
-                from Transactions
-                where Type in (301);
+                drop view if exists vScorePosts;
+                create view vScorePosts as
+                select t.Type,
+                       t.Hash,
+                       t.Time,
+                       t.BlockHash,
+                       t.Height,
+                       t.String1 as AddressHash,
+                       t.String2 as PostTxHash,
+                       t.Int1    as Value
+                from Transactions t
+                where t.Height is not null and t.Type in (300);
 
-                -- drop view if exists vWebScorePosts;
-                -- create view vWebScorePosts as
-                -- select Int1 as PostTxId,
-                --        Int2 as Value
-                -- from vItem I
-                -- where I.Type in (300);
-                --
-                -- drop view if exists vWebScoreComments;
-                -- create view vWebScoreComments as
-                -- select Int1 as CommentTxId,
-                --        Int2 as Value
-                -- from vItem I
-                -- where I.Type in (301);
-                --
-                --
-                -- drop view if exists vWebSubscribes;
-                -- create view vWebSubscribes as
-                -- select WI.Type,
-                --        WI.AddressId,
-                --        WI.Address,
-                --        WI.Int1   as AddressToId,
-                --        A.Address as AddressTo
-                -- from vWebItem WI
-                --          join Addresses A ON A.Id = WI.Int1
-                -- where WI.Type in (302, 303, 304);
-                --
-                --
-                --
-                -- drop view if exists vWebBlockings;
-                -- create view vWebBlockings as
-                -- select WI.Type,
-                --        WI.AddressId,
-                --        WI.Address,
-                --        WI.Int1   as AddressToId,
-                --        A.Address as AddressTo
-                -- from vWebItem WI
-                --          join Addresses A ON A.Id = WI.Int1
-                -- where WI.Type in (305, 306);
-                --
-                --
-                --
-                drop view if exists Complains;
-                create view Complains as
-                select String1 as AddressHash,
-                    String2 as PostTxHash,
-                    Int1   as Reason
-                from Transactions
-                where Type in (307);
+                drop view if exists vScoreComments;
+                create view vScoreComments as
+                select t.Type,
+                       t.Hash,
+                       t.Time,
+                       t.BlockHash,
+                       t.Height,
+                       t.String1 as AddressHash,
+                       t.String2 as CommentTxHash,
+                       t.Int1    as Value
+                from Transactions t
+                where t.Height is not null and t.Type in (301);
 
-                -- drop view if exists Complains;
-                -- create view Complains as
-                -- select WI.Type,
-                --        WI.AddressId,
-                --        WI.Address,
-                --        WI.Int1   as AddressToId,
-                --        A.Address as AddressTo,
-                --        WI.Int2   as Reason
-                -- from vWebItem WI
-                --          join Addresses A ON A.Id = WI.Int1
-                -- where WI.Type in (307);
-                --
-                --
-                -- vacuum;
 
             )sql";
 

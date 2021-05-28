@@ -138,7 +138,8 @@ select t.Type,
        t.BlockHash,
        t.Height,
        t.Id,
-       t.String1 as AddressHash
+       t.String1 as AddressHash,
+       t.String2 as ReferrerAddressHash
 from Transactions t
 where t.Height is not null and t.Type in (100,101,102);
 
@@ -151,8 +152,7 @@ select t.Type,
        t.Height,
        t.Id,
        t.String1 as AddressHash,
-       t.String2 as ReferrerAddressHash,
-       t.Int1    as Registration
+       t.String2 as ReferrerAddressHash
 from Transactions t
 where t.Height is not null and t.Type = 100;
 

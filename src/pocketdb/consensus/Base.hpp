@@ -38,9 +38,9 @@ namespace PocketConsensus
         }
 
     protected:
+        int Height = 0;
         virtual int CheckpointHeight() { return 0; };
     private:
-        int Height = 0;
     };
 
 }

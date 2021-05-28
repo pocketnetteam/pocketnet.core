@@ -12,7 +12,8 @@
 #include "pocketdb/models/base/Rating.hpp"
 #include "pocketdb/models/dto/ReturnDtoModels.hpp"
 
-namespace PocketDb {
+namespace PocketDb
+{
     using std::runtime_error;
 
     using namespace PocketTx;
@@ -30,7 +31,8 @@ namespace PocketDb {
             int result = 0;
             auto func = __func__;
 
-            bool tryResult = TryTransactionStep([&]() {
+            bool tryResult = TryTransactionStep([&]()
+            {
                 auto stmt = SetupSqlStatement(R"sql(
                     select r.Value
                     from Ratings r
@@ -54,15 +56,16 @@ namespace PocketDb {
                     throw runtime_error(strprintf("%s: can't get user reputation (bind)\n", func));
                 }
 
-                if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                    result = GetColumnInt(*stmt, 1);
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    result = GetColumnInt(*stmt, 0);
                 }
 
                 FinalizeSqlStatement(*stmt);
                 return true;
             });
 
-            return make_tuple(true, result);
+            return make_tuple(tryResult, result);
         }
 
         tuple<bool, int> GetUserLikersCount(string address, int height)
@@ -70,7 +73,8 @@ namespace PocketDb {
             int result = 0;
             auto func = __func__;
 
-            bool tryResult = TryTransactionStep([&]() {
+            bool tryResult = TryTransactionStep([&]()
+            {
                 auto stmt = SetupSqlStatement(R"sql(
                     select count(1)
                     from Ratings r
@@ -85,29 +89,33 @@ namespace PocketDb {
                 auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
                 bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
                 bindResult &= TryBindStatementText(stmt, 3, idPtr);
-                if (!bindResult) {
+                if (!bindResult)
+                {
                     FinalizeSqlStatement(*stmt);
                     throw runtime_error(strprintf("%s: can't select user likers count (bind)\n", func));
                 }
 
-                if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                    result = GetColumnInt(*stmt, 1);
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    result = GetColumnInt(*stmt, 0);
                 }
 
                 FinalizeSqlStatement(*stmt);
                 return true;
             });
 
-            return make_tuple(true, result);
+            return make_tuple(tryResult, result);
         }
 
-        tuple<bool, int> GetScoreContentCount(PocketTxType txType, const string scoreAddress, const string contentAddress, int height,
-            const CTransactionRef& tx, const std::vector<int> values, int64_t scoresOneToOneDepth)
+        tuple<bool, int> GetScoreContentCount(PocketTxType txType, const string scoreAddress,
+            const string contentAddress, int height, const CTransactionRef& tx, const std::vector<int> values,
+            int64_t scoresOneToOneDepth)
         {
             int result = 0;
             auto func = __func__;
 
-            bool tryResult = TryTransactionStep([&]() {
+            bool tryResult = TryTransactionStep([&]()
+            {
                 string sql = R"sql(
                     select count(1)
                     from vScores s
@@ -125,7 +133,8 @@ namespace PocketDb {
 
                 sql += "(";
                 sql += std::to_string(values[0]);
-                for (auto value : values) {
+                for (auto value : values)
+                {
                     sql += ',';
                     sql += std::to_string(value);
                 }
@@ -139,22 +148,24 @@ namespace PocketDb {
 
                 // TODO: нужна будет перегрузка для изменения отбора - время заменить на блоки
                 auto maxTimePtr = make_shared<int64_t>(tx->nTime);
-                auto minTimePtr = make_shared<int64_t>((int64_t)tx->nTime - scoresOneToOneDepth);
-                
-                auto scoreTxHashPtr = make_shared<string>(tx->GetHash().GetHex()); //TODO (joni): check - что смущает? Вроде правильно
+                auto minTimePtr = make_shared<int64_t>((int64_t) tx->nTime - scoresOneToOneDepth);
+
+                //TODO (joni): check - что смущает? Вроде правильно
+                auto scoreTxHashPtr = make_shared<string>(tx->GetHash().GetHex());
                 auto scoreTypePtr = make_shared<int>(txType);;
 
+                // TODO (joni): проверь пжл наверху - там должен быть тип контента в scoreData или подобном
                 shared_ptr<int> contentTypePtr;
-
-                switch (txType) {
-                case PocketTx::ACTION_SCORE_POST:
-                    contentTypePtr = make_shared<int>(PocketTx::CONTENT_POST);
-                    break;
-                case PocketTx::ACTION_SCORE_COMMENT:
-                    contentTypePtr = make_shared<int>(PocketTx::CONTENT_COMMENT);
-                    break;
-                default:
-                    throw runtime_error(strprintf("%s: can't get score count (unsupported txType)\n", func));
+                switch (txType)
+                {
+                    case PocketTx::ACTION_SCORE_POST:
+                        contentTypePtr = make_shared<int>(PocketTx::CONTENT_POST);
+                        break;
+                    case PocketTx::ACTION_SCORE_COMMENT:
+                        contentTypePtr = make_shared<int>(PocketTx::CONTENT_COMMENT);
+                        break;
+                    default:
+                        throw runtime_error(strprintf("%s: can't get score count (unsupported txType)\n", func));
                 }
 
                 auto bindResult = TryBindStatementText(stmt, 1, scoreAddressPtr);
@@ -165,24 +176,28 @@ namespace PocketDb {
                 bindResult &= TryBindStatementText(stmt, 6, scoreTxHashPtr);
                 bindResult &= TryBindStatementInt(stmt, 7, scoreTypePtr);
                 bindResult &= TryBindStatementInt(stmt, 8, contentTypePtr);
-                for (auto i = 0; i < values.size(); i++) {
+                for (auto i = 0; i < values.size(); i++)
+                {
                     auto valuePtr = make_shared<int>(values[i]);
                     bindResult &= TryBindStatementInt(stmt, 9 + i, valuePtr);
                 }
-                if (!bindResult) {
+
+                if (!bindResult)
+                {
                     FinalizeSqlStatement(*stmt);
                     throw runtime_error(strprintf("%s: can't get score count (bind)\n", func));
                 }
 
-                if (sqlite3_step(*stmt) == SQLITE_ROW) {
-                    result = GetColumnInt(*stmt, 1);
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    result = GetColumnInt(*stmt, 0);
                 }
 
                 FinalizeSqlStatement(*stmt);
                 return true;
             });
 
-            return make_tuple(true, result);
+            return make_tuple(tryResult, result);
         }
     }; // namespace PocketDb
 }

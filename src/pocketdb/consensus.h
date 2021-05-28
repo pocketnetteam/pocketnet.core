@@ -13,7 +13,6 @@
 #include "pocketdb/consensus/SubscribePrivate.hpp"
 #include "pocketdb/consensus/User.hpp"
 #include "pocketdb/consensus/Reputation.hpp"
-
 #include "pocketdb/consensus/Lottery.hpp"
 
 namespace PocketConsensus

@@ -17,6 +17,7 @@
 
 #include "pocketdb/consensus.h"
 #include "pocketdb/helpers/TypesHelper.hpp"
+#include "util.h"
 
 double GetPosDifficulty(const CBlockIndex *blockindex)
 {
@@ -602,15 +603,17 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut> &results, CAmount &to
 
     // Get all winners from block
     // LotteryFactory get actual version of consensus service by current height
-    auto lotteryInst = PocketConsensus::LotteryConsensusFactoryInst.Instance(pindexPrev->nHeight);
-    auto winners = lotteryInst->Winners(blockPrev, hashProofOfStakeSource);
+    auto lotteryConsensus = PocketConsensus::LotteryConsensusFactoryInst.Instance(pindexPrev->nHeight);
+    auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(pindexPrev->nHeight);
+
+    auto winners = lotteryConsensus->Winners(blockPrev, hashProofOfStakeSource, reputationConsensus);
 
     // Generate new outs in transaction for all winners
     auto result = true;
-    result &= GenerateOuts(nCredit, results, winners.PostWinners, lotteryInst, OP_WINNER_POST, totalAmount, winner_types);
-    result &= GenerateOuts(nCredit, results, winners.CommentWinners, lotteryInst, OP_WINNER_COMMENT, totalAmount, winner_types);
-    result &= GenerateOuts(nCredit, results, winners.PostReferrerWinners, lotteryInst, OP_WINNER_POST_REFERRAL, totalAmount, winner_types);
-    result &= GenerateOuts(nCredit, results, winners.CommentReferrerWinners, lotteryInst, OP_WINNER_COMMENT_REFERRAL, totalAmount, winner_types);
+    result &= GenerateOuts(nCredit, results, winners.PostWinners, lotteryConsensus, OP_WINNER_POST, totalAmount, winner_types);
+    result &= GenerateOuts(nCredit, results, winners.CommentWinners, lotteryConsensus, OP_WINNER_COMMENT, totalAmount, winner_types);
+    result &= GenerateOuts(nCredit, results, winners.PostReferrerWinners, lotteryConsensus, OP_WINNER_POST_REFERRAL, totalAmount, winner_types);
+    result &= GenerateOuts(nCredit, results, winners.CommentReferrerWinners, lotteryConsensus, OP_WINNER_COMMENT_REFERRAL, totalAmount, winner_types);
 
     return result;
 }

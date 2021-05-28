@@ -8,15 +8,14 @@
 #define POCKETCONSENSUS_REPUTATION_HPP
 
 #include "pocketdb/consensus/Base.hpp"
-#include "pocketdb/pocketnet.h"
 
 namespace PocketConsensus
 {
-/*******************************************************************************************************************
-*
-*  Reputation consensus base class
-*
-*******************************************************************************************************************/
+    /*******************************************************************************************************************
+    *
+    *  Reputation consensus base class
+    *
+    *******************************************************************************************************************/
     class ReputationConsensus : public BaseConsensus
     {
     protected:

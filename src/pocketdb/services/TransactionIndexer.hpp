@@ -102,19 +102,19 @@ namespace PocketServices
 
                 // Old posts denied change reputation
                 if (!reputationConsensus->AllowModifyOldPosts(
-                    scoreData.ScoreTime,
-                    scoreData.ContentTime,
-                    scoreData.ContentType))
+                    scoreData->ScoreTime,
+                    scoreData->ContentTime,
+                    scoreData->ContentType))
                 {
                     continue;
                 }
 
                 // Check whether the current rating has the right to change the recipient's reputation
                 if (!reputationConsensus->AllowModifyReputation(
-                    scoreData.ContentType,
+                    scoreData->ContentType,
                     tx,
-                    scoreData.ScoreAddressHash,
-                    scoreData.ContentAddressHash,
+                    scoreData->ScoreAddressHash,
+                    scoreData->ContentAddressHash,
                     height,
                     false))
                 {
@@ -126,28 +126,28 @@ namespace PocketServices
                 // Rating for users over comments = equals -0.1 or 0.1
                 // Rating for posts equals between -2 and 2
                 // Rating for comments equals between -1 and 2 - as is
-                switch (scoreData.ScoreType)
+                switch (scoreData->ScoreType)
                 {
                     case PocketTx::ACTION_SCORE_POST:
-                        ratingValues[RatingType::RATING_ACCOUNT][scoreData.ContentAddressId] +=
-                            (scoreData.ScoreValue - 3) * 10;
+                        ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
+                            (scoreData->ScoreValue - 3) * 10;
 
-                        ratingValues[RatingType::RATING_POST][scoreData.ContentId] +=
-                            scoreData.ScoreValue - 3;
+                        ratingValues[RatingType::RATING_POST][scoreData->ContentId] +=
+                            scoreData->ScoreValue - 3;
 
-                        if (scoreData.ScoreValue == 4 || scoreData.ScoreValue == 5)
+                        if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
                             ExtendAccountLikers(scoreData, accountLikers);
 
                         break;
 
                     case PocketTx::ACTION_SCORE_COMMENT:
-                        ratingValues[RatingType::RATING_ACCOUNT][scoreData.ContentAddressId] +=
-                            scoreData.ScoreValue;
+                        ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
+                            scoreData->ScoreValue;
 
-                        ratingValues[RatingType::RATING_COMMENT][scoreData.ContentId] +=
-                            scoreData.ScoreValue;
+                        ratingValues[RatingType::RATING_COMMENT][scoreData->ContentId] +=
+                            scoreData->ScoreValue;
 
-                        if (scoreData.ScoreValue == 1)
+                        if (scoreData->ScoreValue == 1)
                             ExtendAccountLikers(scoreData, accountLikers);
 
                         break;
@@ -195,16 +195,16 @@ namespace PocketServices
 
     private:
 
-        void static ExtendAccountLikers(ScoreDataDto scoreData, map<int, vector<int>>& accountLikers)
+        void static ExtendAccountLikers(shared_ptr<ScoreDataDto> scoreData, map<int, vector<int>>& accountLikers)
         {
             auto found = find(
-                accountLikers[scoreData.ContentAddressId].begin(),
-                accountLikers[scoreData.ContentAddressId].end(),
-                scoreData.ScoreAddressId
+                accountLikers[scoreData->ContentAddressId].begin(),
+                accountLikers[scoreData->ContentAddressId].end(),
+                scoreData->ScoreAddressId
             );
 
-            if (found != accountLikers[scoreData.ContentAddressId].end())
-                accountLikers[scoreData.ContentAddressId].push_back(scoreData.ScoreAddressId);
+            if (found != accountLikers[scoreData->ContentAddressId].end())
+                accountLikers[scoreData->ContentAddressId].push_back(scoreData->ScoreAddressId);
         }
 
     };
