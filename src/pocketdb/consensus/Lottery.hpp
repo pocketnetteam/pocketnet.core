@@ -87,7 +87,7 @@ namespace PocketConsensus
                     winners.push_back(it.first);
             }
         }
-        virtual void ExtendReferrer(string contentAddress, int64_t txTime, map<string, string>& refs) {}
+        virtual void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) {}
         virtual void ExtendReferrers() {}
 
     public:
@@ -190,16 +190,16 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 514185; }
         virtual int GetLotteryReferralDepth() { return 0; }
-        void ExtendReferrer(string contentAddress, int64_t txTime, map<string, string>& refs) override
+        void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) override
         {
             if (refs.find(contentAddress) != refs.end())
                 return;
 
             auto[ok, referrer] = PocketDb::TransRepoInst.GetReferrer(contentAddress,
                 txTime - GetLotteryReferralDepth());
-            if (!ok || referrer.empty()) return;
+            if (!ok || referrer->empty()) return;
 
-            refs.emplace(contentAddress, referrer);
+            refs.emplace(contentAddress, *referrer);
         }
 
     public:
@@ -299,7 +299,7 @@ namespace PocketConsensus
         int CheckpointHeight() override { return -1; }
         int GetLotteryReferralDepth() override { return -1; }
 
-        void ExtendReferrer(string contentAddress, int64_t txTime, map<string, string>& refs) override
+        void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) override
         {
             // This logic replaced with ExtendReferrers()
         }
@@ -320,9 +320,9 @@ namespace PocketConsensus
                     winners.push_back(addr);
 
             auto[ok, referrers] = PocketDb::TransRepoInst.GetReferrers(winners, Height - GetLotteryReferralDepth());
-            if (!ok || referrers.empty()) return;
+            if (!ok || referrers->empty()) return;
 
-            for (const auto& it : referrers)
+            for (const auto& it : *referrers)
             {
                 if (find(postWinners.begin(), postWinners.end(), it.first) != postWinners.end())
                     if (find(postRefs.begin(), postRefs.end(), it.second) == postRefs.end())

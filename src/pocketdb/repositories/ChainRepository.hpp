@@ -28,7 +28,7 @@ namespace PocketDb
 
         // Update transactions set block hash & height
         // Also spent outputs
-        bool UpdateHeight(string blockHash, int height, vector<TransactionIndexingInfo>& txs)
+        bool UpdateHeight(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
         {
             return TryTransactionStep([&]()
             {
@@ -55,7 +55,7 @@ namespace PocketDb
             });
         }
 
-        // Rollback transaction-block link
+        // Erase all calculated data great or equals block
         bool RollbackBlock(int height)
         {
             return TryTransactionStep([&]()
@@ -118,11 +118,11 @@ namespace PocketDb
         }
 
         // Accumulate new rating records
-        bool InsertRatings(vector<Rating>& ratings)
+        bool InsertRatings(shared_ptr<vector<Rating>> ratings)
         {
             return TryTransactionStep([&]()
             {
-                for (const auto& rating : ratings)
+                for (const auto& rating : *ratings)
                 {
                     if (*rating.GetType() != RatingType::RATING_ACCOUNT_LIKERS)
                         InsertRating(rating);
@@ -133,7 +133,7 @@ namespace PocketDb
         }
 
     private:
-        void UpdateTransactionHeight(string blockHash, int height, string txHash)
+        void UpdateTransactionHeight(const string& blockHash, int height, const string& txHash)
         {
             auto stmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
@@ -159,7 +159,7 @@ namespace PocketDb
                     strprintf("%s: can't update transactions set height (step) Hash:%s Block:%s Height:%d\n",
                         __func__, txHash, blockHash, height));
         }
-        void UpdateTransactionOutputs(string txHash, int height, map<string, int> outputs)
+        void UpdateTransactionOutputs(const string& txHash, int height, const map<string, int>& outputs)
         {
             for (auto& out : outputs)
             {
@@ -189,7 +189,7 @@ namespace PocketDb
                         __func__, txHash, height));
             }
         }
-        void UpdateShortId(string txHash)
+        void UpdateShortId(const string& txHash)
         {
             auto stmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
@@ -224,7 +224,7 @@ namespace PocketDb
                 throw runtime_error(strprintf("%s: can't update transactions set Id (step) Hash:%s\n",
                     __func__, txHash));
         }
-        void InsertRating(Rating rating)
+        void InsertRating(const Rating& rating)
         {
             // Build sql statement with auto select IDs
             auto stmt = SetupSqlStatement(R"sql(
@@ -249,7 +249,7 @@ namespace PocketDb
                 throw runtime_error(strprintf("%s: can't insert in ratings (step) Type:%d Height:%d Hash:%s\n",
                     __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId()));
         }
-        void InsertLiker(Rating rating)
+        void InsertLiker(const Rating& rating)
         {
             // Build sql statement with auto select IDs
             auto stmt = SetupSqlStatement(R"sql(

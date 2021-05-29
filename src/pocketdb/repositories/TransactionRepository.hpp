@@ -95,9 +95,9 @@ namespace PocketDb
         }
 
         // Selects for get models data
-        tuple<bool, ScoreDataDto> GetScoreData(string txHash)
+        tuple<bool, shared_ptr<ScoreDataDto>> GetScoreData(const string& txHash)
         {
-            ScoreDataDto result;
+            shared_ptr<ScoreDataDto> result = make_shared<ScoreDataDto>();
 
             bool tryResult = TryTransactionStep([&]()
             {
@@ -134,19 +134,19 @@ namespace PocketDb
 
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
-                    result.ScoreTxHash = GetColumnString(*stmt, 0);
-                    result.ScoreType = (PocketTxType) GetColumnInt(*stmt, 1);
-                    result.ScoreTime = GetColumnInt64(*stmt, 2);
-                    result.ScoreValue = GetColumnInt(*stmt, 3);
-                    result.ScoreAddressId = GetColumnInt(*stmt, 4);
-                    result.ScoreAddressHash = GetColumnString(*stmt, 5);
+                    result->ScoreTxHash = GetColumnString(*stmt, 0);
+                    result->ScoreType = (PocketTxType) GetColumnInt(*stmt, 1);
+                    result->ScoreTime = GetColumnInt64(*stmt, 2);
+                    result->ScoreValue = GetColumnInt(*stmt, 3);
+                    result->ScoreAddressId = GetColumnInt(*stmt, 4);
+                    result->ScoreAddressHash = GetColumnString(*stmt, 5);
 
-                    result.ContentTxHash = GetColumnString(*stmt, 6);
-                    result.ContentType = (PocketTxType) GetColumnInt(*stmt, 7);
-                    result.ContentTime = GetColumnInt64(*stmt, 8);
-                    result.ContentId = GetColumnInt(*stmt, 9);
-                    result.ContentAddressId = GetColumnInt(*stmt, 10);
-                    result.ContentAddressHash = GetColumnString(*stmt, 11);
+                    result->ContentTxHash = GetColumnString(*stmt, 6);
+                    result->ContentType = (PocketTxType) GetColumnInt(*stmt, 7);
+                    result->ContentTime = GetColumnInt64(*stmt, 8);
+                    result->ContentId = GetColumnInt(*stmt, 9);
+                    result->ContentAddressId = GetColumnInt(*stmt, 10);
+                    result->ContentAddressHash = GetColumnString(*stmt, 11);
                 }
                 else
                 {
@@ -161,9 +161,9 @@ namespace PocketDb
         }
 
         // Select many referrers
-        tuple<bool, map<string, string>> GetReferrers(vector<string> addresses, int minHeight)
+        tuple<bool, shared_ptr<map<string, string>>> GetReferrers(const vector<string>& addresses, int minHeight)
         {
-            map<string, string> result;
+            shared_ptr<map<string, string>> result = make_shared<map<string, string>>();
 
             if (addresses.empty())
                 return make_tuple(true, result);
@@ -202,7 +202,7 @@ namespace PocketDb
                 {
                     auto ref = GetColumnString(*stmt, 2);
                     if (!ref.empty())
-                        result.emplace(GetColumnString(*stmt, 1), GetColumnString(*stmt, 2));
+                        result->emplace(GetColumnString(*stmt, 1), GetColumnString(*stmt, 2));
                 }
 
                 FinalizeSqlStatement(*stmt);
@@ -213,9 +213,9 @@ namespace PocketDb
         }
 
         // Select referrer for one account
-        tuple<bool, string> GetReferrer(string address, int minTime)
+        tuple<bool, shared_ptr<string>> GetReferrer(const string& address, int minTime)
         {
-            string result;
+            shared_ptr<string> result = nullptr;
 
             bool tryResult = TryTransactionStep([&]()
             {
@@ -242,11 +242,11 @@ namespace PocketDb
 
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
-                    result = GetColumnString(*stmt, 0);
+                    result = make_shared<string>(GetColumnString(*stmt, 0));
                 }
 
                 FinalizeSqlStatement(*stmt);
-                return !result.empty();
+                return result != nullptr;
             });
 
             return make_tuple(tryResult, result);

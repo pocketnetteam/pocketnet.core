@@ -196,9 +196,11 @@ namespace PocketDb
                     Height int not null,
                     Id     int not null,
                     Value  int not null,
-                    primary key (Type, Height, Id)
+                    primary key (Type, Height, Id, Value)
                 );
+                create index if not exists Ratings_Height on Ratings (Height);
                 create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
+                create index if not exists Ratings_Type_Height_Id on Ratings (Type, Height, Id);
 
                 --------------------------------------------
                 --                 VIEWS                  --

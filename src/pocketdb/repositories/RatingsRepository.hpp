@@ -26,7 +26,7 @@ namespace PocketDb
         void Init() override {}
         void Destroy() override {}
 
-        tuple<bool, int> GetUserReputation(string address, int height)
+        tuple<bool, int> GetUserReputation(const string& address, int height)
         {
             int result = 0;
             auto func = __func__;
@@ -68,7 +68,7 @@ namespace PocketDb
             return make_tuple(tryResult, result);
         }
 
-        tuple<bool, int> GetUserLikersCount(string address, int height)
+        tuple<bool, int> GetUserLikersCount(const string& address, int height)
         {
             int result = 0;
             auto func = __func__;
@@ -108,8 +108,8 @@ namespace PocketDb
         }
 
         tuple<bool, int> GetScoreContentCount(
-            PocketTxType scoreType, const string scoreAddress, const string contentAddress,
-            int height, const CTransactionRef& tx, const std::vector<int> values, int64_t scoresOneToOneDepth)
+            PocketTxType scoreType, const string& scoreAddress, const string& contentAddress,
+            int height, const CTransactionRef& tx, const std::vector<int>& values, int64_t scoresOneToOneDepth)
         {
             int result = 0;
             auto func = __func__;
@@ -178,6 +178,7 @@ namespace PocketDb
 
             return make_tuple(tryResult, result);
         }
+
     }; // namespace PocketDb
 }
 #endif //SRC_RATINGSREPOSITORY_HPP

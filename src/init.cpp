@@ -52,7 +52,7 @@
 
 #include <websocket/ws.h>
 #include "pocketdb/pocketnet.h"
-//#include "pocketdb/services/TransactionIndexer.hpp"
+#include "pocketdb/services/TransactionIndexer.hpp"
 
 
 #ifndef WIN32
@@ -912,8 +912,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (fReindex)
         {
             // Clear all calculating pocket tables
-            // TODO (brangr): test!
-            //PocketServices::TransactionIndexer::Rollback(0);
+            PocketServices::TransactionIndexer::Rollback(0);
             LogPrintf("PocketDb tables cleared!\n");
 
             int nFile = 0;
