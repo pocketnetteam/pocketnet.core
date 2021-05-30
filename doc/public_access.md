@@ -27,16 +27,21 @@
     ```
     server=1
     listen=1
+    wsuse=1
     port=37070
     rpcport=38081
-    # This opens access to the node management interface from external network
-    rpcallowip=0.0.0.0/0
+    wsport=8087
+    
     rpcthreads=1
     rpcworkqueue=1    
     rpcpostthreads=3
     rpcpostworkqueue=100
     rpcpublicthreads=5
     rpcpublicworkqueue=100
-    wsuse=1
-    wsport=8087
+    
+    # These opens access to the node management interface from external network
+    # These settings allow you to connect to your node and fully manage it. Be careful.
+    rpcallowip=0.0.0.0/0
+    rpcuser=<YOUR_SECRET_LOGIN>
+    rpcpassword=<YOUR_VERY_STRONG_PASSWORD>
     ```
