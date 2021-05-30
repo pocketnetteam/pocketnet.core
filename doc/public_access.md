@@ -39,9 +39,13 @@
     rpcpublicthreads=5
     rpcpublicworkqueue=100
     
-    # These opens access to the node management interface from external network
-    # These settings allow you to connect to your node and fully manage it. Be careful.
+    # ! These opens access to the node management interface from external network
+    # ! These settings allow you to connect to your node and fully manage it. Be careful.
     rpcallowip=0.0.0.0/0
-    rpcuser=<YOUR_SECRET_LOGIN>
-    rpcpassword=<YOUR_VERY_STRONG_PASSWORD>
+    
+    # Do not enter your username and password here if you are not sure that you need it.
+    # The node generates a random password at startup.
+    # Read more here: https://bitcoin.stackexchange.com/questions/46782/rpc-cookie-authentication
+    # rpcuser=<YOUR_SECRET_LOGIN>
+    # rpcpassword=<YOUR_VERY_STRONG_PASSWORD>
     ```
