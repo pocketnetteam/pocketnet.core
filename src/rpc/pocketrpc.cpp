@@ -3481,7 +3481,7 @@ UniValue getusercontents(const JSONRPCRequest& request)
             "\n.\n");
 
     std::string address = "";
-    if (!request.params.size() > 0) {
+    if (request.params.size() > 0) {
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
         address = request.params[0].get_str();
         CTxDestination dest = DecodeDestination(address);
