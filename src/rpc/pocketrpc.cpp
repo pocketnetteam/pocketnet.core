@@ -1087,26 +1087,37 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
 
     reindexer::QueryResults posts;
     g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber), posts);
-    std::map<std::string, int> postsCntLang;
+    //std::map<std::string, int> postsCntLang;
+    std::map<std::string, std::map<std::string, int>> contentLangCnt;
     for (auto& p : posts) {
         reindexer::Item postItm = p.GetItem();
 
         UniValue t(UniValue::VARR);
         std::string lang = postItm["lang"].As<string>();
-        if (postsCntLang.count(lang) == 0)
-            postsCntLang[lang] = 1;
-        else
-            postsCntLang[lang] += 1;
+//        if (postsCntLang.count(lang) == 0)
+//            postsCntLang[lang] = 1;
+//        else
+//            postsCntLang[lang] += 1;
+        contentLangCnt[getcontenttype(postItm["type"].As<int>())][lang] += 1;
     }
-    UniValue cntpostslang(UniValue::VOBJ);
-    for (std::map<std::string, int>::iterator itl = postsCntLang.begin(); itl != postsCntLang.end(); ++itl) {
-        cntpostslang.pushKV(itl->first, itl->second);
+//    UniValue cntpostslang(UniValue::VOBJ);
+//    for (std::map<std::string, int>::iterator itl = postsCntLang.begin(); itl != postsCntLang.end(); ++itl) {
+//        cntpostslang.pushKV(itl->first, itl->second);
+//    }
+    UniValue contentsLang(UniValue::VOBJ);
+    for (const auto& itemContent : contentLangCnt){
+        UniValue langContents(UniValue::VOBJ);
+        for (const auto& itemLang : itemContent.second) {
+            langContents.pushKV(itemLang.first, itemLang.second);
+        }
+        contentsLang.pushKV(getcontenttype(getcontenttype(itemContent.first)), langContents);
     }
 
     UniValue msg(UniValue::VOBJ);
     msg.pushKV("block", (int)chainActive.Height());
     msg.pushKV("cntposts", (int)posts.Count());
-    msg.pushKV("cntpostslang", cntpostslang);
+    //msg.pushKV("cntpostslang", cntpostslang);
+    msg.pushKV("contentsLang", contentsLang);
     a.push_back(msg);
 
     std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
@@ -2818,7 +2829,7 @@ UniValue converttxidaddress(const JSONRPCRequest& request)
     return result;
 }
 
-// Do not change input or output params (used in gethierarchicalstrip)
+// Do not change input or output params (used in gethierarchicalstrip & getusercontents)
 UniValue gethistoricalstrip(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -2942,6 +2953,37 @@ UniValue gethistoricalstrip(const JSONRPCRequest& request)
         }
     }
 
+    std::vector<string> tagsExcluded;
+    if (request.params.size() > 8) {
+        if (request.params[8].isStr()) {
+            tagsExcluded.push_back(request.params[8].get_str());
+        } else if (request.params[8].isArray()) {
+            UniValue tagsEx = request.params[8].get_array();
+            if (tagsEx.size() > 1000) {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array tags");
+            }
+            if(tagsEx.size() > 0) {
+                for (unsigned int idx = 0; idx < tagsEx.size(); idx++) {
+                    std::string tgsEx = boost::trim_copy(tagsEx[idx].get_str());
+                    if (!tgsEx.empty()) {
+                        tagsExcluded.push_back(tgsEx);
+                    }
+                }
+            }
+        }
+    }
+
+    std::string address = "";
+    if (request.params.size() > 9) {
+        RPCTypeCheckArgument(request.params[9], UniValue::VSTR);
+        address = request.params[9].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + address);
+        }
+    }
+
     reindexer::Error err;
     reindexer::Query query;
     reindexer::QueryResults queryResults;
@@ -2976,9 +3018,15 @@ UniValue gethistoricalstrip(const JSONRPCRequest& request)
     if (!adrsExcluded.empty()) {
         query = query.Not().Where("address", CondSet, adrsExcluded);
     }
+    if (!tagsExcluded.empty()) {
+        query = query.Not().Where("tags", CondSet, tagsExcluded);
+    }
+    if (!address.empty()){
+        query = query.Where("address", CondEq, address);
+    }
     query = query.Sort("block", true);
     query = query.Sort("time", true);
-    query = query.Limit(countOut + cntTransactionInSameBlock);
+    query = query.ReqTotal().Limit(countOut + cntTransactionInSameBlock);
 
     err = g_pocketdb->DB()->Select(query, queryResults);
 
@@ -3003,6 +3051,7 @@ UniValue gethistoricalstrip(const JSONRPCRequest& request)
     UniValue result(UniValue::VOBJ);
     result.pushKV("height", nHeight);
     result.pushKV("contents", contents);
+    result.pushKV("contentsTotal", queryResults.totalCount);
     return result;
 }
 
@@ -3423,6 +3472,128 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
     result.pushKV("contents", contents);
     return result;
 }
+
+UniValue getusercontents(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getusercontents\n"
+            "\n.\n");
+
+    std::string address = "";
+    if (!request.params[0].isNull()) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + address);
+        }
+    }
+
+    int nHeight = chainActive.Height();
+    if (request.params.size() > 1) {
+        if (request.params[1].isNum()) {
+            if (request.params[1].get_int() > 0) {
+                nHeight = request.params[1].get_int();
+            }
+        }
+    }
+
+    std::string start_txid = "";
+    if (request.params.size() > 2) {
+        start_txid = request.params[2].get_str();
+    }
+
+    int countOut = 10;
+    if (request.params.size() > 3) {
+        if (request.params[3].isNum()) {
+            countOut = request.params[3].get_int();
+        }
+    }
+
+    std::string lang = "";
+    if (request.params.size() > 4) {
+        lang = request.params[4].get_str();
+    }
+
+    std::vector<string> tags;
+    UniValue uvTags(UniValue::VARR);
+    if (request.params.size() > 5) {
+        if (request.params[5].isStr()) {
+            std::string tag = boost::trim_copy(request.params[5].get_str());
+            if (!tag.empty()) {
+                tags.push_back(tag);
+                uvTags.push_back(tag);
+            }
+        } else if (request.params[5].isArray()) {
+            UniValue tgs = request.params[5].get_array();
+            if (tgs.size() > 1000) {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array tags");
+            }
+            if(tgs.size() > 0) {
+                uvTags = tgs;
+                for (unsigned int idx = 0; idx < tgs.size(); idx++) {
+                    std::string tag = boost::trim_copy(tgs[idx].get_str());
+                    if (!tag.empty()) {
+                        tags.push_back(tag);
+                    }
+                }
+            }
+        }
+    }
+
+    std::vector<int> contentTypes;
+    UniValue uvContentTypes(UniValue::VARR);
+    if (request.params.size() > 6) {
+        if (request.params[6].isNum()) {
+            contentTypes.push_back(request.params[6].get_int());
+            uvContentTypes.push_back(request.params[6].get_int());
+        } else if (request.params[6].isStr()) {
+            if (getcontenttype(request.params[6].get_str()) >= 0) {
+                contentTypes.push_back(getcontenttype(request.params[6].get_str()));
+                uvContentTypes.push_back(request.params[6].get_str());
+            }
+        } else if (request.params[6].isArray()) {
+            UniValue cntntTps = request.params[6].get_array();
+            if (cntntTps.size() > 10) {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array content types");
+            }
+            if(cntntTps.size() > 0) {
+                uvContentTypes = cntntTps;
+                for (unsigned int idx = 0; idx < cntntTps.size(); idx++) {
+                    if (cntntTps[idx].isNum()) {
+                        contentTypes.push_back(cntntTps[idx].get_int());
+                    } else if (cntntTps[idx].isStr()) {
+                        if (getcontenttype(cntntTps[idx].get_str()) >= 0) {
+                            contentTypes.push_back(getcontenttype(cntntTps[idx].get_str()));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    UniValue uvEmpty(UniValue::VARR);
+    JSONRPCRequest new_request;
+    new_request = request;
+    UniValue new_params(UniValue::VARR);
+    new_params.push_back(nHeight);
+    new_params.push_back(start_txid);
+    new_params.push_back(countOut);
+    new_params.push_back(lang);
+    new_params.push_back(uvTags);
+    new_params.push_back(uvContentTypes);
+    new_params.push_back(uvEmpty);
+    new_params.push_back(uvEmpty);
+    new_params.push_back(uvEmpty);
+    new_params.push_back(address);
+
+    return gethistoricalstrip(new_request);
+
+    //UniValue result(UniValue::VOBJ);
+    //return result;
+}
 //----------------------------------------------------------
 
 static const CRPCCommand commands[] =
@@ -3459,6 +3630,8 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                                   false},
     {"pocketnetrpc", "gethistoricalstrip",                &gethistoricalstrip,                {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},
     {"pocketnetrpc", "gethierarchicalstrip",              &gethierarchicalstrip,              {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},
+
+    {"pocketnetrpc", "getusercontents",                   &getusercontents,                   {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"},                                                                   false},
 
     // Pocketnet transactions
     {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"}, false},

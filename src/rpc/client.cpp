@@ -198,12 +198,17 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"gethistoricalstrip",            5, "contenttypes"},
         {"gethistoricalstrip",            6, "txids_exclude"},
         {"gethistoricalstrip",            7, "adrs_exclude"},
+        {"gethistoricalstrip",            8, "tags_exclude"},
         {"gethierarchicalstrip",          0, "height"},
         {"gethierarchicalstrip",          2, "count"},
         {"gethierarchicalstrip",          4, "tags"},
         {"gethierarchicalstrip",          5, "contenttypes"},
         {"gethierarchicalstrip",          6, "txids_exclude"},
         {"gethierarchicalstrip",          7, "adrs_exclude"},
+        {"getusercontents",          1, "height"},
+        {"getusercontents",          3, "count"},
+        {"getusercontents",          5, "tags"},
+        {"getusercontents",          6, "contenttypes"},
 
         {"getemission",                   0, "height"},
     };
