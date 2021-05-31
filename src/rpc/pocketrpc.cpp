@@ -2369,7 +2369,7 @@ UniValue getlastcomments(const JSONRPCRequest& request)
 
         string cmntLang = it.GetJoined()[0][0].GetItem()["lang"].As<string>();
 
-        if(!lang.empty() && cmntLang == lang) {
+        if(!lang.empty() && cmntLang == lang && cmntItm["msg"].As<string>().length() > 50) {
             UniValue oCmnt(UniValue::VOBJ);
             oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
             oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
@@ -3481,7 +3481,7 @@ UniValue getusercontents(const JSONRPCRequest& request)
             "\n.\n");
 
     std::string address = "";
-    if (!request.params[0].isNull()) {
+    if (!request.params.size() > 0) {
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
         address = request.params[0].get_str();
         CTxDestination dest = DecodeDestination(address);
@@ -3489,6 +3489,8 @@ UniValue getusercontents(const JSONRPCRequest& request)
         if (!IsValidDestination(dest)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + address);
         }
+    } else {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "address is required");
     }
 
     int nHeight = chainActive.Height();
@@ -3588,6 +3590,7 @@ UniValue getusercontents(const JSONRPCRequest& request)
     new_params.push_back(uvEmpty);
     new_params.push_back(uvEmpty);
     new_params.push_back(address);
+    new_request.params = new_params;
 
     return gethistoricalstrip(new_request);
 
