@@ -11,9 +11,6 @@
 #include <stdint.h>
 #include <vector>
 
-// TODO (brangr): REINDEXER -> SQLITE
-// #include "index/addrindex.h"
-
 class CBlockIndex;
 class CCoinsViewCache;
 class CTransaction;

@@ -1740,7 +1740,6 @@ bool AppInitMain()
     }
 
     // ********************************************************* Step 4.1: Start PocketDB
-    // TODO (brangr): REINDEXER -> SQLITE
     uiInterface.InitMessage(_("Loading Pocket DB..."));
 
     PocketDb::SQLiteDbInst.Init(
@@ -2063,34 +2062,6 @@ bool AppInitMain()
                                          "Only rebuild the block database if you are sure that your computer's date and time are correct");
                         break;
                     }
-
-                    // TODO (brangr): REINDEXER -> SQLITE
-                    // {
-                    //     LogPrintf("Check Reindexer DB...");
-
-                    //     std::vector<reindexer::NamespaceDef> nss;
-                    //     reindexer::Error err = g_pocketdb->DB()->EnumNamespaces(nss, false);
-                    //     if (err.ok()) {
-                    //         bool rChecked = true;
-                    //         for (auto& ns : nss) {
-                    //             reindexer::QueryResults res;
-                    //             err = g_pocketdb->DB()->Select(reindexer::Query(ns.name), res);
-                    //             if (!err.ok()) {
-                    //                 LogPrintf(" error check table %s - %d (%s)\n", ns.name, err.code(), err.what());
-                    //                 rChecked = false;
-                    //                 break;
-                    //             }
-                    //         }
-
-                    //         if (rChecked)
-                    //             LogPrintf(" success.\n");
-                    //         else
-                    //             break;
-                    //     } else {
-                    //         LogPrintf(" error get namespaces - %d (%s)\n", err.code(), err.what());
-                    //         break;
-                    //     }
-                    // }
 
                     if (!CVerifyDB().VerifyDB(chainparams, pcoinsdbview.get(),
                         gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL),

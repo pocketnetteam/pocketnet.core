@@ -29,9 +29,7 @@
 #include <queue>
 #include <utility>
 
-// TODO (brangr): REINDEXER -> SQLITE
-//#include "index/addrindex.h"
-//#include "antibot/antibot.h"
+#include "pocketdb/helpers/TransactionHelper.hpp"
 
 // Unconfirmed transactions in the memory pool often depend on other
 // transactions in the memory pool. When we select transactions from the
@@ -80,7 +78,8 @@ static BlockAssembler::Options DefaultOptions()
         CAmount n = 0;
         ParseMoney(gArgs.GetArg("-blockmintxfee", ""), n);
         options.blockMinFeeRate = CFeeRate(n);
-    } else
+    }
+    else
     {
         options.blockMinFeeRate = CFeeRate(DEFAULT_BLOCK_MIN_TX_FEE);
     }
@@ -172,7 +171,8 @@ BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessT
     {
         coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
         coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    } else
+    }
+    else
     {
         coinbaseTx.vout[0].scriptPubKey.clear();
         coinbaseTx.vout[0].nValue = 0;
@@ -227,7 +227,8 @@ void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
         if (inBlock.count(*iit))
         {
             testSet.erase(iit++);
-        } else
+        }
+        else
         {
             iit++;
         }
@@ -237,6 +238,8 @@ void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
 bool BlockAssembler::TestTransaction(CTransactionRef& tx)
 {
     // TODO (brangr): REINDEXER -> SQLITE
+    // Принять аргументом инстанс единого консенсуса для моделей
+    // Проверить валидность включаемой в блок транзакции
     return true;
 
     // std::string ri_table;
@@ -363,7 +366,8 @@ int BlockAssembler::UpdatePackagesForAdded(const CTxMemPool::setEntries& already
                 modEntry.nModFeesWithAncestors -= it->GetModifiedFee();
                 modEntry.nSigOpCostWithAncestors -= it->GetSigOpCost();
                 mapModifiedTx.insert(modEntry);
-            } else
+            }
+            else
             {
                 mapModifiedTx.modify(mit, update_for_parent_inclusion(it));
             }
@@ -450,7 +454,8 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
             // We're out of entries in mapTx; use the entry from mapModifiedTx
             iter = modit->iter;
             fUsingModified = true;
-        } else
+        }
+        else
         {
             // Try to compare the mapTx entry to the mapModifiedTx entry
             iter = mempool.mapTx.project<0>(mi);
@@ -462,7 +467,8 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
                 // Switch which transaction (package) to consider
                 iter = modit->iter;
                 fUsingModified = true;
-            } else
+            }
+            else
             {
                 // Either no entry in mapModifiedTx, or it's worse than mapTx.
                 // Increment mi for the next loop iteration.
@@ -484,20 +490,16 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
             packageSigOpsCost = modit->nSigOpCostWithAncestors;
         }
 
-        //---------------------------------
-        // TODO (brangr): REINDEXER -> SQLITE
-//        CAmount minFee = g_addrindex->IsPocketnetTransaction(iter->GetSharedTx()) ?
-//                         DEFAULT_MIN_POCKETNET_TX_FEE :
-//                         blockMinFeeRate.GetFee(packageSize);
-
-        CAmount minFee = blockMinFeeRate.GetFee(packageSize);
+        CAmount minFee = PocketHelpers::IsPocketnetTransaction(iter->GetSharedTx()) ?
+                         DEFAULT_MIN_POCKETNET_TX_FEE :
+                         blockMinFeeRate.GetFee(packageSize);
 
         if (packageFees < minFee)
         {
             // Everything else we might consider has a lower fee rate
             return;
         }
-        //---------------------------------
+
         CTransactionRef tx = iter->GetSharedTx();
         if (!TestPackage(packageSize, packageSigOpsCost) || !TestTransaction(tx))
         {
@@ -512,12 +514,12 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
 
             ++nConsecutiveFailed;
 
-            if (nConsecutiveFailed > MAX_CONSECUTIVE_FAILURES && nBlockWeight >
-                                                                 nBlockMaxWeight - 4000)
+            if (nConsecutiveFailed > MAX_CONSECUTIVE_FAILURES && nBlockWeight > nBlockMaxWeight - 4000)
             {
                 // Give up if we're close to full and haven't succeeded in a while
                 break;
             }
+
             continue;
         }
 

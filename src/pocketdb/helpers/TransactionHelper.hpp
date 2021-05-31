@@ -76,6 +76,21 @@ namespace PocketHelpers
         return PocketTxType::TX_DEFAULT;
     }
 
+    static string ParseAsmType(const CTransactionRef& tx, vector<string>& vasm)
+    {
+        if (tx->vout.empty())
+            return "";
+
+        const CTxOut& txout = tx->vout[0];
+        if (txout.scriptPubKey[0] == OP_RETURN)
+        {
+            auto asmStr = ScriptToAsmStr(txout.scriptPubKey);
+            boost::split(vasm, asmStr, boost::is_any_of("\t "));
+            if (vasm.size() >= 2)
+                return vasm[1];
+        }
+    }
+
     static PocketTxType ParseType(const CTransactionRef& tx, vector<string>& vasm)
     {
         if (tx->vin.empty())
@@ -87,16 +102,7 @@ namespace PocketHelpers
         if (tx->IsCoinStake())
             return PocketTxType::TX_COINSTAKE;
 
-        const CTxOut& txout = tx->vout[0];
-        if (txout.scriptPubKey[0] == OP_RETURN)
-        {
-            auto asmStr = ScriptToAsmStr(txout.scriptPubKey);
-            boost::split(vasm, asmStr, boost::is_any_of("\t "));
-            if (vasm.size() >= 2)
-                return ConvertOpReturnToType(vasm[1]);
-        }
-
-        return PocketTxType::TX_DEFAULT;
+        return ConvertOpReturnToType(ParseAsmType(tx, vasm));
     }
 
     static PocketTxType ParseType(const CTransactionRef& tx)
@@ -152,6 +158,16 @@ namespace PocketHelpers
             return PocketTxType::ACTION_COMPLAIN;
 
         return PocketTxType::NOT_SUPPORTED;
+    }
+
+    static bool IsPocketTransaction(const CTransactionRef& tx)
+    {
+        auto txType = ParseType(tx);
+
+        return txType != NOT_SUPPORTED &&
+               txType != TX_COINBASE &&
+               txType != TX_COINSTAKE &&
+               txType != TX_DEFAULT;
     }
 
     static tuple<bool, ScoreDataDto> ParseScore(const CTransactionRef& tx)
