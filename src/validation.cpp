@@ -2443,36 +2443,29 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // -----------------------------------------------------------------------------------------------------------------
     // Checks PoS logic
-    // TODO (brangr): need?
-//    if (pindex->nHeight == Params().GetConsensus().nHeight_version_1_0_0_pre)
-//    {
-//        if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
-//        {
-//            return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
-//        }
-//    }
+    if (pindex->nHeight == Params().GetConsensus().nHeight_version_1_0_0_pre)
+    {
+        if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
+        {
+            return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
+        }
+    }
 
-    // TODO (brangr): включаем проверку ПоС в "мягком" режиме
-    // pindex->nHeight > Params().GetConsensus().nHeight_version_1_0_0_pre &&
-    if (block.IsProofOfStake())
+    if (pindex->nHeight > Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
     {
         int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
         if (nStakeReward > nCalculatedStakeReward)
         {
-            LogPrintf("@@@ 1 %s %d (actual=%d vs calc=%d)\n", pindex->GetBlockHash().GetHex(), pindex->nHeight,
-                nStakeReward, nCalculatedStakeReward);
-
-//            return state.DoS(100,
-//                error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward,
-//                    nCalculatedStakeReward));
+            return state.DoS(100,
+                error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward,
+                    nCalculatedStakeReward));
         }
 
         int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
-        // TODO (brangr) (v0.20.0): check pocket lottery rules
         if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
         {
-            LogPrintf("@@@ 2 %s\n", block.GetHash().ToString());
+            LogPrintf("@@@ 2 %s (%d)\n", block.GetHash().ToString(), pindex->nHeight);
             //if (IsCheckpointBlock(pindex->nHeight, block.GetHash().ToString()))
             //    LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
             //else
@@ -4443,7 +4436,8 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
 
     if (blockOuts.size() != genOuts.size())
     {
-        LogPrintf("@@@ 2.1 blockOuts.size(%d) != genOuts.size(%d)\n", blockOuts.size(), genOuts.size());
+        LogPrintf("@@@ 2.1 %s (%d) : blockOuts.size(%d) != genOuts.size(%d)\n",
+            block.GetHash().ToString(), pindexPrev->nHeight+1, blockOuts.size(), genOuts.size());
         return false;
     }
 
@@ -4456,7 +4450,8 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
 
         valid = valid && (bOut == gOut);
         if (!valid)
-            LogPrintf("@@@ 2.2 bOut(%s) != gOut(%s)\n", bOut.ToString().c_str(), gOut.ToString().c_str());
+            LogPrintf("@@@ 2.2 %s : bOut(%s) != gOut(%s)\n",
+                block.GetHash().ToString(), bOut.ToString().c_str(), gOut.ToString().c_str());
     }
 
     return valid;

@@ -35,6 +35,7 @@ namespace PocketServices
         {
             auto result = true;
 
+            result &= RollbackChain(height);
             result &= IndexChain(block, height);
             result &= IndexRatings(block, height);
 
