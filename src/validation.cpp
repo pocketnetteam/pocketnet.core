@@ -4425,37 +4425,38 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
 
     // ReCalculate all winners for this block
     CAmount rewardsTotal = 0;
-    std::vector<CTxOut> txns;
+    std::vector<CTxOut> genOuts;
     std::vector<opcodetype> winner_types;
-    if (!GetRatingRewards(calculated, txns, rewardsTotal, pindexPrev, hashProofOfStakeSource, winner_types, &block))
+    if (!GetRatingRewards(calculated, genOuts, rewardsTotal, pindexPrev, hashProofOfStakeSource, winner_types, &block))
         return false;
 
     // Prepare winners from block
-    std::vector<CTxOut> vouts;
-    for (const auto& out : block.vtx[1]->vout) {
+    std::vector<CTxOut> blockOuts;
+    for (const auto& out : block.vtx[1]->vout)
+    {
         auto outType = PocketHelpers::ScriptType(out.scriptPubKey);
-        if (outType == TX_PUBKEYHASH) {
-            vouts.push_back(out);
+        if (outType == TX_PUBKEYHASH)
+        {
+            blockOuts.push_back(out);
         }
     }
 
-    if (vouts.size() != txns.size())
+    if (blockOuts.size() != genOuts.size())
+    {
+        LogPrintf("@@@ 2.1 blockOuts.size(%d) != genOuts.size(%d)\n", blockOuts.size(), genOuts.size());
         return false;
+    }
 
     // Compare block and calculated outs
     auto valid = true;
-    for (int i = 0; i < (int) vouts.size(); i++)
+    for (int i = 0; i < (int) blockOuts.size(); i++)
     {
-        auto vout = vouts[i];
-        auto txnRef = txns[i];
+        auto bOut = blockOuts[i];
+        auto gOut = genOuts[i];
 
-        valid = valid && (vout == txnRef);
+        valid = valid && (bOut == gOut);
         if (!valid)
-        {
-            LogPrintf("%s\n", vout.ToString().c_str());
-            LogPrintf("%s\n", txnRef.ToString().c_str());
-            LogPrintf("NOT VALID\n");
-        }
+            LogPrintf("@@@ 2.2 bOut(%s) != gOut(%s)\n", bOut.ToString().c_str(), gOut.ToString().c_str());
     }
 
     return valid;
