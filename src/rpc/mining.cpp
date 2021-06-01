@@ -30,8 +30,6 @@
 #include <memory>
 #include <stdint.h>
 
-#include "pocketdb/helpers/TypesHelper.hpp"
-
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
     int target = value.get_int();

@@ -35,7 +35,9 @@
 #include <atomic>
 #include <pubkey.h>
 
+#include "pocketdb/pocketnet.h"
 #include "pocketdb/helpers/TypesHelper.hpp"
+#include "pocketdb/services/TransactionIndexer.hpp"
 #include "websocket/ws.h"
 
 extern std::map<std::string, WSUser> WSConnections;

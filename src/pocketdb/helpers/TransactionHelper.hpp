@@ -22,18 +22,28 @@ namespace PocketHelpers
 
     using namespace PocketTx;
 
+    static txnouttype ScriptType(const CScript& scriptPubKey)
+    {
+        std::vector<std::vector<unsigned char>> vSolutions;
+        return Solver(scriptPubKey, vSolutions);
+    }
+
+    static std::string ExtractDestination(const CScript& scriptPubKey)
+    {
+        CTxDestination destAddress;
+        if (ExtractDestination(scriptPubKey, destAddress))
+            return EncodeDestination(destAddress);
+
+        return "";
+    }
+
     static tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx)
     {
-        if (tx->vout.empty())
+        if (tx->vout.size() < 2)
             return make_tuple(false, "");
 
-        CTxDestination address;
-        if (ExtractDestination(tx->vout[0].scriptPubKey, address))
-        {
-            return make_tuple(true, EncodeDestination(address));
-        }
-
-        return make_tuple(false, "");
+        string address = ExtractDestination(tx->vout[1].scriptPubKey);
+        return make_tuple(!address.empty(), address);
     }
 
     static PocketTxType ConvertOpReturnToType(const string& op)

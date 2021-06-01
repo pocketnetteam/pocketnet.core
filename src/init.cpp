@@ -50,10 +50,6 @@
 #include <walletinitinterface.h>
 #include <warnings.h>
 
-#include <websocket/ws.h>
-#include "pocketdb/pocketnet.h"
-#include "pocketdb/services/TransactionIndexer.hpp"
-
 
 #ifndef WIN32
 

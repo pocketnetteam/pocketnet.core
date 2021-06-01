@@ -15,8 +15,8 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
-// TODO (brangr): REINDEXER -> SQLITE
-//#include "antibot/antibot.h"
+#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TypesHelper.hpp"
 
 class CBlockIndex;
 class CChainParams;
@@ -144,7 +144,7 @@ private:
     CAmount nFees;
     CTxMemPool::setEntries inBlock;
 
-    // TODO (brangr): REINDEXER -> SQLITE
+    // TODO (brangr): REINDEXER -> SQLITE = create block model
     //BlockVTX blockVtx;
 
     // Chain context for the block

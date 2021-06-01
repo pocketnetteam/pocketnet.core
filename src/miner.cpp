@@ -29,8 +29,6 @@
 #include <queue>
 #include <utility>
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
-
 // Unconfirmed transactions in the memory pool often depend on other
 // transactions in the memory pool. When we select transactions from the
 // pool, we select by highest fee rate of a transaction combined with all
@@ -490,7 +488,7 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
             packageSigOpsCost = modit->nSigOpCostWithAncestors;
         }
 
-        CAmount minFee = PocketHelpers::IsPocketnetTransaction(iter->GetSharedTx()) ?
+        CAmount minFee = PocketHelpers::IsPocketTransaction(iter->GetSharedTx()) ?
                          DEFAULT_MIN_POCKETNET_TX_FEE :
                          blockMinFeeRate.GetFee(packageSize);
 

@@ -12,6 +12,8 @@
 #include "pocketdb/pocketnet.h"
 #include <utilstrencodings.h>
 
+#include "pocketdb/services/TransactionSerializer.hpp"
+
 /** Default for -maxorphantx, maximum number of orphan transactions kept in memory */
 static const unsigned int DEFAULT_MAX_ORPHAN_TRANSACTIONS = 100;
 /** Default number of orphan+recently-replaced txn to keep around for block reconstruction */

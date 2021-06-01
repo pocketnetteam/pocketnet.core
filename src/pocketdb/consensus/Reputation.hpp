@@ -130,7 +130,6 @@ namespace PocketConsensus
 
             return true;
         }
-
     };
 
     /*******************************************************************************************************************
@@ -149,7 +148,7 @@ namespace PocketConsensus
         int64_t GetScoresToPostModifyReputationDepth() override { return 336 * 24 * 3600; }
     public:
         ReputationConsensus_checkpoint_0(int height) : ReputationConsensus(height) {}
-    }; // class ReputationConsensus_checkpoint_0
+    };
 
     /*******************************************************************************************************************
     *
@@ -217,7 +216,6 @@ namespace PocketConsensus
     *  Consensus checkpoint at 1124000 block
     *
     *******************************************************************************************************************/
-    //TODO (brangr): check (int)params.GetConsensus().checkpoint_0_19_3 == 889524
     class ReputationConsensus_checkpoint_1124000 : public ReputationConsensus_checkpoint_322700
     {
     protected:

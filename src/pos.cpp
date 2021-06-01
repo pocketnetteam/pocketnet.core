@@ -14,9 +14,6 @@
 #include <utiltime.h>
 #include <validation.h>
 #include <wallet/wallet.h>
-
-#include "pocketdb/consensus.h"
-#include "pocketdb/helpers/TypesHelper.hpp"
 #include "util.h"
 
 double GetPosDifficulty(const CBlockIndex *blockindex)
@@ -651,9 +648,8 @@ bool GenerateOuts(CAmount nCredit,
 
         CTxDestination dest = DecodeDestination(addr);
         CScript scriptPubKey = GetScriptForDestination(dest);
+        results.emplace_back(re, scriptPubKey);
 
         lotteryInst->ExtendWinnerTypes(type, winner_types);
-
-        results.emplace_back(re, scriptPubKey);
     }
 }

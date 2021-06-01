@@ -108,25 +108,34 @@ namespace PocketConsensus
                 // Parse asm and get destination address and score value
                 // In lottery allowed only likes to posts and comments
                 // Also in lottery allowed only positive scores
-                auto[ok, scoreData] = PocketHelpers::ParseScore(tx);
+
+                //auto[ok, scoreData] = PocketHelpers::ParseScore(tx);
+                //if (!ok) continue;
+
+                auto txType = PocketHelpers::ParseType(tx);
+                if (txType != PocketTxType::ACTION_SCORE_POST &&
+                    txType != PocketTxType::ACTION_SCORE_COMMENT)
+                    continue;
+
+                auto[ok, scoreData] = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
                 if (!ok) continue;
 
-                if (scoreData.ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT && scoreData.ScoreValue != 1)
+                if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT && scoreData->ScoreValue != 1)
                 {
                     continue;
                 }
 
-                if (scoreData.ScoreType == PocketTx::PocketTxType::ACTION_SCORE_POST &&
-                    scoreData.ScoreValue != 4 && scoreData.ScoreValue != 5)
+                if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_POST &&
+                    scoreData->ScoreValue != 4 && scoreData->ScoreValue != 5)
                 {
                     continue;
                 }
 
                 if (!reputationConsensus->AllowModifyReputation(
-                    scoreData.ScoreType,
+                    scoreData->ScoreType,
                     tx,
-                    scoreData.ScoreAddressHash,
-                    scoreData.ContentAddressHash,
+                    scoreData->ScoreAddressHash,
+                    scoreData->ContentAddressHash,
                     Height,
                     true
                 ))
@@ -134,16 +143,16 @@ namespace PocketConsensus
                     continue;
                 }
 
-                if (scoreData.ScoreType != PocketTx::PocketTxType::ACTION_SCORE_POST)
+                if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_POST)
                 {
-                    postCandidates[scoreData.ContentAddressHash] += (scoreData.ScoreValue - 3);
-                    ExtendReferrer(scoreData.ContentAddressHash, (int64_t) tx->nTime, postReferrersCandidates);
+                    postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
+                    ExtendReferrer(scoreData->ContentAddressHash, (int64_t) tx->nTime, postReferrersCandidates);
                 }
 
-                if (scoreData.ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT)
+                if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT)
                 {
-                    commentCandidates[scoreData.ContentAddressHash] += scoreData.ScoreValue;
-                    ExtendReferrer(scoreData.ContentAddressHash, (int64_t) tx->nTime, commentReferrersCandidates);
+                    commentCandidates[scoreData->ContentAddressHash] += scoreData->ScoreValue;
+                    ExtendReferrer(scoreData->ContentAddressHash, (int64_t) tx->nTime, commentReferrersCandidates);
                 }
             }
 

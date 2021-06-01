@@ -32,8 +32,6 @@
 
 #include <memory>
 
-#include "pocketdb/services/TransactionSerializer.hpp"
-
 #if defined(NDEBUG)
 #error "Pocketcoin cannot be compiled without assertions."
 #endif
