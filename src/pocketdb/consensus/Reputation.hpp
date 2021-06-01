@@ -21,7 +21,7 @@ namespace PocketConsensus
     protected:
         virtual int64_t GetThresholdReputationScore() = 0;
 
-        virtual int64_t GetThresholdLikersCount() = 0; //TODO set
+        virtual int64_t GetThresholdLikersCount() = 0;
 
         virtual int64_t GetScoresOneToOne() = 0;
 
@@ -36,12 +36,14 @@ namespace PocketConsensus
         {
             // Ignore scores from users with rating < Antibot::Limit::threshold_reputation_score
             auto minUserReputation = GetThresholdReputationScore();
-            auto[ok, getResult] = PocketDb::RatingsRepoInst.GetUserReputation(address, height);
-            if (!ok || getResult < minUserReputation) return false;
+            if (auto[ok, getResult] = PocketDb::RatingsRepoInst.GetUserReputation(address, height);
+                !ok || getResult < minUserReputation)
+                return false;
 
             auto minLikersCount = GetThresholdLikersCount();
-            auto[getOk, userLikers] = PocketDb::RatingsRepoInst.GetUserLikersCount(address, height);
-            if (!getOk || userLikers < minLikersCount) return false;
+            if (auto[ok, userLikers] = PocketDb::RatingsRepoInst.GetUserLikersCount(address, height);
+                !ok || userLikers < minLikersCount)
+                return false;
 
             // All is OK
             return true;
@@ -141,7 +143,7 @@ namespace PocketConsensus
     {
     protected:
         int64_t GetThresholdLikersCount() override { return 0; }
-        int64_t GetThresholdReputationScore() override { return -10000; }
+        int64_t GetThresholdReputationScore() override { return 0; }
         int64_t GetScoresOneToOneOverComment() override { return 20; }
         int64_t GetScoresOneToOne() override { return 99999; }
         int64_t GetScoresOneToOneDepth() override { return 336 * 24 * 3600; }
@@ -155,8 +157,6 @@ namespace PocketConsensus
     *  Consensus checkpoint at 108300 block
     *
     *******************************************************************************************************************/
-    //TODO (brangr): check (int)params.GetConsensus().nHeight_version_1_0_0 == 108300
-    // тут должна по идее начаться проверка, т.е раньше либо чекпойнты либо скип
     class ReputationConsensus_checkpoint_108300 : public ReputationConsensus_checkpoint_0
     {
     protected:

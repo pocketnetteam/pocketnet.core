@@ -36,12 +36,13 @@ namespace PocketDb
                 auto stmt = SetupSqlStatement(R"sql(
                     select r.Value
                     from Ratings r
-                    where r.Type = ? and r.Height <= ? and r.Id = (select t.Id from vUsers t where t.Hash = ? limit 1)
+                    where r.Type = ?
+                        and r.Height <= ?
+                        and r.Id = (select t.Id from vUsers t where t.AddressHash = ? limit 1)
                     order by r.Height desc
                     limit 1
                 )sql");
 
-                //TODO (joni): check
                 auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT);
                 auto heightPtr = make_shared<int>(height);
                 auto idPtr = make_shared<string>(address);
@@ -78,10 +79,11 @@ namespace PocketDb
                 auto stmt = SetupSqlStatement(R"sql(
                     select count(1)
                     from Ratings r
-                    where r.Type = ? and r.Height <= ? and r.Id = (select t.Id from vUsers t where t.Hash = ? limit 1)
+                    where r.Type = ?
+                        and r.Height <= ?
+                        and r.Id = (select t.Id from vUsers t where t.AddressHash = ? limit 1)
                 )sql");
 
-                //TODO (joni): check
                 auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT_LIKERS);
                 auto heightPtr = make_shared<int>(height);
                 auto idPtr = make_shared<string>(address);

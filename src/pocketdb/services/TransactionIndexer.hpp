@@ -175,7 +175,6 @@ namespace PocketServices
                 }
             }
 
-            // TODO (brangr): check likers not inserted to DB
             for (const auto& acc : accountLikers)
             {
                 for (const auto& lkrId : acc.second)
