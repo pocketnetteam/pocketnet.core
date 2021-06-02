@@ -1990,7 +1990,7 @@ UniValue gethotposts(const JSONRPCRequest& request)
             contentTypes.push_back(request.params[4].get_int());
         } else if (request.params[4].isStr()) {
             if (getcontenttype(request.params[4].get_str()) >= 0) {
-                contentTypes.push_back(getcontenttype(request.params[5].get_str()));
+                contentTypes.push_back(getcontenttype(request.params[4].get_str()));
             }
         } else if (request.params[4].isArray()) {
             UniValue cntntTps = request.params[4].get_array();
