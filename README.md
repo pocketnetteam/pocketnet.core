@@ -82,7 +82,7 @@ $ pocketcoind --help
 2. Download database archive:
     * With torrent:
         ```
-        magnet:?xt=urn:btih:cf4838bb06263064f8d8505565e9998692ef760c&dn=pocketnet.checkpoint.1182423.tar.gz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
+        magnet:?xt=urn:btih:d5f6b9909953ec7a79dc040dfa66fca441936ce1&dn=pocketnet.checkpoint.1202763.tar.gz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
         ```
     * With direct link from pocketnet.app host:
         ```
