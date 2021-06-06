@@ -99,7 +99,12 @@ namespace PocketServices
 
                 // Need select content id for saving rating
                 auto[scoreDataResult, scoreData] = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
-                if (!scoreDataResult) continue;
+                if (!scoreDataResult) {
+                    LogPrintf("*** 1 h:%d tx:%s - GetScoreData failed\n", height, tx->GetHash().GetHex());
+                    continue;
+                }
+
+                LogPrintf("*** 2 h:%d tx:%s - %s\n", height, tx->GetHash().GetHex(), scoreData->Serialize()->write());
 
                 // Old posts denied change reputation
                 if (!reputationConsensus->AllowModifyOldPosts(
@@ -107,6 +112,7 @@ namespace PocketServices
                     scoreData->ContentTime,
                     scoreData->ContentType))
                 {
+                    LogPrintf("*** 3 h:%d tx:%s - AllowModifyOldPosts failed\n", height, tx->GetHash().GetHex());
                     continue;
                 }
 
@@ -119,6 +125,7 @@ namespace PocketServices
                     height,
                     false))
                 {
+                    LogPrintf("*** 4 h:%d tx:%s - AllowModifyReputation failed\n", height, tx->GetHash().GetHex());
                     continue;
                 }
 
@@ -193,7 +200,7 @@ namespace PocketServices
                 return true;
 
             // Save all ratings in one transaction
-            return PocketDb::ChainRepoInst.InsertRatings(ratings);
+            return PocketDb::RatingsRepoInst.InsertRatings(ratings);
         }
 
 

@@ -26,6 +26,21 @@ namespace PocketDb
         void Init() override {}
         void Destroy() override {}
 
+        // Accumulate new rating records
+        bool InsertRatings(shared_ptr<vector<Rating>> ratings)
+        {
+            return TryTransactionStep([&]()
+            {
+                for (const auto& rating : *ratings)
+                {
+                    if (*rating.GetType() != RatingType::RATING_ACCOUNT_LIKERS)
+                        InsertRating(rating);
+                    else
+                        InsertLiker(rating);
+                }
+            });
+        }
+
         tuple<bool, int> GetUserReputation(const string& address, int height)
         {
             int result = 0;
@@ -37,19 +52,23 @@ namespace PocketDb
                     select r.Value
                     from Ratings r
                     where r.Type = ?
-                        and r.Height <= ?
                         and r.Id = (select t.Id from vUsers t where t.AddressHash = ? limit 1)
-                    order by r.Height desc
+                        and r.Height is not null
+                        and r.Height = (
+                            select max(r1.Height)
+                            from Ratings r1
+                            where r1.Type=r.Type and r1.Id=r.Id and r1.Height<=?
+                        )
                     limit 1
                 )sql");
 
                 auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT);
                 auto heightPtr = make_shared<int>(height);
-                auto idPtr = make_shared<string>(address);
+                auto addressPtr = make_shared<string>(address);
 
                 auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
-                bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
-                bindResult &= TryBindStatementText(stmt, 3, idPtr);
+                bindResult &= TryBindStatementText(stmt, 2, addressPtr);
+                bindResult &= TryBindStatementInt(stmt, 3, heightPtr);
 
                 if (!bindResult)
                 {
@@ -179,6 +198,81 @@ namespace PocketDb
             });
 
             return make_tuple(tryResult, result);
+        }
+
+    private:
+
+        void InsertRating(const Rating& rating)
+        {
+            // Build sql statement with auto select IDs
+            // TODO (brangr): limit 1 after debugging
+            auto stmt = SetupSqlStatement(R"sql(
+                INSERT OR FAIL INTO Ratings (
+                    Type,
+                    Height,
+                    Id,
+                    Value
+                ) SELECT ?,?,?,
+                    ifnull((
+                        select r.Value
+                        from Ratings r
+                        where r.Type = ?
+                            and r.Id = ?
+                            and r.Height is not null
+                            and r.Height = (
+                                select max(r1.Height)
+                                from Ratings r1
+                                where r1.Type=r.Type and r1.Id=r.Id and r1.Height<?
+                            )
+                        -- limit 1
+                    ), 0) + ?
+            )sql");
+
+            // Bind arguments
+            auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+            result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
+            result &= TryBindStatementInt64(stmt, 3, rating.GetId());
+            result &= TryBindStatementInt(stmt, 4, rating.GetTypeInt());
+            result &= TryBindStatementInt64(stmt, 5, rating.GetId());
+            result &= TryBindStatementInt(stmt, 6, rating.GetHeight());
+            result &= TryBindStatementInt64(stmt, 7, rating.GetValue());
+            if (!result)
+                throw runtime_error(strprintf("%s: can't insert in ratings (bind)\n", __func__));
+
+            // Try execute
+            if (!TryStepStatement(stmt))
+                throw runtime_error(strprintf("%s: can't insert in ratings (step) Type:%d Height:%d Hash:%s\n",
+                    __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId()));
+        }
+
+        void InsertLiker(const Rating& rating)
+        {
+            // Build sql statement with auto select IDs
+            auto stmt = SetupSqlStatement(R"sql(
+                INSERT OR FAIL INTO Ratings (
+                    Type,
+                    Height,
+                    Id,
+                    Value
+                ) SELECT ?,?,?,?
+                WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
+            )sql");
+
+            // Bind arguments
+            auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+            result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
+            result &= TryBindStatementInt64(stmt, 3, rating.GetId());
+            result &= TryBindStatementInt64(stmt, 4, rating.GetValue());
+            result &= TryBindStatementInt(stmt, 5, rating.GetTypeInt());
+            result &= TryBindStatementInt64(stmt, 6, rating.GetId());
+            result &= TryBindStatementInt64(stmt, 7, rating.GetValue());
+            if (!result)
+                throw runtime_error(strprintf("%s: can't insert in likers (bind)\n", __func__));
+
+            // Try execute
+            if (!TryStepStatement(stmt))
+                throw runtime_error(strprintf("%s: can't insert in likers (step) Type:%d Height:%d Hash:%s Value:%s\n",
+                    __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId(), *rating.GetValue()));
         }
 
     }; // namespace PocketDb

@@ -89,6 +89,24 @@ namespace PocketTx
         int ContentAddressId;
         string ContentAddressHash;
         int64_t ContentTime;
+
+        shared_ptr<UniValue> Serialize() override
+        {
+            UniValue ret(UniValue::VOBJ);
+            ret.pushKV("ScoreType", (int)ScoreType);
+            ret.pushKV("ScoreTxHash", ScoreTxHash);
+            ret.pushKV("ScoreAddressId", ScoreAddressId);
+            ret.pushKV("ScoreAddressHash", ScoreAddressHash);
+            ret.pushKV("ScoreTime", ScoreTime);
+            ret.pushKV("ScoreValue", ScoreValue);
+            ret.pushKV("ContentType", ContentType);
+            ret.pushKV("ContentTxHash", ContentTxHash);
+            ret.pushKV("ContentId", ContentId);
+            ret.pushKV("ContentAddressId", ContentAddressId);
+            ret.pushKV("ContentAddressHash", ContentAddressHash);
+            ret.pushKV("ContentTime", ContentTime);
+            return make_shared<UniValue>(ret);
+        }
     };
 
 } // namespace PocketTx

@@ -4423,6 +4423,13 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
     if (!GetRatingRewards(calculated, genOuts, rewardsTotal, pindexPrev, hashProofOfStakeSource, winner_types, &block))
         return false;
 
+    // debug
+    for (const auto& out : genOuts)
+    {
+        std::string outAddress = PocketHelpers::ExtractDestination(out.scriptPubKey);
+        LogPrintf("@@@ 2.1 CheckBlockRatingRewards - out:%s - get outs\n", outAddress);
+    }
+
     // Prepare winners from block
     std::vector<CTxOut> blockOuts;
     for (const auto& out : block.vtx[1]->vout)
@@ -4430,14 +4437,17 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
         auto outType = PocketHelpers::ScriptType(out.scriptPubKey);
         if (outType == TX_PUBKEYHASH)
         {
+            std::string outAddress = PocketHelpers::ExtractDestination(out.scriptPubKey);
+            LogPrintf("@@@ 2.1 CheckBlockRatingRewards - out:%s - block outs\n", outAddress);
             blockOuts.push_back(out);
         }
     }
 
     if (blockOuts.size() != genOuts.size())
     {
-        LogPrintf("@@@ 2.1 %s (%d) : blockOuts.size(%d) != genOuts.size(%d)\n",
-            block.GetHash().ToString(), pindexPrev->nHeight+1, blockOuts.size(), genOuts.size());
+        LogPrintf("%s (prev: %d) : blockOuts.size(%d) != genOuts.size(%d)\n",
+            block.GetHash().ToString(), pindexPrev->nHeight, blockOuts.size(), genOuts.size());
+
         return false;
     }
 

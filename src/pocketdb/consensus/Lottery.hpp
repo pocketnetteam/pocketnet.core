@@ -47,7 +47,7 @@ namespace PocketConsensus
         virtual LotteryWinners& Winners(
             const CBlock& block,
             CDataStream& hashProofOfStakeSource,
-            shared_ptr<ReputationConsensus> reputationConsensus) { return _winners; }
+            shared_ptr <ReputationConsensus> reputationConsensus) { return _winners; }
 
         virtual CAmount RatingReward(CAmount nCredit, opcodetype code) { return 0; }
         virtual void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) {}
@@ -95,7 +95,7 @@ namespace PocketConsensus
 
         // Get all lottery winner
         LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource,
-            shared_ptr<ReputationConsensus> reputationConsensus) override
+            shared_ptr <ReputationConsensus> reputationConsensus) override
         {
             map<string, int> postCandidates;
             map<string, string> postReferrersCandidates;
@@ -105,13 +105,9 @@ namespace PocketConsensus
 
             for (const auto& tx : block.vtx)
             {
-                // Parse asm and get destination address and score value
+                // Get destination address and score value
                 // In lottery allowed only likes to posts and comments
                 // Also in lottery allowed only positive scores
-
-                //auto[ok, scoreData] = PocketHelpers::ParseScore(tx);
-                //if (!ok) continue;
-
                 auto txType = PocketHelpers::ParseType(tx);
                 if (txType != PocketTxType::ACTION_SCORE_POST &&
                     txType != PocketTxType::ACTION_SCORE_COMMENT)
@@ -120,16 +116,15 @@ namespace PocketConsensus
                 auto[ok, scoreData] = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
                 if (!ok) continue;
 
+                LogPrintf("@@@ 2.1 Winners - tx:%s - score data - %s\n", tx->GetHash().GetHex(),
+                    scoreData->Serialize()->write());
+
                 if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT && scoreData->ScoreValue != 1)
-                {
                     continue;
-                }
 
                 if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_POST &&
                     scoreData->ScoreValue != 4 && scoreData->ScoreValue != 5)
-                {
                     continue;
-                }
 
                 if (!reputationConsensus->AllowModifyReputation(
                     scoreData->ScoreType,
@@ -139,9 +134,7 @@ namespace PocketConsensus
                     Height,
                     true
                 ))
-                {
                     continue;
-                }
 
                 if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_POST)
                 {
@@ -301,7 +294,7 @@ namespace PocketConsensus
     *  Lottery checkpoint at _ block
     *
     *******************************************************************************************************************/
-    // TODO (brangr): change GetLotteryReferralDepth Time to Height
+    // TODO (brangr) (v0.21.0): change GetLotteryReferralDepth Time to Height
     class LotteryConsensus_checkpoint_ : public LotteryConsensus_checkpoint_1180000
     {
     protected:
@@ -367,7 +360,7 @@ namespace PocketConsensus
             };
     public:
         LotteryConsensusFactory() = default;
-        static shared_ptr<LotteryConsensus> Instance(int height)
+        static shared_ptr <LotteryConsensus> Instance(int height)
         {
             for (const auto& rule : m_rules)
                 if (height >= rule.first)
