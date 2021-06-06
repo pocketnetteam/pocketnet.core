@@ -30,6 +30,8 @@
 #include "key_io.h"
 #include "streams.h"
 
+#include <utilstrencodings.h>
+
 namespace PocketServices
 {
     using namespace PocketTx;
@@ -51,6 +53,7 @@ namespace PocketServices
                 string src;
                 stream >> src;
                 pocketData.read(src);
+                LogPrint(BCLog::STAT, src.c_str());
             }
 
             // Restore pocket transaction instance
@@ -84,6 +87,30 @@ namespace PocketServices
         static shared_ptr<Transaction> DeserializeTransaction(CDataStream& stream, const CTransactionRef& tx)
         {
             // TODO (brangr): implement
+        }
+
+        static shared_ptr<UniValue> SerializeBlock(PocketBlock block)
+        {
+            auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
+            for (const auto& transaction : block)
+            {
+                result->pushKV(*transaction->GetHash(), *SerializeTransaction(*transaction));
+            }
+
+            return result;
+        }
+
+        static shared_ptr<UniValue> SerializeTransaction(const Transaction& transaction)
+        {
+            auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
+
+            auto serializedTransaction = transaction.Serialize(); //TODO add bitcoin transaction info and payload
+            auto base64Transaction = EncodeBase64(serializedTransaction->write());
+
+            result->pushKV("t", ParseType(transaction));
+            result->pushKV("d", base64Transaction);
+
+            return result;
         }
 
     private:
