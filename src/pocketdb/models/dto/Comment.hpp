@@ -32,6 +32,9 @@ namespace PocketTx
             result->pushKV("parentid", *GetParentTxHash());
             result->pushKV("answerid", *GetAnswerTxHash());
 
+            result->pushKV("lang", m_payload->GetString1().get() ? *m_payload->GetString1() : "en");
+            result->pushKV("msg", *m_payload->GetString2());
+
             return result;
         }
 

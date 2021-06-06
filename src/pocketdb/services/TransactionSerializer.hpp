@@ -104,7 +104,7 @@ namespace PocketServices
         {
             auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
 
-            auto serializedTransaction = transaction.Serialize(); //TODO add bitcoin transaction info and payload
+            auto serializedTransaction = transaction.Serialize();
             auto base64Transaction = EncodeBase64(serializedTransaction->write());
 
             result->pushKV("t", ParseType(transaction));

@@ -23,6 +23,14 @@ namespace PocketTx
             result->pushKV("txidRepost", *GetRelayTxHash());
             result->pushKV("txid", *GetRootTxHash()); //TODO (brangr): txidEdit
 
+            result->pushKV("lang", m_payload->GetString1().get() ? *m_payload->GetString1() : "en");
+            result->pushKV("caption", *m_payload->GetString2());
+            result->pushKV("message", *m_payload->GetString3());
+            result->pushKV("tags", *m_payload->GetString4());
+            result->pushKV("url", *m_payload->GetString7());
+            result->pushKV("images", *m_payload->GetString5());
+            result->pushKV("settings", *m_payload->GetString6());
+
             return result;
         }
 

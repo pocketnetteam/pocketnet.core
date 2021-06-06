@@ -31,7 +31,15 @@ namespace PocketTx
 
         virtual shared_ptr<UniValue> Serialize() const
         {
-            return make_shared<UniValue>(UniValue(UniValue::VOBJ));
+            auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
+            result->pushKV("time", *GetTime());
+            result->pushKV("txid", *GetHash()); //TODO (brangr): check pls
+
+            if (GetHeight().get()) {
+                result->pushKV("block", *GetHeight());
+            }
+
+            return result;
         }
 
         virtual void Deserialize(const UniValue& src)
@@ -47,6 +55,9 @@ namespace PocketTx
 
         shared_ptr<int64_t> GetTime() const { return m_time; }
         void SetTime(int64_t value) { m_time = make_shared<int64_t>(value); }
+
+        shared_ptr<int64_t> GetHeight() const { return m_height; }
+        void SetHeight(int64_t value) { m_height = make_shared<int64_t>(value); }
 
         shared_ptr<string> GetString1() const { return m_string1; }
         void SetString1(string value) { m_string1 = make_shared<string>(value); }
