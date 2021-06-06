@@ -21,6 +21,17 @@ namespace PocketTx
             SetType(PocketTxType::ACTION_COMPLAIN);
         }
 
+        shared_ptr<UniValue> Serialize() const override
+        {
+            auto result = Transaction::Serialize();
+
+            result->pushKV("address", *GetAddress());
+            result->pushKV("reason", *GetReason());
+            result->pushKV("posttxid", *GetPostTxHash());
+
+            return result;
+        }
+
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);

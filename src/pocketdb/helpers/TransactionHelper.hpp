@@ -170,6 +170,41 @@ namespace PocketHelpers
         return PocketTxType::NOT_SUPPORTED;
     }
 
+    static string ParseType(const Transaction& transaction)
+    {
+        switch (*transaction.GetType()) {
+        case PocketTxType::ACCOUNT_USER:
+            return "Users";
+            break;
+        case PocketTxType::CONTENT_POST:
+            return "Posts";
+            break;
+        case PocketTxType::CONTENT_COMMENT:
+            return "Comment";
+            break;
+        case PocketTxType::ACTION_SCORE_POST:
+            return "Scores";
+            break;
+        case PocketTxType::ACTION_SCORE_COMMENT:
+            return "CommentScores";
+            break;
+        case PocketTxType::ACTION_COMPLAIN:
+            return "Complains";
+            break;
+        case PocketTxType::ACTION_BLOCKING_CANCEL: //TODO (brangr): reindexerSrc["unblocking"].get_bool())
+        case PocketTxType::ACTION_BLOCKING:
+            return "Blocking";
+            break;
+        case PocketTxType::ACTION_SUBSCRIBE_CANCEL: //TODO (brangr): reindexerSrc["unsubscribe"].get_bool())
+        case PocketTxType::ACTION_SUBSCRIBE_PRIVATE: //TODO (brangr): reindexerSrc["private"].get_bool())
+        case PocketTxType::ACTION_SUBSCRIBE:
+            return "Subscribes";
+            break;
+        default:
+            return "???"; //TODO (brangr)
+        };
+    }
+
     static bool IsPocketTransaction(const CTransactionRef& tx)
     {
         auto txType = ParseType(tx);

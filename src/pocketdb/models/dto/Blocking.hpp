@@ -21,6 +21,16 @@ namespace PocketTx
             SetType(PocketTxType::ACTION_BLOCKING);
         }
 
+        shared_ptr<UniValue> Serialize() const override
+        {
+            auto result = Transaction::Serialize();
+
+            result->pushKV("address", *GetAddress());
+            result->pushKV("address_to", *GetAddressTo());
+
+            return result;
+        }
+
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);

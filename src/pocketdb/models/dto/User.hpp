@@ -21,6 +21,16 @@ namespace PocketTx
             SetType(PocketTxType::ACCOUNT_USER);
         }
 
+        shared_ptr<UniValue> Serialize() const override
+        {
+            auto result = Transaction::Serialize();
+
+            result->pushKV("address", *GetAddress());
+            result->pushKV("referrer", *GetReferrerAddress());
+
+            return result;
+        }
+
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);

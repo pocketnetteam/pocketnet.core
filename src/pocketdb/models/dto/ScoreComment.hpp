@@ -16,6 +16,17 @@ namespace PocketTx
             SetType(PocketTxType::ACTION_SCORE_COMMENT);
         }
 
+        shared_ptr<UniValue> Serialize() const override
+        {
+            auto result = Transaction::Serialize();
+
+            result->pushKV("address", *GetAddress());
+            result->pushKV("commentid", *GetCommentTxHash());
+            result->pushKV("value", *GetValue());
+
+            return result;
+        }
+
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);

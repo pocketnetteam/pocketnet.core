@@ -22,6 +22,17 @@ namespace PocketTx
             SetType(PocketTxType::ACTION_SCORE_POST);
         }
 
+        shared_ptr<UniValue> Serialize() const override
+        {
+            auto result = Transaction::Serialize();
+
+            result->pushKV("address", *GetAddress());
+            result->pushKV("posttxid", *GetPostTxHash());
+            result->pushKV("value", *GetValue());
+
+            return result;
+        }
+
         void Deserialize(const UniValue& src) override
         {
             Transaction::Deserialize(src);

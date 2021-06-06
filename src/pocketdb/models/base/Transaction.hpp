@@ -29,6 +29,11 @@ namespace PocketTx
             SetTime(time);
         }
 
+        virtual shared_ptr<UniValue> Serialize() const
+        {
+            return make_shared<UniValue>(UniValue(UniValue::VOBJ));
+        }
+
         virtual void Deserialize(const UniValue& src)
         {
         }
