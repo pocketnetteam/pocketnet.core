@@ -222,14 +222,14 @@ namespace PocketConsensus
     *  Consensus checkpoint at 225000 block
     *
     *******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_225000 : public ReputationConsensus_checkpoint_108300
+    class ReputationConsensus_checkpoint_225000 : public ReputationConsensus_checkpoint_151600
     {
     protected:
         int64_t GetScoresOneToOne() override { return 2; }
         int64_t GetScoresOneToOneDepth() override { return 1 * 24 * 3600; }
         int CheckpointHeight() override { return 225000; }
     public:
-        ReputationConsensus_checkpoint_225000(int height) : ReputationConsensus_checkpoint_108300(height) {}
+        ReputationConsensus_checkpoint_225000(int height) : ReputationConsensus_checkpoint_151600(height) {}
     };
 
     /*******************************************************************************************************************
