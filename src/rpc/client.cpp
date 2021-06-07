@@ -187,6 +187,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
         // TODO (brangr): contentTypes
         //{ "getrawtransactionwithmessage", 6, "contenttypes" },
 
+        {"getrecommendedposts",           1, "count"},
+        {"getrecommendedposts",           2, "height"},
+        {"getrecommendedposts",           4, "contenttypes"},
         {"gethotposts",                   0, "count"},
         {"gethotposts",                   1, "depth"},
         {"gethotposts",                   2, "height"},
@@ -209,6 +212,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getusercontents",          3, "count"},
         {"getusercontents",          5, "tags"},
         {"getusercontents",          6, "contenttypes"},
+        {"getrecomendedsubscriptionsforuser", 1, "count"},
 
         {"getemission",                   0, "height"},
     };

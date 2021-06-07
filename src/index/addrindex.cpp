@@ -1053,16 +1053,28 @@ bool AddrIndex::GetRecomendedSubscriptions(std::string _address, int count, std:
     return true;
 }
 
-bool AddrIndex::GetRecommendedPostsBySubscriptions(std::string _address, int count, std::set<string>& recommendedPosts)
+bool AddrIndex::GetRecommendedPostsBySubscriptions(std::string _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts)
 {
     std::vector<std::string> subscriptions;
     GetRecomendedSubscriptions(_address, count, subscriptions);
 
+    reindexer::Query query;
+    query = reindexer::Query("Posts");
+    query = query.Where("block", CondLe, nHeightFrom);
+    query = query.Where("time", CondLe, GetAdjustedTime());
+    query = query.Where("txidRepost", CondEq, "");
+    if (!lang.empty()) {
+        query = query.Where("lang", CondEq, lang);
+    }
+    if (!contentTypes.empty()) {
+        query = query.Where("type", CondSet, contentTypes);
+    }
+
     for (auto itsub : subscriptions) {
         reindexer::Item queryItm;
+        reindexer::Query queryPersonal = query;
         reindexer::Error err = g_pocketdb->SelectOne(
-            reindexer::Query("Posts").Where("address", CondEq, itsub).Sort("time", true),
-            queryItm);
+            queryPersonal.Where("address", CondEq, itsub).Sort("time", true),queryItm);
         if (err.ok()) {
             recommendedPosts.emplace(queryItm["txid"].As<string>());
         }
@@ -1071,7 +1083,7 @@ bool AddrIndex::GetRecommendedPostsBySubscriptions(std::string _address, int cou
     return true;
 }
 
-bool AddrIndex::GetRecommendedPostsByScores(std::string _address, int count, std::set<string>& recommendedPosts)
+bool AddrIndex::GetRecommendedPostsByScores(std::string _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts)
 {
     int sampleSize = 1000; // size of representative sample
     std::vector<int> score_values;
@@ -1081,23 +1093,46 @@ bool AddrIndex::GetRecommendedPostsByScores(std::string _address, int count, std
     std::vector<std::string> userLikedPosts;
     std::vector<std::string> fellowLikers;
 
-    reindexer::QueryResults queryRes1;
+//    reindexer::Query queryContents;
+//    queryContents = reindexer::Query("Posts");
+//    queryContents = queryContents.Where("block", CondLe, nHeightFrom);
+//    queryContents = queryContents.Where("time", CondLe, GetAdjustedTime());
+//    queryContents = queryContents.Where("txidRepost", CondEq, "");
+//    if (!lang.empty()) {
+//        queryContents = queryContents.Where("lang", CondEq, lang);
+//    }
+//    if (!contentTypes.empty()) {
+//        queryContents = queryContents.Where("type", CondSet, contentTypes);
+//    }
+
+    reindexer::QueryResults queryScores1;
     reindexer::Error err = g_pocketdb->DB()->Select(
-        reindexer::Query("Scores").Where("address", CondEq, _address).Where("value", CondSet, score_values).Sort("time", true).Limit(50),
-        queryRes1);
+        reindexer::Query("Scores")
+            .Where("block", CondLe, nHeightFrom)
+            .Where("time", CondLe, GetAdjustedTime())
+            .Where("address", CondEq, _address)
+            .Where("value", CondSet, score_values)
+            .Sort("time", true)
+            .Limit(50),
+        queryScores1);
     //-------------------------
-    if (err.ok() && queryRes1.Count() > 0) {
-        for (auto it : queryRes1) {
+    if (err.ok() && queryScores1.Count() > 0) {
+        for (auto it : queryScores1) {
             reindexer::Item itm(it.GetItem());
             userLikedPosts.push_back(itm["posttxid"].As<string>());
         }
 
-        reindexer::QueryResults queryRes2;
+        reindexer::QueryResults queryScores2;
         err = g_pocketdb->DB()->Select(
-            reindexer::Query("Scores").Where("posttxid", CondSet, userLikedPosts).Where("value", CondSet, score_values).Limit(sampleSize),
-            queryRes2);
-        if (err.ok() && queryRes2.Count() > 0) {
-            for (auto it : queryRes2) {
+            reindexer::Query("Scores")
+                .Where("block", CondLe, nHeightFrom)
+                .Where("time", CondLe, GetAdjustedTime())
+                .Where("posttxid", CondSet, userLikedPosts)
+                .Where("value", CondSet, score_values)
+                .Limit(sampleSize),
+            queryScores2);
+        if (err.ok() && queryScores2.Count() > 0) {
+            for (auto it : queryScores2) {
                 reindexer::Item itm(it.GetItem());
                 std::string _addr = itm["address"].As<string>();
                 if (_address == _addr) continue;
@@ -1105,13 +1140,18 @@ bool AddrIndex::GetRecommendedPostsByScores(std::string _address, int count, std
                 fellowLikers.push_back(itm["address"].As<string>());
             }
 
-            reindexer::AggregationResult aggRes;
+            reindexer::AggregationResult aggResScores;
             err = g_pocketdb->SelectAggr(
-                reindexer::Query("Scores").Where("address", CondSet, fellowLikers).Where("value", CondSet, score_values).Aggregate("posttxid", AggFacet),
+                reindexer::Query("Scores")
+                    .Where("block", CondLe, nHeightFrom)
+                    .Where("time", CondLe, GetAdjustedTime())
+                    .Where("address", CondSet, fellowLikers)
+                    .Where("value", CondSet, score_values)
+                    .Aggregate("posttxid", AggFacet),
                 "posttxid",
-                aggRes);
+                aggResScores);
 
-            if (err.ok() && aggRes.facets.size()) {
+            if (err.ok() && aggResScores.facets.size()) {
                 struct IntCmp {
                     bool operator()(const reindexer::FacetResult& lhs, const reindexer::FacetResult& rhs)
                     {
@@ -1119,7 +1159,7 @@ bool AddrIndex::GetRecommendedPostsByScores(std::string _address, int count, std
                     }
                 };
                 // ---------------------
-                std::vector<reindexer::FacetResult> vecFacets(aggRes.facets.begin(), aggRes.facets.end());
+                std::vector<reindexer::FacetResult> vecFacets(aggResScores.facets.begin(), aggResScores.facets.end());
 
                 int limit = vecFacets.size() < count ? vecFacets.size() : count;
                 std::partial_sort(vecFacets.begin(), vecFacets.begin() + limit, vecFacets.end(), IntCmp());

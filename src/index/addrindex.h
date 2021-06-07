@@ -183,8 +183,8 @@ public:
 		Functions for calculate recommendations for user
 	*/
     bool GetRecomendedSubscriptions(std::string _address, int count, std::vector<string>& recommendedSubscriptions);
-    bool GetRecommendedPostsBySubscriptions(std::string _address, int count, std::set<string>& recommendedPosts);
-    bool GetRecommendedPostsByScores(std::string _address, int count, std::set<string>& recommendedPosts);
+    bool GetRecommendedPostsBySubscriptions(std::string _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts);
+    bool GetRecommendedPostsByScores(std::string _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts);
     /*
 		Get RI data for block transactions for send to another node.
 	*/
