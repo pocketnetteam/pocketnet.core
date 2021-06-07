@@ -19,17 +19,21 @@ namespace PocketTx
         {
             auto result = Transaction::Serialize();
 
-            result->pushKV("address", *GetAddress());
-            result->pushKV("txidRepost", *GetRelayTxHash());
-            result->pushKV("txid", *GetRootTxHash()); //TODO (brangr): txidEdit
+            if (GetAddress()) result->pushKV("address", *GetAddress());
+            if (GetRelayTxHash()) result->pushKV("txidRepost", *GetRelayTxHash());
+            if (GetRootTxHash()) result->pushKV("txid", *GetRootTxHash()); //TODO (brangr): txidEdit
 
-            result->pushKV("lang", m_payload->GetString1().get() ? *m_payload->GetString1() : "en");
-            result->pushKV("caption", *m_payload->GetString2());
-            result->pushKV("message", *m_payload->GetString3());
-            result->pushKV("tags", *m_payload->GetString4());
-            result->pushKV("url", *m_payload->GetString7());
-            result->pushKV("images", *m_payload->GetString5());
-            result->pushKV("settings", *m_payload->GetString6());
+            if (!m_payload)
+            {
+                return result;
+            }
+            result->pushKV("lang", m_payload->GetString1() ? *m_payload->GetString1() : "en");
+            if (m_payload->GetString2()) result->pushKV("caption", *m_payload->GetString2());
+            if (m_payload->GetString3()) result->pushKV("message", *m_payload->GetString3());
+            if (m_payload->GetString4()) result->pushKV("tags", *m_payload->GetString4());
+            if (m_payload->GetString7()) result->pushKV("url", *m_payload->GetString7());
+            if (m_payload->GetString5()) result->pushKV("images", *m_payload->GetString5());
+            if (m_payload->GetString6()) result->pushKV("settings", *m_payload->GetString6());
 
             return result;
         }

@@ -25,8 +25,8 @@ namespace PocketTx
         {
             auto result = Transaction::Serialize();
 
-            result->pushKV("address", *GetAddress());
-            result->pushKV("address_to", *GetAddressTo());
+            if (GetAddress()) result->pushKV("address", *GetAddress());
+            if (GetAddressTo()) result->pushKV("address_to", *GetAddressTo());
 
             return result;
         }

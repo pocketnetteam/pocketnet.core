@@ -8,6 +8,8 @@
 #define POCKETDB_TRANSACTIONREPOSITORY_HPP
 
 #include "pocketdb/helpers/TypesHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.hpp"
+
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
@@ -252,6 +254,97 @@ namespace PocketDb
             return make_tuple(tryResult, result);
         }
 
+        shared_ptr<PocketBlock> GetList(vector<string>& txHashes, bool includePayload = false)
+        {
+            string sql;
+            if (!includePayload)
+            {
+                sql = R"sql(
+                    SELECT Type, Hash, Time, String1, String2, String3, String4, String5, Int1
+                    FROM Transactions t
+                    WHERE 1 = 1
+                )sql";
+            }
+            else
+            {
+                sql = R"sql(
+                    SELECT  t.Type, t.Hash, t.Time, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1,
+                        p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
+                    FROM Transactions t
+                    LEFT JOIN Payload p on t.Hash = p.TxHash
+                    WHERE 1 = 1;
+                )sql";
+            }
+
+            sql += " and t.Hash in ( ";
+            sql += txHashes[0];
+            for (size_t i = 1; i < txHashes.size(); i++)
+            {
+                sql += ',';
+                sql += txHashes[i];
+            }
+            sql += ")";
+
+            auto stmt = SetupSqlStatement(sql);
+
+            auto result = make_shared<PocketBlock>(PocketBlock {});
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, includePayload); ok)
+                {
+                    result->push_back(transaction);
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+            return result;
+        }
+
+        shared_ptr<PocketBlock> GetList(int height, bool includePayload = false)
+        {
+            string sql;
+            if (!includePayload)
+            {
+                sql = R"sql(
+                    SELECT Type, Hash, Time, String1, String2, String3, String4, String5, Int1
+                    FROM Transactions t
+                    WHERE Height = ?
+                )sql";
+            }
+            else
+            {
+                sql = R"sql(
+                    SELECT  t.Type, t.Hash, t.Time, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1,
+                        p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
+                    FROM Transactions t
+                    LEFT JOIN Payload p on t.Hash = p.TxHash
+                    WHERE Height = ?;
+                )sql";
+            }
+            auto stmt = SetupSqlStatement(sql);
+            auto bindResult = TryBindStatementInt(stmt, 1, make_shared<int>(height));
+
+            if (!bindResult)
+            {
+                FinalizeSqlStatement(*stmt);
+                throw runtime_error(strprintf("%s: can't get list by height (bind out)\n", __func__));
+            }
+
+            auto result = make_shared<PocketBlock>(PocketBlock {});
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, includePayload); ok)
+                {
+                    result->push_back(transaction);
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+            return result;
+       }
+
     private:
 
         void InsertTransactionOutputs(shared_ptr<Transaction> ptx)
@@ -365,6 +458,42 @@ namespace PocketDb
             LogPrint(BCLog::SYNC, "  - Insert Model body %s : %d\n", *ptx->GetHash(), *ptx->GetType());
         }
 
+        tuple<bool, shared_ptr<Transaction>> CreateTransactionFromListRow(const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
+        {
+            auto txType = static_cast<PocketTxType>(GetColumnInt(*stmt, 0));
+            auto txHash = GetColumnString(*stmt, 1);
+            auto nTime = GetColumnInt64(*stmt, 2);
+
+            auto ptx = PocketHelpers::CreateInstance(txType, txHash, nTime);
+            if (ptx == nullptr)
+            {
+                return make_tuple(false, nullptr);
+            }
+
+            if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) ptx->SetString1(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) ptx->SetString2(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) ptx->SetString3(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) ptx->SetString4(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) ptx->SetString5(value);
+            ptx->SetInt1(GetColumnInt(*stmt, 8));
+
+            if (!includedPayload)
+            {
+                return make_tuple(true, ptx);
+            }
+
+            auto payload = make_shared<Payload>();
+            if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) payload->SetTxHash(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) payload->SetString1(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) payload->SetString2(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) payload->SetString3(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) payload->SetString4(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) payload->SetString5(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) payload->SetString6(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok) payload->SetString7(value);
+
+            return make_tuple(true, ptx);
+        }
     };
 
 } // namespace PocketDb

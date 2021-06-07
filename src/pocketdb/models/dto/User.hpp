@@ -25,16 +25,20 @@ namespace PocketTx
         {
             auto result = Transaction::Serialize();
 
-            result->pushKV("address", *GetAddress());
-            result->pushKV("referrer", *GetReferrerAddress());
+            if (GetAddress()) result->pushKV("address", *GetAddress());
+            if (GetReferrerAddress()) result->pushKV("referrer", *GetReferrerAddress());
 
-            result->pushKV("lang", *m_payload->GetString1());
-            result->pushKV("name", *m_payload->GetString2());
-            result->pushKV("avatar", *m_payload->GetString3());
-            result->pushKV("about", *m_payload->GetString4());
-            result->pushKV("url", *m_payload->GetString5());
-            result->pushKV("pubkey", *m_payload->GetString6());
-            result->pushKV("donations", *m_payload->GetString7());
+            if (!m_payload)
+            {
+                return result;
+            }
+            if (m_payload->GetString1()) result->pushKV("lang", *m_payload->GetString1());
+            if (m_payload->GetString2()) result->pushKV("name", *m_payload->GetString2());
+            if (m_payload->GetString3()) result->pushKV("avatar", *m_payload->GetString3());
+            if (m_payload->GetString4()) result->pushKV("about", *m_payload->GetString4());
+            if (m_payload->GetString5()) result->pushKV("url", *m_payload->GetString5());
+            if (m_payload->GetString6()) result->pushKV("pubkey", *m_payload->GetString6());
+            if (m_payload->GetString7()) result->pushKV("donations", *m_payload->GetString7());
 
             return result;
         }

@@ -94,7 +94,7 @@ namespace PocketServices
             auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
             for (const auto& transaction : block)
             {
-                result->pushKV(*transaction->GetHash(), *SerializeTransaction(*transaction));
+                result->pushKV(*transaction->GetHash(), *SerializeTransaction(*transaction)); //TODO set block
             }
 
             return result;
@@ -118,68 +118,9 @@ namespace PocketServices
         static shared_ptr<Transaction> BuildInstance(const CTransactionRef& tx, const UniValue& src)
         {
             auto txHash = tx->GetHash().GetHex();
-            shared_ptr<Transaction> ptx = nullptr;
             PocketTxType txType = ParseType(tx);
 
-            switch (txType)
-            {
-                case NOT_SUPPORTED:
-                    return nullptr;
-                case TX_COINBASE:
-                    ptx = make_shared<Coinbase>(txHash, tx->nTime);
-                    break;
-                case TX_COINSTAKE:
-                    ptx = make_shared<Coinstake>(txHash, tx->nTime);
-                    break;
-                case TX_DEFAULT:
-                    ptx = make_shared<Default>(txHash, tx->nTime);
-                    break;
-                case ACCOUNT_USER:
-                    ptx = make_shared<User>(txHash, tx->nTime);
-                    break;
-                case ACCOUNT_VIDEO_SERVER:
-                    break;
-                case ACCOUNT_MESSAGE_SERVER:
-                    break;
-                case CONTENT_POST:
-                    ptx = make_shared<Post>(txHash, tx->nTime);
-                    break;
-                case CONTENT_VIDEO:
-                    break;
-                case CONTENT_TRANSLATE:
-                    break;
-                case CONTENT_SERVERPING:
-                    break;
-                case CONTENT_COMMENT:
-                    ptx = make_shared<Comment>(txHash, tx->nTime);
-                    break;
-                case ACTION_SCORE_POST:
-                    ptx = make_shared<ScorePost>(txHash, tx->nTime);
-                    break;
-                case ACTION_SCORE_COMMENT:
-                    ptx = make_shared<ScoreComment>(txHash, tx->nTime);
-                    break;
-                case ACTION_SUBSCRIBE:
-                    ptx = make_shared<Subscribe>(txHash, tx->nTime);
-                    break;
-                case ACTION_SUBSCRIBE_PRIVATE:
-                    ptx = make_shared<SubscribePrivate>(txHash, tx->nTime);
-                    break;
-                case ACTION_SUBSCRIBE_CANCEL:
-                    ptx = make_shared<SubscribeCancel>(txHash, tx->nTime);
-                    break;
-                case ACTION_BLOCKING:
-                    ptx = make_shared<Blocking>(txHash, tx->nTime);
-                    break;
-                case ACTION_BLOCKING_CANCEL:
-                    ptx = make_shared<BlockingCancel>(txHash, tx->nTime);
-                    break;
-                case ACTION_COMPLAIN:
-                    ptx = make_shared<Complain>(txHash, tx->nTime);
-                    break;
-                default:
-                    return nullptr;
-            }
+            shared_ptr<Transaction> ptx = CreateInstance(txType, txHash, tx->nTime);
 
             // Build outputs & inputs
             if (ptx)

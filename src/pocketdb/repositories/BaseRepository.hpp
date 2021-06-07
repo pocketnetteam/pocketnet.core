@@ -76,6 +76,7 @@ namespace PocketDb
             return true;
         }
 
+        //TODO change shared_ptr<int> to int, it will be faster
         bool TryBindStatementInt(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int> value)
         {
             if (!value) return true;
@@ -87,6 +88,7 @@ namespace PocketDb
             return true;
         }
 
+        //TODO change shared_ptr<int64_t> to int64_t, it will be faster
         bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int64_t> value)
         {
             if (!value) return true;
@@ -126,6 +128,16 @@ namespace PocketDb
         int FinalizeSqlStatement(sqlite3_stmt* stmt)
         {
             return sqlite3_finalize(stmt);
+        }
+
+        tuple<bool, std::string> TryGetColumnString(sqlite3_stmt* stmt, int index)
+        {
+            auto column = sqlite3_column_text(stmt, index);
+            if (column == nullptr)
+            {
+                return make_tuple(false, "");
+            }
+            return make_tuple(true, std::string(reinterpret_cast<const char*>(column)));
         }
 
         std::string GetColumnString(sqlite3_stmt* stmt, int index)

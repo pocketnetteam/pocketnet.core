@@ -20,9 +20,9 @@ namespace PocketTx
         {
             auto result = Transaction::Serialize();
 
-            result->pushKV("address", *GetAddress());
-            result->pushKV("commentid", *GetCommentTxHash());
-            result->pushKV("value", *GetValue());
+            if (GetAddress()) result->pushKV("address", *GetAddress());
+            if (GetCommentTxHash()) result->pushKV("commentid", *GetCommentTxHash());
+            if (GetValue()) result->pushKV("value", *GetValue());
 
             return result;
         }

@@ -13,6 +13,20 @@
 
 #include "pocketdb/models/base/PocketTypes.hpp"
 
+#include "pocketdb/models/dto/Blocking.hpp"
+#include "pocketdb/models/dto/BlockingCancel.hpp"
+#include "pocketdb/models/dto/Coinstake.hpp"
+#include "pocketdb/models/dto/Default.hpp"
+#include "pocketdb/models/dto/Post.hpp"
+#include "pocketdb/models/dto/Comment.hpp"
+#include "pocketdb/models/dto/Subscribe.hpp"
+#include "pocketdb/models/dto/SubscribeCancel.hpp"
+#include "pocketdb/models/dto/SubscribePrivate.hpp"
+#include "pocketdb/models/dto/Complain.hpp"
+#include "pocketdb/models/dto/User.hpp"
+#include "pocketdb/models/dto/ScorePost.hpp"
+#include "pocketdb/models/dto/ScoreComment.hpp"
+
 namespace PocketHelpers
 {
     using std::tuple;
@@ -248,6 +262,58 @@ namespace PocketHelpers
 
         scoreData.ScoreTxHash = tx->GetHash().GetHex();
         return make_tuple(finalCheck, scoreData);
+    }
+
+    static shared_ptr<Transaction> CreateInstance(PocketTxType txType, std::string txHash, uint32_t nTime)
+    {
+        shared_ptr<Transaction> ptx = nullptr;
+        switch (txType)
+        {
+        case TX_COINBASE:
+        case TX_COINSTAKE:
+            ptx = make_shared<Coinstake>(txHash, nTime);
+            break;
+        case TX_DEFAULT:
+            ptx = make_shared<Default>(txHash, nTime);
+            break;
+        case ACCOUNT_USER:
+            ptx = make_shared<User>(txHash, nTime);
+            break;
+        case CONTENT_POST:
+            ptx = make_shared<Post>(txHash, nTime);
+            break;
+        case CONTENT_COMMENT:
+            ptx = make_shared<Comment>(txHash, nTime);
+            break;
+        case ACTION_SCORE_POST:
+            ptx = make_shared<ScorePost>(txHash, nTime);
+            break;
+        case ACTION_SCORE_COMMENT:
+            ptx = make_shared<ScoreComment>(txHash, nTime);
+            break;
+        case ACTION_SUBSCRIBE:
+            ptx = make_shared<Subscribe>(txHash, nTime);
+            break;
+        case ACTION_SUBSCRIBE_PRIVATE:
+            ptx = make_shared<SubscribePrivate>(txHash, nTime);
+            break;
+        case ACTION_SUBSCRIBE_CANCEL:
+            ptx = make_shared<SubscribeCancel>(txHash, nTime);
+            break;
+        case ACTION_BLOCKING:
+            ptx = make_shared<Blocking>(txHash, nTime);
+            break;
+        case ACTION_BLOCKING_CANCEL:
+            ptx = make_shared<BlockingCancel>(txHash, nTime);
+            break;
+        case ACTION_COMPLAIN:
+            ptx = make_shared<Complain>(txHash, nTime);
+            break;
+        default:
+            return nullptr;
+        }
+
+        return ptx;
     }
 }
 
