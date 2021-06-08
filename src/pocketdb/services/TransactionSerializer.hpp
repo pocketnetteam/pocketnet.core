@@ -53,7 +53,6 @@ namespace PocketServices
                 string src;
                 stream >> src;
                 pocketData.read(src);
-                LogPrint(BCLog::STAT, src.c_str());
             }
 
             // Restore pocket transaction instance
@@ -127,7 +126,7 @@ namespace PocketServices
                 BuildOutputs(tx, ptx);
 
             // Skip if outputs empty
-            if (ptx->Outputs().empty())
+            if (!ptx || ptx->Outputs().empty())
                 return nullptr;
 
             // Deserialize payload if exists
