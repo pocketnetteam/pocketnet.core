@@ -120,13 +120,11 @@ namespace PocketServices
             PocketTxType txType = ParseType(tx);
 
             shared_ptr<Transaction> ptx = CreateInstance(txType, txHash, tx->nTime);
+            if (!ptx)
+                return nullptr;
 
             // Build outputs & inputs
-            if (ptx)
-                BuildOutputs(tx, ptx);
-
-            // Skip if outputs empty
-            if (!ptx || ptx->Outputs().empty())
+            if (!BuildOutputs(tx, ptx))
                 return nullptr;
 
             // Deserialize payload if exists
@@ -147,7 +145,7 @@ namespace PocketServices
             return ptx;
         }
 
-        static void BuildOutputs(const CTransactionRef& tx, shared_ptr<Transaction> ptx)
+        static bool BuildOutputs(const CTransactionRef& tx, shared_ptr<Transaction> ptx)
         {
             // indexing Outputs
             for (int i = 0; i < tx->vout.size(); i++)
@@ -171,6 +169,8 @@ namespace PocketServices
                     }
                 }
             }
+
+            return !ptx->Outputs().empty();
         }
     };
 
