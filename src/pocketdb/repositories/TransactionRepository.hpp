@@ -470,27 +470,29 @@ namespace PocketDb
                 return make_tuple(false, nullptr);
             }
 
-            if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) ptx->SetString1(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) ptx->SetString2(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) ptx->SetString3(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) ptx->SetString4(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) ptx->SetString5(value);
-            ptx->SetInt1(GetColumnInt(*stmt, 8));
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok) ptx->SetString1(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) ptx->SetString2(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 5); ok) ptx->SetString3(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) ptx->SetString4(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) ptx->SetString5(valueStr);
+            if (auto[ok, valueInt] = TryGetColumnInt(*stmt, 8); ok) ptx->SetInt1(valueInt);
 
             if (!includedPayload)
             {
                 return make_tuple(true, ptx);
             }
 
-            auto payload = make_shared<Payload>();
-            if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) payload->SetTxHash(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) payload->SetString1(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) payload->SetString2(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) payload->SetString3(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) payload->SetString4(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) payload->SetString5(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) payload->SetString6(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok) payload->SetString7(value);
+            auto payload = Payload();
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) payload.SetTxHash(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 10); ok) payload.SetString1(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 11); ok) payload.SetString2(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 12); ok) payload.SetString3(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 13); ok) payload.SetString4(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 14); ok) payload.SetString5(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 15); ok) payload.SetString6(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 16); ok) payload.SetString7(valueStr);
+
+            ptx->SetPayload(payload);
 
             return make_tuple(true, ptx);
         }

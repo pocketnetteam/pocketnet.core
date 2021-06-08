@@ -132,12 +132,9 @@ namespace PocketDb
 
         tuple<bool, std::string> TryGetColumnString(sqlite3_stmt* stmt, int index)
         {
-            auto column = sqlite3_column_text(stmt, index);
-            if (column == nullptr)
-            {
-                return make_tuple(false, "");
-            }
-            return make_tuple(true, std::string(reinterpret_cast<const char*>(column)));
+            return sqlite3_column_type(stmt, index) == SQLITE_NULL
+               ? make_tuple(false, "")
+               : make_tuple(true, std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, index))));
         }
 
         std::string GetColumnString(sqlite3_stmt* stmt, int index)
@@ -145,9 +142,23 @@ namespace PocketDb
             return std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, index)));
         }
 
+        tuple<bool, int64_t> TryGetColumnInt64(sqlite3_stmt* stmt, int index)
+        {
+            return sqlite3_column_type(stmt, index) == SQLITE_NULL
+               ? make_tuple(false, (int64_t)0)
+               : make_tuple(true, (int64_t)sqlite3_column_int64(stmt, index));
+        }
+
         int64_t GetColumnInt64(sqlite3_stmt* stmt, int index)
         {
             return sqlite3_column_int64(stmt, index);
+        }
+
+        tuple<bool, int> TryGetColumnInt(sqlite3_stmt* stmt, int index)
+        {
+            return sqlite3_column_type(stmt, index) == SQLITE_NULL
+               ? make_tuple(false, 0)
+               : make_tuple(true, sqlite3_column_int(stmt, index));
         }
 
         int GetColumnInt(sqlite3_stmt* stmt, int index)
