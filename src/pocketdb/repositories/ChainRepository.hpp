@@ -30,15 +30,23 @@ namespace PocketDb
         // Also spent outputs
         bool UpdateHeight(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
         {
-            return TryTransactionStep([&]()
+            for (const auto& tx : txs)
             {
-                for (const auto& tx : txs)
+                auto result = TryTransactionStep([&]()
                 {
+                    int64_t nTime1 = GetTimeMicros();
+
                     // All transactions must have a blockHash & height relation
                     UpdateTransactionHeight(blockHash, height, tx.Hash);
 
+                    int64_t nTime2 = GetTimeMicros();
+                    LogPrint(BCLog::BENCH, "      - UpdateTransactionHeight: %.2fms\n", 0.001 * (nTime2 - nTime1));
+
                     // The outputs are needed for the explorer
                     UpdateTransactionOutputs(blockHash, height, tx.Inputs);
+
+                    int64_t nTime3 = GetTimeMicros();
+                    LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms\n", 0.001 * (nTime3 - nTime2));
 
                     // All users must have a unique digital ID
                     if (tx.Type == PocketTxType::ACCOUNT_USER
@@ -50,9 +58,17 @@ namespace PocketDb
                         || tx.Type == PocketTxType::CONTENT_TRANSLATE)
                     {
                         UpdateShortId(tx.Hash);
+
+                        int64_t nTime4 = GetTimeMicros();
+                        LogPrint(BCLog::BENCH, "      - UpdateShortId: %.2fms\n", 0.001 * (nTime4 - nTime3));
                     }
-                }
-            });
+                });
+
+                if (!result)
+                    return false;
+            }
+
+            return true;
         }
 
         // Erase all calculated data great or equals block

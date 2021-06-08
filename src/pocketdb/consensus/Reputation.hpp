@@ -32,24 +32,17 @@ namespace PocketConsensus
         virtual int64_t GetScoresToPostModifyReputationDepth() = 0;
 
 
-        virtual bool AllowModifyReputation(string address, int height)
+        virtual bool AllowModifyReputation(int addressId, int height)
         {
             // Ignore scores from users with rating < Antibot::Limit::threshold_reputation_score
             auto minUserReputation = GetThresholdReputationScore();
-            auto[userRepOk, userReputation] = PocketDb::RatingsRepoInst.GetUserReputation(address, height);
+            auto minLikersCount = GetThresholdLikersCount();
 
-            LogPrintf("=== 2.1.1.1 AllowModifyReputation min rep - address:%s height:%d diff: %d < %d\n",
-                address, height, userReputation, minUserReputation);
-
+            auto[userRepOk, userReputation] = PocketDb::RatingsRepoInst.GetUserReputation(addressId, height);
             if (!userRepOk || userReputation < minUserReputation)
                 return false;
 
-            auto minLikersCount = GetThresholdLikersCount();
-            auto[userLikersOk, userLikers] = PocketDb::RatingsRepoInst.GetUserLikersCount(address, height);
-
-            LogPrintf("=== 2.1.1.1 AllowModifyReputation likers - address:%s height:%d diff: %d < %d\n",
-                address, height, userLikers, minLikersCount);
-
+            auto[userLikersOk, userLikers] = PocketDb::RatingsRepoInst.GetUserLikersCount(addressId, height);
             if (!userLikersOk || userLikers < minLikersCount)
                 return false;
 
@@ -57,19 +50,21 @@ namespace PocketConsensus
             return true;
         }
 
-        virtual string SelectAddressScorePost(string scoreAddress, string postAddress, bool lottery)
+        virtual tuple<int, string> SelectAddressScorePost(shared_ptr <ScoreDataDto> scoreData, bool lottery)
         {
             if (lottery)
-                return scoreAddress;
+                return make_tuple(scoreData->ScoreAddressId, scoreData->ScoreAddressHash);
 
-            return postAddress;
+            return make_tuple(scoreData->ContentAddressId, scoreData->ContentAddressHash);
         }
 
-        virtual bool AllowModifyReputationOverPost(std::string scoreAddress, std::string postAddress, int height,
+        virtual bool AllowModifyReputationOverPost(shared_ptr <ScoreDataDto> scoreData, int height,
             const CTransactionRef& tx, bool lottery)
         {
+            auto[checkScoreAddressId, checkScoreAddressHash] = SelectAddressScorePost(scoreData, lottery);
+
             // Check user reputation
-            if (!AllowModifyReputation(SelectAddressScorePost(scoreAddress, postAddress, lottery), height))
+            if (!AllowModifyReputation(checkScoreAddressId, height))
                 return false;
 
             // Disable reputation increment if from one address to one address > 2 scores over day
@@ -92,11 +87,11 @@ namespace PocketConsensus
             }
 
             auto[scoreCountOk, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(
-                    PocketTxType::ACTION_SCORE_POST, SelectAddressScorePost(scoreAddress, postAddress, lottery), postAddress,
-                    height, tx, values, _scores_one_to_one_depth);
+                PocketTxType::ACTION_SCORE_POST, checkScoreAddressHash, scoreData->ContentAddressHash,
+                height, tx, values, _scores_one_to_one_depth);
 
-            LogPrintf("=== 2.1.2 AllowModifyReputationOverPost - tx:%s sAddr:%s pAddr:%s height:%d diff:%d < %d\n",
-                tx->GetHash().GetHex(), scoreAddress, postAddress, height, scores_one_to_one_count, _max_scores_one_to_one);
+            //LogPrintf("=== 2.1.2 AllowModifyReputationOverPost - tx:%s sAddr:%s pAddr:%s height:%d diff:%d < %d\n",
+            //    tx->GetHash().GetHex(), scoreAddress, postAddress, height, scores_one_to_one_count, _max_scores_one_to_one);
 
             if (!scoreCountOk || scores_one_to_one_count >= _max_scores_one_to_one)
                 return false;
@@ -105,11 +100,11 @@ namespace PocketConsensus
             return true;
         }
 
-        virtual bool AllowModifyReputationOverComment(std::string scoreAddress,
-            std::string commentAddress, int height, const CTransactionRef& tx, bool lottery)
+        virtual bool AllowModifyReputationOverComment(shared_ptr <ScoreDataDto> scoreData, int height,
+            const CTransactionRef& tx, bool lottery)
         {
             // Check user reputation
-            if (!AllowModifyReputation(scoreAddress, height))
+            if (!AllowModifyReputation(scoreData->ScoreAddressId, height))
                 return false;
 
             // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
@@ -128,11 +123,11 @@ namespace PocketConsensus
             }
 
             auto[scoreCountOk, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(
-                    PocketTx::ACTION_SCORE_COMMENT, scoreAddress, commentAddress,
-                    height, tx, values, _scores_one_to_one_depth);
+                PocketTx::ACTION_SCORE_COMMENT, scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
+                height, tx, values, _scores_one_to_one_depth);
 
-            LogPrintf("=== 2.1.2 AllowModifyReputationOverComment - tx:%s sAddr:%s pAddr:%s height:%d diff:%d < %d\n",
-                tx->GetHash().GetHex(), scoreAddress, commentAddress, height, scores_one_to_one_count, _max_scores_one_to_one);
+            //LogPrintf("=== 2.1.2 AllowModifyReputationOverComment - tx:%s sAddr:%s pAddr:%s height:%d diff:%d < %d\n",
+            //    tx->GetHash().GetHex(), scoreAddress, commentAddress, height, scores_one_to_one_count, _max_scores_one_to_one);
 
             if (!scoreCountOk || scores_one_to_one_count >= _max_scores_one_to_one)
                 return false;
@@ -144,14 +139,14 @@ namespace PocketConsensus
     public:
         ReputationConsensus(int height) : BaseConsensus(height) {}
 
-        virtual bool AllowModifyReputation(PocketTxType txType, const CTransactionRef& tx,
-            std::string scoreAddress, std::string contentAddress, int height, bool lottery)
+        virtual bool AllowModifyReputation(shared_ptr <ScoreDataDto> scoreData, const CTransactionRef& tx, int height,
+            bool lottery)
         {
-            if (txType == PocketTxType::ACTION_SCORE_POST)
-                return AllowModifyReputationOverPost(scoreAddress, contentAddress, height, tx, lottery);
+            if (scoreData->ScoreType == PocketTxType::ACTION_SCORE_POST)
+                return AllowModifyReputationOverPost(scoreData, height, tx, lottery);
 
-            if (txType == PocketTxType::ACTION_SCORE_COMMENT)
-                return AllowModifyReputationOverComment(scoreAddress, contentAddress, height, tx, lottery);
+            if (scoreData->ScoreType == PocketTxType::ACTION_SCORE_COMMENT)
+                return AllowModifyReputationOverComment(scoreData, height, tx, lottery);
 
             return false;
         }
@@ -208,9 +203,9 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 151600; }
 
-        string SelectAddressScorePost(string scoreAddress, string postAddress, bool lottery) override
+        tuple<int, string> SelectAddressScorePost(shared_ptr <ScoreDataDto> scoreData, bool lottery) override
         {
-            return scoreAddress;
+            return make_tuple(scoreData->ScoreAddressId, scoreData->ScoreAddressHash);
         }
 
     public:

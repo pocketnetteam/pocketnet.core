@@ -60,8 +60,9 @@ create index if not exists Transactions_String4 on Transactions (String4);
 create index if not exists Transactions_String5 on Transactions (String5);
 create index if not exists Transactions_Int1 on Transactions (Int1);
 
-create index if not exists Transactions_Type_String1_index on Transactions (Type, String1);
-create index if not exists Transactions_Type_String2_index on Transactions (Type, String2);
+create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height);
+create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height);
+create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
 
 --------------------------------------------
 --               EXT TABLES               --
@@ -114,6 +115,7 @@ create table if not exists TxOutputs
     primary key (TxHash, Number, AddressHash)
 );
 create index if not exists TxOutput_SpentHeight on TxOutputs (SpentHeight);
+create index if not exists TxOutput_TxHash_Number on TxOutputs (TxHash, Number);
 create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);
 
 --------------------------------------------
@@ -127,7 +129,7 @@ create table if not exists Ratings
 );
 create index if not exists Ratings_Height on Ratings (Height);
 create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
-create index if not exists Ratings_Type_Height_Id on Ratings (Type, Height, Id);
+create index if not exists Ratings_Type_Id_Height on Ratings (Type, Id, Height desc);
 
 --------------------------------------------
 --                 VIEWS                  --

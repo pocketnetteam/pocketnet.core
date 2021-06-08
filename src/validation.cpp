@@ -4423,12 +4423,13 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
     if (!GetRatingRewards(calculated, genOuts, rewardsTotal, pindexPrev, hashProofOfStakeSource, winner_types, &block))
         return false;
 
-    // debug
-    for (const auto& out : genOuts)
-    {
-        std::string outAddress = PocketHelpers::ExtractDestination(out.scriptPubKey);
-        LogPrintf("@@@ 2.1 CheckBlockRatingRewards - out:%s - get outs\n", outAddress);
-    }
+//    // debug
+//    LogPrintf("------------------------------\n");
+//    for (const auto& out : genOuts)
+//    {
+//        std::string outAddress = PocketHelpers::ExtractDestination(out.scriptPubKey);
+//        LogPrintf("@@@ 2.1 CheckBlockRatingRewards - out:%s - get outs\n", outAddress);
+//    }
 
     // Prepare winners from block
     std::vector<CTxOut> blockOuts;
@@ -4437,16 +4438,16 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
         auto outType = PocketHelpers::ScriptType(out.scriptPubKey);
         if (outType == TX_PUBKEYHASH)
         {
-            std::string outAddress = PocketHelpers::ExtractDestination(out.scriptPubKey);
-            LogPrintf("@@@ 2.1 CheckBlockRatingRewards - out:%s - block outs\n", outAddress);
+            //std::string outAddress = PocketHelpers::ExtractDestination(out.scriptPubKey);
+            //LogPrintf("@@@ 2.1 CheckBlockRatingRewards - out:%s - block outs\n", outAddress);
             blockOuts.push_back(out);
         }
     }
 
     if (blockOuts.size() != genOuts.size())
     {
-        LogPrintf("%s (prev: %d) : blockOuts.size(%d) != genOuts.size(%d)\n",
-            block.GetHash().ToString(), pindexPrev->nHeight, blockOuts.size(), genOuts.size());
+        LogPrintf("PoS Error: %s (%d): blockOuts.size(%d) != genOuts.size(%d)\n",
+            block.GetHash().ToString(), pindexPrev->nHeight + 1, blockOuts.size(), genOuts.size());
 
         return false;
     }
@@ -4460,8 +4461,8 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
 
         valid = valid && (bOut == gOut);
         if (!valid)
-            LogPrintf("@@@ 2.2 %s : bOut(%s) != gOut(%s)\n",
-                block.GetHash().ToString(), bOut.ToString().c_str(), gOut.ToString().c_str());
+            LogPrintf("PoS Error: %s (%d): bOut(%s) != gOut(%s)\n",
+                block.GetHash().ToString(), pindexPrev->nHeight + 1, bOut.ToString().c_str(), gOut.ToString().c_str());
     }
 
     return valid;

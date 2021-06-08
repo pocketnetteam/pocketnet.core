@@ -29,19 +29,38 @@ namespace PocketDb
         // Accumulate new rating records
         bool InsertRatings(shared_ptr<vector<Rating>> ratings)
         {
-            return TryTransactionStep([&]()
+            for (const auto& rating : *ratings)
             {
-                for (const auto& rating : *ratings)
+                auto result = TryTransactionStep([&]()
                 {
                     if (*rating.GetType() != RatingType::RATING_ACCOUNT_LIKERS)
+                    {
+                        int64_t nTime1 = GetTimeMicros();
+
                         InsertRating(rating);
+
+                        int64_t nTime2 = GetTimeMicros();
+                        LogPrint(BCLog::BENCH, "      - InsertRating: %.2fms\n", 0.001 * (nTime2 - nTime1));
+                    }
                     else
+                    {
+                        int64_t nTime1 = GetTimeMicros();
+
                         InsertLiker(rating);
-                }
-            });
+
+                        int64_t nTime2 = GetTimeMicros();
+                        LogPrint(BCLog::BENCH, "      - InsertLiker: %.2fms\n", 0.001 * (nTime2 - nTime1));
+                    }
+                });
+
+                if (!result)
+                    return false;
+            }
+
+            return true;
         }
 
-        tuple<bool, int> GetUserReputation(const string& address, int height)
+        tuple<bool, int> GetUserReputation(int addressId, int height)
         {
             int result = 0;
             auto func = __func__;
@@ -52,22 +71,18 @@ namespace PocketDb
                     select r.Value
                     from Ratings r
                     where r.Type = ?
-                        and r.Id = (select t.Id from vUsers t where t.AddressHash = ? limit 1)
-                        and r.Height is not null
-                        and r.Height = (
-                            select max(r1.Height)
-                            from Ratings r1
-                            where r1.Type=r.Type and r1.Id=r.Id and r1.Height<=?
-                        )
+                        and r.Id = ?
+                        and r.Height <= ?
+                    order by r.Height desc
                     limit 1
                 )sql");
 
                 auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT);
                 auto heightPtr = make_shared<int>(height);
-                auto addressPtr = make_shared<string>(address);
+                auto addressIdPtr = make_shared<int>(addressId);
 
                 auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
-                bindResult &= TryBindStatementText(stmt, 2, addressPtr);
+                bindResult &= TryBindStatementInt(stmt, 2, addressIdPtr);
                 bindResult &= TryBindStatementInt(stmt, 3, heightPtr);
 
                 if (!bindResult)
@@ -88,7 +103,7 @@ namespace PocketDb
             return make_tuple(tryResult, result);
         }
 
-        tuple<bool, int> GetUserLikersCount(const string& address, int height)
+        tuple<bool, int> GetUserLikersCount(int addressId, int height)
         {
             int result = 0;
             auto func = __func__;
@@ -100,16 +115,16 @@ namespace PocketDb
                     from Ratings r
                     where r.Type = ?
                         and r.Height <= ?
-                        and r.Id = (select t.Id from vUsers t where t.AddressHash = ? limit 1)
+                        and r.Id = ?
                 )sql");
 
                 auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT_LIKERS);
                 auto heightPtr = make_shared<int>(height);
-                auto idPtr = make_shared<string>(address);
+                auto addressIdPtr = make_shared<int>(addressId);
 
                 auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
                 bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
-                bindResult &= TryBindStatementText(stmt, 3, idPtr);
+                bindResult &= TryBindStatementInt(stmt, 3, addressIdPtr);
                 if (!bindResult)
                 {
                     FinalizeSqlStatement(*stmt);
@@ -128,9 +143,11 @@ namespace PocketDb
             return make_tuple(tryResult, result);
         }
 
-        tuple<bool, int> GetScoreContentCount(
-            PocketTxType scoreType, const string& scoreAddress, const string& contentAddress,
-            int height, const CTransactionRef& tx, const std::vector<int>& values, int64_t scoresOneToOneDepth)
+        tuple<bool, int> GetScoreContentCount(PocketTxType scoreType,
+            const string& scoreAddress, const string& contentAddress,
+            int height, const CTransactionRef& tx,
+            const std::vector<int>& values,
+            int64_t scoresOneToOneDepth)
         {
             int result = 0;
             auto func = __func__;
@@ -218,13 +235,9 @@ namespace PocketDb
                         from Ratings r
                         where r.Type = ?
                             and r.Id = ?
-                            and r.Height is not null
-                            and r.Height = (
-                                select max(r1.Height)
-                                from Ratings r1
-                                where r1.Type=r.Type and r1.Id=r.Id and r1.Height<?
-                            )
-                        -- limit 1
+                            and r.Height < ?
+                        order by r.Height desc
+                        limit 1
                     ), 0) + ?
             )sql");
 

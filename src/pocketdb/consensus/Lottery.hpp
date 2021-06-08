@@ -116,8 +116,8 @@ namespace PocketConsensus
                 auto[ok, scoreData] = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
                 if (!ok) continue;
 
-                LogPrintf("@@@ 2.1 Winners - tx:%s - score data - %s\n", tx->GetHash().GetHex(),
-                    scoreData->Serialize()->write());
+                //LogPrintf("@@@ 2.1 Winners - tx:%s - score data - %s\n", tx->GetHash().GetHex(),
+                //    scoreData->Serialize()->write());
 
                 if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT && scoreData->ScoreValue != 1)
                     continue;
@@ -127,10 +127,8 @@ namespace PocketConsensus
                     continue;
 
                 if (!reputationConsensus->AllowModifyReputation(
-                    scoreData->ScoreType,
+                    scoreData,
                     tx,
-                    scoreData->ScoreAddressHash,
-                    scoreData->ContentAddressHash,
                     Height,
                     true
                 ))
