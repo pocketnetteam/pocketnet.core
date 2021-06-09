@@ -197,9 +197,9 @@ namespace PocketConsensus
 
             auto[ok, referrer] = PocketDb::TransRepoInst.GetReferrer(contentAddress,
                 txTime - GetLotteryReferralDepth());
-            if (!ok || referrer == nullptr) return;
+            if (!ok) return;
 
-            refs.emplace(contentAddress, *referrer);
+            refs.emplace(contentAddress, referrer);
         }
 
     public:

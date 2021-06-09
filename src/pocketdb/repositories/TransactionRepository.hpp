@@ -215,18 +215,19 @@ namespace PocketDb
         }
 
         // Select referrer for one account
-        tuple<bool, shared_ptr<string>> GetReferrer(const string& address, int minTime)
+        tuple<bool, string> GetReferrer(const string& address, int minTime)
         {
-            shared_ptr<string> result = nullptr;
+            tuple<bool, string> result = make_tuple(false, "");
 
             bool tryResult = TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(R"sql(
-                    select ifnull(a.ReferrerAddressHash, '')
+                    select a.ReferrerAddressHash
                     from vAccounts a
                     where a.Time >= ?
-                        and a.Height = (select min(a1.Height) from vAccounts a1 where a1.AddressHash=a.AddressHash)
                         and a.AddressHash = ?
+                    order by a.Height asc
+                    limit 1
                 )sql");
 
                 auto minTimePtr = make_shared<int>(minTime);
@@ -243,14 +244,15 @@ namespace PocketDb
 
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
-                    result = make_shared<string>(GetColumnString(*stmt, 0));
+                    auto[ok, valueStr] = TryGetColumnString(*stmt, 0);
+                    result = make_tuple(ok, valueStr);
                 }
 
                 FinalizeSqlStatement(*stmt);
-                return result != nullptr;
+                return true;
             });
 
-            return make_tuple(tryResult, result);
+            return result;
         }
 
         shared_ptr<PocketBlock> GetList(vector<string>& txHashes, bool includePayload = false)

@@ -908,8 +908,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (fReindex)
         {
             // Clear all calculating pocket tables
+            LogPrintf("Clearing pocket db tables..\n");
             PocketServices::TransactionIndexer::Rollback(0);
-            LogPrintf("PocketDb tables cleared!\n");
 
             int nFile = 0;
             while (true)
