@@ -61,9 +61,6 @@
     <ProjectReference Include="..\libunivalue\libunivalue.vcxproj">
       <Project>{5724ba7d-a09a-4ba8-800b-c4c1561b3d69}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\reindexer\reindexer.vcxproj">
-      <Project>{e1e78a67-c1a7-401b-87e9-3bc0e9d32205}</Project>
-    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -178,8 +175,10 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>NOMINMAX;HAVE_CONFIG_H;_SCL_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\src;..\..\src\univalue\include;..\..\src\reindexer;..\..\src\reindexer\vendor</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\univalue\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

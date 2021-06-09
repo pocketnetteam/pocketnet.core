@@ -92,9 +92,10 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;HAVE_CONFIG_H;_SCL_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\src;..\..\src\univalue\include;..\..\src\leveldb\helpers\memenv;..\..\src\reindexer;..\..\src\reindexer\vendor</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\univalue\include;..\..\src\leveldb\helpers\memenv</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/D "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS" /bigobj %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -156,9 +157,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\html.cpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus.cpp" />
     <ClCompile Include="..\..\src\pocketdb\pocketnet.cpp" />
-    <ClCompile Include="..\..\src\primitives\rtransaction.cpp" />
     <ClCompile Include="..\..\src\rpc\net.cpp">
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)\netrpc.obj</ObjectFileName>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)\netrpc.obj</ObjectFileName>
@@ -177,7 +177,9 @@
     <ClCompile Include="..\..\src\httpserver.cpp" />
     <ClCompile Include="..\..\src\index\base.cpp" />
     <ClCompile Include="..\..\src\index\txindex.cpp" />
-    <ClCompile Include="..\..\src\init.cpp" />
+    <ClCompile Include="..\..\src\init.cpp">
+      <ShowIncludes Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ShowIncludes>
+    </ClCompile>
     <ClCompile Include="..\..\src\ldb\ldb.cpp" />
     <ClCompile Include="..\..\src\dbwrapper.cpp" />
     <ClCompile Include="..\..\src\merkleblock.cpp" />
@@ -195,7 +197,6 @@
     <ClCompile Include="..\..\src\rpc\blockchain.cpp" />
     <ClCompile Include="..\..\src\rpc\mining.cpp" />
     <ClCompile Include="..\..\src\rpc\misc.cpp" />
-    <ClCompile Include="..\..\src\rpc\pocketrpc.cpp" />
     <ClCompile Include="..\..\src\rpc\rawtransaction.cpp" />
     <ClCompile Include="..\..\src\rpc\server.cpp" />
     <ClCompile Include="..\..\src\rpc\util.cpp" />
@@ -210,20 +211,52 @@
     <ClCompile Include="..\..\src\validation.cpp" />
     <ClCompile Include="..\..\src\validationinterface.cpp" />
     <ClCompile Include="..\..\src\versionbits.cpp" />
-    <ClCompile Include="..\..\src\pocketdb\pocketdb.cpp" />
-    <ClCompile Include="..\..\src\antibot\antibot.cpp" />
-    <ClCompile Include="..\..\src\index\addrindex.cpp" />
     <ClCompile Include="..\..\src\websocket\ws.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\srcpcegister.h" />
-    <ClInclude Include="..\..\src\html.h" />
-    <ClInclude Include="..\..\src\pocketdb\pocketnet.h" />
-    <ClInclude Include="..\..\src\primitives\rtransaction.h" />
-    <ClInclude Include="..\..\src\rpc\pocketrpc.h" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\Base.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\Blocking.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\BlockingCancel.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\Comment.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\Complain.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\Lottery.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\Post.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\Reputation.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\ScoreComment.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\ScorePost.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\Subscribe.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\SubscribeCancel.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\SubscribePrivate.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\User.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\Video.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\helpers\TransactionHelper.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\helpers\TypesHelper.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\base\Base.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\base\Payload.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\base\PocketTypes.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\base\Rating.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\base\Transaction.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\base\TransactionOutput.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\Blocking.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\BlockingCancel.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\Coinbase.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\Coinstake.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\Comment.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\Complain.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\Default.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\Post.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\ReturnDtoModels.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\ScoreComment.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\ScorePost.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\Subscribe.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\SubscribeCancel.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\SubscribePrivate.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\models\dto\User.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\repositories\BaseRepository.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\repositories\ChainRepository.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\repositories\RatingsRepository.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\repositories\TransactionRepository.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\services\TransactionIndexer.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\services\TransactionSerializer.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\SQLiteDatabase.hpp" />
   </ItemGroup>
   <Import Label="configTarget" Project="..\common.vcxproj" />
 </Project>

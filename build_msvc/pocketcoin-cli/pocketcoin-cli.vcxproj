@@ -23,9 +23,6 @@
     <ClCompile Include="..\..\src\pocketcoin-cli.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\libpocketcoin_cli\libpocketcoin_cli.vcxproj">
       <Project>{0667528c-d734-4009-adf9-c0d6c4a5a5a6}</Project>
     </ProjectReference>
@@ -150,6 +147,8 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\src;..\..\src\univalue\include;</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

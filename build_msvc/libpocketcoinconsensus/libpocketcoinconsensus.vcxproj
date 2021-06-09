@@ -42,9 +42,6 @@
     <ClCompile Include="..\..\src\uint256.cpp" />
     <ClCompile Include="..\..\src\utilstrencodings.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{2B384FA8-9EE1-4544-93CB-0D733C25E8CE}</ProjectGuid>
@@ -148,6 +145,8 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <SuppressStartupBanner>false</SuppressStartupBanner>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

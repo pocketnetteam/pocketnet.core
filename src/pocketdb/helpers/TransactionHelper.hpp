@@ -9,8 +9,11 @@
 
 #include <string>
 #include <key_io.h>
+#include <boost/algorithm/string.hpp>
+
 #include "primitives/transaction.h"
 
+#include "pocketdb/models/dto/ReturnDtoModels.hpp"
 #include "pocketdb/models/base/PocketTypes.hpp"
 
 #include "pocketdb/models/dto/Blocking.hpp"
@@ -113,6 +116,8 @@ namespace PocketHelpers
             if (vasm.size() >= 2)
                 return vasm[1];
         }
+
+        return "";
     }
 
     static PocketTxType ParseType(const CTransactionRef& tx, vector<string>& vasm)

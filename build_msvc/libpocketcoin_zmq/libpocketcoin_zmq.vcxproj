@@ -117,9 +117,11 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>NOMINMAX;ZMQ_STATIC;HAVE_CONFIG_H;_SCL_SECURE_NO_WARNINGS;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\src;..\..\src\univalue\include;..\..\src\reindexer;..\..\src\reindexer\vendor</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\univalue\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <SuppressStartupBanner>false</SuppressStartupBanner>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

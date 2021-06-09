@@ -9,11 +9,11 @@
 #define POCKETDB_SQLITEDATABASE_H
 
 #include "logging.h"
-#include "sqlite3.h"
 #include "sync.h"
 #include "tinyformat.h"
 #include "fs.h"
 
+#include <sqlite3.h>
 #include <iostream>
 
 namespace PocketDb

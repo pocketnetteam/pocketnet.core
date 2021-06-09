@@ -21,7 +21,7 @@ namespace PocketConsensus
     {
     protected:
     public:
-        VideoConsensus() = default;
+        VideoConsensus(int height) : BaseConsensus(height) {}
     };
 
     /*******************************************************************************************************************
@@ -33,9 +33,7 @@ namespace PocketConsensus
     {
     protected:
     public:
-
-        VideoConsensus_checkpoint_0() = default;
-
+        VideoConsensus_checkpoint_0(int height) : VideoConsensus(height) {}
     }; // class VideoConsensus_checkpoint_0
 
     /*******************************************************************************************************************
@@ -48,6 +46,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1; }
     public:
+        VideoConsensus_checkpoint_1(int height) : VideoConsensus_checkpoint_0(height) {}
     };
 
     /*******************************************************************************************************************
@@ -59,19 +58,17 @@ namespace PocketConsensus
     class VideoConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<VideoConsensus *()>>> m_rules
-        {
-            {1, []() { return new VideoConsensus_checkpoint_1(); }},
-            {0, []() { return new VideoConsensus_checkpoint_0(); }},
+        inline static std::vector<std::pair<int, std::function<VideoConsensus*(int height)>>> m_rules{
+            {1, [](int height) { return new VideoConsensus_checkpoint_1(height); }},
+            {0, [](int height) { return new VideoConsensus_checkpoint_0(height); }},
         };
+
     public:
-        shared_ptr <VideoConsensus> Instance(int height)
+        shared_ptr<VideoConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules) {
-                if (height >= rule.first) {
-                    return shared_ptr<VideoConsensus>(rule.second());
-                }
-            }
+            for (const auto& rule : m_rules)
+                if (height >= rule.first)
+                    return shared_ptr<VideoConsensus>(rule.second(height));
         }
     };
 }

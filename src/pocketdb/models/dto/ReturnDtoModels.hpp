@@ -8,6 +8,7 @@
 #define POCKETTX_RETURN_DTO_HPP
 
 #include <univalue/include/univalue.h>
+#include "pocketdb/models/base/PocketTypes.hpp"
 
 namespace PocketTx
 {
@@ -15,7 +16,7 @@ namespace PocketTx
     using std::vector;
     using std::map;
     using std::shared_ptr;
-
+    using std::make_shared;
 
     // Base return model
     class BaseReturnDto

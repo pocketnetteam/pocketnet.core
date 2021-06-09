@@ -22,9 +22,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\rpc\client.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{0667528C-D734-4009-ADF9-C0D6C4A5A5A6}</ProjectGuid>
@@ -134,6 +131,8 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..\..\src;..\..\src\univalue\include;</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D "_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

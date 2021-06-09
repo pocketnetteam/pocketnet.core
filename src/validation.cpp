@@ -51,6 +51,9 @@
 #include <boost/thread.hpp>
 #include <univalue.h>
 
+#include "pocketdb/pocketnet.h"
+#include "pocketdb/services/TransactionIndexer.hpp"
+
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 std::map<std::string, WSUser> WSConnections;
 

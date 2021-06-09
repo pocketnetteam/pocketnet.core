@@ -50,6 +50,9 @@
 #include <walletinitinterface.h>
 #include <warnings.h>
 
+#include <websocket/ws.h>
+#include "pocketdb/pocketnet.h"
+#include "pocketdb/services/TransactionIndexer.hpp"
 
 #ifndef WIN32
 
@@ -181,9 +184,7 @@ void Interrupt()
     if (g_connman)
         g_connman->Interrupt();
     if (g_txindex)
-    {
         g_txindex->Interrupt();
-    }
 
     ShutdownPocketServices();
 }

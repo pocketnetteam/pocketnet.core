@@ -29,6 +29,7 @@
 
 #include "key_io.h"
 #include "streams.h"
+#include "logging.h"
 
 #include <utilstrencodings.h>
 
