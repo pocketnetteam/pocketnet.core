@@ -207,6 +207,7 @@ namespace PocketDb
                 auto stmt = SetupSqlStatement(R"sql(
                     UPDATE Transactions SET
                         Id = ifnull(
+                            -- copy self Id
                             (
                                 select max( u.Id )
                                 from Transactions u
@@ -214,12 +215,16 @@ namespace PocketDb
                                     and u.String1 = Transactions.String1
                                     and u.Height is not null
                             ),
-                            (
-                                select count( 1 )
-                                from Transactions u
-                                where u.Type = Transactions.Type
-                                    and u.Height is not null
-                                    and u.Id is not null
+                            ifnull(
+                                -- new record
+                                (
+                                    select max( u.Id ) + 1
+                                    from Transactions u
+                                    where u.Type = Transactions.Type
+                                        and u.Height is not null
+                                        and u.Id is not null
+                                ),
+                                0 -- for first record
                             )
                         )
                     WHERE Hash=?
