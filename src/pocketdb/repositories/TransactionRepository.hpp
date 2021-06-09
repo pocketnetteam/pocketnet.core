@@ -226,7 +226,6 @@ namespace PocketDb
                     from vAccounts a
                     where a.Time >= ?
                         and a.Height = (select min(a1.Height) from vAccounts a1 where a1.AddressHash=a.AddressHash)
-                        and a.ReferrerAddressHash is not null
                         and a.AddressHash = ?
                 )sql");
 
