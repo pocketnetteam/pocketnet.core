@@ -135,7 +135,7 @@ namespace PocketDb
 
                 create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height);
                 create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height);
-                create index if not exists Ratings_Type_Id_Height on Ratings (Type, Id, Height desc);
+                create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
 
                 --------------------------------------------
                 --               EXT TABLES               --
