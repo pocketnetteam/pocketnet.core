@@ -2466,9 +2466,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
         int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
-        if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
+        // TODO (brangr): DEBUG!
+        //if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
         {
-            LogPrintf("@@@ 2 %s (%d)\n", block.GetHash().ToString(), pindex->nHeight);
+          //  LogPrintf("@@@ 2 %s (%d)\n", block.GetHash().ToString(), pindex->nHeight);
             //if (IsCheckpointBlock(pindex->nHeight, block.GetHash().ToString()))
             //    LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
             //else
@@ -2500,7 +2501,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // -----------------------------------------------------------------------------------------------------------------
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
-    PocketServices::TransactionIndexer::Index(block, pindex->nHeight);
+    // TODO (brangr): DEBUG!
+    //PocketServices::TransactionIndexer::Index(block, pindex->nHeight);
 
     int64_t nTime6 = GetTimeMicros();
     nTimeVerify += nTime6 - nTime5;
