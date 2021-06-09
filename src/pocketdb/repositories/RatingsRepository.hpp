@@ -32,33 +32,35 @@ namespace PocketDb
         {
             for (const auto& rating : *ratings)
             {
-                auto result = TryTransactionStep([&]()
+                if (*rating.GetType() != RatingType::RATING_ACCOUNT_LIKERS)
                 {
-                    if (*rating.GetType() != RatingType::RATING_ACCOUNT_LIKERS)
+                    int64_t nTime1 = GetTimeMicros();
+
+                    if (!InsertRating(rating))
                     {
-                        int64_t nTime1 = GetTimeMicros();
-
-                        InsertRating(rating);
-
-                        int64_t nTime2 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - InsertRating: %.2fms\n", 0.001 * (nTime2 - nTime1));
+                        LogPrintf("InsertRatings::InsertRating failed for type:%s id:%d height:%s\n",
+                            rating.GetTypeInt(), rating.GetId(), rating.GetHeight());
+                        return false;
                     }
-                    else
+
+                    int64_t nTime2 = GetTimeMicros();
+                    LogPrint(BCLog::BENCH, "      - InsertRating: %.2fms\n", 0.001 * (nTime2 - nTime1));
+                }
+                else
+                {
+                    int64_t nTime1 = GetTimeMicros();
+
+                    if (!InsertLiker(rating))
                     {
-                        int64_t nTime1 = GetTimeMicros();
-
-                        InsertLiker(rating);
-
-                        int64_t nTime2 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - InsertLiker: %.2fms\n", 0.001 * (nTime2 - nTime1));
+                        LogPrintf("InsertRatings::InsertLiker failed for type:%s id:%d height:%s\n",
+                            rating.GetTypeInt(), rating.GetId(), rating.GetHeight());
+                        return false;
                     }
-                });
 
-                if (!result)
-                    return false;
+                    int64_t nTime2 = GetTimeMicros();
+                    LogPrint(BCLog::BENCH, "      - InsertLiker: %.2fms\n", 0.001 * (nTime2 - nTime1));
+                }
             }
-
-            return true;
         }
 
         tuple<bool, int> GetUserReputation(int addressId, int height)
@@ -220,73 +222,70 @@ namespace PocketDb
 
     private:
 
-        void InsertRating(const Rating& rating)
+        bool InsertRating(const Rating& rating)
         {
-            // Build sql statement with auto select IDs
-            // TODO (brangr): limit 1 after debugging
-            auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO Ratings (
-                    Type,
-                    Height,
-                    Id,
-                    Value
-                ) SELECT ?,?,?,
-                    ifnull((
-                        select r.Value
-                        from Ratings r
-                        where r.Type = ?
-                            and r.Id = ?
-                            and r.Height < ?
-                        order by r.Height desc
-                        limit 1
-                    ), 0) + ?
-            )sql");
+            return TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    INSERT OR FAIL INTO Ratings (
+                        Type,
+                        Height,
+                        Id,
+                        Value
+                    ) SELECT ?,?,?,
+                        ifnull((
+                            select r.Value
+                            from Ratings r
+                            where r.Type = ?
+                                and r.Id = ?
+                                and r.Height < ?
+                            order by r.Height desc
+                            limit 1
+                        ), 0) + ?
+                )sql");
 
-            // Bind arguments
-            auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
-            result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
-            result &= TryBindStatementInt64(stmt, 3, rating.GetId());
-            result &= TryBindStatementInt(stmt, 4, rating.GetTypeInt());
-            result &= TryBindStatementInt64(stmt, 5, rating.GetId());
-            result &= TryBindStatementInt(stmt, 6, rating.GetHeight());
-            result &= TryBindStatementInt64(stmt, 7, rating.GetValue());
-            if (!result)
-                throw runtime_error(strprintf("%s: can't insert in ratings (bind)\n", __func__));
+                // TODO (joni): replace with TryBind
+                auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+                result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
+                result &= TryBindStatementInt64(stmt, 3, rating.GetId());
+                result &= TryBindStatementInt(stmt, 4, rating.GetTypeInt());
+                result &= TryBindStatementInt64(stmt, 5, rating.GetId());
+                result &= TryBindStatementInt(stmt, 6, rating.GetHeight());
+                result &= TryBindStatementInt64(stmt, 7, rating.GetValue());
+                if (!result)
+                    return false;
 
-            // Try execute
-            if (!TryStepStatement(stmt))
-                throw runtime_error(strprintf("%s: can't insert in ratings (step) Type:%d Height:%d Hash:%s\n",
-                    __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId()));
+                return TryStepStatement(stmt);
+            });
         }
 
-        void InsertLiker(const Rating& rating)
+        bool InsertLiker(const Rating& rating)
         {
-            // Build sql statement with auto select IDs
-            auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO Ratings (
-                    Type,
-                    Height,
-                    Id,
-                    Value
-                ) SELECT ?,?,?,?
-                WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
-            )sql");
+            return TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    INSERT OR FAIL INTO Ratings (
+                        Type,
+                        Height,
+                        Id,
+                        Value
+                    ) SELECT ?,?,?,?
+                    WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
+                )sql");
 
-            // Bind arguments
-            auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
-            result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
-            result &= TryBindStatementInt64(stmt, 3, rating.GetId());
-            result &= TryBindStatementInt64(stmt, 4, rating.GetValue());
-            result &= TryBindStatementInt(stmt, 5, rating.GetTypeInt());
-            result &= TryBindStatementInt64(stmt, 6, rating.GetId());
-            result &= TryBindStatementInt64(stmt, 7, rating.GetValue());
-            if (!result)
-                throw runtime_error(strprintf("%s: can't insert in likers (bind)\n", __func__));
+                // TODO (joni): replace with TryBind
+                auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+                result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
+                result &= TryBindStatementInt64(stmt, 3, rating.GetId());
+                result &= TryBindStatementInt64(stmt, 4, rating.GetValue());
+                result &= TryBindStatementInt(stmt, 5, rating.GetTypeInt());
+                result &= TryBindStatementInt64(stmt, 6, rating.GetId());
+                result &= TryBindStatementInt64(stmt, 7, rating.GetValue());
+                if (!result)
+                    return false;
 
-            // Try execute
-            if (!TryStepStatement(stmt))
-                throw runtime_error(strprintf("%s: can't insert in likers (step) Type:%d Height:%d Hash:%s Value:%s\n",
-                    __func__, *rating.GetTypeInt(), *rating.GetHeight(), *rating.GetId(), *rating.GetValue()));
+                return TryStepStatement(stmt);
+            });
         }
 
     }; // namespace PocketDb

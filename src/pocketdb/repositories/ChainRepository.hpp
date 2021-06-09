@@ -34,201 +34,212 @@ namespace PocketDb
         {
             for (const auto& tx : txs)
             {
-                auto result = TryTransactionStep([&]()
+                int64_t nTime1 = GetTimeMicros();
+
+                // All transactions must have a blockHash & height relation
+                if (!UpdateTransactionHeight(blockHash, height, tx.Hash))
                 {
-                    int64_t nTime1 = GetTimeMicros();
-
-                    // All transactions must have a blockHash & height relation
-                    UpdateTransactionHeight(blockHash, height, tx.Hash);
-
-                    int64_t nTime2 = GetTimeMicros();
-                    LogPrint(BCLog::BENCH, "      - UpdateTransactionHeight: %.2fms\n", 0.001 * (nTime2 - nTime1));
-
-                    // The outputs are needed for the explorer
-                    UpdateTransactionOutputs(blockHash, height, tx.Inputs);
-
-                    int64_t nTime3 = GetTimeMicros();
-                    LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms\n", 0.001 * (nTime3 - nTime2));
-
-                    // All users must have a unique digital ID
-                    if (tx.Type == PocketTxType::ACCOUNT_USER
-                        || tx.Type == PocketTxType::ACCOUNT_VIDEO_SERVER
-                        || tx.Type == PocketTxType::ACCOUNT_MESSAGE_SERVER
-                        || tx.Type == PocketTxType::CONTENT_POST
-                        || tx.Type == PocketTxType::CONTENT_COMMENT
-                        || tx.Type == PocketTxType::CONTENT_VIDEO
-                        || tx.Type == PocketTxType::CONTENT_TRANSLATE)
-                    {
-                        UpdateShortId(tx.Hash);
-
-                        int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - UpdateShortId: %.2fms\n", 0.001 * (nTime4 - nTime3));
-                    }
-                });
-
-                if (!result)
+                    LogPrintf("UpdateHeight::UpdateTransactionHeight failed for block:%s height:%d tx:%s\n",
+                        blockHash, height, tx.Hash);
                     return false;
-            }
+                }
 
-            return true;
+                int64_t nTime2 = GetTimeMicros();
+                LogPrint(BCLog::BENCH, "      - UpdateTransactionHeight: %.2fms\n", 0.001 * (nTime2 - nTime1));
+
+                // The outputs are needed for the explorer
+                if (!UpdateTransactionOutputs(blockHash, height, tx.Inputs))
+                {
+                    LogPrintf("UpdateHeight::UpdateTransactionOutputs failed for block:%s height:%d tx:%s\n",
+                        blockHash, height, tx.Hash);
+                    return false;
+                }
+
+                int64_t nTime3 = GetTimeMicros();
+                LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms\n", 0.001 * (nTime3 - nTime2));
+
+                // All users must have a unique digital ID
+                if (tx.Type == PocketTxType::ACCOUNT_USER
+                    || tx.Type == PocketTxType::ACCOUNT_VIDEO_SERVER
+                    || tx.Type == PocketTxType::ACCOUNT_MESSAGE_SERVER
+                    || tx.Type == PocketTxType::CONTENT_POST
+                    || tx.Type == PocketTxType::CONTENT_COMMENT
+                    || tx.Type == PocketTxType::CONTENT_VIDEO
+                    || tx.Type == PocketTxType::CONTENT_TRANSLATE)
+                {
+                    if (!UpdateShortId(tx.Hash))
+                    {
+                        LogPrintf("UpdateHeight::UpdateShortId failed for block:%s height:%d tx:%s\n",
+                            blockHash, height, tx.Hash);
+                        return false;
+                    }
+
+                    int64_t nTime4 = GetTimeMicros();
+                    LogPrint(BCLog::BENCH, "      - UpdateShortId: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                }
+            }
         }
 
         // Erase all calculated data great or equals block
         bool RollbackBlock(int height)
         {
-            return TryTransactionStep([&]()
+            auto heightPtr = make_shared<int>(height);
+
+            int64_t nTime1 = GetTimeMicros();
+
+            // Update transactions
+            if (!TryTransactionStep([&]()
             {
-                auto heightPtr = make_shared<int>(height);
+                auto stmt = SetupSqlStatement(R"sql(
+                    UPDATE Transactions SET
+                        BlockHash = null,
+                        Height = null,
+                        Id = null
+                    WHERE Height is not null and Height >= ?
+                )sql");
 
-                // Update transactions
-                {
-                    auto stmt = SetupSqlStatement(R"sql(
-                        UPDATE Transactions SET
-                            BlockHash = null,
-                            Height = null,
-                            Id = null
-                        WHERE Height is not null and Height >= ?
-                    )sql");
+                return TryBindStatementInt(stmt, 1, heightPtr) && TryStepStatement(stmt);
+            }))
+                return false;
 
-                    auto result = TryBindStatementInt(stmt, 1, heightPtr);
-                    if (!result)
-                        throw runtime_error(strprintf("%s: can't rollback chain (bind)\n", __func__));
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "      - RollbackBlock (Chain): %.2fms\n", 0.001 * (nTime2 - nTime1));
 
-                    if (!TryStepStatement(stmt))
-                        throw runtime_error(strprintf("%s: can't rollback chain (step) Height > %d\n",
-                            __func__, height));
-                }
+            // Update transaction outputs
+            if (!TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    UPDATE TxOutputs SET
+                        SpentHeight = null,
+                        SpentTxHash = null
+                    WHERE SpentHeight is not null and SpentHeight >= ?
+                )sql");
 
-                // Update transaction outputs
-                {
-                    auto stmt = SetupSqlStatement(R"sql(
-                        UPDATE TxOutputs SET
-                            SpentHeight = null,
-                            SpentTxHash = null
-                        WHERE SpentHeight is not null and SpentHeight >= ?
-                    )sql");
+                return TryBindStatementInt(stmt, 1, heightPtr) && TryStepStatement(stmt);
+            }))
+                return false;
 
-                    auto result = TryBindStatementInt(stmt, 1, heightPtr);
-                    if (!result)
-                        throw runtime_error(strprintf("%s: can't rollback chain (bind)\n", __func__));
+            int64_t nTime3 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "      - RollbackBlock (Outputs): %.2fms\n", 0.001 * (nTime3 - nTime2));
 
-                    if (!TryStepStatement(stmt))
-                        throw runtime_error(strprintf("%s: can't rollback chain (step) Height > %d\n",
-                            __func__, height));
-                }
+            // Remove ratings
+            if (!TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    DELETE FROM Ratings
+                    WHERE Height >= ?
+                )sql");
 
-                // Remove ratings
-                {
-                    auto stmt = SetupSqlStatement(R"sql(
-                        DELETE FROM Ratings
-                        WHERE Height >= ?
-                    )sql");
+                return TryBindStatementInt(stmt, 1, heightPtr) && TryStepStatement(stmt);
+            }))
+                return false;
 
-                    auto result = TryBindStatementInt(stmt, 1, heightPtr);
-                    if (!result)
-                        throw runtime_error(strprintf("%s: can't rollback ratings (bind)\n", __func__));
+            int64_t nTime4 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "      - RollbackBlock (Ratings): %.2fms\n", 0.001 * (nTime4 - nTime3));
 
-                    if (!TryStepStatement(stmt))
-                        throw runtime_error(strprintf("%s: can't rollback ratings (step) Height > %d\n",
-                            __func__, height));
-                }
-            });
+            return true;
         }
 
     private:
 
-        void UpdateTransactionHeight(const string& blockHash, int height, const string& txHash)
+        bool UpdateTransactionHeight(const string& blockHash, int height, const string& txHash)
         {
-            auto stmt = SetupSqlStatement(R"sql(
-                UPDATE Transactions SET
-                    BlockHash=?,
-                    Height=?
-                WHERE Hash=?
-            )sql");
-
-            // Bind arguments
-            auto blockHashPtr = make_shared<string>(blockHash);
-            auto heightPtr = make_shared<int>(height);
-            auto txHashPtr = make_shared<string>(txHash);
-
-            auto result = TryBindStatementText(stmt, 1, blockHashPtr);
-            result &= TryBindStatementInt(stmt, 2, heightPtr);
-            result &= TryBindStatementText(stmt, 3, txHashPtr);
-            if (!result)
-                throw runtime_error(strprintf("%s: can't update transactions set height (bind)\n", __func__));
-
-            // Try execute
-            if (!TryStepStatement(stmt))
-                throw runtime_error(
-                    strprintf("%s: can't update transactions set height (step) Hash:%s Block:%s Height:%d\n",
-                        __func__, txHash, blockHash, height));
-        }
-
-        void UpdateTransactionOutputs(const string& txHash, int height, const map<string, int>& outputs)
-        {
-            for (auto& out : outputs)
+            return TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(R"sql(
-                    UPDATE TxOutputs SET
-                        SpentHeight=?,
-                        SpentTxHash=?
-                    WHERE TxHash=? and Number=?
+                    UPDATE Transactions SET
+                        BlockHash=?,
+                        Height=?
+                    WHERE Hash=?
                 )sql");
 
-                // Bind arguments
-                auto spentHeightPtr = make_shared<int>(height);
-                auto spentTxHashPtr = make_shared<string>(txHash);
-                auto txHashPtr = make_shared<string>(out.first);
-                auto numberPtr = make_shared<int>(out.second);
+                // TODO (joni): replace with TryBind
+                auto blockHashPtr = make_shared<string>(blockHash);
+                auto heightPtr = make_shared<int>(height);
+                auto txHashPtr = make_shared<string>(txHash);
 
-                auto result = TryBindStatementInt(stmt, 1, spentHeightPtr);
-                result &= TryBindStatementText(stmt, 2, spentTxHashPtr);
+                auto result = TryBindStatementText(stmt, 1, blockHashPtr);
+                result &= TryBindStatementInt(stmt, 2, heightPtr);
                 result &= TryBindStatementText(stmt, 3, txHashPtr);
-                result &= TryBindStatementInt(stmt, 4, numberPtr);
                 if (!result)
-                    throw runtime_error(strprintf("%s: can't update txoutputs set height (bind)\n", __func__));
+                    return false;
 
-                // Try execute
-                if (!TryStepStatement(stmt))
-                    throw runtime_error(strprintf("%s: can't update txoutputs set height (step) Hash:%s Height:%d\n",
-                        __func__, txHash, height));
-            }
+                return TryStepStatement(stmt);
+            });
         }
 
-        void UpdateShortId(const string& txHash)
+        bool UpdateTransactionOutputs(const string& txHash, int height, const map<string, int>& outputs)
         {
-            auto stmt = SetupSqlStatement(R"sql(
-                UPDATE Transactions SET
-                    Id = ifnull(
-                        (
-                            select max( u.Id )
-                            from Transactions u
-                            where u.Type = Transactions.Type
-                                and u.String1 = Transactions.String1
-                                and u.Height is not null
-                        ),
-                        (
-                            select count( 1 )
-                            from Transactions u
-                            where u.Type = Transactions.Type
-                                and u.Height is not null
-                                and u.Id is not null
+            return TryTransactionStep([&]()
+            {
+                for (auto& out : outputs)
+                {
+                    auto stmt = SetupSqlStatement(R"sql(
+                        UPDATE TxOutputs SET
+                            SpentHeight=?,
+                            SpentTxHash=?
+                        WHERE TxHash=? and Number=?
+                    )sql");
+
+                    // TODO (joni): replace with TryBind
+                    auto spentHeightPtr = make_shared<int>(height);
+                    auto spentTxHashPtr = make_shared<string>(txHash);
+                    auto txHashPtr = make_shared<string>(out.first);
+                    auto numberPtr = make_shared<int>(out.second);
+
+                    auto result = TryBindStatementInt(stmt, 1, spentHeightPtr);
+                    result &= TryBindStatementText(stmt, 2, spentTxHashPtr);
+                    result &= TryBindStatementText(stmt, 3, txHashPtr);
+                    result &= TryBindStatementInt(stmt, 4, numberPtr);
+                    if (!result)
+                        return false;
+
+                    if (!TryStepStatement(stmt))
+                        return false;
+                }
+
+                return true;
+            });
+        }
+
+        bool UpdateShortId(const string& txHash)
+        {
+            return TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    UPDATE Transactions SET
+                        Id = ifnull(
+                            -- copy self Id
+                            (
+                                select max( u.Id )
+                                from Transactions u
+                                where u.Type = Transactions.Type
+                                    and u.String1 = Transactions.String1
+                                    and u.Height is not null
+                            ),
+                            ifnull(
+                                -- new record
+                                (
+                                    select max( u.Id ) + 1
+                                    from Transactions u
+                                    where u.Type = Transactions.Type
+                                        and u.Height is not null
+                                        and u.Id is not null
+                                ),
+                                0 -- for first record
+                            )
                         )
-                    )
-                WHERE Hash=?
-            )sql");
+                    WHERE Hash=?
+                )sql");
 
-            // Bind arguments
-            auto hashPtr = make_shared<string>(txHash);
+                // TODO (joni): replace with TryBind
+                auto hashPtr = make_shared<string>(txHash);
+                auto result = TryBindStatementText(stmt, 1, hashPtr);
+                if (!result)
+                    return false;
 
-            auto result = TryBindStatementText(stmt, 1, hashPtr);
-            if (!result)
-                throw runtime_error(strprintf("%s: can't update transactions set Id (bind)\n", __func__));
-
-            // Try execute
-            if (!TryStepStatement(stmt))
-                throw runtime_error(strprintf("%s: can't update transactions set Id (step) Hash:%s\n",
-                    __func__, txHash));
+                return TryStepStatement(stmt);
+            });
         }
 
     };
