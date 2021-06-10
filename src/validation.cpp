@@ -2469,7 +2469,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // TODO (brangr): DEBUG!
         //if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
         {
-          //  LogPrintf("@@@ 2 %s (%d)\n", block.GetHash().ToString(), pindex->nHeight);
+            //LogPrintf("@@@ 2 %s (%d)\n", block.GetHash().ToString(), pindex->nHeight);
             //if (IsCheckpointBlock(pindex->nHeight, block.GetHash().ToString()))
             //    LogPrintf("Found checkpoint block %s\n", block.GetHash().ToString());
             //else

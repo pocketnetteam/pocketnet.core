@@ -61,6 +61,8 @@ namespace PocketDb
                     LogPrint(BCLog::BENCH, "      - InsertLiker: %.2fms\n", 0.001 * (nTime2 - nTime1));
                 }
             }
+
+            return true;
         }
 
         tuple<bool, int> GetUserReputation(int addressId, int height)

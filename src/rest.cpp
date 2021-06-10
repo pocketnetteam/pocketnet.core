@@ -18,10 +18,10 @@
 #include <txmempool.h>
 #include <utilstrencodings.h>
 #include <version.h>
-
 #include <boost/algorithm/string.hpp>
-
 #include <univalue.h>
+
+#include <pocketdb/services/TransactionIndexer.hpp>
 
 static const size_t MAX_GETUTXOS_OUTPOINTS = 15; //allow a max of 15 outpoints to be queried at once
 
@@ -106,6 +106,23 @@ static std::tuple<RetFormat, std::vector<std::string>> ParseParams(const std::st
 
     return std::make_tuple(rf, uriParts);
 };
+
+static std::tuple<bool, int> TryGetParamInt(std::vector<std::string>& uriParts, int index)
+{
+    try
+    {
+        if ((int)uriParts.size() > index)
+        {
+            auto val = std::stoi(uriParts[index]);
+            return std::make_tuple(true, val);
+        }
+
+        return std::make_tuple(false, 0);
+    }
+    catch (...) {
+        return std::make_tuple(false, 0);
+    }
+}
 
 static std::string AvailableDataFormatsString()
 {
@@ -739,8 +756,8 @@ static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
     auto[rf, uriParts] = ParseParams(strURIPart);
 
     int height = chainActive.Height();
-    if (!uriParts.empty())
-        height = std::stoi(uriParts[0]);
+    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
+        height = result;
 
     int first75 = 3750000;
     int halvblocks = 2'100'000;
@@ -792,6 +809,53 @@ static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
     }
 }
 
+static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    auto[rf, uriParts] = ParseParams(strURIPart);
+    int start = 0;
+    int height = 1;
+
+    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
+        start = result;
+
+    if (auto[ok, result] = TryGetParamInt(uriParts, 1); ok)
+        height = result;
+
+    int current = start;
+    while (current <= height)
+    {
+        CBlockIndex* pblockindex = chainActive[current];
+        if (!pblockindex) {
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
+        }
+
+        CBlock block;
+        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
+        }
+
+        auto indexResult = PocketServices::TransactionIndexer::Index(block, pblockindex->nHeight);
+        LogPrintf("TransactionIndexer::Index at height %d ended with result: %b\n", current, indexResult);
+
+        if (!indexResult)
+            return RESTERR(req, HTTP_BAD_REQUEST, "TransactionIndexer::Index ended with result: false");
+
+        current += 1;
+    }
+
+    req->WriteHeader("Content-Type", "text/plain");
+    req->WriteReply(HTTP_OK, "Success\n");
+    return true;
+}
+
+static bool debug_rewards_check(HTTPRequest* req, const std::string& strURIPart)
+{
+    // TODO (brangr): implement
+}
+
 static const struct
 {
     const char* prefix;
@@ -812,6 +876,9 @@ static const struct
     {"/rest/topaddresses",       rest_topaddresses},
     {"/rest/gettopaddresses",    rest_topaddresses},
     {"/rest/blockhash",          rest_blockhash},
+
+    {"/rest/pindexblock",        debug_index_block},
+    {"/rest/prewards",           debug_rewards_check},
 };
 
 void StartREST()

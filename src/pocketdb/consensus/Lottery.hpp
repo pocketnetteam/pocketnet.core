@@ -41,27 +41,6 @@ namespace PocketConsensus
         LotteryWinners _winners;
         virtual int MaxWinnersCount() const { return 25; }
 
-    public:
-        LotteryConsensus(int height) : BaseConsensus(height) {}
-
-        virtual LotteryWinners& Winners(
-            const CBlock& block,
-            CDataStream& hashProofOfStakeSource,
-            shared_ptr <ReputationConsensus> reputationConsensus) { return _winners; }
-
-        virtual CAmount RatingReward(CAmount nCredit, opcodetype code) { return 0; }
-        virtual void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) {}
-    };
-
-
-    /*******************************************************************************************************************
-    *
-    *  Lottery start checkpoint
-    *
-    *******************************************************************************************************************/
-    class LotteryConsensus_checkpoint_0 : public LotteryConsensus
-    {
-    protected:
         void SortWinners(map<string, int>& candidates, CDataStream& hashProofOfStakeSource, vector<string>& winners)
         {
             vector<pair<string, pair<int, arith_uint256>>> candidatesSorted;
@@ -91,11 +70,11 @@ namespace PocketConsensus
         virtual void ExtendReferrers() {}
 
     public:
-        LotteryConsensus_checkpoint_0(int height) : LotteryConsensus(height) {}
+        LotteryConsensus(int height) : BaseConsensus(height) {}
 
         // Get all lottery winner
-        LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource,
-            shared_ptr <ReputationConsensus> reputationConsensus) override
+        virtual LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource,
+            shared_ptr <ReputationConsensus> reputationConsensus)
         {
             map<string, int> postCandidates;
             map<string, string> postReferrersCandidates;
@@ -171,13 +150,14 @@ namespace PocketConsensus
             return _winners;
         }
 
-        CAmount RatingReward(CAmount nCredit, opcodetype code) override
+        virtual CAmount RatingReward(CAmount nCredit, opcodetype code)
         {
             if (code == OP_WINNER_COMMENT) return nCredit * 0.5 / 10;
             return nCredit * 0.5;
         }
 
-    }; // class LotteryConsensus_checkpoint_0
+        virtual void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) {}
+    };
 
 
     /*******************************************************************************************************************
@@ -185,7 +165,7 @@ namespace PocketConsensus
     *  Lottery checkpoint at 514185 block
     *
     *******************************************************************************************************************/
-    class LotteryConsensus_checkpoint_514185 : public LotteryConsensus_checkpoint_0
+    class LotteryConsensus_checkpoint_514185 : public LotteryConsensus
     {
     protected:
         int CheckpointHeight() override { return 514185; }
@@ -203,7 +183,7 @@ namespace PocketConsensus
         }
 
     public:
-        LotteryConsensus_checkpoint_514185(int height) : LotteryConsensus_checkpoint_0(height) {}
+        LotteryConsensus_checkpoint_514185(int height) : LotteryConsensus(height) {}
         void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) override
         {
             winner_types.push_back(type);
@@ -354,7 +334,7 @@ namespace PocketConsensus
                 {1124000, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
                 {1035000, [](int height) { return new LotteryConsensus_checkpoint_1035000(height); }},
                 {514185,  [](int height) { return new LotteryConsensus_checkpoint_514185(height); }},
-                {0,       [](int height) { return new LotteryConsensus_checkpoint_0(height); }},
+                {0,       [](int height) { return new LotteryConsensus(height); }},
             };
     public:
         LotteryConsensusFactory() = default;

@@ -33,26 +33,36 @@ namespace PocketServices
     public:
         static bool Index(const CBlock& block, int height)
         {
-            auto result = true;
-
             int64_t nTime1 = GetTimeMicros();
 
-            result &= RollbackChain(height);
+            if (!RollbackChain(height))
+            {
+                LogPrintf("TransactionIndexer::Index failed (Rollback) at height %d\n", height);
+                return false;
+            }
 
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - RollbackChain: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
-            result &= IndexChain(block, height);
+            if (!IndexChain(block, height))
+            {
+                LogPrintf("TransactionIndexer::Index failed (Chain) at height %d\n", height);
+                return false;
+            }
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms\n", 0.001 * (nTime3 - nTime2));
 
-            result &= IndexRatings(block, height);
+            if (!IndexRatings(block, height))
+            {
+                LogPrintf("TransactionIndexer::Index failed (Ratings) at height %d\n", height);
+                return false;
+            }
 
             int64_t nTime4 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms\n", 0.001 * (nTime4 - nTime3));
 
-            return result;
+            return true;
         }
 
         static bool Rollback(int height)
@@ -124,7 +134,8 @@ namespace PocketServices
 
                 // Need select content id for saving rating
                 auto[scoreDataResult, scoreData] = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
-                if (!scoreDataResult) {
+                if (!scoreDataResult)
+                {
                     LogPrintf("Warning: h:%d tx:%s - GetScoreData failed\n", height, tx->GetHash().GetHex());
                     continue;
                 }

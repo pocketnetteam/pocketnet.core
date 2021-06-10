@@ -78,6 +78,8 @@ namespace PocketDb
                     LogPrint(BCLog::BENCH, "      - UpdateShortId: %.2fms\n", 0.001 * (nTime4 - nTime3));
                 }
             }
+
+            return true;
         }
 
         // Erase all calculated data great or equals block
