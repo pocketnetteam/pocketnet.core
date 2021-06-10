@@ -694,9 +694,11 @@ bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool che
     }
 
     // Check double nickname
-    if (g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("name", CondEq, _name).Not().Where("address", CondEq, _address).Where("block", CondLt, height)) > 0) {
-        result = ANTIBOTRESULT::NicknameDouble;
-        return false;
+    if (height < Params().GetConsensus().checkpoint_non_unique_account_name) {
+        if (g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("name", CondEq, _name).Not().Where("address", CondEq, _address).Where("block", CondLt, height)) > 0) {
+            result = ANTIBOTRESULT::NicknameDouble;
+            return false;
+        }
     }
 
     // TODO (brangr): block all spaces
