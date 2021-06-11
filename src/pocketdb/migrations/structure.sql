@@ -48,21 +48,6 @@ create table if not exists Transactions
     Int1      int    null
 );
 
-create index if not exists Transactions_Type on Transactions (Type);
-create index if not exists Transactions_Hash on Transactions (Hash);
-create index if not exists Transactions_Time on Transactions (Time);
-create index if not exists Transactions_BlockHash on Transactions (BlockHash);
-create index if not exists Transactions_Height on Transactions (Height);
-create index if not exists Transactions_String1 on Transactions (String1);
-create index if not exists Transactions_String2 on Transactions (String2);
-create index if not exists Transactions_String3 on Transactions (String3);
-create index if not exists Transactions_String4 on Transactions (String4);
-create index if not exists Transactions_String5 on Transactions (String5);
-create index if not exists Transactions_Int1 on Transactions (Int1);
-
-create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
-create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
-create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
 
 --------------------------------------------
 --               EXT TABLES               --
@@ -101,8 +86,6 @@ create table if not exists Payload
     -- Post.Url
     String7 string null
 );
-
-
 --------------------------------------------
 create table if not exists TxOutputs
 (
@@ -114,9 +97,7 @@ create table if not exists TxOutputs
     SpentTxHash string null,     -- Who spent
     primary key (TxHash, Number, AddressHash)
 );
-create index if not exists TxOutput_SpentHeight on TxOutputs (SpentHeight);
-create index if not exists TxOutput_TxHash_Number on TxOutputs (TxHash, Number);
-create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);
+
 
 --------------------------------------------
 create table if not exists Ratings
@@ -127,9 +108,7 @@ create table if not exists Ratings
     Value  int not null,
     primary key (Type, Height, Id, Value)
 );
-create index if not exists Ratings_Height on Ratings (Height);
-create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
-create index if not exists Ratings_Type_Id_Height on Ratings (Type, Id, Height desc);
+
 
 --------------------------------------------
 --                 VIEWS                  --
@@ -183,8 +162,6 @@ select c.Type,
        c.String3 as RelayTxHash
 from vContents c
 where c.Type = 200;
-
-
 drop view if exists vComments;
 create view vComments as
 select c.Type,
@@ -217,29 +194,30 @@ where t.Height is not null and t.Type in (300, 301);
 
 drop view if exists vScorePosts;
 create view vScorePosts as
-select t.Type,
-       t.Hash,
-       t.Time,
-       t.BlockHash,
-       t.Height,
-       t.String1 as AddressHash,
-       t.String2 as PostTxHash,
-       t.Int1    as Value
-from Transactions t
-where t.Height is not null and t.Type in (300);
+select s.Type,
+       s.Hash,
+       s.Time,
+       s.BlockHash,
+       s.Height,
+       s.AddressHash,
+       s.ContentTxHash  as PostTxHash,
+       s.Int1           as Value
+from vScores s
+where s.Type in (300);
 
 drop view if exists vScoreComments;
 create view vScoreComments as
-select t.Type,
-       t.Hash,
-       t.Time,
-       t.BlockHash,
-       t.Height,
-       t.String1 as AddressHash,
-       t.String2 as CommentTxHash,
-       t.Int1    as Value
-from Transactions t
-where t.Height is not null and t.Type in (301);
+select s.Type,
+       s.Hash,
+       s.Time,
+       s.BlockHash,
+       s.Height,
+       s.AddressHash,
+       s.ContentTxHash  as CommentTxHash,
+       s.Int1           as Value
+from vScores s
+where s.Type in (301);
+
 
 
 --------------------------------------------
@@ -382,8 +360,6 @@ select String1 as AddressHash,
        Int1    as Value
 from Transactions
 where Type in (300);
-
-
 drop view if exists vWebScoreComments;
 create view vWebScoreComments as
 select String1 as AddressHash,
@@ -443,8 +419,6 @@ WITH tmp AS (select t.String1,
    FROM tmp
  WHERE rank = 1 and Type in (302, 303);
 */
-
-
 -----------------------------------------------
 --                BLOCKINGS                  --
 -----------------------------------------------
@@ -475,8 +449,6 @@ from Transactions
 where Type in (307);
 
 -- vacuum;
-
-
 ---------------------------------------------------------
 --               FULL TEXT SEARCH TABLES               --
 ---------------------------------------------------------
@@ -496,8 +468,6 @@ select
 from Transactions t
 join Payload p on t.Hash = p.TxHash
 where t.Type = 100;
-
-
 select * from PayloadUsers_fts f, vWebUsers wu
 where f.Name match 'loki*' and f.TxHash=wu.Hash
 limit 60;
@@ -521,8 +491,6 @@ select
 from Transactions t
 join Payload p on t.Hash = p.TxHash
 where t.Type = 200;
-
-
 select wu.* from PayloadPosts_fts f, vWebPosts wu
 where f.message match 'Trump' and f.TxHash=wu.Hash
 limit 60;*/
@@ -541,8 +509,6 @@ select
 from Transactions t
 join Payload p on t.Hash = p.TxHash
 where t.Type = 204;
-
-
 select wc.* from PayloadComments_fts f, vWebComments wc
 where f.message match 'nothing' and f.TxHash=wc.Hash
 limit 60;*/

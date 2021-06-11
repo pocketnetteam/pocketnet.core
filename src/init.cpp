@@ -910,7 +910,9 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         {
             // Clear all calculating pocket tables
             LogPrintf("Clearing pocket db tables..\n");
+            PocketDb::SQLiteDbInst.DropIndexes();
             PocketServices::TransactionIndexer::Rollback(0);
+            PocketDb::SQLiteDbInst.CreateIndexes();
 
             int nFile = 0;
             while (true)
