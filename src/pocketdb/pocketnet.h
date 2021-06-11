@@ -4,15 +4,16 @@
 #ifndef POCKETNET_H
 #define POCKETNET_H
 
+#include <boost/algorithm/string.hpp>
 #include <chainparams.h>
 #include <core_io.h>
 #include <sstream>
 #include <util.h>
-#include <boost/algorithm/string.hpp>
 
 #include "pocketdb/repositories/ChainRepository.hpp"
-#include "pocketdb/repositories/TransactionRepository.hpp"
 #include "pocketdb/repositories/RatingsRepository.hpp"
+#include "pocketdb/repositories/TransactionRepository.hpp"
+#include "pocketdb/repositories/WebRepository.h"
 
 namespace PocketDb
 {
@@ -20,6 +21,7 @@ namespace PocketDb
     extern TransactionRepository TransRepoInst;
     extern ChainRepository ChainRepoInst;
     extern RatingsRepository RatingsRepoInst;
+    extern WebRepository WebRepoInst;
 }; // namespace PocketDb
 
 

@@ -258,16 +258,13 @@ namespace PocketDb
         shared_ptr<PocketBlock> GetList(vector<string>& txHashes, bool includePayload = false)
         {
             string sql;
-            if (!includePayload)
-            {
+            if (!includePayload) {
                 sql = R"sql(
                     SELECT Type, Hash, Time, String1, String2, String3, String4, String5, Int1
                     FROM Transactions t
                     WHERE 1 = 1
                 )sql";
-            }
-            else
-            {
+            } else {
                 sql = R"sql(
                     SELECT  t.Type, t.Hash, t.Time, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1,
                         p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
@@ -279,26 +276,31 @@ namespace PocketDb
 
             sql += " and t.Hash in ( ";
             sql += txHashes[0];
-            for (size_t i = 1; i < txHashes.size(); i++)
-            {
+            for (size_t i = 1; i < txHashes.size(); i++) {
                 sql += ',';
                 sql += txHashes[i];
             }
             sql += ")";
 
-            auto stmt = SetupSqlStatement(sql);
+            auto result = make_shared<PocketBlock>(PocketBlock{});
 
-            auto result = make_shared<PocketBlock>(PocketBlock {});
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            auto tryResult = TryTransactionStep([&]()
             {
-                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, includePayload); ok)
-                {
-                    result->push_back(transaction);
-                }
-            }
+                auto stmt = SetupSqlStatement(sql);
 
-            FinalizeSqlStatement(*stmt);
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    if (auto [ok, transaction] = CreateTransactionFromListRow(stmt, includePayload); ok)
+                    {
+                        result->push_back(transaction);
+                    }
+                }
+
+                FinalizeSqlStatement(*stmt);
+
+                return true;
+            });
+
             return result;
         }
 
