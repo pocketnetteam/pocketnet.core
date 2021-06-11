@@ -169,6 +169,11 @@ void ShutdownPocketServices()
         PocketDb::ChainRepoInst.Destroy();
     }
 
+    {
+        LOCK(PocketDb::RatingsRepoInst.SqliteShutdownMutex);
+        PocketDb::RatingsRepoInst.Destroy();
+    }
+
     // Now we must close database connect
     PocketDb::SQLiteDbInst.Close();
 }
@@ -1747,6 +1752,7 @@ bool AppInitMain()
 
     PocketDb::TransRepoInst.Init();
     PocketDb::ChainRepoInst.Init();
+    PocketDb::RatingsRepoInst.Init();
 
     // ********************************************************* Step 4.2: Start AddrIndex
     //g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
