@@ -103,7 +103,20 @@ POCKETDB_HPP = \
     pocketdb/repositories/ChainRepository.hpp \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Lottery.hpp \
-    pocketdb/consensus/User.hpp \
+    pocketdb/consensus/social/Helper.hpp \
+    pocketdb/consensus/social/Blocking.hpp \
+    pocketdb/consensus/social/BlockingCancel.hpp \
+    pocketdb/consensus/social/Comment.hpp \
+    pocketdb/consensus/social/CommentDelete.hpp \
+    pocketdb/consensus/social/Complain.hpp \
+    pocketdb/consensus/social/Post.hpp \
+    pocketdb/consensus/social/ScoreComment.hpp \
+    pocketdb/consensus/social/ScorePost.hpp \
+    pocketdb/consensus/social/Subscribe.hpp \
+    pocketdb/consensus/social/SubscribeCancel.hpp \
+    pocketdb/consensus/social/SubscribePrivate.hpp \
+    pocketdb/consensus/social/User.hpp \
+    pocketdb/consensus/social/Video.hpp \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/TransactionIndexer.hpp \
     pocketdb/models/base/PocketTypes.hpp \

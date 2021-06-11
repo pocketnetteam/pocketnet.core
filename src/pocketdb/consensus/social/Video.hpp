@@ -4,54 +4,43 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_BLOCKINGCANCEL_HPP
-#define POCKETCONSENSUS_BLOCKINGCANCEL_HPP
+#ifndef POCKETCONSENSUS_USER_HPP
+#define POCKETCONSENSUS_USER_HPP
 
 #include "pocketdb/consensus/Base.hpp"
+#include "pocketdb/pocketnet.h"
 
 namespace PocketConsensus
 {
     /*******************************************************************************************************************
     *
-    *  BlockingCancel consensus base class
+    *  User consensus base class
     *
     *******************************************************************************************************************/
-    class BlockingCancelConsensus : public BaseConsensus
+    class VideoConsensus : public SocialBaseConsensus
     {
     protected:
     public:
-        BlockingCancelConsensus(int height) : BaseConsensus(height) {}
+        VideoConsensus(int height) : SocialBaseConsensus(height) {}
+
+        tuple<bool, SocialConsensusResult> Validate(PocketBlock& txs) override
+        {
+
+        }
     };
-
-
-    /*******************************************************************************************************************
-    *
-    *  Start checkpoint
-    *
-    *******************************************************************************************************************/
-    class BlockingCancelConsensus_checkpoint_0 : public BlockingCancelConsensus
-    {
-    protected:
-    public:
-
-        BlockingCancelConsensus_checkpoint_0(int height) : BlockingCancelConsensus(height) {}
-
-    }; // class BlockingCancelConsensus_checkpoint_0
-
 
     /*******************************************************************************************************************
     *
     *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
-    class BlockingCancelConsensus_checkpoint_1 : public BlockingCancelConsensus_checkpoint_0
+    class VideoConsensus_checkpoint_1 : public VideoConsensus
     {
     protected:
         int CheckpointHeight() override { return 1; }
     public:
-        BlockingCancelConsensus_checkpoint_1(int height) : BlockingCancelConsensus_checkpoint_0(height) {}
+        VideoConsensus_checkpoint_1(int height) : VideoConsensus(height) {}
     };
-
 
     /*******************************************************************************************************************
     *
@@ -59,26 +48,22 @@ namespace PocketConsensus
     *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
-    class BlockingCancelConsensusFactory
+    class VideoConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<BlockingCancelConsensus*(int height)>>> m_rules
-            {
-                {1, [](int height) { return new BlockingCancelConsensus_checkpoint_1(height); }},
-                {0, [](int height) { return new BlockingCancelConsensus_checkpoint_0(height); }},
-            };
+        inline static std::vector<std::pair<int, std::function<VideoConsensus*(int height)>>> m_rules{
+            {1, [](int height) { return new VideoConsensus_checkpoint_1(height); }},
+            {0, [](int height) { return new VideoConsensus(height); }},
+        };
+
     public:
-        shared_ptr <BlockingCancelConsensus> Instance(int height)
+        shared_ptr<VideoConsensus> Instance(int height)
         {
             for (const auto& rule : m_rules)
-            {
                 if (height >= rule.first)
-                {
-                    return shared_ptr<BlockingCancelConsensus>(rule.second(height));
-                }
-            }
+                    return shared_ptr<VideoConsensus>(rule.second(height));
         }
     };
 }
 
-#endif // POCKETCONSENSUS_BLOCKINGCANCEL_HPP
+#endif // POCKETCONSENSUS_USER_HPP

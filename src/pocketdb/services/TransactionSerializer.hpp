@@ -107,7 +107,7 @@ namespace PocketServices
             auto serializedTransaction = transaction.Serialize();
             auto base64Transaction = EncodeBase64(serializedTransaction->write());
 
-            result->pushKV("t", ParseType(transaction));
+            result->pushKV("t", ConvertToReindexerTable(transaction));
             result->pushKV("d", base64Transaction);
 
             return result;

@@ -140,7 +140,8 @@ namespace PocketHelpers
         return ParseType(tx, vasm);
     }
 
-    static PocketTxType ParseType(const string& reindexerTable, const UniValue& reindexerSrc)
+    // TODO (brangr): OBSOLETE
+    static PocketTxType ParseTypeObsolete(const string& reindexerTable, const UniValue& reindexerSrc)
     {
         // TODO (brangr): implement enum for tx types
         if (reindexerTable == "Users")
@@ -150,7 +151,10 @@ namespace PocketHelpers
             return PocketTxType::CONTENT_POST;
 
         if (reindexerTable == "Comment")
+        {
+
             return PocketTxType::CONTENT_COMMENT;
+        }
 
         if (reindexerTable == "Scores")
             return PocketTxType::ACTION_SCORE_POST;
@@ -189,7 +193,7 @@ namespace PocketHelpers
         return PocketTxType::NOT_SUPPORTED;
     }
 
-    static string ParseType(const Transaction& transaction)
+    static string ConvertToReindexerTable(const Transaction& transaction)
     {
         switch (*transaction.GetType()) {
         case PocketTxType::ACCOUNT_USER:
@@ -199,6 +203,7 @@ namespace PocketHelpers
             return "Posts";
             break;
         case PocketTxType::CONTENT_COMMENT:
+        case PocketTxType::CONTENT_COMMENT_DELETE:
             return "Comment";
             break;
         case PocketTxType::ACTION_SCORE_POST:
@@ -210,17 +215,17 @@ namespace PocketHelpers
         case PocketTxType::ACTION_COMPLAIN:
             return "Complains";
             break;
-        case PocketTxType::ACTION_BLOCKING_CANCEL: //TODO (brangr): reindexerSrc["unblocking"].get_bool())
+        case PocketTxType::ACTION_BLOCKING_CANCEL:
         case PocketTxType::ACTION_BLOCKING:
             return "Blocking";
             break;
-        case PocketTxType::ACTION_SUBSCRIBE_CANCEL: //TODO (brangr): reindexerSrc["unsubscribe"].get_bool())
-        case PocketTxType::ACTION_SUBSCRIBE_PRIVATE: //TODO (brangr): reindexerSrc["private"].get_bool())
+        case PocketTxType::ACTION_SUBSCRIBE_CANCEL:
+        case PocketTxType::ACTION_SUBSCRIBE_PRIVATE:
         case PocketTxType::ACTION_SUBSCRIBE:
             return "Subscribes";
             break;
         default:
-            return "???"; //TODO (brangr)
+            return "";
         };
     }
 

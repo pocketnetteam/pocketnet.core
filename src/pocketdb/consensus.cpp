@@ -6,6 +6,7 @@ namespace PocketConsensus
     BlockingConsensusFactory BlockingConsensusFactoryInst;
     BlockingCancelConsensusFactory BlockingCancelConsensusFactoryInst;
     CommentConsensusFactory CommentConsensusFactoryInst;
+    CommentDeleteConsensusFactory CommentDeleteConsensusFactoryInst;
     ComplainConsensusFactory ComplainConsensusFactoryInst;
     PostConsensusFactory PostConsensusFactoryInst;
     ScoreCommentConsensusFactory ScoreCommentConsensusFactoryInst;
@@ -14,6 +15,7 @@ namespace PocketConsensus
     SubscribeCancelConsensusFactory SubscribeCancelConsensusFactoryInst;
     SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;
     UserConsensusFactory UserConsensusFactoryInst;
+    VideoConsensusFactory VideoConsensusFactoryInst;
     LotteryConsensusFactory LotteryConsensusFactoryInst;
     ReputationConsensusFactory ReputationConsensusFactoryInst;
 }; // namespace PocketConsensus
