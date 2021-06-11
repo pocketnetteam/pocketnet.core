@@ -221,8 +221,8 @@ namespace PocketDb
                 bindResult &= TryBindStatementInt64(stmt, 4, minTimePtr);
                 bindResult &= TryBindStatementText(stmt, 5, scoreTxHashPtr);
                 bindResult &= TryBindStatementInt(stmt, 6, scoreTypePtr);
-                bindResult &= TryBindStatementInt(stmt, 7, contentTypePtr);
-                bindResult &= TryBindStatementText(stmt, 8, contentAddressPtr);
+                bindResult &= TryBindStatementText(stmt, 7, contentAddressPtr);
+                bindResult &= TryBindStatementInt(stmt, 8, contentTypePtr);
 
                 if (!bindResult)
                 {
