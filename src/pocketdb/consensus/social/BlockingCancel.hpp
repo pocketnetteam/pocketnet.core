@@ -23,7 +23,7 @@ namespace PocketConsensus
     public:
         BlockingCancelConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
         {
             // TODO (brangr): implement
             // std::string _txid = oitm["txid"].get_str();

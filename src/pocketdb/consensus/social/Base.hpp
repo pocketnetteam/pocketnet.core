@@ -22,18 +22,9 @@ namespace PocketConsensus
     {
     public:
         SocialBaseConsensus(int height) : BaseConsensus(height) {}
-        
-        // TODO (brangr): разделить проверку для подключения к цепи и первичную? парам или разные методы
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
-        {
-            
-        }
+        SocialBaseConsensus() : BaseConsensus() {}
+
     protected:
-        virtual tuple<bool, SocialConsensusResult> CheckRegistration(shared_ptr<string> address)
-        {
-            // TODO (brangr): call repo select for find account
-        }
-    private:
     };
 }
 

@@ -130,7 +130,7 @@ POCKETDB_HPP = \
     pocketdb/models/base/TransactionOutput.hpp \
     pocketdb/models/base/Rating.hpp \
     pocketdb/models/base/Payload.hpp \
-    pocketdb/models/dto/ReturnDtoModels.hpp \
+    pocketdb/models/base/ReturnDtoModels.hpp \
     pocketdb/models/dto/Default.hpp \
     pocketdb/models/dto/Coinbase.hpp \
     pocketdb/models/dto/Coinstake.hpp \

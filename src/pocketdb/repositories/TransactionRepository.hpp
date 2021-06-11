@@ -14,7 +14,7 @@
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
 #include "pocketdb/models/base/Rating.hpp"
-#include "pocketdb/models/dto/ReturnDtoModels.hpp"
+#include "pocketdb/models/base/ReturnDtoModels.hpp"
 #include "pocketdb/models/dto/User.hpp"
 #include "pocketdb/models/dto/ScorePost.hpp"
 #include "pocketdb/models/dto/ScoreComment.hpp"

@@ -11,7 +11,7 @@
 
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Rating.hpp"
-#include "pocketdb/models/dto/ReturnDtoModels.hpp"
+#include "pocketdb/models/base/ReturnDtoModels.hpp"
 
 namespace PocketDb
 {

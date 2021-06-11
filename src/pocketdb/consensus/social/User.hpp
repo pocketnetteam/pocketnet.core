@@ -102,6 +102,7 @@ namespace PocketConsensus
 
     public:
         UserConsensus(int height) : SocialBaseConsensus(height) {}
+        UserConsensus() : SocialBaseConsensus() {}
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<User> tx, PocketBlock& block)
         {
@@ -115,6 +116,25 @@ namespace PocketConsensus
                 return make_tuple(false, result);
 
             return make_tuple(true, SocialConsensusResult_Success);
+        }
+
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<User> tx)
+        {
+            // TODO (brangr): implement for users
+            // if (*tx->GetAddress() == *tx->GetReferrerAddress())
+            //     return make_tuple(false, SocialConsensusResult_ReferrerSelf);
+
+            // TODO (brangr): implement for users
+            // if (_name.size() < 1 && _name.size() > 35) {
+            //     result = ANTIBOTRESULT::NicknameLong;
+            //     return false;
+            // }
+
+            // TODO (brangr): implement for users
+            // if (boost::algorithm::ends_with(_name, "%20") || boost::algorithm::starts_with(_name, "%20")) {
+            //     result = ANTIBOTRESULT::Failed;
+            //     return false;
+            // }
         }
 
     };
@@ -158,6 +178,11 @@ namespace PocketConsensus
             return shared_ptr<UserConsensus>(
                 (--m_rules.upper_bound(height))->second(height)
             );
+        }
+
+        shared_ptr <UserConsensus> Instance()
+        {
+            return shared_ptr<UserConsensus>(new UserConsensus());
         }
     };
 }

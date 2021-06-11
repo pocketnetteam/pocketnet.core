@@ -26,12 +26,12 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block)
         {
             // Check registration account "from"
-            if (auto[ok, result] = CheckRegistration(tx->GetAddress()); !ok)
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
+            //if (auto[ok, result] = CheckRegistration(tx->GetAddress()); !ok)
+            //    return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // Check registration account "to"
-            if (auto[ok, result] = CheckRegistration(tx->GetAddressTo()); !ok)
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
+            //if (auto[ok, result] = CheckRegistration(tx->GetAddressTo()); !ok)
+            //    return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // Blocking self
             if (*tx->GetAddress() == *tx->GetAddressTo())

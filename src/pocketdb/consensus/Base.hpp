@@ -70,19 +70,20 @@ namespace PocketConsensus
         SocialConsensusResult_NotAllowed = 44
     };
 
+    // --------------------------------------------------------------------------------------
+
     class BaseConsensus
     {
     public:
+
+        BaseConsensus() { }
 
         BaseConsensus(int height)
         {
             Height = height;
         }
 
-        virtual ~BaseConsensus()
-        {
-
-        }
+        virtual ~BaseConsensus() { }
 
     protected:
         int Height = 0;

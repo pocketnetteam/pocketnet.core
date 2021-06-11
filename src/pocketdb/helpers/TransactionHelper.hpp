@@ -13,7 +13,7 @@
 
 #include "primitives/transaction.h"
 
-#include "pocketdb/models/dto/ReturnDtoModels.hpp"
+#include "pocketdb/models/base/ReturnDtoModels.hpp"
 #include "pocketdb/models/base/PocketTypes.hpp"
 
 #include "pocketdb/models/dto/Blocking.hpp"
