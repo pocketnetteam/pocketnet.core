@@ -111,7 +111,7 @@ static std::tuple<bool, int> TryGetParamInt(std::vector<std::string>& uriParts, 
 {
     try
     {
-        if ((int)uriParts.size() > index)
+        if ((int) uriParts.size() > index)
         {
             auto val = std::stoi(uriParts[index]);
             return std::make_tuple(true, val);
@@ -119,7 +119,8 @@ static std::tuple<bool, int> TryGetParamInt(std::vector<std::string>& uriParts, 
 
         return std::make_tuple(false, 0);
     }
-    catch (...) {
+    catch (...)
+    {
         return std::make_tuple(false, 0);
     }
 }
@@ -824,18 +825,23 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
     if (auto[ok, result] = TryGetParamInt(uriParts, 1); ok)
         height = result;
 
+    if (start == 0)
+    {
+        PocketDb::SQLiteDbInst.DropIndexes();
+        PocketServices::TransactionIndexer::Rollback(0);
+        PocketDb::SQLiteDbInst.CreateIndexes();
+    }
+
     int current = start;
     while (current <= height)
     {
         CBlockIndex* pblockindex = chainActive[current];
-        if (!pblockindex) {
+        if (!pblockindex)
             return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
-        }
 
         CBlock block;
-        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
+        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
             return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
-        }
 
         auto indexResult = PocketServices::TransactionIndexer::Index(block, pblockindex->nHeight);
         LogPrintf("TransactionIndexer::Index at height %d ended with result: %b\n", current, indexResult);

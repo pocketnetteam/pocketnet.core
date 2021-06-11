@@ -114,7 +114,7 @@ create table if not exists Ratings
 --                 VIEWS                  --
 --------------------------------------------
 drop view if exists vAccounts;
-create view vAccounts as
+create view if not exists vAccounts as
 select t.Type,
        t.Hash,
        t.Time,
@@ -124,17 +124,19 @@ select t.Type,
        t.String1 as AddressHash,
        t.String2 as ReferrerAddressHash
 from Transactions t
-where t.Height is not null and t.Type in (100,101,102);
+where t.Height is not null
+  and t.Type in (100, 101, 102);
+
 
 drop view if exists vUsers;
-create view vUsers as
+create view if not exists vUsers as
 select a.*
 from vAccounts a
 where a.Type = 100;
 
 --------------------------------------------
 drop view if exists vContents;
-create view vContents as
+create view if not exists vContents as
 select t.Type,
        t.Hash,
        t.Time,
@@ -147,10 +149,12 @@ select t.Type,
        t.String4,
        t.String5
 from Transactions t
-where t.Height is not null and t.Type in (200,201,202,203,204,205);
+where t.Height is not null
+  and t.Type in (200, 201, 202, 203, 204, 205);
+
 
 drop view if exists vPosts;
-create view vPosts as
+create view if not exists vPosts as
 select c.Type,
        c.Hash,
        c.Time,
@@ -162,8 +166,10 @@ select c.Type,
        c.String3 as RelayTxHash
 from vContents c
 where c.Type = 200;
+
+
 drop view if exists vComments;
-create view vComments as
+create view if not exists vComments as
 select c.Type,
        c.Hash,
        c.Time,
@@ -180,7 +186,7 @@ where c.Type = 204;
 
 --------------------------------------------
 drop view if exists vScores;
-create view vScores as
+create view if not exists vScores as
 select t.Type,
        t.Hash,
        t.Time,
@@ -190,35 +196,36 @@ select t.Type,
        t.String2 as ContentTxHash,
        t.Int1    as Value
 from Transactions t
-where t.Height is not null and t.Type in (300, 301);
+where t.Height is not null
+  and t.Type in (300, 301);
+
 
 drop view if exists vScorePosts;
-create view vScorePosts as
+create view if not exists vScorePosts as
 select s.Type,
        s.Hash,
        s.Time,
        s.BlockHash,
        s.Height,
        s.AddressHash,
-       s.ContentTxHash  as PostTxHash,
-       s.Int1           as Value
+       s.ContentTxHash as PostTxHash,
+       s.Value         as Value
 from vScores s
 where s.Type in (300);
 
+
 drop view if exists vScoreComments;
-create view vScoreComments as
+create view if not exists vScoreComments as
 select s.Type,
        s.Hash,
        s.Time,
        s.BlockHash,
        s.Height,
        s.AddressHash,
-       s.ContentTxHash  as CommentTxHash,
-       s.Int1           as Value
+       s.ContentTxHash as CommentTxHash,
+       s.Value         as Value
 from vScores s
 where s.Type in (301);
-
-
 
 --------------------------------------------
 --               WEB VIEWS                --
