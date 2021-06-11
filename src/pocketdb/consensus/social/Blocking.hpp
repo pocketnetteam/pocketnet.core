@@ -101,16 +101,17 @@ namespace PocketConsensus
     class BlockingConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<BlockingConsensus*(int height)>>> m_rules{
+        static inline const std::map<int, std::function<BlockingConsensus*(int height)>> m_rules =
+        {
             {0, [](int height) { return new BlockingConsensus(height); }},
         };
 
     public:
         shared_ptr <BlockingConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<BlockingConsensus>(rule.second(height));
+            return shared_ptr<BlockingConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

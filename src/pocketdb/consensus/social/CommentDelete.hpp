@@ -108,16 +108,16 @@ namespace PocketConsensus
     class CommentDeleteConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<CommentDeleteConsensus*(int height)>>> m_rules
-            {
-                {0, [](int height) { return new CommentDeleteConsensus(height); }},
-            };
+        static inline const std::map<int, std::function<CommentDeleteConsensus*(int height)>> m_rules =
+        {
+            {0, [](int height) { return new CommentDeleteConsensus(height); }},
+        };
     public:
         shared_ptr <CommentDeleteConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<CommentDeleteConsensus>(rule.second(height));
+            return shared_ptr<CommentDeleteConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

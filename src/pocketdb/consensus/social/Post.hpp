@@ -168,33 +168,17 @@ namespace PocketConsensus
 */
     };
 
-
-    /*******************************************************************************************************************
-    *
-    *  Start checkpoint
-    *
-    *******************************************************************************************************************/
-    class PostConsensus_checkpoint_0 : public PostConsensus
-    {
-    protected:
-    public:
-
-        PostConsensus_checkpoint_0(int height) : PostConsensus(height) {}
-
-    }; // class PostConsensus_checkpoint_0
-
-
     /*******************************************************************************************************************
     *
     *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
-    class PostConsensus_checkpoint_1 : public PostConsensus_checkpoint_0
+    class PostConsensus_checkpoint_1 : public PostConsensus
     {
     protected:
         int CheckpointHeight() override { return 1; }
     public:
-        PostConsensus_checkpoint_1(int height) : PostConsensus_checkpoint_0(height) {}
+        PostConsensus_checkpoint_1(int height) : PostConsensus(height) {}
     };
 
 
@@ -207,17 +191,17 @@ namespace PocketConsensus
     class PostConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<PostConsensus*(int height)>>> m_rules
-            {
-                {1, [](int height) { return new PostConsensus_checkpoint_1(height); }},
-                {0, [](int height) { return new PostConsensus_checkpoint_0(height); }},
-            };
+        static inline const std::map<int, std::function<PostConsensus*(int height)>> m_rules =
+        {
+            {1, [](int height) { return new PostConsensus_checkpoint_1(height); }},
+            {0, [](int height) { return new PostConsensus(height); }},
+        };
     public:
         shared_ptr <PostConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<PostConsensus>(rule.second(height));
+            return shared_ptr<PostConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

@@ -183,33 +183,17 @@ namespace PocketConsensus
 
     };
 
-
-    /*******************************************************************************************************************
-    *
-    *  Start checkpoint
-    *
-    *******************************************************************************************************************/
-    class ScorePostConsensus_checkpoint_0 : public ScorePostConsensus
-    {
-    protected:
-    public:
-
-        ScorePostConsensus_checkpoint_0(int height) : ScorePostConsensus(height) {}
-
-    }; // class ScorePostConsensus_checkpoint_0
-
-
     /*******************************************************************************************************************
     *
     *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
-    class ScorePostConsensus_checkpoint_1 : public ScorePostConsensus_checkpoint_0
+    class ScorePostConsensus_checkpoint_1 : public ScorePostConsensus
     {
     protected:
         int CheckpointHeight() override { return 1; }
     public:
-        ScorePostConsensus_checkpoint_1(int height) : ScorePostConsensus_checkpoint_0(height) {}
+        ScorePostConsensus_checkpoint_1(int height) : ScorePostConsensus(height) {}
     };
 
 
@@ -222,17 +206,17 @@ namespace PocketConsensus
     class ScorePostConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<ScorePostConsensus *(int height)>>> m_rules
+        static inline const std::map<int, std::function<ScorePostConsensus*(int height)>> m_rules =
         {
             {1, [](int height) { return new ScorePostConsensus_checkpoint_1(height); }},
-            {0, [](int height) { return new ScorePostConsensus_checkpoint_0(height); }},
+            {0, [](int height) { return new ScorePostConsensus(height); }},
         };
     public:
         shared_ptr <ScorePostConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<ScorePostConsensus>(rule.second(height));
+            return shared_ptr<ScorePostConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

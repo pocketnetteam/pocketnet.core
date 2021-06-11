@@ -100,33 +100,17 @@ namespace PocketConsensus
 
     };
 
-
-    /*******************************************************************************************************************
-    *
-    *  Start checkpoint
-    *
-    *******************************************************************************************************************/
-    class BlockingCancelConsensus_checkpoint_0 : public BlockingCancelConsensus
-    {
-    protected:
-    public:
-
-        BlockingCancelConsensus_checkpoint_0(int height) : BlockingCancelConsensus(height) {}
-
-    }; // class BlockingCancelConsensus_checkpoint_0
-
-
     /*******************************************************************************************************************
     *
     *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
-    class BlockingCancelConsensus_checkpoint_1 : public BlockingCancelConsensus_checkpoint_0
+    class BlockingCancelConsensus_checkpoint_1 : public BlockingCancelConsensus
     {
     protected:
         int CheckpointHeight() override { return 1; }
     public:
-        BlockingCancelConsensus_checkpoint_1(int height) : BlockingCancelConsensus_checkpoint_0(height) {}
+        BlockingCancelConsensus_checkpoint_1(int height) : BlockingCancelConsensus(height) {}
     };
 
 
@@ -139,21 +123,17 @@ namespace PocketConsensus
     class BlockingCancelConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<BlockingCancelConsensus*(int height)>>> m_rules
-            {
-                {1, [](int height) { return new BlockingCancelConsensus_checkpoint_1(height); }},
-                {0, [](int height) { return new BlockingCancelConsensus_checkpoint_0(height); }},
-            };
+        static inline const std::map<int, std::function<BlockingCancelConsensus*(int height)>> m_rules =
+        {
+            {1, [](int height) { return new BlockingCancelConsensus_checkpoint_1(height); }},
+            {0, [](int height) { return new BlockingCancelConsensus(height); }},
+        };
     public:
         shared_ptr <BlockingCancelConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-            {
-                if (height >= rule.first)
-                {
-                    return shared_ptr<BlockingCancelConsensus>(rule.second(height));
-                }
-            }
+            return shared_ptr<BlockingCancelConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

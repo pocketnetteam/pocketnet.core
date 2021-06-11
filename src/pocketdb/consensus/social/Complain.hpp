@@ -157,33 +157,17 @@ namespace PocketConsensus
 
     };
 
-
-    /*******************************************************************************************************************
-    *
-    *  Start checkpoint
-    *
-    *******************************************************************************************************************/
-    class ComplainConsensus_checkpoint_0 : public ComplainConsensus
-    {
-    protected:
-    public:
-
-        ComplainConsensus_checkpoint_0(int height) : ComplainConsensus(height) {}
-
-    }; // class ComplainConsensus_checkpoint_0
-
-
     /*******************************************************************************************************************
     *
     *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
-    class ComplainConsensus_checkpoint_1 : public ComplainConsensus_checkpoint_0
+    class ComplainConsensus_checkpoint_1 : public ComplainConsensus
     {
     protected:
         int CheckpointHeight() override { return 1; }
     public:
-        ComplainConsensus_checkpoint_1(int height) : ComplainConsensus_checkpoint_0(height) {}
+        ComplainConsensus_checkpoint_1(int height) : ComplainConsensus(height) {}
     };
 
 
@@ -196,17 +180,17 @@ namespace PocketConsensus
     class ComplainConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<ComplainConsensus*(int height)>>> m_rules
-            {
-                {1, [](int height) { return new ComplainConsensus_checkpoint_1(height); }},
-                {0, [](int height) { return new ComplainConsensus_checkpoint_0(height); }},
-            };
+        static inline const std::map<int, std::function<ComplainConsensus*(int height)>> m_rules =
+        {
+            {1, [](int height) { return new ComplainConsensus_checkpoint_1(height); }},
+            {0, [](int height) { return new ComplainConsensus(height); }},
+        };
     public:
         shared_ptr <ComplainConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<ComplainConsensus>(rule.second(height));
+            return shared_ptr<ComplainConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

@@ -181,33 +181,17 @@ namespace PocketConsensus
 
     };
 
-
-    /*******************************************************************************************************************
-    *
-    *  Start checkpoint
-    *
-    *******************************************************************************************************************/
-    class ScoreCommentConsensus_checkpoint_0 : public ScoreCommentConsensus
-    {
-    protected:
-    public:
-
-        ScoreCommentConsensus_checkpoint_0(int height) : ScoreCommentConsensus(height) {}
-
-    }; // class ScoreCommentConsensus_checkpoint_0
-
-
     /*******************************************************************************************************************
     *
     *  Consensus checkpoint at 1 block
     *
     *******************************************************************************************************************/
-    class ScoreCommentConsensus_checkpoint_1 : public ScoreCommentConsensus_checkpoint_0
+    class ScoreCommentConsensus_checkpoint_1 : public ScoreCommentConsensus
     {
     protected:
         int CheckpointHeight() override { return 1; }
     public:
-        ScoreCommentConsensus_checkpoint_1(int height) : ScoreCommentConsensus_checkpoint_0(height) {}
+        ScoreCommentConsensus_checkpoint_1(int height) : ScoreCommentConsensus(height) {}
     };
 
 
@@ -220,17 +204,17 @@ namespace PocketConsensus
     class ScoreCommentConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<ScoreCommentConsensus*(int height)>>> m_rules
-            {
-                {1, [](int height) { return new ScoreCommentConsensus_checkpoint_1(height); }},
-                {0, [](int height) { return new ScoreCommentConsensus_checkpoint_0(height); }},
-            };
+        static inline const std::map<int, std::function<ScoreCommentConsensus*(int height)>> m_rules =
+        {
+            {1, [](int height) { return new ScoreCommentConsensus_checkpoint_1(height); }},
+            {0, [](int height) { return new ScoreCommentConsensus(height); }},
+        };
     public:
         shared_ptr <ScoreCommentConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<ScoreCommentConsensus>(rule.second(height));
+            return shared_ptr<ScoreCommentConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

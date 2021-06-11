@@ -39,16 +39,17 @@ namespace PocketConsensus
     class VideoConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<VideoConsensus*(int height)>>> m_rules{
+        static inline const std::map<int, std::function<VideoConsensus*(int height)>> m_rules =
+        {
             {0, [](int height) { return new VideoConsensus(height); }},
         };
 
     public:
         shared_ptr<VideoConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<VideoConsensus>(rule.second(height));
+            return shared_ptr<VideoConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }
