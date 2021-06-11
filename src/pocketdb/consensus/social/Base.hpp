@@ -7,10 +7,12 @@
 #ifndef POCKETCONSENSUS_SOCIAL_BASE_HPP
 #define POCKETCONSENSUS_SOCIAL_BASE_HPP
 
+#include "univalue/include/univalue.h"
+
 #include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/models/base/Base.hpp"
-#include "univalue/include/univalue.h"
+#include "pocketdb/consensus/Base.hpp"
 
 namespace PocketConsensus
 {
@@ -18,8 +20,18 @@ namespace PocketConsensus
     {
     public:
         SocialBaseConsensus(int height) : BaseConsensus(height) {}
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx) = 0;
+        
+        // TODO (brangr): разделить проверку для подключения к цепи и первичную? парам или разные методы
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
+        {
+            if (auto[ok, result] = CheckRegistration(tx); !ok)
+                return make_tuple(false, result);
+        }
     protected:
+        virtual tuple<bool, SocialConsensusResult> CheckRegistration(shared_ptr<string> address)
+        {
+            // TODO (brangr): call repo select for find account
+        }
     private:
     };
 }

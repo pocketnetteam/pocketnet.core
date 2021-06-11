@@ -42,7 +42,7 @@ namespace PocketConsensus
         // All social models
         static bool Validate(PocketBlock& pBlock, int height)
         {
-            map<PocketTxType, shared_ptr<SocialBaseConsensus>> mConsensus;
+            bool validateResult = true;
 
             // Build all needed consensus instances for this height
             for (auto tx : pBlock)
@@ -51,75 +51,71 @@ namespace PocketConsensus
                 if (mConsensus.find(txType) != mConsensus.end())
                     continue;
 
+                shared_ptr<SocialBaseConsensus> consensus;
                 switch (txType)
                 {
                     case ACCOUNT_USER:
-                        mConsensus[txType] = PocketConsensus::UserConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::UserConsensusFactoryInst.Instance(height);
                         break;
                     case ACCOUNT_VIDEO_SERVER:
                         // TODO (brangr): implement
-                        break;
+                        continue;
                     case ACCOUNT_MESSAGE_SERVER:
                         // TODO (brangr): implement
-                        break;
+                        continue;
                     case CONTENT_POST:
-                        mConsensus[txType] = PocketConsensus::PostConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::PostConsensusFactoryInst.Instance(height);
                         break;
                     case CONTENT_VIDEO:
-                        mConsensus[txType] = PocketConsensus::VideoConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::VideoConsensusFactoryInst.Instance(height);
                         break;
                     case CONTENT_TRANSLATE:
                         // TODO (brangr): implement
-                        break;
+                        continue;
                     case CONTENT_SERVERPING:
                         // TODO (brangr): implement
-                        break;
+                        continue;
                     case CONTENT_COMMENT:
-                        mConsensus[txType] = PocketConsensus::CommentConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::CommentConsensusFactoryInst.Instance(height);
                         break;
                     case CONTENT_COMMENT_DELETE:
-                        mConsensus[txType] = PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
                         break;
                     case ACTION_SCORE_POST:
-                        mConsensus[txType] = PocketConsensus::ScorePostConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::ScorePostConsensusFactoryInst.Instance(height);
                         break;
                     case ACTION_SCORE_COMMENT:
-                        mConsensus[txType] = PocketConsensus::ScoreCommentConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::ScoreCommentConsensusFactoryInst.Instance(height);
                         break;
                     case ACTION_SUBSCRIBE:
-                        mConsensus[txType] = PocketConsensus::SubscribeConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::SubscribeConsensusFactoryInst.Instance(height);
                         break;
                     case ACTION_SUBSCRIBE_PRIVATE:
-                        mConsensus[txType] = PocketConsensus::SubscribePrivateConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::SubscribePrivateConsensusFactoryInst.Instance(height);
                         break;
                     case ACTION_SUBSCRIBE_CANCEL:
-                        mConsensus[txType] = PocketConsensus::SubscribeCancelConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::SubscribeCancelConsensusFactoryInst.Instance(height);
                         break;
                     case ACTION_BLOCKING:
-                        mConsensus[txType] = PocketConsensus::BlockingConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::BlockingConsensusFactoryInst.Instance(height);
                         break;
                     case ACTION_BLOCKING_CANCEL:
-                        mConsensus[txType] = PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height);
                         break;
                     case ACTION_COMPLAIN:
-                        mConsensus[txType] = PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
+                        consensus = PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
                         break;
                     default:
-                        return make_tuple<true, SocialConsensusResult::Success>();
+                        continue;
                 }
-            }
-        
-            // Activate validation logic for all consensus instances
-            bool validateResult = true;
-            for (auto consensus : mConsensus)
-            {
-                if (auto[ok, result] = consensus.second.Validate(pBlock); !ok || result != SocialConsensusResult::Success)
+
+                if (auto[ok, result] = consensus->Validate(tx, pBlock); !ok)
                 {
-                    LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)consensus.first, (int)result, height);
+                    LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)txType, (int)result, height);
                     validateResult &= result;
                 }
             }
-
+        
             return validateResult;
         }
     };

@@ -23,91 +23,92 @@ namespace PocketConsensus
     public:
         UserConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(PocketBlock& txs) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
         {
-            std::string _txid = oitm["txid"].get_str();
-            std::string _address = oitm["address"].get_str();
-            std::string _address_referrer = oitm["referrer"].get_str();
-            std::string _name = oitm["name"].get_str();
-            int64_t _time = oitm["time"].get_int64();
+            // TODO (brangr): implement
+            // std::string _txid = oitm["txid"].get_str();
+            // std::string _address = oitm["address"].get_str();
+            // std::string _address_referrer = oitm["referrer"].get_str();
+            // std::string _name = oitm["name"].get_str();
+            // int64_t _time = oitm["time"].get_int64();
 
-            // Referrer to self? Seriously?;)
-            if (_address == _address_referrer) {
-                result = ANTIBOTRESULT::ReferrerSelf;
-                return false;
-            }
+            // // Referrer to self? Seriously?;)
+            // if (_address == _address_referrer) {
+            //     result = ANTIBOTRESULT::ReferrerSelf;
+            //     return false;
+            // }
 
-            // Get last updated item
-            reindexer::Item userItm;
-            if (g_pocketdb->SelectOne(
-                            reindexer::Query("UsersView")
-                                .Where("address", CondEq, _address)
-                                .Where("block", CondLt, height),
-                            userItm)
-                    .ok()) {
-                if (!_address_referrer.empty()) {
-                    result = ANTIBOTRESULT::ReferrerAfterRegistration;
-                    return false;
-                }
+            // // Get last updated item
+            // reindexer::Item userItm;
+            // if (g_pocketdb->SelectOne(
+            //                 reindexer::Query("UsersView")
+            //                     .Where("address", CondEq, _address)
+            //                     .Where("block", CondLt, height),
+            //                 userItm)
+            //         .ok()) {
+            //     if (!_address_referrer.empty()) {
+            //         result = ANTIBOTRESULT::ReferrerAfterRegistration;
+            //         return false;
+            //     }
 
-                auto userUpdateTime = userItm["time"].As<int64_t>();
-                if (_time - userUpdateTime <= GetActualLimit(Limit::change_info_timeout, height)) {
-                    result = ANTIBOTRESULT::ChangeInfoLimit;
-                    return false;
-                }
-            }
+            //     auto userUpdateTime = userItm["time"].As<int64_t>();
+            //     if (_time - userUpdateTime <= GetActualLimit(Limit::change_info_timeout, height)) {
+            //         result = ANTIBOTRESULT::ChangeInfoLimit;
+            //         return false;
+            //     }
+            // }
 
-            // Also check mempool
-            if (checkMempool) {
-                reindexer::QueryResults res;
-                if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, _txid), res).ok()) {
-                    for (auto& m : res) {
-                        reindexer::Item mItm = m.GetItem();
-                        std::string t_src = DecodeBase64(mItm["data"].As<string>());
+            // // Also check mempool
+            // if (checkMempool) {
+            //     reindexer::QueryResults res;
+            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, _txid), res).ok()) {
+            //         for (auto& m : res) {
+            //             reindexer::Item mItm = m.GetItem();
+            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
 
-                        reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
-                        if (t_itm.FromJSON(t_src).ok()) {
-                            if (t_itm["address"].As<string>() == _address) {
-                                if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
-                                    result = ANTIBOTRESULT::ChangeInfoLimit;
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
+            //             if (t_itm.FromJSON(t_src).ok()) {
+            //                 if (t_itm["address"].As<string>() == _address) {
+            //                     if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
+            //                         result = ANTIBOTRESULT::ChangeInfoLimit;
+            //                         return false;
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
 
-            // Check block
-            if (blockVtx.Exists("Users")) {
-                for (auto& mtx : blockVtx.Data["Users"]) {
-                    if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid) {
-                        result = ANTIBOTRESULT::ChangeInfoLimit;
-                        return false;
-                    }
-                }
-            }
+            // // Check block
+            // if (blockVtx.Exists("Users")) {
+            //     for (auto& mtx : blockVtx.Data["Users"]) {
+            //         if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid) {
+            //             result = ANTIBOTRESULT::ChangeInfoLimit;
+            //             return false;
+            //         }
+            //     }
+            // }
 
-            // Check long nickname
-            if (_name.size() < 1 && _name.size() > 35) {
-                result = ANTIBOTRESULT::NicknameLong;
-                return false;
-            }
+            // // Check long nickname
+            // if (_name.size() < 1 && _name.size() > 35) {
+            //     result = ANTIBOTRESULT::NicknameLong;
+            //     return false;
+            // }
 
-            // Check double nickname
-            if (g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("name", CondEq, _name).Not().Where("address", CondEq, _address).Where("block", CondLt, height)) > 0) {
-                result = ANTIBOTRESULT::NicknameDouble;
-                return false;
-            }
+            // // Check double nickname
+            // if (g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("name", CondEq, _name).Not().Where("address", CondEq, _address).Where("block", CondLt, height)) > 0) {
+            //     result = ANTIBOTRESULT::NicknameDouble;
+            //     return false;
+            // }
 
-            // TODO (brangr): block all spaces
-            // Check spaces in begin and end
-            if (boost::algorithm::ends_with(_name, "%20") || boost::algorithm::starts_with(_name, "%20")) {
-                result = ANTIBOTRESULT::Failed;
-                return false;
-            }
+            // // TODO (brangr): block all spaces
+            // // Check spaces in begin and end
+            // if (boost::algorithm::ends_with(_name, "%20") || boost::algorithm::starts_with(_name, "%20")) {
+            //     result = ANTIBOTRESULT::Failed;
+            //     return false;
+            // }
 
-            return true;
+            // return true;
         }
 
     };

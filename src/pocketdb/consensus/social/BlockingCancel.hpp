@@ -22,78 +22,79 @@ namespace PocketConsensus
     public:
         BlockingCancelConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(PocketBlock& pBlock) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
         {
-            std::string _txid = oitm["txid"].get_str();
-            std::string _address = oitm["address"].get_str();
-            std::string _address_to = oitm["address_to"].get_str();
-            bool _unblocking = oitm["unblocking"].get_bool();
-            int64_t _time = oitm["time"].get_int64();
+            // TODO (brangr): implement
+            // std::string _txid = oitm["txid"].get_str();
+            // std::string _address = oitm["address"].get_str();
+            // std::string _address_to = oitm["address_to"].get_str();
+            // bool _unblocking = oitm["unblocking"].get_bool();
+            // int64_t _time = oitm["time"].get_int64();
 
-            if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-                return false;
-            }
+            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+            //     return false;
+            // }
 
-            if (!CheckRegistration(oitm, _address_to, checkMempool, checkWithTime, height, blockVtx, result)) {
-                return false;
-            }
+            // if (!CheckRegistration(oitm, _address_to, checkMempool, checkWithTime, height, blockVtx, result)) {
+            //     return false;
+            // }
 
-            if (_address == _address_to) {
-                result = ANTIBOTRESULT::SelfBlocking;
-                return false;
-            }
+            // if (_address == _address_to) {
+            //     result = ANTIBOTRESULT::SelfBlocking;
+            //     return false;
+            // }
 
-            //-----------------------
-            // Also check mempool
-            if (checkMempool) {
-                reindexer::QueryResults res;
-                if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Blocking").Not().Where("txid", CondEq, _txid), res).ok()) {
-                    for (auto& m : res) {
-                        reindexer::Item mItm = m.GetItem();
-                        std::string t_src = DecodeBase64(mItm["data"].As<string>());
+            // //-----------------------
+            // // Also check mempool
+            // if (checkMempool) {
+            //     reindexer::QueryResults res;
+            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Blocking").Not().Where("txid", CondEq, _txid), res).ok()) {
+            //         for (auto& m : res) {
+            //             reindexer::Item mItm = m.GetItem();
+            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
 
-                        reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Blocking");
-                        if (t_itm.FromJSON(t_src).ok()) {
-                            if (t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
-                                if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
-                                    result = ANTIBOTRESULT::ManyTransactions;
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Blocking");
+            //             if (t_itm.FromJSON(t_src).ok()) {
+            //                 if (t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
+            //                     if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
+            //                         result = ANTIBOTRESULT::ManyTransactions;
+            //                         return false;
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
 
-            // Check block
-            if (blockVtx.Exists("Blocking")) {
-                for (auto& mtx : blockVtx.Data["Blocking"]) {
-                    if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["address_to"].get_str() == _address_to) {
-                        result = ANTIBOTRESULT::ManyTransactions;
-                        return false;
-                    }
-                }
-            }
+            // // Check block
+            // if (blockVtx.Exists("Blocking")) {
+            //     for (auto& mtx : blockVtx.Data["Blocking"]) {
+            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["address_to"].get_str() == _address_to) {
+            //             result = ANTIBOTRESULT::ManyTransactions;
+            //             return false;
+            //         }
+            //     }
+            // }
 
-            reindexer::Item sItm;
-            Error err = g_pocketdb->SelectOne(
-                reindexer::Query("BlockingView")
-                    .Where("address", CondEq, _address)
-                    .Where("address_to", CondEq, _address_to)
-                    .Where("block", CondLt, height),
-                sItm);
+            // reindexer::Item sItm;
+            // Error err = g_pocketdb->SelectOne(
+            //     reindexer::Query("BlockingView")
+            //         .Where("address", CondEq, _address)
+            //         .Where("address_to", CondEq, _address_to)
+            //         .Where("block", CondLt, height),
+            //     sItm);
 
-            if (_unblocking && !err.ok()) {
-                result = ANTIBOTRESULT::InvalidBlocking;
-                return false;
-            }
+            // if (_unblocking && !err.ok()) {
+            //     result = ANTIBOTRESULT::InvalidBlocking;
+            //     return false;
+            // }
 
-            if (!_unblocking && err.ok()) {
-                result = ANTIBOTRESULT::DoubleBlocking;
-                return false;
-            }
+            // if (!_unblocking && err.ok()) {
+            //     result = ANTIBOTRESULT::DoubleBlocking;
+            //     return false;
+            // }
 
-            return true;
+            // return true;
         }
 
     };

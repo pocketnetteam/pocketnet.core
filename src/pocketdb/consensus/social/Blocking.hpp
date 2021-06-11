@@ -8,6 +8,7 @@
 #define POCKETCONSENSUS_BLOCKING_HPP
 
 #include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/consensus/models/dto/Blocking.hpp"
 
 namespace PocketConsensus
 {
@@ -22,110 +23,74 @@ namespace PocketConsensus
     public:
         BlockingConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(PocketBlock& pBlock) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
         {
-            std::string _txid = oitm["txid"].get_str();
-            std::string _address = oitm["address"].get_str();
-            std::string _address_to = oitm["address_to"].get_str();
-            bool _unblocking = oitm["unblocking"].get_bool();
-            int64_t _time = oitm["time"].get_int64();
+            // Base validation for all social models
+            if (auto[ok, result] = SocialBaseConsensus(tx, block); !ok)
+                return make_tuple(ok, result);
 
-            if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-                return false;
-            }
+            // Check registration account "to"
+            if (auto[ok, result] = CheckRegistration(tx->GetAddressTo()); !ok)
+                return make_tuple(false, SocialConsensusResult::NotRegistered);
 
-            if (!CheckRegistration(oitm, _address_to, checkMempool, checkWithTime, height, blockVtx, result)) {
-                return false;
-            }
+            // Blocking self
+            if (*tx->GetAddress() == *tx->GetAddressTo())
+                return make_tuple(false, SocialConsensusResult::SelfBlocking);
 
-            if (_address == _address_to) {
-                result = ANTIBOTRESULT::SelfBlocking;
-                return false;
-            }
+            // TODO (brangr): implement
+            // TODO (brangr): Check already exists blocking for "from -> to"
+            // if (checkMempool) {
+            //     reindexer::QueryResults res;
+            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Blocking").Not().Where("txid", CondEq, _txid), res).ok()) {
+            //         for (auto& m : res) {
+            //             reindexer::Item mItm = m.GetItem();
+            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
 
-            //-----------------------
-            // Also check mempool
-            if (checkMempool) {
-                reindexer::QueryResults res;
-                if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Blocking").Not().Where("txid", CondEq, _txid), res).ok()) {
-                    for (auto& m : res) {
-                        reindexer::Item mItm = m.GetItem();
-                        std::string t_src = DecodeBase64(mItm["data"].As<string>());
-
-                        reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Blocking");
-                        if (t_itm.FromJSON(t_src).ok()) {
-                            if (t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
-                                if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
-                                    result = ANTIBOTRESULT::ManyTransactions;
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Blocking");
+            //             if (t_itm.FromJSON(t_src).ok()) {
+            //                 if (t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
+            //                     if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
+            //                         result = ANTIBOTRESULT::ManyTransactions;
+            //                         return false;
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
 
             // Check block
-            if (blockVtx.Exists("Blocking")) {
-                for (auto& mtx : blockVtx.Data["Blocking"]) {
-                    if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["address_to"].get_str() == _address_to) {
-                        result = ANTIBOTRESULT::ManyTransactions;
-                        return false;
-                    }
-                }
-            }
+            // if (blockVtx.Exists("Blocking")) {
+            //     for (auto& mtx : blockVtx.Data["Blocking"]) {
+            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["address_to"].get_str() == _address_to) {
+            //             result = ANTIBOTRESULT::ManyTransactions;
+            //             return false;
+            //         }
+            //     }
+            // }
 
-            reindexer::Item sItm;
-            Error err = g_pocketdb->SelectOne(
-                reindexer::Query("BlockingView")
-                    .Where("address", CondEq, _address)
-                    .Where("address_to", CondEq, _address_to)
-                    .Where("block", CondLt, height),
-                sItm);
+            // reindexer::Item sItm;
+            // Error err = g_pocketdb->SelectOne(
+            //     reindexer::Query("BlockingView")
+            //         .Where("address", CondEq, _address)
+            //         .Where("address_to", CondEq, _address_to)
+            //         .Where("block", CondLt, height),
+            //     sItm);
 
-            if (_unblocking && !err.ok()) {
-                result = ANTIBOTRESULT::InvalidBlocking;
-                return false;
-            }
+            // if (_unblocking && !err.ok()) {
+            //     result = ANTIBOTRESULT::InvalidBlocking;
+            //     return false;
+            // }
 
-            if (!_unblocking && err.ok()) {
-                result = ANTIBOTRESULT::DoubleBlocking;
-                return false;
-            }
+            // if (!_unblocking && err.ok()) {
+            //     result = ANTIBOTRESULT::DoubleBlocking;
+            //     return false;
+            // }
 
-            return true;
+            make_tuple(true, SocialConsensusResult::Success);
         }
 
     };
-
-
-    /*******************************************************************************************************************
-    *
-    *  Start checkpoint
-    *
-    *******************************************************************************************************************/
-    class BlockingConsensus_checkpoint_0 : public BlockingConsensus
-    {
-    protected:
-    public:
-        BlockingConsensus_checkpoint_0(int height) : BlockingConsensus(height) {}
-    }; // class BlockingConsensus_checkpoint_0
-
-
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 1 block
-    *
-    *******************************************************************************************************************/
-    class BlockingConsensus_checkpoint_1 : public BlockingConsensus_checkpoint_0
-    {
-    protected:
-        int CheckpointHeight() override { return 1; }
-
-    public:
-        BlockingConsensus_checkpoint_1(int height) : BlockingConsensus_checkpoint_0(height) {}
-    };
-
 
     /*******************************************************************************************************************
         *
@@ -137,8 +102,7 @@ namespace PocketConsensus
     {
     private:
         inline static std::vector<std::pair<int, std::function<BlockingConsensus*(int height)>>> m_rules{
-            {1, [](int height) { return new BlockingConsensus_checkpoint_1(height); }},
-            {0, [](int height) { return new BlockingConsensus_checkpoint_0(height); }},
+            {0, [](int height) { return new BlockingConsensus(height); }},
         };
 
     public:

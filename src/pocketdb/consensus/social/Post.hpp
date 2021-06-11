@@ -22,80 +22,81 @@ namespace PocketConsensus
     public:
         PostConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(PocketBlock& txs) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
         {
-            std::string _address = oitm["address"].get_str();
-            std::string _txid = oitm["txid"].get_str();
-            int64_t _time = oitm["time"].get_int64();
+            // TODO (brangr): implement
+            // std::string _address = oitm["address"].get_str();
+            // std::string _txid = oitm["txid"].get_str();
+            // int64_t _time = oitm["time"].get_int64();
 
-            if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-                return false;
-            }
+            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+            //     return false;
+            // }
 
-            // Compute count of posts for last 24 hours
-            int postsCount = g_pocketdb->SelectCount(
-                Query("Posts")
-                    .Where("address", CondEq, _address)
-                    .Where("txidEdit", CondEq, "")
-                    .Where("block", CondLt, height)
-                    .Where("time", CondGe, _time - 86400)); // TODO (brangr): replace with blocks - this and all time queries
+            // // Compute count of posts for last 24 hours
+            // int postsCount = g_pocketdb->SelectCount(
+            //     Query("Posts")
+            //         .Where("address", CondEq, _address)
+            //         .Where("txidEdit", CondEq, "")
+            //         .Where("block", CondLt, height)
+            //         .Where("time", CondGe, _time - 86400)); // TODO (brangr): replace with blocks - this and all time queries
 
-            // Also get posts from history
-            postsCount += g_pocketdb->SelectCount(
-                Query("PostsHistory")
-                    .Where("address", CondEq, _address)
-                    .Where("txidEdit", CondEq, "")
-                    .Where("block", CondLt, height)
-                    .Where("time", CondGe, _time - 86400));
+            // // Also get posts from history
+            // postsCount += g_pocketdb->SelectCount(
+            //     Query("PostsHistory")
+            //         .Where("address", CondEq, _address)
+            //         .Where("txidEdit", CondEq, "")
+            //         .Where("block", CondLt, height)
+            //         .Where("time", CondGe, _time - 86400));
 
-            // Also check mempool
-            if (checkMempool) {
-                reindexer::QueryResults res;
-                if (g_pocketdb->Select(
-                                reindexer::Query("Mempool")
-                                    .Where("table", CondEq, "Posts")
-                                    .Where("txid_source", CondEq, "")
-                                    .Not()
-                                    .Where("txid", CondEq, _txid),
-                                res)
-                        .ok()) {
-                    for (auto& m : res) {
-                        reindexer::Item mItm = m.GetItem();
-                        std::string t_src = DecodeBase64(mItm["data"].As<string>());
+            // // Also check mempool
+            // if (checkMempool) {
+            //     reindexer::QueryResults res;
+            //     if (g_pocketdb->Select(
+            //                     reindexer::Query("Mempool")
+            //                         .Where("table", CondEq, "Posts")
+            //                         .Where("txid_source", CondEq, "")
+            //                         .Not()
+            //                         .Where("txid", CondEq, _txid),
+            //                     res)
+            //             .ok()) {
+            //         for (auto& m : res) {
+            //             reindexer::Item mItm = m.GetItem();
+            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
 
-                        reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
-                        if (t_itm.FromJSON(t_src).ok()) {
-                            if (t_itm["address"].As<string>() == _address && t_itm["txidEdit"].As<string>().empty()) {
-                                if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
-                                    postsCount += 1;
-                            }
-                        }
-                    }
-                }
-            }
+            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
+            //             if (t_itm.FromJSON(t_src).ok()) {
+            //                 if (t_itm["address"].As<string>() == _address && t_itm["txidEdit"].As<string>().empty()) {
+            //                     if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+            //                         postsCount += 1;
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
 
-            // Check block
-            if (blockVtx.Exists("Posts")) {
-                for (auto& mtx : blockVtx.Data["Posts"]) {
-                    if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["txidEdit"].get_str().empty()) {
-                        if (!checkWithTime || mtx["time"].get_int64() <= _time)
-                            postsCount += 1;
-                    }
-                }
-            }
+            // // Check block
+            // if (blockVtx.Exists("Posts")) {
+            //     for (auto& mtx : blockVtx.Data["Posts"]) {
+            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["txidEdit"].get_str().empty()) {
+            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
+            //                 postsCount += 1;
+            //         }
+            //     }
+            // }
 
-            // Check limit
-            ABMODE mode;
-            getMode(_address, mode, height);
-            int limit = getLimit(Post, mode, height);
-            if (postsCount >= limit) {
-                result = ANTIBOTRESULT::PostLimit;
-                return false;
-            }
+            // // Check limit
+            // ABMODE mode;
+            // getMode(_address, mode, height);
+            // int limit = getLimit(Post, mode, height);
+            // if (postsCount >= limit) {
+            //     result = ANTIBOTRESULT::PostLimit;
+            //     return false;
+            // }
 
-            return true;
+            // return true;
         }
-
+/*
         bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
         {
             std::string _address = oitm["address"].get_str();
@@ -163,7 +164,7 @@ namespace PocketConsensus
 
             return true;
         }
-
+*/
     };
 
 

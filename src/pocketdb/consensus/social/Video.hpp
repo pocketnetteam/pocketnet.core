@@ -23,7 +23,7 @@ namespace PocketConsensus
     public:
         VideoConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(PocketBlock& txs) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
         {
 
         }
