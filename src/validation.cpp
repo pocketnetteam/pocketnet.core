@@ -2502,7 +2502,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // -----------------------------------------------------------------------------------------------------------------
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
     // TODO (brangr): DEBUG!
-    //PocketServices::TransactionIndexer::Index(block, pindex->nHeight);
+    PocketServices::TransactionIndexer::Index(block, pindex->nHeight);
 
     int64_t nTime6 = GetTimeMicros();
     nTimeVerify += nTime6 - nTime5;
