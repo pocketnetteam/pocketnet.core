@@ -274,22 +274,22 @@ namespace PocketConsensus
     class ReputationConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<ReputationConsensus*(int height)>>> m_rules
-            {
-                {1124000, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
-                {322700, [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
-                {292800, [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
-                {225000, [](int height) { return new ReputationConsensus_checkpoint_225000(height); }},
-                {151600, [](int height) { return new ReputationConsensus_checkpoint_151600(height); }},
-                {108300, [](int height) { return new ReputationConsensus_checkpoint_108300(height); }},
-                {0,      [](int height) { return new ReputationConsensus(height); }},
-            };
+        static inline const std::map<int, std::function<ReputationConsensus*(int height)>> m_rules =
+        {
+            {1124000, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
+            {322700, [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
+            {292800, [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
+            {225000, [](int height) { return new ReputationConsensus_checkpoint_225000(height); }},
+            {151600, [](int height) { return new ReputationConsensus_checkpoint_151600(height); }},
+            {108300, [](int height) { return new ReputationConsensus_checkpoint_108300(height); }},
+            {0,      [](int height) { return new ReputationConsensus(height); }},
+        };
     public:
         shared_ptr <ReputationConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<ReputationConsensus>(rule.second(height));
+            return shared_ptr<ReputationConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

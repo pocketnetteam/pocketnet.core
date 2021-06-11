@@ -4,13 +4,13 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "WebRepository.h"
+#include "ConsensusRepository.h"
 
 namespace PocketDb {
-    void WebRepository::Init() {}
-    void WebRepository::Destroy() {}
+    void ConsensusRepository::Init() {}
+    void ConsensusRepository::Destroy() {}
 
-    UniValue WebRepository::GetLastComments(int count, int height, std::string lang)
+    UniValue ConsensusRepository::GetLastComments(int count, int height, std::string lang)
     {
         auto sql = R"sql(
             WITH RowIds AS (

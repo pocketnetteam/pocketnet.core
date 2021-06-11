@@ -23,25 +23,19 @@ namespace PocketConsensus
     public:
         BlockingConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block)
         {
-            auto ptx = std::static_pointer_cast<Blocking>(tx);
-
-            // Base validation for all social models
-            if (auto[ok, result] = SocialBaseConsensus::Validate(ptx, block); !ok)
-                return make_tuple(ok, result);
-
             // Check registration account "from"
-            if (auto[ok, result] = CheckRegistration(ptx->GetAddress()); !ok)
-                return make_tuple(false, SCR_NotRegistered);
+            if (auto[ok, result] = CheckRegistration(tx->GetAddress()); !ok)
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // Check registration account "to"
-            if (auto[ok, result] = CheckRegistration(ptx->GetAddressTo()); !ok)
-                return make_tuple(false, SCR_NotRegistered);
+            if (auto[ok, result] = CheckRegistration(tx->GetAddressTo()); !ok)
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // Blocking self
-            if (*ptx->GetAddress() == *ptx->GetAddressTo())
-                return make_tuple(false, SCR_SelfBlocking);
+            if (*tx->GetAddress() == *tx->GetAddressTo())
+                return make_tuple(false, SocialConsensusResult_SelfBlocking);
 
             // TODO (brangr): implement
             // TODO (brangr): Check already exists blocking for "from -> to"
@@ -93,7 +87,7 @@ namespace PocketConsensus
             //     return false;
             // }
 
-            make_tuple(true, SCR_Success);
+            make_tuple(true, SocialConsensusResult_Success);
         }
 
     };

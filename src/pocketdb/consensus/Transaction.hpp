@@ -32,6 +32,24 @@ namespace PocketConsensus
             //         return;
             //     }
             // }
+
+            // TODO (brangr): implement for users
+            // if (*tx->GetAddress() == *tx->GetReferrerAddress())
+            //     return make_tuple(false, SocialConsensusResult_ReferrerSelf);
+
+            // TODO (brangr): implement for users
+            // if (_name.size() < 1 && _name.size() > 35) {
+            //     result = ANTIBOTRESULT::NicknameLong;
+            //     return false;
+            // }
+
+            // TODO (brangr): implement for users
+            // if (boost::algorithm::ends_with(_name, "%20") || boost::algorithm::starts_with(_name, "%20")) {
+            //     result = ANTIBOTRESULT::Failed;
+            //     return false;
+            // }
+
+
         }
     };
 

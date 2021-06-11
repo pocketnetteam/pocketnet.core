@@ -21,25 +21,23 @@ namespace PocketConsensus
     class UserConsensus : public SocialBaseConsensus
     {
     protected:
-    public:
-        UserConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
+        virtual tuple<bool, SocialConsensusResult> CheckDoubleName(shared_ptr<User> tx)
         {
             // TODO (brangr): implement
-            // std::string _txid = oitm["txid"].get_str();
-            // std::string _address = oitm["address"].get_str();
-            // std::string _address_referrer = oitm["referrer"].get_str();
-            // std::string _name = oitm["name"].get_str();
-            // int64_t _time = oitm["time"].get_int64();
-
-            // // Referrer to self? Seriously?;)
-            // if (_address == _address_referrer) {
-            //     result = ANTIBOTRESULT::ReferrerSelf;
+            // if (g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("name", CondEq, _name).Not().Where("address", CondEq, _address).Where("block", CondLt, height)) > 0) {
+            //     result = ANTIBOTRESULT::NicknameDouble;
             //     return false;
             // }
+        }
 
-            // // Get last updated item
+        virtual tuple<bool, SocialConsensusResult> CheckEditProfileLimit(shared_ptr<User> tx)
+        {
+            // TODO (brangr): мы должны убедить что последнее редактирование было в пределах N секунд или блоков
+            // нужна перегрузка
+            // также для совместимости со старой логикой все транзакции редактирования профиля не должны
+            // содержать поле реферрера
+
             // reindexer::Item userItm;
             // if (g_pocketdb->SelectOne(
             //                 reindexer::Query("UsersView")
@@ -58,8 +56,18 @@ namespace PocketConsensus
             //         return false;
             //     }
             // }
+        }
 
-            // // Also check mempool
+        virtual tuple<bool, SocialConsensusResult> CheckEditProfileBlockLimit(shared_ptr<User> tx, PocketBlock& block)
+        {
+            // TODO (brangr): Need?
+            // по идее мемпул лежит в базе на равне с остальными транзакциями
+            // но сюда может насыпаться очень много всего и мы не можем проверить
+            // двойное редактирование, тк при загрузке из сети свободных транзакций нет привязки к блоку
+            // и поэтому либо разрешаем все такие транзакции либо думаем дальше
+
+            // TODO (brangr): проверка по времени в мемпуле - по идее не нужна
+
             // if (checkMempool) {
             //     reindexer::QueryResults res;
             //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, _txid), res).ok()) {
@@ -80,7 +88,7 @@ namespace PocketConsensus
             //     }
             // }
 
-            // // Check block
+            // TODO (brangr): implement
             // if (blockVtx.Exists("Users")) {
             //     for (auto& mtx : blockVtx.Data["Users"]) {
             //         if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid) {
@@ -90,26 +98,23 @@ namespace PocketConsensus
             //     }
             // }
 
-            // // Check long nickname
-            // if (_name.size() < 1 && _name.size() > 35) {
-            //     result = ANTIBOTRESULT::NicknameLong;
-            //     return false;
-            // }
+        }
 
-            // // Check double nickname
-            // if (g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("name", CondEq, _name).Not().Where("address", CondEq, _address).Where("block", CondLt, height)) > 0) {
-            //     result = ANTIBOTRESULT::NicknameDouble;
-            //     return false;
-            // }
+    public:
+        UserConsensus(int height) : SocialBaseConsensus(height) {}
 
-            // // TODO (brangr): block all spaces
-            // // Check spaces in begin and end
-            // if (boost::algorithm::ends_with(_name, "%20") || boost::algorithm::starts_with(_name, "%20")) {
-            //     result = ANTIBOTRESULT::Failed;
-            //     return false;
-            // }
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<User> tx, PocketBlock& block)
+        {
+            if (auto[ok, result] = CheckDoubleName(tx); !ok)
+                return make_tuple(false, result);
 
-            // return true;
+            if (auto[ok, result] = CheckDoubleName(tx); !ok)
+                return make_tuple(false, result);
+            
+            if (auto[ok, result] = CheckDoubleName(tx); !ok)
+                return make_tuple(false, result);
+
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     };
@@ -119,48 +124,40 @@ namespace PocketConsensus
     *  Start checkpoint
     *
     *******************************************************************************************************************/
-    class UserConsensus_checkpoint_0 : public UserConsensus
-    {
-    protected:
-    public:
-
-        UserConsensus_checkpoint_0(int height) : UserConsensus(height) {}
-
-    }; // class UserConsensus_checkpoint_0
-
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 1 block
-    *
-    *******************************************************************************************************************/
-    class UserConsensus_checkpoint_1 : public UserConsensus_checkpoint_0
+    class UserConsensus_checkpoint_1 : public UserConsensus
     {
     protected:
         int CheckpointHeight() override { return 1; }
+
+        virtual tuple<bool, SocialConsensusResult> CheckDoubleName(shared_ptr<User> tx)
+        {
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
+
     public:
-        UserConsensus_checkpoint_1(int height) : UserConsensus_checkpoint_0(height) {}
+
+        UserConsensus_checkpoint_1(int height) : UserConsensus(height) {}
+
     };
 
     /*******************************************************************************************************************
     *
     *  Factory for select actual rules version
-    *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
     class UserConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<UserConsensus*(int height)>>> m_rules
-            {
-                {1, [](int height) { return new UserConsensus_checkpoint_1(height); }},
-                {0, [](int height) { return new UserConsensus_checkpoint_0(height); }},
-            };
+        static inline const std::map<int, std::function<UserConsensus*(int height)>> m_rules =
+        {
+            {0, [](int height) { return new UserConsensus(height); }},
+        };
     public:
         shared_ptr <UserConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<UserConsensus>(rule.second(height));
+            return shared_ptr<UserConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

@@ -328,21 +328,21 @@ namespace PocketConsensus
     class LotteryConsensusFactory
     {
     private:
-        inline static std::vector<std::pair<int, std::function<LotteryConsensus*(int height)>>> m_rules
-            {
-                {1180000, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
-                {1124000, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
-                {1035000, [](int height) { return new LotteryConsensus_checkpoint_1035000(height); }},
-                {514185,  [](int height) { return new LotteryConsensus_checkpoint_514185(height); }},
-                {0,       [](int height) { return new LotteryConsensus(height); }},
-            };
+        static inline const std::map<int, std::function<LotteryConsensus*(int height)>> m_rules =
+        {
+            {1180000, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
+            {1124000, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
+            {1035000, [](int height) { return new LotteryConsensus_checkpoint_1035000(height); }},
+            {514185,  [](int height) { return new LotteryConsensus_checkpoint_514185(height); }},
+            {0,       [](int height) { return new LotteryConsensus(height); }},
+        };
     public:
         LotteryConsensusFactory() = default;
         static shared_ptr <LotteryConsensus> Instance(int height)
         {
-            for (const auto& rule : m_rules)
-                if (height >= rule.first)
-                    return shared_ptr<LotteryConsensus>(rule.second(height));
+            return shared_ptr<LotteryConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }
