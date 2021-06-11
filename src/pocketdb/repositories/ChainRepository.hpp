@@ -223,28 +223,25 @@ namespace PocketDb
             {
                 auto stmt = SetupSqlStatement(R"sql(
                     UPDATE Transactions SET
-                        Id = ifnull(
-                            -- copy self Id
-                            (
-                                select max( u.Id )
-                                from Transactions u
-                                where u.Type = Transactions.Type
-                                    and u.String1 = Transactions.String1
-                                    and u.Height is not null
-                            ),
-                            ifnull(
-                                -- new record
-                                (
-                                    select max( u.Id ) + 1
-                                    from Transactions u
-                                    where u.Type = Transactions.Type
-                                        and u.Height is not null
-                                        and u.Id is not null
-                                ),
-                                0 -- for first record
-                            )
-                        )
-                    WHERE Hash=?
+                        Id = case
+                            -- String2 (RootTxHash) empty - new content record
+                            when Transactions.String2 is null then
+                                ifnull(
+                                    (select max(c.Id) + 1
+                                     from vContents c
+                                     where c.Type = Transactions.Type and c.Id is not null)
+                                , 0)
+                            -- String2 (RootTxHash) not empty - edited content record
+                            else
+                                ifnull(
+                                    (select max(c.Id)
+                                     from vContents c
+                                     where   c.Type = Transactions.Type
+                                         and c.RootTxHash = Transactions.String2
+                                         and c.Id is not null)
+                                , 0)
+                        end
+                    WHERE Hash = ?
                 )sql");
 
                 // TODO (joni): replace with TryBind

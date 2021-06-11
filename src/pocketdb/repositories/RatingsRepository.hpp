@@ -148,7 +148,7 @@ namespace PocketDb
             return make_tuple(tryResult, result);
         }
 
-        tuple<bool, int> GetScoreContentCount(PocketTxType scoreType,
+        tuple<bool, int> GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
             const string& scoreAddress, const string& contentAddress,
             int height, const CTransactionRef& tx,
             const std::vector<int>& values,
@@ -181,12 +181,12 @@ namespace PocketDb
                         and s.Time < ?
                         and s.Time >= ?
                         and s.Hash != ?
-                        and s.Type = 300
+                        and s.Type = ?
                         and exists (
                             select 1
                             from vContents c
                             where   c.AddressHash = ?
-                                and c.Type = 200
+                                and c.Type = ?
                                 and c.Hash = s.ContentTxHash
                         )
                         and s.Value in
@@ -204,7 +204,7 @@ namespace PocketDb
                 auto stmt = SetupSqlStatement(sql);
 
                 auto scoreAddressPtr = make_shared<string>(scoreAddress);
-                auto postAddressPtr = make_shared<string>(contentAddress);
+                auto contentAddressPtr = make_shared<string>(contentAddress);
                 auto heightPtr = make_shared<int>(height);
 
                 // TODO: нужна будет перегрузка для изменения отбора - время заменить на блоки
@@ -213,14 +213,16 @@ namespace PocketDb
 
                 auto scoreTxHashPtr = make_shared<string>(tx->GetHash().GetHex());
                 auto scoreTypePtr = make_shared<int>(scoreType);
+                auto contentTypePtr = make_shared<int>(contentType);
 
                 auto bindResult = TryBindStatementText(stmt, 1, scoreAddressPtr);
-                bindResult &= TryBindStatementText(stmt, 2, postAddressPtr);
-                bindResult &= TryBindStatementInt(stmt, 3, heightPtr);
-                bindResult &= TryBindStatementInt64(stmt, 4, maxTimePtr);
-                bindResult &= TryBindStatementInt64(stmt, 5, minTimePtr);
-                bindResult &= TryBindStatementText(stmt, 6, scoreTxHashPtr);
-                bindResult &= TryBindStatementInt(stmt, 7, scoreTypePtr);
+                bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
+                bindResult &= TryBindStatementInt64(stmt, 3, maxTimePtr);
+                bindResult &= TryBindStatementInt64(stmt, 4, minTimePtr);
+                bindResult &= TryBindStatementText(stmt, 5, scoreTxHashPtr);
+                bindResult &= TryBindStatementInt(stmt, 6, scoreTypePtr);
+                bindResult &= TryBindStatementInt(stmt, 7, contentTypePtr);
+                bindResult &= TryBindStatementText(stmt, 8, contentAddressPtr);
 
                 if (!bindResult)
                 {
