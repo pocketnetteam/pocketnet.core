@@ -15,7 +15,7 @@ namespace PocketTx
             SetType(PocketTxType::CONTENT_POST);
         }
 
-        shared_ptr<UniValue> Serialize() const override
+        shared_ptr <UniValue> Serialize() const override
         {
             auto result = Transaction::Serialize();
 
@@ -46,11 +46,12 @@ namespace PocketTx
             if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok)
             {
                 if (auto[ok, valTxId] = TryGetStr(src, "txid"); ok)
-                    SetRootTxHash(valTxId);
+                    if (valTxIdEdit != valTxId)
+                        SetRootTxHash(valTxId);
             }
         }
 
-        shared_ptr<string> GetAddress() const { return m_string1; }
+        shared_ptr <string> GetAddress() const { return m_string1; }
         void SetAddress(string value) { m_string1 = make_shared<string>(value); }
 
         shared_ptr <string> GetRootTxHash() const { return m_string2; }

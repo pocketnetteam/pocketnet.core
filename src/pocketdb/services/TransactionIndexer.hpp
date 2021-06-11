@@ -143,7 +143,7 @@ namespace PocketServices
                 int64_t nTime20 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "      - GetScoreData: %.2fms\n", 0.001 * (nTime20 - nTime10));
 
-                //LogPrintf("*** 2 h:%d tx:%s - %s\n", height, tx->GetHash().GetHex(), scoreData->Serialize()->write());
+                // LogPrintf("*** 2 h:%d tx:%s - %s\n", height, tx->GetHash().GetHex(), scoreData->Serialize()->write());
 
                 // Old posts denied change reputation
                 auto allowModifyOldPosts = reputationConsensus->AllowModifyOldPosts(
@@ -157,6 +157,8 @@ namespace PocketServices
                 if (!allowModifyOldPosts)
                     continue;
 
+                int64_t nTime31 = GetTimeMicros();
+
                 // Check whether the current rating has the right to change the recipient's reputation
                 auto allowModifyReputation = reputationConsensus->AllowModifyReputation(
                     scoreData,
@@ -165,10 +167,12 @@ namespace PocketServices
                     false);
 
                 int64_t nTime40 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - AllowModifyReputation: %.2fms\n", 0.001 * (nTime40 - nTime30));
+                LogPrint(BCLog::BENCH, "      - AllowModifyReputation: %.2fms\n", 0.001 * (nTime40 - nTime31));
 
                 if (!allowModifyReputation)
                     continue;
+
+                int64_t nTime41 = GetTimeMicros();
 
                 // Calculate ratings values
                 // Rating for users over posts = equals -20 and 20 - saved in int 21 = 2.1
@@ -207,7 +211,7 @@ namespace PocketServices
                 }
 
                 int64_t nTime50 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - Increase ratings: %.2fms\n", 0.001 * (nTime50 - nTime40));
+                LogPrint(BCLog::BENCH, "      - Increase ratings: %.2fms\n", 0.001 * (nTime50 - nTime41));
             }
 
             int64_t nTime3 = GetTimeMicros();

@@ -118,9 +118,9 @@ namespace PocketDb
                 auto stmt = SetupSqlStatement(R"sql(
                     select count(1)
                     from Ratings r
-                    where r.Type = ?
-                        and r.Height <= ?
+                    where   r.Type = ?
                         and r.Id = ?
+                        and r.Height <= ?
                 )sql");
 
                 auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT_LIKERS);
@@ -159,18 +159,36 @@ namespace PocketDb
 
             bool tryResult = TryTransactionStep([&]()
             {
+//                string sql = R"sql(
+//                    select count(1)
+//                    from vScores s
+//                    join vContents c on c.Hash = s.ContentTxHash
+//                    where   s.AddressHash = ?
+//                        and c.AddressHash = ?
+//                        and s.Height <= ?
+//                        and s.Time < ?
+//                        and s.Time >= ?
+//                        and s.Hash != ?
+//                        and s.Type = ?
+//                        and s.Value in
+//                )sql";
+
                 string sql = R"sql(
                     select count(1)
                     from vScores s
-                    join vContents c on c.Hash = s.ContentTxHash
                     where   s.AddressHash = ?
-                        and c.AddressHash = ?
-                        and s.Height is not null
                         and s.Height <= ?
                         and s.Time < ?
                         and s.Time >= ?
                         and s.Hash != ?
-                        and s.Type = ?
+                        and s.Type = 300
+                        and exists (
+                            select 1
+                            from vContents c
+                            where   c.AddressHash = ?
+                                and c.Type = 200
+                                and c.Hash = s.ContentTxHash
+                        )
                         and s.Value in
                 )sql";
 

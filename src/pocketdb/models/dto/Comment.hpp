@@ -22,7 +22,7 @@ namespace PocketTx
             SetType(PocketTxType::CONTENT_COMMENT);
         }
 
-        shared_ptr<UniValue> Serialize() const override
+        shared_ptr <UniValue> Serialize() const override
         {
             auto result = Transaction::Serialize();
 
@@ -46,13 +46,18 @@ namespace PocketTx
         {
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
-            if (auto[ok, val] = TryGetStr(src, "otxid"); ok) SetRootTxHash(val);
+            if (auto[ok, val] = TryGetStr(src, "otxid"); ok)
+            {
+                if (val != *GetHash())
+                    SetRootTxHash(val);
+            }
+
             if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
             if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxHash(val);
             if (auto[ok, val] = TryGetStr(src, "answerid"); ok) SetAnswerTxHash(val);
         }
 
-        shared_ptr<string> GetAddress() const { return m_string1; }
+        shared_ptr <string> GetAddress() const { return m_string1; }
         void SetAddress(string value) { m_string1 = make_shared<string>(value); }
 
         shared_ptr <string> GetRootTxHash() const { return m_string2; }

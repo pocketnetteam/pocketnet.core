@@ -60,8 +60,8 @@ create index if not exists Transactions_String4 on Transactions (String4);
 create index if not exists Transactions_String5 on Transactions (String5);
 create index if not exists Transactions_Int1 on Transactions (Int1);
 
-create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height);
-create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height);
+create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
+create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
 create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
 
 --------------------------------------------
@@ -149,16 +149,9 @@ where t.Height is not null and t.Type in (100,101,102);
 
 drop view if exists vUsers;
 create view vUsers as
-select t.Type,
-       t.Hash,
-       t.Time,
-       t.BlockHash,
-       t.Height,
-       t.Id,
-       t.String1 as AddressHash,
-       t.String2 as ReferrerAddressHash
-from Transactions t
-where t.Height is not null and t.Type = 100;
+select a.*
+from vAccounts a
+where a.Type = 100;
 
 --------------------------------------------
 drop view if exists vContents;
@@ -169,40 +162,44 @@ select t.Type,
        t.BlockHash,
        t.Height,
        t.Id,
-       t.String1 as AddressHash
+       t.String1 as AddressHash,
+       t.String2 as RootTxHash,
+       t.String3,
+       t.String4,
+       t.String5
 from Transactions t
 where t.Height is not null and t.Type in (200,201,202,203,204,205);
 
 drop view if exists vPosts;
 create view vPosts as
-select t.Type,
-       t.Hash,
-       t.Time,
-       t.BlockHash,
-       t.Height,
-       t.Id,
-       t.String1 as AddressHash,
-       t.String2 as RootTxHash,
-       t.String3 as RelayTxHash
-from Transactions t
-where t.Height is not null and t.Type = 200;
+select c.Type,
+       c.Hash,
+       c.Time,
+       c.BlockHash,
+       c.Height,
+       c.Id,
+       c.AddressHash,
+       c.RootTxHash,
+       c.String3 as RelayTxHash
+from vContents c
+where c.Type = 200;
 
 
 drop view if exists vComments;
 create view vComments as
-select t.Type,
-       t.Hash,
-       t.Time,
-       t.BlockHash,
-       t.Height,
-       t.Id,
-       t.String1 as AddressHash,
-       t.String2 as RootTxHash,
-       t.String3 as PostTxHash,
-       t.String4 as ParentTxHash,
-       t.String5 as AnswerTxHash
-from Transactions t
-where t.Height is not null and t.Type = 204;
+select c.Type,
+       c.Hash,
+       c.Time,
+       c.BlockHash,
+       c.Height,
+       c.Id,
+       c.AddressHash,
+       c.RootTxHash,
+       c.String3 as PostTxHash,
+       c.String4 as ParentTxHash,
+       c.String5 as AnswerTxHash
+from vContents c
+where c.Type = 204;
 
 --------------------------------------------
 drop view if exists vScores;

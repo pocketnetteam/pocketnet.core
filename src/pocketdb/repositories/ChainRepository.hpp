@@ -58,24 +58,37 @@ namespace PocketDb
                 int64_t nTime3 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms\n", 0.001 * (nTime3 - nTime2));
 
-                // All users must have a unique digital ID
-                if (tx.Type == PocketTxType::ACCOUNT_USER
-                    || tx.Type == PocketTxType::ACCOUNT_VIDEO_SERVER
-                    || tx.Type == PocketTxType::ACCOUNT_MESSAGE_SERVER
-                    || tx.Type == PocketTxType::CONTENT_POST
-                    || tx.Type == PocketTxType::CONTENT_COMMENT
-                    || tx.Type == PocketTxType::CONTENT_VIDEO
-                    || tx.Type == PocketTxType::CONTENT_TRANSLATE)
+                // All accounts must have a unique digital ID
+                if (tx.Type == PocketTxType::ACCOUNT_USER ||
+                    tx.Type == PocketTxType::ACCOUNT_VIDEO_SERVER ||
+                    tx.Type == PocketTxType::ACCOUNT_MESSAGE_SERVER)
                 {
-                    if (!UpdateShortId(tx.Hash))
+                    if (!SetAccountId(tx.Hash))
                     {
-                        LogPrintf("UpdateHeight::UpdateShortId failed for block:%s height:%d tx:%s\n",
+                        LogPrintf("UpdateHeight::SetAccountId failed for block:%s height:%d tx:%s\n",
                             blockHash, height, tx.Hash);
                         return false;
                     }
 
                     int64_t nTime4 = GetTimeMicros();
-                    LogPrint(BCLog::BENCH, "      - UpdateShortId: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                    LogPrint(BCLog::BENCH, "      - SetAccountId: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                }
+
+                // All contents must have a unique digital ID
+                if (tx.Type == PocketTxType::CONTENT_POST ||
+                    tx.Type == PocketTxType::CONTENT_COMMENT ||
+                    tx.Type == PocketTxType::CONTENT_VIDEO ||
+                    tx.Type == PocketTxType::CONTENT_TRANSLATE)
+                {
+                    if (!SetContentId(tx.Hash))
+                    {
+                        LogPrintf("UpdateHeight::SetContentId failed for block:%s height:%d tx:%s\n",
+                            blockHash, height, tx.Hash);
+                        return false;
+                    }
+
+                    int64_t nTime4 = GetTimeMicros();
+                    LogPrint(BCLog::BENCH, "      - SetContentId: %.2fms\n", 0.001 * (nTime4 - nTime3));
                 }
             }
 
@@ -204,7 +217,7 @@ namespace PocketDb
             });
         }
 
-        bool UpdateShortId(const string& txHash)
+        bool SetAccountId(const string& txHash)
         {
             return TryTransactionStep([&]()
             {
@@ -232,6 +245,45 @@ namespace PocketDb
                             )
                         )
                     WHERE Hash=?
+                )sql");
+
+                // TODO (joni): replace with TryBind
+                auto hashPtr = make_shared<string>(txHash);
+                auto result = TryBindStatementText(stmt, 1, hashPtr);
+                if (!result)
+                    return false;
+
+                return TryStepStatement(stmt);
+            });
+        }
+
+        bool SetContentId(const string& txHash)
+        {
+            return TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    select
+                        case
+                            -- String2 (RootTxHash) empty - new content record
+                            when Transactions.String2 is null then
+                                ifnull(
+                                    (select max(c.Id) + 1
+                                     from vContents c
+                                     where c.Type = Transactions.Type and c.Id is not null)
+                                , 0)
+                            -- String2 (RootTxHash) not empty - edited content record
+                            else
+                                ifnull(
+                                    (select max(c.Id)
+                                     from vContents c
+                                     where   c.Type = Transactions.Type
+                                         and c.RootTxHash = Transactions.String2
+                                         and c.Id is not null)
+                                , 0)
+                        end
+                    from Transactions
+                    WHERE Hash = ?
+                    ;
                 )sql");
 
                 // TODO (joni): replace with TryBind

@@ -38,11 +38,21 @@ namespace PocketConsensus
             auto minUserReputation = GetThresholdReputationScore();
             auto minLikersCount = GetThresholdLikersCount();
 
+            int64_t nTime1 = GetTimeMicros();
+
             auto[userRepOk, userReputation] = PocketDb::RatingsRepoInst.GetUserReputation(addressId, height);
+
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - GetUserReputation: %.2fms\n", 0.001 * (nTime2 - nTime1));
+
             if (!userRepOk || userReputation < minUserReputation)
                 return false;
 
             auto[userLikersOk, userLikers] = PocketDb::RatingsRepoInst.GetUserLikersCount(addressId, height);
+
+            int64_t nTime3 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - GetUserLikersCount: %.2fms\n", 0.001 * (nTime3 - nTime2));
+
             if (!userLikersOk || userLikers < minLikersCount)
                 return false;
 
@@ -67,6 +77,8 @@ namespace PocketConsensus
             if (!AllowModifyReputation(checkScoreAddressId, height))
                 return false;
 
+            int64_t nTime1 = GetTimeMicros();
+
             // Disable reputation increment if from one address to one address > 2 scores over day
             int64_t _max_scores_one_to_one = GetScoresOneToOne();
             int64_t _scores_one_to_one_depth = GetScoresOneToOneDepth();
@@ -89,6 +101,9 @@ namespace PocketConsensus
             auto[scoreCountOk, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(
                 PocketTxType::ACTION_SCORE_POST, checkScoreAddressHash, scoreData->ContentAddressHash,
                 height, tx, values, _scores_one_to_one_depth);
+
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - GetScoreContentCount: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
             //LogPrintf("=== 2.1.2 AllowModifyReputationOverPost - tx:%s sAddr:%s pAddr:%s height:%d diff:%d < %d\n",
             //    tx->GetHash().GetHex(), scoreAddress, postAddress, height, scores_one_to_one_count, _max_scores_one_to_one);
@@ -282,7 +297,7 @@ namespace PocketConsensus
     private:
         inline static std::vector<std::pair<int, std::function<ReputationConsensus*(int height)>>> m_rules
             {
-                {889524, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
+                {1124000, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
                 {322700, [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
                 {292800, [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
                 {225000, [](int height) { return new ReputationConsensus_checkpoint_225000(height); }},
