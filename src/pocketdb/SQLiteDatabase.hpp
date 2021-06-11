@@ -201,7 +201,8 @@ namespace PocketDb
                c.RootTxHash,
                c.String3 as PostTxHash,
                c.String4 as ParentTxHash,
-               c.String5 as AnswerTxHash
+               c.String5 as AnswerTxHash,
+               c.ROWID as RowId
         from vContents c
         where c.Type = 204;
 
