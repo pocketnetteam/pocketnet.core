@@ -7,6 +7,8 @@
 #ifndef POCKETDB_BASEREPOSITORY_HPP
 #define POCKETDB_BASEREPOSITORY_HPP
 
+#include <utility>
+
 #include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.hpp"
 #include "pocketdb/helpers/TypesHelper.hpp"
@@ -58,14 +60,14 @@ namespace PocketDb
         }
 
 
-        bool TryStepStatement(shared_ptr<sqlite3_stmt*> stmt)
+        bool TryStepStatement(shared_ptr<sqlite3_stmt*>& stmt)
         {
             int res = sqlite3_step(*stmt);
             FinalizeSqlStatement(*stmt);
             return !(res != SQLITE_ROW && res != SQLITE_DONE);
         }
 
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt*> stmt, int index, shared_ptr<std::string> value)
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, shared_ptr<std::string> value)
         {
             if (!value) return true;
 
@@ -76,24 +78,32 @@ namespace PocketDb
             return true;
         }
 
-        //TODO change shared_ptr<int> to int, it will be faster
-        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int> value)
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int>& value)
         {
             if (!value) return true;
 
-            int res = sqlite3_bind_int(*stmt, index, *value);
+            return TryBindStatementInt(stmt, index, *value);
+        }
+
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, int value)
+        {
+            int res = sqlite3_bind_int(*stmt, index, value);
             if (!CheckValidResult(stmt, res))
                 return false;
 
             return true;
         }
 
-        //TODO change shared_ptr<int64_t> to int64_t, it will be faster
-        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*> stmt, int index, const shared_ptr<int64_t> value)
+        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int64_t>& value)
         {
             if (!value) return true;
 
-            int res = sqlite3_bind_int64(*stmt, index, *value);
+            return TryBindStatementInt64(stmt, index, *value);
+        }
+
+        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, int64_t value)
+        {
+            int res = sqlite3_bind_int64(*stmt, index, value);
             if (!CheckValidResult(stmt, res))
                 return false;
 
