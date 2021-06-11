@@ -53,8 +53,6 @@
 
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/services/TransactionIndexer.hpp"
-#include "pocketdb/consensus/social/Helper.hpp"
-#include "pocketdb/consensus/Transaction.hpp"
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 std::map<std::string, WSUser> WSConnections;
@@ -2489,12 +2487,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
 
     // -----------------------------------------------------------------------------------------------------------------
-    PocketHelpers::PocketBlock PocketBlock;
-
-    // TODO (brangr): build vector of Transactions !!!!!!!!!!!!!!!!!!!!!!
-
-    if (!PocketConsensus::SocialConsensusHelper::Validate(PocketBlock, pindex->nHeight))
-        return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted? Try relaunch with -reindex"));
+    // TODO (brangr) (v0.20.0): check all block with pocket consensus rules
+    // // Check reindexer data exists and Antibot checks
+    // if (!CheckBlockAdditional(pindex, block, state)) {
+    //     return false;
+    // }
 
     int64_t nTime5 = GetTimeMicros();
     nTimeVerify += nTime5 - nTime4;
@@ -4221,6 +4218,119 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     return true;
 }
 
+// bool FindRTransaction(UniValue& _txs_src, const CTransactionRef& tx, std::string ri_table, reindexer::Item& itm)
+// {
+// TODO (brangr): REINDEXER -> SQLITE
+// return false;
+// std::string txid = tx->GetHash().GetHex();
+
+// // Maybe data received from another node?
+// if (_txs_src.exists(txid)) {
+//     std::string _tx_src = _txs_src[txid].get_str();
+//     UniValue _tx(UniValue::VOBJ);
+//     if (!_tx.read(_tx_src)) {
+//         LogPrintf("700001: Transaction RI data parse failed (%s): %s\n", txid, _tx_src);
+//         return false;
+//     }
+
+//     ri_table = _tx["t"].get_str();
+//     itm = g_pocketdb->DB()->NewItem(ri_table);
+//     _tx_src = DecodeBase64(_tx["d"].get_str());
+//     if (!itm.FromJSON(_tx_src).ok()) {
+//         LogPrintf("700002: Transaction RI data parse failed (%s): %s\n", txid, _tx_src);
+//         return false;
+//     }
+
+//     if (ri_table == "Mempool") {
+//         ri_table = itm["table"].As<string>();
+//         std::string _data = itm["data"].As<string>();
+
+//         itm = g_pocketdb->DB()->NewItem(ri_table);
+//         _tx_src = DecodeBase64(_data);
+//         if (!itm.FromJSON(_tx_src).ok()) {
+//             LogPrintf("7000021: Transaction RI data parse failed (%s): %s\n", txid, _tx_src);
+//             return false;
+//         }
+//     }
+
+//     return true;
+// } else {
+//     if (ri_table == "Posts") {
+//         if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, txid).Where("txidEdit", CondEq, ""), itm).ok()) return true;
+//         if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txidEdit", CondEq, txid), itm).ok()) return true;
+//         if (g_pocketdb->SelectOne(reindexer::Query("PostsHistory").Where("txid", CondEq, txid).Where("txidEdit", CondEq, ""), itm).ok()) return true;
+//         if (g_pocketdb->SelectOne(reindexer::Query("PostsHistory").Where("txidEdit", CondEq, txid), itm).ok()) return true;
+//     } else {
+//         if (g_pocketdb->SelectOne(reindexer::Query(ri_table).Where("txid", CondEq, txid), itm).ok()) return true;
+//     }
+
+//     if (g_pocketdb->SelectOne(reindexer::Query("Mempool").Where("txid", CondEq, txid), itm).ok()) {
+//         ri_table = itm["table"].As<string>();
+//         std::string _data = itm["data"].As<string>();
+
+//         itm = g_pocketdb->DB()->NewItem(ri_table);
+//         if (!itm.FromJSON(DecodeBase64(_data)).ok()) {
+//             LogPrintf("700003: Transaction RI data parse failed (%s): %s\n", txid, DecodeBase64(_data));
+//             return false;
+//         }
+
+//         return true;
+//     }
+// }
+
+// // Data not found
+// LogPrintf("700004: Transaction RI data Not Found (%s)\n", txid);
+// return false;
+//}
+
+//bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationState& state)
+//{
+// TODO (brangr): REINDEXER -> SQLITE
+//  return true;
+// // We need check POCKETNET_DATA array or mempool or general RI tables
+// // for check antibot, consistent block and reindexer db and op_return of transactions
+// {
+//     uint256 blockhash = block.GetHash();
+
+//     // TODO (brangr): enable this check
+//     // Before check this block need check valid Reindexer DB
+//     // if (pindex->nHeight > Params().GetConsensus().nHeight_version_1_0_0 && !g_addrindex->CheckRHash(block, pindex->pprev)) {
+//     // LogPrintf("WARNING!!! Received block not consistent with ReindexerDB (%s)\n", blockhash.GetHex());
+//     //return state.DoS(200, error("Received block not consistent with ReindexerDB (%s)", blockhash.GetHex()), REJECT_INVALID, "bad-rhash");
+//     // }
+
+//     // Read and parse received block data
+//     UniValue _txs_src(UniValue::VOBJ);
+//     if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
+//         std::string _pocket_data = POCKETNET_DATA[blockhash];
+//         _txs_src.read(_pocket_data);
+//     }
+
+//     // TODO (brangr): change UniValue to RTransaction
+//     BlockVTX blockVtx;
+
+//     // Loop transaction and checks
+//     for (const CTransactionRef& tx : block.vtx) {
+//         std::string ri_table;
+//         if (!g_addrindex->GetPocketnetTXType(tx, ri_table)) continue;
+
+//         reindexer::Item itm;
+//         if (!FindRTransaction(_txs_src, tx, ri_table, itm)) {
+//             return state.DoS(200, error("Failed find reindexer transaction part (%s)", tx->GetHash().GetHex()), REJECT_INCOMPLETE, "failed-find-rtransaction", false, "", true);
+//         }
+
+//         blockVtx.Add(ri_table, g_addrindex->GetUniValue(tx, itm, ri_table));
+//     }
+
+//     if (!g_antibot->CheckBlock(blockVtx, pindex->nHeight)) {
+//         if (!IsCheckpointBlock(pindex->nHeight, blockhash.GetHex()))
+//             return state.Invalid(false, REJECT_INVALID, "bad-antibot-checking", strprintf("Block check with the AntiBot failed (%s)", blockhash.GetHex()));
+//     }
+// }
+
+// return true;
+//}
+
 bool CheckBlockSignature(const CBlock& block)
 {
     if (block.IsProofOfWork())
@@ -4862,10 +4972,10 @@ bool ProcessNewBlock(CValidationState& state,
 
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
-        ret &= CheckBlock(*pblock, state, chainparams.GetConsensus());
 
-        // check pocket block with general pocketnet consensus rules
-        ret &= PocketConsensus::TransactionConsensus::Validate(pocketBlock);
+        ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
+
+        // TODO (brangr) (v0.20.0): check pocket block
 
         int64_t nTime3 = GetTimeMicros();
         nTimeVerify += nTime3 - nTime2;

@@ -1,0 +1,2865 @@
+[33mcommit 987b728115444d29f05bf6d8624355c03941c76b[m[33m ([m[1;36mHEAD -> [m[1;32mfeature/sqlite[m[33m, [m[1;31morigin/feature/sqlite[m[33m)[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Jun 11 14:54:28 2021 +0300
+
+    Start consensus models
+
+[33mcommit 256d5fefed48e17d41c61e97a4bac6eefe0f2065[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Jun 11 14:42:00 2021 +0300
+
+    Fix stop rating repo in shutdown process
+
+[33mcommit a85834c57992f511670c4e737b5d1b0e649a36ee[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Jun 11 12:55:00 2021 +0300
+
+    Update content ids
+
+[33mcommit 7658dd32c04784fc06267e984490a4ccac8b0ec0[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Jun 11 12:49:26 2021 +0300
+
+    drop indexes before full reindex
+
+[33mcommit 72eaf2e171aec370a4d55ea19ed95fe0f1bb0fef[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Jun 11 12:20:55 2021 +0300
+
+    Fix content id maybe
+
+[33mcommit cd104f0a32c8517fec410e5a76f25d3becdb1aa7[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Jun 10 12:53:04 2021 +0300
+
+    Fix return value repos
+
+[33mcommit 9a4df7d345dcff79c07657f30faaeee5bc26b21d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Jun 9 22:30:17 2021 +0300
+
+    debug
+
+[33mcommit 662c238d4d5f037771a37ad69dbc52640ab102db[m
+Merge: 7b69ad6 812ea75
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Jun 9 20:51:39 2021 +0300
+
+    Merge branch 'feature/sqlite' of github.com:pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit 7b69ad6d239af1fbe255e2cd754bee6437c56120[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Jun 9 20:50:36 2021 +0300
+
+    fix win build
+
+[33mcommit 812ea75026f633fa9b8f06aedc2b8edac437d15a[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Jun 9 19:54:53 2021 +0300
+
+    Fix assign Id
+
+[33mcommit 7def29ca5cfbc44d6330c16225dd3955e6a11780[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Jun 9 18:09:14 2021 +0300
+
+    try one transaction for all indexing operations
+
+[33mcommit eee9552686cccc9f3e54849fa6fb6fc289da295f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Jun 9 12:17:39 2021 +0300
+
+    fix db creating
+
+[33mcommit e0abc216e1c296c30c7bd8e5aeb0c29dccf7e3f2[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Jun 9 12:12:11 2021 +0300
+
+    12
+
+[33mcommit a422960aff365fb50de6b6f04df4e8a1c174ba83[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Jun 9 09:52:12 2021 +0300
+
+    1
+
+[33mcommit 44438a333737ba3cc2c987b7da048ce932a559fc[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Jun 8 22:41:59 2021 +0300
+
+    Ref
+
+[33mcommit a4f178fc232cf93b1f89b4c54b034fe88e38337f[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Tue Jun 8 19:31:26 2021 +0300
+
+    Add check ptx for null
+
+[33mcommit a345d4d824e50266b603e06c0e1fb8dc9a1cb5c7[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Jun 8 16:36:44 2021 +0300
+
+    Optimize indexing
+
+[33mcommit ae94f19e49cbda6ac159857738521dcaac2b294a[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Tue Jun 8 11:58:49 2021 +0300
+
+    Add TryGetColumnInt
+
+[33mcommit 8ae75ccc2a8ae45e11f2a7e1a8fdb64d8b587f59[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Mon Jun 7 20:51:16 2021 +0300
+
+    Add GetList in transaction repository
+
+[33mcommit 0c41ac9cdb76ff24dbee6648811f382db95f4302[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Jun 7 08:54:15 2021 +0300
+
+    Fix consensus inherit
+
+[33mcommit 433bd1b395b8db639e09e9202e5b41d3f415e4bf[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Jun 6 22:55:10 2021 +0300
+
+    Fix ratings saving in db
+
+[33mcommit e473679a7690e1d8d50fa6670787912660214b5e[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Sun Jun 6 17:37:17 2021 +0300
+
+    Add payload to serialization
+
+[33mcommit 85481bc49e5e4c50d982b97a42a5a9fa9ffba021[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Sun Jun 6 12:55:18 2021 +0300
+
+    Change TransactionSerializer
+
+[33mcommit 7fc88a04e098f84a7d6cfbbdb9b203a1426155f7[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Sun Jun 6 12:54:44 2021 +0300
+
+    Add serialize methods in models
+
+[33mcommit f507ac583ba5d76be5e1c2f5ef829b0bb2a5f0bd[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Jun 1 21:54:40 2021 +0300
+
+    Fix ratings saving in db
+
+[33mcommit 85f42ed14cec94ec59266da77e7bd657384984b3[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Jun 1 18:44:34 2021 +0300
+
+    Disable first 100000 blocks lottery check
+
+[33mcommit 0aa5b142257fd46387455b402dc6ef1da8b2d1d8[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Jun 1 16:58:43 2021 +0300
+
+    Maybe fixed lottery 2
+
+[33mcommit 597d1d09737224d4707a042fec072e5ac35e7fcb[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Jun 1 15:49:29 2021 +0300
+
+    Maybe fixed lottery
+
+[33mcommit 8c4cca30c7019a342c360abbf2d216a787059c2d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 31 12:41:45 2021 +0300
+
+    Miner get pocket fee
+
+[33mcommit 55865fc740708fc89b7ea7fb07652cb771a1f7dc[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat May 29 12:42:33 2021 +0300
+
+    Fix likers saving & rollback only in disconnectBlock function
+
+[33mcommit e06c6fcdb76fb23e119c83b6bb5ae1f03af55b63[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat May 29 01:24:55 2021 +0300
+
+    Fix saving ratings
+
+[33mcommit 8c0e4b6a32cc663ec92ffbf7917a378927a70c8b[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Fri May 28 22:40:31 2021 +0300
+
+    fix RatingsRepository
+
+[33mcommit 472c94612a412daa296bcf3f6d74cc63b44ad6f1[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 28 21:40:15 2021 +0300
+
+    Fix check allow modify reputation tx type
+
+[33mcommit 48842c44a4f731aa6c84a04bb3507112c736aec0[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 28 21:30:59 2021 +0300
+
+    Indexing ratings alpha-2
+
+[33mcommit 5eb6edc23f7d19521775edd08f0b0b42880451ab[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 28 21:03:31 2021 +0300
+
+    Indexing ratings alpha
+
+[33mcommit b5b5a893360c1878834fd6024c91b839eb1ed684[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 28 14:22:20 2021 +0300
+
+    Consensus msut received current height ref
+
+[33mcommit 2717f282e9250eba0b5c26ad2017af7dfbb068fc[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 28 13:57:14 2021 +0300
+
+    Consensus msut received current height
+
+[33mcommit fc6f3c097bcbcb24dd33e131e12f01ea2967a68f[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Fri May 28 13:28:54 2021 +0300
+
+    RatingsRepository remove boost lib
+
+[33mcommit 2f4b25177adb0d333f3c87858a477b749dc10bee[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 27 20:54:52 2021 +0300
+
+    ScoreData replaced ScoreDataDto
+
+[33mcommit db7568dc6ad362525d8897ef39df829faa22b7d4[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 27 20:43:36 2021 +0300
+
+    implement
+
+[33mcommit afbab0e007376da16c8b0b0eed41fc5ab60ddffa[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 27 20:34:28 2021 +0300
+
+    Ratings inserts in repository
+
+[33mcommit 778564a94fc9216fbe4b204de3074a1f0533362c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 27 20:02:49 2021 +0300
+
+    Indexing ratings prepare for insert
+
+[33mcommit bf0ab0728afdcfffee48a6ad2d21f48836020e73[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Thu May 27 20:25:35 2021 +0700
+
+    Delete old code
+
+[33mcommit 081d33ed7b3212cf6aca158ce0a571cda33328db[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Thu May 27 20:20:39 2021 +0700
+
+    SUBSCRIPTIONS & BLOCKINGS
+
+[33mcommit a492c99e1ec5a0e38b3081d6128078573d8cca2f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 27 01:28:31 2021 +0300
+
+    small fixes
+
+[33mcommit e6b4c21b7f1d77bcdc93319c3bca704035c9dbbd[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 27 01:17:43 2021 +0300
+
+    Refactor score check logic
+
+[33mcommit ad433870ad3c63ebca8930b34aed1208be30ed0e[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Wed May 26 17:49:35 2021 +0300
+
+    Change RatingsRepository
+
+[33mcommit 1fa79db175b03db3913332adc35e204c9072505a[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed May 26 16:39:56 2021 +0300
+
+    Reputation indexing begin
+
+[33mcommit 2fb0857e825c70766808b873436d92f41ed1a0b3[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Wed May 26 14:34:28 2021 +0300
+
+    AllowModifyReputationOverPost
+
+[33mcommit 65a2ace23e27eafe546852cc5f64f626d97a8084[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed May 26 03:53:45 2021 +0300
+
+    Reputation indexing start
+
+[33mcommit ea35b7db4120cbf5444538a07b25187a34e76599[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Tue May 25 15:16:59 2021 +0300
+
+    Update RatingsRepository
+
+[33mcommit eef7faaae9e9a92fea2fc35d5502ae74aa1c1286[m
+Merge: f8e4cf4 0e1569b
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Tue May 25 15:24:17 2021 +0700
+
+    Merge branch 'feature/sqlite' of https://github.com/pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit f8e4cf4fcb60fcab1f2b2c65921b773740697f07[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Tue May 25 15:24:05 2021 +0700
+
+    PayloadComments_fts
+
+[33mcommit 0e1569b5e545e18c6bfc12b88f29a1cb3f46df4b[m
+Merge: b165772 14aa825
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 25 11:22:00 2021 +0300
+
+    Merge branch 'feature/sqlite' of github.com:pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit b165772621d7f755d3c747dde66a7ca8a8c2e591[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 25 11:21:49 2021 +0300
+
+    1
+
+[33mcommit 14aa825e74c471b60443659fbab15d2294948b12[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Tue May 25 15:18:32 2021 +0700
+
+    PayloadPosts_fts
+
+[33mcommit 67d705c78aa5f6ce18742f70c5073beaac39f85a[m
+Merge: 8a27f5a 19583cb
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Tue May 25 15:10:27 2021 +0700
+
+    Merge branch 'feature/sqlite' of https://github.com/pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit 8a27f5a76b14d0a385937da1ce0d34a19b301a9f[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Tue May 25 15:10:04 2021 +0700
+
+    FULL TEXT SEARCH TABLES
+
+[33mcommit 19583cb220d69b0026777595346ceee6c2ec625d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 24 22:47:01 2021 +0300
+
+    dotos
+
+[33mcommit 9333c400e4565f5491246d6068012dadf25e8c42[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Mon May 24 17:58:55 2021 +0300
+
+    Split pocketnet.h and start Reputation consensus
+
+[33mcommit 12247ce022276c11bf9c5b722b86e0b9b4434aab[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 24 17:01:44 2021 +0300
+
+    add sqlite depends
+
+[33mcommit 3e1c1eec65d028a0a61d2dae2e2a4c091cb8e64b[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Mon May 24 20:10:36 2021 +0700
+
+    vWebScores...
+
+[33mcommit ecb049c172670e05c9d764c685179e935632160c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 24 15:57:18 2021 +0300
+
+    qt link depends
+
+[33mcommit 75f98b485311b731b7b79b6cb9c35a6d6e8bfad3[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 24 15:45:26 2021 +0300
+
+    update boost depend package version to 1.71.0
+
+[33mcommit 9a44a53fc501fab851cfe9839135c9a67b75a2c0[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 24 15:44:28 2021 +0300
+
+    exec
+
+[33mcommit 1f3c5bae88575b6d3a4ef5e74fc54bd031adc15a[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 24 15:34:18 2021 +0300
+
+    update SQLiteDatabase.hpp
+
+[33mcommit dd7919447a50f40df8dd45562b7442f478327790[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 24 15:26:55 2021 +0300
+
+    UpdateShortId fix
+
+[33mcommit c38445c710bf978763d03df3cb6ee4c48c626817[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 24 15:23:59 2021 +0300
+
+    Ratings refactor
+
+[33mcommit 6a06319ed3b6a42679980b39feb183042b4d736f[m
+Merge: c817662 5c05c02
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Mon May 24 19:15:39 2021 +0700
+
+    Merge branch 'feature/sqlite' of https://github.com/pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit c817662583f36e6beadf7a75bf09cf58f332f39c[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Mon May 24 19:15:15 2021 +0700
+
+    Some more Views
+
+[33mcommit 5c05c026d33f4c7741719b7084f6300cf3c78bd5[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 24 15:07:06 2021 +0300
+
+    Helpers
+
+[33mcommit cb78f8d1d16eee64ab052c0ab320244e20f16884[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Mon May 24 18:52:26 2021 +0700
+
+    Couple of vWeb Views
+
+[33mcommit 73770feab05b0f3f67bc16ce30e1da142972e438[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Sun May 23 13:17:47 2021 +0300
+
+    Add empty consensus models
+
+[33mcommit 486024bc19d9c2ae39342ab9909e4272916169f7[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat May 22 02:16:55 2021 +0300
+
+    remove user referrer & registration update
+
+[33mcommit f109a11d97c18f36e37b213c45e1cd95f080b977[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Fri May 21 17:20:05 2021 +0300
+
+    Change LotteryConsensusFactory
+
+[33mcommit 2296c3c5d5035034ea06c4591b7d7cc5e227f370[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 21 17:11:47 2021 +0300
+
+    UniValue GetStr for Array and Objects must return correct string
+
+[33mcommit 3eb9a5cf0a5354e1edea38aab2722f001add4f97[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 21 16:08:33 2021 +0300
+
+    fix sql typo
+
+[33mcommit 91db4b87a7436b958fd9eafee1c4d65dfba022ad[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 21 15:03:38 2021 +0300
+
+    remove excess IndexIds method
+
+[33mcommit a871aa38bf3bfe765286ba68f972f19c3e2412f3[m
+Merge: f85284d 3665ec9
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 21 15:02:09 2021 +0300
+
+    Merge branch 'feature/sqlite' of github.com:pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit f85284d226e558324885240da2ac22822e5eb2da[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 21 15:02:05 2021 +0300
+
+    v0.20.0
+
+[33mcommit 3665ec9e6e29f62f45c5d23d96de6d8720a49296[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri May 21 15:00:11 2021 +0300
+
+    chmod +x contrib/installdb4.sh
+
+[33mcommit 1c90472d570fe253e4f5ceadb40f210aab9628bd[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 21 14:59:09 2021 +0300
+
+    User id indexer
+
+[33mcommit 49a9fbe1eff01374eb2bd42bbb44c70539e9d819[m
+Merge: d27f68f 1caf9a1
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 21 13:01:04 2021 +0300
+
+    Merge branch 'feature/sqlite' of github.com:pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit d27f68f74491b7c7d85a12a6d3e8fd29b4de8312[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 21 13:01:02 2021 +0300
+
+    1
+
+[33mcommit 1caf9a1e37f6b87680f3d44d4233cb194db8b4d5[m[33m ([m[1;31morigin/feature/unittests[m[33m)[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 20 18:31:38 2021 +0300
+
+    Fix spent outputs
+
+[33mcommit 75dbdb2565d497e586acdb38f36eeb8133c294c5[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 20 17:58:07 2021 +0300
+
+    Refactor DB again
+
+[33mcommit efe8c8eb3fb0b80d9db17c56afd6de0653250f8f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 20 16:49:30 2021 +0300
+
+    index outputs
+
+[33mcommit e4448563eeaac6e674fbf1ca7500fd9671dc7aa7[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 20 16:02:44 2021 +0300
+
+    lottery checkpoints
+
+[33mcommit c93931d664752651194c13ba8a44ea2627ffc38e[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 20 00:20:12 2021 +0300
+
+    Base consensus structs
+
+[33mcommit 7700f1a9bf854e45291a32aeec50b305d5070353[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed May 19 15:33:11 2021 +0300
+
+    IndexRatings must be return true
+
+[33mcommit 9a5f2a600bcc316747e0f156cad4b468ff19e0e8[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed May 19 15:04:20 2021 +0300
+
+    sql create table if not exists
+
+[33mcommit 58589546415813cba77e4f39f986fa4c97ca0909[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed May 19 14:54:43 2021 +0300
+
+    fix error log
+
+[33mcommit 83a9fac93af6dbb6d76827aec10032260ed1a9b6[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed May 19 11:31:19 2021 +0300
+
+    fs
+
+[33mcommit 87a97cad7469ff8c2b7e02128d8adc2ade3d6c17[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 18 17:16:50 2021 +0300
+
+    Finalize all statements after executing
+
+[33mcommit 29211891a443a30e9a630a360811c09dfce8115c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 18 16:15:01 2021 +0300
+
+    Fix delete sql
+
+[33mcommit ee57b259499a3671560edda2c02f6d80b67a9401[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 18 16:04:01 2021 +0300
+
+    libstdc only for linux
+
+[33mcommit 32c9f33ba4fc87bffd83242b8942d5e75d733bf2[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 18 15:23:34 2021 +0300
+
+    Lock repos before shutdown
+
+[33mcommit 64aafbb92feaaba5e66b86a887456e938c44bf56[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 18 15:00:40 2021 +0300
+
+    Indexing chain & rollback
+
+[33mcommit 117696b66823f0415cdfb8bab36bc68c986eb6a2[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 18 04:44:19 2021 +0300
+
+    Complete DB sync
+
+[33mcommit 0bdeb98adb2e9ccad95364f0a57705d2f3906ce9[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 17 23:17:00 2021 +0300
+
+    id -> hash
+
+[33mcommit 73cadd5eca813c6538f7962812f641a1ec64ed58[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 17 08:43:05 2021 +0300
+
+    Before transaction intN types
+
+[33mcommit 90f20a3d367a753a0f4367afb412bb87e3c635c4[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat May 15 05:16:03 2021 +0300
+
+    Debug sql inserts
+
+[33mcommit 159e7bdadcf7dd6c9a667f2ec83369641569ff23[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 14 13:24:58 2021 +0300
+
+    ref validation
+
+[33mcommit 141fc8637a805cd7bb7839f56ba69d5139ec4ac1[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Fri May 14 15:21:22 2021 +0700
+
+    DB complete
+
+[33mcommit 2bafff7ac65ba35d67d1bd291349ca777d68796c[m
+Merge: a68eac9 5ec02ca
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Fri May 14 13:29:50 2021 +0700
+
+    Merge branch 'feature/sqlite' of https://github.com/pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit 5ec02caed6d930e2eb558693c581d1bcb1196d7b[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 13 21:41:23 2021 +0300
+
+    MapHashToId
+
+[33mcommit a68eac9c28ce0282076832985f5ab88e5b67e1b0[m
+Author: Valentin Kolesov <vkolesov@rixtrema.com>
+Date:   Thu May 13 22:58:41 2021 +0700
+
+    Post.Url
+
+[33mcommit 8ecb54dfbff5d12bc2bcaeea98d4de890705ace0[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 13 18:25:45 2021 +0300
+
+    dto payload deserialize
+
+[33mcommit a3e219c5137eafcd50cd05a6596bf1c27b0ab920[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 13 17:42:33 2021 +0300
+
+    Payload for User & Post
+
+[33mcommit d4b40ae81e4b6b9fa54f280fc50160e8eb07cb12[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 13 16:54:07 2021 +0300
+
+    small database repo ready part
+
+[33mcommit fed9481b17f7eccc7383800421b008b023b90ba7[m
+Author: greenbutton75 <36859844+greenbutton75@users.noreply.github.com>
+Date:   Thu May 13 21:34:34 2021 +0700
+
+    Update Views
+
+[33mcommit 1b8d123b113f7d4cb2487285820ac4a62a3b182c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 11 18:49:24 2021 +0300
+
+    before write pocket data to disk
+
+[33mcommit 7b5595ad9c3e214655ef7a4c6fecbb36791a16ce[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 11 17:58:44 2021 +0300
+
+    deserialize pocket data to transaction
+
+[33mcommit baeefb5f8b0de4dd00409af621efedf5c6ffe58d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 11 16:12:53 2021 +0300
+
+    2
+
+[33mcommit 6c24251ee90bc5833e48c7eb5f8721c347290058[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 11 15:51:56 2021 +0300
+
+    1
+
+[33mcommit 9833fa3480da0fce94ef7eab89f2faecbbeee200[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 11 14:18:24 2021 +0300
+
+    first build
+
+[33mcommit 9f93261166a1f5054cad35a853fd3179f46d22c1[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 11 11:38:34 2021 +0300
+
+    tmplt probe
+
+[33mcommit b50213899c3a23646cd28322a90b6f7cf637ef36[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 11 11:00:54 2021 +0300
+
+    tx repo insert inputs
+
+[33mcommit eb1e3db625828711367445072db2a024407a2607[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue May 11 10:48:34 2021 +0300
+
+    more db
+
+[33mcommit 3efd4d9a5829354e9a20b6b84994ce192cc81476[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 10 17:47:32 2021 +0300
+
+    ref
+
+[33mcommit 388b3db55be9945a6bd8d82314b1390c51f86cfa[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 10 17:45:55 2021 +0300
+
+    transRepos
+
+[33mcommit 1073581b4ed511186e6182c1d6df395f808b191a[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 10 16:28:30 2021 +0300
+
+    split hash and txid for dtos
+
+[33mcommit 145d36fa6fd48167787db092ccd37dca9ae8c151[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 10 12:50:12 2021 +0300
+
+    main.sql
+
+[33mcommit 7dec3bb16375ff64d1eda4104d23b3b1fdc336e5[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 10 12:27:53 2021 +0300
+
+    fix pocketdb
+
+[33mcommit 2fd100b8a59a846d8862ece25802b5039c378370[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 10 12:25:10 2021 +0300
+
+    main.sql
+
+[33mcommit d0f522b6556da41748f9ec564dc3d90ab1a79962[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 10 11:04:09 2021 +0300
+
+    new small db
+
+[33mcommit 770271093cc2d24d65706f40186442252d39bec0[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri May 7 01:35:03 2021 +0300
+
+    fs
+
+[33mcommit 512ea9a90dcb83fb403f70ded141ca1bae325de3[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 6 19:14:20 2021 +0300
+
+    ref
+
+[33mcommit 7ea9d0f6df2ca09e2605ca913764bceb2fa66a22[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 6 19:09:06 2021 +0300
+
+    filesystem namespace fix
+
+[33mcommit ca772667b95bb462049ebb1c5304a49f64b34f4c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu May 6 02:12:16 2021 +0300
+
+    db
+
+[33mcommit 5192e83e84d98df67b80c8e3d1972b5d224bbcc4[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed May 5 18:46:38 2021 +0300
+
+    tx types
+
+[33mcommit d8b3e58f7c858ea63755d30ad94bb70f99af6bab[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed May 5 14:18:44 2021 +0300
+
+    fixes
+
+[33mcommit fd237780e3d2c52e1da1671ad4e77691ffd0ee3e[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 3 20:15:24 2021 +0300
+
+    ref
+
+[33mcommit 18067069eabe7fba7f756ecf107bba7d2820c83e[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 3 19:50:46 2021 +0300
+
+    Lottery begining
+
+[33mcommit ced94babb67143a05e84c999dd4502d9f2550f5a[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 3 18:05:59 2021 +0300
+
+    Lottery start
+
+[33mcommit a60fe93e810da612d3ee8cd05e34e0c412f55893[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 3 16:20:45 2021 +0300
+
+    Depends readme
+
+[33mcommit 6675849122a00f6968410dce4d4f51f10d2b2a53[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 3 14:09:59 2021 +0300
+
+    explorer optional indexing
+
+[33mcommit f89d86ccaabfbb14f89638447fb466220dc77236[m
+Merge: 18108f0 d3c3e58
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 3 03:40:25 2021 +0300
+
+    Merge branch 'feature/sqlite' of github.com:pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit 18108f0f78abaa97506c96273daa61dab92075a6[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 3 03:40:21 2021 +0300
+
+    dockerfile change debian:slim -> ubuntu:20.04
+
+[33mcommit d3c3e587c267e22c209eb16af7825b0e468be74f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 3 02:32:30 2021 +0300
+
+    Statistic for rest queries
+
+[33mcommit 2154af610364e4d163ecf24c2a0e2534c70701bd[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon May 3 00:17:36 2021 +0300
+
+    Update doc/architecture.md
+
+[33mcommit 345edaee09a389a1a57fd923bf9c6edf62d8bc82[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun May 2 20:35:35 2021 +0300
+
+    Indexing process
+
+[33mcommit e9dd325cfbaf672e4fc036c1e7bb5b87fa7e9ef3[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun May 2 19:42:52 2021 +0300
+
+    Update doc/architecture.md
+
+[33mcommit 9c37de3d93fe9d8e742260bebcb6fc0bf9b7bcee[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Sat May 1 23:17:43 2021 +0300
+
+    Database init structure
+
+[33mcommit a93b872fbe30c31a53b5316cfab43b5727e2b78b[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Apr 30 18:56:13 2021 +0300
+
+    Non-Singleton fast sql statements
+
+[33mcommit 3131461ece03d5d72034400289edc190696b8000[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Apr 30 13:05:26 2021 +0300
+
+    smal fixes
+
+[33mcommit 7a61200f528b0f8769e00d76fa514a6055b41d93[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Apr 30 03:08:11 2021 +0300
+
+    rest blockhash method
+
+[33mcommit e54bd9b2b78e9084bf7c588bc55c07b1a7bd3124[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 29 14:30:52 2021 +0300
+
+    readme-docker
+
+[33mcommit d9b4acbc13feb3bbd590e51b3ac72906ef26ff5a[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 29 13:59:38 2021 +0300
+
+    sql indexes
+
+[33mcommit cb0c8218b52f1bbb16e06a753bbdc8bd2322a099[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 28 19:13:45 2021 +0300
+
+    case fix break
+
+[33mcommit a3c065c951881f94183f8ef259cc8be768a76d78[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 28 16:32:40 2021 +0300
+
+    -staking parameter
+
+[33mcommit 224b5850cec9c06ac5206a135bc7e7114bc1de3f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 28 15:49:09 2021 +0300
+
+    docker-compose.yml
+
+[33mcommit a8c4184ee339093affd08b1508211224b151d7c5[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 28 14:35:45 2021 +0300
+
+    Update dockerfile
+
+[33mcommit b53fc23b5950b2cb3e14b9d89e20e7a19fd1f0f4[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 28 12:46:35 2021 +0300
+
+    rest methods complete
+
+[33mcommit c9043f36371c17605a88312ca7e6b013d4db652b[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 28 09:27:09 2021 +0300
+
+    fix contentType getemission
+
+[33mcommit 575662ab29b8c8a21ab88343b606c30dc56ec17f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 28 00:18:32 2021 +0300
+
+    gettopaddresses in rest
+
+[33mcommit f688558034cdebf0ea788e44abe441cb47ff449a[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 28 00:09:01 2021 +0300
+
+    chmod autogen
+
+[33mcommit 1a570bfcd4f95ee471631bd7de4e23eb8bd2bb70[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 28 00:01:42 2021 +0300
+
+    gettopaddresses in rest
+
+[33mcommit 741c4f46e5848bb8247c765a5f7b42174958b673[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Tue Apr 27 17:16:18 2021 +0300
+
+    Add ShutdownRequested
+
+[33mcommit 5445e34f763b482cd7f6045b1714cb1ea2b17d0c[m
+Merge: 5698a23 0a038e4
+Author: joni_no <joni_no@mail.ru>
+Date:   Tue Apr 27 17:14:10 2021 +0300
+
+    Merge branch 'feature/sqlite' of https://github.com/pocketnetteam/pocketnet.core into feature/sqlite
+
+[33mcommit 5698a2343abdc2d67904f24cba32583dd3239129[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Tue Apr 27 17:10:14 2021 +0300
+
+    Add SelectTopUtxo
+
+[33mcommit 0a038e49f25a507b90886e87111c2234f5315f55[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Apr 27 17:03:59 2021 +0300
+
+    ShutdownRequested for repos
+
+[33mcommit b861c02ca24e423edf55eede9e621eaeb8c479e6[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Apr 27 16:32:04 2021 +0300
+
+    Destory test
+
+[33mcommit 10de65cc2da25b49054e0a35a7124fa9d2f9ef1e[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Apr 27 16:31:14 2021 +0300
+
+    rollback move to service call
+
+[33mcommit 1d88ac573016ee2071555041980bf72ff5e89b87[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Apr 27 15:07:03 2021 +0300
+
+    BlockRepository rollback block
+
+[33mcommit 9d2d8e54e22472c52f7d6ac93e2e7e006c1b1dd3[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Apr 26 18:54:24 2021 +0300
+
+    BlockIndexer build
+
+[33mcommit f4003385c370c8a17c46ae053dea79b0fd5fec18[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Apr 26 17:29:37 2021 +0300
+
+    BlockIndexer todos
+
+[33mcommit 18ee6b03fc1d4a0deffc5ed622c6f3cc7e873633[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Apr 25 14:28:39 2021 +0300
+
+    fix nullable payload
+
+[33mcommit 4abbf6ee05d45ddfa4d07de77169f088a1c65234[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Apr 25 00:43:12 2021 +0300
+
+    Block class for pocket transactions
+
+[33mcommit 6c21004730b88d66cf72fcac5283b194afe69e59[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Apr 24 21:24:52 2021 +0300
+
+    complete payload
+
+[33mcommit ff9a95ed553e1f73a2c1c78384fb718444218d4b[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Apr 24 16:11:39 2021 +0300
+
+    db
+
+[33mcommit 452dd592552f7d06bd5393e380ae54321813b600[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Apr 23 19:50:02 2021 +0300
+
+    shared_ptr
+
+[33mcommit 9eea4eca8c232aceb72285218d62549e4a462a55[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Apr 23 13:01:31 2021 +0300
+
+    start payload
+
+[33mcommit f0012b64228fe1196dd358119b38f9a747cccaa3[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Apr 22 18:09:46 2021 +0300
+
+    build
+
+[33mcommit 83bb5def0a4e71987796f46d231e0b1e8e55f22b[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 22 16:18:33 2021 +0300
+
+    complete models
+
+[33mcommit 8ac41337252e26c4ff728f7fdcf4e12536f62542[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 22 09:50:00 2021 +0300
+
+    h/cpp -> hpp continue
+
+[33mcommit d5dc35e18a270a2dedefc712b72f23e5ee7c958f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 22 00:34:38 2021 +0300
+
+    ref
+
+[33mcommit c204a7de4786653dcc822d7ed80fd0fe4cb89e12[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 22 00:19:51 2021 +0300
+
+    h/cpp -> hpp :)
+
+[33mcommit 5a5cf555f855d8663d9a6d580dc505b70e985a3f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 21 23:39:55 2021 +0300
+
+    ref
+
+[33mcommit 8f6321b03d99c0cfc52a66575149d17a9dcc65f6[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 21 23:18:29 2021 +0300
+
+    dto & base
+
+[33mcommit c21e6254dea79e243d50cfbbc123715132c25c36[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 21 22:37:38 2021 +0300
+
+    more models
+
+[33mcommit 09a352e3f6e180d739b59e9cb8dbd84db2d5b2d2[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 21 22:28:18 2021 +0300
+
+    Base models
+
+[33mcommit 65bc8a3b1a195c521d0fd06c34f839b07b054a2c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Apr 19 19:00:58 2021 +0300
+
+    path to string arguments
+
+[33mcommit 05dec35a125447374aaf96cb3ef57c36b64aa3bf[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Apr 12 19:27:32 2021 +0300
+
+    Complete deleted reindexer
+
+[33mcommit 36cf41855588f32a8b63daae64c54090007c3aca[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Apr 18 23:03:13 2021 +0300
+
+    dockerfile
+
+[33mcommit 4ea43463509f5ce0236f2cf5ca1bcf42bd999220[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Apr 12 16:46:29 2021 +0300
+
+    Delete reindexer first try
+
+[33mcommit 7a83b84d6be738770b8909a7be10cec0e273fcf9[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Apr 12 15:46:22 2021 +0300
+
+    Build with sqlite
+
+[33mcommit e51dfd90b83aac3d469a86ff5a3ab4097b77c204[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Apr 12 15:16:21 2021 +0300
+
+    Add sqlite3 for makefile
+
+[33mcommit a7606052a1fae2f6a40217f1351e7a528b0f6bdf[m
+Author: joni_no <joni_no@mail.ru>
+Date:   Fri Apr 9 17:13:11 2021 +0300
+
+    Add TransactionRepository and Transaction model
+
+[33mcommit 6125f7ff55762696dce7acc074b13dca5b645c7c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Apr 7 20:55:15 2021 +0300
+
+    Pocket db readmes
+
+[33mcommit db77b48a5f5ef2d8996e6ae46a5bc2c2fde10a14[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Apr 4 01:05:21 2021 +0300
+
+    Simplify statistics
+
+[33mcommit f44cf26623364ce7900cc381e511ca931d97d761[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Apr 4 00:57:01 2021 +0300
+
+    Update README.md
+
+[33mcommit f97b99e378ef686a5ea19fecc52f99083f80f954[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Apr 3 15:50:24 2021 +0300
+
+    Update README.md
+
+[33mcommit d46aee1ca1e40d56d3d26afe01a702d59b96cf5a[m[33m ([m[1;33mtag: v0.19.5[m[33m)[m
+Merge: b1eb0db b1f6c1d
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Apr 2 15:18:17 2021 +0300
+
+    Merge pull request #12 from pocketnetteam/release/v0.19.5
+    
+    Release/v0.19.5
+
+[33mcommit b1f6c1d8d12afb3e8a9996255e924375c125729d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Apr 2 15:17:54 2021 +0300
+
+    v0.19.5
+
+[33mcommit 444b681b10fac9a98ff987e9b8b2281aaced3ac4[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Apr 2 15:16:50 2021 +0300
+
+    Remove future rule with checkpoint
+
+[33mcommit 29c5588aa285cbd2d7c6e0b4f8cec156acd21d7d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Apr 2 14:13:06 2021 +0300
+
+    Fix create account with wrong type
+
+[33mcommit b1eb0dbcbc9d196798e10f3179fbead5d3c46981[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Apr 1 12:10:53 2021 +0300
+
+    Update README.md
+
+[33mcommit 643ed3b78e95ebf65da7d39f9690ef6d49afcd2e[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 1 11:58:12 2021 +0300
+
+    Update README.md
+
+[33mcommit f027fc2d113ac772bb899cac29642d3591a94480[m[33m ([m[1;33mtag: v0.19.4[m[33m)[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 1 07:18:40 2021 +0300
+
+    Moving next checkpoint to 20210408
+
+[33mcommit c93749d001f95dc83565a84fb3c9bad65f5008b1[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 1 07:02:16 2021 +0300
+
+    Temporary solution for bag build block - return :)
+
+[33mcommit 6c28d51556f3e9f0c5f2e4306ebf61dd5229e4cf[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Apr 1 06:32:55 2021 +0300
+
+    Temporary solution for bag build block
+
+[33mcommit aa579e725dde47e9b3e07786f1b425056ce47cb7[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 31 19:30:53 2021 +0300
+
+    Update README.md
+
+[33mcommit f49d696d5017b706e848aef863108de710eb6061[m
+Merge: 3870374 89a01fa
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 31 14:49:02 2021 +0300
+
+    Merge pull request #11 from pocketnetteam/release/v0.19.4
+    
+    Release/v0.19.4
+
+[33mcommit 89a01fa804162a27e56f996f744701bd80907872[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 31 14:18:15 2021 +0300
+
+    Release prepare
+
+[33mcommit 104eca57798356549f028b0a76dedc1a54d55a82[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 31 14:12:28 2021 +0300
+
+    Actual seeds
+
+[33mcommit 1e557f15f013faa6c6bc358f22ce3f4636b72c6e[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 31 14:07:35 2021 +0300
+
+    v0.19.4
+
+[33mcommit 3870374fd75aede675f08ab1c236ad63a8e35d2a[m
+Merge: 30edc77 ca9694a
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 31 13:58:03 2021 +0300
+
+    Merge pull request #10 from pocketnetteam/release/v0.19.3
+    
+    Release/v0.19.3
+
+[33mcommit ca9694a65b87a12938105df47043ca8d47cb7bdf[m
+Merge: d875111 30edc77
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 31 13:50:36 2021 +0300
+
+    Merge branch 'master' into release/v0.19.3
+
+[33mcommit d875111c99e38dd71b29092c3be97f8d79698ceb[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 31 13:30:33 2021 +0300
+
+    Block height in selects
+
+[33mcommit 4435283b6db447dd2fee17466e14d2cdc29facb2[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Mar 29 10:10:46 2021 +0300
+
+    pos height ref
+
+[33mcommit fb47a457f16175a01da3e179b447d92ad862942c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Mar 29 01:33:15 2021 +0300
+
+    Clear also UTXO with reindexing
+
+[33mcommit a88ec266a38660d1ef45d629a44c8cf2c79ae8c2[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Mar 29 01:31:34 2021 +0300
+
+    Fix select if reindex
+
+[33mcommit 940493c52331221d9b8dc358c2737c6f6823d3d0[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Mar 28 22:06:29 2021 +0300
+
+    fix typo
+
+[33mcommit c8d6d8f943afac71b54577005e6ee83cb9702bb6[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Mar 28 16:49:46 2021 +0300
+
+    getcoininfo
+
+[33mcommit 50c3720433b0eee5b5e6d1872f5e47c07219dca7[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Mar 28 16:34:03 2021 +0300
+
+    Add CondLt for block in antibot selects
+
+[33mcommit cd3d4eee1e232edb8696448f2a1ee647924ce69e[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Mar 28 16:09:34 2021 +0300
+
+    Lottery parts
+
+[33mcommit cc874cafe25e2d3151a5c826dfcb480c0a374d23[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Mar 25 16:28:26 2021 +0300
+
+    4.5 - nodes; 0.5 - lottery;
+
+[33mcommit 30edc77d408d3240db2db0ee2c7c2f791fca97dc[m
+Author: only1question <poisovmadiv@gmail>
+Date:   Thu Mar 25 14:40:25 2021 +0300
+
+    switch off language in getlastcomments
+
+[33mcommit d2f84fa0b87c88e308aa8814fea631397c07a5ca[m
+Author: only1question <poisovmadiv@gmail>
+Date:   Thu Mar 25 13:02:23 2021 +0300
+
+    fixed problem with greater with different compilers
+
+[33mcommit e4410cf5cb727987431b3691095673124c470c1e[m
+Author: only1question <poisovmadiv@gmail>
+Date:   Wed Mar 24 18:37:57 2021 +0300
+
+    added multitags, language, thierarchicalstrip
+
+[33mcommit 77a02b16f118603b16394c83917f9706be71d21c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 24 12:00:03 2021 +0300
+
+    After checkpoint_0_19_3 disable include time in antibot checks
+
+[33mcommit 300af04b8f4ef40dd96fccfd5addbaecf6fe684f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Mar 23 13:01:56 2021 +0300
+
+    new score types for new transactions
+
+[33mcommit b6a4ca1ae9cc8c837de9009884472e78be59d495[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Mar 23 12:45:46 2021 +0300
+
+    For scores translates & polls need create new score transaction
+
+[33mcommit cb97a0dae27c460ea5d88d19b92973f3e657fd67[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Mar 23 12:31:15 2021 +0300
+
+    For translate posts allowed only value=5
+
+[33mcommit e5db4d6bba7b21d75450d5543b9c92eaa54e7435[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Mar 20 14:34:53 2021 +0300
+
+    Likers only for positive scores
+
+[33mcommit ede6e7ac32de89a64d4d3f7a6cf7c77630174374[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Mar 20 12:27:59 2021 +0300
+
+    checkregistration remove userId for registration in self block
+
+[33mcommit 32e5747f95e3115283526af714573ca17b6ae0d8[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Mar 20 10:42:54 2021 +0300
+
+    Fix typos
+
+[33mcommit 6dfb2ed85258bc7ff8f80bbf47021f6b98cb4103[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Mar 20 09:57:07 2021 +0300
+
+    Change output format for getristat <table>
+
+[33mcommit 0e1d1b786b625095dbf4dda101318d9b89e0ab4a[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Mar 19 12:47:41 2021 +0300
+
+    More checkpoints block
+
+[33mcommit 00bad5f946a478736ffee31df7f74cb158ffd5be[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Mar 18 23:38:42 2021 +0300
+
+    Increase checkpoint
+
+[33mcommit 10cf0f0fcde7d0a7294809b0e1666c99bf174293[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Mar 18 19:52:22 2021 +0300
+
+    fix rpc send
+
+[33mcommit 7991540fd68411c99d75d04f4e01280c790937ec[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Mar 18 16:40:09 2021 +0300
+
+    fix
+
+[33mcommit 69b8d63c7b80e655766753101134dafa387f47b9[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Mar 18 16:08:48 2021 +0300
+
+    list post types
+
+[33mcommit 53bd89a4965de87dab41809fbe4af07aa79080bb[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Mar 18 11:23:22 2021 +0300
+
+    For testnet settings
+
+[33mcommit 664652cf89cb2fc04e0240f6aa0e59d621878627[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 17 18:17:00 2021 +0300
+
+    Added method gethierarchicalstrip
+
+[33mcommit 1c70e3af5453b59e0dc5cd0673cf1e18b2c0fbaa[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 17 14:43:27 2021 +0300
+
+    New transactions link to db tables
+
+[33mcommit 3ee59a1484ef5bb46c311a2722b68de21a6f22f8[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 17 14:37:32 2021 +0300
+
+    fix typo
+
+[33mcommit c4af93f55546b2e2e7be93f35bba5d2801c22803[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 17 14:30:34 2021 +0300
+
+    New rpc methods allowed
+
+[33mcommit 8e07fb9de6e76bd72f9fb984a6dbcadb6417b741[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 17 14:04:05 2021 +0300
+
+    chainparams for testing
+
+[33mcommit a1619ccaea1b449f959681d108634e68a56d8712[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 17 13:43:45 2021 +0300
+
+    Squashed commit of the following:
+    
+    commit 66019ad9418bfdd0f3dff324da7ead5bd40ce8eb
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 12:46:34 2021 +0300
+    
+        345
+    
+    commit 31c2d3cb6657783fd8d536a38fb93a23e1f829ec
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 12:38:26 2021 +0300
+    
+        fgh
+    
+    commit 526facf0b11a54881fdc3cbf9e25087f9a766404
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 12:13:58 2021 +0300
+    
+        ds
+    
+    commit e86823d4b5d7d89844f89ce8b30e13d967c503a5
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 11:59:12 2021 +0300
+    
+        44
+    
+    commit 150fa4d95972a30ecaef168ed6847986aa45e891
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 11:57:19 2021 +0300
+    
+        3
+    
+    commit 69a074d88691ea46d872b45101d65aa55b20e3a9
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 11:46:49 2021 +0300
+    
+        2
+    
+    commit ec7858a5ae06bd1311fb316ff679f674539312ab
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 11:44:18 2021 +0300
+    
+        32
+    
+    commit 8057e9877b912791fbe133ceb827c55d0cba427d
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 11:41:19 2021 +0300
+    
+        fix
+    
+    commit bd9e819f1dc2dc3d033e8b3bd85115d8815c12a8
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 11:37:37 2021 +0300
+    
+        types 2
+    
+    commit 6f606bc1f9ef1cf326071f571af06dc1b75500b0
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 11:32:27 2021 +0300
+    
+        types
+    
+    commit 66a3f56515d9bc5e466cad8e9a2d7445bcf365a1
+    Author: Andy Oknen <andy.oknen@yandex.ru>
+    Date:   Wed Mar 17 10:22:40 2021 +0300
+    
+        1
+
+[33mcommit 5fa20a1171c11f241c84256cc7d9935001472cd2[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 17 10:13:34 2021 +0300
+
+    New transactions
+
+[33mcommit ea3402c509ae0e24337055a42d172fb226181098[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Mar 16 14:17:11 2021 +0300
+
+    Ratings table for threshold user reputation
+
+[33mcommit a2547351a190466dca5d280e6ef7a2743369c28c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Mar 16 13:42:16 2021 +0300
+
+    New rules for lottery
+
+[33mcommit d48f3d2c67c2b4da2639c58f21b0dddf6d826703[m
+Merge: ec830e8 8105fc3
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Mar 15 20:10:36 2021 +0300
+
+    Merge remote-tracking branch 'origin/feature/freshamendments' into release/v0.19.3
+
+[33mcommit 8105fc33139ddf4fcfbcdc8291a3135a7fcd74ad[m
+Author: only1question <poisovmadiv@gmail>
+Date:   Mon Mar 15 15:16:08 2021 +0300
+
+    added method converttxidaddress to convert long and short pocketnettx and address formats
+
+[33mcommit 388c4bb2d86d55676be4ad46fc726b3125d863fa[m
+Author: only1question <poisovmadiv@gmail>
+Date:   Wed Mar 10 19:09:46 2021 +0300
+
+    Added multitags filters in sendrawtransactionwithmessage and gethotposts
+
+[33mcommit ec830e8aa355fe9d9d9f1757f1246b0e6d51ef6d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 10 14:02:27 2021 +0300
+
+    v0.19.3
+
+[33mcommit 261e167e3d3b2180a1394df13fda5f6bbd9c0dc8[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Mar 10 13:15:49 2021 +0300
+
+    Skip antibot checks for reindexing
+
+[33mcommit f2cdd461a7d8224f70411fdee2ff03cc033fff99[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Mar 9 18:16:19 2021 +0300
+
+    Start doc for consensus
+
+[33mcommit 6590487ab8b46766d8f2c97acb53c758dad7a021[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Mar 6 23:04:25 2021 +0300
+
+    Update README.md
+
+[33mcommit 2e628eb9d525b65d1f598ff77f712080f185fb4f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Mar 1 10:55:15 2021 +0300
+
+    Update README.md
+
+[33mcommit dd40fd88005b9dd1a93b6ccd8a29a9fda4d1bf51[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Feb 27 13:27:12 2021 +0300
+
+    Add doc/reduce-traffic.md
+
+[33mcommit 7bd28d9a436452d8875f73c1e07fb252ac7628c6[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 25 22:49:09 2021 +0300
+
+    Update README.md
+
+[33mcommit ec08468c1720b7f14de92623e75cdf39461458ad[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 25 22:48:35 2021 +0300
+
+    Update README.md
+
+[33mcommit 6bd69a33d1132f547348be5d95c635f250c51329[m[33m ([m[1;33mtag: v0.19.2[m[33m)[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 25 19:35:18 2021 +0300
+
+    Sync bug checkpoints
+
+[33mcommit b6f11b853197ab79c03d5a8f066836881f350644[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 25 13:42:16 2021 +0300
+
+    Extend nodeinfo with current version
+
+[33mcommit 483368bd0ae768c1b98ad701b09e69b8de3a3859[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 25 11:08:37 2021 +0300
+
+    Extend sync logging
+
+[33mcommit e930e713bf24eb5cf11e3ae049864659dde1b843[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 25 04:58:30 2021 +0300
+
+    Checkpoint sync txes bug
+
+[33mcommit f8c682c056a2b83f7b5a54031630f8a3313cecd6[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 25 04:54:38 2021 +0300
+
+    Update README.md
+
+[33mcommit 3f8266cb4894a2757bca9814336d9e3e069e5a3f[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 24 21:46:13 2021 +0300
+
+    Log incorrect password over RPC
+
+[33mcommit 01c0e2d7ae3dae53680d4017bd2410afab3610a7[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Feb 23 16:32:59 2021 +0300
+
+    NSIS out file name changed
+
+[33mcommit 9e20327b8828b44d8e5b99ad578ef78e37bd6496[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Feb 23 13:49:31 2021 +0300
+
+    v0.19.2
+
+[33mcommit 3ad224c6be45f90140f81af43a5f8fb5924db197[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Feb 23 13:32:33 2021 +0300
+
+    Prepare user transaction received over rpc
+
+[33mcommit a8121575017ee143c53d1fd158aad003abc88307[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Tue Feb 23 00:11:14 2021 +0300
+
+    Fix control file for deb building
+
+[33mcommit af6bf4ad6f8e132c263fbd6549225b9bc9758861[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Feb 22 23:17:11 2021 +0300
+
+    Fix error syncing the user edit transaction.
+
+[33mcommit 7b9c7ff5f8877614f3bf36eca2f24082816b1a01[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Mon Feb 22 18:38:09 2021 +0300
+
+    Deploy for linux deb
+
+[33mcommit e47398bfd353ec4e91bfdf41b07803c439b59c05[m[33m ([m[1;32mmaster[m[33m)[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Feb 21 18:55:00 2021 +0300
+
+    Do not accept pocket transactions over the network without pocket data.
+
+[33mcommit d904a2e826a37a4eb49b134d30c43da87e5e9c85[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Feb 19 18:00:27 2021 +0300
+
+    Deploy logic for linux tar.gz archive
+
+[33mcommit 51d8124be0a85da1840e0525af639536a5f99264[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Fri Feb 19 10:13:40 2021 -0300
+
+    Add netstakeweight to getnodeinfo
+
+[33mcommit 0f355cc7e35e264516b0f8f39e674025be6aa769[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Fri Feb 19 10:22:00 2021 +0300
+
+    Added preprocessor definition & additional include directory for VSStudio
+
+[33mcommit 97ac93f649232e58504fd257a61b3c77f7dfad34[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 18 20:09:34 2021 +0300
+
+    Remove deplay for sign executable in installer - sign only win installer
+
+[33mcommit 0d8f8ba31960ce2cc535a05087434e3f01079364[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 18 20:07:07 2021 +0300
+
+    Fix nMinimumChainWork
+
+[33mcommit 32cbd13023adcd833234e373abe2ce55f98d768c[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 18 18:29:37 2021 +0300
+
+    Fix WSConnections empty if -wsuse=0
+
+[33mcommit 9a2330c03253556a459c7f2d8093c2a1d16e14d4[m[33m ([m[1;33mtag: v0.19.1[m[33m)[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 18 15:49:32 2021 +0300
+
+    extend getnodeinfo
+
+[33mcommit 77347d75e9f67ae7a6c389b5a4b8decc36c2d278[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 18 15:33:12 2021 +0300
+
+    v0.19.1
+
+[33mcommit da78d474180d07245211316070ee86d9f94fcd8b[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Feb 18 15:22:47 2021 +0300
+
+    Update README.md
+
+[33mcommit f10fcbfcb0b3a416548314f51dffa9123a98e1da[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 18 15:20:00 2021 +0300
+
+    LICENSE.txt -> LICENSE
+
+[33mcommit b3c44bbc8d0c6ce5969d19cf1a33df0c72fc4b05[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 18 10:28:04 2021 +0300
+
+    LogPrintf opreturn check error
+
+[33mcommit d7c5b8d3a4ec8f4f39365307e45a4fba5f48d9f2[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 17 23:12:59 2021 +0300
+
+    Change nMinimumChainWork & defaultAssumeValid
+
+[33mcommit bf3883bfd0c013563330983d10245f8ee56b5b94[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 17 23:07:09 2021 +0300
+
+    Checkpoint for block 1042860
+
+[33mcommit 1b399ad2a6c3fb8554df327b7eaadf492ea376cc[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 17 18:28:48 2021 +0300
+
+    Extend getnodeinfo with list or connected proxies
+
+[33mcommit ecfbb0dd2378bed1c3067ffc32c34692df52e30d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 17 16:53:11 2021 +0300
+
+    Fix debug logs
+
+[33mcommit 70f662f7fc58ea6abc83db0f11952a0a38fdb873[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 17 16:51:28 2021 +0300
+
+    Clean debug logs
+
+[33mcommit 373ae26fa8fe099bf3cafa00da6a58939d3c89ea[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 17 16:17:58 2021 +0300
+
+    Extend WS connection for public proxy registrations
+
+[33mcommit 1780531c1f6b9a24cb9628841e2b8a2ad8466ecd[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Feb 17 10:34:11 2021 +0300
+
+    Extend logging
+
+[33mcommit 3834418de532c6a03575915813185da8659fc9f7[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 17 12:15:15 2021 +0300
+
+    Update README.md
+
+[33mcommit 461d2dd27d465b92f4afbc934fc1a09229b82e9f[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Feb 14 17:40:10 2021 +0300
+
+    Chainparams move from DEFINE to params.h
+
+[33mcommit a4ca545ed60db4620173da911468cd7770095dad[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Feb 14 17:06:37 2021 +0300
+
+    Update README.md
+
+[33mcommit 3c8c79be17075b12e684b3c8ae51d4508dd40a99[m
+Merge: 96df9e8 a934a4e
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Feb 14 17:04:57 2021 +0300
+
+    Merge pull request #5 from pocketnetteam/add-license-1
+    
+    Create LICENSE
+
+[33mcommit a934a4e1ef6831182042c143c65334f81a32701f[m[33m ([m[1;31morigin/add-license-1[m[33m)[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Feb 14 17:04:48 2021 +0300
+
+    Create LICENSE
+
+[33mcommit 96df9e8ea59ab0707d4a7223cb7b908fcc98fc56[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Feb 14 17:04:14 2021 +0300
+
+    Remove COPYING
+
+[33mcommit a4ee24e63b322d3192f39cc81667c7f75d2d475a[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Feb 14 17:03:27 2021 +0300
+
+    Remove license file
+
+[33mcommit 2886a101eade753b35316b52615dd4b7dc0d3d66[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Feb 14 16:55:36 2021 +0300
+
+    Update README.md
+
+[33mcommit 6f0d797ab27068bbad7a7424f3d2e78d8655b803[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Feb 14 15:37:59 2021 +0300
+
+    Consensus height checkpoint moved to chainparams
+
+[33mcommit b80d417620888976e9f721478b659f357fb3f047[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Feb 14 16:02:09 2021 +0300
+
+    Update README.md
+
+[33mcommit 5f3b6f058c65dc9bdc1871e8020b1c1d83d0bf3b[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sun Feb 14 16:01:40 2021 +0300
+
+    Update README.md
+
+[33mcommit fcd7dd30bafbf20a1feb66d6220273db7bf381a0[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Feb 13 22:45:30 2021 +0300
+
+    Update README.md
+
+[33mcommit b22bb1eabc090c9160fd0d8a01aad4ae4ed17c8d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Feb 13 22:41:39 2021 +0300
+
+    Update README.md
+
+[33mcommit 45ffb3eb13f5bced0a94ac3e404fcb5f14792422[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sat Feb 13 22:34:43 2021 +0300
+
+    Badges
+
+[33mcommit 5d12ca698b111d69999cd677aefad4af4f85d41d[m[33m ([m[1;33mtag: v0.19.0[m[33m)[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Feb 13 15:51:33 2021 +0300
+
+    v0.19.0
+
+[33mcommit 3c1c66ccdc02f09a06bbc3c650805abad2dd390d[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Feb 13 15:49:33 2021 +0300
+
+    Change ports to 3707*
+
+[33mcommit d10a97e6a8d6fe1336d4b4ca46289f3b63d606cf[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Feb 13 15:27:58 2021 +0300
+
+    Statistic clear
+
+[33mcommit 1b7a143761a014d0e7310767c79d841b3d06d484[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Sat Feb 13 14:28:47 2021 +0300
+
+    Statistic
+
+[33mcommit d7adb76e8e5308326f2f2442ae3bfdf5dd863b1e[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Feb 12 20:20:20 2021 +0300
+
+    Update README.md
+
+[33mcommit 9a05f4ac5135df66eaf38711e65f3385403a5029[m[33m ([m[1;31morigin/dev[m[33m)[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 11 13:49:25 2021 +0300
+
+    Disable Recomended subscribes
+
+[33mcommit e2c46ce9794885ea04fd198efe081046a8838eb1[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 11 13:48:24 2021 +0300
+
+    Logging refactor
+
+[33mcommit f3294f083e282e854060ddd86da5596cfc7ade77[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 11 13:19:37 2021 +0300
+
+    Logging refactor
+
+[33mcommit 7e81b4057b3271b229980d83125fa3f4350ab788[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 11 13:12:58 2021 +0300
+
+    Logging refactor
+
+[33mcommit f04fc42641f5ed3f33ea28eb81bc1a18aaa3b472[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 11 12:43:16 2021 +0300
+
+    Revert "Test unlock"
+    
+    This reverts commit 358dec65
+
+[33mcommit 56e3d51ae3cd99f72be9763335d3dfa12fbe0483[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Thu Feb 11 12:41:51 2021 +0300
+
+    Rpc statistic
+
+[33mcommit 358dec650da449acea10848e40e10271096bb4f5[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 10 17:34:30 2021 +0300
+
+    Test unlock
+
+[33mcommit 07a5744f5a33e230c46005497763a0f30357a506[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Feb 10 20:56:54 2021 +0300
+
+    Update README.md
+
+[33mcommit 84660738f0b5e54693342ed99298f03467ef3c2b[m
+Author: Andy Oknen <andy.oknen@yandex.ru>
+Date:   Wed Feb 10 18:01:31 2021 +0300
+
+    sendrawtransaction anonymous
+
+[33mcommit 49aed1d29097a1590a50ab317322c8fb10f3383b[m
+Author: andy.oknen <andy.oknen@gmail.com>
+Date:   Wed Feb 10 15:48:20 2021 +0300
+
+    lastcomments more lite
+
+[33mcommit 847b48b1b565ff1f1a2cf032663cd86e03017799[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Feb 10 11:19:08 2021 +0300
+
+    Rollback rpc timing logging
+
+[33mcommit 3da1856037efa512ce2932b0a881e52a30e5dfc2[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Feb 10 09:41:52 2021 +0300
+
+    Reset statistic cache over RPC
+
+[33mcommit bca8b2ae700928b3ecd3cf0d4cef3c7d7ad213c1[m
+Author: andy.oknen <andy.oknen@gmail.com>
+Date:   Mon Feb 8 16:56:32 2021 +0300
+
+    RPC stoping at last
+
+[33mcommit 329dc18b656c45eb800ecdc3abd3071c377ad211[m
+Author: andy.oknen <andy.oknen@gmail.com>
+Date:   Fri Feb 5 15:40:43 2021 +0300
+
+    Fix access to nullptr
+
+[33mcommit 8fe8c543290627a00f292b310a365192f0d3a01d[m
+Author: andy.oknen <andy.oknen@gmail.com>
+Date:   Fri Feb 5 15:28:16 2021 +0300
+
+    Allow public method without autorization header
+
+[33mcommit 2d68175e2b550f27eb2bf301c5b5a7dc8adf3a80[m
+Author: andy.oknen <andy.oknen@gmail.com>
+Date:   Fri Feb 5 15:12:53 2021 +0300
+
+    Refactor routes
+
+[33mcommit d389d1bcf7007b9b7d1ea24947617548b1f2eac4[m
+Author: andy.oknen <andy.oknen@gmail.com>
+Date:   Fri Feb 5 14:27:24 2021 +0300
+
+    Protect only anonymous methods
+
+[33mcommit b44ce4b9fa50121e7ddaf92994c16784d5bd470f[m
+Author: andy.oknen <andy.oknen@gmail.com>
+Date:   Fri Feb 5 14:02:56 2021 +0300
+
+    Self queued and workers for POST and PUBLIC RPC method
+
+[33mcommit 9d5b6d9972d4701f9a1bc354ab652559f000e795[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Feb 4 14:03:14 2021 +0300
+
+    Update README.md
+
+[33mcommit a0a7cbaa4fa0a632e3bba066887e6e2fd391d9d9[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Feb 4 10:57:30 2021 +0300
+
+    Update README.md
+
+[33mcommit f75999d08c9d8157b6d9194dfe74b15d338e5592[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sat Jan 30 14:45:32 2021 +0300
+
+    Fix statistic cache key
+
+[33mcommit 00a6fe28388d4d41ed0224e3104a1495cd6a37b0[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sat Jan 30 14:19:55 2021 +0300
+
+    Update README.md
+
+[33mcommit e6e2cdfcc85a10b550ed63f17a2a0ca183ae1f5f[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Jan 29 22:32:11 2021 +0300
+
+    checkpoint block 1019525
+
+[33mcommit dc04ae307e22437f1575d68fa3718b1904c626dd[m[33m ([m[1;33mtag: v0.18.18[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Jan 29 21:33:49 2021 +0300
+
+    v0.18.18
+
+[33mcommit 7d0635d7713da4a57e9d6379fb748a585861b549[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Jan 29 21:29:41 2021 +0300
+
+    CheckpointsTransactions e5282ba40eb2cb4c842247c3266c733477f61b5063881a7e585f1a4e81ea1644
+
+[33mcommit 667ebc23177b74aaea49b3b221071933fd6de681[m[33m ([m[1;32mdev[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Jan 25 14:31:22 2021 +0300
+
+    time statistic
+
+[33mcommit 729bfb25bc2debb27a6e998a6cb989f02d694e74[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Jan 25 14:10:20 2021 +0300
+
+    debug
+
+[33mcommit 767ec484a6c2945b2b9980ec426d5ab89cd20b7a[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Jan 25 13:51:34 2021 +0300
+
+    debug
+
+[33mcommit 4169a3ae72e0f30544f82c9ab07bccf9ef032d33[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Jan 25 12:35:32 2021 +0300
+
+    fix statistic
+
+[33mcommit 806f3d7513a672d23f91b5961eaab285fd323e57[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Jan 25 11:15:31 2021 +0300
+
+    fix statistic parameters
+
+[33mcommit a75a0c6166d7cf33aa03f2057f57c18433e58cfd[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 17:28:18 2021 +0300
+
+    getlastcomments light
+
+[33mcommit 37bcf41c83096dbb673c5b2eb5c4546f6b8b777e[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 16:54:26 2021 +0300
+
+    return getlastcomments
+
+[33mcommit f5f35ab40e263d1d648c70c4fd9ebe8ff06ac70d[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 16:19:46 2021 +0300
+
+    disable lastComments
+
+[33mcommit 7a1b02b663736a02eddbb1c8d8a8c86e283e1ff5[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 16:13:55 2021 +0300
+
+    disable LOCK(cs_main) for rpc calls
+
+[33mcommit 38a95705efce211b433ed3677c4aa5a3b7d64da8[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 15:42:19 2021 +0300
+
+    disable LOCK(cs_main) for rpc calls
+
+[33mcommit 56abcc93ec8ce0404bc916fa7c539758badf95f8[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 15:06:50 2021 +0300
+
+    timing more
+
+[33mcommit 755a7cd90b476b88a438fd90d77e1509c1fd2626[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 14:56:30 2021 +0300
+
+    timing more
+
+[33mcommit 9ed0b8c696671bed6f43937846e387c4697979b8[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 14:49:02 2021 +0300
+
+    timing more
+
+[33mcommit 28085dd843e45babb8724a92cb49bdc940b3d56b[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 14:43:59 2021 +0300
+
+    timing lock
+
+[33mcommit 3d2365ab9b3d14d1ca9aee72fe12ff94cc9fb185[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 13:30:06 2021 +0300
+
+    tmp del posts scores
+
+[33mcommit 5000856907bc7e63dcd1a751c8a04dd244a9ae10[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 12:53:56 2021 +0300
+
+    format fix
+
+[33mcommit 8e8bf3085b01b46e743f990532b1f829748f7d17[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Jan 24 11:08:47 2021 +0300
+
+    debug logging
+
+[33mcommit 9e8af111cf596162389dfb18730a0031ca24fa45[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sat Jan 23 17:53:34 2021 +0300
+
+    Fix threads shutdown
+
+[33mcommit ec5198292213724475269abfcddf3997f98defc6[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sat Jan 23 16:26:50 2021 +0300
+
+    Merge branch 'feature/rpcstatistic'
+
+[33mcommit 6b720d110234e59d4b2641bb958896b052bc21d4[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Jan 22 18:37:26 2021 +0300
+
+    Rpc statistic level 0
+
+[33mcommit 12f611c2f841e7c3d408b2f2ad8f67b74f347c44[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Jan 21 16:28:52 2021 +0300
+
+    Fix extra comments
+
+[33mcommit 00651db88eb5a175c363179e07a5c4c52edf2ece[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Jan 21 02:02:38 2021 +0300
+
+    Update README.md
+
+[33mcommit 62f7a451ebe3f87447def06214d880f8af26ea24[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Jan 21 01:56:26 2021 +0300
+
+    Update README.md
+
+[33mcommit 1c4fe3c8102f54a08f75121fe844a48af655c02b[m[33m ([m[1;33mtag: v0.18.17[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Jan 20 14:39:00 2021 +0300
+
+    Rollback listunspent call to private
+
+[33mcommit cbdaac8c4fa40b812a117e37c851f02ecbe75267[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Jan 20 14:34:34 2021 +0300
+
+    Extend anonymous calls
+
+[33mcommit a5e5485973f7d3db3dbd22bdcc0d39952b3784a5[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Jan 18 16:39:44 2021 +0300
+
+    v0.18.17
+
+[33mcommit 250f923ef03f1d8d932f9f6df5b896b06549f6e7[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Jan 18 11:34:11 2021 +0300
+
+    Added multi-language posts
+
+[33mcommit 3d3747f880510bd1a6ef9753ed21a290b1357f92[m
+Merge: 4b803f5 9d8d1dd
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Dec 6 11:41:18 2020 +0300
+
+    Merge branch 'dev' of github.com:pocketnetteam/pocketnet.core into dev
+
+[33mcommit 4b803f52f0d3b470e7d054b202b5e1def77524ee[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Dec 6 11:41:13 2020 +0300
+
+    windows build readme extend
+
+[33mcommit 9d8d1dd2b3d1f83ea602462bbac29a407f015870[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Sat Nov 21 22:37:11 2020 +0300
+
+    fixed build errors with QT on macOS Catalina
+
+[33mcommit d171dc4afdc76c802728ab6249a5735efcfd3558[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Fri Nov 6 18:02:40 2020 +0300
+
+    dissable authorization for few rpc commands
+
+[33mcommit 21738193cf28c6c7e0f385c0e2bd6b083df165f1[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Fri Nov 6 16:42:38 2020 +0300
+
+    fixes for macos compiling
+
+[33mcommit 4c55a5b50a273e82af3805d604c0563e203a8acd[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Nov 5 16:19:46 2020 +0300
+
+    anonymous rpc pocketnet methods
+
+[33mcommit 3fbaf2626d6bcddf754deafe4717d416040e95b8[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Oct 29 13:22:32 2020 +0300
+
+    utxo prune depth incr to 500 blocks
+
+[33mcommit 133a597dd8f9fc65ad9739edc77804a55bc52d78[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Oct 29 10:46:14 2020 +0300
+
+    prune only UTXO
+
+[33mcommit 047eb173121a5f2e9ae7ee91062f36ae56f823ca[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Oct 28 17:41:53 2020 +0300
+
+    prune start
+
+[33mcommit e87b035336eec5c38258dfa00f8781a9279cad8d[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Tue Oct 27 12:24:06 2020 +0300
+
+    Fix sort reindex
+
+[33mcommit a7bf5a90690840ce442e3a874f3143647173610a[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Oct 21 16:03:20 2020 +0300
+
+    Add -silent argument for pocketcoind
+
+[33mcommit 60fa659cd20f943aa1f2b6f47b63cc69d18d537c[m[33m ([m[1;33mtag: v0.18.16[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Tue Oct 13 11:44:08 2020 +0300
+
+    v0.18.16
+
+[33mcommit 50cea1e66eada81f0c376c5c3087be97788dd1ed[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Tue Oct 13 11:28:40 2020 +0300
+
+    Add nTime in CreateRawTransaction
+
+[33mcommit df81eadc646f2ef5f0ed8bb9588f243bb83dfd65[m[33m ([m[1;33mtag: v0.18.15[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Oct 1 15:20:33 2020 +0300
+
+    v0.18.15
+
+[33mcommit 5c70e6d93cf128158468ce60d4e069cb8ceeb83c[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Oct 1 12:40:37 2020 +0300
+
+    Fix reindexer CondSet values
+
+[33mcommit 4f26a5c7f20f083a1f4b6c2863ec7340a8711cfe[m[33m ([m[1;33mtag: v0.18.14[m[33m)[m
+Author: andy.oknen <andy.oknen@gmail.com>
+Date:   Wed Sep 23 08:50:02 2020 +0300
+
+    v0.18.14
+
+[33mcommit 7ed6565fd0f102c7d2ebdd00efc98890673adf0f[m
+Author: andy.oknen <andy.oknen@gmail.com>
+Date:   Wed Sep 23 08:44:28 2020 +0300
+
+    checkpoint block 388371
+
+[33mcommit 1c605abb5bda1fcde5e1fbea005a706d4a90a4da[m[33m ([m[1;33mtag: v0.18.13[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Tue Jan 28 11:58:53 2020 +0300
+
+    v0.18.13
+
+[33mcommit 4e7f26d3cb942712776f28d9a8af7b9bdbce2a52[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Jan 27 14:06:56 2020 +0300
+
+    Fix counter limits
+
+[33mcommit 01a9ad5ffa7e258249fe66c88f5f60c0e7bd80ae[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Jan 22 09:44:53 2020 +0300
+
+    Refferal program
+
+[33mcommit 840f4cc9e0712d7fa161d630ad942e87de93f43f[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Thu Dec 12 16:16:25 2019 +0300
+
+    Added private's subscribers into getUsersProfiles
+
+[33mcommit a05f7112c5513bd9b89846cb80c02bc6a7eacab8[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Tue Dec 10 10:19:33 2019 +0300
+
+    Basic Node Information
+
+[33mcommit 23f11200f5c9b2043273f7839772d276fffb195b[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Dec 9 14:06:09 2019 +0300
+
+    Fixed issue: getpagescores doesn't return myscore in comment scores
+
+[33mcommit 4184206cb4e8fc7ceaa96f8f97971c14bc107a46[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Dec 9 12:32:17 2019 +0300
+
+    Added comments scores into getpagescores
+
+[33mcommit c19e2c6c274e5610ed7817d800f40d7d9678f01e[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Dec 5 15:09:49 2019 +0300
+
+    Fix post commit to history
+
+[33mcommit ed4b7b0d39b3f5146ddbe18944d6426e9d7654c4[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Dec 4 16:19:29 2019 +0300
+
+    Update README.md
+
+[33mcommit 96cb83afb8e4d1487e5a17c1457d22440c18ee0c[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Dec 4 16:18:27 2019 +0300
+
+    Update README.md
+
+[33mcommit eab6e37c5b1f4e423ab37a6a911495ddd805f0ac[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Wed Dec 4 16:14:35 2019 +0300
+
+    doc/help/ManagementPocketnetCoreWallet.docx
+
+[33mcommit 81d35c41ea932e22d1bc0f573ccbf708d0f57fa2[m[33m ([m[1;33mtag: v0.18.12[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Dec 2 01:48:43 2019 +0300
+
+    v0.18.12
+    pocketdb: Fix Subscribes PK bug
+    pocketdb: Update RDB structure
+    antibot: Ratings blocking check
+    antibot: add height param
+    Checkpoints
+
+[33mcommit 6ee9462b7617a5ea17c66d35585101e82a4ae124[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sun Dec 1 15:03:46 2019 +0300
+
+    Extend RPC logging
+
+[33mcommit 64b5aac5d67cd67869903d9ac9bb173183b29891[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Tue Nov 26 19:00:05 2019 +0300
+
+    Do not show negative score in likers
+
+[33mcommit 7ad7a80bc55e30199094c9f3648b4b3b47c38ee6[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Tue Nov 26 16:36:17 2019 +0300
+
+    changed reindexer joins in pocketrpc
+
+[33mcommit 94b270f3de84f7775c69940bcfc031bb1251ffa2[m
+Merge: d1b59ee 0754182
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Tue Nov 26 15:54:29 2019 +0300
+
+    Merge branch 'master' of https://github.com/pocketnetteam/pocketnet.core
+
+[33mcommit d1b59eee527fb722880cbcc590d1cf8415e4ef11[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Tue Nov 26 15:54:01 2019 +0300
+
+    Separation posts and scores
+
+[33mcommit 075418201ae70de901115eca9239c9b22dc3dfcc[m[33m ([m[1;33mtag: v0.18.11[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Nov 25 12:23:23 2019 +0300
+
+    Version 0.18.11
+
+[33mcommit 3ddbd291f266f59f00a073e490d9f2d7ac6cfad6[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Nov 25 10:02:22 2019 +0300
+
+    returned reputation in double
+
+[33mcommit 21dd5b80a38668fe25fda9fbbee302935964ee6c[m
+Merge: 62dedf2 26181a6
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Nov 25 10:00:46 2019 +0300
+
+    Merged conflicts
+
+[33mcommit 62dedf2a558ae618d568c4343501cd245e89518a[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Nov 25 09:52:44 2019 +0300
+
+    Added getaddressscores
+    Added userprofile in getPostData
+
+[33mcommit 26181a6ab5ac2c0155b233a283136864fa6c0181[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Nov 22 09:20:03 2019 +0300
+
+    reputation should be as double to client
+
+[33mcommit abe46fa20f714dcf37353168d49afc3f0e0fecf4[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Thu Nov 21 11:05:18 2019 +0300
+
+    Added private subscribes
+
+[33mcommit 130ff569940262800cbf9124d9c86b8b328f6302[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Thu Nov 14 15:37:37 2019 +0300
+
+    Add repost
+
+[33mcommit 19d74a154d0c1757e61ea68b0b2d4a13f3c27890[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Thu Nov 14 15:15:42 2019 +0300
+
+    Add reposts
+
+[33mcommit 8fcdecedee3f5bd1675a7a0743784af013f2f9c0[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Nov 14 13:22:39 2019 +0300
+
+    Fix reputation in getuserprofile
+
+[33mcommit 5a281ba655e8132464fc4b143c3c2f3dee33dfea[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Tue Nov 12 08:59:41 2019 +0300
+
+    Update README.md
+
+[33mcommit 74d82bf4feb83f7ef355a6a85a1610990fd43c49[m
+Merge: 53ad1c3 4b46f81
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Nov 6 15:18:40 2019 +0300
+
+    Merge pull request #2 from elliottminns/feature/header_spam_protection
+    
+    Feature/header spam protection
+
+[33mcommit 4b46f817f8340b6c3daf67544ee41de889ca03e5[m
+Merge: 4ddcc41 53ad1c3
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Nov 6 15:18:17 2019 +0300
+
+    Merge branch 'master' into feature/header_spam_protection
+
+[33mcommit 53ad1c35822291db3b2a8afb40ba2d2a52ed5bf8[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Nov 6 14:47:07 2019 +0300
+
+    UI message
+
+[33mcommit fc3ea341cbc596723b36700d69e02b8a173a2496[m[33m ([m[1;33mtag: v0.18.10[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Tue Nov 5 11:57:20 2019 +0300
+
+    Checkpoints
+
+[33mcommit fd95309602d97e504b2016947a9d5a6b1b4c7154[m
+Merge: d379a6d cefb95f
+Author: brangr <andy.oknen@gmail.com>
+Date:   Mon Nov 4 11:37:17 2019 +0300
+
+    Merge branch 'master' of github.com:pocketnetteam/pocketnet.core
+
+[33mcommit cefb95fd5f74aeb1489cb08cb53be748ba9e8957[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Nov 4 11:37:02 2019 +0300
+
+    More checkpoints
+
+[33mcommit d379a6d5de235529c3ce1e0e5a9e436c83d0e0ab[m
+Merge: 266b4dc 515346a
+Author: brangr <andy.oknen@gmail.com>
+Date:   Fri Nov 1 10:31:45 2019 +0300
+
+    Checkpoints
+
+[33mcommit 515346a96f2493518e3a8898563e7022128b4a54[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Oct 31 14:04:52 2019 +0300
+
+    More checkpoints
+
+[33mcommit 0ae6463b23ba53eabebf648c8102118253247777[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Sat Oct 26 20:51:05 2019 +0300
+
+    Fix update user reputation recursive bug
+
+[33mcommit ced921a5c55cad5497528f5debafc4233d2ed29f[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Oct 25 14:42:14 2019 +0300
+
+    Extend block checkpoints
+
+[33mcommit 266b4dc3731539155511fae6f2626983d5653b13[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Fri Oct 25 14:39:57 2019 +0300
+
+    Extend block checkpoints
+
+[33mcommit 6d03c2f25d2bb654cd946e34eeccccdfd7be878b[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Oct 24 22:44:18 2019 +0300
+
+    * Remove old comments logic
+    * Refactor reindexer indexes
+    * User ratings back to integer
+    * Add prune reindexer db parameter
+    * Fix problem find transaction
+    * Disabled likes to deleted comments
+    * Enable checkpoints for CheckBlockRatingRewards
+
+[33mcommit 507ccb05e21ed2dce315c585bf646625b79a3c8e[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Thu Oct 17 19:06:26 2019 +0300
+
+    Fix bad future comments
+
+[33mcommit 9aec23e58c19a583867ef0b2570306473fafb06f[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Oct 16 15:14:01 2019 +0300
+
+    Fix post, comment rating after editing
+
+[33mcommit a48415a34a6e0001253545234bc9158190b58e57[m[33m ([m[1;33mtag: v0.18.9[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Tue Oct 15 15:14:25 2019 +0300
+
+    Fix last reindexer item synchronization
+
+[33mcommit 2d781f93a8daa52832cfe25a356e7b1ea1b83560[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Tue Oct 15 10:30:55 2019 +0300
+
+    Comments in missed info
+
+[33mcommit 212389f6baf95093a5a454138faa661fa52734f9[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Oct 10 14:16:11 2019 +0300
+
+    Reorganization of the notification system
+
+[33mcommit 37530bf87a01c1548119e94a29a38b499ec15d39[m[33m ([m[1;33mtag: v0.18.8[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Wed Oct 9 13:13:29 2019 +0300
+
+    * Comment (add, edit, delete) transaction
+    * CommentScore transaction
+    * User reputation int to double
+    * Rating comments changes the reputation of the author of the comment
+    * Rated comments participate in the coin lottery
+
+[33mcommit 4ddcc4199050a465fbd3902bb9852300ef2745ce[m
+Author: Elliott Minns <elliott.minns@me.com>
+Date:   Tue Oct 8 18:48:36 2019 +0100
+
+    Spam protection for compact blocks
+
+[33mcommit f71abc76519c1c0a4ae0a0979d110ecbbe3b28c6[m
+Author: Elliott Minns <elliott.minns@me.com>
+Date:   Tue Oct 8 14:21:46 2019 +0100
+
+    Header spam protection
+
+[33mcommit d0bd9358cb1a64851f52196380137357e24ebf6f[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Oct 3 10:36:37 2019 +0300
+
+    Debug message
+
+[33mcommit 1b42e2f1c69cd1f1771289b009d3551671ff66c8[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Sep 23 11:38:06 2019 +0300
+
+    Add reputation in getuserprofile
+
+[33mcommit 01ee65b4be995891d3acdf5231962a530e2b9cd1[m
+Merge: 8eaf3cb 47ad0d8
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Sep 23 09:39:31 2019 +0300
+
+    Merge branch 'master' of https://github.com/pocketnetteam/pocketnet.core
+
+[33mcommit 8eaf3cbc7f3a75272c794f20f510a4f2ca19ae13[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Sep 23 09:38:21 2019 +0300
+
+    Changed sharepocketnet output format in getmissedinfo
+
+[33mcommit 47ad0d8d0b15e156fea243eeb1f34570b797afa0[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Mon Sep 23 09:38:14 2019 +0300
+
+    Update README.md
+
+[33mcommit c635703ad50a2e06304cd8b913a066792066caa2[m
+Author: Andy Oknen <andy.oknen@gmail.com>
+Date:   Mon Sep 23 09:36:04 2019 +0300
+
+    Update pocketcoin.conf
+
+[33mcommit 456fbddc0f8913cc98000ed8a4b0d909d6ed2187[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Sep 20 18:16:48 2019 +0300
+
+    Rpc getlastcomments
+
+[33mcommit a917133bf09f2a5d2b1b12c696032b5ff7ea01de[m[33m ([m[1;33mtag: v0.18.7[m[33m)[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Sep 20 16:08:50 2019 +0300
+
+    Fix fork block number
+
+[33mcommit 1d1b98f86177996b673894f07f60e2819bddb3a2[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Sep 20 16:02:13 2019 +0300
+
+    Version 0.18.7
+
+[33mcommit c6b0aa21cf0d12f0bd90d63eae5e3b099390b691[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Fri Sep 20 16:00:35 2019 +0300
+
+    Score one to one depth = 48 hours
+    Score old posts rules - one month
+
+[33mcommit 14186aa2d384fb4c0852cbb6b6680e86ce8c513e[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Fri Sep 13 12:26:05 2019 +0300
+
+    Added gettags + added post reputation in getcontents
+
+[33mcommit 570a6a7d19af80f1081cf8ab6f808601ebaa0236[m
+Merge: 75dfe06 a9a6e48
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Wed Sep 11 13:29:26 2019 +0300
+
+    Merge branch 'master' of https://github.com/pocketnetteam/pocketnet.core
+
+[33mcommit 75dfe06ba25d514c3d70129ee0a223c5fd2a5440[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Wed Sep 11 13:29:17 2019 +0300
+
+    Added methods for persaonal pages
+
+[33mcommit a9a6e4850e0e531ab2ce2a976d2d1149d4cf8ff9[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Thu Sep 5 10:21:39 2019 +0300
+
+    Lastblocks extended
+
+[33mcommit d9ca2f2918f30973cf70c591d5f727ebdad9bf83[m[33m ([m[1;33mtag: v0.18.6[m[33m)[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Fri Aug 30 14:05:21 2019 +0300
+
+    limit
+
+[33mcommit 7225d69bea5c7cfb54458ade7a367a88fb00a1d9[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Fri Aug 30 13:53:46 2019 +0300
+
+    Consensus rules
+
+[33mcommit 51e5c60cd4fdcc52a8a99129cc0eaf352f7bd12c[m
+Merge: d8030fd eca4b45
+Author: brangr <andy.oknen@gmail.com>
+Date:   Fri Aug 30 09:53:51 2019 +0300
+
+    Merge branch 'test'
+
+[33mcommit eca4b4572c4ab97222bd82cf24009de33036a542[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Fri Aug 30 09:53:32 2019 +0300
+
+    getaddressbalance
+
+[33mcommit d8030fdfa4e88195b4004f349416a5bdb35408c5[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Tue Aug 27 10:46:22 2019 +0300
+
+    Add field referrer in getreputations
+
+[33mcommit fc87221c5177f6522653fc664f9922bf3838ab55[m
+Author: only1question <poisovmadiv@gmail.com>
+Date:   Mon Aug 19 13:30:26 2019 +0300
+
+    Add getreputations method
+
+[33mcommit f2e53faaab2ced0ce0ecf940e59489cc2b346e1e[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Thu Aug 8 07:47:17 2019 +0300
+
+    WebSocket server start to end Init()
+
+[33mcommit 22d8ec91574b99a84fa09e23e035da2144f5abd4[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Thu Aug 8 07:46:10 2019 +0300
+
+    TODO
+
+[33mcommit f1bd6a903739d66cda37b07d892e557245cbf411[m[33m ([m[1;33mtag: v0.18.5[m[33m)[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Wed Aug 7 09:51:43 2019 +0300
+
+    Version 0.18.5-beta
+
+[33mcommit 7ae81997ae9c968d7a7d8aad632e1f5779b7a317[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Wed Aug 7 09:49:17 2019 +0300
+
+    Checkpoints
+
+[33mcommit f8ee609ae09a32ea89b7b9cfb76737890c4b8006[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Jul 18 11:19:39 2019 +0300
+
+    Update README.md
+
+[33mcommit d3d2c1180e2ac3ed09c028c6ffe6241e6832ef68[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Jul 18 10:29:19 2019 +0300
+
+    Update README.md
+
+[33mcommit f1d6873c7c7c56dd91ccd9f9a93b6da5346fdb3b[m
+Author: Pocketnet Team <support@pocketnet.app>
+Date:   Thu Jul 18 10:28:14 2019 +0300
+
+    Update README.md
+
+[33mcommit c6f6092d194cd21de2cd4c8c0c12d2e50ed0af88[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Tue Jul 16 14:31:55 2019 +0300
+
+    getaddressinfo double transactions fix
+
+[33mcommit 9ffb384f37fbb842d395dede180f7775981037b5[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Mon Jul 15 22:52:32 2019 +0300
+
+    Fixes
+
+[33mcommit 53525a942bbd2505487b27a9a2807f6dc4c38605[m[33m ([m[1;33mtag: v0.18.4[m[33m)[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Mon Jul 15 10:53:08 2019 +0300
+
+    HotPosts additional time sort
+
+[33mcommit a7d4c33bf4d455c10ac6cda2ecc2f5e1f99dafeb[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Sun Jul 14 14:12:19 2019 +0300
+
+    Scores one to one rules
+
+[33mcommit 147e82beb45430553afb65949c92b36e529b3243[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Fri Jul 12 16:15:49 2019 +0300
+
+    Version config to 0.18.4
+
+[33mcommit e8056310b566e88d71b73d21fd7cfab39b2b2f87[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Fri Jul 12 12:11:20 2019 +0300
+
+    + Add depends/Makefile for build mingw
+    ~ Limitation Scores one to one
+    ~ Fix rpc help command
+    ~ Fix number_of_blocking in getuserstate
+
+[33mcommit 7de2e66ff4fb156c73250116fc2933a10825dae2[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Sat Jul 6 11:27:10 2019 +0300
+
+    More LOCK(cs_main)
+
+[33mcommit 4b63efac21c5e7408ef6974f4a0a918c0325f2d3[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Fri Jul 5 16:05:18 2019 +0300
+
+    LOCK(cs_main) in ProcessNewBlock
+
+[33mcommit bf79d5fc0814ce1b14724da99370855be59dce50[m[33m ([m[1;33mtag: v0.18.3[m[33m)[m
+Author: brangr <andy.oknen@gmail.com>
+Date:   Wed Jul 3 15:47:19 2019 +0300
+
+    Initial commit

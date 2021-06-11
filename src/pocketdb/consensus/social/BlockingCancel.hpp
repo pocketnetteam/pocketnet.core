@@ -7,7 +7,8 @@
 #ifndef POCKETCONSENSUS_BLOCKINGCANCEL_HPP
 #define POCKETCONSENSUS_BLOCKINGCANCEL_HPP
 
-#include "pocketdb/consensus/Base.hpp"
+#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/models/dto/BlockingCancel.hpp"
 
 namespace PocketConsensus
 {
@@ -22,7 +23,7 @@ namespace PocketConsensus
     public:
         BlockingCancelConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
             // TODO (brangr): implement
             // std::string _txid = oitm["txid"].get_str();

@@ -7,7 +7,8 @@
 #ifndef POCKETCONSENSUS_POST_HPP
 #define POCKETCONSENSUS_POST_HPP
 
-#include "pocketdb/consensus/Base.hpp"
+#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/models/dto/Post.hpp"
 
 namespace PocketConsensus
 {
@@ -22,7 +23,7 @@ namespace PocketConsensus
     public:
         PostConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
         {
             // TODO (brangr): implement
             // std::string _address = oitm["address"].get_str();

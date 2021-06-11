@@ -7,7 +7,9 @@
 #ifndef POCKETCONSENSUS_SUBSCRIBE_HPP
 #define POCKETCONSENSUS_SUBSCRIBE_HPP
 
-#include "pocketdb/consensus/Base.hpp"
+#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/dto/Subscribe.hpp"
 
 namespace PocketConsensus
 {
@@ -22,7 +24,7 @@ namespace PocketConsensus
     public:
         SubscribeConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
             // TODO (brangr): implement
             

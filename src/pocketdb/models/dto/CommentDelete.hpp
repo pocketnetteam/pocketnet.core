@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        CommentDelete(string hash, int64_t time) : Subscribe(hash, time)
+        CommentDelete(string hash, int64_t time) : Comment(hash, time)
         {
             SetType(PocketTxType::CONTENT_COMMENT_DELETE);
         }

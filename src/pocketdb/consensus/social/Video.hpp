@@ -4,11 +4,12 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_USER_HPP
-#define POCKETCONSENSUS_USER_HPP
+#ifndef POCKETCONSENSUS_VIDEO_HPP
+#define POCKETCONSENSUS_VIDEO_HPP
 
-#include "pocketdb/consensus/Base.hpp"
-#include "pocketdb/pocketnet.h"
+#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/models/base/Transaction.hpp"
+//#include "pocketdb/models/dto/Video.hpp"
 
 namespace PocketConsensus
 {
@@ -23,23 +24,10 @@ namespace PocketConsensus
     public:
         VideoConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-
+            
         }
-    };
-
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 1 block
-    *
-    *******************************************************************************************************************/
-    class VideoConsensus_checkpoint_1 : public VideoConsensus
-    {
-    protected:
-        int CheckpointHeight() override { return 1; }
-    public:
-        VideoConsensus_checkpoint_1(int height) : VideoConsensus(height) {}
     };
 
     /*******************************************************************************************************************
@@ -52,7 +40,6 @@ namespace PocketConsensus
     {
     private:
         inline static std::vector<std::pair<int, std::function<VideoConsensus*(int height)>>> m_rules{
-            {1, [](int height) { return new VideoConsensus_checkpoint_1(height); }},
             {0, [](int height) { return new VideoConsensus(height); }},
         };
 
@@ -66,4 +53,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_USER_HPP
+#endif // POCKETCONSENSUS_VIDEO_HPP

@@ -47,12 +47,8 @@ namespace PocketConsensus
             // Build all needed consensus instances for this height
             for (auto tx : pBlock)
             {
-                auto txType = tx->GetType();
-                if (mConsensus.find(txType) != mConsensus.end())
-                    continue;
-
                 shared_ptr<SocialBaseConsensus> consensus;
-                switch (txType)
+                switch (*tx->GetType())
                 {
                     case ACCOUNT_USER:
                         consensus = PocketConsensus::UserConsensusFactoryInst.Instance(height);
@@ -111,7 +107,7 @@ namespace PocketConsensus
 
                 if (auto[ok, result] = consensus->Validate(tx, pBlock); !ok)
                 {
-                    LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)txType, (int)result, height);
+                    LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
                     validateResult &= result;
                 }
             }

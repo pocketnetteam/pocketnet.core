@@ -7,7 +7,8 @@
 #ifndef POCKETCONSENSUS_COMMENTDELETE_HPP
 #define POCKETCONSENSUS_COMMENTDELETE_HPP
 
-#include "pocketdb/consensus/Base.hpp"
+#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/models/dto/CommentDelete.hpp"
 
 namespace PocketConsensus
 {
@@ -22,7 +23,7 @@ namespace PocketConsensus
     public:
         CommentDeleteConsensus(int height) : SocialBaseConsensus(height) {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
             // TODO (brangr): implement
             // std::string _address = oitm["address"].get_str();
@@ -98,36 +99,6 @@ namespace PocketConsensus
 
     };
 
-
-    /*******************************************************************************************************************
-    *
-    *  Start checkpoint
-    *
-    *******************************************************************************************************************/
-    class CommentDeleteConsensus_checkpoint_0 : public CommentDeleteConsensus
-    {
-    protected:
-    public:
-
-        CommentDeleteConsensus_checkpoint_0(int height) : CommentDeleteConsensus(height) {}
-
-    }; // class CommentDeleteConsensus_checkpoint_0
-
-
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 1 block
-    *
-    *******************************************************************************************************************/
-    class CommentDeleteConsensus_checkpoint_1 : public CommentDeleteConsensus_checkpoint_0
-    {
-    protected:
-        int CheckpointHeight() override { return 1; }
-    public:
-        CommentDeleteConsensus_checkpoint_1(int height) : CommentDeleteConsensus_checkpoint_0(height) {}
-    };
-
-
     /*******************************************************************************************************************
     *
     *  Factory for select actual rules version
@@ -139,8 +110,7 @@ namespace PocketConsensus
     private:
         inline static std::vector<std::pair<int, std::function<CommentDeleteConsensus*(int height)>>> m_rules
             {
-                {1, [](int height) { return new CommentDeleteConsensus_checkpoint_1(height); }},
-                {0, [](int height) { return new CommentDeleteConsensus_checkpoint_0(height); }},
+                {0, [](int height) { return new CommentDeleteConsensus(height); }},
             };
     public:
         shared_ptr <CommentDeleteConsensus> Instance(int height)

@@ -16,6 +16,8 @@
 
 namespace PocketConsensus
 {
+    using std::static_pointer_cast;
+
     class SocialBaseConsensus : BaseConsensus
     {
     public:
@@ -24,8 +26,7 @@ namespace PocketConsensus
         // TODO (brangr): разделить проверку для подключения к цепи и первичную? парам или разные методы
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
         {
-            if (auto[ok, result] = CheckRegistration(tx); !ok)
-                return make_tuple(false, result);
+            
         }
     protected:
         virtual tuple<bool, SocialConsensusResult> CheckRegistration(shared_ptr<string> address)

@@ -15,7 +15,7 @@ namespace PocketConsensus
     class TransactionConsensus
     {
     public:
-        static tuple<bool, SocialConsensusResult> Validate(PocketBlock& pBlock)
+        static bool Validate(PocketBlock& pBlock)
         {
             // TODO (brangr): implement
             // std::vector<std::string> vasm;
