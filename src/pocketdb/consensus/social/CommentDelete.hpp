@@ -22,9 +22,11 @@ namespace PocketConsensus
     protected:
     public:
         CommentDeleteConsensus(int height) : SocialBaseConsensus(height) {}
+        CommentDeleteConsensus() : SocialBaseConsensus() {}
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
         {
+            return make_tuple(true, SocialConsensusResult_Success);
             // TODO (brangr): implement
             // std::string _address = oitm["address"].get_str();
             // int64_t _time = oitm["time"].get_int64();

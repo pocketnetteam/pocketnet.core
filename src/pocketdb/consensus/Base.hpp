@@ -7,9 +7,10 @@
 #ifndef POCKETCONSENSUS_BASE_HPP
 #define POCKETCONSENSUS_BASE_HPP
 
+#include "univalue/include/univalue.h"
+
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/models/base/Base.hpp"
-#include "univalue/include/univalue.h"
 
 namespace PocketConsensus
 {

@@ -35,10 +35,11 @@ namespace PocketDb
         template<typename T>
         bool TryTransactionStep(T sql)
         {
-            LOCK(SqliteShutdownMutex);
             if (ShutdownRequested())
                 return false;
 
+            LOCK(SqliteShutdownMutex);
+            
             if (!m_database.BeginTransaction())
                 return false;
 
@@ -72,6 +73,15 @@ namespace PocketDb
             if (!value) return true;
 
             int res = sqlite3_bind_text(*stmt, index, value->c_str(), (int) value->size(), SQLITE_STATIC);
+            if (!CheckValidResult(stmt, res))
+                return false;
+
+            return true;
+        }
+
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string& value)
+        {
+            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
             if (!CheckValidResult(stmt, res))
                 return false;
 

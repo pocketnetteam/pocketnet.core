@@ -20,11 +20,13 @@ namespace PocketConsensus
 
     class SocialBaseConsensus : BaseConsensus
     {
+    protected:
     public:
         SocialBaseConsensus(int height) : BaseConsensus(height) {}
         SocialBaseConsensus() : BaseConsensus() {}
 
-    protected:
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) {}
+        virtual tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) {}
     };
 }
 

@@ -22,9 +22,11 @@ namespace PocketConsensus
     protected:
     public:
         BlockingConsensus(int height) : SocialBaseConsensus(height) {}
+        BlockingConsensus() : SocialBaseConsensus() {}
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block)
         {
+            return make_tuple(true, SocialConsensusResult_Success);
             // Check registration account "from"
             //if (auto[ok, result] = CheckRegistration(tx->GetAddress()); !ok)
             //    return make_tuple(false, SocialConsensusResult_NotRegistered);

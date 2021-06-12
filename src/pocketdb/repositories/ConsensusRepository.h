@@ -9,25 +9,28 @@
 
 #include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/helpers/TransactionHelper.hpp"
-#include "pocketdb/repositories/BaseRepository.hpp"
+#include "pocketdb/repositories/TransactionRepository.hpp"
 
 #include <timedata.h>
 
 namespace PocketDb
 {
 using std::runtime_error;
+using std::string;
 
 using namespace PocketTx;
 using namespace PocketHelpers;
 
-class ConsensusRepository : public BaseRepository
+class ConsensusRepository : public TransactionRepository
 {
 public:
-    explicit ConsensusRepository(SQLiteDatabase& db) : BaseRepository(db) {}
+    explicit ConsensusRepository(SQLiteDatabase& db) : TransactionRepository(db) {}
 
     void Init() override;
     void Destroy() override;
 
+    bool ExistsAnotherByName(const string& address, const string& name);
+    tuple<bool, shared_ptr<Transaction>> GetLastAccountTransaction(const string& address);
 };
 
 } // namespace PocketDb

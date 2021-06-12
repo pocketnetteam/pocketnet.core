@@ -23,9 +23,11 @@ namespace PocketConsensus
     protected:
     public:
         ScorePostConsensus(int height) : SocialBaseConsensus(height) {}
+        ScorePostConsensus() : SocialBaseConsensus() {}
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
         {
+            return make_tuple(true, SocialConsensusResult_Success);
             // TODO (brangr): implement
             // std::string _txid = oitm["txid"].get_str();
             // std::string _address = oitm["address"].get_str();

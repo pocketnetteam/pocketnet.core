@@ -22,43 +22,41 @@ namespace PocketConsensus
     {
     protected:
 
-        virtual tuple<bool, SocialConsensusResult> CheckDoubleName(shared_ptr<User> tx)
+        virtual int64_t GetChangeInfoTimeout() { return 3600; }
+
+        virtual tuple<bool, SocialConsensusResult> ValidateDoubleName(shared_ptr<User> tx)
         {
-            // TODO (brangr): implement
-            // if (g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("name", CondEq, _name).Not().Where("address", CondEq, _address).Where("block", CondLt, height)) > 0) {
-            //     result = ANTIBOTRESULT::NicknameDouble;
-            //     return false;
-            // }
+            if (ConsensusRepoInst.ExistsAnotherByName(*tx->GetAddress(), *tx->GetPayloadName()))
+                return make_tuple(false, SocialConsensusResult_NicknameDouble);
         }
 
-        virtual tuple<bool, SocialConsensusResult> CheckEditProfileLimit(shared_ptr<User> tx)
+        virtual bool ValidateEditProfileLimit(shared_ptr<User> tx, shared_ptr<User> prevTx)
         {
-            // TODO (brangr): мы должны убедить что последнее редактирование было в пределах N секунд или блоков
-            // нужна перегрузка
-            // также для совместимости со старой логикой все транзакции редактирования профиля не должны
-            // содержать поле реферрера
-
-            // reindexer::Item userItm;
-            // if (g_pocketdb->SelectOne(
-            //                 reindexer::Query("UsersView")
-            //                     .Where("address", CondEq, _address)
-            //                     .Where("block", CondLt, height),
-            //                 userItm)
-            //         .ok()) {
-            //     if (!_address_referrer.empty()) {
-            //         result = ANTIBOTRESULT::ReferrerAfterRegistration;
-            //         return false;
-            //     }
-
-            //     auto userUpdateTime = userItm["time"].As<int64_t>();
-            //     if (_time - userUpdateTime <= GetActualLimit(Limit::change_info_timeout, height)) {
-            //         result = ANTIBOTRESULT::ChangeInfoLimit;
-            //         return false;
-            //     }
-            // }
+            return (*tx->GetTime() - *prevTx->GetTime()) > GetChangeInfoTimeout();
         }
 
-        virtual tuple<bool, SocialConsensusResult> CheckEditProfileBlockLimit(shared_ptr<User> tx, PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditProfileLimit(shared_ptr<User> tx)
+        {
+            auto[lastModifyOk, prevTx] = ConsensusRepoInst.GetLastAccountTransaction(*tx->GetAddress());
+            if (!lastModifyOk)
+                return make_tuple(false, SocialConsensusResult_Failed);
+
+            // First user account transaction allowe without next checks
+            if (prevTx == nullptr)
+                return make_tuple(true, SocialConsensusResult_Success);
+
+            // For edit user profile referrer not allowed
+            if (tx->GetReferrerAddress() != nullptr)
+                return make_tuple(false, SocialConsensusResult_ReferrerAfterRegistration);
+
+            // We allowe edit profile only with delay
+            if (!ValidateEditProfileLimit(tx, static_pointer_cast<User>(prevTx)))
+                return make_tuple(false, SocialConsensusResult_ChangeInfoLimit);
+
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
+
+        virtual tuple<bool, SocialConsensusResult> ValidateEditProfileBlockLimit(shared_ptr<User> tx, PocketBlock& block)
         {
             // TODO (brangr): Need?
             // по идее мемпул лежит в базе на равне с остальными транзакциями
@@ -100,24 +98,22 @@ namespace PocketConsensus
 
         }
 
-    public:
-        UserConsensus(int height) : SocialBaseConsensus(height) {}
-        UserConsensus() : SocialBaseConsensus() {}
-
+        // Check chain consensus rules
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<User> tx, PocketBlock& block)
         {
-            if (auto[ok, result] = CheckDoubleName(tx); !ok)
+            if (auto[ok, result] = ValidateDoubleName(tx); !ok)
                 return make_tuple(false, result);
 
-            if (auto[ok, result] = CheckDoubleName(tx); !ok)
+            if (auto[ok, result] = ValidateEditProfileLimit(tx); !ok)
                 return make_tuple(false, result);
             
-            if (auto[ok, result] = CheckDoubleName(tx); !ok)
+            if (auto[ok, result] = ValidateEditProfileBlockLimit(tx, block); !ok)
                 return make_tuple(false, result);
 
             return make_tuple(true, SocialConsensusResult_Success);
         }
 
+        // Check base rules
         tuple<bool, SocialConsensusResult> Check(shared_ptr<User> tx)
         {
             // TODO (brangr): implement for users
@@ -136,28 +132,61 @@ namespace PocketConsensus
             //     return false;
             // }
         }
+        
+    public:
+        UserConsensus(int height) : SocialBaseConsensus(height) {}
+        UserConsensus() : SocialBaseConsensus() {}
+
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
+        {
+            return Validate(static_pointer_cast<User>(tx), block);
+        }
+
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
+        {
+            return Check(static_pointer_cast<User>(tx));
+        }
+        
 
     };
 
     /*******************************************************************************************************************
     *
-    *  Start checkpoint
+    *  Start checkpoint at 1180000 block
     *
     *******************************************************************************************************************/
-    class UserConsensus_checkpoint_1 : public UserConsensus
+    class UserConsensus_checkpoint_1180000 : public UserConsensus
     {
     protected:
-        int CheckpointHeight() override { return 1; }
+        int CheckpointHeight() override { return 1180000; }
 
+        virtual bool ValidateEditProfileLimit(shared_ptr<User> tx, shared_ptr<User> prevTx)
+        {
+            return (*tx->GetHeight() - *prevTx->GetHeight()) > GetChangeInfoTimeout();
+        }
+
+    public:
+        UserConsensus_checkpoint_1180000(int height) : UserConsensus(height) {}
+    };
+
+    /*******************************************************************************************************************
+    *
+    *  Start checkpoint at ?? block
+    *
+    *******************************************************************************************************************/
+    class UserConsensus_checkpoint_ : public UserConsensus
+    {
+    protected:
+        int CheckpointHeight() override { return 0; }
+
+        // Starting from this block, we disable the uniqueness of Name
         virtual tuple<bool, SocialConsensusResult> CheckDoubleName(shared_ptr<User> tx)
         {
             return make_tuple(true, SocialConsensusResult_Success);
         }
 
     public:
-
-        UserConsensus_checkpoint_1(int height) : UserConsensus(height) {}
-
+        UserConsensus_checkpoint_(int height) : UserConsensus(height) {}
     };
 
     /*******************************************************************************************************************
@@ -170,7 +199,8 @@ namespace PocketConsensus
     private:
         static inline const std::map<int, std::function<UserConsensus*(int height)>> m_rules =
         {
-            {0, [](int height) { return new UserConsensus(height); }},
+            {1180000, [](int height) { return new UserConsensus(height); }},
+            {0,       [](int height) { return new UserConsensus(height); }},
         };
     public:
         shared_ptr <UserConsensus> Instance(int height)

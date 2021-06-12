@@ -53,6 +53,9 @@ namespace PocketTx
         shared_ptr<int64_t> GetTime() const { return m_time; }
         void SetTime(int64_t value) { m_time = make_shared<int64_t>(value); }
 
+        shared_ptr<int> GetHeight() const { return m_height; }
+        void SetHeight(int value) { m_height = make_shared<int>(value); }
+
         shared_ptr<string> GetString1() const { return m_string1; }
         void SetString1(string value) { m_string1 = make_shared<string>(value); }
 
@@ -70,6 +73,9 @@ namespace PocketTx
 
         shared_ptr<int64_t> GetInt1() const { return m_int1; }
         void SetInt1(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+
+        shared_ptr<int64_t> GetId() const { return m_id; }
+        void SetId(int64_t value) { m_id = make_shared<int64_t>(value); }
 
         vector<shared_ptr<TransactionOutput>>& Outputs() { return m_outputs; }
 
@@ -89,8 +95,7 @@ namespace PocketTx
 
         shared_ptr<PocketTxType> m_type = nullptr;
         shared_ptr<string> m_hash = nullptr;
-        shared_ptr<int64_t> m_height = nullptr;
-        shared_ptr<int64_t> m_number = nullptr;
+        shared_ptr<int> m_height = nullptr;
         shared_ptr<int64_t> m_time = nullptr;
 
         shared_ptr<string> m_string1 = nullptr;
@@ -99,6 +104,7 @@ namespace PocketTx
         shared_ptr<string> m_string4 = nullptr;
         shared_ptr<string> m_string5 = nullptr;
 
+        shared_ptr<int64_t> m_id = nullptr;
         shared_ptr<int64_t> m_int1 = nullptr;
 
         shared_ptr<Payload> m_payload = nullptr;

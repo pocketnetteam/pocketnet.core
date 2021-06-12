@@ -59,6 +59,7 @@ namespace PocketDb
         }
 
         // Top addresses info
+        // TODO (brangr): move to WebRepository
         tuple<bool, shared_ptr<ListDto<AddressInfoDto>>> GetAddressInfo(int count)
         {
             shared_ptr<ListDto<AddressInfoDto>> result = make_shared<ListDto<AddressInfoDto>>();
@@ -97,6 +98,7 @@ namespace PocketDb
         }
 
         // Selects for get models data
+        // TODO (brangr): move to ConsensusRepository
         tuple<bool, shared_ptr<ScoreDataDto>> GetScoreData(const string& txHash)
         {
             shared_ptr<ScoreDataDto> result = make_shared<ScoreDataDto>();
@@ -163,6 +165,7 @@ namespace PocketDb
         }
 
         // Select many referrers
+        // TODO (brangr): move to ConsensusRepository
         tuple<bool, shared_ptr<map<string, string>>> GetReferrers(const vector<string>& addresses, int minHeight)
         {
             shared_ptr<map<string, string>> result = make_shared<map<string, string>>();
@@ -215,6 +218,7 @@ namespace PocketDb
         }
 
         // Select referrer for one account
+        // TODO (brangr): move to ConsensusRepository
         tuple<bool, string> GetReferrer(const string& address, int minTime)
         {
             tuple<bool, string> result = make_tuple(false, "");
@@ -260,13 +264,13 @@ namespace PocketDb
             string sql;
             if (!includePayload) {
                 sql = R"sql(
-                    SELECT Type, Hash, Time, String1, String2, String3, String4, String5, Int1
+                    SELECT t.Type, t.Hash, t.Time, t.Height, t.Id, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1
                     FROM Transactions t
                     WHERE 1 = 1
                 )sql";
             } else {
                 sql = R"sql(
-                    SELECT  t.Type, t.Hash, t.Time, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1,
+                    SELECT  t.Type, t.Hash, t.Time, t.Height, t.Id, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1,
                         p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
                     FROM Transactions t
                     LEFT JOIN Payload p on t.Hash = p.TxHash
@@ -310,7 +314,7 @@ namespace PocketDb
             if (!includePayload)
             {
                 sql = R"sql(
-                    SELECT Type, Hash, Time, String1, String2, String3, String4, String5, Int1
+                    SELECT t.Type, t.Hash, t.Time, t.Height, t.Id, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1
                     FROM Transactions t
                     WHERE Height = ?
                 )sql";
@@ -318,7 +322,7 @@ namespace PocketDb
             else
             {
                 sql = R"sql(
-                    SELECT  t.Type, t.Hash, t.Time, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1,
+                    SELECT  t.Type, t.Hash, t.Time, t.Height, t.Id, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1,
                         p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
                     FROM Transactions t
                     LEFT JOIN Payload p on t.Hash = p.TxHash
@@ -461,6 +465,7 @@ namespace PocketDb
             LogPrint(BCLog::SYNC, "  - Insert Model body %s : %d\n", *ptx->GetHash(), *ptx->GetType());
         }
 
+    protected:
         tuple<bool, shared_ptr<Transaction>> CreateTransactionFromListRow(const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
         {
             auto txType = static_cast<PocketTxType>(GetColumnInt(*stmt, 0));
@@ -473,12 +478,14 @@ namespace PocketDb
                 return make_tuple(false, nullptr);
             }
 
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok) ptx->SetString1(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) ptx->SetString2(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 5); ok) ptx->SetString3(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) ptx->SetString4(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) ptx->SetString5(valueStr);
-            if (auto[ok, valueInt] = TryGetColumnInt(*stmt, 8); ok) ptx->SetInt1(valueInt);
+            if (auto[ok, valueInt] = TryGetColumnInt(*stmt, 3); ok) ptx->SetHeight(valueInt);
+            if (auto[ok, valueInt] = TryGetColumnInt64(*stmt, 4); ok) ptx->SetId(valueInt);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 5); ok) ptx->SetString1(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) ptx->SetString2(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) ptx->SetString3(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 8); ok) ptx->SetString4(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) ptx->SetString5(valueStr);
+            if (auto[ok, valueInt] = TryGetColumnInt64(*stmt, 10); ok) ptx->SetInt1(valueInt);
 
             if (!includedPayload)
             {
@@ -486,19 +493,20 @@ namespace PocketDb
             }
 
             auto payload = Payload();
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) payload.SetTxHash(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 10); ok) payload.SetString1(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 11); ok) payload.SetString2(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 12); ok) payload.SetString3(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 13); ok) payload.SetString4(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 14); ok) payload.SetString5(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 15); ok) payload.SetString6(valueStr);
-            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 16); ok) payload.SetString7(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 11); ok) payload.SetTxHash(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 12); ok) payload.SetString1(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 13); ok) payload.SetString2(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 14); ok) payload.SetString3(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 15); ok) payload.SetString4(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 16); ok) payload.SetString5(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 17); ok) payload.SetString6(valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 18); ok) payload.SetString7(valueStr);
 
             ptx->SetPayload(payload);
 
             return make_tuple(true, ptx);
         }
+
     };
 
 } // namespace PocketDb

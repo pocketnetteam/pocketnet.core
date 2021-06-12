@@ -95,6 +95,7 @@ POCKETDB_HPP = \
     pocketdb/pocketnet.cpp \
     pocketdb/consensus.h \
     pocketdb/consensus.cpp \
+    pocketdb/migrations/main.hpp \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/helpers/TransactionHelper.hpp \
     pocketdb/helpers/TypesHelper.hpp \
@@ -105,6 +106,8 @@ POCKETDB_HPP = \
     pocketdb/repositories/WebRepository.h \
     pocketdb/repositories/WebRepository.cpp \
     pocketdb/repositories/ChainRepository.hpp \
+    pocketdb/repositories/ConsensusRepository.h \
+    pocketdb/repositories/ConsensusRepository.cpp \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Lottery.hpp \
     pocketdb/consensus/social/Helper.hpp \

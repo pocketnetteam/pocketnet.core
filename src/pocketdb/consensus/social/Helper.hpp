@@ -8,7 +8,6 @@
 #define POCKETCONSENSUS_SOCIAL_HPP
 
 #include "pocketdb/models/base/Transaction.hpp"
-
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/consensus/social/User.hpp"
 #include "pocketdb/consensus/social/Video.hpp"
@@ -39,22 +38,19 @@ namespace PocketConsensus
     class SocialConsensusHelper
     {
     public:
-        // All social models
+        
+        // Проверяет все консенсусные правила относительно генерируемой цепи
         static bool Validate(PocketBlock& pBlock, int height)
         {
             for (auto tx : pBlock)
             {
+                shared_ptr<SocialBaseConsensus> consensus;
+
                 switch (*tx->GetType())
                 {
                     case ACCOUNT_USER:
-                    {
-                        auto ptx = std::static_pointer_cast<User>(tx);
-                        if (auto[ok, result] = PocketConsensus::UserConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::UserConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case ACCOUNT_VIDEO_SERVER:
                         // TODO (brangr): implement
                         continue;
@@ -62,14 +58,8 @@ namespace PocketConsensus
                         // TODO (brangr): implement
                         continue;
                     case CONTENT_POST:
-                    {
-                        auto ptx = std::static_pointer_cast<Post>(tx);
-                        if (auto[ok, result] = PocketConsensus::PostConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::PostConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case CONTENT_VIDEO:
                         // TODO (brangr): implement
                         continue;
@@ -80,102 +70,56 @@ namespace PocketConsensus
                         // TODO (brangr): implement
                         continue;
                     case CONTENT_COMMENT:
-                    {
-                        auto ptx = std::static_pointer_cast<Comment>(tx);
-                        if (auto[ok, result] = PocketConsensus::CommentConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::CommentConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case CONTENT_COMMENT_DELETE:
-                    {
-                        auto ptx = std::static_pointer_cast<CommentDelete>(tx);
-                        if (auto[ok, result] = PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case ACTION_SCORE_POST:
-                    {
-                        auto ptx = std::static_pointer_cast<ScorePost>(tx);
-                        if (auto[ok, result] = PocketConsensus::ScorePostConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::ScorePostConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case ACTION_SCORE_COMMENT:
-                    {
-                        auto ptx = std::static_pointer_cast<ScoreComment>(tx);
-                        if (auto[ok, result] = PocketConsensus::ScoreCommentConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::ScoreCommentConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case ACTION_SUBSCRIBE:
-                    {
-                        auto ptx = std::static_pointer_cast<Subscribe>(tx);
-                        if (auto[ok, result] = PocketConsensus::SubscribeConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::SubscribeConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case ACTION_SUBSCRIBE_PRIVATE:
-                    {
-                        auto ptx = std::static_pointer_cast<SubscribePrivate>(tx);
-                        if (auto[ok, result] = PocketConsensus::SubscribePrivateConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::SubscribePrivateConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case ACTION_SUBSCRIBE_CANCEL:
-                    {
-                        auto ptx = std::static_pointer_cast<SubscribeCancel>(tx);
-                        if (auto[ok, result] = PocketConsensus::SubscribeCancelConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::SubscribeCancelConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case ACTION_BLOCKING:
-                    {
-                        auto ptx = std::static_pointer_cast<Blocking>(tx);
-                        if (auto[ok, result] = PocketConsensus::BlockingConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::BlockingConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case ACTION_BLOCKING_CANCEL:
-                    {
-                        auto ptx = std::static_pointer_cast<BlockingCancel>(tx);
-                        if (auto[ok, result] = PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     case ACTION_COMPLAIN:
-                    {
-                        auto ptx = std::static_pointer_cast<Complain>(tx);
-                        if (auto[ok, result] = PocketConsensus::ComplainConsensusFactoryInst.Instance(height)->Validate(ptx, pBlock); !ok) {
-                            LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
-                            return false;
-                        }
+                        consensus = PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
                         break;
-                    }
                     default:
                         continue;
                 }
+
+                if (auto[ok, result] = consensus->Validate(tx, pBlock); !ok)
+                {
+                    LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
+                    return false;
+                }
             }
-        
+
             return true;
         }
+    
+        // Проверяет общие правила для транзакций без привязки к цепи
+        static bool Check(PocketBlock& pBlock)
+        {
+            // todo (brangr): impletment
+            return true;
+        }
+
     };
 }
 

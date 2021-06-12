@@ -4,94 +4,91 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "ConsensusRepository.h"
+#include "pocketdb/repositories/ConsensusRepository.h"
 
-namespace PocketDb {
+namespace PocketDb
+{
     void ConsensusRepository::Init() {}
     void ConsensusRepository::Destroy() {}
 
-    UniValue ConsensusRepository::GetLastComments(int count, int height, std::string lang)
+    bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
     {
-        auto sql = R"sql(
-            WITH RowIds AS (
-                SELECT MAX(RowId) as RowId
-                FROM vComments c
-                INNER JOIN Payload pl ON pl.TxHash = c.PostTxHash
-                WHERE c.Height <= ?
-                AND c.Time < ?
-                AND pl.String1 = ?
-                GROUP BY Id
-                )
-            SELECT t.Hash,
-                   t.RootTxHash,
-                   t.PostTxHash,
-                   t.AddressHash,
-                   t.Time,
-                   t.Height,
-                   t.ParentTxHash,
-                   t.AnswerTxHash,
-                   (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = t.Hash  AND sc.Value = 1) as ScoreUp,
-                   (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = t.Hash  AND sc.Value = -1) as ScoreDown,
-                   (SELECT r.Value FROM Ratings r WHERE r.Id = t.Id  AND r.Type = 3) as Reputation,
-                   pl.String2 AS Msg
-            FROM vComments t
-            INNER JOIN RowIds rid on t.RowId = rid.RowId
-            INNER JOIN Payload pl ON pl.TxHash = t.PostTxHash
-            ORDER BY Height desc, Time desc
-            LIMIT ?;
-        )sql";
-
-        auto result = UniValue(UniValue::VARR);
         auto funcName = __func__;
 
-        auto tryResult = TryTransactionStep([&]() {
-            auto stmt = SetupSqlStatement(sql);
-            auto bindResult = TryBindStatementInt(stmt, 1, height);
-            bindResult &= TryBindStatementInt64(stmt, 2, GetAdjustedTime());
-            bindResult &= TryBindStatementText(stmt, 3, make_shared<std::string>(lang.empty() ? "en" : lang));
-            bindResult &= TryBindStatementInt(stmt, 4, count);
+        auto sql = R"sql(
+            SELECT 1
+            FROM vAccountsPayload ap
+            WHERE ap.Name = ?
+            and not exists (
+                select 1
+                from vAccounts ac
+                where ac.Hash = ap.TxHash
+                  and ac.AddressHash = ?
+            )
+        )sql";
 
+        return TryTransactionStep([&]() {
+            auto stmt = SetupSqlStatement(sql);
+
+            auto bindResult = TryBindStatementText(stmt, 1, name);
+            bindResult &= TryBindStatementText(stmt, 2, address);
             if (!bindResult) {
                 FinalizeSqlStatement(*stmt);
-                throw runtime_error(strprintf("%s: can't get last comments (bind out)\n", funcName));
+                throw runtime_error(strprintf("%s: bind error\n", funcName));
             }
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW) {
-                UniValue record(UniValue::VOBJ);
+            bool result = sqlite3_step(*stmt) == SQLITE_ROW;
+            FinalizeSqlStatement(*stmt);
+            return result;
+        });
+    }
 
-                auto txHash = GetColumnString(*stmt, 0);
-                auto rootTxHash = GetColumnString(*stmt, 1);
+    // Select all user profile edit transaction in chain
+    // Transactions.Height is not null
+    // TODO (brangr): change vUser to vAccounts and pass argument type
+    tuple<bool, shared_ptr<Transaction>> ConsensusRepository::GetLastAccountTransaction(const string& address)
+    {
+        auto funcName = __func__;
+        shared_ptr<Transaction> tx;
 
-                record.pushKV("id", rootTxHash);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("postid", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("address", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("timeUpd", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("block", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("parentid", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("answerid", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreUp", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("scoreDown", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 10); ok) record.pushKV("reputation", valueStr);
+        auto sql = R"sql(
+            SELECT u.Type, u.Hash, u.Time, u.Height, u.AddressHash, u.ReferrerAddressHash, u.String3, u.String4, u.String5, u.Int1,
+                p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
+            FROM vUsers u
+            LEFT JOIN Payload p on p.TxHash = u.Hash
+            WHERE u.AddressHash = ?
+            order by u.Height desc
+            limit 1
+        )sql";
 
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 11); ok) {
-                    record.pushKV("msg", valueStr);
-                    record.pushKV("deleted", false);
-                } else {
-                    record.pushKV("msg", "");
-                    record.pushKV("deleted", true);
-                }
+        bool tryResult = TryTransactionStep([&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
 
-                record.pushKV("edit", txHash != rootTxHash); //TODO (joni) (brangr): тут может быть разрулим типом транзакции
-
-
-                result.push_back(record);
+            auto bindResult = TryBindStatementText(stmt, 1, address);
+            if (!bindResult)
+            {
+                FinalizeSqlStatement(*stmt);
+                throw runtime_error(strprintf("%s bind failed\n", funcName));
             }
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
+                    tx = transaction;
 
             FinalizeSqlStatement(*stmt);
             return true;
         });
 
-        return result;
+        return make_tuple(tryResult,tx);
     }
+
+
+
+
+
+
+
+
+
 }

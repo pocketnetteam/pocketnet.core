@@ -56,6 +56,9 @@ namespace PocketTx
         shared_ptr <string> GetReferrerAddress() const { return m_string2; }
         void SetReferrerAddress(std::string value) { m_string2 = make_shared<string>(value); }
 
+        // Payload getters
+        shared_ptr <string> GetPayloadName() const { return Transaction::GetPayload()->GetString2(); }
+
     protected:
 
     private:

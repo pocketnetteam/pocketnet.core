@@ -23,10 +23,11 @@ namespace PocketConsensus
     protected:
     public:
         VideoConsensus(int height) : SocialBaseConsensus(height) {}
+        VideoConsensus() : SocialBaseConsensus() {}
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
         {
-            
+            return make_tuple(true, SocialConsensusResult_Success);
         }
     };
 

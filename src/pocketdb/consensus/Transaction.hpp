@@ -35,7 +35,7 @@ namespace PocketConsensus
 
             
 
-
+            return true;
         }
     };
 
