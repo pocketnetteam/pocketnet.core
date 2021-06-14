@@ -30,30 +30,20 @@ namespace PocketDb
 
         // Update transactions set block hash & height
         // Also spent outputs
-        bool UpdateHeight(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
+        void UpdateHeight(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
         {
             for (const auto& tx : txs)
             {
                 int64_t nTime1 = GetTimeMicros();
 
                 // All transactions must have a blockHash & height relation
-                if (!UpdateTransactionHeight(blockHash, height, tx.Hash))
-                {
-                    LogPrintf("UpdateHeight::UpdateTransactionHeight failed for block:%s height:%d tx:%s\n",
-                        blockHash, height, tx.Hash);
-                    return false;
-                }
+                UpdateTransactionHeight(blockHash, height, tx.Hash);
 
                 int64_t nTime2 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "      - UpdateTransactionHeight: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
                 // The outputs are needed for the explorer
-                if (!UpdateTransactionOutputs(blockHash, height, tx.Inputs))
-                {
-                    LogPrintf("UpdateHeight::UpdateTransactionOutputs failed for block:%s height:%d tx:%s\n",
-                        blockHash, height, tx.Hash);
-                    return false;
-                }
+                UpdateTransactionOutputs(blockHash, height, tx.Inputs);
 
                 int64_t nTime3 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms\n", 0.001 * (nTime3 - nTime2));
@@ -63,12 +53,7 @@ namespace PocketDb
                     tx.Type == PocketTxType::ACCOUNT_VIDEO_SERVER ||
                     tx.Type == PocketTxType::ACCOUNT_MESSAGE_SERVER)
                 {
-                    if (!SetAccountId(tx.Hash))
-                    {
-                        LogPrintf("UpdateHeight::SetAccountId failed for block:%s height:%d tx:%s\n",
-                            blockHash, height, tx.Hash);
-                        return false;
-                    }
+                    SetAccountId(tx.Hash);
 
                     int64_t nTime4 = GetTimeMicros();
                     LogPrint(BCLog::BENCH, "      - SetAccountId: %.2fms\n", 0.001 * (nTime4 - nTime3));
@@ -80,30 +65,22 @@ namespace PocketDb
                     tx.Type == PocketTxType::CONTENT_VIDEO ||
                     tx.Type == PocketTxType::CONTENT_TRANSLATE)
                 {
-                    if (!SetContentId(tx.Hash))
-                    {
-                        LogPrintf("UpdateHeight::SetContentId failed for block:%s height:%d tx:%s\n",
-                            blockHash, height, tx.Hash);
-                        return false;
-                    }
+                    SetContentId(tx.Hash);
 
                     int64_t nTime4 = GetTimeMicros();
                     LogPrint(BCLog::BENCH, "      - SetContentId: %.2fms\n", 0.001 * (nTime4 - nTime3));
                 }
             }
-
-            return true;
         }
 
         // Erase all calculated data great or equals block
-        bool RollbackBlock(int height)
+        void RollbackBlock(int height)
         {
-            bool result = true;
-
+            auto funcName = __func__;
             int64_t nTime1 = GetTimeMicros();
 
             // Update transactions
-            result &= TryTransactionStep([&]()
+            TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(R"sql(
                     UPDATE Transactions SET
@@ -113,14 +90,15 @@ namespace PocketDb
                     WHERE Height is not null and Height >= ?
                 )sql");
 
-                return TryBindStatementInt(stmt, 1, height) && TryStepStatement(stmt);
+                TryBindStatementInt(stmt, 1, height);
+                TryStepStatement(stmt);
             });
 
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - RollbackBlock (Chain): %.2fms\n", 0.001 * (nTime2 - nTime1));
 
             // Update transaction outputs
-            result &= TryTransactionStep([&]()
+            TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(R"sql(
                     UPDATE TxOutputs SET
@@ -129,140 +107,144 @@ namespace PocketDb
                     WHERE SpentHeight is not null and SpentHeight >= ?
                 )sql");
 
-                return TryBindStatementInt(stmt, 1, height) && TryStepStatement(stmt);
+                TryBindStatementInt(stmt, 1, height);
+                TryStepStatement(stmt);
             });
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - RollbackBlock (Outputs): %.2fms\n", 0.001 * (nTime3 - nTime2));
 
             // Remove ratings
-            result &= TryTransactionStep([&]()
+            TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(R"sql(
                     DELETE FROM Ratings
                     WHERE Height >= ?
                 )sql");
 
-                return TryBindStatementInt(stmt, 1, height) && TryStepStatement(stmt);
+                TryBindStatementInt(stmt, 1, height);
+                TryStepStatement(stmt);
             });
 
             int64_t nTime4 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - RollbackBlock (Ratings): %.2fms\n", 0.001 * (nTime4 - nTime3));
-
-            return result;
         }
 
     private:
 
-        bool UpdateTransactionHeight(const string& blockHash, int height, const string& txHash)
+        void UpdateTransactionHeight(const string& blockHash, int height, const string& txHash)
         {
-            return TryTransactionStep([&]()
+            auto sql = R"sql(
+                UPDATE Transactions SET
+                    BlockHash=?,
+                    Height=?
+                WHERE Hash=?
+            )sql";
+
+            TryTransactionStep([&]()
             {
-                auto stmt = SetupSqlStatement(R"sql(
-                    UPDATE Transactions SET
-                        BlockHash=?,
-                        Height=?
-                    WHERE Hash=?
-                )sql");
+                auto stmt = SetupSqlStatement(sql);
 
-                auto result = TryBindStatementText(stmt, 1, blockHash);
-                result &= TryBindStatementInt(stmt, 2, height);
-                result &= TryBindStatementText(stmt, 3, txHash);
+                TryBindStatementText(stmt, 1, blockHash);
+                TryBindStatementInt(stmt, 2, height);
+                TryBindStatementText(stmt, 3, txHash);
 
-                return result && TryStepStatement(stmt);
+                TryStepStatement(stmt);
             });
         }
 
-        bool UpdateTransactionOutputs(const string& txHash, int height, const map<string, int>& outputs)
+        void UpdateTransactionOutputs(const string& txHash, int height, const map<string, int>& outputs)
         {
-            return TryTransactionStep([&]()
-            {
-                bool result = true;
+            auto sql = R"sql(
+                UPDATE TxOutputs SET
+                    SpentHeight=?,
+                    SpentTxHash=?
+                WHERE TxHash=? and Number=?
+            )sql";
 
+            TryTransactionStep([&]()
+            {
                 for (auto& out : outputs)
                 {
-                    auto stmt = SetupSqlStatement(R"sql(
-                        UPDATE TxOutputs SET
-                            SpentHeight=?,
-                            SpentTxHash=?
-                        WHERE TxHash=? and Number=?
-                    )sql");
+                    auto stmt = SetupSqlStatement(sql);
 
-                    result &= TryBindStatementInt(stmt, 1, height);
-                    result &= TryBindStatementText(stmt, 2, txHash);
-                    result &= TryBindStatementText(stmt, 3, out.first);
-                    result &= TryBindStatementInt(stmt, 4, out.second);
+                    TryBindStatementInt(stmt, 1, height);
+                    TryBindStatementText(stmt, 2, txHash);
+                    TryBindStatementText(stmt, 3, out.first);
+                    TryBindStatementInt(stmt, 4, out.second);
 
-                    result &= TryStepStatement(stmt);
+                    TryStepStatement(stmt);
                 }
-
-                return result;
             });
         }
 
-        bool SetAccountId(const string& txHash)
+        void SetAccountId(const string& txHash)
         {
-            return TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    UPDATE Transactions SET
-                        Id = ifnull(
-                            -- copy self Id
+            auto sql = R"sql(
+                UPDATE Transactions SET
+                    Id = ifnull(
+                        -- copy self Id
+                        (
+                            select max( u.Id )
+                            from Transactions u
+                            where u.Type = Transactions.Type
+                                and u.String1 = Transactions.String1
+                                and u.Height is not null
+                        ),
+                        ifnull(
+                            -- new record
                             (
-                                select max( u.Id )
+                                select max( u.Id ) + 1
                                 from Transactions u
                                 where u.Type = Transactions.Type
-                                    and u.String1 = Transactions.String1
                                     and u.Height is not null
+                                    and u.Id is not null
                             ),
-                            ifnull(
-                                -- new record
-                                (
-                                    select max( u.Id ) + 1
-                                    from Transactions u
-                                    where u.Type = Transactions.Type
-                                        and u.Height is not null
-                                        and u.Id is not null
-                                ),
-                                0 -- for first record
-                            )
+                            0 -- for first record
                         )
-                    WHERE Hash = ?
-                )sql");
+                    )
+                WHERE Hash = ?
+            )sql";
 
-                return TryBindStatementText(stmt, 1, txHash) && TryStepStatement(stmt);
+            TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(sql);
+                TryBindStatementText(stmt, 1, txHash);
+                TryStepStatement(stmt);
             });
         }
 
-        bool SetContentId(const string& txHash)
+        void SetContentId(const string& txHash)
         {
-            return TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    UPDATE Transactions SET
-                        Id = case
-                            -- String2 (RootTxHash) empty - new content record
-                            when Transactions.String2 is null then
-                                ifnull(
-                                    (select max(c.Id) + 1
-                                     from vContents c
-                                     where c.Type = Transactions.Type
-                                       and c.Id is not null)
-                                , 0)
-                            -- String2 (RootTxHash) not empty - edited content record
-                            else
-                                ifnull(
-                                    (select max(c.Id)
-                                     from vContents c
-                                     where c.Type = Transactions.Type
-                                       and c.Hash = Transactions.String2
-                                       and c.Id is not null)
-                                , 0)
-                        end
-                    WHERE Hash = ?
-                )sql");
+            auto sql = R"sql(
+                UPDATE Transactions SET
+                    Id = case
+                        -- String2 (RootTxHash) empty - new content record
+                        when Transactions.String2 is null then
+                            ifnull(
+                                (select max(c.Id) + 1
+                                 from vContents c
+                                 where c.Type = Transactions.Type
+                                   and c.Id is not null)
+                            , 0)
+                        -- String2 (RootTxHash) not empty - edited content record
+                        else
+                            ifnull(
+                                (select max(c.Id)
+                                 from vContents c
+                                 where c.Type = Transactions.Type
+                                   and c.Hash = Transactions.String2
+                                   and c.Id is not null)
+                            , 0)
+                    end
+                WHERE Hash = ?
+            )sql";
 
-                return TryBindStatementText(stmt, 1, txHash) && TryStepStatement(stmt);
+            TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(sql);
+                TryBindStatementText(stmt, 1, txHash);
+                TryStepStatement(stmt);
             });
         }
 

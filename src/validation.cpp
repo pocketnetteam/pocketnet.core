@@ -2494,7 +2494,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // TODO (brangr): build vector of Transactions !!!!!!!!!!!!!!!!!!!!!!
 
     if (!PocketConsensus::SocialConsensusHelper::Validate(PocketBlock, pindex->nHeight))
-        return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted? Try relaunch with -reindex"));
+        return state.DoS(100, error(
+            "ConnectBlock() : failed check social consensus - maybe database corrupted? Try relaunch with -reindex"));
 
     int64_t nTime5 = GetTimeMicros();
     nTimeVerify += nTime5 - nTime4;
@@ -4885,7 +4886,17 @@ bool ProcessNewBlock(CValidationState& state,
 
         // Store pocketnet block to disk
         if (ret)
-            ret = PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+        {
+            try
+            {
+                PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+            }
+            catch (const std::exception& e)
+            {
+                LogPrintf("Error: ProcessNewBlock (%s) - %s\n", pblock->GetHash().GetHex(), e.what());
+                ret = false;
+            }
+        }
 
         int64_t nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;

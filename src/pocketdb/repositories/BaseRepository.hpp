@@ -33,15 +33,15 @@ namespace PocketDb
         // General method for SQL operations
         // Locked with shutdownMutex
         template<typename T>
-        bool TryTransactionStep(T sql)
+        void TryTransactionStep(T sql)
         {
             if (ShutdownRequested())
-                return false;
+                return;
 
             LOCK(SqliteShutdownMutex);
-            
+
             if (!m_database.BeginTransaction())
-                return false;
+                return;
 
             try
             {
@@ -54,18 +54,20 @@ namespace PocketDb
             {
                 LogPrintf("Transaction error: %s\n", ex.what());
                 m_database.AbortTransaction();
-                return false;
+                throw ex;
             }
-
-            return true;
         }
 
 
-        bool TryStepStatement(shared_ptr<sqlite3_stmt*>& stmt)
+        void TryStepStatement(shared_ptr<sqlite3_stmt*>& stmt)
         {
             int res = sqlite3_step(*stmt);
             FinalizeSqlStatement(*stmt);
-            return !(res != SQLITE_ROW && res != SQLITE_DONE);
+
+            if (res != SQLITE_ROW && res != SQLITE_DONE)
+            {
+                throw std::runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
+            }
         }
 
         bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, shared_ptr<std::string> value)
@@ -153,8 +155,8 @@ namespace PocketDb
         tuple<bool, std::string> TryGetColumnString(sqlite3_stmt* stmt, int index)
         {
             return sqlite3_column_type(stmt, index) == SQLITE_NULL
-               ? make_tuple(false, "")
-               : make_tuple(true, std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, index))));
+                   ? make_tuple(false, "")
+                   : make_tuple(true, std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, index))));
         }
 
         std::string GetColumnString(sqlite3_stmt* stmt, int index)
@@ -165,8 +167,8 @@ namespace PocketDb
         tuple<bool, int64_t> TryGetColumnInt64(sqlite3_stmt* stmt, int index)
         {
             return sqlite3_column_type(stmt, index) == SQLITE_NULL
-               ? make_tuple(false, (int64_t)0)
-               : make_tuple(true, (int64_t)sqlite3_column_int64(stmt, index));
+                   ? make_tuple(false, (int64_t) 0)
+                   : make_tuple(true, (int64_t) sqlite3_column_int64(stmt, index));
         }
 
         int64_t GetColumnInt64(sqlite3_stmt* stmt, int index)
@@ -177,8 +179,8 @@ namespace PocketDb
         tuple<bool, int> TryGetColumnInt(sqlite3_stmt* stmt, int index)
         {
             return sqlite3_column_type(stmt, index) == SQLITE_NULL
-               ? make_tuple(false, 0)
-               : make_tuple(true, sqlite3_column_int(stmt, index));
+                   ? make_tuple(false, 0)
+                   : make_tuple(true, sqlite3_column_int(stmt, index));
         }
 
         int GetColumnInt(sqlite3_stmt* stmt, int index)
