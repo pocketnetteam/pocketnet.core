@@ -77,9 +77,9 @@ namespace PocketConsensus
             // }
 
             auto[ok, existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*tx->GetAddress(), *tx->GetAddressTo(), *tx->GetHeight());
-            if (ok && existsBlocking && blockingType == ACTION_BLOCKING)
+            if (!ok || !existsBlocking || blockingType != ACTION_BLOCKING)
             {
-                return make_tuple(false, SocialConsensusResult_DoubleBlocking);
+                return make_tuple(false, SocialConsensusResult_InvalidBlocking);
             }
 
             return make_tuple(true, SocialConsensusResult_Success);
