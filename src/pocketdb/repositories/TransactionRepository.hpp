@@ -248,12 +248,13 @@ namespace PocketDb
                 )sql";
             }
 
-            // TODO (joni): нельзя так sql составлять - строки без '' не будут работать + инъекции
-            sql += " and t.Hash in ( ";
+            sql += " and t.Hash in ( '";
             sql += txHashes[0];
+            sql += "'";
             for (size_t i = 1; i < txHashes.size(); i++) {
-                sql += ',';
+                sql += ",'";
                 sql += txHashes[i];
+                sql += "'";
             }
             sql += ")";
 
