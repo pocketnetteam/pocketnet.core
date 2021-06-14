@@ -101,13 +101,9 @@ namespace PocketDb
                         and r.Height <= ?
                 )sql");
 
-                auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT_LIKERS);
-                auto heightPtr = make_shared<int>(height);
-                auto addressIdPtr = make_shared<int>(addressId);
-
-                auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
-                bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
-                bindResult &= TryBindStatementInt(stmt, 3, addressIdPtr);
+                auto bindResult = TryBindStatementInt(stmt, 1, (int)RatingType::RATING_ACCOUNT_LIKERS);
+                bindResult &= TryBindStatementInt(stmt, 2, addressId);
+                bindResult &= TryBindStatementInt(stmt, 3, height);
 
                 // not exists - not error
                 if (bindResult && sqlite3_step(*stmt) == SQLITE_ROW)

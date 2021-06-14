@@ -91,10 +91,8 @@ namespace PocketHelpers
             return PocketTxType::ACTION_BLOCKING;
         else if (op == OR_UNBLOCKING)
             return PocketTxType::ACTION_BLOCKING_CANCEL;
-        else if (op == OR_COMMENT || op == OR_COMMENT_EDIT)
+        else if (op == OR_COMMENT || op == OR_COMMENT_EDIT || op == OR_COMMENT_DELETE)
             return PocketTxType::CONTENT_COMMENT;
-        else if (op == OR_COMMENT_DELETE)
-            return PocketTxType::CONTENT_COMMENT_DELETE;
         else if (op == OR_COMMENT_SCORE)
             return PocketTxType::ACTION_SCORE_COMMENT;
 
@@ -203,7 +201,6 @@ namespace PocketHelpers
             return "Posts";
             break;
         case PocketTxType::CONTENT_COMMENT:
-        case PocketTxType::CONTENT_COMMENT_DELETE:
             return "Comment";
             break;
         case PocketTxType::ACTION_SCORE_POST:

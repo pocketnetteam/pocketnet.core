@@ -4,7 +4,6 @@
 #include "pocketdb/consensus/social/Blocking.hpp"
 #include "pocketdb/consensus/social/BlockingCancel.hpp"
 #include "pocketdb/consensus/social/Comment.hpp"
-#include "pocketdb/consensus/social/CommentDelete.hpp"
 #include "pocketdb/consensus/social/Complain.hpp"
 #include "pocketdb/consensus/social/Post.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
@@ -22,7 +21,6 @@ namespace PocketConsensus
     extern BlockingConsensusFactory BlockingConsensusFactoryInst;
     extern BlockingCancelConsensusFactory BlockingCancelConsensusFactoryInst;
     extern CommentConsensusFactory CommentConsensusFactoryInst;
-    extern CommentDeleteConsensusFactory CommentDeleteConsensusFactoryInst;
     extern ComplainConsensusFactory ComplainConsensusFactoryInst;
     extern PostConsensusFactory PostConsensusFactoryInst;
     extern ScoreCommentConsensusFactory ScoreCommentConsensusFactoryInst;

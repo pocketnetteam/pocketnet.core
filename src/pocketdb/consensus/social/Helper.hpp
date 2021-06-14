@@ -72,9 +72,6 @@ namespace PocketConsensus
                     case CONTENT_COMMENT:
                         consensus = PocketConsensus::CommentConsensusFactoryInst.Instance(height);
                         break;
-                    case CONTENT_COMMENT_DELETE:
-                        consensus = PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
-                        break;
                     case ACTION_SCORE_POST:
                         consensus = PocketConsensus::ScorePostConsensusFactoryInst.Instance(height);
                         break;
