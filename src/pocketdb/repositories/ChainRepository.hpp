@@ -98,12 +98,12 @@ namespace PocketDb
         // Erase all calculated data great or equals block
         bool RollbackBlock(int height)
         {
-            auto heightPtr = make_shared<int>(height);
+            bool result = true;
 
             int64_t nTime1 = GetTimeMicros();
 
             // Update transactions
-            if (!TryTransactionStep([&]()
+            result &= TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(R"sql(
                     UPDATE Transactions SET
@@ -113,15 +113,14 @@ namespace PocketDb
                     WHERE Height is not null and Height >= ?
                 )sql");
 
-                return TryBindStatementInt(stmt, 1, heightPtr) && TryStepStatement(stmt);
-            }))
-                return false;
+                return TryBindStatementInt(stmt, 1, height) && TryStepStatement(stmt);
+            });
 
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - RollbackBlock (Chain): %.2fms\n", 0.001 * (nTime2 - nTime1));
 
             // Update transaction outputs
-            if (!TryTransactionStep([&]()
+            result &= TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(R"sql(
                     UPDATE TxOutputs SET
@@ -130,29 +129,27 @@ namespace PocketDb
                     WHERE SpentHeight is not null and SpentHeight >= ?
                 )sql");
 
-                return TryBindStatementInt(stmt, 1, heightPtr) && TryStepStatement(stmt);
-            }))
-                return false;
+                return TryBindStatementInt(stmt, 1, height) && TryStepStatement(stmt);
+            });
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - RollbackBlock (Outputs): %.2fms\n", 0.001 * (nTime3 - nTime2));
 
             // Remove ratings
-            if (!TryTransactionStep([&]()
+            result &= TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(R"sql(
                     DELETE FROM Ratings
                     WHERE Height >= ?
                 )sql");
 
-                return TryBindStatementInt(stmt, 1, heightPtr) && TryStepStatement(stmt);
-            }))
-                return false;
+                return TryBindStatementInt(stmt, 1, height) && TryStepStatement(stmt);
+            });
 
             int64_t nTime4 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - RollbackBlock (Ratings): %.2fms\n", 0.001 * (nTime4 - nTime3));
 
-            return true;
+            return result;
         }
 
     private:
@@ -168,18 +165,11 @@ namespace PocketDb
                     WHERE Hash=?
                 )sql");
 
-                // TODO (joni): replace with TryBind
-                auto blockHashPtr = make_shared<string>(blockHash);
-                auto heightPtr = make_shared<int>(height);
-                auto txHashPtr = make_shared<string>(txHash);
+                auto result = TryBindStatementText(stmt, 1, blockHash);
+                result &= TryBindStatementInt(stmt, 2, height);
+                result &= TryBindStatementText(stmt, 3, txHash);
 
-                auto result = TryBindStatementText(stmt, 1, blockHashPtr);
-                result &= TryBindStatementInt(stmt, 2, heightPtr);
-                result &= TryBindStatementText(stmt, 3, txHashPtr);
-                if (!result)
-                    return false;
-
-                return TryStepStatement(stmt);
+                return result && TryStepStatement(stmt);
             });
         }
 
@@ -187,6 +177,8 @@ namespace PocketDb
         {
             return TryTransactionStep([&]()
             {
+                bool result = true;
+
                 for (auto& out : outputs)
                 {
                     auto stmt = SetupSqlStatement(R"sql(
@@ -196,24 +188,15 @@ namespace PocketDb
                         WHERE TxHash=? and Number=?
                     )sql");
 
-                    // TODO (joni): replace with TryBind
-                    auto spentHeightPtr = make_shared<int>(height);
-                    auto spentTxHashPtr = make_shared<string>(txHash);
-                    auto txHashPtr = make_shared<string>(out.first);
-                    auto numberPtr = make_shared<int>(out.second);
+                    result &= TryBindStatementInt(stmt, 1, height);
+                    result &= TryBindStatementText(stmt, 2, txHash);
+                    result &= TryBindStatementText(stmt, 3, out.first);
+                    result &= TryBindStatementInt(stmt, 4, out.second);
 
-                    auto result = TryBindStatementInt(stmt, 1, spentHeightPtr);
-                    result &= TryBindStatementText(stmt, 2, spentTxHashPtr);
-                    result &= TryBindStatementText(stmt, 3, txHashPtr);
-                    result &= TryBindStatementInt(stmt, 4, numberPtr);
-                    if (!result)
-                        return false;
-
-                    if (!TryStepStatement(stmt))
-                        return false;
+                    result &= TryStepStatement(stmt);
                 }
 
-                return true;
+                return TryStepStatement(stmt);
             });
         }
 
@@ -247,13 +230,7 @@ namespace PocketDb
                     WHERE Hash = ?
                 )sql");
 
-                // TODO (joni): replace with TryBind
-                auto hashPtr = make_shared<string>(txHash);
-                auto result = TryBindStatementText(stmt, 1, hashPtr);
-                if (!result)
-                    return false;
-
-                return TryStepStatement(stmt);
+                return TryBindStatementText(stmt, 1, txHash) && TryStepStatement(stmt);
             });
         }
 
@@ -285,13 +262,7 @@ namespace PocketDb
                     WHERE Hash = ?
                 )sql");
 
-                // TODO (joni): replace with TryBind
-                auto hashPtr = make_shared<string>(txHash);
-                auto result = TryBindStatementText(stmt, 1, hashPtr);
-                if (!result)
-                    return false;
-
-                return TryStepStatement(stmt);
+                return TryBindStatementText(stmt, 1, txHash) && TryStepStatement(stmt);
             });
         }
 
