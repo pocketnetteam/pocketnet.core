@@ -188,7 +188,7 @@ namespace PocketDb
             t.String5
         from Transactions t
         where t.Height is not null
-        and t.Type in (200, 201, 202, 203, 204, 205);
+        and t.Type in (200, 201, 202, 203, 204);
 
 
         drop view if exists vPosts;

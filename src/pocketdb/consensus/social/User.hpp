@@ -20,9 +20,43 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class UserConsensus : public SocialBaseConsensus
     {
+    public:
+        UserConsensus(int height) : SocialBaseConsensus(height) {}
+        UserConsensus() : SocialBaseConsensus() {}
+
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
+        {
+            return Validate(static_pointer_cast<User>(tx), block);
+        }
+
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
+        {
+            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
+                return make_tuple(ok, result);
+
+            return Check(static_pointer_cast<User>(tx));
+        }
+
     protected:
 
         virtual int64_t GetChangeInfoTimeout() { return 3600; }
+
+
+        // Check chain consensus rules
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<User> tx, PocketBlock& block)
+        {
+            if (auto[ok, result] = ValidateDoubleName(tx); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = ValidateEditProfileLimit(tx); !ok)
+                return make_tuple(false, result);
+            
+            if (auto[ok, result] = ValidateEditProfileBlockLimit(tx, block); !ok)
+                return make_tuple(false, result);
+
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
+
 
         virtual tuple<bool, SocialConsensusResult> ValidateDoubleName(shared_ptr<User> tx)
         {
@@ -98,22 +132,22 @@ namespace PocketConsensus
 
         }
 
-        // Check chain consensus rules
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<User> tx, PocketBlock& block)
+
+        tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx) override
         {
-            if (auto[ok, result] = ValidateDoubleName(tx); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = ValidateEditProfileLimit(tx); !ok)
-                return make_tuple(false, result);
-            
-            if (auto[ok, result] = ValidateEditProfileBlockLimit(tx, block); !ok)
-                return make_tuple(false, result);
-
-            return make_tuple(true, SocialConsensusResult_Success);
+            // TODO (brangr): implement
+            if (auto[baseCheckOk, baseCheckResult] = SocialBaseConsensus::CheckOpReturnHash(tx); !baseCheckOk)
+            {
+                //     if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str())) {
+                //         LogPrintf("FailedOpReturn vasm: %s - oitm: %s\n", vasm[2], oitm.write());
+                //         resultCode = ANTIBOTRESULT::FailedOpReturn;
+                //         return;
+                //     }
+            }
         }
 
-        // Check base rules
+    private:
+        // Check op_return hash
         tuple<bool, SocialConsensusResult> Check(shared_ptr<User> tx)
         {
             // TODO (brangr): implement for users
@@ -133,21 +167,6 @@ namespace PocketConsensus
             // }
         }
         
-    public:
-        UserConsensus(int height) : SocialBaseConsensus(height) {}
-        UserConsensus() : SocialBaseConsensus() {}
-
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
-        {
-            return Validate(static_pointer_cast<User>(tx), block);
-        }
-
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
-        {
-            return Check(static_pointer_cast<User>(tx));
-        }
-        
-
     };
 
     /*******************************************************************************************************************

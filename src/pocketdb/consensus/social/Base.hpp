@@ -20,13 +20,34 @@ namespace PocketConsensus
 
     class SocialBaseConsensus : BaseConsensus
     {
-    protected:
     public:
         SocialBaseConsensus(int height) : BaseConsensus(height) {}
         SocialBaseConsensus() : BaseConsensus() {}
 
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) {}
-        virtual tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) {}
+        virtual tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx)
+        {
+            return CheckOpReturnHash(tx);
+        }
+        
+    protected:
+
+        virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx)
+        {
+            // TODO (brangr): implement
+            // std::vector<std::string> vasm;
+            // boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
+            // if (vasm.size() < 3) {
+            //     resultCode = ANTIBOTRESULT::FailedOpReturn;
+            //     return;
+            // }
+
+            // if (vasm[2] != oitm["data_hash"].get_str()) {
+            //         resultCode = ANTIBOTRESULT::FailedOpReturn;
+            //         return;
+            // }
+        }
+
     };
 }
 
