@@ -174,6 +174,16 @@ void ShutdownPocketServices()
         PocketDb::RatingsRepoInst.Destroy();
     }
 
+    {
+        LOCK(PocketDb::ConsensusRepoInst.SqliteShutdownMutex);
+        PocketDb::ConsensusRepoInst.Destroy();
+    }
+
+    {
+        LOCK(PocketDb::WebRepoInst.SqliteShutdownMutex);
+        PocketDb::WebRepoInst.Destroy();
+    }
+
     // Now we must close database connect
     PocketDb::SQLiteDbInst.Close();
 }

@@ -58,45 +58,6 @@ namespace PocketDb
             });
         }
 
-        // Top addresses info
-        // TODO (brangr): move to WebRepository
-        tuple<bool, shared_ptr<ListDto<AddressInfoDto>>> GetAddressInfo(int count)
-        {
-            shared_ptr<ListDto<AddressInfoDto>> result = make_shared<ListDto<AddressInfoDto>>();
-
-            bool tryResult = TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    select o.AddressHash, sum(o.Value)
-                    from TxOutputs o
-                    where o.SpentHeight is null
-                    group by o.AddressHash
-                    order by sum(o.Value) desc
-                    limit ?
-                )sql");
-
-                auto countPtr = make_shared<int>(count);
-                if (!TryBindStatementInt(stmt, 1, countPtr))
-                {
-                    FinalizeSqlStatement(*stmt);
-                    throw runtime_error(strprintf("%s: can't select GetAddressInfo (bind)\n", __func__));
-                }
-
-                while (sqlite3_step(*stmt) == SQLITE_ROW)
-                {
-                    AddressInfoDto inf;
-                    inf.Address = GetColumnString(*stmt, 0);
-                    inf.Balance = GetColumnInt64(*stmt, 1);
-                    result->Add(inf);
-                }
-
-                FinalizeSqlStatement(*stmt);
-                return true;
-            });
-
-            return make_tuple(tryResult, result);
-        }
-
         // Selects for get models data
         // TODO (brangr): move to ConsensusRepository
         tuple<bool, shared_ptr<ScoreDataDto>> GetScoreData(const string& txHash)
@@ -170,90 +131,86 @@ namespace PocketDb
             if (addresses.empty())
                 return make_tuple(true, result);
 
-            bool tryResult = TryTransactionStep([&]()
+            string sql = R"sql(
+                select a.AddressHash, ifnull(a.ReferrerAddressHash,'')
+                from vAccounts a
+                where a.Height >= ?
+                    and a.Height = (select min(a1.Height) from vAccounts a1 where a1.AddressHash=a.AddressHash)
+                    and a.ReferrerAddressHash is not null
+            )sql";
+            sql += " and a.AddressHash in ( ";
+            sql += addresses[0];
+            for (size_t i = 1; i < addresses.size(); i++)
             {
-                string sql = R"sql(
-                    select a.AddressHash, ifnull(a.ReferrerAddressHash,'')
-                    from vAccounts a
-                    where a.Height >= ?
-                        and a.Height = (select min(a1.Height) from vAccounts a1 where a1.AddressHash=a.AddressHash)
-                        and a.ReferrerAddressHash is not null
-                )sql";
+                sql += ',';
+                sql += addresses[i];
+            }
+            sql += ")";
 
-                sql += " and a.AddressHash in ( ";
-                sql += addresses[0];
-                for (size_t i = 1; i < addresses.size(); i++)
+            // Try execute
+            return make_tuple(
+                TryTransactionStep([&]()
                 {
-                    sql += ',';
-                    sql += addresses[i];
-                }
-                sql += ")";
+                    bool stepResult = true;
+                    auto stmt = SetupSqlStatement(sql);
 
-                auto stmt = SetupSqlStatement(sql);
+                    auto minHeightPtr = make_shared<int>(minHeight);
+                    auto bindResult = TryBindStatementInt(stmt, 0, minHeightPtr);
+                    if (!bindResult)
+                        stepResult = false;
 
-                auto minHeightPtr = make_shared<int>(minHeight);
-                auto bindResult = TryBindStatementInt(stmt, 0, minHeightPtr);
+                    while (stepResult && sqlite3_step(*stmt) == SQLITE_ROW)
+                    {
+                        auto ref = GetColumnString(*stmt, 2);
+                        if (!ref.empty())
+                            result->emplace(GetColumnString(*stmt, 1), GetColumnString(*stmt, 2));
+                    }
 
-                if (!bindResult)
-                {
                     FinalizeSqlStatement(*stmt);
-                    throw runtime_error(strprintf("%s: can't select GetReferrers (bind)\n", __func__));
-                }
-
-                while (sqlite3_step(*stmt) == SQLITE_ROW)
-                {
-                    auto ref = GetColumnString(*stmt, 2);
-                    if (!ref.empty())
-                        result->emplace(GetColumnString(*stmt, 1), GetColumnString(*stmt, 2));
-                }
-
-                FinalizeSqlStatement(*stmt);
-                return true;
-            });
-
-            return make_tuple(tryResult, result);
+                    return stepResult;
+                }),
+                result
+            );
         }
 
         // Select referrer for one account
         // TODO (brangr): move to ConsensusRepository
         tuple<bool, string> GetReferrer(const string& address, int minTime)
         {
-            tuple<bool, string> result = make_tuple(false, "");
+            string result = "";
 
-            bool tryResult = TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    select a.ReferrerAddressHash
-                    from vAccounts a
-                    where a.Time >= ?
-                        and a.AddressHash = ?
-                    order by a.Height asc
-                    limit 1
-                )sql");
-
-                auto minTimePtr = make_shared<int>(minTime);
-                auto bindResult = TryBindStatementInt(stmt, 1, minTimePtr);
-
-                auto addressPtr = make_shared<string>(address);
-                bindResult &= TryBindStatementText(stmt, 2, addressPtr);
-
-                if (!bindResult)
+            return make_tuple(
+                TryTransactionStep([&]()
                 {
+                    bool stepResult = true;
+                    auto stmt = SetupSqlStatement(R"sql(
+                        select a.ReferrerAddressHash
+                        from vAccounts a
+                        where a.Time >= ?
+                            and a.AddressHash = ?
+                        order by a.Height asc
+                        limit 1
+                    )sql");
+
+                    auto minTimePtr = make_shared<int>(minTime);
+                    auto bindResult = TryBindStatementInt(stmt, 1, minTimePtr);
+
+                    auto addressPtr = make_shared<string>(address);
+                    bindResult &= TryBindStatementText(stmt, 2, addressPtr);
+                    if (!bindResult)
+                        stepResult = false;
+
+                    if (stepResult && sqlite3_step(*stmt) == SQLITE_ROW)
+                    {
+                        auto[ok, valueStr] = TryGetColumnString(*stmt, 0);
+                        result = valueStr;
+                    }
+
                     FinalizeSqlStatement(*stmt);
-                    throw runtime_error(strprintf("%s: can't select GetReferrers (bind)\n", __func__));
-                }
-
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
-                {
-                    auto[ok, valueStr] = TryGetColumnString(*stmt, 0);
-                    result = make_tuple(ok, valueStr);
-                }
-
-                FinalizeSqlStatement(*stmt);
-                return true;
-            });
-
-            return result;
+                    return stepResult;
+                }),
+                result
+            );
         }
 
         shared_ptr<PocketBlock> GetList(vector<string>& txHashes, bool includePayload = false)
@@ -275,6 +232,7 @@ namespace PocketDb
                 )sql";
             }
 
+            // TODO (joni): нельзя так sql составлять - строки без '' не будут работать + инъекции
             sql += " and t.Hash in ( ";
             sql += txHashes[0];
             for (size_t i = 1; i < txHashes.size(); i++) {
@@ -284,7 +242,6 @@ namespace PocketDb
             sql += ")";
 
             auto result = make_shared<PocketBlock>(PocketBlock{});
-
             auto tryResult = TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(sql);
@@ -350,7 +307,7 @@ namespace PocketDb
 
     private:
 
-        void InsertTransactionOutputs(shared_ptr<Transaction> ptx)
+        bool InsertTransactionOutputs(shared_ptr<Transaction> ptx)
         {
             for (const auto& output : ptx->Outputs())
             {
@@ -365,20 +322,15 @@ namespace PocketDb
                     WHERE NOT EXISTS (select 1 from TxOutputs o where o.TxHash=? and o.Number=? and o.AddressHash=?)
                 )sql");
 
-                auto result = TryBindStatementText(stmt, 1, ptx->GetHash());
-                result &= TryBindStatementInt64(stmt, 2, output->GetNumber());
-                result &= TryBindStatementText(stmt, 3, output->GetAddressHash());
-                result &= TryBindStatementInt64(stmt, 4, output->GetValue());
-                result &= TryBindStatementText(stmt, 5, ptx->GetHash());
-                result &= TryBindStatementInt64(stmt, 6, output->GetNumber());
-                result &= TryBindStatementText(stmt, 7, output->GetAddressHash());
-                if (!result)
-                    throw runtime_error(strprintf("%s: can't insert in transaction (bind out)\n", __func__));
+                auto bindResult = TryBindStatementText(stmt, 1, ptx->GetHash());
+                bindResult &= TryBindStatementInt64(stmt, 2, output->GetNumber());
+                bindResult &= TryBindStatementText(stmt, 3, output->GetAddressHash());
+                bindResult &= TryBindStatementInt64(stmt, 4, output->GetValue());
+                bindResult &= TryBindStatementText(stmt, 5, ptx->GetHash());
+                bindResult &= TryBindStatementInt64(stmt, 6, output->GetNumber());
+                bindResult &= TryBindStatementText(stmt, 7, output->GetAddressHash());
 
-                // Try execute with clear last rowId
-                if (!TryStepStatement(stmt))
-                    throw runtime_error(strprintf("%s: can't insert in transaction (step out): %s\n",
-                        __func__, *output->GetTxHash()));
+                return bindResult && TryStepStatement(stmt);
             }
 
             LogPrint(BCLog::SYNC, "  - Insert Outputs %s : %d\n", *ptx->GetHash(), (int) ptx->Outputs().size());
@@ -386,7 +338,7 @@ namespace PocketDb
 
         void InsertTransactionPayload(shared_ptr<Transaction> ptx)
         {
-            auto stmtPayload = SetupSqlStatement(R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Payload (
                     TxHash,
                     String1,
@@ -401,26 +353,19 @@ namespace PocketDb
                 WHERE not exists (select 1 from Payload p where p.TxHash = ?)
             )sql");
 
-            auto resultPayload = true;
-            resultPayload &= TryBindStatementText(stmtPayload, 1, ptx->GetHash());
-            resultPayload &= TryBindStatementText(stmtPayload, 2, ptx->GetPayload()->GetString1());
-            resultPayload &= TryBindStatementText(stmtPayload, 3, ptx->GetPayload()->GetString2());
-            resultPayload &= TryBindStatementText(stmtPayload, 4, ptx->GetPayload()->GetString3());
-            resultPayload &= TryBindStatementText(stmtPayload, 5, ptx->GetPayload()->GetString4());
-            resultPayload &= TryBindStatementText(stmtPayload, 6, ptx->GetPayload()->GetString5());
-            resultPayload &= TryBindStatementText(stmtPayload, 7, ptx->GetPayload()->GetString6());
-            resultPayload &= TryBindStatementText(stmtPayload, 8, ptx->GetPayload()->GetString7());
-            resultPayload &= TryBindStatementText(stmtPayload, 9, ptx->GetHash());
-            if (!resultPayload)
-                throw runtime_error(
-                    strprintf("%s: can't insert in transaction (bind payload)\n", __func__));
-
-            if (!TryStepStatement(stmtPayload))
-                throw runtime_error(
-                    strprintf("%s: can't insert in transaction (step payload): %s %d\n",
-                        __func__, *ptx->GetPayload()->GetTxHash(), *ptx->GetType()));
-
+            auto bindResult = true;
+            bindResult &= TryBindStatementText(stmt, 1, ptx->GetHash());
+            bindResult &= TryBindStatementText(stmt, 2, ptx->GetPayload()->GetString1());
+            bindResult &= TryBindStatementText(stmt, 3, ptx->GetPayload()->GetString2());
+            bindResult &= TryBindStatementText(stmt, 4, ptx->GetPayload()->GetString3());
+            bindResult &= TryBindStatementText(stmt, 5, ptx->GetPayload()->GetString4());
+            bindResult &= TryBindStatementText(stmt, 6, ptx->GetPayload()->GetString5());
+            bindResult &= TryBindStatementText(stmt, 7, ptx->GetPayload()->GetString6());
+            bindResult &= TryBindStatementText(stmt, 8, ptx->GetPayload()->GetString7());
+            bindResult &= TryBindStatementText(stmt, 9, ptx->GetHash());
+            
             LogPrint(BCLog::SYNC, "  - Insert Payload %s\n", *ptx->GetHash());
+            return bindResult && TryStepStatement(stmt);
         }
 
         void InsertTransactionModel(shared_ptr<Transaction> ptx)
@@ -440,25 +385,19 @@ namespace PocketDb
                 WHERE not exists (select 1 from Transactions t where t.Hash=?)
             )sql");
 
-            auto result = TryBindStatementInt(stmt, 1, ptx->GetTypeInt());
-            result &= TryBindStatementText(stmt, 2, ptx->GetHash());
-            result &= TryBindStatementInt64(stmt, 3, ptx->GetTime());
-            result &= TryBindStatementText(stmt, 4, ptx->GetString1());
-            result &= TryBindStatementText(stmt, 5, ptx->GetString2());
-            result &= TryBindStatementText(stmt, 6, ptx->GetString3());
-            result &= TryBindStatementText(stmt, 7, ptx->GetString4());
-            result &= TryBindStatementText(stmt, 8, ptx->GetString5());
-            result &= TryBindStatementInt64(stmt, 9, ptx->GetInt1());
-            result &= TryBindStatementText(stmt, 10, ptx->GetHash());
-            if (!result)
-                throw runtime_error(strprintf("can't insert in transaction (bind tx) %s %d\n",
-                    *ptx->GetHash(), *ptx->GetType()));
-
-            if (!TryStepStatement(stmt))
-                throw runtime_error(strprintf("%s: can't insert in transaction (step tx) %s %d\n",
-                    __func__, *ptx->GetHash(), *ptx->GetType()));
-
+            auto bindResult = TryBindStatementInt(stmt, 1, ptx->GetTypeInt());
+            bindResult &= TryBindStatementText(stmt, 2, ptx->GetHash());
+            bindResult &= TryBindStatementInt64(stmt, 3, ptx->GetTime());
+            bindResult &= TryBindStatementText(stmt, 4, ptx->GetString1());
+            bindResult &= TryBindStatementText(stmt, 5, ptx->GetString2());
+            bindResult &= TryBindStatementText(stmt, 6, ptx->GetString3());
+            bindResult &= TryBindStatementText(stmt, 7, ptx->GetString4());
+            bindResult &= TryBindStatementText(stmt, 8, ptx->GetString5());
+            bindResult &= TryBindStatementInt64(stmt, 9, ptx->GetInt1());
+            bindResult &= TryBindStatementText(stmt, 10, ptx->GetHash());
+                        
             LogPrint(BCLog::SYNC, "  - Insert Model body %s : %d\n", *ptx->GetHash(), *ptx->GetType());
+            return bindResult && TryStepStatement(stmt);
         }
 
     protected:
@@ -504,7 +443,6 @@ namespace PocketDb
         }
 
     };
-
 } // namespace PocketDb
 
 #endif // POCKETDB_TRANSACTIONREPOSITORY_HPP

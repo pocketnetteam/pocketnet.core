@@ -29,6 +29,7 @@ public:
     void Init() override;
     void Destroy() override;
 
+    UniValue GetAddressInfo(int count);
     UniValue GetLastComments(int count, int height, std::string lang = "");
 };
 

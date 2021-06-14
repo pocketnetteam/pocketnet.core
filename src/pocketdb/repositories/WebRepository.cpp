@@ -10,6 +10,44 @@ namespace PocketDb {
     void WebRepository::Init() {}
     void WebRepository::Destroy() {}
 
+    // Top addresses info
+    UniValue WebRepository::GetAddressInfo(int count)
+    {
+        // shared_ptr<ListDto<AddressInfoDto>> result = make_shared<ListDto<AddressInfoDto>>();
+
+        // return make_tuple(
+        //     TryTransactionStep([&]()
+        //     {
+        //         bool stepResult = true;
+        //         auto stmt = SetupSqlStatement(R"sql(
+        //             select o.AddressHash, sum(o.Value)
+        //             from TxOutputs o
+        //             where o.SpentHeight is null
+        //             group by o.AddressHash
+        //             order by sum(o.Value) desc
+        //             limit ?
+        //         )sql");
+
+        //         auto countPtr = make_shared<int>(count);
+        //         if (!TryBindStatementInt(stmt, 1, countPtr))
+        //             stepResult = false;
+
+        //         while (stepResult && sqlite3_step(*stmt) == SQLITE_ROW)
+        //         {
+        //             AddressInfoDto inf;
+        //             inf.Address = GetColumnString(*stmt, 0);
+        //             inf.Balance = GetColumnInt64(*stmt, 1);
+        //             result->Add(inf);
+        //         }
+
+        //         FinalizeSqlStatement(*stmt);
+        //         return stepResult;
+        //     }),
+        //     result
+        // );
+        // todo (brangr): implement
+    }
+
     UniValue WebRepository::GetLastComments(int count, int height, std::string lang)
     {
         auto sql = R"sql(
