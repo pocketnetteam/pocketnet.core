@@ -265,6 +265,20 @@ namespace PocketDb
         from vScores s
         where s.Type in (301);
 
+
+        drop view if exists vBlockings;
+        create view if not exists vBlockings as
+        select t.Type,
+            t.Hash,
+            t.Time,
+            t.BlockHash,
+            t.Height,
+            t.String1 as AddressHash,
+            t.String2 as AddressToHash
+        from Transactions t
+        where t.Height is not null
+        and t.Type in (305, 306);
+
         --------------------------------------------
         --               WEB VIEWS                --
         --------------------------------------------

@@ -19,33 +19,30 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class BlockingCancelConsensus : public SocialBaseConsensus
     {
-    protected:
     public:
         BlockingCancelConsensus(int height) : SocialBaseConsensus(height) {}
         BlockingCancelConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return make_tuple(true, SocialConsensusResult_Success);
-            // TODO (brangr): implement
-            // std::string _txid = oitm["txid"].get_str();
-            // std::string _address = oitm["address"].get_str();
-            // std::string _address_to = oitm["address_to"].get_str();
-            // bool _unblocking = oitm["unblocking"].get_bool();
-            // int64_t _time = oitm["time"].get_int64();
+            return Validate(static_pointer_cast<BlockingCancel>(tx), block);
+        }
 
-            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
-
-            // if (!CheckRegistration(oitm, _address_to, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
-
-            // if (_address == _address_to) {
-            //     result = ANTIBOTRESULT::SelfBlocking;
-            //     return false;
-            // }
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
+        {
+            return Check(static_pointer_cast<BlockingCancel>(tx));
+        }
+    protected:
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<BlockingCancel> tx, PocketBlock& block)
+        {
+            vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
+            if (auto[ok, result] = PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()); ok)
+            {
+                if (!result)
+                {
+                    return make_tuple(false, SocialConsensusResult_NotRegistered);
+                }
+            }
 
             // //-----------------------
             // // Also check mempool
@@ -79,27 +76,25 @@ namespace PocketConsensus
             //     }
             // }
 
-            // reindexer::Item sItm;
-            // Error err = g_pocketdb->SelectOne(
-            //     reindexer::Query("BlockingView")
-            //         .Where("address", CondEq, _address)
-            //         .Where("address_to", CondEq, _address_to)
-            //         .Where("block", CondLt, height),
-            //     sItm);
+            auto[ok, existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*tx->GetAddress(), *tx->GetAddressTo(), *tx->GetHeight());
+            if (ok && existsBlocking && blockingType == ACTION_BLOCKING)
+            {
+                return make_tuple(false, SocialConsensusResult_DoubleBlocking);
+            }
 
-            // if (_unblocking && !err.ok()) {
-            //     result = ANTIBOTRESULT::InvalidBlocking;
-            //     return false;
-            // }
-
-            // if (!_unblocking && err.ok()) {
-            //     result = ANTIBOTRESULT::DoubleBlocking;
-            //     return false;
-            // }
-
-            // return true;
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<BlockingCancel> tx)
+        {
+            // Blocking self
+            if (*tx->GetAddress() == *tx->GetAddressTo())
+            {
+                return make_tuple(false, SocialConsensusResult_SelfBlocking);
+            }
+
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
     };
 
     /*******************************************************************************************************************

@@ -83,12 +83,90 @@ namespace PocketDb
         return make_tuple(tryResult,tx);
     }
 
+    tuple<bool, bool> PocketDb::ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, int height)
+    {
+        auto funcName = __func__;
+        auto result = false;
 
+        string sql = R"sql(
+            SELECT COUNT(DISTINCT(u.AddressHash))
+            FROM vUsers u
+            WHERE 1 = 1
+        )sql";
+        sql += " AND u.AddressHash IN ( '";
+        sql += addresses[0];
+        sql += "'";
+        for (size_t i = 1; i < addresses.size(); i++) {
+            sql += ",'";
+            sql += addresses[i];
+            sql += "'";
+        }
+        sql += ")";
 
+        if (height > 0)
+        {
+            sql += "AND u.Height < ";
+            sql += std::to_string(height);
+        }
 
+        bool tryResult = TryTransactionStep([&]() {
+            auto stmt = SetupSqlStatement(sql);
 
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                result = GetColumnInt(*stmt, 0) == (int) addresses.size();
+            }
 
+            FinalizeSqlStatement(*stmt);
+            return true;
+        });
 
+        return make_tuple(tryResult, result);
+    }
 
+    tuple<bool, bool, PocketTxType> PocketDb::ConsensusRepository::GetLastBlockingType(string& address, string& addressTo, int height)
+    {
+        auto funcName = __func__;
+        bool blockingExists;
+        PocketTxType blockingType;
 
+        auto sql = R"sql(
+            SELECT t.Type
+            FROM vBlockings u
+            WHERE u.AddressHash = ?
+                AND u.AddressToHash = ?
+                AND u.Height < ?
+            ORDER BY u.Height DESC, u.Time DESC
+            LIMIT 1
+        )sql";
+
+        bool tryResult = TryTransactionStep([&]() {
+            auto stmt = SetupSqlStatement(sql);
+
+            auto bindResult = TryBindStatementText(stmt, 1, address);
+            bindResult &= TryBindStatementText(stmt, 2, addressTo);
+            bindResult &= TryBindStatementInt(stmt, 3, height);
+            if (!bindResult) {
+                FinalizeSqlStatement(*stmt);
+                return false;
+            }
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto type = GetColumnInt(*stmt, 0);
+                blockingExists = true;
+                blockingType = static_cast<PocketTxType>(type);
+            }
+            else
+            {
+                blockingExists = false;
+                blockingType = static_cast<PocketTxType>(0);
+            }
+
+            FinalizeSqlStatement(*stmt);
+            return true;
+        });
+
+        return make_tuple(tryResult, blockingExists, blockingType);
+    }
 }

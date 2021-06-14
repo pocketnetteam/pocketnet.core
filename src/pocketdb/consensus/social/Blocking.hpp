@@ -19,25 +19,30 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class BlockingConsensus : public SocialBaseConsensus
     {
-    protected:
     public:
         BlockingConsensus(int height) : SocialBaseConsensus(height) {}
         BlockingConsensus() : SocialBaseConsensus() {}
 
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
+        {
+            return Validate(static_pointer_cast<Blocking>(tx), block);
+        }
+
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
+        {
+            return Check(static_pointer_cast<Blocking>(tx));
+        }
+    protected:
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block)
         {
-            return make_tuple(true, SocialConsensusResult_Success);
-            // Check registration account "from"
-            //if (auto[ok, result] = CheckRegistration(tx->GetAddress()); !ok)
-            //    return make_tuple(false, SocialConsensusResult_NotRegistered);
-
-            // Check registration account "to"
-            //if (auto[ok, result] = CheckRegistration(tx->GetAddressTo()); !ok)
-            //    return make_tuple(false, SocialConsensusResult_NotRegistered);
-
-            // Blocking self
-            if (*tx->GetAddress() == *tx->GetAddressTo())
-                return make_tuple(false, SocialConsensusResult_SelfBlocking);
+            vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
+            if (auto[ok, result] = PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()); ok)
+            {
+                if (!result)
+                {
+                    return make_tuple(false, SocialConsensusResult_NotRegistered);
+                }
+            }
 
             // TODO (brangr): implement
             // TODO (brangr): Check already exists blocking for "from -> to"
@@ -71,27 +76,25 @@ namespace PocketConsensus
             //     }
             // }
 
-            // reindexer::Item sItm;
-            // Error err = g_pocketdb->SelectOne(
-            //     reindexer::Query("BlockingView")
-            //         .Where("address", CondEq, _address)
-            //         .Where("address_to", CondEq, _address_to)
-            //         .Where("block", CondLt, height),
-            //     sItm);
+            auto[ok, existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*tx->GetAddress(), *tx->GetAddressTo(), *tx->GetHeight());
+            if (ok && existsBlocking && blockingType == ACTION_BLOCKING)
+            {
+                return make_tuple(false, SocialConsensusResult_DoubleBlocking);
+            }
 
-            // if (_unblocking && !err.ok()) {
-            //     result = ANTIBOTRESULT::InvalidBlocking;
-            //     return false;
-            // }
-
-            // if (!_unblocking && err.ok()) {
-            //     result = ANTIBOTRESULT::DoubleBlocking;
-            //     return false;
-            // }
-
-            make_tuple(true, SocialConsensusResult_Success);
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Blocking> tx)
+        {
+            // Blocking self
+            if (*tx->GetAddress() == *tx->GetAddressTo())
+            {
+                return make_tuple(false, SocialConsensusResult_SelfBlocking);
+            }
+
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
     };
 
     /*******************************************************************************************************************
