@@ -196,7 +196,7 @@ namespace PocketDb
                     result &= TryStepStatement(stmt);
                 }
 
-                return TryStepStatement(stmt);
+                return result;
             });
         }
 

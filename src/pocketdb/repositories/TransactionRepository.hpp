@@ -42,17 +42,33 @@ namespace PocketDb
                 for (const auto& ptx : pocketBlock)
                 {
                     // Insert general transaction
-                    InsertTransactionModel(ptx);
+                    ;
+                    if (!InsertTransactionModel(ptx))
+                    {
+                        LogPrintf("TransactionRepository::InsertTransactionModel failed for tx:%s\n",
+                            *ptx->GetHash());
+                        return false;
+                    }
 
                     // Outputs
-                    InsertTransactionOutputs(ptx);
+                    if (!InsertTransactionOutputs(ptx))
+                    {
+                        LogPrintf("TransactionRepository::InsertTransactionOutputs failed for tx:%s\n",
+                            *ptx->GetHash());
+                        return false;
+                    }
 
                     // Also need insert payload of transaction
                     // But need get new rowId
                     // If last id equal 0 - insert ignored - or already exists or error -> paylod not inserted
                     if (ptx->HasPayload())
                     {
-                        InsertTransactionPayload(ptx);
+                        if (!InsertTransactionPayload(ptx))
+                        {
+                            LogPrintf("TransactionRepository::InsertTransactionPayload failed for tx:%s\n",
+                                *ptx->GetHash());
+                            return false;
+                        }
                     }
                 }
             });
@@ -336,7 +352,7 @@ namespace PocketDb
             LogPrint(BCLog::SYNC, "  - Insert Outputs %s : %d\n", *ptx->GetHash(), (int) ptx->Outputs().size());
         }
 
-        void InsertTransactionPayload(shared_ptr<Transaction> ptx)
+        bool InsertTransactionPayload(shared_ptr<Transaction> ptx)
         {
             auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Payload (
@@ -368,7 +384,7 @@ namespace PocketDb
             return bindResult && TryStepStatement(stmt);
         }
 
-        void InsertTransactionModel(shared_ptr<Transaction> ptx)
+        bool InsertTransactionModel(shared_ptr<Transaction> ptx)
         {
             auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Transactions (

@@ -731,13 +731,14 @@ static bool rest_topaddresses(HTTPRequest* req, const std::string& strURIPart)
     {
         case RetFormat::JSON:
         {
-            if (auto[ok, val] = PocketDb::TransRepoInst.GetAddressInfo(count); ok)
-            {
-                req->WriteHeader("Content-Type", "application/json");
-                req->WriteReply(HTTP_OK, val->Serialize()->write() + "\n");
-                return true;
-            }
-            else
+            // TODO (brangr): implement
+            // if (auto[ok, val] = PocketDb::TransRepoInst.GetAddressInfo(count); ok)
+            // {
+            //     req->WriteHeader("Content-Type", "application/json");
+            //     req->WriteReply(HTTP_OK, val->Serialize()->write() + "\n");
+            //     return true;
+            // }
+            // else
             {
                 return RESTERR(req, HTTP_INTERNAL_SERVER_ERROR, "internal error");
             }
