@@ -32,43 +32,31 @@ namespace PocketDb
         {
             for (const auto& rating : *ratings)
             {
-                if (*rating.GetType() != RatingType::RATING_ACCOUNT_LIKERS)
-                {
-                    int64_t nTime1 = GetTimeMicros();
+                int64_t nTime1 = GetTimeMicros();
 
-                    if (!InsertRating(rating))
-                    {
-                        LogPrintf("InsertRatings::InsertRating failed for type:%s id:%d height:%s\n",
-                            rating.GetTypeInt(), rating.GetId(), rating.GetHeight());
-                        return false;
-                    }
-
-                    int64_t nTime2 = GetTimeMicros();
-                    LogPrint(BCLog::BENCH, "      - InsertRating: %.2fms\n", 0.001 * (nTime2 - nTime1));
-                }
+                bool result = true;
+                if (*rating.GetType() == RatingType::RATING_ACCOUNT_LIKERS)
+                    result = InsertLiker(rating);
                 else
+                    result = InsertRating(rating);
+
+                int64_t nTime2 = GetTimeMicros();
+                LogPrint(BCLog::BENCH, "      - InsertRating (%d): %.2fms\n", *rating.GetTypeInt(), 0.001 * (nTime2 - nTime1));
+
+                if (!result)
                 {
-                    int64_t nTime1 = GetTimeMicros();
-
-                    if (!InsertLiker(rating))
-                    {
-                        LogPrintf("InsertRatings::InsertLiker failed for type:%s id:%d height:%s\n",
-                            rating.GetTypeInt(), rating.GetId(), rating.GetHeight());
+                    LogPrintf("InsertRatings (type: %d) failed: id:%d height:%d\n", *rating.GetTypeInt(), *rating.GetId(), *rating.GetHeight());
                         return false;
-                    }
-
-                    int64_t nTime2 = GetTimeMicros();
-                    LogPrint(BCLog::BENCH, "      - InsertLiker: %.2fms\n", 0.001 * (nTime2 - nTime1));
                 }
             }
 
             return true;
         }
 
+        // TODO (brangr): move to ConsensusRepository
         tuple<bool, int> GetUserReputation(int addressId, int height)
         {
             int result = 0;
-            auto func = __func__;
 
             bool tryResult = TryTransactionStep([&]()
             {
@@ -82,36 +70,26 @@ namespace PocketDb
                     limit 1
                 )sql");
 
-                auto typePtr = make_shared<int>(RatingType::RATING_ACCOUNT);
-                auto heightPtr = make_shared<int>(height);
-                auto addressIdPtr = make_shared<int>(addressId);
+                auto bindResult = TryBindStatementInt(stmt, 1, (int)RatingType::RATING_ACCOUNT);
+                bindResult &= TryBindStatementInt(stmt, 2, addressId);
+                bindResult &= TryBindStatementInt(stmt, 3, height);
 
-                auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
-                bindResult &= TryBindStatementInt(stmt, 2, addressIdPtr);
-                bindResult &= TryBindStatementInt(stmt, 3, heightPtr);
-
-                if (!bindResult)
-                {
-                    FinalizeSqlStatement(*stmt);
-                    throw runtime_error(strprintf("%s: can't get user reputation (bind)\n", func));
-                }
-
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (bindResult && sqlite3_step(*stmt) == SQLITE_ROW)
                 {
                     result = GetColumnInt(*stmt, 0);
                 }
 
                 FinalizeSqlStatement(*stmt);
-                return true;
+                return bindResult;
             });
 
             return make_tuple(tryResult, result);
         }
 
+        // TODO (brangr): move to ConsensusRepository
         tuple<bool, int> GetUserLikersCount(int addressId, int height)
         {
             int result = 0;
-            auto func = __func__;
 
             bool tryResult = TryTransactionStep([&]()
             {
@@ -130,16 +108,10 @@ namespace PocketDb
                 auto bindResult = TryBindStatementInt(stmt, 1, typePtr);
                 bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
                 bindResult &= TryBindStatementInt(stmt, 3, addressIdPtr);
-                if (!bindResult)
-                {
-                    FinalizeSqlStatement(*stmt);
-                    throw runtime_error(strprintf("%s: can't select user likers count (bind)\n", func));
-                }
 
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
-                {
+                // not exists - not error
+                if (bindResult && sqlite3_step(*stmt) == SQLITE_ROW)
                     result = GetColumnInt(*stmt, 0);
-                }
 
                 FinalizeSqlStatement(*stmt);
                 return true;
@@ -148,95 +120,60 @@ namespace PocketDb
             return make_tuple(tryResult, result);
         }
 
+        // TODO (brangr): move to ConsensusRepository
         tuple<bool, int> GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
             const string& scoreAddress, const string& contentAddress,
             int height, const CTransactionRef& tx,
             const std::vector<int>& values,
             int64_t scoresOneToOneDepth)
         {
-            int result = 0;
-            auto func = __func__;
+            string sql = R"sql(
+                select count(1)
+                from vScores s
+                where   s.AddressHash = ?
+                    and s.Height <= ?
+                    and s.Time < ?
+                    and s.Time >= ?
+                    and s.Hash != ?
+                    and s.Type = ?
+                    and exists (
+                        select 1
+                        from vContents c
+                        where   c.AddressHash = ?
+                            and c.Type = ?
+                            and c.Hash = s.ContentTxHash
+                    )
+                    and s.Value in
+            )sql";
+            sql += "(";
+            sql += std::to_string(values[0]);
+            for (size_t i = 1; i < values.size(); i++)
+            {
+                sql += ',';
+                sql += std::to_string(values[i]);
+            }
+            sql += ")";
 
+            int result = 0;
             bool tryResult = TryTransactionStep([&]()
             {
-//                string sql = R"sql(
-//                    select count(1)
-//                    from vScores s
-//                    join vContents c on c.Hash = s.ContentTxHash
-//                    where   s.AddressHash = ?
-//                        and c.AddressHash = ?
-//                        and s.Height <= ?
-//                        and s.Time < ?
-//                        and s.Time >= ?
-//                        and s.Hash != ?
-//                        and s.Type = ?
-//                        and s.Value in
-//                )sql";
-
-                string sql = R"sql(
-                    select count(1)
-                    from vScores s
-                    where   s.AddressHash = ?
-                        and s.Height <= ?
-                        and s.Time < ?
-                        and s.Time >= ?
-                        and s.Hash != ?
-                        and s.Type = ?
-                        and exists (
-                            select 1
-                            from vContents c
-                            where   c.AddressHash = ?
-                                and c.Type = ?
-                                and c.Hash = s.ContentTxHash
-                        )
-                        and s.Value in
-                )sql";
-
-                sql += "(";
-                sql += std::to_string(values[0]);
-                for (size_t i = 1; i < values.size(); i++)
-                {
-                    sql += ',';
-                    sql += std::to_string(values[i]);
-                }
-                sql += ")";
-
                 auto stmt = SetupSqlStatement(sql);
 
-                auto scoreAddressPtr = make_shared<string>(scoreAddress);
-                auto contentAddressPtr = make_shared<string>(contentAddress);
-                auto heightPtr = make_shared<int>(height);
+                auto bindResult = TryBindStatementText(stmt, 1, scoreAddress);
+                bindResult &= TryBindStatementInt(stmt, 2, height);
+                bindResult &= TryBindStatementInt64(stmt, 3, tx->nTime);
+                bindResult &= TryBindStatementInt64(stmt, 4, (int64_t) tx->nTime - scoresOneToOneDepth);
+                bindResult &= TryBindStatementText(stmt, 5, tx->GetHash().GetHex());
+                bindResult &= TryBindStatementInt(stmt, 6, scoreType);
+                bindResult &= TryBindStatementText(stmt, 7, contentAddress);
+                bindResult &= TryBindStatementInt(stmt, 8, contentType);
 
-                // TODO: нужна будет перегрузка для изменения отбора - время заменить на блоки
-                auto maxTimePtr = make_shared<int64_t>(tx->nTime);
-                auto minTimePtr = make_shared<int64_t>((int64_t) tx->nTime - scoresOneToOneDepth);
-
-                auto scoreTxHashPtr = make_shared<string>(tx->GetHash().GetHex());
-                auto scoreTypePtr = make_shared<int>(scoreType);
-                auto contentTypePtr = make_shared<int>(contentType);
-
-                auto bindResult = TryBindStatementText(stmt, 1, scoreAddressPtr);
-                bindResult &= TryBindStatementInt(stmt, 2, heightPtr);
-                bindResult &= TryBindStatementInt64(stmt, 3, maxTimePtr);
-                bindResult &= TryBindStatementInt64(stmt, 4, minTimePtr);
-                bindResult &= TryBindStatementText(stmt, 5, scoreTxHashPtr);
-                bindResult &= TryBindStatementInt(stmt, 6, scoreTypePtr);
-                bindResult &= TryBindStatementText(stmt, 7, contentAddressPtr);
-                bindResult &= TryBindStatementInt(stmt, 8, contentTypePtr);
-
-                if (!bindResult)
-                {
-                    FinalizeSqlStatement(*stmt);
-                    throw runtime_error(strprintf("%s: can't get score count (bind)\n", func));
-                }
-
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
-                {
+                // not exists - not error
+                if (bindResult && sqlite3_step(*stmt) == SQLITE_ROW)
                     result = GetColumnInt(*stmt, 0);
-                }
 
                 FinalizeSqlStatement(*stmt);
-                return true;
+                return bindResult;
             });
 
             return make_tuple(tryResult, result);
@@ -266,18 +203,15 @@ namespace PocketDb
                         ), 0) + ?
                 )sql");
 
-                // TODO (joni): replace with TryBind
-                auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
-                result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
-                result &= TryBindStatementInt64(stmt, 3, rating.GetId());
-                result &= TryBindStatementInt(stmt, 4, rating.GetTypeInt());
-                result &= TryBindStatementInt64(stmt, 5, rating.GetId());
-                result &= TryBindStatementInt(stmt, 6, rating.GetHeight());
-                result &= TryBindStatementInt64(stmt, 7, rating.GetValue());
-                if (!result)
-                    return false;
-
-                return TryStepStatement(stmt);
+                auto result = TryBindStatementInt(stmt, 1, *rating.GetTypeInt());
+                result &= TryBindStatementInt(stmt, 2, *rating.GetHeight());
+                result &= TryBindStatementInt64(stmt, 3, *rating.GetId());
+                result &= TryBindStatementInt(stmt, 4, *rating.GetTypeInt());
+                result &= TryBindStatementInt64(stmt, 5, *rating.GetId());
+                result &= TryBindStatementInt(stmt, 6, *rating.GetHeight());
+                result &= TryBindStatementInt64(stmt, 7, *rating.GetValue());
+                
+                return result && TryStepStatement(stmt);
             });
         }
 
@@ -295,18 +229,15 @@ namespace PocketDb
                     WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
                 )sql");
 
-                // TODO (joni): replace with TryBind
-                auto result = TryBindStatementInt(stmt, 1, rating.GetTypeInt());
-                result &= TryBindStatementInt(stmt, 2, rating.GetHeight());
-                result &= TryBindStatementInt64(stmt, 3, rating.GetId());
-                result &= TryBindStatementInt64(stmt, 4, rating.GetValue());
-                result &= TryBindStatementInt(stmt, 5, rating.GetTypeInt());
-                result &= TryBindStatementInt64(stmt, 6, rating.GetId());
-                result &= TryBindStatementInt64(stmt, 7, rating.GetValue());
-                if (!result)
-                    return false;
+                auto result = TryBindStatementInt(stmt, 1, *rating.GetTypeInt());
+                result &= TryBindStatementInt(stmt, 2, *rating.GetHeight());
+                result &= TryBindStatementInt64(stmt, 3, *rating.GetId());
+                result &= TryBindStatementInt64(stmt, 4, *rating.GetValue());
+                result &= TryBindStatementInt(stmt, 5, *rating.GetTypeInt());
+                result &= TryBindStatementInt64(stmt, 6, *rating.GetId());
+                result &= TryBindStatementInt64(stmt, 7, *rating.GetValue());
 
-                return TryStepStatement(stmt);
+                return result && TryStepStatement(stmt);
             });
         }
 
