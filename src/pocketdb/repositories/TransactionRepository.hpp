@@ -105,6 +105,8 @@ namespace PocketDb
 
             bool tryResult = TryTransactionStep([&]()
             {
+                bool stepResult = true;
+
                 auto stmt = SetupSqlStatement(R"sql(
                     select
                         s.Hash sTxHash,
@@ -131,12 +133,9 @@ namespace PocketDb
                 auto scoreTxHashPtr = make_shared<string>(txHash);
                 auto bindResult = TryBindStatementText(stmt, 1, scoreTxHashPtr);
                 if (!bindResult)
-                {
-                    FinalizeSqlStatement(*stmt);
-                    throw runtime_error(strprintf("%s: can't select GetScoreData (bind)\n", __func__));
-                }
+                    stepResult = false;
 
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (stepResult && sqlite3_step(*stmt) == SQLITE_ROW)
                 {
                     result->ScoreTxHash = GetColumnString(*stmt, 0);
                     result->ScoreType = (PocketTxType) GetColumnInt(*stmt, 1);
@@ -151,14 +150,12 @@ namespace PocketDb
                     result->ContentId = GetColumnInt(*stmt, 9);
                     result->ContentAddressId = GetColumnInt(*stmt, 10);
                     result->ContentAddressHash = GetColumnString(*stmt, 11);
-                }
-                else
-                {
-                    return false;
+
+                    stepResult = true;
                 }
 
                 FinalizeSqlStatement(*stmt);
-                return true;
+                return stepResult;
             });
 
             return make_tuple(tryResult, result);
@@ -301,7 +298,6 @@ namespace PocketDb
                 }
 
                 FinalizeSqlStatement(*stmt);
-
                 return true;
             });
 

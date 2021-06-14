@@ -574,6 +574,7 @@ namespace PocketDb
         drop index if exists Transactions_Type_String1_Height;
         drop index if exists Transactions_Type_String2_Height;
         drop index if exists Transactions_Type_Height_Id;
+        drop index if exists Transactions_Type_Id;
         drop index if exists TxOutput_SpentHeight;
         drop index if exists TxOutput_TxHash_Number;
         drop index if exists TxOutputs_AddressHash_SpentHeight_Value;
@@ -600,6 +601,10 @@ namespace PocketDb
         create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
         create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
         create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
+
+        -- ChainRepository::SetContentId
+        create index if not exists Transactions_Type_Id on Transactions (Type, Id);
+
         create index if not exists TxOutput_SpentHeight on TxOutputs (SpentHeight);
         create index if not exists TxOutput_TxHash_Number on TxOutputs (TxHash, Number);
         create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);
