@@ -279,6 +279,20 @@ namespace PocketDb
         where t.Height is not null
         and t.Type in (305, 306);
 
+
+        drop view if exists vSubscribes;
+        create view if not exists vSubscribes as
+        select t.Type,
+            t.Hash,
+            t.Time,
+            t.BlockHash,
+            t.Height,
+            t.String1 as AddressHash,
+            t.String2 as AddressToHash
+        from Transactions t
+        where t.Height is not null
+        and t.Type in (302, 303, 304);
+
         --------------------------------------------
         --               WEB VIEWS                --
         --------------------------------------------
