@@ -60,6 +60,8 @@ namespace PocketTx
         shared_ptr <string> GetRelayTxHash() const { return m_string3; }
         void SetRelayTxHash(string value) { m_string3 = make_shared<string>(value); }
 
+        bool IsEdit() const { return m_string2 != nullptr; }
+
     protected:
 
     private:

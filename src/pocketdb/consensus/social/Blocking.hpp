@@ -32,7 +32,9 @@ namespace PocketConsensus
         {
             return Check(static_pointer_cast<Blocking>(tx));
         }
+
     protected:
+
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
@@ -78,6 +80,8 @@ namespace PocketConsensus
 
             return make_tuple(true, SocialConsensusResult_Success);
         }
+
+    private:
 
         tuple<bool, SocialConsensusResult> Check(shared_ptr<Blocking> tx)
         {

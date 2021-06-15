@@ -218,7 +218,7 @@ namespace PocketDb
                         p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
                     FROM Transactions t
                     LEFT JOIN Payload p on t.Hash = p.TxHash
-                    WHERE 1 = 1;
+                    WHERE 1 = 1
                 )sql";
             }
 
@@ -268,7 +268,7 @@ namespace PocketDb
                         p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
                     FROM Transactions t
                     LEFT JOIN Payload p on t.Hash = p.TxHash
-                    WHERE Height = ?;
+                    WHERE Height = ?
                 )sql";
             }
             auto stmt = SetupSqlStatement(sql);
@@ -292,6 +292,15 @@ namespace PocketDb
 
             FinalizeSqlStatement(*stmt);
             return result;
+        }
+
+        shared_ptr<Transaction> GetById(string& hash, bool includePayload = false)
+        {
+            auto lst = GetList({ hash }, includePayload);
+            if (!lst.empty())
+                return lst[0];
+            
+            return nullptr;
         }
 
     private:
