@@ -844,12 +844,16 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
         if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
             return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
 
-        auto indexResult = PocketServices::TransactionIndexer::Index(block, pblockindex->nHeight);
-        LogPrintf("TransactionIndexer::Index at height %d ended with result: %b\n", current, indexResult);
+        try
+        {
+            PocketServices::TransactionIndexer::Index(block, pblockindex->nHeight);
+        }
+        catch (std::exception& ex)
+        {
+            return RESTERR(req, HTTP_BAD_REQUEST, "TransactionIndexer::Index ended with result: ");
+        }
 
-        if (!indexResult)
-            return RESTERR(req, HTTP_BAD_REQUEST, "TransactionIndexer::Index ended with result: false");
-
+        LogPrintf("TransactionIndexer::Index at height %d\n", current);
         current += 1;
     }
 

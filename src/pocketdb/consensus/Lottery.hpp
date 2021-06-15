@@ -92,8 +92,10 @@ namespace PocketConsensus
                     txType != PocketTxType::ACTION_SCORE_COMMENT)
                     continue;
 
-                auto[ok, scoreData] = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
-                if (!ok) continue;
+                auto scoreData = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
+                if (!scoreData)
+                    throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n",
+                        __func__, tx->GetHash().GetHex()));
 
                 //LogPrintf("@@@ 2.1 Winners - tx:%s - score data - %s\n", tx->GetHash().GetHex(),
                 //    scoreData->Serialize()->write());
@@ -175,11 +177,10 @@ namespace PocketConsensus
             if (refs.find(contentAddress) != refs.end())
                 return;
 
-            auto[ok, referrer] = PocketDb::TransRepoInst.GetReferrer(contentAddress,
-                txTime - GetLotteryReferralDepth());
-            if (!ok) return;
+            auto referrer = PocketDb::TransRepoInst.GetReferrer(contentAddress, txTime - GetLotteryReferralDepth());
+            if (!referrer) return;
 
-            refs.emplace(contentAddress, referrer);
+            refs.emplace(contentAddress, *referrer);
         }
 
     public:
@@ -299,8 +300,8 @@ namespace PocketConsensus
                 if (find(winners.begin(), winners.end(), addr) == winners.end())
                     winners.push_back(addr);
 
-            auto[ok, referrers] = PocketDb::TransRepoInst.GetReferrers(winners, Height - GetLotteryReferralDepth());
-            if (!ok || referrers->empty()) return;
+            auto referrers = PocketDb::TransRepoInst.GetReferrers(winners, Height - GetLotteryReferralDepth());
+            if (referrers->empty()) return;
 
             for (const auto& it : *referrers)
             {

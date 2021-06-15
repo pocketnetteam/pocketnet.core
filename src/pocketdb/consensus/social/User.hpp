@@ -71,8 +71,8 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditProfileLimit(shared_ptr<User> tx)
         {
-            auto[lastModifyOk, prevTx] = ConsensusRepoInst.GetLastAccountTransaction(*tx->GetAddress());
-            if (!lastModifyOk)
+            auto prevTx = ConsensusRepoInst.GetLastAccountTransaction(*tx->GetAddress());
+            if (!prevTx)
                 return make_tuple(false, SocialConsensusResult_Failed);
 
             // First user account transaction allowe without next checks
@@ -179,7 +179,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1180000; }
 
-        virtual bool ValidateEditProfileLimit(shared_ptr<User> tx, shared_ptr<User> prevTx)
+        bool ValidateEditProfileLimit(shared_ptr<User> tx, shared_ptr<User> prevTx) override
         {
             return (*tx->GetHeight() - *prevTx->GetHeight()) > GetChangeInfoTimeout();
         }

@@ -23,26 +23,22 @@ namespace PocketConsensus
         BlockingCancelConsensus(int height) : SocialBaseConsensus(height) {}
         BlockingCancelConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr <Transaction> tx, PocketBlock& block) override
         {
             return Validate(static_pointer_cast<BlockingCancel>(tx), block);
         }
 
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> Check(shared_ptr <Transaction> tx) override
         {
             return Check(static_pointer_cast<BlockingCancel>(tx));
         }
     protected:
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<BlockingCancel> tx, PocketBlock& block)
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr <BlockingCancel> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
-            if (auto[ok, result] = PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()); ok)
-            {
-                if (!result)
-                {
-                    return make_tuple(false, SocialConsensusResult_NotRegistered);
-                }
-            }
+            if (PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
+
 
             // //-----------------------
             // // Also check mempool
@@ -76,8 +72,9 @@ namespace PocketConsensus
             //     }
             // }
 
-            auto[ok, existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*tx->GetAddress(), *tx->GetAddressTo(), *tx->GetHeight());
-            if (!ok || !existsBlocking || blockingType != ACTION_BLOCKING)
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*tx->GetAddress(),
+                *tx->GetAddressTo(), *tx->GetHeight());
+            if (!existsBlocking || blockingType != ACTION_BLOCKING)
             {
                 return make_tuple(false, SocialConsensusResult_InvalidBlocking);
             }
@@ -85,7 +82,7 @@ namespace PocketConsensus
             return make_tuple(true, SocialConsensusResult_Success);
         }
 
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<BlockingCancel> tx)
+        tuple<bool, SocialConsensusResult> Check(shared_ptr <BlockingCancel> tx)
         {
             // Blocking self
             if (*tx->GetAddress() == *tx->GetAddressTo())
@@ -121,10 +118,10 @@ namespace PocketConsensus
     {
     private:
         static inline const std::map<int, std::function<BlockingCancelConsensus*(int height)>> m_rules =
-        {
-            {1, [](int height) { return new BlockingCancelConsensus_checkpoint_1(height); }},
-            {0, [](int height) { return new BlockingCancelConsensus(height); }},
-        };
+            {
+                {1, [](int height) { return new BlockingCancelConsensus_checkpoint_1(height); }},
+                {0, [](int height) { return new BlockingCancelConsensus(height); }},
+            };
     public:
         shared_ptr <BlockingCancelConsensus> Instance(int height)
         {

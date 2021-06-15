@@ -76,7 +76,6 @@ namespace PocketDb
         // Erase all calculated data great or equals block
         void RollbackBlock(int height)
         {
-            auto funcName = __func__;
             int64_t nTime1 = GetTimeMicros();
 
             // Update transactions

@@ -6,7 +6,8 @@
 
 #include "WebRepository.h"
 
-namespace PocketDb {
+namespace PocketDb
+{
     void WebRepository::Init() {}
     void WebRepository::Destroy() {}
 
@@ -80,54 +81,53 @@ namespace PocketDb {
         )sql";
 
         auto result = UniValue(UniValue::VARR);
-        auto funcName = __func__;
 
-        auto tryResult = TryTransactionStep([&]() {
+        TryTransactionStep([&]()
+        {
             auto stmt = SetupSqlStatement(sql);
-            auto bindResult = TryBindStatementInt(stmt, 1, height);
-            bindResult &= TryBindStatementInt64(stmt, 2, GetAdjustedTime());
-            bindResult &= TryBindStatementText(stmt, 3, make_shared<std::string>(lang.empty() ? "en" : lang));
-            bindResult &= TryBindStatementInt(stmt, 4, count);
 
-            if (!bindResult) {
-                FinalizeSqlStatement(*stmt);
-                throw runtime_error(strprintf("%s: can't get last comments (bind out)\n", funcName));
-            }
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementInt64(stmt, 2, GetAdjustedTime());
+            TryBindStatementText(stmt, 3, make_shared<std::string>(lang.empty() ? "en" : lang));
+            TryBindStatementInt(stmt, 4, count);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW) {
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
                 UniValue record(UniValue::VOBJ);
 
                 auto txHash = GetColumnString(*stmt, 0);
                 auto rootTxHash = GetColumnString(*stmt, 1);
 
                 record.pushKV("id", rootTxHash);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("postid", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("address", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("timeUpd", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("block", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("parentid", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("answerid", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreUp", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("scoreDown", valueStr);
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 10); ok) record.pushKV("reputation", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("postid", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("address", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("timeUpd", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("block", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("parentid", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("answerid", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreUp", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("scoreDown", valueStr);
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 10); ok) record.pushKV("reputation", valueStr);
 
-                if (auto [ok, valueStr] = TryGetColumnString(*stmt, 11); ok) {
+                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 11); ok)
+                {
                     record.pushKV("msg", valueStr);
                     record.pushKV("deleted", false);
-                } else {
+                }
+                else
+                {
                     record.pushKV("msg", "");
                     record.pushKV("deleted", true);
                 }
 
-                record.pushKV("edit", txHash != rootTxHash); //TODO (joni) (brangr): тут может быть разрулим типом транзакции
-
+                //TODO (joni) (brangr): тут может быть разрулим типом транзакции
+                record.pushKV("edit", txHash != rootTxHash);
 
                 result.push_back(record);
             }
 
             FinalizeSqlStatement(*stmt);
-            return true;
         });
 
         return result;

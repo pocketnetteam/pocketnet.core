@@ -147,7 +147,7 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                 {
                     blockingExists = true;
-                    blockingType = (PocketTxType)value;
+                    blockingType = (PocketTxType) value;
                 }
             }
 

@@ -8,7 +8,6 @@
 #define POCKETDB_TRANSACTIONINDEXER_HPP
 
 #include "util.h"
-
 #include "chain.h"
 #include "primitives/block.h"
 
@@ -31,56 +30,35 @@ namespace PocketServices
     class TransactionIndexer
     {
     public:
-        static bool Index(const CBlock& block, int height)
+        static void Index(const CBlock& block, int height)
         {
             int64_t nTime1 = GetTimeMicros();
 
-            if (!RollbackChain(height))
-            {
-                LogPrintf("TransactionIndexer::Index failed (Rollback) at height %d\n", height);
-                return false;
-            }
+            Rollback(height);
 
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - RollbackChain: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
-            if (!IndexChain(block, height))
-            {
-                LogPrintf("TransactionIndexer::Index failed (Chain) at height %d\n", height);
-                return false;
-            }
+            IndexChain(block, height);
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms\n", 0.001 * (nTime3 - nTime2));
 
-            if (!IndexRatings(block, height))
-            {
-                LogPrintf("TransactionIndexer::Index failed (Ratings) at height %d\n", height);
-                return false;
-            }
+            IndexRatings(block, height);
 
             int64_t nTime4 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms\n", 0.001 * (nTime4 - nTime3));
-
-            return true;
         }
 
-        static bool Rollback(int height)
+        static void Rollback(int height)
         {
-            auto result = true;
-            result &= RollbackChain(height);
-            return result;
+            PocketDb::ChainRepoInst.RollbackBlock(height);
         }
 
     protected:
-        // Delete all calculated records for this height
-        static bool RollbackChain(int height)
-        {
-            return PocketDb::ChainRepoInst.RollbackBlock(height);
-        }
 
         // Set block height for all transactions in block
-        static bool IndexChain(const CBlock& block, int height)
+        static void IndexChain(const CBlock& block, int height)
         {
             int64_t nTime1 = GetTimeMicros();
 
@@ -104,10 +82,10 @@ namespace PocketServices
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - IndexChain Prepare: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
-            return PocketDb::ChainRepoInst.UpdateHeight(block.GetHash().GetHex(), height, txs);
+            PocketDb::ChainRepoInst.UpdateHeight(block.GetHash().GetHex(), height, txs);
         }
 
-        static bool IndexRatings(const CBlock& block, int height)
+        static void IndexRatings(const CBlock& block, int height)
         {
             int64_t nTime1 = GetTimeMicros();
 
@@ -134,7 +112,7 @@ namespace PocketServices
 
                 // Need select content id for saving rating
                 auto scoreData = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
-                if (scoreData == nullptr)
+                if (!scoreData)
                     throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n",
                         __func__, tx->GetHash().GetHex()));
 
@@ -250,18 +228,16 @@ namespace PocketServices
             }
 
             if (ratings->empty())
-                return true;
+                return;
 
             int64_t nTime4 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - Build Rating models: %.2fms\n", 0.001 * (nTime4 - nTime3));
 
             // Save all ratings in one transaction
-            auto resultInsert = PocketDb::RatingsRepoInst.InsertRatings(ratings);
+            PocketDb::RatingsRepoInst.InsertRatings(ratings);
 
             int64_t nTime5 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - InsertRatings: %.2fms\n", 0.001 * (nTime5 - nTime4));
-
-            return resultInsert;
         }
 
 

@@ -36,13 +36,8 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
-            if (auto[ok, result] = PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()); ok)
-            {
-                if (!result)
-                {
-                    return make_tuple(false, SocialConsensusResult_NotRegistered);
-                }
-            }
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // TODO (brangr): implement
             // TODO (brangr): Check already exists blocking for "from -> to"
@@ -76,11 +71,10 @@ namespace PocketConsensus
             //     }
             // }
 
-            auto[ok, existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*tx->GetAddress(), *tx->GetAddressTo(), *tx->GetHeight());
-            if (ok && existsBlocking && blockingType == ACTION_BLOCKING)
-            {
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*tx->GetAddress(),
+                *tx->GetAddressTo(), *tx->GetHeight());
+            if (existsBlocking && blockingType == ACTION_BLOCKING)
                 return make_tuple(false, SocialConsensusResult_DoubleBlocking);
-            }
 
             return make_tuple(true, SocialConsensusResult_Success);
         }
@@ -107,12 +101,12 @@ namespace PocketConsensus
     {
     private:
         static inline const std::map<int, std::function<BlockingConsensus*(int height)>> m_rules =
-        {
-            {0, [](int height) { return new BlockingConsensus(height); }},
-        };
+            {
+                {0, [](int height) { return new BlockingConsensus(height); }},
+            };
 
     public:
-        shared_ptr <BlockingConsensus> Instance(int height)
+        shared_ptr<BlockingConsensus> Instance(int height)
         {
             return shared_ptr<BlockingConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

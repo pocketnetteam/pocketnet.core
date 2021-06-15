@@ -35,20 +35,20 @@ namespace PocketConsensus
 
             int64_t nTime1 = GetTimeMicros();
 
-            auto[userRepOk, userReputation] = PocketDb::RatingsRepoInst.GetUserReputation(addressId, height);
+            auto userReputation = PocketDb::RatingsRepoInst.GetUserReputation(addressId, height);
 
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "        - GetUserReputation: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
-            if (!userRepOk || userReputation < minUserReputation)
+            if (userReputation < minUserReputation)
                 return false;
 
-            auto[userLikersOk, userLikers] = PocketDb::RatingsRepoInst.GetUserLikersCount(addressId, height);
+            auto userLikers = PocketDb::RatingsRepoInst.GetUserLikersCount(addressId, height);
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "        - GetUserLikersCount: %.2fms\n", 0.001 * (nTime3 - nTime2));
 
-            if (!userLikersOk || userLikers < minLikersCount)
+            if (userLikers < minLikersCount)
                 return false;
 
             // All is OK
@@ -93,7 +93,7 @@ namespace PocketConsensus
                 values.push_back(5);
             }
 
-            auto[scoreCountOk, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(
+            auto scores_one_to_one_count = PocketDb::RatingsRepoInst.GetScoreContentCount(
                 scoreData->ScoreType, scoreData->ContentType,
                 checkScoreAddressHash, scoreData->ContentAddressHash,
                 height, tx, values, _scores_one_to_one_depth);
@@ -104,7 +104,7 @@ namespace PocketConsensus
             //LogPrintf("=== 2.1.2 AllowModifyReputationOverPost - tx:%s sAddr:%s pAddr:%s height:%d diff:%d < %d\n",
             //    tx->GetHash().GetHex(), scoreAddress, postAddress, height, scores_one_to_one_count, _max_scores_one_to_one);
 
-            if (!scoreCountOk || scores_one_to_one_count >= _max_scores_one_to_one)
+            if (scores_one_to_one_count >= _max_scores_one_to_one)
                 return false;
 
             // All its Ok!
@@ -133,7 +133,7 @@ namespace PocketConsensus
                 values.push_back(1);
             }
 
-            auto[scoreCountOk, scores_one_to_one_count] = PocketDb::RatingsRepoInst.GetScoreContentCount(
+            auto scores_one_to_one_count = PocketDb::RatingsRepoInst.GetScoreContentCount(
                 scoreData->ScoreType, scoreData->ContentType,
                 scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
                 height, tx, values, _scores_one_to_one_depth);
@@ -141,7 +141,7 @@ namespace PocketConsensus
             //LogPrintf("=== 2.1.2 AllowModifyReputationOverComment - tx:%s sAddr:%s pAddr:%s height:%d diff:%d < %d\n",
             //    tx->GetHash().GetHex(), scoreAddress, commentAddress, height, scores_one_to_one_count, _max_scores_one_to_one);
 
-            if (!scoreCountOk || scores_one_to_one_count >= _max_scores_one_to_one)
+            if (scores_one_to_one_count >= _max_scores_one_to_one)
                 return false;
 
             // All its Ok!

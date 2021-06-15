@@ -1874,7 +1874,15 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
     // Rollback PocketDb
-    fClean &= PocketServices::TransactionIndexer::Rollback(pindex->nHeight);
+    try
+    {
+        PocketServices::TransactionIndexer::Rollback(pindex->nHeight);
+    }
+    catch (std::exception& ex)
+    {
+        LogPrintf("Error: Rollback failed with message: %s\n", ex.what());
+        fClean = false;
+    }
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }

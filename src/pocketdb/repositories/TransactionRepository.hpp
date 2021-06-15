@@ -167,21 +167,22 @@ namespace PocketDb
 
         // Select referrer for one account
         // TODO (brangr): move to ConsensusRepository
-        string& GetReferrer(const string& address, int minTime)
+        shared_ptr<string> GetReferrer(const string& address, int minTime)
         {
-            string result = "";
+            shared_ptr<string> result;
+
+            auto sql = R"sql(
+                select a.ReferrerAddressHash
+                from vAccounts a
+                where a.Time >= ?
+                    and a.AddressHash = ?
+                order by a.Height asc
+                limit 1
+            )sql";
 
             TryTransactionStep([&]()
             {
-                bool stepResult = true;
-                auto stmt = SetupSqlStatement(R"sql(
-                    select a.ReferrerAddressHash
-                    from vAccounts a
-                    where a.Time >= ?
-                        and a.AddressHash = ?
-                    order by a.Height asc
-                    limit 1
-                )sql");
+                auto stmt = SetupSqlStatement(sql);
 
                 TryBindStatementInt(stmt, 1, minTime);
                 TryBindStatementText(stmt, 2, address);
@@ -189,7 +190,7 @@ namespace PocketDb
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
                     if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
-                        result = value;
+                        result = make_shared<string>(value);
                 }
 
                 FinalizeSqlStatement(*stmt);
@@ -237,7 +238,6 @@ namespace PocketDb
             {
                 auto stmt = SetupSqlStatement(sql);
 
-                // TODO (brangr) (joni): обернуть чтобы финализировать и бросить эксепшн?
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
                     if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, includePayload); ok)
@@ -246,6 +246,8 @@ namespace PocketDb
 
                 FinalizeSqlStatement(*stmt);
             });
+
+            return result;
         }
 
         shared_ptr<PocketBlock> GetList(int height, bool includePayload = false)
