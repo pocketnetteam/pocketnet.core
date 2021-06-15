@@ -392,6 +392,7 @@ void FillCheckpointsBlocks(const CChainParams &params)
     CheckpointsBlocks.emplace(1015510, "da1b6bc0b9aabf75298b31b22a606ff42243f183d2d13b9aba56bd6dd53e6da5");
     CheckpointsBlocks.emplace(1015979, "72d688071a5349d858fe91cfa793a38255e442a9d1d144ae8ec706f981d79064");
     CheckpointsBlocks.emplace(1016332, "e6059161988007552f6b00385b8fc3d0b5416c7e3a77bde49a77d4d1a8d496bc");
+    CheckpointsBlocks.emplace(1016946, "e752134480c125a055726c99e886a7d1c9f484b6002f2df478cdc4affd34179f");
     CheckpointsBlocks.emplace(1017868, "6474058e333c300b07794dee77d1d1760e17ebf24a4c02d29a31b7a926b7f1a6");
     CheckpointsBlocks.emplace(1019525, "e3950d1fce3abe7688d5709bfa14cd9850d5a4d0d32c4ab3c4eaa0d3319d8eec");
     CheckpointsBlocks.emplace(1026072, "c1b38ad130f2f6be10864886dab6fa1ad538ce73c88ef3b2d15a2feae2f40970");

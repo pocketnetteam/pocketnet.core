@@ -2874,6 +2874,97 @@ UniValue converttxidaddress(const JSONRPCRequest& request)
     return result;
 }
 
+UniValue getquerycontentsforstrips(std::map<std::string, int> qcondints,
+    std::map<std::string, std::string> qcondstrings,
+    std::map<std::string, std::vector<std::string>> qcondvstrings)
+{
+    reindexer::Error error;
+    reindexer::Query query;
+    reindexer::QueryResults queryResults;
+
+    int nHeightFrom = chainActive.Height();
+    if (qcondints["nHeight"] != 0) {
+        nHeightFrom = qcondints["nHeight"];
+    }
+
+    int countOut = 10;
+    if (qcondints["countOut"] != 0) {
+        nHeightFrom = qcondints["countOut"];
+    }
+
+    std::string startTxid = qcondstrings["startTxid"];
+
+    int cntTransactionInSameBlock = 0;
+    if (!startTxid.empty()) {
+        reindexer::Item blItm;
+        reindexer::Error blError = g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, startTxid), blItm);
+        if (blError.ok()) {
+            nHeightFrom = blItm["block"].As<int>();
+            cntTransactionInSameBlock = g_pocketdb->SelectCount(reindexer::Query("Posts").Where("block", CondEq, nHeightFrom));
+        }
+    }
+
+    query = reindexer::Query("Posts");
+    query = query.Where("block", CondLe, nHeightFrom);
+    query = query.Where("time", CondLe, GetAdjustedTime());
+    query = query.Where("txidRepost", CondEq, "");
+    if (!qcondvstrings["authors"].empty()){
+        query = query.Where("address", CondSet, qcondvstrings["authors"]);
+    }
+    if (!qcondstrings["lang"].empty()) {
+        query = query.Where("lang", CondEq, qcondstrings["lang"]);
+    }
+    if (!qcondvstrings["tags"].empty()) {
+        query = query.Where("tags", CondSet, qcondvstrings["tags"]);
+    }
+    if (!qcondvstrings["contentTypes"].empty()) {
+        std::vector<int> contenttypes;
+        for (const auto& item : qcondvstrings["contentTypes"]) {
+            contenttypes.push_back(getcontenttype(item));
+        }
+        query = query.Where("type", CondSet, contenttypes);
+    }
+    if (!qcondvstrings["txidsExcluded"].empty()) {
+        query = query.Not().Where("txid", CondSet, qcondvstrings["txidsExcluded"]);
+    }
+    if (!qcondvstrings["adrsExcluded"].empty()) {
+        query = query.Not().Where("address", CondSet, qcondvstrings["adrsExcluded"]);
+    }
+    if (!qcondvstrings["tagsExcluded"].empty()) {
+        query = query.Not().Where("tags", CondSet, qcondvstrings["tagsExcluded"]);
+    }
+    query = query.Sort("block", true);
+    query = query.Sort("time", true);
+    query = query.ReqTotal().Limit(countOut + cntTransactionInSameBlock);
+
+    error = g_pocketdb->DB()->Select(query, queryResults);
+
+    UniValue contents(UniValue::VARR);
+    if (error.ok()) {
+        bool onOutput = startTxid.empty();
+        for (auto it : queryResults) {
+            reindexer::Item contentItm(it.GetItem());
+
+            if (onOutput) {
+                UniValue entry(UniValue::VOBJ);
+                entry = getPostData(contentItm, "");
+                contents.push_back(entry);
+            }
+
+            if (!startTxid.empty()) {
+                onOutput = onOutput || startTxid == contentItm["txid"].As<string>();
+            }
+        }
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("height", nHeightFrom);
+    result.pushKV("contents", contents);
+    result.pushKV("contentsTotal", queryResults.totalCount);
+
+    return result;
+}
+
 // Do not change input or output params (used in gethierarchicalstrip & getusercontents)
 UniValue gethistoricalstrip(const JSONRPCRequest& request)
 {
@@ -3638,9 +3729,6 @@ UniValue getusercontents(const JSONRPCRequest& request)
     new_request.params = new_params;
 
     return gethistoricalstrip(new_request);
-
-    //UniValue result(UniValue::VOBJ);
-    //return result;
 }
 
 UniValue getrecomendedsubscriptionsforuser(const JSONRPCRequest& request)
