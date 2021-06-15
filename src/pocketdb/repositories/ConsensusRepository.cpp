@@ -74,7 +74,7 @@ namespace PocketDb
         return tx;
     }
 
-    bool PocketDb::ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, int height)
+    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, int height)
     {
         auto result = false;
 
@@ -118,8 +118,7 @@ namespace PocketDb
         return result;
     }
 
-    tuple<bool, PocketTxType>
-    PocketDb::ConsensusRepository::GetLastBlockingType(string& address, string& addressTo, int height)
+    tuple<bool, PocketTxType> ConsensusRepository::GetLastBlockingType(string& address, string& addressTo, int height)
     {
         bool blockingExists = false;
         PocketTxType blockingType = PocketTxType::NOT_SUPPORTED;
@@ -155,5 +154,40 @@ namespace PocketDb
         });
 
         return make_tuple(blockingExists, blockingType);
+    }
+
+    tuple<bool, PocketTxType> ConsensusRepository::GetLastSubscribeType(string& address, string& addressTo, int height)
+    {
+        bool subscribeExists = false;
+        PocketTxType subscribeType = PocketTxType::NOT_SUPPORTED;
+
+        auto sql = R"sql(
+                SELECT t.Type
+                FROM vSubscribes u
+                WHERE u.AddressHash = ?
+                    AND u.AddressToHash = ?
+                    AND u.Height < ?
+                ORDER BY u.Height DESC, u.Time DESC
+                LIMIT 1
+            )sql";
+
+        TryTransactionStep([&]() {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, addressTo);
+            TryBindStatementInt(stmt, 3, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                if (auto [ok, value] = TryGetColumnInt(*stmt, 0); ok) {
+                    subscribeExists = true;
+                    subscribeType = (PocketTxType)value;
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return make_tuple(subscribeExists, subscribeType);
     }
 }

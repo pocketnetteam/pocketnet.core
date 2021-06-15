@@ -20,29 +20,25 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class SubscribePrivateConsensus : public SocialBaseConsensus
     {
-    protected:
     public:
         SubscribePrivateConsensus(int height) : SocialBaseConsensus(height) {}
         SubscribePrivateConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return make_tuple(true, SocialConsensusResult_Success);
-            // TODO (brangr): implement
-            // std::string _txid = oitm["txid"].get_str();
-            // std::string _address = oitm["address"].get_str();
-            // std::string _address_to = oitm["address_to"].get_str();
-            // bool _private = oitm["private"].get_bool();
-            // bool _unsubscribe = oitm["unsubscribe"].get_bool();
-            // int64_t _time = oitm["time"].get_int64();
+            return Validate(static_pointer_cast<SubscribePrivate>(tx), block);
+        }
 
-            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
-
-            // if (!CheckRegistration(oitm, _address_to, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
+        {
+            return Check(static_pointer_cast<SubscribePrivate>(tx));
+        }
+    protected:
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<SubscribePrivate> tx, PocketBlock& block)
+        {
+            vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // // Also check mempool
             // if (checkMempool) {
@@ -75,36 +71,32 @@ namespace PocketConsensus
             //     }
             // }
 
-            // if (_address == _address_to) {
-            //     result = ANTIBOTRESULT::SelfSubscribe;
-            //     return false;
-            // }
+            auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(*tx->GetAddress(),
+                                                                                                    *tx->GetAddressTo(), *tx->GetHeight());
+            if (subscribeExists && subscribeType == ACTION_SUBSCRIBE_PRIVATE)
+            {
+                if (!IsCheckpointTransaction(*tx->GetHash()))
+                {
+                    return make_tuple(false, SocialConsensusResult_DoubleBlocking);
+                }
+                else
+                {
+                    LogPrintf("Found checkpoint transaction %s\n", *tx->GetHash());
+                }
+            }
 
-            // reindexer::Item sItm;
-            // Error err = g_pocketdb->SelectOne(
-            //     reindexer::Query("SubscribesView")
-            //         .Where("address", CondEq, _address)
-            //         .Where("address_to", CondEq, _address_to)
-            //         .Where("block", CondLt, height),
-            //     sItm);
-
-            // if (_unsubscribe && !err.ok()) {
-            //     result = ANTIBOTRESULT::InvalideSubscribe;
-            //     return false;
-            // }
-
-            // if (!_unsubscribe && err.ok() && sItm["private"].As<bool>() == _private) {
-            //     if (!IsCheckpointTransaction(_txid)) {
-            //         result = ANTIBOTRESULT::DoubleSubscribe;
-            //         return false;
-            //     } else {
-            //         LogPrintf("Found checkpoint transaction %s\n", _txid);
-            //     }
-            // }
-
-            // return true;
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<SubscribePrivate> tx)
+        {
+            if (*tx->GetAddress() == *tx->GetAddressTo())
+            {
+                return make_tuple(false, SocialConsensusResult_SelfSubscribe);
+            }
+
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
     };
 
     /*******************************************************************************************************************
