@@ -30,9 +30,9 @@ public:
     void Destroy() override;
 
     bool ExistsAnotherByName(const string& address, const string& name);
-    tuple<bool, shared_ptr<Transaction>> GetLastAccountTransaction(const string& address);
-    tuple<bool, bool> ExistsUserRegistrations(vector<string>& addresses, int height = 0);
-    tuple<bool, bool, PocketTxType> GetLastBlockingType(string& address, string& addressTo, int height);
+    shared_ptr<Transaction> GetLastAccountTransaction(const string& address);
+    bool ExistsUserRegistrations(vector<string>& addresses, int height = 0);
+    tuple<bool, PocketTxType> GetLastBlockingType(string& address, string& addressTo, int height);
 };
 
 } // namespace PocketDb

@@ -28,96 +28,88 @@ namespace PocketDb
         void Destroy() override {}
 
         // Accumulate new rating records
-        bool InsertRatings(shared_ptr<vector<Rating>> ratings)
+        void InsertRatings(shared_ptr<vector<Rating>> ratings)
         {
             for (const auto& rating : *ratings)
             {
                 int64_t nTime1 = GetTimeMicros();
 
-                bool result = true;
                 if (*rating.GetType() == RatingType::RATING_ACCOUNT_LIKERS)
-                    result = InsertLiker(rating);
+                    InsertLiker(rating);
                 else
-                    result = InsertRating(rating);
+                    InsertRating(rating);
 
                 int64_t nTime2 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - InsertRating (%d): %.2fms\n", *rating.GetTypeInt(), 0.001 * (nTime2 - nTime1));
-
-                if (!result)
-                {
-                    LogPrintf("InsertRatings (type: %d) failed: id:%d height:%d\n", *rating.GetTypeInt(), *rating.GetId(), *rating.GetHeight());
-                        return false;
-                }
+                LogPrint(BCLog::BENCH, "      - InsertRating (%d): %.2fms\n", *rating.GetTypeInt(),
+                    0.001 * (nTime2 - nTime1));
             }
-
-            return true;
         }
 
         // TODO (brangr): move to ConsensusRepository
-        tuple<bool, int> GetUserReputation(int addressId, int height)
+        int GetUserReputation(int addressId, int height)
         {
             int result = 0;
 
-            bool tryResult = TryTransactionStep([&]()
+            auto sql = R"sql(
+                select r.Value
+                from Ratings r
+                where r.Type = ?
+                    and r.Id = ?
+                    and r.Height <= ?
+                order by r.Height desc
+                limit 1
+            )sql";
+
+            TryTransactionStep([&]()
             {
-                auto stmt = SetupSqlStatement(R"sql(
-                    select r.Value
-                    from Ratings r
-                    where r.Type = ?
-                        and r.Id = ?
-                        and r.Height <= ?
-                    order by r.Height desc
-                    limit 1
-                )sql");
+                auto stmt = SetupSqlStatement(sql);
 
-                auto bindResult = TryBindStatementInt(stmt, 1, (int)RatingType::RATING_ACCOUNT);
-                bindResult &= TryBindStatementInt(stmt, 2, addressId);
-                bindResult &= TryBindStatementInt(stmt, 3, height);
+                TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
+                TryBindStatementInt(stmt, 2, addressId);
+                TryBindStatementInt(stmt, 3, height);
 
-                if (bindResult && sqlite3_step(*stmt) == SQLITE_ROW)
-                {
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
                     result = GetColumnInt(*stmt, 0);
-                }
 
                 FinalizeSqlStatement(*stmt);
-                return bindResult;
             });
 
-            return make_tuple(tryResult, result);
+            return result;
         }
 
         // TODO (brangr): move to ConsensusRepository
-        tuple<bool, int> GetUserLikersCount(int addressId, int height)
+        int GetUserLikersCount(int addressId, int height)
         {
             int result = 0;
 
-            bool tryResult = TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    select count(1)
-                    from Ratings r
-                    where   r.Type = ?
-                        and r.Id = ?
-                        and r.Height <= ?
-                )sql");
+            auto sql = R"sql(
+                select count(1)
+                from Ratings r
+                where   r.Type = ?
+                    and r.Id = ?
+                    and r.Height <= ?
+            )sql";
 
-                auto bindResult = TryBindStatementInt(stmt, 1, (int)RatingType::RATING_ACCOUNT_LIKERS);
-                bindResult &= TryBindStatementInt(stmt, 2, addressId);
-                bindResult &= TryBindStatementInt(stmt, 3, height);
+            TryTransactionStep([&]()
+            {
+                auto stmt = SetupSqlStatement(sql);
+
+                TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
+                TryBindStatementInt(stmt, 2, addressId);
+                TryBindStatementInt(stmt, 3, height);
 
                 // not exists - not error
-                if (bindResult && sqlite3_step(*stmt) == SQLITE_ROW)
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
                     result = GetColumnInt(*stmt, 0);
 
                 FinalizeSqlStatement(*stmt);
-                return true;
             });
 
-            return make_tuple(tryResult, result);
+            return result;
         }
 
         // TODO (brangr): move to ConsensusRepository
-        tuple<bool, int> GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
+        int GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
             const string& scoreAddress, const string& contentAddress,
             int height, const CTransactionRef& tx,
             const std::vector<int>& values,
@@ -151,28 +143,26 @@ namespace PocketDb
             sql += ")";
 
             int result = 0;
-            bool tryResult = TryTransactionStep([&]()
+            TryTransactionStep([&]()
             {
                 auto stmt = SetupSqlStatement(sql);
 
-                auto bindResult = TryBindStatementText(stmt, 1, scoreAddress);
-                bindResult &= TryBindStatementInt(stmt, 2, height);
-                bindResult &= TryBindStatementInt64(stmt, 3, tx->nTime);
-                bindResult &= TryBindStatementInt64(stmt, 4, (int64_t) tx->nTime - scoresOneToOneDepth);
-                bindResult &= TryBindStatementText(stmt, 5, tx->GetHash().GetHex());
-                bindResult &= TryBindStatementInt(stmt, 6, scoreType);
-                bindResult &= TryBindStatementText(stmt, 7, contentAddress);
-                bindResult &= TryBindStatementInt(stmt, 8, contentType);
+                TryBindStatementText(stmt, 1, scoreAddress);
+                TryBindStatementInt(stmt, 2, height);
+                TryBindStatementInt64(stmt, 3, tx->nTime);
+                TryBindStatementInt64(stmt, 4, (int64_t) tx->nTime - scoresOneToOneDepth);
+                TryBindStatementText(stmt, 5, tx->GetHash().GetHex());
+                TryBindStatementInt(stmt, 6, scoreType);
+                TryBindStatementText(stmt, 7, contentAddress);
+                TryBindStatementInt(stmt, 8, contentType);
 
-                // not exists - not error
-                if (bindResult && sqlite3_step(*stmt) == SQLITE_ROW)
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
                     result = GetColumnInt(*stmt, 0);
 
                 FinalizeSqlStatement(*stmt);
-                return bindResult;
             });
 
-            return make_tuple(tryResult, result);
+            return result;
         }
 
     private:
@@ -201,41 +191,43 @@ namespace PocketDb
             {
                 auto stmt = SetupSqlStatement(sql);
 
-                auto result = TryBindStatementInt(stmt, 1, *rating.GetTypeInt());
-                result &= TryBindStatementInt(stmt, 2, *rating.GetHeight());
-                result &= TryBindStatementInt64(stmt, 3, *rating.GetId());
-                result &= TryBindStatementInt(stmt, 4, *rating.GetTypeInt());
-                result &= TryBindStatementInt64(stmt, 5, *rating.GetId());
-                result &= TryBindStatementInt(stmt, 6, *rating.GetHeight());
-                result &= TryBindStatementInt64(stmt, 7, *rating.GetValue());
-                
-                return result && TryStepStatement(stmt);
+                TryBindStatementInt(stmt, 1, *rating.GetTypeInt());
+                TryBindStatementInt(stmt, 2, *rating.GetHeight());
+                TryBindStatementInt64(stmt, 3, *rating.GetId());
+                TryBindStatementInt(stmt, 4, *rating.GetTypeInt());
+                TryBindStatementInt64(stmt, 5, *rating.GetId());
+                TryBindStatementInt(stmt, 6, *rating.GetHeight());
+                TryBindStatementInt64(stmt, 7, *rating.GetValue());
+
+                TryStepStatement(stmt);
             });
         }
 
-        bool InsertLiker(const Rating& rating)
+        void InsertLiker(const Rating& rating)
         {
-            return TryTransactionStep([&]()
+            auto sql = R"sql(
+                INSERT OR FAIL INTO Ratings (
+                    Type,
+                    Height,
+                    Id,
+                    Value
+                ) SELECT ?,?,?,?
+                WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
+            )sql";
+
+            TryTransactionStep([&]()
             {
-                auto stmt = SetupSqlStatement(R"sql(
-                    INSERT OR FAIL INTO Ratings (
-                        Type,
-                        Height,
-                        Id,
-                        Value
-                    ) SELECT ?,?,?,?
-                    WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
-                )sql");
+                auto stmt = SetupSqlStatement(sql);
 
-                auto result = TryBindStatementInt(stmt, 1, *rating.GetTypeInt());
-                result &= TryBindStatementInt(stmt, 2, *rating.GetHeight());
-                result &= TryBindStatementInt64(stmt, 3, *rating.GetId());
-                result &= TryBindStatementInt64(stmt, 4, *rating.GetValue());
-                result &= TryBindStatementInt(stmt, 5, *rating.GetTypeInt());
-                result &= TryBindStatementInt64(stmt, 6, *rating.GetId());
-                result &= TryBindStatementInt64(stmt, 7, *rating.GetValue());
+                TryBindStatementInt(stmt, 1, *rating.GetTypeInt());
+                TryBindStatementInt(stmt, 2, *rating.GetHeight());
+                TryBindStatementInt64(stmt, 3, *rating.GetId());
+                TryBindStatementInt64(stmt, 4, *rating.GetValue());
+                TryBindStatementInt(stmt, 5, *rating.GetTypeInt());
+                TryBindStatementInt64(stmt, 6, *rating.GetId());
+                TryBindStatementInt64(stmt, 7, *rating.GetValue());
 
-                return result && TryStepStatement(stmt);
+                TryStepStatement(stmt);
             });
         }
 

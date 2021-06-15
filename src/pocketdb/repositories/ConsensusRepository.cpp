@@ -13,7 +13,7 @@ namespace PocketDb
 
     bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
     {
-        auto funcName = __func__;
+        bool result = false;
 
         auto sql = R"sql(
             SELECT 1
@@ -27,28 +27,25 @@ namespace PocketDb
             )
         )sql";
 
-        return TryTransactionStep([&]() {
+        TryTransactionStep([&]()
+        {
             auto stmt = SetupSqlStatement(sql);
 
-            auto bindResult = TryBindStatementText(stmt, 1, name);
-            bindResult &= TryBindStatementText(stmt, 2, address);
-            if (!bindResult) {
-                FinalizeSqlStatement(*stmt);
-                throw runtime_error(strprintf("%s: bind error\n", funcName));
-            }
+            TryBindStatementText(stmt, 1, name);
+            TryBindStatementText(stmt, 2, address);
 
-            bool result = sqlite3_step(*stmt) == SQLITE_ROW;
+            result = sqlite3_step(*stmt) == SQLITE_ROW;
             FinalizeSqlStatement(*stmt);
-            return result;
         });
+
+        return result;
     }
 
     // Select all user profile edit transaction in chain
     // Transactions.Height is not null
     // TODO (brangr): change vUser to vAccounts and pass argument type
-    tuple<bool, shared_ptr<Transaction>> ConsensusRepository::GetLastAccountTransaction(const string& address)
+    shared_ptr<Transaction> ConsensusRepository::GetLastAccountTransaction(const string& address)
     {
-        auto funcName = __func__;
         shared_ptr<Transaction> tx;
 
         auto sql = R"sql(
@@ -61,42 +58,40 @@ namespace PocketDb
             limit 1
         )sql";
 
-        bool tryResult = TryTransactionStep([&]()
+        TryTransactionStep([&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
-            auto bindResult = TryBindStatementText(stmt, 1, address);
-            if (!bindResult)
-            {
-                FinalizeSqlStatement(*stmt);
-                throw runtime_error(strprintf("%s bind failed\n", funcName));
-            }
+            TryBindStatementText(stmt, 1, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
                     tx = transaction;
 
             FinalizeSqlStatement(*stmt);
-            return true;
         });
 
-        return make_tuple(tryResult,tx);
+        return tx;
     }
 
-    tuple<bool, bool> PocketDb::ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, int height)
+    bool PocketDb::ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, int height)
     {
-        auto funcName = __func__;
         auto result = false;
+
+        if (addresses.empty())
+            return result;
 
         string sql = R"sql(
             SELECT COUNT(DISTINCT(u.AddressHash))
             FROM vUsers u
-            WHERE 1 = 1
+            WHERE u.AddressHash IN (
         )sql";
-        sql += " AND u.AddressHash IN ( '";
+
+        sql += "'";
         sql += addresses[0];
         sql += "'";
-        for (size_t i = 1; i < addresses.size(); i++) {
+        for (size_t i = 1; i < addresses.size(); i++)
+        {
             sql += ",'";
             sql += addresses[i];
             sql += "'";
@@ -105,30 +100,29 @@ namespace PocketDb
 
         if (height > 0)
         {
-            sql += "AND u.Height < ";
+            sql += " AND u.Height < ";
             sql += std::to_string(height);
         }
 
-        bool tryResult = TryTransactionStep([&]() {
+        TryTransactionStep([&]()
+        {
             auto stmt = SetupSqlStatement(sql);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                result = GetColumnInt(*stmt, 0) == (int) addresses.size();
-            }
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = (value == (int) addresses.size());
 
             FinalizeSqlStatement(*stmt);
-            return true;
         });
 
-        return make_tuple(tryResult, result);
+        return result;
     }
 
-    tuple<bool, bool, PocketTxType> PocketDb::ConsensusRepository::GetLastBlockingType(string& address, string& addressTo, int height)
+    tuple<bool, PocketTxType>
+    PocketDb::ConsensusRepository::GetLastBlockingType(string& address, string& addressTo, int height)
     {
-        auto funcName = __func__;
-        bool blockingExists;
-        PocketTxType blockingType;
+        bool blockingExists = false;
+        PocketTxType blockingType = PocketTxType::NOT_SUPPORTED;
 
         auto sql = R"sql(
             SELECT t.Type
@@ -140,33 +134,26 @@ namespace PocketDb
             LIMIT 1
         )sql";
 
-        bool tryResult = TryTransactionStep([&]() {
+        TryTransactionStep([&]()
+        {
             auto stmt = SetupSqlStatement(sql);
 
-            auto bindResult = TryBindStatementText(stmt, 1, address);
-            bindResult &= TryBindStatementText(stmt, 2, addressTo);
-            bindResult &= TryBindStatementInt(stmt, 3, height);
-            if (!bindResult) {
-                FinalizeSqlStatement(*stmt);
-                return false;
-            }
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, addressTo);
+            TryBindStatementInt(stmt, 3, height);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto type = GetColumnInt(*stmt, 0);
-                blockingExists = true;
-                blockingType = static_cast<PocketTxType>(type);
-            }
-            else
-            {
-                blockingExists = false;
-                blockingType = static_cast<PocketTxType>(0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                {
+                    blockingExists = true;
+                    blockingType = (PocketTxType)value;
+                }
             }
 
             FinalizeSqlStatement(*stmt);
-            return true;
         });
 
-        return make_tuple(tryResult, blockingExists, blockingType);
+        return make_tuple(blockingExists, blockingType);
     }
 }
