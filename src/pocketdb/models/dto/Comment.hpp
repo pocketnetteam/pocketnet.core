@@ -17,7 +17,7 @@ namespace PocketTx
     {
     public:
 
-        Comment(string hash, int64_t time) : Transaction(hash, time)
+        Comment(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::CONTENT_COMMENT);
         }
@@ -74,8 +74,6 @@ namespace PocketTx
 
     protected:
 
-    private:
-
         void BuildPayload(const UniValue& src) override
         {
             Transaction::BuildPayload(src);
@@ -97,6 +95,7 @@ namespace PocketTx
 
             Transaction::GenerateHash(data);
         }
+
     };
 
 } // namespace PocketTx

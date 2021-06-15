@@ -22,6 +22,8 @@
 #include "pocketdb/models/dto/Default.hpp"
 #include "pocketdb/models/dto/Post.hpp"
 #include "pocketdb/models/dto/Comment.hpp"
+#include "pocketdb/models/dto/CommentEdit.hpp"
+#include "pocketdb/models/dto/CommentDelete.hpp"
 #include "pocketdb/models/dto/Subscribe.hpp"
 #include "pocketdb/models/dto/SubscribeCancel.hpp"
 #include "pocketdb/models/dto/SubscribePrivate.hpp"
@@ -36,8 +38,13 @@ namespace PocketHelpers
     using std::string;
     using std::vector;
     using std::make_tuple;
+    using std::shared_ptr;
+    using std::map;
 
     using namespace PocketTx;
+
+    // Accumulate transactions in block
+    typedef vector<shared_ptr<Transaction>> PocketBlock;
 
     static txnouttype ScriptType(const CScript& scriptPubKey)
     {
@@ -91,8 +98,12 @@ namespace PocketHelpers
             return PocketTxType::ACTION_BLOCKING;
         else if (op == OR_UNBLOCKING)
             return PocketTxType::ACTION_BLOCKING_CANCEL;
-        else if (op == OR_COMMENT || op == OR_COMMENT_EDIT || op == OR_COMMENT_DELETE)
+        else if (op == OR_COMMENT)
             return PocketTxType::CONTENT_COMMENT;
+        else if (op == OR_COMMENT_EDIT)
+            return PocketTxType::CONTENT_COMMENT_EDIT;
+        else if (op == OR_COMMENT_DELETE)
+            return PocketTxType::CONTENT_COMMENT_DELETE;
         else if (op == OR_COMMENT_SCORE)
             return PocketTxType::ACTION_SCORE_COMMENT;
 
@@ -138,59 +149,6 @@ namespace PocketHelpers
         return ParseType(tx, vasm);
     }
 
-    // TODO (brangr): OBSOLETE
-    static PocketTxType ParseTypeObsolete(const string& reindexerTable, const UniValue& reindexerSrc)
-    {
-        // TODO (brangr): implement enum for tx types
-        if (reindexerTable == "Users")
-            return PocketTxType::ACCOUNT_USER;
-
-        if (reindexerTable == "Posts")
-            return PocketTxType::CONTENT_POST;
-
-        if (reindexerTable == "Comment")
-        {
-
-            return PocketTxType::CONTENT_COMMENT;
-        }
-
-        if (reindexerTable == "Scores")
-            return PocketTxType::ACTION_SCORE_POST;
-
-        if (reindexerTable == "CommentScores")
-            return PocketTxType::ACTION_SCORE_COMMENT;
-
-        if (reindexerTable == "Blocking")
-        {
-            if (reindexerSrc.exists("unblocking") &&
-                reindexerSrc["unblocking"].isBool() &&
-                reindexerSrc["unblocking"].get_bool())
-                return PocketTxType::ACTION_BLOCKING_CANCEL;
-
-            return PocketTxType::ACTION_BLOCKING;
-        }
-
-        if (reindexerTable == "Subscribes")
-        {
-            if (reindexerSrc.exists("unsubscribe") &&
-                reindexerSrc["unsubscribe"].isBool() &&
-                reindexerSrc["unsubscribe"].get_bool())
-                return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
-
-            if (reindexerSrc.exists("private") &&
-                reindexerSrc["private"].isBool() &&
-                reindexerSrc["private"].get_bool())
-                return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
-
-            return PocketTxType::ACTION_SUBSCRIBE;
-        }
-
-        if (reindexerTable == "Complains")
-            return PocketTxType::ACTION_COMPLAIN;
-
-        return PocketTxType::NOT_SUPPORTED;
-    }
-
     static string ConvertToReindexerTable(const Transaction& transaction)
     {
         switch (*transaction.GetType()) {
@@ -201,6 +159,8 @@ namespace PocketHelpers
             return "Posts";
             break;
         case PocketTxType::CONTENT_COMMENT:
+        case PocketTxType::CONTENT_COMMENT_EDIT:
+        case PocketTxType::CONTENT_COMMENT_DELETE:
             return "Comment";
             break;
         case PocketTxType::ACTION_SCORE_POST:
@@ -292,6 +252,12 @@ namespace PocketHelpers
         case CONTENT_COMMENT:
             ptx = make_shared<Comment>(txHash, nTime);
             break;
+        case CONTENT_COMMENT_EDIT:
+            ptx = make_shared<CommentEdit>(txHash, nTime);
+            break;
+        case CONTENT_COMMENT_DELETE:
+            ptx = make_shared<CommentDelete>(txHash, nTime);
+            break;
         case ACTION_SCORE_POST:
             ptx = make_shared<ScorePost>(txHash, nTime);
             break;
@@ -321,6 +287,23 @@ namespace PocketHelpers
         }
 
         return ptx;
+    }
+
+    static bool IsAccount(const TransactionIndexingInfo& tx)
+    {
+        return tx.Type == PocketTxType::ACCOUNT_USER ||
+               tx.Type == PocketTxType::ACCOUNT_VIDEO_SERVER ||
+               tx.Type == PocketTxType::ACCOUNT_MESSAGE_SERVER;
+    }
+
+    static bool IsContent(const TransactionIndexingInfo& tx)
+    {
+        return tx.Type == PocketTxType::CONTENT_POST ||
+               tx.Type == PocketTxType::CONTENT_COMMENT ||
+               tx.Type == PocketTxType::CONTENT_COMMENT_EDIT ||
+               tx.Type == PocketTxType::CONTENT_COMMENT_DELETE ||
+               tx.Type == PocketTxType::CONTENT_VIDEO ||
+               tx.Type == PocketTxType::CONTENT_TRANSLATE;
     }
 }
 

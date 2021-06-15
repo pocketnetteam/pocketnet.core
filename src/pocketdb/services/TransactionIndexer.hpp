@@ -13,7 +13,6 @@
 
 #include "pocketdb/consensus.h"
 #include "pocketdb/helpers/TransactionHelper.hpp"
-#include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/pocketnet.h"
 
 namespace PocketServices

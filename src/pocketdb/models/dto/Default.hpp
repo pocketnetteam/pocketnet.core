@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Default(string hash, int64_t time) : Transaction(hash, time)
+        Default(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::TX_DEFAULT);
         }
@@ -27,8 +27,6 @@ namespace PocketTx
 
         void BuildPayload(const UniValue& src) override {}
         void BuildHash(const UniValue& src) override {}
-
-    private:
 
     };
 

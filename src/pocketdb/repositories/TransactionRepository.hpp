@@ -7,7 +7,6 @@
 #ifndef POCKETDB_TRANSACTIONREPOSITORY_HPP
 #define POCKETDB_TRANSACTIONREPOSITORY_HPP
 
-#include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/helpers/TransactionHelper.hpp"
 
 #include "pocketdb/repositories/BaseRepository.hpp"
@@ -200,7 +199,7 @@ namespace PocketDb
         }
 
         // TODO (joni): стринги в sql не будут работать без бинда
-        shared_ptr<PocketBlock> GetList(vector<string>& txHashes, bool includePayload = false)
+        shared_ptr<PocketBlock> GetList(const vector<string>& txHashes, bool includePayload = false)
         {
             string sql;
             if (!includePayload)
@@ -297,8 +296,8 @@ namespace PocketDb
         shared_ptr<Transaction> GetById(string& hash, bool includePayload = false)
         {
             auto lst = GetList({ hash }, includePayload);
-            if (!lst.empty())
-                return lst[0];
+            if (!lst->empty())
+                return lst->front();
             
             return nullptr;
         }

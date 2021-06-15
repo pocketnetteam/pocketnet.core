@@ -14,6 +14,8 @@
 #include "pocketdb/consensus/social/Blocking.hpp"
 #include "pocketdb/consensus/social/BlockingCancel.hpp"
 #include "pocketdb/consensus/social/Comment.hpp"
+#include "pocketdb/consensus/social/CommentEdit.hpp"
+#include "pocketdb/consensus/social/CommentDelete.hpp"
 #include "pocketdb/consensus/social/Complain.hpp"
 #include "pocketdb/consensus/social/Post.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
@@ -71,6 +73,12 @@ namespace PocketConsensus
                         continue;
                     case CONTENT_COMMENT:
                         consensus = PocketConsensus::CommentConsensusFactoryInst.Instance(height);
+                        break;
+                    case CONTENT_COMMENT_EDIT:
+                        consensus = PocketConsensus::CommentEditConsensusFactoryInst.Instance(height);
+                        break;
+                    case CONTENT_COMMENT_DELETE:
+                        consensus = PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
                         break;
                     case ACTION_SCORE_POST:
                         consensus = PocketConsensus::ScorePostConsensusFactoryInst.Instance(height);

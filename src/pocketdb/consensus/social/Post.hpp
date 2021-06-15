@@ -32,7 +32,7 @@ namespace PocketConsensus
 
         virtual int64_t GetEditPostWindow() { return 86400; }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit()
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Post> tx, PocketBlock& block)
         {
             // // Compute count of posts for last 24 hours
             // int postsCount = g_pocketdb->SelectCount(
@@ -104,12 +104,14 @@ namespace PocketConsensus
             if (!originalTx || !originalTx->GetHeight())
                 return make_tuple(false, SocialConsensusResult_NotFound);
 
+            auto originalPostTx = static_pointer_cast<Post>(originalTx);
+
             // You are author? Really?
-            if (*tx->GetAddress() != *originalTx->GetAddress())
+            if (*tx->GetAddress() != *originalPostTx->GetAddress())
                 return make_tuple(false, SocialConsensusResult_PostEditUnauthorized);
 
             // Original post edit only 24 hours
-            if ((*tx->GetTime() - *originalTx->GetTime()) > GetEditPostWindow())
+            if ((*tx->GetTime() - *originalPostTx->GetTime()) > GetEditPostWindow())
                 return make_tuple(false, SocialConsensusResult_PostEditLimit);
 
             // Double edit in block denied
@@ -189,7 +191,7 @@ namespace PocketConsensus
     class PostConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<PostConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<PostConsensus*(int height)>> m_rules =
         {
             {0, [](int height) { return new PostConsensus(height); }},
         };

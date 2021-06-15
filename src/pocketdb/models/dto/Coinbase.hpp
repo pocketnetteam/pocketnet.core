@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Coinbase(string hash, int64_t time) : Transaction(hash, time)
+        Coinbase(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::TX_COINBASE);
         }
@@ -27,8 +27,6 @@ namespace PocketTx
 
         void BuildPayload(const UniValue& src) override {}
         void BuildHash(const UniValue& src) override {}
-
-    private:
 
     };
 

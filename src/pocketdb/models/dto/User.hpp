@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        User(string hash, int64_t time) : Transaction(hash, time)
+        User(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACCOUNT_USER);
         }
@@ -60,8 +60,6 @@ namespace PocketTx
         shared_ptr <string> GetPayloadName() const { return Transaction::GetPayload()->GetString2(); }
 
     protected:
-
-    private:
 
         void BuildPayload(const UniValue& src) override
         {

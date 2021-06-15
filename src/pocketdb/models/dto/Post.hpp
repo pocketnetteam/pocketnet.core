@@ -10,7 +10,7 @@ namespace PocketTx
     {
     public:
 
-        Post(string hash, int64_t time) : Transaction(hash, time)
+        Post(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::CONTENT_POST);
         }
@@ -63,8 +63,6 @@ namespace PocketTx
         bool IsEdit() const { return m_string2 != nullptr; }
 
     protected:
-
-    private:
 
         void BuildPayload(const UniValue& src) override
         {

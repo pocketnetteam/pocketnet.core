@@ -65,8 +65,6 @@ namespace PocketTx
             return make_tuple(false, 0);
         }
 
-
-    private:
     };
 
 }

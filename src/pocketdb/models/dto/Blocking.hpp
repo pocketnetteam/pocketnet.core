@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Blocking(string hash, int64_t time) : Transaction(hash, time)
+        Blocking(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_BLOCKING);
         }
@@ -45,8 +45,6 @@ namespace PocketTx
         void SetAddressTo(string value) { m_string2 = make_shared<string>(value); }
 
     protected:
-
-    private:
 
         void BuildPayload(const UniValue& src) override {}
 

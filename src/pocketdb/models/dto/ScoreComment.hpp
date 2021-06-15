@@ -11,7 +11,7 @@ namespace PocketTx
     {
     public:
 
-        ScoreComment(string hash, int64_t time) : Transaction(hash, time)
+        ScoreComment(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_SCORE_COMMENT);
         }
@@ -45,8 +45,6 @@ namespace PocketTx
         void SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
     protected:
-
-    private:
 
         void BuildPayload(const UniValue& src) override
         {

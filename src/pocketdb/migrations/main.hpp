@@ -188,7 +188,7 @@ namespace PocketDb
             t.String5
         from Transactions t
         where t.Height is not null
-        and t.Type in (200, 201, 202, 203, 204);
+        and t.Type in (200, 201, 202, 203, 204, 205, 206);
 
 
         drop view if exists vPosts;
@@ -220,7 +220,7 @@ namespace PocketDb
             c.String4 as ParentTxHash,
             c.String5 as AnswerTxHash
         from vContents c
-        where c.Type = 204;
+        where c.Type in (204, 205, 206);
 
         --------------------------------------------
         drop view if exists vScores;

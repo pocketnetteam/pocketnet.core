@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Coinstake(string hash, int64_t time) : Transaction(hash, time)
+        Coinstake(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::TX_COINSTAKE);
         }
@@ -27,8 +27,6 @@ namespace PocketTx
 
         void BuildPayload(const UniValue& src) override {}
         void BuildHash(const UniValue& src) override {}
-
-    private:
 
     };
 

@@ -114,6 +114,8 @@ POCKETDB_HPP = \
     pocketdb/consensus/social/Blocking.hpp \
     pocketdb/consensus/social/BlockingCancel.hpp \
     pocketdb/consensus/social/Comment.hpp \
+    pocketdb/consensus/social/CommentEdit.hpp \
+    pocketdb/consensus/social/CommentDelete.hpp \
     pocketdb/consensus/social/Complain.hpp \
     pocketdb/consensus/social/Post.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
@@ -143,6 +145,8 @@ POCKETDB_HPP = \
     pocketdb/models/dto/Blocking.hpp \
     pocketdb/models/dto/BlockingCancel.hpp \
     pocketdb/models/dto/Comment.hpp \
+    pocketdb/models/dto/CommentEdit.hpp \
+    pocketdb/models/dto/CommentDelete.hpp \
     pocketdb/models/dto/Subscribe.hpp \
     pocketdb/models/dto/SubscribePrivate.hpp \
     pocketdb/models/dto/SubscribeCancel.hpp \

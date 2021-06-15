@@ -24,7 +24,7 @@ namespace PocketTx
     public:
 
         //TODO mb change to string& hash (reference) and in dto too
-        Transaction(string hash, int64_t time) : Base()
+        Transaction(string& hash, int64_t time) : Base()
         {
             SetHash(hash);
             SetTime(time);
@@ -119,8 +119,6 @@ namespace PocketTx
             std::vector<unsigned char> vec(hash, hash + sizeof(hash));
             m_opreturn_hash = make_shared<string>(HexStr(vec));
         }
-
-    private:
 
     };
 

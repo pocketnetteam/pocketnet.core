@@ -9,6 +9,7 @@
 
 #include <util.h>
 
+#include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Rating.hpp"
 #include "pocketdb/models/base/PocketTypes.hpp"
@@ -49,9 +50,7 @@ namespace PocketDb
                 LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms\n", 0.001 * (nTime3 - nTime2));
 
                 // All accounts must have a unique digital ID
-                if (tx.Type == PocketTxType::ACCOUNT_USER ||
-                    tx.Type == PocketTxType::ACCOUNT_VIDEO_SERVER ||
-                    tx.Type == PocketTxType::ACCOUNT_MESSAGE_SERVER)
+                if (PocketHelpers::IsAccount(tx))
                 {
                     SetAccountId(tx.Hash);
 
@@ -60,10 +59,7 @@ namespace PocketDb
                 }
 
                 // All contents must have a unique digital ID
-                if (tx.Type == PocketTxType::CONTENT_POST ||
-                    tx.Type == PocketTxType::CONTENT_COMMENT ||
-                    tx.Type == PocketTxType::CONTENT_VIDEO ||
-                    tx.Type == PocketTxType::CONTENT_TRANSLATE)
+                if (PocketHelpers::IsContent(tx))
                 {
                     SetContentId(tx.Hash);
 

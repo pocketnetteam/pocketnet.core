@@ -35,8 +35,8 @@
 #include <atomic>
 #include <pubkey.h>
 
-#include "pocketdb/helpers/TypesHelper.hpp"
 #include "websocket/ws.h"
+#include "pocketdb/helpers/TransactionHelper.hpp"
 
 extern std::map<std::string, WSUser> WSConnections;
 

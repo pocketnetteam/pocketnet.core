@@ -7,7 +7,6 @@
 #ifndef POCKETDB_CONSENSUSREPOSITORY_H
 #define POCKETDB_CONSENSUSREPOSITORY_H
 
-#include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/TransactionRepository.hpp"
 

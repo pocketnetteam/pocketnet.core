@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        SubscribeCancel(string hash, int64_t time) : Subscribe(hash, time)
+        SubscribeCancel(string& hash, int64_t time) : Subscribe(hash, time)
         {
             SetType(PocketTxType::ACTION_SUBSCRIBE_CANCEL);
         }

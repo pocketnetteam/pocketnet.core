@@ -11,7 +11,6 @@
 
 #include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.hpp"
-#include "pocketdb/helpers/TypesHelper.hpp"
 
 namespace PocketDb
 {

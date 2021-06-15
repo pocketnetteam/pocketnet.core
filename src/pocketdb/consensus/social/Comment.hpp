@@ -37,10 +37,13 @@ namespace PocketConsensus
         }
 
     protected:
+
+    
+        
+    private:
     
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Comment> tx, PocketBlock& block)
         {
-            return make_tuple(true, SocialConsensusResult_Success);
             // TODO (brangr): implement
             // std::string _address = oitm["address"].get_str();
             // std::string _txid = oitm["txid"].get_str();
@@ -52,15 +55,11 @@ namespace PocketConsensus
             // std::string _parentid = oitm["parentid"].get_str();
             // std::string _answerid = oitm["answerid"].get_str();
 
-            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
+            vector<string> addresses = { *tx->GetAddress() };
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
-            // // Size message limit
-            // if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit, height)) {
-            //     result = ANTIBOTRESULT::Size;
-            //     return false;
-            // }
+            
 
             // // Parent comment
             // if (_parentid != "" && !g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _parentid).Where("last", CondEq, true).Not().Where("msg", CondEq, "").Where("block", CondLt, height))) {
@@ -131,196 +130,15 @@ namespace PocketConsensus
 
             // return true;
         }
-  /*      
-        bool AntiBot::check_comment_edit(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Comment> tx)
         {
-            std::string _address = oitm["address"].get_str();
-            int64_t _time = oitm["time"].get_int64();
-
-            std::string _msg = oitm["msg"].get_str();
-            std::string _txid = oitm["txid"].get_str();
-            std::string _otxid = oitm["otxid"].get_str();
-            std::string _postid = oitm["postid"].get_str();
-            std::string _parentid = oitm["parentid"].get_str();
-            std::string _answerid = oitm["answerid"].get_str();
-
-            // User registered?
-            if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-                return false;
-            }
-
-            // Size message limit
-            if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit, height)) {
-                result = ANTIBOTRESULT::Size;
-                return false;
-            }
-
-            // Original comment exists
-            reindexer::Item _original_comment_itm;
-            if (!g_pocketdb->SelectOne(Query("Comment").Where("otxid", CondEq, _otxid).Where("txid", CondEq, _otxid).Where("address", CondEq, _address).Where("block", CondLt, height), _original_comment_itm).ok()) {
-                result = ANTIBOTRESULT::NotFound;
-                return false;
-            }
-
-            // Last comment not deleted
-            if (!g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _otxid).Where("last", CondEq, true).Where("address", CondEq, _address).Not().Where("msg", CondEq, "").Where("block", CondLt, height))) {
-                result = ANTIBOTRESULT::CommentDeletedEdit;
-                return false;
-            }
-
-            // Parent comment
-            if (_parentid != _original_comment_itm["parentid"].As<string>() || (_parentid != "" && !g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _parentid).Where("last", CondEq, true).Not().Where("msg", CondEq, "").Where("block", CondLt, height)))) {
-                result = ANTIBOTRESULT::InvalidParentComment;
-                return false;
-            }
-
-            // Answer comment
-            if (_answerid != _original_comment_itm["answerid"].As<string>() || (_answerid != "" && !g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _answerid).Where("last", CondEq, true).Not().Where("msg", CondEq, "").Where("block", CondLt, height)))) {
-                result = ANTIBOTRESULT::InvalidAnswerComment;
-                return false;
-            }
-
-            // Original comment edit only 24 hours
-            if (_time - _original_comment_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_comment_timeout, height)) {
-                result = ANTIBOTRESULT::CommentEditLimit;
-                return false;
-            }
-
-            Item post_itm;
-            if (_postid == "" || !g_pocketdb->SelectOne(Query("Posts").Where("txid", CondEq, _postid).Where("block", CondLt, height), post_itm).ok()) {
-                result = ANTIBOTRESULT::NotFound;
-                return false;
-            }
-
-            // Blocking
-            if (g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, post_itm["address"].As<string>()).Where("address_to", CondEq, _address).Where("block", CondLt, height))) {
-                result = ANTIBOTRESULT::Blocking;
-                return false;
-            }
-
-            // Double edit in block denied
-            if (blockVtx.Exists("Comment")) {
-                for (auto& mtx : blockVtx.Data["Comment"]) {
-                    if (mtx["txid"].get_str() != _txid && mtx["otxid"].get_str() == _otxid) {
-                        result = ANTIBOTRESULT::DoubleCommentEdit;
-                        return false;
-                    }
-                }
-            }
-
-            // Double edit in mempool denied
-            if (checkMempool) {
-                reindexer::QueryResults res;
-                if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
-                    for (auto& m : res) {
-                        reindexer::Item mItm = m.GetItem();
-                        std::string t_src = DecodeBase64(mItm["data"].As<string>());
-
-                        reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Comment");
-                        if (t_itm.FromJSON(t_src).ok()) {
-                            if (t_itm["otxid"].As<string>() == _otxid) {
-                                result = ANTIBOTRESULT::DoubleCommentEdit;
-                                return false;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Check limit
-            {
-                size_t edit_count = g_pocketdb->SelectCount(Query("Comment").Where("otxid", CondEq, _otxid).Where("block", CondLt, height));
-
-                ABMODE mode;
-                getMode(_address, mode, height);
-                int limit = getLimit(CommentEdit, mode, height);
-                if (edit_count >= limit) {
-                    result = ANTIBOTRESULT::CommentEditLimit;
-                    return false;
-                }
-            }
-
-            return true;
+//             Size message limit
+//            if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit, height)) {
+//                result = ANTIBOTRESULT::Size;
+//                return false;
+//            }
         }
-*/
-
-  /*
-   * for delete
-   tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
-        {
-            return make_tuple(true, SocialConsensusResult_Success);
-            // TODO (brangr): implement
-            // std::string _address = oitm["address"].get_str();
-            // int64_t _time = oitm["time"].get_int64();
-
-            // std::string _txid = oitm["txid"].get_str();
-            // std::string _otxid = oitm["otxid"].get_str();
-            // std::string _parentid = oitm["parentid"].get_str();
-            // std::string _answerid = oitm["answerid"].get_str();
-
-            // // User registered?
-            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
-
-            // // Original comment exists
-            // reindexer::Item _original_comment_itm;
-            // if (!g_pocketdb->SelectOne(Query("Comment").Where("otxid", CondEq, _otxid).Where("txid", CondEq, _otxid).Where("address", CondEq, _address).Where("block", CondLt, height), _original_comment_itm).ok()) {
-            //     result = ANTIBOTRESULT::NotFound;
-            //     return false;
-            // }
-
-            // // Last comment not deleted
-            // if (!g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _otxid).Where("last", CondEq, true).Where("address", CondEq, _address).Not().Where("msg", CondEq, "").Where("block", CondLt, height))) {
-            //     result = ANTIBOTRESULT::DoubleCommentDelete;
-            //     return false;
-            // }
-
-            // // Parent comment
-            // if (_parentid != _original_comment_itm["parentid"].As<string>()) {
-            //     result = ANTIBOTRESULT::InvalidParentComment;
-            //     return false;
-            // }
-
-            // // Answer comment
-            // if (_answerid != _original_comment_itm["answerid"].As<string>()) {
-            //     result = ANTIBOTRESULT::InvalidAnswerComment;
-            //     return false;
-            // }
-
-            // // Double delete in block denied
-            // if (blockVtx.Exists("Comment")) {
-            //     for (auto& mtx : blockVtx.Data["Comment"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["otxid"].get_str() == _otxid) {
-            //             result = ANTIBOTRESULT::DoubleCommentDelete;
-            //             return false;
-            //         }
-            //     }
-            // }
-
-            // // Double delete in mempool denied
-            // if (checkMempool) {
-            //     reindexer::QueryResults res;
-            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
-            //         for (auto& m : res) {
-            //             reindexer::Item mItm = m.GetItem();
-            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
-
-            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Comment");
-            //             if (t_itm.FromJSON(t_src).ok()) {
-            //                 if (t_itm["otxid"].As<string>() == _otxid) {
-            //                     result = ANTIBOTRESULT::DoubleCommentDelete;
-            //                     return false;
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-
-            // return true;
-        }
-
-   * */
 
     };
 

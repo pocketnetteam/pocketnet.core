@@ -9,7 +9,6 @@
 
 #include "univalue/include/univalue.h"
 
-#include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/models/base/Base.hpp"
 #include "pocketdb/consensus/Base.hpp"

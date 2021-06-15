@@ -10,7 +10,6 @@
 #include <key_io.h>
 
 #include "pocketdb/consensus.h"
-#include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/consensus/Lottery.hpp"
 
 static const int STAKE_TIMESTAMP_MASK = 15;

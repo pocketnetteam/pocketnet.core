@@ -7,7 +7,6 @@
 #ifndef POCKETDB_WEBREPOSITORY_H
 #define POCKETDB_WEBREPOSITORY_H
 
-#include "pocketdb/helpers/TypesHelper.hpp"
 #include "pocketdb/helpers/TransactionHelper.hpp"
 
 #include "pocketdb/repositories/BaseRepository.hpp"
