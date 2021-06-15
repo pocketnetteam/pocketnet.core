@@ -293,6 +293,16 @@ namespace PocketDb
         where t.Height is not null
         and t.Type in (302, 303, 304);
 
+
+        drop view if exists vComplains;
+        create view vComplains as
+        select String1 as AddressHash,
+            String2 as PostTxHash,
+            Int1    as Reason,
+            Height  as Height
+        from Transactions
+        where Type in (307);
+
         --------------------------------------------
         --               WEB VIEWS                --
         --------------------------------------------
@@ -510,14 +520,6 @@ namespace PocketDb
         --         String2 as AddressHashTo
         -- FROM tmp
         -- WHERE rank = 1 and Type=305;
-       
-        drop view if exists Complains;
-        create view Complains as
-        select String1 as AddressHash,
-            String2 as PostTxHash,
-            Int1    as Reason
-        from Transactions
-        where Type in (307);
 
         -- vacuum;
         ---------------------------------------------------------

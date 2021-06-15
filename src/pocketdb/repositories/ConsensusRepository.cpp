@@ -190,4 +190,66 @@ namespace PocketDb
 
         return make_tuple(subscribeExists, subscribeType);
     }
+
+    shared_ptr<string> ConsensusRepository::GetPostAddress(string& postHash, int height)
+    {
+        shared_ptr<string> result = nullptr;
+
+        auto sql = R"sql(
+                    SELECT t.AddressHash
+                    FROM vPosts u
+                    WHERE u.Hash = ?
+                        AND u.Height < ?
+                    LIMIT 1
+                )sql";
+
+        TryTransactionStep([&]() {
+          auto stmt = SetupSqlStatement(sql);
+
+          TryBindStatementText(stmt, 1, postHash);
+          TryBindStatementInt(stmt, 2, height);
+
+          if (sqlite3_step(*stmt) == SQLITE_ROW) {
+              if (auto [ok, value] = TryGetColumnString(*stmt, 0); ok) {
+                  result = make_shared<string>(value);
+              }
+          }
+
+          FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::ExistsComplain(string& postHash, string& address, int height)
+    {
+        bool result = false;
+
+        auto sql = R"sql(
+                    SELECT 1
+                    FROM vComplains u
+                    WHERE u.AddressHash = ?
+                        AND u.PostTxHash = ?
+                        AND u.Height < ?
+                    LIMIT 1
+                )sql";
+
+        TryTransactionStep([&]() {
+          auto stmt = SetupSqlStatement(sql);
+
+          TryBindStatementText(stmt, 1, address);
+          TryBindStatementText(stmt, 2, postHash);
+          TryBindStatementInt(stmt, 3, height);
+
+          if (sqlite3_step(*stmt) == SQLITE_ROW) {
+              if (auto [ok, value] = TryGetColumnInt(*stmt, 0); ok) {
+                  result = true;
+              }
+          }
+
+          FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
 }

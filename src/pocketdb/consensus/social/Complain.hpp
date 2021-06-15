@@ -19,70 +19,60 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class ComplainConsensus : public SocialBaseConsensus
     {
-    protected:
     public:
         ComplainConsensus(int height) : SocialBaseConsensus(height) {}
         ComplainConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return make_tuple(true, SocialConsensusResult_Success);
-            // TODO (brangr): implement
-            // std::string _txid = oitm["txid"].get_str();
-            // std::string _address = oitm["address"].get_str();
-            // std::string _post = oitm["posttxid"].get_str();
-            // int64_t _time = oitm["time"].get_int64();
+            return Validate(static_pointer_cast<Complain>(tx), block);
+        }
 
-            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
+    protected:
 
-            // // Check score to self
-            // bool not_found = false;
-            // reindexer::Item postItm;
-            // if (g_pocketdb->SelectOne(
-            //                 reindexer::Query("Posts")
-            //                     .Where("txid", CondEq, _post)
-            //                     .Where("block", CondLt, height),
-            //                 postItm)
-            //         .ok()) {
-            //     // Score to self post
-            //     if (postItm["address"].As<string>() == _address) {
-            //         result = ANTIBOTRESULT::SelfComplain;
-            //         return false;
-            //     }
-            // } else {
-            //     // Post not found
-            //     not_found = true;
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Complain> tx, PocketBlock& block)
+        {
+            vector<string> addresses = {*tx->GetAddress()};
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
-            //     // Maybe in current block?
-            //     if (blockVtx.Exists("Posts")) {
-            //         for (auto& mtx : blockVtx.Data["Posts"]) {
-            //             if (mtx["txid"].get_str() == _post) {
-            //                 not_found = false;
-            //                 break;
-            //             }
-            //         }
-            //     }
+            auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*tx->GetPostTxHash(), *tx->GetHeight());
+            if (postAddress == nullptr)
+            {
+                auto notFound = true;
 
-            //     if (not_found) {
-            //         result = ANTIBOTRESULT::NotFound;
-            //         return false;
-            //     }
-            // }
+                for (const auto& otherTx : block)
+                {
+                    if (*otherTx->GetType() != CONTENT_POST)
+                    {
+                        continue;
+                    }
 
-            // // Check double score to post
-            // reindexer::Item doubleComplainItm;
-            // if (g_pocketdb->SelectOne(
-            //                 reindexer::Query("Complains")
-            //                     .Where("address", CondEq, _address)
-            //                     .Where("posttxid", CondEq, _post)
-            //                     .Where("block", CondLt, height),
-            //                 doubleComplainItm)
-            //         .ok()) {
-            //     result = ANTIBOTRESULT::DoubleComplain;
-            //     return false;
-            // }
+                    //TODO question (brangr): if post in current block will be not valid, complain anyway will be valid?
+                    if (*otherTx->GetHash() == *tx->GetPostTxHash())
+                    {
+                        notFound = false;
+                        break;
+                    }
+                }
+
+                if (notFound)
+                {
+                    return make_tuple(false, SocialConsensusResult_NotFound);
+                }
+            }
+            else
+            {
+                if (*postAddress == *tx->GetAddress())
+                {
+                    return make_tuple(false, SocialConsensusResult_SelfComplain);
+                }
+            }
+
+            if (PocketDb::ConsensusRepoInst.ExistsComplain(*tx->GetPostTxHash(), *tx->GetAddress(), *tx->GetHeight()))
+            {
+                return make_tuple(false, SocialConsensusResult_DoubleComplain);
+            }
 
             // ABMODE mode;
             // int reputation = 0;
@@ -156,7 +146,6 @@ namespace PocketConsensus
 
             // return true;
         }
-
     };
 
     /*******************************************************************************************************************

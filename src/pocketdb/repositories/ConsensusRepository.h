@@ -33,6 +33,8 @@ public:
     bool ExistsUserRegistrations(vector<string>& addresses, int height = 0);
     tuple<bool, PocketTxType> GetLastBlockingType(string& address, string& addressTo, int height);
     tuple<bool, PocketTxType> GetLastSubscribeType(string& address, string& addressTo, int height);
+    shared_ptr<string> GetPostAddress(string& postHash, int height);
+    bool ExistsComplain(string& postHash, string& address, int height);
 };
 
 } // namespace PocketDb
