@@ -177,27 +177,29 @@ namespace PocketDb
 
     private:
 
-        bool InsertRating(const Rating& rating)
+        void InsertRating(const Rating& rating)
         {
-            return TryTransactionStep([&]()
+            auto sql = R"sql(
+                INSERT OR FAIL INTO Ratings (
+                    Type,
+                    Height,
+                    Id,
+                    Value
+                ) SELECT ?,?,?,
+                    ifnull((
+                        select r.Value
+                        from Ratings r
+                        where r.Type = ?
+                            and r.Id = ?
+                            and r.Height < ?
+                        order by r.Height desc
+                        limit 1
+                    ), 0) + ?
+            )sql";
+
+            TryTransactionStep([&]()
             {
-                auto stmt = SetupSqlStatement(R"sql(
-                    INSERT OR FAIL INTO Ratings (
-                        Type,
-                        Height,
-                        Id,
-                        Value
-                    ) SELECT ?,?,?,
-                        ifnull((
-                            select r.Value
-                            from Ratings r
-                            where r.Type = ?
-                                and r.Id = ?
-                                and r.Height < ?
-                            order by r.Height desc
-                            limit 1
-                        ), 0) + ?
-                )sql");
+                auto stmt = SetupSqlStatement(sql);
 
                 auto result = TryBindStatementInt(stmt, 1, *rating.GetTypeInt());
                 result &= TryBindStatementInt(stmt, 2, *rating.GetHeight());

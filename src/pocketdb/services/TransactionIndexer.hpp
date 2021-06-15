@@ -133,12 +133,10 @@ namespace PocketServices
                     continue;
 
                 // Need select content id for saving rating
-                auto[scoreDataResult, scoreData] = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
-                if (!scoreDataResult)
-                {
-                    LogPrintf("Warning: h:%d tx:%s - GetScoreData failed\n", height, tx->GetHash().GetHex());
-                    continue;
-                }
+                auto scoreData = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
+                if (scoreData == nullptr)
+                    throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n",
+                        __func__, tx->GetHash().GetHex()));
 
                 int64_t nTime20 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "      - GetScoreData: %.2fms\n", 0.001 * (nTime20 - nTime10));
@@ -216,12 +214,16 @@ namespace PocketServices
 
             int64_t nTime3 = GetTimeMicros();
 
-            // Prepare all ratings model records from source values
+            // Prepare all ratings model records for increase Rating
             shared_ptr<vector<Rating>> ratings = make_shared<vector<Rating>>();
             for (const auto& tp : ratingValues)
             {
                 for (const auto& itm : tp.second)
                 {
+                    // Skip not changed reputations - e.g. +2 and -2
+                    if (itm.second == 0)
+                        continue;
+
                     Rating rtg;
                     rtg.SetType(tp.first);
                     rtg.SetHeight(height);
@@ -232,6 +234,7 @@ namespace PocketServices
                 }
             }
 
+            // Prepare all ratings model records for Liker type
             for (const auto& acc : accountLikers)
             {
                 for (const auto& lkrId : acc.second)

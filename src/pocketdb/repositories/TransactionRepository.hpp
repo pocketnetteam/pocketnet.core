@@ -60,7 +60,7 @@ namespace PocketDb
         // TODO (brangr): move to ConsensusRepository
         shared_ptr<ScoreDataDto> GetScoreData(const string& txHash)
         {
-            shared_ptr<ScoreDataDto> result = make_shared<ScoreDataDto>();
+            shared_ptr<ScoreDataDto> result = nullptr;
 
             auto sql = R"sql(
                 select
@@ -94,19 +94,23 @@ namespace PocketDb
 
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result->ScoreTxHash = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) result->ScoreType = (PocketTxType) value;
-                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result->ScoreTime = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) result->ScoreValue = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) result->ScoreAddressId = value;
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) result->ScoreAddressHash = value;
+                    ScoreDataDto data;
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) result->ContentTxHash = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) result->ContentType = (PocketTxType) value;
-                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result->ContentTime = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) result->ContentId = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) result->ContentAddressId = value;
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) result->ContentAddressHash = value;
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) data.ScoreTxHash = value;
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) data.ScoreType = (PocketTxType) value;
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) data.ScoreTime = value;
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) data.ScoreValue = value;
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) data.ScoreAddressId = value;
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) data.ScoreAddressHash = value;
+
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) data.ContentTxHash = value;
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) data.ContentType = (PocketTxType) value;
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) data.ContentTime = value;
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) data.ContentId = value;
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) data.ContentAddressId = value;
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) data.ContentAddressHash = value;
+
+                    result = make_shared<ScoreDataDto>(data);
                 }
 
                 FinalizeSqlStatement(*stmt);
