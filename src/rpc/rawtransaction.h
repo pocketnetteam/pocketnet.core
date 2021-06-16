@@ -34,11 +34,6 @@
 
 #include <univalue.h>
 
-// TODO (brangr): REINDEXER -> SQLITE
-//#include "antibot/antibot.h"
-//#include "index/addrindex.h"
-#include "html.h"
-
 class CBasicKeyStore;
 struct CMutableTransaction;
 class UniValue;

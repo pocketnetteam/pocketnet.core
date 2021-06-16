@@ -23,17 +23,31 @@ namespace PocketConsensus
         BlockingCancelConsensus(int height) : SocialBaseConsensus(height) {}
         BlockingCancelConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr <Transaction> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return Validate(static_pointer_cast<BlockingCancel>(tx), block);
+            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Validate(static_pointer_cast<BlockingCancel>(tx), block); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
-        tuple<bool, SocialConsensusResult> Check(shared_ptr <Transaction> tx) override
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
         {
-            return Check(static_pointer_cast<BlockingCancel>(tx));
+            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Check(static_pointer_cast<BlockingCancel>(tx)); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
+
     protected:
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr <BlockingCancel> tx, PocketBlock& block)
+
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr <BlockingCancel> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
             if (PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
@@ -82,13 +96,13 @@ namespace PocketConsensus
             return make_tuple(true, SocialConsensusResult_Success);
         }
 
+    private:
+
         tuple<bool, SocialConsensusResult> Check(shared_ptr <BlockingCancel> tx)
         {
             // Blocking self
             if (*tx->GetAddress() == *tx->GetAddressTo())
-            {
                 return make_tuple(false, SocialConsensusResult_SelfBlocking);
-            }
 
             return make_tuple(true, SocialConsensusResult_Success);
         }

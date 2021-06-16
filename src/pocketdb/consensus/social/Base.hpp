@@ -23,13 +23,29 @@ namespace PocketConsensus
         SocialBaseConsensus(int height) : BaseConsensus(height) {}
         SocialBaseConsensus() : BaseConsensus() {}
 
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) {}
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
+        {
+            if (auto[ok, result] = ValidateLimit(tx, block); !ok)
+                return make_tuple(false, result);
+
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
+
         virtual tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx)
         {
-            return CheckOpReturnHash(tx);
+            if (auto[ok, result] = CheckOpReturnHash(tx); !ok)
+                return make_tuple(false, result);
+
+            return make_tuple(true, SocialConsensusResult_Success);
         }
         
     protected:
+
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, PocketBlock& block)
+        {
+
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
 
         virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx)
         {

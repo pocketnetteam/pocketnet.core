@@ -273,7 +273,7 @@ POCKETCOIN_CORE_H = \
     zmq/zmqpublishnotifier.h \
     zmq/zmqrpc.h \
     websocket/ws.h \
-    html.h \
+    utils/html.h \
     $(POCKETDB_HPP)
 
 
@@ -335,7 +335,7 @@ libpocketcoin_server_a_SOURCES = \
     validationinterface.cpp \
     versionbits.cpp \
     websocket/ws.cpp \
-    html.cpp \
+    utils/html.cpp \
     $(POCKETCOIN_CORE_H)
 
 if !ENABLE_WALLET

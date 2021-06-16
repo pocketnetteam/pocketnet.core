@@ -7,6 +7,8 @@
 #ifndef POCKETCONSENSUS_COMMENT_HPP
 #define POCKETCONSENSUS_COMMENT_HPP
 
+#include "utils/html.h"
+
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/Comment.hpp"
 
@@ -25,24 +27,31 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return Validate(static_pointer_cast<Comment>(tx), block);
+            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Validate(static_pointer_cast<Comment>(tx), block); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
         tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
         {
             if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(ok, result);
+                return make_tuple(false, result);
 
-            return Check(static_pointer_cast<Comment>(tx));
+            if (auto[ok, result] = Check(static_pointer_cast<Comment>(tx)); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     protected:
-
-    
         
-    private:
+        virtual int64_t GetCommentMessageMaxSize() { return 2000; }
     
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Comment> tx, PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Comment> tx, PocketBlock& block)
         {
             // TODO (brangr): implement
             // std::string _address = oitm["address"].get_str();
@@ -131,13 +140,15 @@ namespace PocketConsensus
             // return true;
         }
 
+    private:
+
         tuple<bool, SocialConsensusResult> Check(shared_ptr<Comment> tx)
         {
-//             Size message limit
-//            if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit, height)) {
-//                result = ANTIBOTRESULT::Size;
-//                return false;
-//            }
+            auto pMsg = tx->GetPayloadMsg();
+            if (!pMsg || (*pMsg).empty() || HtmlUtils::UrlDecode(*pMsg).length() > GetCommentMessageMaxSize())
+                return make_tuple(false, SocialConsensusResult_Size);
+
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     };

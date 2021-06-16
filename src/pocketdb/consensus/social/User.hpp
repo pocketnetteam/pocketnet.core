@@ -26,15 +26,24 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return Validate(static_pointer_cast<User>(tx), block);
+            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Validate(static_pointer_cast<User>(tx), block); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
         tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
         {
             if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(ok, result);
+                return make_tuple(false, result);
 
-            return Check(static_pointer_cast<User>(tx));
+            if (auto[ok, result] = Check(static_pointer_cast<User>(tx)); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     protected:
@@ -42,10 +51,13 @@ namespace PocketConsensus
         virtual int64_t GetChangeInfoTimeout() { return 3600; }
 
 
-        virtual tuple<bool, SocialConsensusResult> ValidateDoubleName(shared_ptr<User> tx)
+        // Check chain consensus rules
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<User> tx, PocketBlock& block)
         {
             if (ConsensusRepoInst.ExistsAnotherByName(*tx->GetAddress(), *tx->GetPayloadName()))
                 return make_tuple(false, SocialConsensusResult_NicknameDouble);
+
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
         virtual bool ValidateEditProfileLimit(shared_ptr<User> tx, shared_ptr<User> prevTx)
@@ -53,29 +65,24 @@ namespace PocketConsensus
             return (*tx->GetTime() - *prevTx->GetTime()) > GetChangeInfoTimeout();
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditProfileLimit(shared_ptr<User> tx)
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            auto prevTx = ConsensusRepoInst.GetLastAccountTransaction(*tx->GetAddress());
-            if (!prevTx)
-                return make_tuple(false, SocialConsensusResult_Failed);
+            auto mtx = static_pointer_cast<User>(tx);
 
             // First user account transaction allowe without next checks
-            if (prevTx == nullptr)
+            auto prevTx = ConsensusRepoInst.GetLastAccountTransaction(*mtx->GetAddress());
+            if (!prevTx)
                 return make_tuple(true, SocialConsensusResult_Success);
 
             // For edit user profile referrer not allowed
-            if (tx->GetReferrerAddress() != nullptr)
+            if (mtx->GetReferrerAddress() != nullptr)
                 return make_tuple(false, SocialConsensusResult_ReferrerAfterRegistration);
 
             // We allowe edit profile only with delay
-            if (!ValidateEditProfileLimit(tx, static_pointer_cast<User>(prevTx)))
+            if (!ValidateEditProfileLimit(mtx, static_pointer_cast<User>(prevTx)))
                 return make_tuple(false, SocialConsensusResult_ChangeInfoLimit);
+            
 
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
-        virtual tuple<bool, SocialConsensusResult> ValidateEditProfileBlockLimit(shared_ptr<User> tx, PocketBlock& block)
-        {
             // TODO (brangr): Need?
             // по идее мемпул лежит в базе на равне с остальными транзакциями
             // но сюда может насыпаться очень много всего и мы не можем проверить
@@ -114,8 +121,8 @@ namespace PocketConsensus
             //     }
             // }
 
+            return make_tuple(true, SocialConsensusResult_Success);
         }
-
 
         tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx) override
         {
@@ -129,23 +136,8 @@ namespace PocketConsensus
                 //     }
             }
         }
-
+        
     private:
-
-        // Check chain consensus rules
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<User> tx, PocketBlock& block)
-        {
-            if (auto[ok, result] = ValidateDoubleName(tx); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = ValidateEditProfileLimit(tx); !ok)
-                return make_tuple(false, result);
-            
-            if (auto[ok, result] = ValidateEditProfileBlockLimit(tx, block); !ok)
-                return make_tuple(false, result);
-
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
 
         // Check op_return hash
         tuple<bool, SocialConsensusResult> Check(shared_ptr<User> tx)

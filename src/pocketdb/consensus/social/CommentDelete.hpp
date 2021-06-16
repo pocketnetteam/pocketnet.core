@@ -25,24 +25,29 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return Validate(static_pointer_cast<CommentDelete>(tx), block);
+            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Validate(static_pointer_cast<CommentDelete>(tx), block); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
         tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
         {
             if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(ok, result);
+                return make_tuple(false, result);
 
-            return Check(static_pointer_cast<CommentDelete>(tx));
+            if (auto[ok, result] = Check(static_pointer_cast<CommentDelete>(tx)); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     protected:
-
     
-
-    private:
-    
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<CommentDelete> tx, PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<CommentDelete> tx, PocketBlock& block)
         {
             return make_tuple(true, SocialConsensusResult_Success);
             // TODO (brangr): implement
@@ -116,8 +121,11 @@ namespace PocketConsensus
             // return true;
         }
 
+    private:
+
         tuple<bool, SocialConsensusResult> Check(shared_ptr<CommentDelete> tx)
         {
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     };

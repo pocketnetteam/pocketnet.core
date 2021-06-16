@@ -26,15 +26,29 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return Validate(static_pointer_cast<SubscribePrivate>(tx), block);
+            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Validate(static_pointer_cast<SubscribePrivate>(tx), block); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
         tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
         {
-            return Check(static_pointer_cast<SubscribePrivate>(tx));
+            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Check(static_pointer_cast<SubscribePrivate>(tx)); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
+
     protected:
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<SubscribePrivate> tx, PocketBlock& block)
+
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<SubscribePrivate> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
             if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
@@ -87,13 +101,13 @@ namespace PocketConsensus
 
             return make_tuple(true, SocialConsensusResult_Success);
         }
+        
+    private:
 
         tuple<bool, SocialConsensusResult> Check(shared_ptr<SubscribePrivate> tx)
         {
             if (*tx->GetAddress() == *tx->GetAddressTo())
-            {
                 return make_tuple(false, SocialConsensusResult_SelfSubscribe);
-            }
 
             return make_tuple(true, SocialConsensusResult_Success);
         }

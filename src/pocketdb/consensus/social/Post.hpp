@@ -25,12 +25,42 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return Validate(static_pointer_cast<Post>(tx), block);
+            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Validate(static_pointer_cast<Post>(tx), block); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
+
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
+        {
+            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Check(static_pointer_cast<Post>(tx)); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     protected:
 
         virtual int64_t GetEditPostWindow() { return 86400; }
+        
+        
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Post> tx, PocketBlock& block)
+        {
+            vector<string> addresses = { *tx->GetAddress() };
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
+
+            if (tx->IsEdit())
+                return ValidateEdit(tx, block);
+            else
+                return ValidateLimit(tx, block);
+        }
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Post> tx, PocketBlock& block)
         {
@@ -150,19 +180,12 @@ namespace PocketConsensus
 
             return make_tuple(true, SocialConsensusResult_Success);
         }
-    
+        
     private:
-
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Post> tx, PocketBlock& block)
+    
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Post> tx)
         {
-            vector<string> addresses = { *tx->GetAddress() };
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
-
-            if (tx->IsEdit())
-                return ValidateEdit(tx, block);
-            else
-                return ValidateLimit(tx, block);
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     };

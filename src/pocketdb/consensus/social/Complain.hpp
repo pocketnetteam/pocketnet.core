@@ -25,12 +25,29 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
         {
-            return Validate(static_pointer_cast<Complain>(tx), block);
+            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Validate(static_pointer_cast<Complain>(tx), block); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
+
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
+        {
+            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Check(static_pointer_cast<Complain>(tx)); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     protected:
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Complain> tx, PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Complain> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress()};
             if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
@@ -145,6 +162,13 @@ namespace PocketConsensus
             // }
 
             // return true;
+        }
+        
+    private:
+    
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Complain> tx)
+        {
+            return make_tuple(true, SocialConsensusResult_Success);
         }
     };
 

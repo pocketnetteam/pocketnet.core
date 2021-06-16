@@ -72,6 +72,9 @@ namespace PocketTx
         shared_ptr <string> GetAnswerTxHash() const { return m_string5; }
         void SetAnswerTxHash(string value) { m_string5 = make_shared<string>(value); }
 
+        // Payload getters
+        shared_ptr <string> GetPayloadMsg() const { return Transaction::GetPayload()->GetString2(); }
+
     protected:
 
         void BuildPayload(const UniValue& src) override

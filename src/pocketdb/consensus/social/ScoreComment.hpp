@@ -19,12 +19,35 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class ScoreCommentConsensus : public SocialBaseConsensus
     {
-    protected:
     public:
         ScoreCommentConsensus(int height) : SocialBaseConsensus(height) {}
         ScoreCommentConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
+        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
+        {
+            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Validate(static_pointer_cast<ScoreComment>(tx), block); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
+
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
+        {
+            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
+                return make_tuple(false, result);
+
+            if (auto[ok, result] = Check(static_pointer_cast<ScoreComment>(tx)); !ok)
+                return make_tuple(false, result);
+                
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
+
+    protected:
+
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<ScoreComment> tx, PocketBlock& block)
         {
             return make_tuple(true, SocialConsensusResult_Success);
             // TODO (brangr): implement
@@ -179,6 +202,13 @@ namespace PocketConsensus
             // }
 
             // return true;
+        }
+        
+    private:
+    
+        tuple<bool, SocialConsensusResult> Check(shared_ptr<ScoreComment> tx)
+        {
+            return make_tuple(true, SocialConsensusResult_Success);
         }
 
     };
