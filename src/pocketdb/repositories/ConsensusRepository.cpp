@@ -252,4 +252,70 @@ namespace PocketDb
 
         return result;
     }
+
+    shared_ptr<string> ConsensusRepository::GetLastActiveCommentAddress(string& rootHash, int height)
+    {
+        shared_ptr<string> result = nullptr;
+
+        auto sql = R"sql(
+                    SELECT u.AddressHash
+                    FROM vComments u
+                    WHERE u.RootTxHash = ?
+                        AND u.Height < ?
+                        AND u.Last = 1
+                        AND u.Type IN (204, 205) -- Comment, CommentDelete
+                    LIMIT 1
+                )sql";
+
+        TryTransactionStep([&]() {
+          auto stmt = SetupSqlStatement(sql);
+
+          TryBindStatementText(stmt, 1, rootHash);
+          TryBindStatementInt(stmt, 2, height);
+
+          if (sqlite3_step(*stmt) == SQLITE_ROW) {
+              if (auto [ok, value] = TryGetColumnString(*stmt, 0); ok) {
+                  result = make_shared<string>(value);
+              }
+          }
+
+          FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    bool ConsensusRepository::ExistsScore(string& address, string& contentHash, PocketTxType type, int height)
+    {
+        bool result = false;
+
+        auto sql = R"sql(
+            SELECT 1
+            FROM vScores u
+            WHERE u.AddressHash = ?
+                AND u.ContentTxHash = ?
+                AND u.Type = ?
+                AND u.Height < ?
+            LIMIT 1
+        )sql";
+
+        TryTransactionStep([&]() {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, contentHash);
+            TryBindStatementInt(stmt, 3, (int) type);
+            TryBindStatementInt(stmt, 4, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW) {
+                if (auto [ok, value] = TryGetColumnInt(*stmt, 0); ok) {
+                    result = true;
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
 }

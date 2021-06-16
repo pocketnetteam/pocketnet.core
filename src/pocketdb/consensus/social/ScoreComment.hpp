@@ -49,55 +49,52 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<ScoreComment> tx, PocketBlock& block)
         {
-            return make_tuple(true, SocialConsensusResult_Success);
-            // TODO (brangr): implement
-            // std::string _txid = oitm["txid"].get_str();
-            // std::string _address = oitm["address"].get_str();
-            // std::string _comment_id = oitm["commentid"].get_str();
-            // int _score_value = oitm["value"].get_int();
-            // int64_t _time = oitm["time"].get_int64();
-
-            // if (_score_value != -1 && _score_value != 1) {
-            //     result = ANTIBOTRESULT::Failed;
-            //     return false;
-            // }
-
-            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
+            vector<string> addresses = {*tx->GetAddress()};
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // // Check score to self
-            // bool not_found = false;
-            // std::string _comment_address;
-            // reindexer::Item commentItm;
-            // if (g_pocketdb->SelectOne(reindexer::Query("Comment").Where("otxid", CondEq, _comment_id).Where("last", CondEq, true).Not().Where("msg", CondEq, "").Where("block", CondLt, height), commentItm).ok()) {
-            //     _comment_address = commentItm["address"].As<string>();
+            auto commentAddress = PocketDb::ConsensusRepoInst.GetLastActiveCommentAddress(*tx->GetCommentTxHash(), *tx->GetHeight());
 
-            //     // Score to self comment
-            //     if (_comment_address == _address) {
-            //         result = ANTIBOTRESULT::SelfCommentScore;
-            //         return false;
-            //     }
-            // } else {
-            //     // Comment not found
-            //     not_found = true;
+            if (commentAddress != nullptr)
+            {
+                if (*tx->GetAddress() == *commentAddress)
+                {
+                    return make_tuple(false, SocialConsensusResult_SelfCommentScore);
+                }
+            }
+            else
+            {
+                auto notFound = true;
 
-            //     // Maybe in current block?
-            //     if (blockVtx.Exists("Comment")) {
-            //         for (auto& mtx : blockVtx.Data["Comment"]) {
-            //             if (mtx["otxid"].get_str() == _comment_id && mtx["msg"].get_str() != "") {
-            //                 _comment_address = mtx["address"].get_str();
-            //                 not_found = false;
-            //                 break;
-            //             }
-            //         }
-            //     }
+                for (const auto& otherTx : block)
+                {
+                    if (*otherTx->GetType() == CONTENT_COMMENT)
+                    {
+                        auto comment = dynamic_cast<Comment&>(*otherTx); //TODO check cast
 
-            //     if (not_found) {
-            //         result = ANTIBOTRESULT::NotFound;
-            //         return false;
-            //     }
-            // }
+                        if (*comment.GetRootTxHash() == *tx->GetCommentTxHash())
+                        {
+                            notFound = false;
+                        }
+                    }
+                    else if (*otherTx->GetType() == CONTENT_COMMENT_DELETE)
+                    {
+                        auto comment = dynamic_cast<CommentDelete&>(*otherTx);
+
+                        if (*comment.GetRootTxHash() == *tx->GetCommentTxHash())
+                        {
+                            notFound = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (notFound)
+                {
+                    return make_tuple(false, SocialConsensusResult_NotFound);
+                }
+            }
 
             // // Blocking
             // if (height >= Params().GetConsensus().score_blocking_on && height < Params().GetConsensus().score_blocking_off && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _comment_address).Where("address_to", CondEq, _address).Where("block", CondLt, height))) {
@@ -105,18 +102,10 @@ namespace PocketConsensus
             //     return false;
             // }
 
-            // // Check double score to comment
-            // reindexer::Item doubleScoreItm;
-            // if (g_pocketdb->SelectOne(
-            //                 reindexer::Query("CommentScores")
-            //                     .Where("address", CondEq, _address)
-            //                     .Where("commentid", CondEq, _comment_id)
-            //                     .Where("block", CondLt, height),
-            //                 doubleScoreItm)
-            //         .ok()) {
-            //     result = ANTIBOTRESULT::DoubleCommentScore;
-            //     return false;
-            // }
+            if (PocketDb::ConsensusRepoInst.ExistsScore(*tx->GetAddress(), *tx->GetCommentTxHash(), ACTION_SCORE_COMMENT, *tx->GetHeight()))
+            {
+                return make_tuple(false, SocialConsensusResult_DoubleCommentScore);
+            }
 
             // // Check limit scores
             // {
@@ -201,16 +190,21 @@ namespace PocketConsensus
             //     }
             // }
 
-            // return true;
+            return make_tuple(true, SocialConsensusResult_Success);
         }
         
     private:
-    
+
         tuple<bool, SocialConsensusResult> Check(shared_ptr<ScoreComment> tx)
         {
+            auto value = *tx->GetValue();
+            if (value != 1 && value != -1)
+            {
+                return make_tuple(false, SocialConsensusResult_Failed);
+            }
+
             return make_tuple(true, SocialConsensusResult_Success);
         }
-
     };
 
     /*******************************************************************************************************************

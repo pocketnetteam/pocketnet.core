@@ -35,6 +35,8 @@ public:
     tuple<bool, PocketTxType> GetLastSubscribeType(string& address, string& addressTo, int height);
     shared_ptr<string> GetPostAddress(string& postHash, int height);
     bool ExistsComplain(string& postHash, string& address, int height);
+    shared_ptr<string> GetLastActiveCommentAddress(string& rootHash, int height);
+    bool ExistsScore(string& address, string& contentHash, PocketTxType type, int height);
 };
 
 } // namespace PocketDb
