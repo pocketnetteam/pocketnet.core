@@ -175,7 +175,16 @@ namespace PocketDb
 
         void SetAccountId(const string& txHash)
         {
-            auto sql = R"sql(
+            // Clear old last records for set new last
+            auto clearLastStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Last = 0
+                WHERE String1 = (select a.AddressHash from vAccounts a where a.Hash = ?)
+            )sql");
+            TryBindStatementText(clearLastStmt, 1, txHash);
+
+            // Get new ID or copy previous
+            auto setIdStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
                     Id = ifnull(
                         -- copy self Id
@@ -197,16 +206,13 @@ namespace PocketDb
                             ),
                             0 -- for first record
                         )
-                    )
+                    ),
+                    Last = 1
                 WHERE Hash = ?
-            )sql";
-
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(sql);
-                TryBindStatementText(stmt, 1, txHash);
-                TryStepStatement(stmt);
-            });
+            )sql");
+            TryBindStatementText(setIdStmt, 1, txHash);
+            
+            TryStepStatements({ clearLastStmt, setIdStmt });
         }
 
         void SetContentId(const string& txHash)
