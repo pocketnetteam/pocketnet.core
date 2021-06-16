@@ -17,7 +17,7 @@ namespace PocketConsensus
 {
     using std::static_pointer_cast;
 
-    class SocialBaseConsensus : BaseConsensus
+    class SocialBaseConsensus : public BaseConsensus
     {
     public:
         SocialBaseConsensus(int height) : BaseConsensus(height) {}

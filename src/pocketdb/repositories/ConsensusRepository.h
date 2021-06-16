@@ -30,13 +30,16 @@ public:
 
     bool ExistsAnotherByName(const string& address, const string& name);
     shared_ptr<Transaction> GetLastAccountTransaction(const string& address);
-    bool ExistsUserRegistrations(vector<string>& addresses, int height = 0);
-    tuple<bool, PocketTxType> GetLastBlockingType(string& address, string& addressTo, int height);
+    bool ExistsUserRegistrations(vector<string>& addresses);
+    tuple<bool, PocketTxType> GetLastBlockingType(string& address, string& addressTo);
     tuple<bool, PocketTxType> GetLastSubscribeType(string& address, string& addressTo, int height);
     shared_ptr<string> GetPostAddress(string& postHash, int height);
     bool ExistsComplain(string& postHash, string& address, int height);
-    shared_ptr<string> GetLastActiveCommentAddress(string& rootHash, int height);
-    bool ExistsScore(string& address, string& contentHash, PocketTxType type, int height);
+    shared_ptr<string> GetLastActiveCommentAddress(string& rootHash);
+    bool ExistsScore(string& address, string& contentHash, PocketTxType type);
+    int64_t GetUserBalance(string& address);
+    int GetUserReputation(string& addressId);
+    int GetUserReputation(int addressId, int height);
 };
 
 } // namespace PocketDb

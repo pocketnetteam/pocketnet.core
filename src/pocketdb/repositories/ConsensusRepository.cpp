@@ -74,7 +74,7 @@ namespace PocketDb
         return tx;
     }
 
-    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, int height)
+    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
     {
         auto result = false;
 
@@ -98,12 +98,6 @@ namespace PocketDb
         }
         sql += ")";
 
-        if (height > 0)
-        {
-            sql += " AND u.Height < ";
-            sql += std::to_string(height);
-        }
-
         TryTransactionStep([&]()
         {
             auto stmt = SetupSqlStatement(sql);
@@ -118,7 +112,7 @@ namespace PocketDb
         return result;
     }
 
-    tuple<bool, PocketTxType> ConsensusRepository::GetLastBlockingType(string& address, string& addressTo, int height)
+    tuple<bool, PocketTxType> ConsensusRepository::GetLastBlockingType(string& address, string& addressTo)
     {
         bool blockingExists = false;
         PocketTxType blockingType = PocketTxType::NOT_SUPPORTED;
@@ -128,8 +122,7 @@ namespace PocketDb
             FROM vBlockings u
             WHERE u.AddressHash = ?
                 AND u.AddressToHash = ?
-                AND u.Height < ?
-            ORDER BY u.Height DESC, u.Time DESC
+                AND u.Last = 1
             LIMIT 1
         )sql";
 
@@ -139,7 +132,6 @@ namespace PocketDb
 
             TryBindStatementText(stmt, 1, address);
             TryBindStatementText(stmt, 2, addressTo);
-            TryBindStatementInt(stmt, 3, height);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -253,7 +245,7 @@ namespace PocketDb
         return result;
     }
 
-    shared_ptr<string> ConsensusRepository::GetLastActiveCommentAddress(string& rootHash, int height)
+    shared_ptr<string> ConsensusRepository::GetLastActiveCommentAddress(string& rootHash)
     {
         shared_ptr<string> result = nullptr;
 
@@ -261,7 +253,6 @@ namespace PocketDb
                     SELECT u.AddressHash
                     FROM vComments u
                     WHERE u.RootTxHash = ?
-                        AND u.Height < ?
                         AND u.Last = 1
                         AND u.Type IN (204, 205) -- Comment, CommentDelete
                     LIMIT 1
@@ -271,7 +262,6 @@ namespace PocketDb
           auto stmt = SetupSqlStatement(sql);
 
           TryBindStatementText(stmt, 1, rootHash);
-          TryBindStatementInt(stmt, 2, height);
 
           if (sqlite3_step(*stmt) == SQLITE_ROW) {
               if (auto [ok, value] = TryGetColumnString(*stmt, 0); ok) {
@@ -285,7 +275,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsScore(string& address, string& contentHash, PocketTxType type, int height)
+    bool ConsensusRepository::ExistsScore(string& address, string& contentHash, PocketTxType type)
     {
         bool result = false;
 
@@ -295,7 +285,6 @@ namespace PocketDb
             WHERE u.AddressHash = ?
                 AND u.ContentTxHash = ?
                 AND u.Type = ?
-                AND u.Height < ?
             LIMIT 1
         )sql";
 
@@ -305,13 +294,101 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, address);
             TryBindStatementText(stmt, 2, contentHash);
             TryBindStatementInt(stmt, 3, (int) type);
-            TryBindStatementInt(stmt, 4, height);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW) {
                 if (auto [ok, value] = TryGetColumnInt(*stmt, 0); ok) {
                     result = true;
                 }
             }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    int64_t ConsensusRepository::GetUserBalance(string& address)
+    {
+        int64_t result = 0;
+
+        auto sql = R"sql(
+            SELECT SUM(o.Value)
+            FROM TxOutputs o
+            INNER JOIN Transactions t ON o.TxHash == t.Hash
+            WHERE o.SpentHeight is null
+                AND o.AddressHash = ?
+                AND t.Height < ?
+            GROUP BY o.AddressHash
+        )sql";
+
+        TryTransactionStep([&]() {
+          auto stmt = SetupSqlStatement(sql);
+
+          TryBindStatementText(stmt, 1, address);
+
+          if (sqlite3_step(*stmt) == SQLITE_ROW) {
+              if (auto [ok, value] = TryGetColumnInt64(*stmt, 0); ok) {
+                  result = value;
+              }
+          }
+
+          FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::GetUserReputation(string& address)
+    {
+        int result = 0;
+
+        auto sql = R"sql(
+                select r.Value
+                from Ratings r
+                where r.Type = ?
+                    and r.Id = (SELECT u.Id FROM vUsers WHERE u.Last = 1 AND u.AddressHash = ? LIMIT 1)
+                order by r.Height desc
+                limit 1
+            )sql";
+
+        TryTransactionStep([&]() {
+          auto stmt = SetupSqlStatement(sql);
+
+          TryBindStatementInt(stmt, 1, (int)RatingType::RATING_ACCOUNT);
+          TryBindStatementText(stmt, 2, address);
+
+          if (sqlite3_step(*stmt) == SQLITE_ROW)
+              result = GetColumnInt(*stmt, 0);
+
+          FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::GetUserReputation(int addressId, int height)
+    {
+        int result = 0;
+
+        auto sql = R"sql(
+            select r.Value
+            from Ratings r
+            where r.Type = ?
+                and r.Id = ?
+                and r.Height <= ?
+            order by r.Height desc
+            limit 1
+        )sql";
+
+        TryTransactionStep([&]() {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementInt(stmt, 1, (int)RatingType::RATING_ACCOUNT);
+            TryBindStatementInt(stmt, 2, addressId);
+            TryBindStatementInt(stmt, 3, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = GetColumnInt(*stmt, 0);
 
             FinalizeSqlStatement(*stmt);
         });

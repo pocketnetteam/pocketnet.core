@@ -20,6 +20,8 @@ namespace PocketConsensus
     {
     protected:
         virtual int64_t GetThresholdLikersCount() { return 0; }
+        virtual int64_t GetThresholdBalance() { return 50 * COIN; }
+        virtual int64_t GetThresholdReputation() { return 500; }
         virtual int64_t GetThresholdReputationScore() { return -10000; }
         virtual int64_t GetScoresOneToOneOverComment() { return 20; }
         virtual int64_t GetScoresOneToOne() { return 99999; }
@@ -35,7 +37,7 @@ namespace PocketConsensus
 
             int64_t nTime1 = GetTimeMicros();
 
-            auto userReputation = PocketDb::RatingsRepoInst.GetUserReputation(addressId, height);
+            auto userReputation = PocketDb::ConsensusRepoInst.GetUserReputation(addressId, height);
 
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "        - GetUserReputation: %.2fms\n", 0.001 * (nTime2 - nTime1));
@@ -151,6 +153,17 @@ namespace PocketConsensus
     public:
         ReputationConsensus(int height) : BaseConsensus(height) {}
 
+        virtual AccountMode GetAccountMode(string& address)
+        {
+            auto reputation = PocketDb::ConsensusRepoInst.GetUserReputation(address);
+            auto balance = PocketDb::ConsensusRepoInst.GetUserBalance(address);;
+
+            if (reputation >= GetThresholdReputation() || balance >= GetThresholdBalance())
+                return AccountMode_Full;
+            else
+                return AccountMode_Trial;
+        }
+
         virtual bool AllowModifyReputation(shared_ptr <ScoreDataDto> scoreData, const CTransactionRef& tx, int height,
             bool lottery)
         {
@@ -230,6 +243,7 @@ namespace PocketConsensus
     {
     protected:
         int64_t GetThresholdReputationScore() override { return 1000; }
+        int64_t GetThresholdReputation() override { return 1000; }
         int64_t GetScoresOneToOneDepth() override { return 7 * 24 * 3600; }
         int CheckpointHeight() override { return 292800; }
     public:
@@ -285,7 +299,7 @@ namespace PocketConsensus
             {0,      [](int height) { return new ReputationConsensus(height); }},
         };
     public:
-        shared_ptr <ReputationConsensus> Instance(int height)
+        static shared_ptr <ReputationConsensus> Instance(int height)
         {
             return shared_ptr<ReputationConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

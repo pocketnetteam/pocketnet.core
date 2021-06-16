@@ -50,7 +50,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Complain> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
                 return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*tx->GetPostTxHash(), *tx->GetHeight());

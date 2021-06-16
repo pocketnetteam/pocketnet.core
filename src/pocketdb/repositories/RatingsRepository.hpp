@@ -46,38 +46,6 @@ namespace PocketDb
         }
 
         // TODO (brangr): move to ConsensusRepository
-        int GetUserReputation(int addressId, int height)
-        {
-            int result = 0;
-
-            auto sql = R"sql(
-                select r.Value
-                from Ratings r
-                where r.Type = ?
-                    and r.Id = ?
-                    and r.Height <= ?
-                order by r.Height desc
-                limit 1
-            )sql";
-
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(sql);
-
-                TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
-                TryBindStatementInt(stmt, 2, addressId);
-                TryBindStatementInt(stmt, 3, height);
-
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
-                    result = GetColumnInt(*stmt, 0);
-
-                FinalizeSqlStatement(*stmt);
-            });
-
-            return result;
-        }
-
-        // TODO (brangr): move to ConsensusRepository
         int GetUserLikersCount(int addressId, int height)
         {
             int result = 0;

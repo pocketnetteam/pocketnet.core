@@ -65,7 +65,7 @@ namespace PocketConsensus
             // std::string _answerid = oitm["answerid"].get_str();
 
             vector<string> addresses = { *tx->GetAddress() };
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
                 return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             

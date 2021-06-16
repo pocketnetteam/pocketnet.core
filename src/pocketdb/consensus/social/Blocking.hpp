@@ -50,7 +50,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Blocking> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
                 return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // TODO (brangr): implement
@@ -85,8 +85,7 @@ namespace PocketConsensus
             //     }
             // }
 
-            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*tx->GetAddress(),
-                *tx->GetAddressTo(), *tx->GetHeight());
+            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*tx->GetAddress(),*tx->GetAddressTo());
             if (existsBlocking && blockingType == ACTION_BLOCKING)
                 return make_tuple(false, SocialConsensusResult_DoubleBlocking);
 

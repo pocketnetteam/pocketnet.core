@@ -9,6 +9,7 @@
 
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/ScoreComment.hpp"
+#include "pocketdb/consensus/Reputation.hpp"
 
 namespace PocketConsensus
 {
@@ -46,15 +47,22 @@ namespace PocketConsensus
         }
 
     protected:
+        virtual int64_t GetFullAccountScoreCommentLimit() { return 600; }
+        virtual int64_t GetTrialAccountScoreCommentLimit() { return 300; }
+
+        virtual int64_t GetScoreCommentLimit(AccountMode mode)
+        {
+            return mode == AccountMode_Full ? GetFullAccountScoreCommentLimit() : GetTrialAccountScoreCommentLimit();
+        }
 
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<ScoreComment> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
                 return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // // Check score to self
-            auto commentAddress = PocketDb::ConsensusRepoInst.GetLastActiveCommentAddress(*tx->GetCommentTxHash(), *tx->GetHeight());
+            auto commentAddress = PocketDb::ConsensusRepoInst.GetLastActiveCommentAddress(*tx->GetCommentTxHash());
 
             if (commentAddress != nullptr)
             {
@@ -76,6 +84,7 @@ namespace PocketConsensus
                         if (*comment.GetRootTxHash() == *tx->GetCommentTxHash())
                         {
                             notFound = false;
+                            commentAddress = comment.GetAddress();
                         }
                     }
                     else if (*otherTx->GetType() == CONTENT_COMMENT_DELETE)
@@ -96,13 +105,18 @@ namespace PocketConsensus
                 }
             }
 
-            // // Blocking
-            // if (height >= Params().GetConsensus().score_blocking_on && height < Params().GetConsensus().score_blocking_off && g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, _comment_address).Where("address_to", CondEq, _address).Where("block", CondLt, height))) {
-            //     result = ANTIBOTRESULT::Blocking;
-            //     return false;
-            // }
+            // Blocking
+            if (Height >= Params().GetConsensus().score_blocking_on
+                && Height < Params().GetConsensus().score_blocking_off)
+            {
+                auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(*commentAddress, *tx->GetAddress());
+                if (existsBlocking && blockingType == ACTION_BLOCKING)
+                {
+                    return make_tuple(false, SocialConsensusResult_Blocking);
+                }
+            }
 
-            if (PocketDb::ConsensusRepoInst.ExistsScore(*tx->GetAddress(), *tx->GetCommentTxHash(), ACTION_SCORE_COMMENT, *tx->GetHeight()))
+            if (PocketDb::ConsensusRepoInst.ExistsScore(*tx->GetAddress(), *tx->GetCommentTxHash(), ACTION_SCORE_COMMENT))
             {
                 return make_tuple(false, SocialConsensusResult_DoubleCommentScore);
             }
@@ -161,6 +175,11 @@ namespace PocketConsensus
             //             }
             //         }
             //     }
+
+            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
+            auto limit = GetScoreCommentLimit(accountMode);
+            //TODO (joni): Get scoresCount
 
             //     ABMODE mode;
             //     getMode(_address, mode, height);

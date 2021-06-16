@@ -51,7 +51,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Subscribe> tx, PocketBlock& block)
         {
             vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, *tx->GetHeight()))
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
                 return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // // Also check mempool

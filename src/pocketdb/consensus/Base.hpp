@@ -71,6 +71,12 @@ namespace PocketConsensus
         SocialConsensusResult_NotAllowed = 44
     };
 
+    enum AccountMode
+    {
+        AccountMode_Trial,
+        AccountMode_Full
+    };
+
     // --------------------------------------------------------------------------------------
 
     class BaseConsensus
