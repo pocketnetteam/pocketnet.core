@@ -179,7 +179,16 @@ namespace PocketDb
             auto clearLastStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
                     Last = 0
-                WHERE String1 = (select a.AddressHash from vAccounts a where a.Hash = ?)
+                FROM (
+                    select a.Hash, a.Type, a.AddressHash
+                    from vAccounts a
+                    where a.Hash = ?
+                ) as account
+                WHERE account.AddressHash is not null
+                    and Transactions.Height is not null
+                    and Transactions.Hash != account.Hash
+                    and Transactions.Type = account.Type
+                    and Transactions.String1 = account.AddressHash
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
 
@@ -189,20 +198,18 @@ namespace PocketDb
                     Id = ifnull(
                         -- copy self Id
                         (
-                            select max( u.Id )
-                            from Transactions u
-                            where u.Type = Transactions.Type
-                                and u.String1 = Transactions.String1
-                                and u.Height is not null
+                            select max( a.Id )
+                            from vAccounts a
+                            where a.Type = Transactions.Type
+                                and a.AddressHash = Transactions.String1
                         ),
                         ifnull(
                             -- new record
                             (
-                                select max( u.Id ) + 1
-                                from Transactions u
-                                where u.Type = Transactions.Type
-                                    and u.Height is not null
-                                    and u.Id is not null
+                                select max( a.Id ) + 1
+                                from vAccounts a
+                                where a.Type = Transactions.Type
+                                    and a.Id is not null
                             ),
                             0 -- for first record
                         )
@@ -211,42 +218,56 @@ namespace PocketDb
                 WHERE Hash = ?
             )sql");
             TryBindStatementText(setIdStmt, 1, txHash);
-            
+
+            // Execute all
             TryStepStatements({ clearLastStmt, setIdStmt });
         }
 
         void SetContentId(const string& txHash)
         {
-            auto sql = R"sql(
+            // Clear old last records for set new last
+            auto clearLastStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
-                    Id = case
-                        -- String2 (RootTxHash) empty - new content record
-                        when Transactions.String2 is null then
-                            ifnull(
-                                (select max(c.Id) + 1
-                                 from vContents c
-                                 where c.Type = Transactions.Type
-                                   and c.Id is not null)
-                            , 0)
-                        -- String2 (RootTxHash) not empty - edited content record
-                        else
-                            ifnull(
-                                (select max(c.Id)
-                                 from vContents c
-                                 where c.Type = Transactions.Type
-                                   and c.Hash = Transactions.String2
-                                   and c.Id is not null)
-                            , 0)
-                    end
-                WHERE Hash = ?
-            )sql";
+                    Last = 0
+                FROM (
+                    select c.Type, c.RootTxHash
+                    from vContents c
+                    where c.Hash = ?
+                ) as content
+                WHERE content.RootTxHash is not null
+                    and Transactions.Hash != content.Hash
+                    and Transactions.Height is not null
+                    and Transactions.Type = content.Type
+                    and Transactions.String2 = content.RootTxHash
 
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(sql);
-                TryBindStatementText(stmt, 1, txHash);
-                TryStepStatement(stmt);
-            });
+            )sql");
+            TryBindStatementText(clearLastStmt, 1, txHash);
+
+            // Get new ID or copy previous
+            auto setIdStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Id = ifnull(
+                        -- copy self Id
+                        (
+                            select max( c.Id )
+                            from vContents c
+                            where c.Type = Transactions.Type
+                                and c.RootTxHash = Transactions.String2
+                        ),
+                        -- new record
+                        ifnull(
+                            (
+                                select max( c.Id ) + 1
+                                from vContents c
+                                where c.Type = Transactions.Type
+                                    and c.Id is not null
+                            ),
+                            0 -- for first record
+                        )
+                    )
+                WHERE Hash = ?
+            )sql");
+            TryBindStatementText(setIdStmt, 1, txHash);
         }
 
     };

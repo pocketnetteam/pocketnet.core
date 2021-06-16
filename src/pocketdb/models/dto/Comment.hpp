@@ -46,15 +46,13 @@ namespace PocketTx
         {
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
-            if (auto[ok, val] = TryGetStr(src, "otxid"); ok)
-            {
-                if (val != *GetHash())
-                    SetRootTxHash(val);
-            }
-
             if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
             if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxHash(val);
             if (auto[ok, val] = TryGetStr(src, "answerid"); ok) SetAnswerTxHash(val);
+
+            SetRootTxHash(*GetHash());
+            if (auto[ok, val] = TryGetStr(src, "otxid"); ok)
+                SetRootTxHash(val);
         }
 
         shared_ptr <string> GetAddress() const { return m_string1; }

@@ -43,12 +43,11 @@ namespace PocketTx
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
+
+            SetRootTxHash(*GetHash());
             if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok)
-            {
                 if (auto[ok, valTxId] = TryGetStr(src, "txid"); ok)
-                    if (valTxIdEdit != valTxId)
-                        SetRootTxHash(valTxId);
-            }
+                    SetRootTxHash(valTxId);
         }
 
         shared_ptr <string> GetAddress() const { return m_string1; }
