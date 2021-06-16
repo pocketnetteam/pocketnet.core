@@ -36,17 +36,17 @@ namespace PocketServices
             Rollback(height);
 
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - RollbackChain: %.2fms\n", 0.001 * (nTime2 - nTime1));
+            LogPrint(BCLog::BENCH, "    - RollbackChain: %.2fms _ %d\n", 0.001 * (nTime2 - nTime1), height);
 
             IndexChain(block, height);
 
             int64_t nTime3 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms\n", 0.001 * (nTime3 - nTime2));
+            LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (nTime3 - nTime2), height);
 
             IndexRatings(block, height);
 
             int64_t nTime4 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms\n", 0.001 * (nTime4 - nTime3));
+            LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (nTime4 - nTime3), height);
         }
 
         static void Rollback(int height)
@@ -79,7 +79,8 @@ namespace PocketServices
             }
 
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - IndexChain Prepare: %.2fms\n", 0.001 * (nTime2 - nTime1));
+            LogPrint(BCLog::BENCH, "      - IndexChain Prepare: %.2fms _ %s\n",
+                0.001 * (nTime2 - nTime1), block.GetHash().GetHex());
 
             PocketDb::ChainRepoInst.IndexBlock(block.GetHash().GetHex(), height, txs);
         }
@@ -93,9 +94,6 @@ namespace PocketServices
 
             // Actual consensus checker instance by current height
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
-
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - IndexRatings Consensus: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
             // Loop all transactions for find scores and increase ratings for accounts and contents
             for (const auto& tx : block.vtx)
@@ -116,7 +114,8 @@ namespace PocketServices
                         __func__, tx->GetHash().GetHex()));
 
                 int64_t nTime20 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - GetScoreData: %.2fms\n", 0.001 * (nTime20 - nTime10));
+                LogPrint(BCLog::BENCH, "      - GetScoreData: %.2fms _ %s\n",
+                    0.001 * (nTime20 - nTime10), tx->GetHash().GetHex());
 
                 // LogPrintf("*** 2 h:%d tx:%s - %s\n", height, tx->GetHash().GetHex(), scoreData->Serialize()->write());
 
@@ -127,7 +126,8 @@ namespace PocketServices
                     scoreData->ContentType);
 
                 int64_t nTime30 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - AllowModifyOldPosts: %.2fms\n", 0.001 * (nTime30 - nTime20));
+                LogPrint(BCLog::BENCH, "      - AllowModifyOldPosts: %.2fms _ %s\n",
+                    0.001 * (nTime30 - nTime20), tx->GetHash().GetHex());
 
                 if (!allowModifyOldPosts)
                     continue;
@@ -142,7 +142,8 @@ namespace PocketServices
                     false);
 
                 int64_t nTime40 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - AllowModifyReputation: %.2fms\n", 0.001 * (nTime40 - nTime31));
+                LogPrint(BCLog::BENCH, "      - AllowModifyReputation: %.2fms _ %s\n",
+                    0.001 * (nTime40 - nTime31), tx->GetHash().GetHex());
 
                 if (!allowModifyReputation)
                     continue;
@@ -186,10 +187,11 @@ namespace PocketServices
                 }
 
                 int64_t nTime50 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - Increase ratings: %.2fms\n", 0.001 * (nTime50 - nTime41));
+                LogPrint(BCLog::BENCH, "      - Increase ratings: %.2fms _ %s\n",
+                    0.001 * (nTime50 - nTime41), tx->GetHash().GetHex());
             }
 
-            int64_t nTime3 = GetTimeMicros();
+            int64_t nTime2 = GetTimeMicros();
 
             // Prepare all ratings model records for increase Rating
             shared_ptr<vector<Rating>> ratings = make_shared<vector<Rating>>();
@@ -229,14 +231,16 @@ namespace PocketServices
             if (ratings->empty())
                 return;
 
-            int64_t nTime4 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - Build Rating models: %.2fms\n", 0.001 * (nTime4 - nTime3));
+            int64_t nTime3 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "      - Build Rating models: %.2fms _ %s\n",
+                0.001 * (nTime3 - nTime2), block.GetHash().GetHex());
 
             // Save all ratings in one transaction
             PocketDb::RatingsRepoInst.InsertRatings(ratings);
 
-            int64_t nTime5 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - InsertRatings: %.2fms\n", 0.001 * (nTime5 - nTime4));
+            int64_t nTime4 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "      - InsertRatings: %.2fms _ %s\n",
+                0.001 * (nTime4 - nTime3), block.GetHash().GetHex());
         }
 
 

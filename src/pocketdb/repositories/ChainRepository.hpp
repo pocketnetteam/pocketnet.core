@@ -41,13 +41,15 @@ namespace PocketDb
                 UpdateTransactionHeight(blockHash, height, txInfo.Hash);
 
                 int64_t nTime2 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - UpdateTransactionHeight: %.2fms\n", 0.001 * (nTime2 - nTime1));
+                LogPrint(BCLog::BENCH, "      - UpdateTransactionHeight: %.2fms _ %s\n",
+                    0.001 * (nTime2 - nTime1), txInfo.Hash);
 
                 // The outputs are needed for the explorer
                 UpdateTransactionOutputs(blockHash, height, txInfo.Inputs);
 
                 int64_t nTime3 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms\n", 0.001 * (nTime3 - nTime2));
+                LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms _ %s\n",
+                    0.001 * (nTime3 - nTime2), txInfo.Hash);
 
                 // Account and Content must have unique ID
                 // Also all edited transactions must have Last=(0/1) field
@@ -57,7 +59,8 @@ namespace PocketDb
                         IndexAccount(txInfo.Hash);
 
                         int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - SetAccountId: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                        LogPrint(BCLog::BENCH, "      - SetAccountId: %.2fms _ %s\n",
+                            0.001 * (nTime4 - nTime3), txInfo.Hash);
                     }
 
                     if (txInfo.IsContent())
@@ -65,7 +68,8 @@ namespace PocketDb
                         IndexContent(txInfo.Hash);
 
                         int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - SetContentId: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                        LogPrint(BCLog::BENCH, "      - SetContentId: %.2fms _ %s\n",
+                            0.001 * (nTime4 - nTime3), txInfo.Hash);
                     }
 
                     if (txInfo.IsBlocking())
@@ -73,7 +77,8 @@ namespace PocketDb
                         IndexBlocking(txInfo.Hash);
 
                         int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - IndexBlocking: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                        LogPrint(BCLog::BENCH, "      - IndexBlocking: %.2fms _ %s\n",
+                            0.001 * (nTime4 - nTime3), txInfo.Hash);
                     }
 
                     if (txInfo.IsSubscribe())
@@ -81,7 +86,8 @@ namespace PocketDb
                         IndexSubscribe(txInfo.Hash);
 
                         int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - IndexSubscribe: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                        LogPrint(BCLog::BENCH, "      - IndexSubscribe: %.2fms _ %s\n",
+                            0.001 * (nTime4 - nTime3), txInfo.Hash);
                     }
                 }
             }
@@ -104,7 +110,8 @@ namespace PocketDb
             TryTransactionStep({ transactionsStmt });
 
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - RollbackBlock (Chain): %.2fms\n", 0.001 * (nTime2 - nTime1));
+            LogPrint(BCLog::BENCH, "      - RollbackBlock (Chain): %.2fms _ %d\n",
+                0.001 * (nTime2 - nTime1), height);
 
             // Update transaction outputs
             auto outputsStmt = SetupSqlStatement(R"sql(
@@ -117,7 +124,8 @@ namespace PocketDb
             TryTransactionStep({ outputsStmt });
 
             int64_t nTime3 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - RollbackBlock (Outputs): %.2fms\n", 0.001 * (nTime3 - nTime2));
+            LogPrint(BCLog::BENCH, "      - RollbackBlock (Outputs): %.2fms _ %d\n",
+                0.001 * (nTime3 - nTime2), height);
 
             // Remove ratings
             auto ratingsStmt = SetupSqlStatement(R"sql(
@@ -129,7 +137,8 @@ namespace PocketDb
             TryTransactionStep({ ratingsStmt });
 
             int64_t nTime4 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - RollbackBlock (Ratings): %.2fms\n", 0.001 * (nTime4 - nTime3));
+            LogPrint(BCLog::BENCH, "      - RollbackBlock (Ratings): %.2fms _ %d\n",
+                0.001 * (nTime4 - nTime3), height);
         }
 
     private:
