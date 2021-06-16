@@ -81,7 +81,7 @@ namespace PocketServices
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - IndexChain Prepare: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
-            PocketDb::ChainRepoInst.UpdateHeight(block.GetHash().GetHex(), height, txs);
+            PocketDb::ChainRepoInst.IndexBlock(block.GetHash().GetHex(), height, txs);
         }
 
         static void IndexRatings(const CBlock& block, int height)

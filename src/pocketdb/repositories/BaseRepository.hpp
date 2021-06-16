@@ -56,6 +56,15 @@ namespace PocketDb
             }
         }
 
+        void TryTransactionStep(std::initializer_list<shared_ptr<sqlite3_stmt*>> stmts)
+        {
+            TryTransactionStep([&]()
+            {
+                for (auto stmt : stmts)
+                    TryStepStatement(stmt);
+            });
+        }
+
         void TryStepStatement(shared_ptr<sqlite3_stmt*>& stmt)
         {
             int res = sqlite3_step(*stmt);
@@ -63,15 +72,6 @@ namespace PocketDb
 
             if (res != SQLITE_ROW && res != SQLITE_DONE)
                 throw std::runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
-        }
-
-        void TryStepStatements(std::initializer_list<shared_ptr<sqlite3_stmt*>> stmts)
-        {
-            TryTransactionStep([&]()
-            {
-                for (auto stmt : stmts)
-                    TryStepStatement(stmt);
-            });
         }
 
         // --------------------------------

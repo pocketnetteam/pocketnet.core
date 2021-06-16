@@ -95,6 +95,36 @@ namespace PocketTx
         string Hash;
         PocketTxType Type;
         map<string, int> Inputs;
+
+        bool IsAccount() const
+        {
+            return Type == PocketTxType::ACCOUNT_USER ||
+                   Type == PocketTxType::ACCOUNT_VIDEO_SERVER ||
+                   Type == PocketTxType::ACCOUNT_MESSAGE_SERVER;
+        }
+
+        bool IsContent() const
+        {
+            return Type == PocketTxType::CONTENT_POST ||
+                   Type == PocketTxType::CONTENT_COMMENT ||
+                   Type == PocketTxType::CONTENT_COMMENT_EDIT ||
+                   Type == PocketTxType::CONTENT_COMMENT_DELETE ||
+                   Type == PocketTxType::CONTENT_VIDEO ||
+                   Type == PocketTxType::CONTENT_TRANSLATE;
+        }
+
+        bool IsBlocking() const
+        {
+            return Type == PocketTxType::ACTION_BLOCKING ||
+                   Type == PocketTxType::ACTION_BLOCKING_CANCEL;
+        }
+
+        bool IsSubscribe() const
+        {
+            return Type == PocketTxType::ACTION_SUBSCRIBE ||
+                   Type == PocketTxType::ACTION_SUBSCRIBE_CANCEL ||
+                   Type == PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
+        }
     };
 }
 

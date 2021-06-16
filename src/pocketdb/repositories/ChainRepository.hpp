@@ -31,40 +31,58 @@ namespace PocketDb
 
         // Update transactions set block hash & height
         // Also spent outputs
-        void UpdateHeight(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
+        void IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
         {
-            for (const auto& tx : txs)
+            for (const auto& txInfo : txs)
             {
                 int64_t nTime1 = GetTimeMicros();
 
                 // All transactions must have a blockHash & height relation
-                UpdateTransactionHeight(blockHash, height, tx.Hash);
+                UpdateTransactionHeight(blockHash, height, txInfo.Hash);
 
                 int64_t nTime2 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "      - UpdateTransactionHeight: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
                 // The outputs are needed for the explorer
-                UpdateTransactionOutputs(blockHash, height, tx.Inputs);
+                UpdateTransactionOutputs(blockHash, height, txInfo.Inputs);
 
                 int64_t nTime3 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms\n", 0.001 * (nTime3 - nTime2));
 
-                // All accounts must have a unique digital ID
-                if (PocketHelpers::IsAccount(tx))
+                // Account and Content must have unique ID
+                // Also all edited transactions must have Last=(0/1) field
                 {
-                    SetAccountId(tx.Hash);
+                    if (txInfo.IsAccount())
+                    {
+                        IndexAccount(txInfo.Hash);
 
-                    int64_t nTime4 = GetTimeMicros();
-                    LogPrint(BCLog::BENCH, "      - SetAccountId: %.2fms\n", 0.001 * (nTime4 - nTime3));
-                }
+                        int64_t nTime4 = GetTimeMicros();
+                        LogPrint(BCLog::BENCH, "      - SetAccountId: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                    }
 
-                // All contents must have a unique digital ID
-                if (PocketHelpers::IsContent(tx))
-                {
-                    SetContentId(tx.Hash);
+                    if (txInfo.IsContent())
+                    {
+                        IndexContent(txInfo.Hash);
 
-                    int64_t nTime4 = GetTimeMicros();
-                    LogPrint(BCLog::BENCH, "      - SetContentId: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                        int64_t nTime4 = GetTimeMicros();
+                        LogPrint(BCLog::BENCH, "      - SetContentId: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                    }
+
+                    if (txInfo.IsBlocking())
+                    {
+                        IndexBlocking(txInfo.Hash);
+
+                        int64_t nTime4 = GetTimeMicros();
+                        LogPrint(BCLog::BENCH, "      - IndexBlocking: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                    }
+
+                    if (txInfo.IsSubscribe())
+                    {
+                        IndexSubscribe(txInfo.Hash);
+
+                        int64_t nTime4 = GetTimeMicros();
+                        LogPrint(BCLog::BENCH, "      - IndexSubscribe: %.2fms\n", 0.001 * (nTime4 - nTime3));
+                    }
                 }
             }
         }
@@ -75,51 +93,40 @@ namespace PocketDb
             int64_t nTime1 = GetTimeMicros();
 
             // Update transactions
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    UPDATE Transactions SET
-                        BlockHash = null,
-                        Height = null,
-                        Id = null
-                    WHERE Height is not null and Height >= ?
-                )sql");
-
-                TryBindStatementInt(stmt, 1, height);
-                TryStepStatement(stmt);
-            });
+            auto transactionsStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    BlockHash = null,
+                    Height = null,
+                    Id = null
+                WHERE Height is not null and Height >= ?
+            )sql");
+            TryBindStatementInt(transactionsStmt, 1, height);
+            TryTransactionStep({ transactionsStmt });
 
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - RollbackBlock (Chain): %.2fms\n", 0.001 * (nTime2 - nTime1));
 
             // Update transaction outputs
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    UPDATE TxOutputs SET
-                        SpentHeight = null,
-                        SpentTxHash = null
-                    WHERE SpentHeight is not null and SpentHeight >= ?
-                )sql");
-
-                TryBindStatementInt(stmt, 1, height);
-                TryStepStatement(stmt);
-            });
+            auto outputsStmt = SetupSqlStatement(R"sql(
+                UPDATE TxOutputs SET
+                    SpentHeight = null,
+                    SpentTxHash = null
+                WHERE SpentHeight is not null and SpentHeight >= ?
+            )sql");
+            TryBindStatementInt(outputsStmt, 1, height);
+            TryTransactionStep({ outputsStmt });
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - RollbackBlock (Outputs): %.2fms\n", 0.001 * (nTime3 - nTime2));
 
             // Remove ratings
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    DELETE FROM Ratings
-                    WHERE Height >= ?
-                )sql");
+            auto ratingsStmt = SetupSqlStatement(R"sql(
+                DELETE FROM Ratings
+                WHERE Height >= ?
+            )sql");
 
-                TryBindStatementInt(stmt, 1, height);
-                TryStepStatement(stmt);
-            });
+            TryBindStatementInt(ratingsStmt, 1, height);
+            TryTransactionStep({ ratingsStmt });
 
             int64_t nTime4 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - RollbackBlock (Ratings): %.2fms\n", 0.001 * (nTime4 - nTime3));
@@ -129,23 +136,18 @@ namespace PocketDb
 
         void UpdateTransactionHeight(const string& blockHash, int height, const string& txHash)
         {
-            auto sql = R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
                     BlockHash=?,
                     Height=?
                 WHERE Hash=?
-            )sql";
+            )sql");
 
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, blockHash);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementText(stmt, 3, txHash);
 
-                TryBindStatementText(stmt, 1, blockHash);
-                TryBindStatementInt(stmt, 2, height);
-                TryBindStatementText(stmt, 3, txHash);
-
-                TryStepStatement(stmt);
-            });
+            TryTransactionStep({ stmt });
         }
 
         void UpdateTransactionOutputs(const string& txHash, int height, const map<string, int>& outputs)
@@ -173,7 +175,7 @@ namespace PocketDb
             });
         }
 
-        void SetAccountId(const string& txHash)
+        void IndexAccount(const string& txHash)
         {
             // Clear old last records for set new last
             auto clearLastStmt = SetupSqlStatement(R"sql(
@@ -220,17 +222,17 @@ namespace PocketDb
             TryBindStatementText(setIdStmt, 1, txHash);
 
             // Execute all
-            TryStepStatements({ clearLastStmt, setIdStmt });
+            TryTransactionStep({ clearLastStmt, setIdStmt });
         }
 
-        void SetContentId(const string& txHash)
+        void IndexContent(const string& txHash)
         {
             // Clear old last records for set new last
             auto clearLastStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
                     Last = 0
                 FROM (
-                    select c.Type, c.RootTxHash
+                    select c.Hash, c.Type, c.RootTxHash
                     from vContents c
                     where c.Hash = ?
                 ) as content
@@ -264,10 +266,79 @@ namespace PocketDb
                             ),
                             0 -- for first record
                         )
-                    )
+                    ),
+                    Last = 1
                 WHERE Hash = ?
             )sql");
             TryBindStatementText(setIdStmt, 1, txHash);
+
+            TryTransactionStep({ clearLastStmt, setIdStmt });
+        }
+
+        void IndexBlocking(const string& txHash)
+        {
+            // Clear old last records for set new last
+            auto clearLastStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Last = 0
+                FROM (
+                    select b.Hash, b.Type, b.AddressHash, b.AddressToHash
+                    from vBlockings b
+                    where b.Hash = ?
+                ) as blocking
+                WHERE blocking.AddressHash is not null
+                    and blocking.AddressToHash is not null
+                    and Transactions.Hash != blocking.Hash
+                    and Transactions.Height is not null
+                    and Transactions.Type = blocking.Type
+                    and Transactions.String1 = blocking.AddressHash
+                    and Transactions.String2 = blocking.AddressToHash
+
+            )sql");
+            TryBindStatementText(clearLastStmt, 1, txHash);
+
+            // Get new ID or copy previous
+            auto setLastStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Last = 1
+                WHERE Hash = ?
+            )sql");
+            TryBindStatementText(setLastStmt, 1, txHash);
+
+            TryTransactionStep({ clearLastStmt, setLastStmt });
+        }
+
+        void IndexSubscribe(const string& txHash)
+        {
+            // Clear old last records for set new last
+            auto clearLastStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Last = 0
+                FROM (
+                    select s.Hash, s.Type, s.AddressHash, s.AddressToHash
+                    from vSubscribes s
+                    where s.Hash = ?
+                ) as subscribe
+                WHERE subscribe.AddressHash is not null
+                    and subscribe.AddressToHash is not null
+                    and Transactions.Hash != subscribe.Hash
+                    and Transactions.Height is not null
+                    and Transactions.Type = subscribe.Type
+                    and Transactions.String1 = subscribe.AddressHash
+                    and Transactions.String2 = subscribe.AddressToHash
+
+            )sql");
+            TryBindStatementText(clearLastStmt, 1, txHash);
+
+            // Get new ID or copy previous
+            auto setLastStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Last = 1
+                WHERE Hash = ?
+            )sql");
+            TryBindStatementText(setLastStmt, 1, txHash);
+
+            TryTransactionStep({ clearLastStmt, setLastStmt });
         }
 
     };

@@ -288,23 +288,6 @@ namespace PocketHelpers
 
         return ptx;
     }
-
-    static bool IsAccount(const TransactionIndexingInfo& tx)
-    {
-        return tx.Type == PocketTxType::ACCOUNT_USER ||
-               tx.Type == PocketTxType::ACCOUNT_VIDEO_SERVER ||
-               tx.Type == PocketTxType::ACCOUNT_MESSAGE_SERVER;
-    }
-
-    static bool IsContent(const TransactionIndexingInfo& tx)
-    {
-        return tx.Type == PocketTxType::CONTENT_POST ||
-               tx.Type == PocketTxType::CONTENT_COMMENT ||
-               tx.Type == PocketTxType::CONTENT_COMMENT_EDIT ||
-               tx.Type == PocketTxType::CONTENT_COMMENT_DELETE ||
-               tx.Type == PocketTxType::CONTENT_VIDEO ||
-               tx.Type == PocketTxType::CONTENT_TRANSLATE;
-    }
 }
 
 #endif // POCKETHELPERS_TRANSACTIONHELPER_HPP

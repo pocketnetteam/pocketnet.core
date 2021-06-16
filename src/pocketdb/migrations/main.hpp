@@ -16,6 +16,7 @@ namespace PocketDb
 
             BlockHash string null,
             Height    int    null,
+            Last      int    not null default 0,
 
             -- User.Id
             -- Post.Id
@@ -126,49 +127,51 @@ namespace PocketDb
         drop view if exists vAccounts;
         create view if not exists vAccounts as
         select t.Type,
-            t.Hash,
-            t.Time,
-            t.BlockHash,
-            t.Height,
-            t.Id,
-            t.String1 as AddressHash,
-            t.String2,
-            t.String3,
-            t.String4,
-            t.String5,
-            t.Int1
+               t.Hash,
+               t.Time,
+               t.BlockHash,
+               t.Height,
+               t.Last,
+               t.Id,
+               t.String1 as AddressHash,
+               t.String2,
+               t.String3,
+               t.String4,
+               t.String5,
+               t.Int1
         from Transactions t
         where t.Height is not null
-        and t.Type in (100, 101, 102);
+          and t.Type in (100, 101, 102);
 
 
         drop view if exists vUsersPayload;
         create view if not exists vUsersPayload as
         select p.TxHash,
-            p.String1 as Lang,
-            p.String2 as Name,
-            p.String3 as Avatar,
-            p.String4 as About,
-            p.String5 as Url,
-            p.String6 as Pubkey,
-            p.String7 as Donations
+               p.String1 as Lang,
+               p.String2 as Name,
+               p.String3 as Avatar,
+               p.String4 as About,
+               p.String5 as Url,
+               p.String6 as Pubkey,
+               p.String7 as Donations
         from Payload p;
 
 
         drop view if exists vUsers;
         create view if not exists vUsers as
         select a.Type,
-            a.Hash,
-            a.Time,
-            a.BlockHash,
-            a.Height,
-            a.Id,
-            a.AddressHash,
-            a.String2 as ReferrerAddressHash,
-            a.String3,
-            a.String4,
-            a.String5,
-            a.Int1
+               a.Hash,
+               a.Time,
+               a.BlockHash,
+               a.Height,
+               a.Last,
+               a.Id,
+               a.AddressHash,
+               a.String2 as ReferrerAddressHash,
+               a.String3,
+               a.String4,
+               a.String5,
+               a.Int1
         from vAccounts a
         where a.Type = 100;
 
@@ -176,32 +179,34 @@ namespace PocketDb
         drop view if exists vContents;
         create view if not exists vContents as
         select t.Type,
-            t.Hash,
-            t.Time,
-            t.BlockHash,
-            t.Height,
-            t.Id,
-            t.String1 as AddressHash,
-            t.String2 as RootTxHash,
-            t.String3,
-            t.String4,
-            t.String5
+               t.Hash,
+               t.Time,
+               t.BlockHash,
+               t.Height,
+               t.Last,
+               t.Id,
+               t.String1 as AddressHash,
+               t.String2 as RootTxHash,
+               t.String3,
+               t.String4,
+               t.String5
         from Transactions t
         where t.Height is not null
-        and t.Type in (200, 201, 202, 203, 204, 205, 206);
+          and t.Type in (200, 201, 202, 203, 204, 205, 206);
 
 
         drop view if exists vPosts;
         create view if not exists vPosts as
         select c.Type,
-            c.Hash,
-            c.Time,
-            c.BlockHash,
-            c.Height,
-            c.Id,
-            c.AddressHash,
-            c.RootTxHash,
-            c.String3 as RelayTxHash
+               c.Hash,
+               c.Time,
+               c.BlockHash,
+               c.Height,
+               c.Last,
+               c.Id,
+               c.AddressHash,
+               c.RootTxHash,
+               c.String3 as RelayTxHash
         from vContents c
         where c.Type = 200;
 
@@ -209,16 +214,17 @@ namespace PocketDb
         drop view if exists vComments;
         create view if not exists vComments as
         select c.Type,
-            c.Hash,
-            c.Time,
-            c.BlockHash,
-            c.Height,
-            c.Id,
-            c.AddressHash,
-            c.RootTxHash,
-            c.String3 as PostTxHash,
-            c.String4 as ParentTxHash,
-            c.String5 as AnswerTxHash
+               c.Hash,
+               c.Time,
+               c.BlockHash,
+               c.Height,
+               c.Last,
+               c.Id,
+               c.AddressHash,
+               c.RootTxHash,
+               c.String3 as PostTxHash,
+               c.String4 as ParentTxHash,
+               c.String5 as AnswerTxHash
         from vContents c
         where c.Type in (204, 205, 206);
 
@@ -226,28 +232,30 @@ namespace PocketDb
         drop view if exists vScores;
         create view if not exists vScores as
         select t.Type,
-            t.Hash,
-            t.Time,
-            t.BlockHash,
-            t.Height,
-            t.String1 as AddressHash,
-            t.String2 as ContentTxHash,
-            t.Int1    as Value
+               t.Hash,
+               t.Time,
+               t.BlockHash,
+               t.Height,
+               t.Last,
+               t.String1 as AddressHash,
+               t.String2 as ContentTxHash,
+               t.Int1    as Value
         from Transactions t
         where t.Height is not null
-        and t.Type in (300, 301);
+          and t.Type in (300, 301);
 
 
         drop view if exists vScorePosts;
         create view if not exists vScorePosts as
         select s.Type,
-            s.Hash,
-            s.Time,
-            s.BlockHash,
-            s.Height,
-            s.AddressHash,
-            s.ContentTxHash as PostTxHash,
-            s.Value         as Value
+               s.Hash,
+               s.Time,
+               s.BlockHash,
+               s.Height,
+               s.Last,
+               s.AddressHash,
+               s.ContentTxHash as PostTxHash,
+               s.Value         as Value
         from vScores s
         where s.Type in (300);
 
@@ -255,13 +263,14 @@ namespace PocketDb
         drop view if exists vScoreComments;
         create view if not exists vScoreComments as
         select s.Type,
-            s.Hash,
-            s.Time,
-            s.BlockHash,
-            s.Height,
-            s.AddressHash,
-            s.ContentTxHash as CommentTxHash,
-            s.Value         as Value
+               s.Hash,
+               s.Time,
+               s.BlockHash,
+               s.Height,
+               s.Last,
+               s.AddressHash,
+               s.ContentTxHash as CommentTxHash,
+               s.Value         as Value
         from vScores s
         where s.Type in (301);
 
@@ -269,38 +278,46 @@ namespace PocketDb
         drop view if exists vBlockings;
         create view if not exists vBlockings as
         select t.Type,
-            t.Hash,
-            t.Time,
-            t.BlockHash,
-            t.Height,
-            t.String1 as AddressHash,
-            t.String2 as AddressToHash
+               t.Hash,
+               t.Time,
+               t.BlockHash,
+               t.Height,
+               t.Last,
+               t.String1 as AddressHash,
+               t.String2 as AddressToHash
         from Transactions t
         where t.Height is not null
-        and t.Type in (305, 306);
+          and t.Type in (305, 306);
 
 
         drop view if exists vSubscribes;
         create view if not exists vSubscribes as
         select t.Type,
-            t.Hash,
-            t.Time,
-            t.BlockHash,
-            t.Height,
-            t.String1 as AddressHash,
-            t.String2 as AddressToHash
+               t.Hash,
+               t.Time,
+               t.BlockHash,
+               t.Height,
+               t.Last,
+               t.String1 as AddressHash,
+               t.String2 as AddressToHash,
+               t.Int1    as Private
         from Transactions t
         where t.Height is not null
-        and t.Type in (302, 303, 304);
+          and t.Type in (302, 303, 304);
 
 
         drop view if exists vComplains;
         create view vComplains as
-        select String1 as AddressHash,
-            String2 as PostTxHash,
-            Int1    as Reason,
-            Height  as Height
-        from Transactions
+        select t.Type,
+               t.Hash,
+               t.Time,
+               t.BlockHash,
+               t.Height,
+               t.Last,
+               t.String1 as AddressHash,
+               t.String2 as PostTxHash,
+               t.Int1    as Reason
+        from Transactions t
         where Type in (307);
 
         --------------------------------------------

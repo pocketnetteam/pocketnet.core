@@ -56,6 +56,9 @@ namespace PocketTx
         shared_ptr<int> GetHeight() const { return m_height; }
         void SetHeight(int value) { m_height = make_shared<int>(value); }
 
+        shared_ptr<bool> GetLast() const { return m_last; }
+        void SetLast(bool value) { m_last = make_shared<bool>(value); }
+
         shared_ptr<string> GetString1() const { return m_string1; }
         void SetString1(string value) { m_string1 = make_shared<string>(value); }
 
@@ -95,8 +98,10 @@ namespace PocketTx
 
         shared_ptr<PocketTxType> m_type = nullptr;
         shared_ptr<string> m_hash = nullptr;
-        shared_ptr<int> m_height = nullptr;
         shared_ptr<int64_t> m_time = nullptr;
+        shared_ptr<int> m_height = nullptr;
+        shared_ptr<int64_t> m_id = nullptr;
+        shared_ptr<bool> m_last = nullptr;
 
         shared_ptr<string> m_string1 = nullptr;
         shared_ptr<string> m_string2 = nullptr;
@@ -104,7 +109,6 @@ namespace PocketTx
         shared_ptr<string> m_string4 = nullptr;
         shared_ptr<string> m_string5 = nullptr;
 
-        shared_ptr<int64_t> m_id = nullptr;
         shared_ptr<int64_t> m_int1 = nullptr;
 
         shared_ptr<Payload> m_payload = nullptr;
