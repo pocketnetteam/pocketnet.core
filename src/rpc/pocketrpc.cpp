@@ -2121,7 +2121,7 @@ UniValue getuseraddress(const JSONRPCRequest& request)
     }
 
     reindexer::QueryResults users;
-    g_pocketdb->Select(reindexer::Query("UsersView", 0, count).Where("name", CondEq, userName), users);
+    g_pocketdb->Select(reindexer::Query("UsersView", 0, count).Where("name", CondEq, userName).Sort("regdate", false), users);
 
     UniValue aResult(UniValue::VARR);
     for (auto& u : users) {
@@ -3333,6 +3333,8 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
     int durationBlocksForPrevPosts = 30 * 24 * 60; // about 1 month
     double dekayRep = 0.82;//0.7;
     double dekayPost = 0.96;
+    if (contentTypes.size() == 1 && contentTypes[0] == getcontenttype("video"))
+        dekayPost = 0.99;
 
     std::vector<std::string> txidsOut;
     std::vector<std::string> txidsHierarchical;

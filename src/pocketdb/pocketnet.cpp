@@ -410,6 +410,7 @@ void FillCheckpointsBlocks(const CChainParams &params)
     CheckpointsBlocks.emplace(1060668, "0139923c13886b5f809ca889c321e12c2631cdbeb7bd9ff5c31f18fdad638f05");
     CheckpointsBlocks.emplace(1065391, "48e23029a977dbabaeee52a01ba12e2a14e4347b82f2d8fee5110f3d1f2dc89e");
     CheckpointsBlocks.emplace(1098005, "c7db2dcebdef7b9a085f38d642d2f57029cef6cd46434b5db07acc47b81b13cf");
+    CheckpointsBlocks.emplace(1098176, "0dbe116aa0d7978a941074c3a00c5ffe5dbaa89c9ae63cac17671d1d0fb15ebc");
 }
 
 bool IsCheckpointBlock(int height, std::string hash)
