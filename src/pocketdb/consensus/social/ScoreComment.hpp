@@ -24,31 +24,10 @@ namespace PocketConsensus
         ScoreCommentConsensus(int height) : SocialBaseConsensus(height) {}
         ScoreCommentConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Validate(static_pointer_cast<ScoreComment>(tx), block); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Check(static_pointer_cast<ScoreComment>(tx)); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
     protected:
         virtual int64_t GetFullAccountScoreCommentLimit() { return 600; }
         virtual int64_t GetTrialAccountScoreCommentLimit() { return 300; }
+
 
         virtual int64_t GetScoreCommentLimit(AccountMode mode)
         {
@@ -243,7 +222,6 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *
     *  Factory for select actual rules version
-    *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
     class ScoreCommentConsensusFactory

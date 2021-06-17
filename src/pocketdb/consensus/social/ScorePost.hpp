@@ -24,28 +24,6 @@ namespace PocketConsensus
         ScorePostConsensus(int height) : SocialBaseConsensus(height) {}
         ScorePostConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Validate(static_pointer_cast<ScorePost>(tx), block); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Check(static_pointer_cast<ScorePost>(tx)); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
     protected:
 
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<ScorePost> tx, PocketBlock& block)
@@ -232,7 +210,6 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *
     *  Factory for select actual rules version
-    *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
     class ScorePostConsensusFactory

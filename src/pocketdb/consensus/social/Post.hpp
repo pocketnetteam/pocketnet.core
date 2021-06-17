@@ -23,47 +23,69 @@ namespace PocketConsensus
         PostConsensus(int height) : SocialBaseConsensus(height) {}
         PostConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Validate(static_pointer_cast<Post>(tx), block); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Check(static_pointer_cast<Post>(tx)); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
     protected:
 
         virtual int64_t GetEditPostWindow() { return 86400; }
-        
-        
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Post> tx, PocketBlock& block)
-        {
-            vector<string> addresses = { *tx->GetAddress() };
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
-            if (tx->IsEdit())
-                return ValidateEdit(tx, block);
-            else
-                return ValidateLimit(tx, block);
+
+        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
+        {
+            auto ptx = static_pointer_cast<Post>(tx);
+
+            vector<string> addresses = {*ptx->GetAddress()};
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
+                return {false, SocialConsensusResult_NotRegistered};
+
+            if (ptx->IsEdit())
+                return ValidateEditModel(ptx);
+
+            return Success;
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Post> tx, PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditModel(shared_ptr <Post> tx)
         {
+            // First get original post transaction
+            auto originalTx = PocketDb::TransRepoInst.GetById(*tx->GetRootTxHash());
+            if (!originalTx || !originalTx->GetHeight())
+                return {false, SocialConsensusResult_NotFound};
+
+            auto originalPostTx = static_pointer_cast<Post>(originalTx);
+
+            // You are author? Really?
+            if (*tx->GetAddress() != *originalPostTx->GetAddress())
+                return {false, SocialConsensusResult_PostEditUnauthorized};
+
+            // Original post edit only 24 hours
+            if ((*tx->GetTime() - *originalPostTx->GetTime()) > GetEditPostWindow())
+                return {false, SocialConsensusResult_PostEditLimit};
+
+            // Check limit
+            // {
+            //     size_t edit_count = g_pocketdb->SelectCount(Query("Posts").Where("txid", CondEq, _txid).Not().Where("txidEdit", CondEq, "").Where("block", CondLt, height));
+            //     edit_count += g_pocketdb->SelectCount(Query("PostsHistory").Where("txid", CondEq, _txid).Not().Where("txidEdit", CondEq, "").Where("block", CondLt, height));
+
+            //     ABMODE mode;
+            //     getMode(_address, mode, height);
+            //     size_t limit = getLimit(PostEdit, mode, height);
+            //     if (edit_count >= limit) {
+            //         result = ANTIBOTRESULT::PostEditLimit;
+            //         return false;
+            //     }
+            // }
+
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
+
+
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, PocketBlock& block) override
+        {
+            auto ptx = static_pointer_cast<Post>(tx);
+
+            if (ptx->IsEdit())
+                return ValidateEditLimit(ptx, block);
+
+            // ----------------------------------
+
             // // Compute count of posts for last 24 hours
             // int postsCount = g_pocketdb->SelectCount(
             //     Query("Posts")
@@ -80,8 +102,49 @@ namespace PocketConsensus
             //         .Where("block", CondLt, height)
             //         .Where("time", CondGe, _time - 86400));
 
-            // // Also check mempool
-            // if (checkMempool) {
+
+            // if (blockVtx.Exists("Posts")) {
+            //     for (auto& mtx : blockVtx.Data["Posts"]) {
+            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["txidEdit"].get_str().empty()) {
+            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
+            //                 postsCount += 1;
+            //         }
+            //     }
+            // }
+
+
+
+            // ABMODE mode;
+            // getMode(_address, mode, height);
+            // int limit = getLimit(Post, mode, height);
+            // if (postsCount >= limit) {
+            //     result = ANTIBOTRESULT::PostLimit;
+            //     return false;
+            // }
+        }
+
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx, PocketBlock& block)
+        {
+            // if (blockVtx.Exists("Posts")) {
+            //     for (auto& mtx : blockVtx.Data["Posts"]) {
+            //         if (mtx["txid"].get_str() == _txid && mtx["txidEdit"].get_str() != _txidEdit) {
+            //             result = ANTIBOTRESULT::DoublePostEdit;
+            //             return false;
+            //         }
+            //     }
+            // }
+        }
+
+
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
+        {
+            auto ptx = static_pointer_cast<Post>(tx);
+
+            if (ptx->IsEdit())
+                return ValidateEditLimit(ptx);
+
+            // ---------------------------------
+
             //     reindexer::QueryResults res;
             //     if (g_pocketdb->Select(
             //                     reindexer::Query("Mempool")
@@ -104,19 +167,9 @@ namespace PocketConsensus
             //             }
             //         }
             //     }
-            // }
 
-            // // Check block
-            // if (blockVtx.Exists("Posts")) {
-            //     for (auto& mtx : blockVtx.Data["Posts"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["txidEdit"].get_str().empty()) {
-            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
-            //                 postsCount += 1;
-            //         }
-            //     }
-            // }
 
-            // // Check limit
+
             // ABMODE mode;
             // getMode(_address, mode, height);
             // int limit = getLimit(Post, mode, height);
@@ -126,66 +179,18 @@ namespace PocketConsensus
             // }
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEdit(shared_ptr<Post> tx, PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx)
         {
-
-            // First get original post transaction
-            auto originalTx = PocketDb::TransRepoInst.GetById(*tx->GetRootTxHash());
-            if (!originalTx || !originalTx->GetHeight())
-                return make_tuple(false, SocialConsensusResult_NotFound);
-
-            auto originalPostTx = static_pointer_cast<Post>(originalTx);
-
-            // You are author? Really?
-            if (*tx->GetAddress() != *originalPostTx->GetAddress())
-                return make_tuple(false, SocialConsensusResult_PostEditUnauthorized);
-
-            // Original post edit only 24 hours
-            if ((*tx->GetTime() - *originalPostTx->GetTime()) > GetEditPostWindow())
-                return make_tuple(false, SocialConsensusResult_PostEditLimit);
-
-            // Double edit in block denied
-            // todo (brangr): implement
-            // if (blockVtx.Exists("Posts")) {
-            //     for (auto& mtx : blockVtx.Data["Posts"]) {
-            //         if (mtx["txid"].get_str() == _txid && mtx["txidEdit"].get_str() != _txidEdit) {
-            //             result = ANTIBOTRESULT::DoublePostEdit;
-            //             return false;
-            //         }
-            //     }
-            // }
-
-            // Double edit in mempool denied
-            // todo (brangr): implement
-            // if (checkMempool) {
             //     if (g_pocketdb->Exists(reindexer::Query("Mempool").Where("table", CondEq, "Posts").Where("txid_source", CondEq, _txid))) {
             //         result = ANTIBOTRESULT::DoublePostEdit;
             //         return false;
             //     }
-            // }
-
-            // Check limit
-            // {
-            //     size_t edit_count = g_pocketdb->SelectCount(Query("Posts").Where("txid", CondEq, _txid).Not().Where("txidEdit", CondEq, "").Where("block", CondLt, height));
-            //     edit_count += g_pocketdb->SelectCount(Query("PostsHistory").Where("txid", CondEq, _txid).Not().Where("txidEdit", CondEq, "").Where("block", CondLt, height));
-
-            //     ABMODE mode;
-            //     getMode(_address, mode, height);
-            //     size_t limit = getLimit(PostEdit, mode, height);
-            //     if (edit_count >= limit) {
-            //         result = ANTIBOTRESULT::PostEditLimit;
-            //         return false;
-            //     }
-            // }
-
-            return make_tuple(true, SocialConsensusResult_Success);
         }
-        
-    private:
-    
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Post> tx)
+
+
+        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
         {
-            return make_tuple(true, SocialConsensusResult_Success);
+            return Success;
         }
 
     };
@@ -208,16 +213,15 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *
     *  Factory for select actual rules version
-    *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
     class PostConsensusFactory
     {
     private:
         const std::map<int, std::function<PostConsensus*(int height)>> m_rules =
-        {
-            {0, [](int height) { return new PostConsensus(height); }},
-        };
+            {
+                {0, [](int height) { return new PostConsensus(height); }},
+            };
     public:
         shared_ptr <PostConsensus> Instance(int height)
         {

@@ -24,74 +24,54 @@ namespace PocketConsensus
         UserConsensus(int height) : SocialBaseConsensus(height) {}
         UserConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Validate(static_pointer_cast<User>(tx), block); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Check(static_pointer_cast<User>(tx)); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
 
     protected:
 
         virtual int64_t GetChangeInfoTimeout() { return 3600; }
 
 
-        // Check chain consensus rules
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<User> tx, PocketBlock& block)
+        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
         {
-            if (ConsensusRepoInst.ExistsAnotherByName(*tx->GetAddress(), *tx->GetPayloadName()))
-                return make_tuple(false, SocialConsensusResult_NicknameDouble);
+            auto ptx = static_pointer_cast<User>(tx);
 
-            return make_tuple(true, SocialConsensusResult_Success);
+            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
+                return {false, SocialConsensusResult_NicknameDouble};
+
+            // First user account transaction allowed without next checks
+            auto prevTx = ConsensusRepoInst.GetLastAccountTransaction(*ptx->GetAddress());
+            if (!prevTx)
+                return Success;
+
+            // For edit user profile referrer not allowed
+            if (ptx->GetReferrerAddress() != nullptr)
+                return {false, SocialConsensusResult_ReferrerAfterRegistration};
+
+            // We allow edit profile only with delay
+            if (!ValidateEditProfileLimit(ptx, static_pointer_cast<User>(prevTx)))
+                return {false, SocialConsensusResult_ChangeInfoLimit};
+
+            return Success;
         }
 
-        virtual bool ValidateEditProfileLimit(shared_ptr<User> tx, shared_ptr<User> prevTx)
+        virtual bool ValidateEditProfileLimit(shared_ptr <User> tx, shared_ptr <User> prevTx)
         {
             return (*tx->GetTime() - *prevTx->GetTime()) > GetChangeInfoTimeout();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, PocketBlock& block) override
         {
-            auto mtx = static_pointer_cast<User>(tx);
+            // if (blockVtx.Exists("Users")) {
+            //     for (auto& mtx : blockVtx.Data["Users"]) {
+            //         if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid) {
+            //             result = ANTIBOTRESULT::ChangeInfoLimit;
+            //             return false;
+            //         }
+            //     }
+            // }
+        }
 
-            // First user account transaction allowe without next checks
-            auto prevTx = ConsensusRepoInst.GetLastAccountTransaction(*mtx->GetAddress());
-            if (!prevTx)
-                return make_tuple(true, SocialConsensusResult_Success);
-
-            // For edit user profile referrer not allowed
-            if (mtx->GetReferrerAddress() != nullptr)
-                return make_tuple(false, SocialConsensusResult_ReferrerAfterRegistration);
-
-            // We allowe edit profile only with delay
-            if (!ValidateEditProfileLimit(mtx, static_pointer_cast<User>(prevTx)))
-                return make_tuple(false, SocialConsensusResult_ChangeInfoLimit);
-            
-
-            // TODO (brangr): Need?
-            // по идее мемпул лежит в базе на равне с остальными транзакциями
-            // но сюда может насыпаться очень много всего и мы не можем проверить
-            // двойное редактирование, тк при загрузке из сети свободных транзакций нет привязки к блоку
-            // и поэтому либо разрешаем все такие транзакции либо думаем дальше
-
-            // TODO (brangr): проверка по времени в мемпуле - по идее не нужна
-
-            // if (checkMempool) {
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
+        {
             //     reindexer::QueryResults res;
             //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, _txid), res).ok()) {
             //         for (auto& m : res) {
@@ -109,22 +89,10 @@ namespace PocketConsensus
             //             }
             //         }
             //     }
-            // }
-
-            // TODO (brangr): implement
-            // if (blockVtx.Exists("Users")) {
-            //     for (auto& mtx : blockVtx.Data["Users"]) {
-            //         if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid) {
-            //             result = ANTIBOTRESULT::ChangeInfoLimit;
-            //             return false;
-            //         }
-            //     }
-            // }
-
-            return make_tuple(true, SocialConsensusResult_Success);
         }
 
-        tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx) override
+
+        tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr <Transaction> tx) override
         {
             // TODO (brangr): implement
             if (auto[baseCheckOk, baseCheckResult] = SocialBaseConsensus::CheckOpReturnHash(tx); !baseCheckOk)
@@ -136,11 +104,9 @@ namespace PocketConsensus
                 //     }
             }
         }
-        
-    private:
 
         // Check op_return hash
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<User> tx)
+        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
         {
             // TODO (brangr): implement for users
             // if (*tx->GetAddress() == *tx->GetReferrerAddress())
@@ -158,7 +124,7 @@ namespace PocketConsensus
             //     return false;
             // }
         }
-        
+
     };
 
     /*******************************************************************************************************************
@@ -171,7 +137,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1180000; }
 
-        bool ValidateEditProfileLimit(shared_ptr<User> tx, shared_ptr<User> prevTx) override
+        bool ValidateEditProfileLimit(shared_ptr <User> tx, shared_ptr <User> prevTx) override
         {
             return (*tx->GetHeight() - *prevTx->GetHeight()) > GetChangeInfoTimeout();
         }
@@ -190,8 +156,8 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 0; }
 
-        // Starting from this block, we disable the uniqueness of Name
-        virtual tuple<bool, SocialConsensusResult> CheckDoubleName(shared_ptr<User> tx)
+        // TODO (brangr): Starting from this block, we disable the uniqueness of Name
+        virtual tuple<bool, SocialConsensusResult> CheckDoubleName(shared_ptr <User> tx)
         {
             return make_tuple(true, SocialConsensusResult_Success);
         }
@@ -209,10 +175,10 @@ namespace PocketConsensus
     {
     private:
         static inline const std::map<int, std::function<UserConsensus*(int height)>> m_rules =
-        {
-            {1180000, [](int height) { return new UserConsensus(height); }},
-            {0,       [](int height) { return new UserConsensus(height); }},
-        };
+            {
+                {1180000, [](int height) { return new UserConsensus(height); }},
+                {0,       [](int height) { return new UserConsensus(height); }},
+            };
     public:
         shared_ptr <UserConsensus> Instance(int height)
         {

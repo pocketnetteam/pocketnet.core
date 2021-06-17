@@ -23,30 +23,61 @@ namespace PocketConsensus
         SocialBaseConsensus(int height) : BaseConsensus(height) {}
         SocialBaseConsensus() : BaseConsensus() {}
 
+        // Validate transaction in block for miner & network full block sync
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
         {
-            if (auto[ok, result] = ValidateLimit(tx, block); !ok)
-                return make_tuple(false, result);
+            if (auto[ok, result] = ValidateModel(tx); !ok)
+                return {ok, result};
 
-            return make_tuple(true, SocialConsensusResult_Success);
+            if (auto[ok, result] = ValidateLimit(tx, block); !ok)
+                return {ok, result};
+
+            return Success;
         }
 
+        // Validate new transaction received over RPC or network mempool
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx)
+        {
+            if (auto[ok, result] = ValidateModel(tx); !ok)
+                return {ok, result};
+
+            if (auto[ok, result] = ValidateLimit(tx); !ok)
+                return {ok, result};
+
+            return Success;
+        }
+
+        // Generic transactions validating
         virtual tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx)
         {
-            if (auto[ok, result] = CheckOpReturnHash(tx); !ok)
-                return make_tuple(false, result);
+            if (auto[ok, result] = CheckModel(tx); !ok)
+                return {ok, result};
 
-            return make_tuple(true, SocialConsensusResult_Success);
+            if (auto[ok, result] = CheckOpReturnHash(tx); !ok)
+                return {ok, result};
+
+            return Success;
         }
-        
+
     protected:
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, PocketBlock& block)
-        {
+        tuple<bool, SocialConsensusResult> Success{true, SocialConsensusResult_Success};
 
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
 
+        // Implement consensus rules for model transaction
+        virtual tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr<Transaction> tx) = 0;
+
+        // Transaction in block validate in chain and block - not mempool
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, PocketBlock& block) = 0;
+
+        // Single transactions limits checked chain and mempool
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx) = 0;
+
+
+        // Implement generic rules for model transaction
+        virtual tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) = 0;
+
+        // Generic check consistence Transaction and Payload
         virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx)
         {
             // TODO (brangr): implement
@@ -62,6 +93,12 @@ namespace PocketConsensus
             //         return;
             // }
         }
+
+
+
+
+
+
 
     };
 }

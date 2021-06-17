@@ -24,38 +24,46 @@ namespace PocketConsensus
         SubscribePrivateConsensus(int height) : SocialBaseConsensus(height) {}
         SubscribePrivateConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Validate(static_pointer_cast<SubscribePrivate>(tx), block); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Check(static_pointer_cast<SubscribePrivate>(tx)); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
     protected:
 
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<SubscribePrivate> tx, PocketBlock& block)
+        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr<Transaction> tx) override
         {
-            vector<string> addresses = {*tx->GetAddress(), *tx->GetAddressTo()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
+            auto ptx = static_pointer_cast<SubscribePrivate>(tx);
 
-            // // Also check mempool
-            // if (checkMempool) {
+            vector<string> addresses = {*ptx->GetAddress(), *ptx->GetAddressTo()};
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
+                return {false, SocialConsensusResult_NotRegistered};
+
+            // Check double blocking
+            auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
+                *ptx->GetAddress(),
+                *ptx->GetAddressTo(),
+                Height);
+
+            if (subscribeExists && subscribeType == ACTION_SUBSCRIBE_PRIVATE)
+            {
+                // TODO (brangr): чекпойнты сюда
+                if (!IsCheckpointTransaction(*tx->GetHash()))
+                    return {false, SocialConsensusResult_DoubleBlocking};
+            }
+
+            return Success;
+        }
+
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, PocketBlock& block) override
+        {
+            // if (blockVtx.Exists("Subscribes")) {
+            //     for (auto& mtx : blockVtx.Data["Subscribes"]) {
+            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["address_to"].get_str() == _address_to) {
+            //             result = ANTIBOTRESULT::ManyTransactions;
+            //             return false;
+            //         }
+            //     }
+            // }
+        }
+
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx) override
+        {
             //     reindexer::QueryResults res;
             //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Subscribes").Not().Where("txid", CondEq, _txid), res).ok()) {
             //         for (auto& m : res) {
@@ -73,43 +81,16 @@ namespace PocketConsensus
             //             }
             //         }
             //     }
-            // }
-
-            // // Check block
-            // if (blockVtx.Exists("Subscribes")) {
-            //     for (auto& mtx : blockVtx.Data["Subscribes"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["address_to"].get_str() == _address_to) {
-            //             result = ANTIBOTRESULT::ManyTransactions;
-            //             return false;
-            //         }
-            //     }
-            // }
-
-            auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(*tx->GetAddress(),
-                                                                                                    *tx->GetAddressTo(), *tx->GetHeight());
-            if (subscribeExists && subscribeType == ACTION_SUBSCRIBE_PRIVATE)
-            {
-                if (!IsCheckpointTransaction(*tx->GetHash()))
-                {
-                    return make_tuple(false, SocialConsensusResult_DoubleBlocking);
-                }
-                else
-                {
-                    LogPrintf("Found checkpoint transaction %s\n", *tx->GetHash());
-                }
-            }
-
-            return make_tuple(true, SocialConsensusResult_Success);
         }
-        
-    private:
 
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<SubscribePrivate> tx)
+        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) override
         {
-            if (*tx->GetAddress() == *tx->GetAddressTo())
-                return make_tuple(false, SocialConsensusResult_SelfSubscribe);
+            auto ptx = static_pointer_cast<SubscribePrivate>(tx);
 
-            return make_tuple(true, SocialConsensusResult_Success);
+            if (*ptx->GetAddress() == *ptx->GetAddressTo())
+                return {false, SocialConsensusResult_SelfSubscribe};
+
+            return Success;
         }
     };
 
@@ -130,7 +111,6 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *
     *  Factory for select actual rules version
-    *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
     class SubscribePrivateConsensusFactory
