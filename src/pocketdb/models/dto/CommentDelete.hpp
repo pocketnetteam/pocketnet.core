@@ -26,6 +26,18 @@ namespace PocketTx
 
         void BuildPayload(const UniValue& src) override { }
 
+        void BuildHash(const UniValue& src) override
+        {
+            std::string data;
+
+            data += GetPostTxHash() ? *GetPostTxHash() : "";
+            data += "";
+            data += GetParentTxHash() ? *GetParentTxHash() : "";
+            data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
+
+            Transaction::GenerateHash(data);
+        }
+
     };
 
 } // namespace PocketTx
