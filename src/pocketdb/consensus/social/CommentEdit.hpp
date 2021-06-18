@@ -23,33 +23,15 @@ namespace PocketConsensus
         CommentEditConsensus(int height) : SocialBaseConsensus(height) {}
         CommentEditConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Validate(static_pointer_cast<CommentEdit>(tx), block); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Check(static_pointer_cast<CommentEdit>(tx)); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
     protected:
     
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<CommentEdit> tx, PocketBlock& block)
+        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr<Transaction> tx) override
         {
-            return make_tuple(true, SocialConsensusResult_Success);
+            auto ptx = static_pointer_cast<CommentEdit>(tx);
+            // TODO (brangr): implement
+            return Success;
+
+
             // std::string _address = oitm["address"].get_str();
             // int64_t _time = oitm["time"].get_int64();
 
@@ -114,7 +96,26 @@ namespace PocketConsensus
             //     return false;
             // }
 
-            // // Double edit in block denied
+
+
+            // // Check limit
+            // {
+            //     size_t edit_count = g_pocketdb->SelectCount(Query("Comment").Where("otxid", CondEq, _otxid).Where("block", CondLt, height));
+
+            //     ABMODE mode;
+            //     getMode(_address, mode, height);
+            //     int limit = getLimit(CommentEdit, mode, height);
+            //     if (edit_count >= limit) {
+            //         result = ANTIBOTRESULT::CommentEditLimit;
+            //         return false;
+            //     }
+            // }
+
+            return Success;
+        }
+
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, PocketBlock& block) override
+        {
             // if (blockVtx.Exists("Comment")) {
             //     for (auto& mtx : blockVtx.Data["Comment"]) {
             //         if (mtx["txid"].get_str() != _txid && mtx["otxid"].get_str() == _otxid) {
@@ -123,9 +124,10 @@ namespace PocketConsensus
             //         }
             //     }
             // }
+        }
 
-            // // Double edit in mempool denied
-            // if (checkMempool) {
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx) override
+        {
             //     reindexer::QueryResults res;
             //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
             //         for (auto& m : res) {
@@ -141,51 +143,18 @@ namespace PocketConsensus
             //             }
             //         }
             //     }
-            // }
-
-            // // Check limit
-            // {
-            //     size_t edit_count = g_pocketdb->SelectCount(Query("Comment").Where("otxid", CondEq, _otxid).Where("block", CondLt, height));
-
-            //     ABMODE mode;
-            //     getMode(_address, mode, height);
-            //     int limit = getLimit(CommentEdit, mode, height);
-            //     if (edit_count >= limit) {
-            //         result = ANTIBOTRESULT::CommentEditLimit;
-            //         return false;
-            //     }
-            // }
-
-            // return true;
         }
 
-    private:
-
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<CommentEdit> tx)
+        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) override
         {
-            return make_tuple(true, SocialConsensusResult_Success);
+            return Success;
         }
 
     };
-
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 1 block
-    *
-    *******************************************************************************************************************/
-    class CommentEditConsensus_checkpoint_1 : public CommentEditConsensus
-    {
-    protected:
-        int CheckpointHeight() override { return 1; }
-    public:
-        CommentEditConsensus_checkpoint_1(int height) : CommentEditConsensus(height) {}
-    };
-
 
     /*******************************************************************************************************************
     *
     *  Factory for select actual rules version
-    *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
     class CommentEditConsensusFactory

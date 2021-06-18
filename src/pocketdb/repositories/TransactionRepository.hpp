@@ -255,7 +255,7 @@ namespace PocketDb
             if (!includePayload)
             {
                 sql = R"sql(
-                    SELECT t.Type, t.Hash, t.Time, t.Height, t.Last, t.Id, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1
+                    SELECT t.Type, t.Hash, t.Time, t.Last, t.Id, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1
                     FROM Transactions t
                     WHERE Height = ?
                 )sql";
@@ -263,7 +263,7 @@ namespace PocketDb
             else
             {
                 sql = R"sql(
-                    SELECT  t.Type, t.Hash, t.Time, t.Height, t.Last, t.Id, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1,
+                    SELECT  t.Type, t.Hash, t.Time, t.Last, t.Id, t.String1, t.String2, t.String3, t.String4, t.String5, t.Int1,
                         p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
                     FROM Transactions t
                     LEFT JOIN Payload p on t.Hash = p.TxHash
@@ -420,14 +420,14 @@ namespace PocketDb
             }
 
             if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) ptx->SetLast(value == 1);
-            if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) ptx->SetHeight(value);
-            if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) ptx->SetId(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) ptx->SetString1(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) ptx->SetString2(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) ptx->SetString3(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) ptx->SetString4(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) ptx->SetString5(value);
-            if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) ptx->SetInt1(value);
+//            if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) ptx->SetHeight(value);
+            if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) ptx->SetId(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) ptx->SetString1(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) ptx->SetString2(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) ptx->SetString3(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) ptx->SetString4(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) ptx->SetString5(value);
+            if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) ptx->SetInt1(value);
 
             if (!includedPayload)
             {
@@ -435,14 +435,14 @@ namespace PocketDb
             }
 
             auto payload = Payload();
-            if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) payload.SetTxHash(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) payload.SetString1(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) payload.SetString2(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) payload.SetString3(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok) payload.SetString4(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok) payload.SetString5(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok) payload.SetString6(value);
-            if (auto[ok, value] = TryGetColumnString(*stmt, 19); ok) payload.SetString7(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) payload.SetTxHash(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) payload.SetString1(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) payload.SetString2(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) payload.SetString3(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) payload.SetString4(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok) payload.SetString5(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok) payload.SetString6(value);
+            if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok) payload.SetString7(value);
 
             ptx->SetPayload(payload);
 

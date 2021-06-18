@@ -31,7 +31,7 @@ namespace PocketTx
             std::string data;
 
             data += GetPostTxHash() ? *GetPostTxHash() : "";
-            data += "";
+            data += ""; // Skip Message for deleted comment
             data += GetParentTxHash() ? *GetParentTxHash() : "";
             data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
 

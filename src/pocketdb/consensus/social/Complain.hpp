@@ -23,75 +23,54 @@ namespace PocketConsensus
         ComplainConsensus(int height) : SocialBaseConsensus(height) {}
         ComplainConsensus() : SocialBaseConsensus() {}
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Validate(tx, block); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Validate(static_pointer_cast<Complain>(tx), block); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::Check(tx); !ok)
-                return make_tuple(false, result);
-
-            if (auto[ok, result] = Check(static_pointer_cast<Complain>(tx)); !ok)
-                return make_tuple(false, result);
-                
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
     protected:
 
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Complain> tx, PocketBlock& block)
+        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
         {
-            vector<string> addresses = {*tx->GetAddress()};
+            auto ptx = static_pointer_cast<Complain>(tx);
+
+            // Check registration
+            vector<string> addresses = {*ptx->GetAddress()};
             if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
+                return {false, SocialConsensusResult_NotRegistered};
 
-            auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*tx->GetPostTxHash(), *tx->GetHeight());
+            // Authot or post must be exists
+            auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*ptx->GetPostTxHash());
             if (postAddress == nullptr)
-            {
-                auto notFound = true;
+                return {false, SocialConsensusResult_NotFound};
 
-                for (const auto& otherTx : block)
-                {
-                    if (*otherTx->GetType() != CONTENT_POST)
-                    {
-                        continue;
-                    }
+            // TODO (brangr): такое чувство что это избыточная логика
+            // Мы не проверяем наличие комплейнутого поста в мемпуле, соответственно
+            // и в блоке искать бесполезно - нужно проверить наличие такой ситуации в живой БД
+//                auto notFound = true;
+//                for (const auto& otherTx : block)
+//                {
+//                    if (*otherTx->GetType() != CONTENT_POST)
+//                    {
+//                        continue;
+//                    }
+//
+//                    //TODO question (brangr): if post in current block will be not valid, complain anyway will be valid?
+//                    if (*otherTx->GetHash() == *ptx->GetPostTxHash())
+//                    {
+//                        notFound = false;
+//                        break;
+//                    }
+//                }
+//                if (notFound)
+//                {
+//                    return {false, SocialConsensusResult_NotFound};
+//                }
 
-                    //TODO question (brangr): if post in current block will be not valid, complain anyway will be valid?
-                    if (*otherTx->GetHash() == *tx->GetPostTxHash())
-                    {
-                        notFound = false;
-                        break;
-                    }
-                }
+            // Complain to self
+            if (*postAddress == *ptx->GetAddress())
+                return {false, SocialConsensusResult_SelfComplain};
 
-                if (notFound)
-                {
-                    return make_tuple(false, SocialConsensusResult_NotFound);
-                }
-            }
-            else
-            {
-                if (*postAddress == *tx->GetAddress())
-                {
-                    return make_tuple(false, SocialConsensusResult_SelfComplain);
-                }
-            }
+            // Check double complain
+            if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetPostTxHash(), *ptx->GetAddress()))
+                return {false, SocialConsensusResult_DoubleComplain};
 
-            if (PocketDb::ConsensusRepoInst.ExistsComplain(*tx->GetPostTxHash(), *tx->GetAddress(), *tx->GetHeight()))
-            {
-                return make_tuple(false, SocialConsensusResult_DoubleComplain);
-            }
-
-            // ABMODE mode;
+            // Complains allow only with high reputation
             // int reputation = 0;
             // int64_t balance = 0;
             // getMode(_address, mode, reputation, balance, height);
@@ -102,6 +81,11 @@ namespace PocketConsensus
             //     return false;
             // }
 
+            return Success;
+        }
+
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, PocketBlock& block) override
+        {
             // reindexer::QueryResults complainsRes;
             // if (!g_pocketdb->DB()->Select(
             //                         reindexer::Query("Complains")
@@ -116,8 +100,49 @@ namespace PocketConsensus
 
             // int complainCount = complainsRes.Count();
 
-            // // Also check mempool
-            // if (checkMempool) {
+
+
+            // if (blockVtx.Exists("Complains")) {
+            //     for (auto& mtx : blockVtx.Data["Complains"]) {
+            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
+            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
+            //                 complainCount += 1;
+
+            //             if (mtx["posttxid"].get_str() == _post) {
+            //                 result = ANTIBOTRESULT::DoubleComplain;
+            //                 return false;
+            //             }
+            //         }
+            //     }
+            // }
+
+
+
+            // int limit = getLimit(Complain, mode, height);
+            // if (complainCount >= limit) {
+            //     result = ANTIBOTRESULT::ComplainLimit;
+            //     return false;
+            // }
+        }
+
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
+        {
+            // reindexer::QueryResults complainsRes;
+            // if (!g_pocketdb->DB()->Select(
+            //                         reindexer::Query("Complains")
+            //                             .Where("address", CondEq, _address)
+            //                             .Where("time", CondGe, _time - 86400)
+            //                             .Where("block", CondLt, height),
+            //                         complainsRes)
+            //         .ok()) {
+            //     result = ANTIBOTRESULT::Failed;
+            //     return false;
+            // }
+
+            // int complainCount = complainsRes.Count();
+
+
+
             //     reindexer::QueryResults res;
             //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Complains").Not().Where("txid", CondEq, _txid), res).ok()) {
             //         for (auto& m : res) {
@@ -138,68 +163,35 @@ namespace PocketConsensus
             //             }
             //         }
             //     }
-            // }
 
-            // // Check block
-            // if (blockVtx.Exists("Complains")) {
-            //     for (auto& mtx : blockVtx.Data["Complains"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
-            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
-            //                 complainCount += 1;
 
-            //             if (mtx["posttxid"].get_str() == _post) {
-            //                 result = ANTIBOTRESULT::DoubleComplain;
-            //                 return false;
-            //             }
-            //         }
-            //     }
-            // }
+
 
             // int limit = getLimit(Complain, mode, height);
             // if (complainCount >= limit) {
             //     result = ANTIBOTRESULT::ComplainLimit;
             //     return false;
             // }
-
-            // return true;
         }
-        
-    private:
-    
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<Complain> tx)
+
+        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
         {
-            return make_tuple(true, SocialConsensusResult_Success);
+            return Success;
         }
     };
-
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 1 block
-    *
-    *******************************************************************************************************************/
-    class ComplainConsensus_checkpoint_1 : public ComplainConsensus
-    {
-    protected:
-        int CheckpointHeight() override { return 1; }
-    public:
-        ComplainConsensus_checkpoint_1(int height) : ComplainConsensus(height) {}
-    };
-
 
     /*******************************************************************************************************************
     *
     *  Factory for select actual rules version
-    *  Каждая новая перегрузка добавляет новый функционал, поддерживающийся с некоторым условием - например высота
     *
     *******************************************************************************************************************/
     class ComplainConsensusFactory
     {
     private:
         static inline const std::map<int, std::function<ComplainConsensus*(int height)>> m_rules =
-        {
-            {1, [](int height) { return new ComplainConsensus_checkpoint_1(height); }},
-            {0, [](int height) { return new ComplainConsensus(height); }},
-        };
+            {
+                {0, [](int height) { return new ComplainConsensus(height); }},
+            };
     public:
         shared_ptr <ComplainConsensus> Instance(int height)
         {

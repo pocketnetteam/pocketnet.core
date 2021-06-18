@@ -46,27 +46,21 @@ namespace PocketDb
         }
 
         // TODO (brangr): move to ConsensusRepository
-        int GetUserLikersCount(int addressId, int height)
+        int GetUserLikersCount(int addressId)
         {
             int result = 0;
 
-            auto sql = R"sql(
+            auto stmt = SetupSqlStatement(R"sql(
                 select count(1)
                 from Ratings r
                 where   r.Type = ?
                     and r.Id = ?
-                    and r.Height <= ?
-            )sql";
+            )sql");
+            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
+            TryBindStatementInt(stmt, 2, addressId);
 
             TryTransactionStep([&]()
             {
-                auto stmt = SetupSqlStatement(sql);
-
-                TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
-                TryBindStatementInt(stmt, 2, addressId);
-                TryBindStatementInt(stmt, 3, height);
-
-                // not exists - not error
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                     result = GetColumnInt(*stmt, 0);
 
