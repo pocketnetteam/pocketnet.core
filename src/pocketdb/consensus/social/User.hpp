@@ -42,13 +42,13 @@ namespace PocketConsensus
             if (!prevTx)
                 return Success;
 
-            // For edit user profile referrer not allowed
-            if (ptx->GetReferrerAddress() != nullptr)
-                return {false, SocialConsensusResult_ReferrerAfterRegistration};
-
             // We allow edit profile only with delay
             if (!ValidateEditProfileLimit(ptx, static_pointer_cast<User>(prevTx)))
                 return {false, SocialConsensusResult_ChangeInfoLimit};
+
+            // For edit user profile referrer not allowed
+            if (ptx->GetReferrerAddress() != nullptr)
+                return {false, SocialConsensusResult_ReferrerAfterRegistration};
 
             return Success;
         }
@@ -60,6 +60,10 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, PocketBlock& block) override
         {
+            auto ptx = static_pointer_cast<User>(tx);
+
+
+
             // if (blockVtx.Exists("Users")) {
             //     for (auto& mtx : blockVtx.Data["Users"]) {
             //         if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid) {
@@ -139,7 +143,8 @@ namespace PocketConsensus
 
         bool ValidateEditProfileLimit(shared_ptr <User> tx, shared_ptr <User> prevTx) override
         {
-            return (*tx->GetHeight() - *prevTx->GetHeight()) > GetChangeInfoTimeout();
+            //return (*tx->GetHeight() - *prevTx->GetHeight()) > GetChangeInfoTimeout();
+            // TODO (brangr): implement
         }
 
     public:

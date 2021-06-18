@@ -29,53 +29,48 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<Complain>(tx);
 
+            // Check registration
             vector<string> addresses = {*ptx->GetAddress()};
             if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
                 return {false, SocialConsensusResult_NotRegistered};
 
-            // TODO (brangr): ??????????????????????
-            auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*ptx->GetPostTxHash(), *ptx->GetHeight());
+            // Authot or post must be exists
+            auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*ptx->GetPostTxHash());
             if (postAddress == nullptr)
-            {
-                auto notFound = true;
+                return {false, SocialConsensusResult_NotFound};
 
-                for (const auto& otherTx : block)
-                {
-                    if (*otherTx->GetType() != CONTENT_POST)
-                    {
-                        continue;
-                    }
+            // TODO (brangr): такое чувство что это избыточная логика
+            // Мы не проверяем наличие комплейнутого поста в мемпуле, соответственно
+            // и в блоке искать бесполезно - нужно проверить наличие такой ситуации в живой БД
+//                auto notFound = true;
+//                for (const auto& otherTx : block)
+//                {
+//                    if (*otherTx->GetType() != CONTENT_POST)
+//                    {
+//                        continue;
+//                    }
+//
+//                    //TODO question (brangr): if post in current block will be not valid, complain anyway will be valid?
+//                    if (*otherTx->GetHash() == *ptx->GetPostTxHash())
+//                    {
+//                        notFound = false;
+//                        break;
+//                    }
+//                }
+//                if (notFound)
+//                {
+//                    return {false, SocialConsensusResult_NotFound};
+//                }
 
-                    //TODO question (brangr): if post in current block will be not valid, complain anyway will be valid?
-                    if (*otherTx->GetHash() == *ptx->GetPostTxHash())
-                    {
-                        notFound = false;
-                        break;
-                    }
-                }
+            // Complain to self
+            if (*postAddress == *ptx->GetAddress())
+                return {false, SocialConsensusResult_SelfComplain};
 
-                if (notFound)
-                {
-                    return {false, SocialConsensusResult_NotFound};
-                }
-            }
-            else
-            {
-                if (*postAddress == *ptx->GetAddress())
-                {
-                    return {false, SocialConsensusResult_SelfComplain};
-                }
-            }
-
-            if (PocketDb::ConsensusRepoInst.ExistsComplain(
-                *ptx->GetPostTxHash(),
-                *ptx->GetAddress(),
-                *ptx->GetHeight()))
-            {
+            // Check double complain
+            if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetPostTxHash(), *ptx->GetAddress()))
                 return {false, SocialConsensusResult_DoubleComplain};
-            }
 
-            // ABMODE mode;
+            // Complains allow only with high reputation
             // int reputation = 0;
             // int64_t balance = 0;
             // getMode(_address, mode, reputation, balance, height);
@@ -89,7 +84,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, PocketBlock& block) override
         {
             // reindexer::QueryResults complainsRes;
             // if (!g_pocketdb->DB()->Select(
@@ -130,7 +125,7 @@ namespace PocketConsensus
             // }
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
         {
             // reindexer::QueryResults complainsRes;
             // if (!g_pocketdb->DB()->Select(

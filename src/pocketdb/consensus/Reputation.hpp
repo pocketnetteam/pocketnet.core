@@ -37,7 +37,7 @@ namespace PocketConsensus
 
             int64_t nTime1 = GetTimeMicros();
 
-            auto userReputation = PocketDb::ConsensusRepoInst.GetUserReputation(addressId, height);
+            auto userReputation = PocketDb::ConsensusRepoInst.GetUserReputation(addressId);
 
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "        - GetUserReputation: %.2fms _ %d\n",
@@ -46,7 +46,7 @@ namespace PocketConsensus
             if (userReputation < minUserReputation)
                 return false;
 
-            auto userLikers = PocketDb::RatingsRepoInst.GetUserLikersCount(addressId, height);
+            auto userLikers = PocketDb::RatingsRepoInst.GetUserLikersCount(addressId);
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "        - GetUserLikersCount: %.2fms _ %d\n",

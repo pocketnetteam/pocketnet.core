@@ -37,8 +37,7 @@ namespace PocketConsensus
             // Check double blocking
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
                 *ptx->GetAddress(),
-                *ptx->GetAddressTo(),
-                Height);
+                *ptx->GetAddressTo());
 
             if (subscribeExists && subscribeType == ACTION_SUBSCRIBE_PRIVATE)
             {

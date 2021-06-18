@@ -46,7 +46,7 @@ namespace PocketConsensus
         {
             // First get original post transaction
             auto originalTx = PocketDb::TransRepoInst.GetById(*tx->GetRootTxHash());
-            if (!originalTx || !originalTx->GetHeight())
+            if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
             auto originalPostTx = static_pointer_cast<Post>(originalTx);
@@ -144,6 +144,25 @@ namespace PocketConsensus
                 return ValidateEditLimit(ptx);
 
             // ---------------------------------
+
+            // // Compute count of posts for last 24 hours
+            // int postsCount = g_pocketdb->SelectCount(
+            //     Query("Posts")
+            //         .Where("address", CondEq, _address)
+            //         .Where("txidEdit", CondEq, "")
+            //         .Where("block", CondLt, height)
+            //         .Where("time", CondGe, _time - 86400)); // TODO (brangr): replace with blocks - this and all time queries
+
+            // // Also get posts from history
+            // postsCount += g_pocketdb->SelectCount(
+            //     Query("PostsHistory")
+            //         .Where("address", CondEq, _address)
+            //         .Where("txidEdit", CondEq, "")
+            //         .Where("block", CondLt, height)
+            //         .Where("time", CondGe, _time - 86400));
+
+
+
 
             //     reindexer::QueryResults res;
             //     if (g_pocketdb->Select(

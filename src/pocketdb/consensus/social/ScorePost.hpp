@@ -25,8 +25,15 @@ namespace PocketConsensus
         ScorePostConsensus() : SocialBaseConsensus() {}
 
     protected:
+        virtual int64_t GetFullAccountScoresLimit() { return 90; }
+        virtual int64_t GetTrialAccountScoresLimit() { return 45; }
 
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<ScorePost> tx, PocketBlock& block)
+        virtual int64_t GetScoresLimit(AccountMode mode)
+        {
+            return mode == AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
+        }
+
+        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
         {
             return make_tuple(true, SocialConsensusResult_Success);
             // TODO (brangr): implement
@@ -100,6 +107,38 @@ namespace PocketConsensus
             //     return false;
             // }
 
+
+
+
+
+
+
+
+
+            // // Check OP_RETURN
+            // std::vector<std::string> vasm;
+            // boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
+
+            // // Check address and value in asm == reindexer data
+            // if (vasm.size() >= 4) {
+            //     std::stringstream _op_return_data;
+            //     _op_return_data << vasm[3];
+            //     std::string _op_return_hex = _op_return_data.str();
+
+            //     std::string _score_itm_val = _post_address + " " + std::to_string(_score_value);
+            //     std::string _score_itm_hex = HexStr(_score_itm_val.begin(), _score_itm_val.end());
+
+            //     if (_op_return_hex != _score_itm_hex) {
+            //         result = ANTIBOTRESULT::OpReturnFailed;
+            //         return false;
+            //     }
+            // }
+
+            // return true;
+        }
+
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, PocketBlock& block) override
+        {
             // // Check limit scores
             // reindexer::QueryResults scoresRes;
             // if (!g_pocketdb->DB()->Select(
@@ -114,6 +153,49 @@ namespace PocketConsensus
             // }
 
             // int scoresCount = scoresRes.Count();
+
+
+
+
+            // // Check block
+            // if (blockVtx.Exists("Scores")) {
+            //     for (auto& mtx : blockVtx.Data["Scores"]) {
+            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
+            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
+            //                 scoresCount += 1;
+
+            //             if (mtx["posttxid"].get_str() == _post) {
+            //                 result = ANTIBOTRESULT::DoubleScore;
+            //                 return false;
+            //             }
+            //         }
+            //     }
+            // }
+
+
+
+            // return ValidateLimit(tx, scoresCount);
+        }
+
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
+        {
+            // // Check limit scores
+            // reindexer::QueryResults scoresRes;
+            // if (!g_pocketdb->DB()->Select(
+            //                         reindexer::Query("Scores")
+            //                             .Where("address", CondEq, _address)
+            //                             .Where("time", CondGe, _time - 86400)
+            //                             .Where("block", CondLt, height),
+            //                         scoresRes)
+            //         .ok()) {
+            //     result = ANTIBOTRESULT::Failed;
+            //     return false;
+            // }
+
+            // int scoresCount = scoresRes.Count();
+
+
+
 
             // // Also check mempool
             // if (checkMempool) {
@@ -139,71 +221,43 @@ namespace PocketConsensus
             //     }
             // }
 
-            // // Check block
-            // if (blockVtx.Exists("Scores")) {
-            //     for (auto& mtx : blockVtx.Data["Scores"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
-            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
-            //                 scoresCount += 1;
 
-            //             if (mtx["posttxid"].get_str() == _post) {
-            //                 result = ANTIBOTRESULT::DoubleScore;
-            //                 return false;
-            //             }
-            //         }
-            //     }
-            // }
-
-            // ABMODE mode;
-            // getMode(_address, mode, height);
-            // int limit = getLimit(Score, mode, height);
-            // if (scoresCount >= limit) {
-            //     result = ANTIBOTRESULT::ScoreLimit;
-            //     return false;
-            // }
-
-            // // Check OP_RETURN
-            // std::vector<std::string> vasm;
-            // boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
-
-            // // Check address and value in asm == reindexer data
-            // if (vasm.size() >= 4) {
-            //     std::stringstream _op_return_data;
-            //     _op_return_data << vasm[3];
-            //     std::string _op_return_hex = _op_return_data.str();
-
-            //     std::string _score_itm_val = _post_address + " " + std::to_string(_score_value);
-            //     std::string _score_itm_hex = HexStr(_score_itm_val.begin(), _score_itm_val.end());
-
-            //     if (_op_return_hex != _score_itm_hex) {
-            //         result = ANTIBOTRESULT::OpReturnFailed;
-            //         return false;
-            //     }
-            // }
-
-            // return true;
+            // return ValidateLimit(tx, scoresCount);
         }
-        
-    private:
-    
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<ScorePost> tx)
+
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <ScorePost> tx, int count)
         {
-            return make_tuple(true, SocialConsensusResult_Success);
+            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
+            auto limit = GetScoresLimit(accountMode);
+
+            if (count >= limit)
+                return {false, SocialConsensusResult_ScoreLimit};
+
+            return Success;
+        }
+
+        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
+        {
+            return Success;
         }
 
     };
 
     /*******************************************************************************************************************
     *
-    *  Consensus checkpoint at 1 block
+    *  Consensus checkpoint at 175600 block
     *
     *******************************************************************************************************************/
-    class ScorePostConsensus_checkpoint_1 : public ScorePostConsensus
+    class ScorePostConsensus_checkpoint_175600 : public ScorePostConsensus
     {
     protected:
-        int CheckpointHeight() override { return 1; }
+        int CheckpointHeight() override { return 175600; }
+        int64_t GetFullAccountScoresLimit() override { return 200; }
+        int64_t GetTrialAccountScoresLimit() override { return 100; }
+
     public:
-        ScorePostConsensus_checkpoint_1(int height) : ScorePostConsensus(height) {}
+        ScorePostConsensus_checkpoint_175600(int height) : ScorePostConsensus(height) {}
     };
 
 
@@ -216,10 +270,10 @@ namespace PocketConsensus
     {
     private:
         static inline const std::map<int, std::function<ScorePostConsensus*(int height)>> m_rules =
-        {
-            {1, [](int height) { return new ScorePostConsensus_checkpoint_1(height); }},
-            {0, [](int height) { return new ScorePostConsensus(height); }},
-        };
+            {
+                {175600, [](int height) { return new ScorePostConsensus_checkpoint_175600(height); }},
+                {0,      [](int height) { return new ScorePostConsensus(height); }},
+            };
     public:
         shared_ptr <ScorePostConsensus> Instance(int height)
         {

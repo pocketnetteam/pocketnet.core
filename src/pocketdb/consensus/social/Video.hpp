@@ -26,7 +26,7 @@ namespace PocketConsensus
 
     protected:
 
-        tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr<Transaction> tx) override
         {
             return Success;
         }
@@ -43,7 +43,7 @@ namespace PocketConsensus
             return Success;
         }
     
-        tuple<bool, SocialConsensusResult> Check(shared_ptr<CommentEdit> tx)
+        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) override
         {
             // TODO (brangr): implement
             return Success;
