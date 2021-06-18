@@ -99,8 +99,8 @@ POCKETDB_HPP = \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/helpers/TransactionHelper.hpp \
     pocketdb/helpers/TypesHelper.hpp \
-    pocketdb/web/PocketRpc.h \
-    pocketdb/web/PocketRpc.cpp \
+    pocketdb/web/PocketCommentsRpc.h \
+    pocketdb/web/PocketCommentsRpc.cpp \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/repositories/WebRepository.h \

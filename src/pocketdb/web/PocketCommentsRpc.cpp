@@ -4,13 +4,13 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "PocketRpc.h"
+#include "PocketCommentsRpc.h"
 
 #include <pos.h>
 #include <validation.h>
 #include <logging.h>
 
-UniValue PocketWeb::PocketRpc::GetLastComments(const JSONRPCRequest& request)
+UniValue PocketWeb::PocketCommentsRpc::GetLastComments(const JSONRPCRequest& request)
 {
     if (request.fHelp)
         throw std::runtime_error(

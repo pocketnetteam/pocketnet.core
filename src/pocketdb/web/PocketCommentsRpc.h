@@ -4,15 +4,15 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef SRC_POCKETRPC_H
-#define SRC_POCKETRPC_H
+#ifndef SRC_POCKETCOMMENTSRPC_H
+#define SRC_POCKETCOMMENTSRPC_H
 
 #include "rpc/server.h"
 #include "rpc/rawtransaction.h"
 
 namespace PocketWeb
 {
-    class PocketRpc
+    class PocketCommentsRpc
     {
     public:
         UniValue GetLastComments(const JSONRPCRequest& request);
@@ -20,4 +20,4 @@ namespace PocketWeb
 } // namespace PocketWeb
 
 
-#endif //SRC_POCKETRPC_H
+#endif //SRC_POCKETCOMMENTSRPC_H
