@@ -7,8 +7,6 @@
 #ifndef POCKETDB_CHAINREPOSITORY_HPP
 #define POCKETDB_CHAINREPOSITORY_HPP
 
-#include <util.h>
-
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Rating.hpp"
@@ -77,7 +75,7 @@ namespace PocketDb
                         IndexBlocking(txInfo.Hash);
 
                         int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - IndexBlocking: %.2fms _ %s\n",
+                        LogPrint(BCLog::BENCH, "      - SetBlockingId: %.2fms _ %s\n",
                             0.001 * (nTime4 - nTime3), txInfo.Hash);
                     }
 
@@ -86,7 +84,7 @@ namespace PocketDb
                         IndexSubscribe(txInfo.Hash);
 
                         int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - IndexSubscribe: %.2fms _ %s\n",
+                        LogPrint(BCLog::BENCH, "      - SetSubscribeId: %.2fms _ %s\n",
                             0.001 * (nTime4 - nTime3), txInfo.Hash);
                     }
                 }
@@ -195,11 +193,10 @@ namespace PocketDb
                     from vAccounts a
                     where a.Hash = ?
                 ) as account
-                WHERE account.AddressHash is not null
-                    and Transactions.Height is not null
-                    and Transactions.Hash != account.Hash
+                WHERE   Transactions.Hash != account.Hash
                     and Transactions.Type = account.Type
                     and Transactions.String1 = account.AddressHash
+                    and Transactions.Last = 1
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
 
@@ -244,13 +241,12 @@ namespace PocketDb
                     select c.Hash, c.Type, c.RootTxHash
                     from vContents c
                     where c.Hash = ?
+                        and c.RootTxHash is not null
                 ) as content
-                WHERE content.RootTxHash is not null
-                    and Transactions.Hash != content.Hash
-                    and Transactions.Height is not null
-                    and Transactions.Type = content.Type
+                WHERE   Transactions.Type = content.Type
                     and Transactions.String2 = content.RootTxHash
-
+                    and Transactions.Hash != content.Hash
+                    and Transactions.Last = 1
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
 
@@ -264,6 +260,7 @@ namespace PocketDb
                             from vContents c
                             where c.Type = Transactions.Type
                                 and c.RootTxHash = Transactions.String2
+                                and c.Height <= Transactions.Height
                         ),
                         -- new record
                         ifnull(
@@ -271,7 +268,6 @@ namespace PocketDb
                                 select max( c.Id ) + 1
                                 from vContents c
                                 where c.Type = Transactions.Type
-                                    and c.Id is not null
                             ),
                             0 -- for first record
                         )
@@ -295,13 +291,11 @@ namespace PocketDb
                     from vBlockings b
                     where b.Hash = ?
                 ) as blocking
-                WHERE blocking.AddressHash is not null
-                    and blocking.AddressToHash is not null
-                    and Transactions.Hash != blocking.Hash
-                    and Transactions.Height is not null
+                WHERE   Transactions.Hash != blocking.Hash
                     and Transactions.Type = blocking.Type
                     and Transactions.String1 = blocking.AddressHash
                     and Transactions.String2 = blocking.AddressToHash
+                    and Transactions.Last = 1
 
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
@@ -328,13 +322,11 @@ namespace PocketDb
                     from vSubscribes s
                     where s.Hash = ?
                 ) as subscribe
-                WHERE subscribe.AddressHash is not null
-                    and subscribe.AddressToHash is not null
-                    and Transactions.Hash != subscribe.Hash
-                    and Transactions.Height is not null
+                WHERE   Transactions.Hash != subscribe.Hash
                     and Transactions.Type = subscribe.Type
                     and Transactions.String1 = subscribe.AddressHash
                     and Transactions.String2 = subscribe.AddressToHash
+                    and Transactions.Last = 1
 
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);

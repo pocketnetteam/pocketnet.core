@@ -15,9 +15,9 @@ namespace PocketDb
     {
         bool result = false;
 
-        auto sql = R"sql(
+        auto stmt = SetupSqlStatement(R"sql(
             SELECT 1
-            FROM vAccountsPayload ap
+            FROM vUsersPayload ap
             WHERE ap.Name = ?
             and not exists (
                 select 1
@@ -25,15 +25,12 @@ namespace PocketDb
                 where ac.Hash = ap.TxHash
                   and ac.AddressHash = ?
             )
-        )sql";
+        )sql");
+        TryBindStatementText(stmt, 1, name);
+        TryBindStatementText(stmt, 2, address);
 
         TryTransactionStep([&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, 1, name);
-            TryBindStatementText(stmt, 2, address);
-
             result = sqlite3_step(*stmt) == SQLITE_ROW;
             FinalizeSqlStatement(*stmt);
         });

@@ -8,7 +8,7 @@
 #define POCKETDB_BASEREPOSITORY_HPP
 
 #include <utility>
-
+#include <util.h>
 #include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.hpp"
 
@@ -32,10 +32,18 @@ namespace PocketDb
         template<typename T>
         void TryTransactionStep(T sql)
         {
+            int64_t nTime1 = GetTimeMicros();
+
             LOCK(SqliteShutdownMutex);
+
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - TryTransactionStep LOCK: %.2fms\n", 0.001 * (nTime2 - nTime1));
 
             if (!m_database.BeginTransaction())
                 return;
+
+            int64_t nTime3 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "        - TryTransactionStep BEGIN: %.2fms\n", 0.001 * (nTime3 - nTime2));
 
             try
             {
@@ -43,6 +51,9 @@ namespace PocketDb
 
                 if (!m_database.CommitTransaction())
                     throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));
+
+                int64_t nTime4 = GetTimeMicros();
+                LogPrint(BCLog::BENCH, "        - TryTransactionStep COMMIT: %.2fms\n", 0.001 * (nTime4 - nTime3));
 
             }
             catch (std::exception& ex)
@@ -58,7 +69,14 @@ namespace PocketDb
             TryTransactionStep([&]()
             {
                 for (auto stmt : stmts)
+                {
+                    int64_t nTime1 = GetTimeMicros();
+
                     TryStepStatement(stmt);
+
+                    int64_t nTime2 = GetTimeMicros();
+                    LogPrint(BCLog::BENCH, "        - TryTransactionStep STEP: %.2fms\n", 0.001 * (nTime2 - nTime1));
+                }
             });
         }
 

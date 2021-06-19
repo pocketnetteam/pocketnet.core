@@ -628,7 +628,9 @@ namespace PocketDb
         drop index if exists Ratings_Height;
         drop index if exists Ratings_Type_Id_Value;
         drop index if exists Ratings_Type_Id_Height;
-        drop index if exists Payload_String2_TxHash;
+        drop index if exists Payload_ExistsAnotherByName;
+        drop index Transactions_GetScoreContentCount;
+        drop index Transactions_GetScoreContentCount_2;
 
     )sql";
 
@@ -660,7 +662,11 @@ namespace PocketDb
         create index if not exists Ratings_Type_Id_Height on Ratings (Type, Id, Height desc);
 
         -- ConsensusRepository::ExistsAnotherByName
-        create index if not exists Payload_String2_TxHash on Payload (String2, TxHash);
+        create index if not exists Payload_ExistsAnotherByName on Payload (String2, TxHash);
+
+        -- RatingsRepository::GetScoreContentCount
+        create index if not exists Transactions_GetScoreContentCount on Transactions (Type, String1, Height, Time, Int1);
+        create index if not exists Transactions_GetScoreContentCount_2 on Transactions (Hash, String1, Type, Height);
 
     )sql";
 

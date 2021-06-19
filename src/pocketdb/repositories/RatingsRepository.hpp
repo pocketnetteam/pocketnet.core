@@ -79,20 +79,15 @@ namespace PocketDb
         {
             string sql = R"sql(
                 select count(1)
-                from vScores s
+                from vScores s indexed by Transactions_GetScoreContentCount
+                join vContents c indexed by Transactions_GetScoreContentCount_2
+                    on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ? and c.Height <= ?
                 where   s.AddressHash = ?
                     and s.Height <= ?
                     and s.Time < ?
                     and s.Time >= ?
                     and s.Hash != ?
                     and s.Type = ?
-                    and exists (
-                        select 1
-                        from vContents c
-                        where   c.AddressHash = ?
-                            and c.Type = ?
-                            and c.Hash = s.ContentTxHash
-                    )
                     and s.Value in
             )sql";
             sql += "(";
@@ -104,20 +99,20 @@ namespace PocketDb
             }
             sql += ")";
 
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, contentType);
+            TryBindStatementText(stmt, 2, contentAddress);
+            TryBindStatementInt(stmt, 3, height);
+            TryBindStatementText(stmt, 4, scoreAddress);
+            TryBindStatementInt(stmt, 5, height);
+            TryBindStatementInt64(stmt, 6, tx->nTime);
+            TryBindStatementInt64(stmt, 7, (int64_t) tx->nTime - scoresOneToOneDepth);
+            TryBindStatementText(stmt, 8, tx->GetHash().GetHex());
+            TryBindStatementInt(stmt, 9, scoreType);
+
             int result = 0;
             TryTransactionStep([&]()
             {
-                auto stmt = SetupSqlStatement(sql);
-
-                TryBindStatementText(stmt, 1, scoreAddress);
-                TryBindStatementInt(stmt, 2, height);
-                TryBindStatementInt64(stmt, 3, tx->nTime);
-                TryBindStatementInt64(stmt, 4, (int64_t) tx->nTime - scoresOneToOneDepth);
-                TryBindStatementText(stmt, 5, tx->GetHash().GetHex());
-                TryBindStatementInt(stmt, 6, scoreType);
-                TryBindStatementText(stmt, 7, contentAddress);
-                TryBindStatementInt(stmt, 8, contentType);
-
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                     result = GetColumnInt(*stmt, 0);
 
