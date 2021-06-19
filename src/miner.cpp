@@ -107,14 +107,13 @@ BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessT
     int64_t nTimeStart = GetTimeMicros();
 
     resetBlock();
-
     pblocktemplate.reset(new CBlockTemplate());
 
     if (!pblocktemplate.get())
-    {
         return nullptr;
-    }
+
     pblock = &pblocktemplate->block; // pointer for convenience
+    pocketBlock.clear(); // Clear pocketnet social pointer
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.emplace_back();
@@ -198,7 +197,7 @@ BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessT
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
-    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false))
+    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, pocketBlock, pindexPrev, false, false))
     {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }

@@ -77,7 +77,7 @@ namespace PocketConsensus
         }
 
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<Post>(tx);
 
@@ -123,7 +123,7 @@ namespace PocketConsensus
             // }
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx, PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx, const PocketBlock& block)
         {
             // if (blockVtx.Exists("Posts")) {
             //     for (auto& mtx : blockVtx.Data["Posts"]) {

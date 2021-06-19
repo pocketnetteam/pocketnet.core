@@ -274,11 +274,9 @@ namespace PocketDb
         void Close()
         {
             int res = sqlite3_close(m_db);
-            //if (res != SQLITE_OK)
-            //{
-            //    throw std::runtime_error(
-            //        strprintf("%s: %d; Failed to close database: %s\n", __func__, res, sqlite3_errstr(res)));
-            //}
+            if (res != SQLITE_OK)
+                LogPrintf("Error: %s: %d; Failed to close database: %s\n", __func__, res, sqlite3_errstr(res));
+
             m_db = nullptr;
         }
 

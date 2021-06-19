@@ -42,7 +42,7 @@ namespace PocketConsensus
     public:
         
         // Проверяет все консенсусные правила относительно генерируемой цепи
-        static bool Validate(PocketBlock& pBlock, int height)
+        static bool Validate(const PocketBlock& pBlock, int height)
         {
             for (auto tx : pBlock)
             {

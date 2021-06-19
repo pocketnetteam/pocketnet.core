@@ -159,30 +159,17 @@ void ShutdownPocketServices()
 {
     // Before close database we must stop all repositories
 
-    {
-        LOCK(PocketDb::TransRepoInst.SqliteShutdownMutex);
-        PocketDb::TransRepoInst.Destroy();
-    }
+    LOCK(PocketDb::TransRepoInst.SqliteShutdownMutex);
+    LOCK(PocketDb::ChainRepoInst.SqliteShutdownMutex);
+    LOCK(PocketDb::RatingsRepoInst.SqliteShutdownMutex);
+    LOCK(PocketDb::ConsensusRepoInst.SqliteShutdownMutex);
+    LOCK(PocketDb::WebRepoInst.SqliteShutdownMutex);
 
-    {
-        LOCK(PocketDb::ChainRepoInst.SqliteShutdownMutex);
-        PocketDb::ChainRepoInst.Destroy();
-    }
-
-    {
-        LOCK(PocketDb::RatingsRepoInst.SqliteShutdownMutex);
-        PocketDb::RatingsRepoInst.Destroy();
-    }
-
-    {
-        LOCK(PocketDb::ConsensusRepoInst.SqliteShutdownMutex);
-        PocketDb::ConsensusRepoInst.Destroy();
-    }
-
-    {
-        LOCK(PocketDb::WebRepoInst.SqliteShutdownMutex);
-        PocketDb::WebRepoInst.Destroy();
-    }
+    PocketDb::TransRepoInst.Destroy();
+    PocketDb::ChainRepoInst.Destroy();
+    PocketDb::RatingsRepoInst.Destroy();
+    PocketDb::ConsensusRepoInst.Destroy();
+    PocketDb::WebRepoInst.Destroy();
 
     // Now we must close database connect
     PocketDb::SQLiteDbInst.Close();
@@ -200,8 +187,6 @@ void Interrupt()
         g_connman->Interrupt();
     if (g_txindex)
         g_txindex->Interrupt();
-
-    ShutdownPocketServices();
 }
 
 void Shutdown()

@@ -175,11 +175,11 @@ public:
     std::multimap<CBlockIndex*, CBlockIndex*> mapBlocksUnlinked;
     CBlockIndex* pindexBestInvalid = nullptr;
 
-    bool LoadBlockIndex(const Consensus::Params& consensus_params, CBlockTreeDB& blocktree) EXCLUSIVE_LOCKS_REQUIRED(
-        cs_main);
+    bool LoadBlockIndex(const Consensus::Params& consensus_params, CBlockTreeDB& blocktree)
+    EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-    bool
-    ActivateBestChain(CValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock);
+    bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams,
+        std::shared_ptr<const CBlock> pblock, std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock);
 
     /**
 	 * If a block header hasn't already been seen, call CheckBlockHeader on it, ensure
@@ -187,15 +187,15 @@ public:
 	 */
     bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams,
         CBlockIndex** ppindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-    bool
-    AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams,
-        CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(
-        cs_main);
+    bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state,
+        const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp,
+        bool* fNewBlock)    EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     // Block (dis)connection on a given view:
     DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
-    bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view,
-        const CChainParams& chainparams, bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool ConnectBlock(const CBlock& block, const PocketHelpers::PocketBlock& pocketBlock,
+        CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, const CChainParams& chainparams,
+        bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     // Block disconnection on our pcoinsTip:
     bool DisconnectTip(CValidationState& state, const CChainParams& chainparams,
@@ -220,15 +220,14 @@ public:
 
 private:
     bool ActivateBestChainStep(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexMostWork,
-        const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound,
-        ConnectTrace& connectTrace) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+        const std::shared_ptr<const CBlock>& pblock, const std::shared_ptr<PocketHelpers::PocketBlock>& pocketBlock,
+        bool& fInvalidFound, ConnectTrace& connectTrace) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool ConnectTip(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew,
-        const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace,
-        DisconnectedBlockTransactions& disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+        const std::shared_ptr<const CBlock>& pblock, const std::shared_ptr<PocketHelpers::PocketBlock>& pocketBlockPart,
+        ConnectTrace& connectTrace, DisconnectedBlockTransactions& disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     void NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex);
-    void
-    PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type, std::string addrTo,
-        std::string txid, int64_t txtime, custom_fields cFields = custom_fields());
+    void PrepareWSMessage(std::map<std::string, std::vector<UniValue>>& messages, std::string msg_type,
+        std::string addrTo, std::string txid, int64_t txtime, custom_fields cFields = custom_fields());
 
     CBlockIndex* AddToBlockIndex(const CBlockHeader& block) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     /** Create a new block index entry for a given block hash */
@@ -1269,6 +1268,22 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
     return true;
 }
 
+bool ReadBlockPayloadFromDisk(const CBlock& block, std::shared_ptr<PocketHelpers::PocketBlock>& pocketBlock)
+{
+    std::vector<std::string> txs;
+    for (const auto& tx : block.vtx)
+    {
+        if (PocketHelpers::IsPocketTransaction(tx))
+            txs.push_back(tx->GetHash().GetHex());
+    }
+
+    if (txs.empty())
+        return true;
+
+    pocketBlock = PocketDb::TransRepoInst.GetList(txs, true);
+    return pocketBlock->size() == txs.size();
+}
+
 bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CDiskBlockPos& pos,
     const CMessageHeader::MessageStartChars& message_start)
 {
@@ -2073,8 +2088,9 @@ static int64_t nBlocksTotal = 0;
 /** Apply the effects of this block (with given index) on the UTXO set represented by coins.
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
  *  can fail if those validity checks fail (among other reasons). */
-bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view,
-    const CChainParams& chainparams, bool fJustCheck)
+bool CChainState::ConnectBlock(const CBlock& block, const PocketHelpers::PocketBlock& pocketBlock,
+    CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view, const CChainParams& chainparams,
+    bool fJustCheck)
 {
     AssertLockHeld(cs_main);
     assert(pindex);
@@ -2497,13 +2513,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
 
     // -----------------------------------------------------------------------------------------------------------------
-    PocketHelpers::PocketBlock PocketBlock;
-
-    // TODO (brangr): build vector of Transactions !!!!!!!!!!!!!!!!!!!!!!
-
-    if (!PocketConsensus::SocialConsensusHelper::Validate(PocketBlock, pindex->nHeight))
-        return state.DoS(100, error(
-            "ConnectBlock() : failed check social consensus - maybe database corrupted? Try relaunch with -reindex"));
+    // TODO (brangr): ENABLE!!!
+    //
+    //if (!PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight))
+    //    return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
+    //
 
     int64_t nTime5 = GetTimeMicros();
     nTimeVerify += nTime5 - nTime4;
@@ -2939,8 +2953,8 @@ public:
  * The block is added to connectTrace if connection succeeds.
  */
 bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew,
-    const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace,
-    DisconnectedBlockTransactions& disconnectpool)
+    const std::shared_ptr<const CBlock>& pblock, const std::shared_ptr<PocketHelpers::PocketBlock>& pocketBlockPart,
+    ConnectTrace& connectTrace, DisconnectedBlockTransactions& disconnectpool)
 {
     assert(pindexNew->pprev == chainActive.Tip());
 
@@ -2960,10 +2974,21 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     }
     const CBlock& blockConnecting = *pthisBlock;
 
-    // Read transactions data from db
-    //PocketTx::Block pocketBlock;
-    // TODO (brangr): select * from Transactions where TxId in (block.vtx)
-    // ????????????????
+    // Read transactions payload from db
+    std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
+    if (!pocketBlockPart)
+    {
+        if (!ReadBlockPayloadFromDisk(blockConnecting, pocketBlock))
+        {
+            pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
+            return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
+        }
+    }
+    else
+    {
+        pocketBlock = pocketBlockPart;
+    }
+    const PocketHelpers::PocketBlock& pocketBlockConnecting = *pocketBlock;
 
     // Apply the block atomically to the chain state.
     int64_t nTime2 = GetTimeMicros();
@@ -2974,7 +2999,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 
     {
         CCoinsViewCache view(pcoinsTip.get());
-        bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams);
+        bool rv = ConnectBlock(blockConnecting, pocketBlockConnecting, state, pindexNew, view, chainparams);
         GetMainSignals().BlockChecked(blockConnecting, state);
 
         if (!rv)
@@ -3503,8 +3528,9 @@ void CChainState::PruneBlockIndexCandidates()
  * pblock is either nullptr or a pointer to a CBlock corresponding to pindexMostWork.
  */
 bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainParams& chainparams,
-    CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound,
-    ConnectTrace& connectTrace)
+    CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock,
+    const std::shared_ptr<PocketHelpers::PocketBlock>& pocketBlock,
+    bool& fInvalidFound, ConnectTrace& connectTrace)
 {
     AssertLockHeld(cs_main);
 
@@ -3549,8 +3575,8 @@ bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainPar
         for (CBlockIndex* pindexConnect : reverse_iterate(vpindexToConnect))
         {
             if (!ConnectTip(state, chainparams, pindexConnect,
-                pindexConnect == pindexMostWork ? pblock : std::shared_ptr<const CBlock>(), connectTrace,
-                disconnectpool))
+                pindexConnect == pindexMostWork ? pblock : std::shared_ptr<const CBlock>(), pocketBlock,
+                connectTrace, disconnectpool))
             {
                 if (state.IsInvalid())
                 {
@@ -3638,7 +3664,7 @@ static void NotifyHeaderTip() LOCKS_EXCLUDED(cs_main)
  * call may be quite long during reindexing or a substantial reorg.
  */
 bool CChainState::ActivateBestChain(CValidationState& state, const CChainParams& chainparams,
-    std::shared_ptr<const CBlock> pblock)
+    std::shared_ptr<const CBlock> pblock, const std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock)
 {
     // Note that while we're often called here from ProcessNewBlock, this is
     // far from a guarantee. Things in the P2P/RPC will often end up calling
@@ -3695,6 +3721,7 @@ bool CChainState::ActivateBestChain(CValidationState& state, const CChainParams&
                 std::shared_ptr<const CBlock> nullBlockPtr;
                 if (!ActivateBestChainStep(state, chainparams, pindexMostWork,
                     pblock && pblock->GetHash() == pindexMostWork->GetBlockHash() ? pblock : nullBlockPtr,
+                    pblock && pblock->GetHash() == pindexMostWork->GetBlockHash() ? pocketBlock : nullptr,
                     fInvalidFound, connectTrace))
                     return false;
 
@@ -3752,9 +3779,10 @@ bool CChainState::ActivateBestChain(CValidationState& state, const CChainParams&
     return true;
 }
 
-bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock)
+bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams,
+    std::shared_ptr<const CBlock> pblock, std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock)
 {
-    return g_chainstate.ActivateBestChain(state, chainparams, std::move(pblock));
+    return g_chainstate.ActivateBestChain(state, chainparams, std::move(pblock), pocketBlock);
 }
 
 bool CChainState::PreciousBlock(CValidationState& state, const CChainParams& params, CBlockIndex* pindex)
@@ -3787,7 +3815,7 @@ bool CChainState::PreciousBlock(CValidationState& state, const CChainParams& par
         }
     }
 
-    return ActivateBestChain(state, params, std::shared_ptr<const CBlock>());
+    return ActivateBestChain(state, params, std::shared_ptr<const CBlock>(), nullptr);
 }
 bool PreciousBlock(CValidationState& state, const CChainParams& params, CBlockIndex* pindex)
 {
@@ -4930,13 +4958,19 @@ bool ProcessNewBlock(CValidationState& state,
 
     // Block checked success
     NotifyHeaderTip();
-    if (!g_chainstate.ActivateBestChain(state, chainparams, pblock))
+
+    // Activate in chain
+    std::shared_ptr<PocketHelpers::PocketBlock> pocketBlockPtr =
+        std::make_shared<PocketHelpers::PocketBlock>(pocketBlock);
+
+    if (!g_chainstate.ActivateBestChain(state, chainparams, pblock, pocketBlockPtr))
         return error("%s: ActivateBestChain failed (%s)", __func__, FormatStateMessage(state));
 
     return true;
 }
 
-bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block,
+bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
+    const CBlock& block, const PocketHelpers::PocketBlock& pocketBlock,
     CBlockIndex* pindexPrev, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     AssertLockHeld(cs_main);
@@ -4955,7 +4989,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
     if (!ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
-    if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, true))
+    if (!g_chainstate.ConnectBlock(block, pocketBlock, state, &indexDummy, viewNew, chainparams, true))
         return false;
     assert(state.IsValid());
 
@@ -5409,8 +5443,9 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
     {
         boost::this_thread::interruption_point();
         int percentageDone = std::max(1, std::min(99,
-            (int) (((double) (chainActive.Height() - pindex->nHeight)) / (double) nCheckDepth *
-                   (nCheckLevel >= 4 ? 50 : 100))));
+            (int) (((double) (chainActive.Height() - pindex->nHeight)) / (double) nCheckDepth * 100)));
+                // 100 = (nCheckLevel >= 4 ? 50 : 100))));
+
         if (reportDone < percentageDone / 10)
         {
             // report every 10% step
@@ -5488,11 +5523,18 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
             uiInterface.ShowProgress(_("Verifying blocks..."), std::max(1, std::min(99,
                 100 - (int) (((double) (chainActive.Height() - pindex->nHeight)) / (double) nCheckDepth * 50))), false);
             pindex = chainActive.Next(pindex);
+
             CBlock block;
             if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
                 return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight,
                     pindex->GetBlockHash().ToString());
-            if (!g_chainstate.ConnectBlock(block, state, pindex, coins, chainparams))
+
+            std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock;
+            if (!ReadBlockPayloadFromDisk(block, pocketBlock))
+                return error("VerifyDB(): *** ReadBlockPayloadFromDisk failed at %d, hash=%s", pindex->nHeight,
+                    pindex->GetBlockHash().ToString());
+
+            if (!g_chainstate.ConnectBlock(block, *pocketBlock, state, pindex, coins, chainparams))
                 return error("VerifyDB(): *** found unconnectable block at %d, hash=%s (%s)", pindex->nHeight,
                     pindex->GetBlockHash().ToString(), FormatStateMessage(state));
         }

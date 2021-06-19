@@ -58,7 +58,7 @@ namespace PocketConsensus
             return (*tx->GetTime() - *prevTx->GetTime()) > GetChangeInfoTimeout();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<User>(tx);
 

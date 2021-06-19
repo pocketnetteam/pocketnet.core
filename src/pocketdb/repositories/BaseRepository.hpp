@@ -32,9 +32,6 @@ namespace PocketDb
         template<typename T>
         void TryTransactionStep(T sql)
         {
-            if (ShutdownRequested())
-                return;
-
             LOCK(SqliteShutdownMutex);
 
             if (!m_database.BeginTransaction())

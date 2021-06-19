@@ -128,8 +128,12 @@ class BlockAssembler
 private:
     // The constructed block template
     std::unique_ptr<CBlockTemplate> pblocktemplate;
+
     // A convenience pointer that always refers to the CBlock in pblocktemplate
     CBlock* pblock;
+
+    // Pocketnet social payload block
+    PocketHelpers::PocketBlock pocketBlock;
 
     // Configuration parameters for the block size
     bool fIncludeWitness;
@@ -142,9 +146,6 @@ private:
     uint64_t nBlockSigOpsCost;
     CAmount nFees;
     CTxMemPool::setEntries inBlock;
-
-    // TODO (brangr): REINDEXER -> SQLITE = create block model
-    //BlockVTX blockVtx;
 
     // Chain context for the block
     int nHeight;

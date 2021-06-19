@@ -311,7 +311,8 @@ bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::P
  * validationinterface callback.
  */
 bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams,
-    std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>());
+    std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>(),
+    std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr);
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
 
 /** Guess verification progress (as a fraction between 0.0=genesis and 1.0=current tip). */
@@ -449,7 +450,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 //bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationState& state);
 
 /** Check a block is completely valid from start to finish (only works on top of our current best block) */
-bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block,
+bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
+    const CBlock& block, const PocketHelpers::PocketBlock& pocketBlock,
     CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 bool CheckBlockSignature(const CBlock& block);

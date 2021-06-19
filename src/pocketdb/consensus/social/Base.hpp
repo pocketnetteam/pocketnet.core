@@ -24,7 +24,7 @@ namespace PocketConsensus
         SocialBaseConsensus() : BaseConsensus() {}
 
         // Validate transaction in block for miner & network full block sync
-        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, const PocketBlock& block)
         {
             if (auto[ok, result] = ValidateModel(tx); !ok)
                 return {ok, result};
@@ -68,7 +68,8 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr<Transaction> tx) = 0;
 
         // Transaction in block validate in chain and block - not mempool
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, PocketBlock& block) = 0;
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx,
+            const PocketBlock& block) = 0;
 
         // Single transactions limits checked chain and mempool
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx) = 0;
