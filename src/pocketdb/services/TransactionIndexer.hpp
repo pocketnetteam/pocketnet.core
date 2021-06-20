@@ -103,7 +103,7 @@ namespace PocketServices
                 auto txType = PocketHelpers::ParseType(tx);
 
                 // Only scores allowed in calculating ratings
-                if (txType != PocketTxType::ACTION_SCORE_POST &&
+                if (txType != PocketTxType::ACTION_SCORE_CONTENT &&
                     txType != PocketTxType::ACTION_SCORE_COMMENT)
                     continue;
 
@@ -157,7 +157,7 @@ namespace PocketServices
                 // Rating for comments equals between -1 and 2 - as is
                 switch (scoreData->ScoreType)
                 {
-                    case PocketTx::ACTION_SCORE_POST:
+                    case PocketTx::ACTION_SCORE_CONTENT:
                         ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
                             (scoreData->ScoreValue - 3) * 10;
 

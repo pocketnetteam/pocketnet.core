@@ -22,7 +22,6 @@ namespace PocketConsensus
     {
     public:
         ScoreCommentConsensus(int height) : SocialBaseConsensus(height) {}
-        ScoreCommentConsensus() : SocialBaseConsensus() {}
 
     protected:
         virtual int64_t GetFullAccountScoresLimit() { return 600; }
@@ -197,6 +196,11 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) override
         {
             auto ptx = static_pointer_cast<ScoreComment>(tx);
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetCommentTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetValue())) return {false, SocialConsensusResult_Failed};
 
             auto value = *ptx->GetValue();
             if (value != 1 && value != -1)

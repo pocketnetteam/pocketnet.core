@@ -4,12 +4,12 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_SCOREPOST_HPP
-#define POCKETCONSENSUS_SCOREPOST_HPP
+#ifndef POCKETCONSENSUS_SCORECONTENT_HPP
+#define POCKETCONSENSUS_SCORECONTENT_HPP
 
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
-#include "pocketdb/models/dto/ScorePost.hpp"
+#include "pocketdb/models/dto/ScoreContent.hpp"
 
 namespace PocketConsensus
 {
@@ -18,11 +18,10 @@ namespace PocketConsensus
     *  ScorePost consensus base class
     *
     *******************************************************************************************************************/
-    class ScorePostConsensus : public SocialBaseConsensus
+    class ScoreContentConsensus : public SocialBaseConsensus
     {
     public:
-        ScorePostConsensus(int height) : SocialBaseConsensus(height) {}
-        ScorePostConsensus() : SocialBaseConsensus() {}
+        ScoreContentConsensus(int height) : SocialBaseConsensus(height) {}
 
     protected:
         virtual int64_t GetFullAccountScoresLimit() { return 90; }
@@ -42,11 +41,6 @@ namespace PocketConsensus
             // std::string _post = oitm["posttxid"].get_str();
             // int _score_value = oitm["value"].get_int();
             // int64_t _time = oitm["time"].get_int64();
-
-            // if (_score_value < 1 || _score_value > 5) {
-            //     result = ANTIBOTRESULT::Failed;
-            //     return false;
-            // }
 
             // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
             //     return false;
@@ -225,7 +219,7 @@ namespace PocketConsensus
             // return ValidateLimit(tx, scoresCount);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <ScorePost> tx, int count)
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <ScoreContent> tx, int count)
         {
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
@@ -239,6 +233,17 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
         {
+            auto ptx = static_pointer_cast<ScoreContent>(tx);
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetValue())) return {false, SocialConsensusResult_Failed};
+
+            auto value = *ptx->GetValue();
+            if (value < 1 || value > 5)
+                return {false, SocialConsensusResult_Failed};
+
             return Success;
         }
 
@@ -249,7 +254,7 @@ namespace PocketConsensus
     *  Consensus checkpoint at 175600 block
     *
     *******************************************************************************************************************/
-    class ScorePostConsensus_checkpoint_175600 : public ScorePostConsensus
+    class ScoreContentConsensus_checkpoint_175600 : public ScoreContentConsensus
     {
     protected:
         int CheckpointHeight() override { return 175600; }
@@ -257,7 +262,7 @@ namespace PocketConsensus
         int64_t GetTrialAccountScoresLimit() override { return 100; }
 
     public:
-        ScorePostConsensus_checkpoint_175600(int height) : ScorePostConsensus(height) {}
+        ScoreContentConsensus_checkpoint_175600(int height) : ScoreContentConsensus(height) {}
     };
 
 
@@ -266,22 +271,22 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class ScorePostConsensusFactory
+    class ScoreContentConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<ScorePostConsensus*(int height)>> m_rules =
+        static inline const std::map<int, std::function<ScoreContentConsensus*(int height)>> m_rules =
             {
-                {175600, [](int height) { return new ScorePostConsensus_checkpoint_175600(height); }},
-                {0,      [](int height) { return new ScorePostConsensus(height); }},
+                {175600, [](int height) { return new ScoreContentConsensus_checkpoint_175600(height); }},
+                {0,      [](int height) { return new ScoreContentConsensus(height); }},
             };
     public:
-        shared_ptr <ScorePostConsensus> Instance(int height)
+        shared_ptr <ScoreContentConsensus> Instance(int height)
         {
-            return shared_ptr<ScorePostConsensus>(
+            return shared_ptr<ScoreContentConsensus>(
                 (--m_rules.upper_bound(height))->second(height)
             );
         }
     };
 }
 
-#endif // POCKETCONSENSUS_SCOREPOST_HPP
+#endif // POCKETCONSENSUS_SCORECONTENT_HPP

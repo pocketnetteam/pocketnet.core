@@ -79,8 +79,8 @@ namespace PocketDb
         {
             string sql = R"sql(
                 select count(1)
-                from vScores s indexed by Transactions_GetScoreContentCount
-                join vContents c indexed by Transactions_GetScoreContentCount_2
+                from vScores s -- indexed by Transactions_GetScoreContentCount
+                join vContents c -- indexed by Transactions_GetScoreContentCount_2
                     on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ? and c.Height <= ?
                 where   s.AddressHash = ?
                     and s.Height <= ?

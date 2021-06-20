@@ -9,7 +9,7 @@
 
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
-//#include "pocketdb/models/dto/Video.hpp"
+#include "pocketdb/models/dto/Video.hpp"
 
 namespace PocketConsensus
 {
@@ -22,7 +22,6 @@ namespace PocketConsensus
     {
     public:
         VideoConsensus(int height) : SocialBaseConsensus(height) {}
-        VideoConsensus() : SocialBaseConsensus() {}
 
     protected:
 

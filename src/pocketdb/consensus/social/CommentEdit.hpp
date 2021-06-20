@@ -21,9 +21,10 @@ namespace PocketConsensus
     {
     public:
         CommentEditConsensus(int height) : SocialBaseConsensus(height) {}
-        CommentEditConsensus() : SocialBaseConsensus() {}
 
     protected:
+
+        virtual int64_t GetCommentMessageMaxSize() { return 2000; }
     
         tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr<Transaction> tx) override
         {
@@ -147,6 +148,19 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) override
         {
+            auto ptx = static_pointer_cast<CommentEdit>(tx);
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetRootTxHash())) return {false, SocialConsensusResult_Failed};
+
+            // Maximum for message data
+            if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPayloadMsg())) return {false, SocialConsensusResult_Failed};
+            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > GetCommentMessageMaxSize())
+                return {false, SocialConsensusResult_Size};
+
             return Success;
         }
 

@@ -23,7 +23,6 @@ namespace PocketConsensus
     {
     public:
         CommentConsensus(int height) : SocialBaseConsensus(height) {}
-        CommentConsensus() : SocialBaseConsensus() {}
 
     protected:
         
@@ -133,8 +132,14 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<Comment>(tx);
 
-            auto pMsg = ptx->GetPayloadMsg();
-            if (!pMsg || (*pMsg).empty() || HtmlUtils::UrlDecode(*pMsg).length() > GetCommentMessageMaxSize())
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
+
+            // Maximum for message data
+            if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPayloadMsg())) return {false, SocialConsensusResult_Failed};
+            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > GetCommentMessageMaxSize())
                 return {false, SocialConsensusResult_Size};
 
             return Success;

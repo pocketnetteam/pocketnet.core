@@ -22,7 +22,6 @@ namespace PocketConsensus
     {
     public:
         UserConsensus(int height) : SocialBaseConsensus(height) {}
-        UserConsensus() : SocialBaseConsensus() {}
 
 
     protected:
@@ -112,21 +111,30 @@ namespace PocketConsensus
         // Check op_return hash
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
         {
-            // TODO (brangr): implement for users
-            // if (*tx->GetAddress() == *tx->GetReferrerAddress())
-            //     return make_tuple(false, SocialConsensusResult_ReferrerSelf);
+            auto ptx = static_pointer_cast<User>(tx);
 
-            // TODO (brangr): implement for users
-            // if (_name.size() < 1 && _name.size() > 35) {
-            //     result = ANTIBOTRESULT::NicknameLong;
-            //     return false;
-            // }
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
 
-            // TODO (brangr): implement for users
-            // if (boost::algorithm::ends_with(_name, "%20") || boost::algorithm::starts_with(_name, "%20")) {
-            //     result = ANTIBOTRESULT::Failed;
-            //     return false;
-            // }
+            // Check payload
+            if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPayloadName())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPayloadAvatar())) return {false, SocialConsensusResult_Failed};
+
+            // Self referring
+            if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
+                 return make_tuple(false, SocialConsensusResult_ReferrerSelf);
+
+            // Maximum length for user name
+            auto name = *ptx->GetPayloadName();
+            if (name.size() < 1 && name.size() > 35)
+                return {false, SocialConsensusResult_NicknameLong};
+
+            // Trim spaces
+            if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
+                return {false, SocialConsensusResult_Failed};
+
+            return Success;
         }
 
     };
@@ -190,11 +198,6 @@ namespace PocketConsensus
             return shared_ptr<UserConsensus>(
                 (--m_rules.upper_bound(height))->second(height)
             );
-        }
-
-        shared_ptr <UserConsensus> Instance()
-        {
-            return shared_ptr<UserConsensus>(new UserConsensus());
         }
     };
 }

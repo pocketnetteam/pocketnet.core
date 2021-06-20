@@ -54,7 +54,6 @@
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/services/TransactionIndexer.hpp"
 #include "pocketdb/consensus/social/Helper.hpp"
-#include "pocketdb/consensus/Transaction.hpp"
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 std::map<std::string, WSUser> WSConnections;
@@ -4902,7 +4901,7 @@ bool ProcessNewBlock(CValidationState& state,
         ret &= CheckBlock(*pblock, state, chainparams.GetConsensus());
 
         // check pocket block with general pocketnet consensus rules
-        ret &= PocketConsensus::TransactionConsensus::Validate(pocketBlock);
+        ret &= PocketConsensus::SocialConsensusHelper::Check(pocketBlock);
 
         int64_t nTime3 = GetTimeMicros();
         nTimeVerify += nTime3 - nTime2;

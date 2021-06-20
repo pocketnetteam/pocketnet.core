@@ -21,7 +21,6 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus(int height) : SocialBaseConsensus(height) {}
-        ComplainConsensus() : SocialBaseConsensus() {}
 
     protected:
 
@@ -176,6 +175,13 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
         {
+            auto ptx = static_pointer_cast<Complain>(tx);
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetReason())) return {false, SocialConsensusResult_Failed};
+
             return Success;
         }
     };

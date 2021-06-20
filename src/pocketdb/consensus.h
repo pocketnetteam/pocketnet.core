@@ -9,7 +9,7 @@
 #include "pocketdb/consensus/social/Complain.hpp"
 #include "pocketdb/consensus/social/Post.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
-#include "pocketdb/consensus/social/ScorePost.hpp"
+#include "pocketdb/consensus/social/ScoreContent.hpp"
 #include "pocketdb/consensus/social/Subscribe.hpp"
 #include "pocketdb/consensus/social/SubscribeCancel.hpp"
 #include "pocketdb/consensus/social/SubscribePrivate.hpp"
@@ -28,7 +28,7 @@ namespace PocketConsensus
     extern ComplainConsensusFactory ComplainConsensusFactoryInst;
     extern PostConsensusFactory PostConsensusFactoryInst;
     extern ScoreCommentConsensusFactory ScoreCommentConsensusFactoryInst;
-    extern ScorePostConsensusFactory ScorePostConsensusFactoryInst;
+    extern ScoreContentConsensusFactory ScoreContentConsensusFactoryInst;
     extern SubscribeConsensusFactory SubscribeConsensusFactoryInst;
     extern SubscribeCancelConsensusFactory SubscribeCancelConsensusFactoryInst;
     extern SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;

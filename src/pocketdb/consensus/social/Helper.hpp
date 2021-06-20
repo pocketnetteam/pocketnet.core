@@ -19,7 +19,7 @@
 #include "pocketdb/consensus/social/Complain.hpp"
 #include "pocketdb/consensus/social/Post.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
-#include "pocketdb/consensus/social/ScorePost.hpp"
+#include "pocketdb/consensus/social/ScoreContent.hpp"
 #include "pocketdb/consensus/social/Subscribe.hpp"
 #include "pocketdb/consensus/social/SubscribeCancel.hpp"
 #include "pocketdb/consensus/social/SubscribePrivate.hpp"
@@ -40,89 +40,171 @@ namespace PocketConsensus
     class SocialConsensusHelper
     {
     public:
-        
-        // Проверяет все консенсусные правила относительно генерируемой цепи
+
+        // Проверяет все консенсусные правила для блока относительно генерируемой цепи
         static bool Validate(const PocketBlock& pBlock, int height)
         {
             for (auto tx : pBlock)
             {
-                shared_ptr<SocialBaseConsensus> consensus;
+                auto txType = *tx->GetType();
 
-                switch (*tx->GetType())
+                if (!IsConsensusable(txType))
+                    continue;
+
+                auto consensus = GetConsensus(txType, height);
+                if (!consensus)
                 {
-                    case ACCOUNT_USER:
-                        consensus = PocketConsensus::UserConsensusFactoryInst.Instance(height);
-                        break;
-                    case ACCOUNT_VIDEO_SERVER:
-                        // TODO (brangr): implement
-                        continue;
-                    case ACCOUNT_MESSAGE_SERVER:
-                        // TODO (brangr): implement
-                        continue;
-                    case CONTENT_POST:
-                        consensus = PocketConsensus::PostConsensusFactoryInst.Instance(height);
-                        break;
-                    case CONTENT_VIDEO:
-                        // TODO (brangr): implement
-                        continue;
-                    case CONTENT_TRANSLATE:
-                        // TODO (brangr): implement
-                        continue;
-                    case CONTENT_SERVERPING:
-                        // TODO (brangr): implement
-                        continue;
-                    case CONTENT_COMMENT:
-                        consensus = PocketConsensus::CommentConsensusFactoryInst.Instance(height);
-                        break;
-                    case CONTENT_COMMENT_EDIT:
-                        consensus = PocketConsensus::CommentEditConsensusFactoryInst.Instance(height);
-                        break;
-                    case CONTENT_COMMENT_DELETE:
-                        consensus = PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
-                        break;
-                    case ACTION_SCORE_POST:
-                        consensus = PocketConsensus::ScorePostConsensusFactoryInst.Instance(height);
-                        break;
-                    case ACTION_SCORE_COMMENT:
-                        consensus = PocketConsensus::ScoreCommentConsensusFactoryInst.Instance(height);
-                        break;
-                    case ACTION_SUBSCRIBE:
-                        consensus = PocketConsensus::SubscribeConsensusFactoryInst.Instance(height);
-                        break;
-                    case ACTION_SUBSCRIBE_PRIVATE:
-                        consensus = PocketConsensus::SubscribePrivateConsensusFactoryInst.Instance(height);
-                        break;
-                    case ACTION_SUBSCRIBE_CANCEL:
-                        consensus = PocketConsensus::SubscribeCancelConsensusFactoryInst.Instance(height);
-                        break;
-                    case ACTION_BLOCKING:
-                        consensus = PocketConsensus::BlockingConsensusFactoryInst.Instance(height);
-                        break;
-                    case ACTION_BLOCKING_CANCEL:
-                        consensus = PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height);
-                        break;
-                    case ACTION_COMPLAIN:
-                        consensus = PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
-                        break;
-                    default:
-                        continue;
+                    LogPrintf("SocialConsensus type %d not found for transaction %s with block height %d\n",
+                        (int) txType, *tx->GetHash(), height);
+
+                    return false;
                 }
 
                 if (auto[ok, result] = consensus->Validate(tx, pBlock); !ok)
                 {
-                    LogPrintf("SocialConsensus %d failed with result %d for block height %d\n", (int)*tx->GetType(), (int)result, height);
+                    LogPrintf(
+                        "SocialConsensus %d validate failed with result %d for transaction %s with block height %d\n",
+                        (int) txType, (int) result, *tx->GetHash(), height);
+
                     return false;
                 }
             }
 
             return true;
         }
-    
-        // Проверяет общие правила для транзакций без привязки к цепи
-        static bool Check(PocketBlock& pBlock)
+
+        // Проверяет транзакцию относительно генерируемой цепи
+        static bool Validate(shared_ptr<Transaction> tx, int height)
         {
-            // todo (brangr): impletment
+            auto txType = *tx->GetType();
+
+            if (!IsConsensusable(txType))
+                return true;
+
+            auto consensus = GetConsensus(txType, height);
+            if (!consensus)
+            {
+                LogPrintf("SocialConsensus type %d not found for transaction %s\n",
+                    (int) txType, *tx->GetHash());
+
+                return false;
+            }
+
+            if (auto[ok, result] = consensus->Validate(tx); !ok)
+            {
+                LogPrintf("SocialConsensus %d validate failed with result %d for transaction %s\n",
+                    (int) txType, (int) result, *tx->GetHash());
+
+                return false;
+            }
+
             return true;
+        }
+
+        // Проверяет блок транзакций без привязки к цепи
+        static bool Check(const PocketBlock& pBlock)
+        {
+            for (auto tx : pBlock)
+            {
+                if (!Check(tx))
+                    return false;
+            }
+
+            return true;
+        }
+
+        // Проверяет транзакцию без привязки к цепи
+        static bool Check(shared_ptr<Transaction> tx)
+        {
+            auto txType = *tx->GetType();
+
+            if (!IsConsensusable(txType))
+                return true;
+
+            auto consensus = GetConsensus(txType);
+            if (!consensus)
+            {
+                LogPrintf("SocialConsensus type %d not found for transaction %s\n",
+                    (int) txType, *tx->GetHash());
+
+                return false;
+            }
+
+            if (auto[ok, result] = consensus->Check(tx); !ok)
+            {
+                LogPrintf("SocialConsensus %d check failed with result %d for transaction %s\n",
+                    (int) txType, (int) result, *tx->GetHash());
+
+                return false;
+            }
+
+            return true;
+        }
+
+    protected:
+
+        static bool IsConsensusable(PocketTxType txType)
+        {
+            switch (txType)
+            {
+                case TX_COINBASE:
+                case TX_COINSTAKE:
+                case TX_DEFAULT:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
+        static shared_ptr<SocialBaseConsensus> GetConsensus(PocketTxType txType, int height = 0)
+        {
+            switch (txType)
+            {
+                case ACCOUNT_USER:
+                    return PocketConsensus::UserConsensusFactoryInst.Instance(height);
+                case ACCOUNT_VIDEO_SERVER:
+                    // TODO (brangr): implement
+                    break;
+                case ACCOUNT_MESSAGE_SERVER:
+                    // TODO (brangr): implement
+                    break;
+                case CONTENT_POST:
+                    return PocketConsensus::PostConsensusFactoryInst.Instance(height);
+                case CONTENT_VIDEO:
+                    return PocketConsensus::VideoConsensusFactoryInst.Instance(height);
+                case CONTENT_TRANSLATE:
+                    // TODO (brangr): implement
+                    break;
+                case CONTENT_SERVERPING:
+                    // TODO (brangr): implement
+                    break;
+                case CONTENT_COMMENT:
+                    return PocketConsensus::CommentConsensusFactoryInst.Instance(height);
+                case CONTENT_COMMENT_EDIT:
+                    return PocketConsensus::CommentEditConsensusFactoryInst.Instance(height);
+                case CONTENT_COMMENT_DELETE:
+                    return PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
+                case ACTION_SCORE_CONTENT:
+                    return PocketConsensus::ScoreContentConsensusFactoryInst.Instance(height);
+                case ACTION_SCORE_COMMENT:
+                    return PocketConsensus::ScoreCommentConsensusFactoryInst.Instance(height);
+                case ACTION_SUBSCRIBE:
+                    return PocketConsensus::SubscribeConsensusFactoryInst.Instance(height);
+                case ACTION_SUBSCRIBE_PRIVATE:
+                    return PocketConsensus::SubscribePrivateConsensusFactoryInst.Instance(height);
+                case ACTION_SUBSCRIBE_CANCEL:
+                    return PocketConsensus::SubscribeCancelConsensusFactoryInst.Instance(height);
+                case ACTION_BLOCKING:
+                    return PocketConsensus::BlockingConsensusFactoryInst.Instance(height);
+                case ACTION_BLOCKING_CANCEL:
+                    return PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height);
+                case ACTION_COMPLAIN:
+                    return PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
+                default:
+                    break;
+            }
+
+            return nullptr;
         }
 
     };

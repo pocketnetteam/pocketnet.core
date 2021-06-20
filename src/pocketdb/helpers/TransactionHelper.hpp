@@ -21,6 +21,7 @@
 #include "pocketdb/models/dto/Coinstake.hpp"
 #include "pocketdb/models/dto/Default.hpp"
 #include "pocketdb/models/dto/Post.hpp"
+#include "pocketdb/models/dto/Video.hpp"
 #include "pocketdb/models/dto/Comment.hpp"
 #include "pocketdb/models/dto/CommentEdit.hpp"
 #include "pocketdb/models/dto/CommentDelete.hpp"
@@ -29,7 +30,7 @@
 #include "pocketdb/models/dto/SubscribePrivate.hpp"
 #include "pocketdb/models/dto/Complain.hpp"
 #include "pocketdb/models/dto/User.hpp"
-#include "pocketdb/models/dto/ScorePost.hpp"
+#include "pocketdb/models/dto/ScoreContent.hpp"
 #include "pocketdb/models/dto/ScoreComment.hpp"
 
 namespace PocketHelpers
@@ -79,7 +80,7 @@ namespace PocketHelpers
         else if (op == OR_SERVER_PING)
             return PocketTxType::CONTENT_SERVERPING;
         else if (op == OR_SCORE)
-            return PocketTxType::ACTION_SCORE_POST;
+            return PocketTxType::ACTION_SCORE_CONTENT;
         else if (op == OR_COMPLAIN)
             return PocketTxType::ACTION_COMPLAIN;
         else if (op == OR_SUBSCRIBE)
@@ -151,38 +152,40 @@ namespace PocketHelpers
 
     static string ConvertToReindexerTable(const Transaction& transaction)
     {
-        switch (*transaction.GetType()) {
-        case PocketTxType::ACCOUNT_USER:
-            return "Users";
-            break;
-        case PocketTxType::CONTENT_POST:
-            return "Posts";
-            break;
-        case PocketTxType::CONTENT_COMMENT:
-        case PocketTxType::CONTENT_COMMENT_EDIT:
-        case PocketTxType::CONTENT_COMMENT_DELETE:
-            return "Comment";
-            break;
-        case PocketTxType::ACTION_SCORE_POST:
-            return "Scores";
-            break;
-        case PocketTxType::ACTION_SCORE_COMMENT:
-            return "CommentScores";
-            break;
-        case PocketTxType::ACTION_COMPLAIN:
-            return "Complains";
-            break;
-        case PocketTxType::ACTION_BLOCKING_CANCEL:
-        case PocketTxType::ACTION_BLOCKING:
-            return "Blocking";
-            break;
-        case PocketTxType::ACTION_SUBSCRIBE_CANCEL:
-        case PocketTxType::ACTION_SUBSCRIBE_PRIVATE:
-        case PocketTxType::ACTION_SUBSCRIBE:
-            return "Subscribes";
-            break;
-        default:
-            return "";
+        switch (*transaction.GetType())
+        {
+            case PocketTxType::ACCOUNT_USER:
+                return "Users";
+                break;
+            case PocketTxType::CONTENT_POST:
+            case PocketTxType::CONTENT_VIDEO:
+                return "Posts";
+                break;
+            case PocketTxType::CONTENT_COMMENT:
+            case PocketTxType::CONTENT_COMMENT_EDIT:
+            case PocketTxType::CONTENT_COMMENT_DELETE:
+                return "Comment";
+                break;
+            case PocketTxType::ACTION_SCORE_CONTENT:
+                return "Scores";
+                break;
+            case PocketTxType::ACTION_SCORE_COMMENT:
+                return "CommentScores";
+                break;
+            case PocketTxType::ACTION_COMPLAIN:
+                return "Complains";
+                break;
+            case PocketTxType::ACTION_BLOCKING_CANCEL:
+            case PocketTxType::ACTION_BLOCKING:
+                return "Blocking";
+                break;
+            case PocketTxType::ACTION_SUBSCRIBE_CANCEL:
+            case PocketTxType::ACTION_SUBSCRIBE_PRIVATE:
+            case PocketTxType::ACTION_SUBSCRIBE:
+                return "Subscribes";
+                break;
+            default:
+                return "";
         };
     }
 
@@ -203,7 +206,7 @@ namespace PocketHelpers
         vector<string> vasm;
         scoreData.ScoreType = PocketHelpers::ParseType(tx, vasm);
 
-        if (scoreData.ScoreType != PocketTxType::ACTION_SCORE_POST &&
+        if (scoreData.ScoreType != PocketTxType::ACTION_SCORE_CONTENT &&
             scoreData.ScoreType != PocketTxType::ACTION_SCORE_COMMENT)
             return make_tuple(false, scoreData);
 
@@ -236,54 +239,57 @@ namespace PocketHelpers
         shared_ptr<Transaction> ptx = nullptr;
         switch (txType)
         {
-        case TX_COINBASE:
-        case TX_COINSTAKE:
-            ptx = make_shared<Coinstake>(txHash, nTime);
-            break;
-        case TX_DEFAULT:
-            ptx = make_shared<Default>(txHash, nTime);
-            break;
-        case ACCOUNT_USER:
-            ptx = make_shared<User>(txHash, nTime);
-            break;
-        case CONTENT_POST:
-            ptx = make_shared<Post>(txHash, nTime);
-            break;
-        case CONTENT_COMMENT:
-            ptx = make_shared<Comment>(txHash, nTime);
-            break;
-        case CONTENT_COMMENT_EDIT:
-            ptx = make_shared<CommentEdit>(txHash, nTime);
-            break;
-        case CONTENT_COMMENT_DELETE:
-            ptx = make_shared<CommentDelete>(txHash, nTime);
-            break;
-        case ACTION_SCORE_POST:
-            ptx = make_shared<ScorePost>(txHash, nTime);
-            break;
-        case ACTION_SCORE_COMMENT:
-            ptx = make_shared<ScoreComment>(txHash, nTime);
-            break;
-        case ACTION_SUBSCRIBE:
-            ptx = make_shared<Subscribe>(txHash, nTime);
-            break;
-        case ACTION_SUBSCRIBE_PRIVATE:
-            ptx = make_shared<SubscribePrivate>(txHash, nTime);
-            break;
-        case ACTION_SUBSCRIBE_CANCEL:
-            ptx = make_shared<SubscribeCancel>(txHash, nTime);
-            break;
-        case ACTION_BLOCKING:
-            ptx = make_shared<Blocking>(txHash, nTime);
-            break;
-        case ACTION_BLOCKING_CANCEL:
-            ptx = make_shared<BlockingCancel>(txHash, nTime);
-            break;
-        case ACTION_COMPLAIN:
-            ptx = make_shared<Complain>(txHash, nTime);
-            break;
-        default:
-            return nullptr;
+            case TX_COINBASE:
+            case TX_COINSTAKE:
+                ptx = make_shared<Coinstake>(txHash, nTime);
+                break;
+            case TX_DEFAULT:
+                ptx = make_shared<Default>(txHash, nTime);
+                break;
+            case ACCOUNT_USER:
+                ptx = make_shared<User>(txHash, nTime);
+                break;
+            case CONTENT_POST:
+                ptx = make_shared<Post>(txHash, nTime);
+                break;
+            case CONTENT_VIDEO:
+                ptx = make_shared<Video>(txHash, nTime);
+                break;
+            case CONTENT_COMMENT:
+                ptx = make_shared<Comment>(txHash, nTime);
+                break;
+            case CONTENT_COMMENT_EDIT:
+                ptx = make_shared<CommentEdit>(txHash, nTime);
+                break;
+            case CONTENT_COMMENT_DELETE:
+                ptx = make_shared<CommentDelete>(txHash, nTime);
+                break;
+            case ACTION_SCORE_CONTENT:
+                ptx = make_shared<ScoreContent>(txHash, nTime);
+                break;
+            case ACTION_SCORE_COMMENT:
+                ptx = make_shared<ScoreComment>(txHash, nTime);
+                break;
+            case ACTION_SUBSCRIBE:
+                ptx = make_shared<Subscribe>(txHash, nTime);
+                break;
+            case ACTION_SUBSCRIBE_PRIVATE:
+                ptx = make_shared<SubscribePrivate>(txHash, nTime);
+                break;
+            case ACTION_SUBSCRIBE_CANCEL:
+                ptx = make_shared<SubscribeCancel>(txHash, nTime);
+                break;
+            case ACTION_BLOCKING:
+                ptx = make_shared<Blocking>(txHash, nTime);
+                break;
+            case ACTION_BLOCKING_CANCEL:
+                ptx = make_shared<BlockingCancel>(txHash, nTime);
+                break;
+            case ACTION_COMPLAIN:
+                ptx = make_shared<Complain>(txHash, nTime);
+                break;
+            default:
+                return nullptr;
         }
 
         return ptx;

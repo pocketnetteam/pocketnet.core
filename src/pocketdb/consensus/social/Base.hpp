@@ -21,7 +21,6 @@ namespace PocketConsensus
     {
     public:
         SocialBaseConsensus(int height) : BaseConsensus(height) {}
-        SocialBaseConsensus() : BaseConsensus() {}
 
         // Validate transaction in block for miner & network full block sync
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, const PocketBlock& block)
@@ -93,7 +92,15 @@ namespace PocketConsensus
             //         resultCode = ANTIBOTRESULT::FailedOpReturn;
             //         return;
             // }
+
+            return Success;
         }
+
+
+        // Check empty pointer
+        bool IsEmpty(shared_ptr<string> ptr) const { return !ptr || (*ptr).empty(); }
+        bool IsEmpty(shared_ptr<int> ptr) const { return !ptr; }
+        bool IsEmpty(shared_ptr<int64_t> ptr) const { return !ptr; }
     };
 }
 

@@ -59,7 +59,7 @@ namespace PocketConsensus
             return true;
         }
 
-        virtual tuple<int, string> SelectAddressScorePost(shared_ptr <ScoreDataDto> scoreData, bool lottery)
+        virtual tuple<int, string> SelectAddressScoreContent(shared_ptr <ScoreDataDto> scoreData, bool lottery)
         {
             if (lottery)
                 return make_tuple(scoreData->ScoreAddressId, scoreData->ScoreAddressHash);
@@ -70,7 +70,7 @@ namespace PocketConsensus
         virtual bool AllowModifyReputationOverPost(shared_ptr <ScoreDataDto> scoreData, int height,
             const CTransactionRef& tx, bool lottery)
         {
-            auto[checkScoreAddressId, checkScoreAddressHash] = SelectAddressScorePost(scoreData, lottery);
+            auto[checkScoreAddressId, checkScoreAddressHash] = SelectAddressScoreContent(scoreData, lottery);
 
             // Check user reputation
             if (!AllowModifyReputation(checkScoreAddressId, height))
@@ -170,7 +170,7 @@ namespace PocketConsensus
         virtual bool AllowModifyReputation(shared_ptr <ScoreDataDto> scoreData, const CTransactionRef& tx, int height,
             bool lottery)
         {
-            if (scoreData->ScoreType == PocketTxType::ACTION_SCORE_POST)
+            if (scoreData->ScoreType == PocketTxType::ACTION_SCORE_CONTENT)
                 return AllowModifyReputationOverPost(scoreData, height, tx, lottery);
 
             if (scoreData->ScoreType == PocketTxType::ACTION_SCORE_COMMENT)
@@ -213,7 +213,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 151600; }
 
-        tuple<int, string> SelectAddressScorePost(shared_ptr <ScoreDataDto> scoreData, bool lottery) override
+        tuple<int, string> SelectAddressScoreContent(shared_ptr <ScoreDataDto> scoreData, bool lottery) override
         {
             return make_tuple(scoreData->ScoreAddressId, scoreData->ScoreAddressHash);
         }
@@ -291,15 +291,15 @@ namespace PocketConsensus
     {
     private:
         static inline const std::map<int, std::function<ReputationConsensus*(int height)>> m_rules =
-        {
-            {1124000, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
-            {322700, [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
-            {292800, [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
-            {225000, [](int height) { return new ReputationConsensus_checkpoint_225000(height); }},
-            {151600, [](int height) { return new ReputationConsensus_checkpoint_151600(height); }},
-            {108300, [](int height) { return new ReputationConsensus_checkpoint_108300(height); }},
-            {0,      [](int height) { return new ReputationConsensus(height); }},
-        };
+            {
+                {1124000, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
+                {322700,  [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
+                {292800,  [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
+                {225000,  [](int height) { return new ReputationConsensus_checkpoint_225000(height); }},
+                {151600,  [](int height) { return new ReputationConsensus_checkpoint_151600(height); }},
+                {108300,  [](int height) { return new ReputationConsensus_checkpoint_108300(height); }},
+                {0,       [](int height) { return new ReputationConsensus(height); }},
+            };
     public:
         static shared_ptr <ReputationConsensus> Instance(int height)
         {

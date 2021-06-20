@@ -21,7 +21,6 @@ namespace PocketConsensus
     {
     public:
         CommentDeleteConsensus(int height) : SocialBaseConsensus(height) {}
-        CommentDeleteConsensus() : SocialBaseConsensus() {}
 
     protected:
     
@@ -110,7 +109,12 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) override
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
-            // TODO (brangr): implement msg must be empty
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
+            if (ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+
             return Success;
         }
 

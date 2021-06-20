@@ -245,8 +245,8 @@ namespace PocketDb
           and t.Type in (300, 301);
 
 
-        drop view if exists vScorePosts;
-        create view if not exists vScorePosts as
+        drop view if exists vScoreContents;
+        create view if not exists vScoreContents as
         select s.Type,
                s.Hash,
                s.Time,

@@ -58,6 +58,7 @@ namespace PocketTx
 
         // Payload getters
         shared_ptr <string> GetPayloadName() const { return Transaction::GetPayload()->GetString2(); }
+        shared_ptr <string> GetPayloadAvatar() const { return Transaction::GetPayload()->GetString3(); }
 
     protected:
 

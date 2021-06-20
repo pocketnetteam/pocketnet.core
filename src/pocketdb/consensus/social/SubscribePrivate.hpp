@@ -22,7 +22,6 @@ namespace PocketConsensus
     {
     public:
         SubscribePrivateConsensus(int height) : SocialBaseConsensus(height) {}
-        SubscribePrivateConsensus() : SocialBaseConsensus() {}
 
     protected:
 
@@ -86,6 +85,11 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<SubscribePrivate>(tx);
 
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+
+            // Blocking self
             if (*ptx->GetAddress() == *ptx->GetAddressTo())
                 return {false, SocialConsensusResult_SelfSubscribe};
 

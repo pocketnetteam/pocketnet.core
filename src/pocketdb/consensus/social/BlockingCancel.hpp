@@ -21,7 +21,6 @@ namespace PocketConsensus
     {
     public:
         BlockingCancelConsensus(int height) : SocialBaseConsensus(height) {}
-        BlockingCancelConsensus() : SocialBaseConsensus() {}
 
     protected:
 
@@ -79,6 +78,10 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
         {
             auto ptx = static_pointer_cast<BlockingCancel>(tx);
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
 
             // Blocking self
             if (*ptx->GetAddress() == *ptx->GetAddressTo())

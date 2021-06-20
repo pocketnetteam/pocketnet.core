@@ -11,7 +11,7 @@ namespace PocketConsensus
     ComplainConsensusFactory ComplainConsensusFactoryInst;
     PostConsensusFactory PostConsensusFactoryInst;
     ScoreCommentConsensusFactory ScoreCommentConsensusFactoryInst;
-    ScorePostConsensusFactory ScorePostConsensusFactoryInst;
+    ScoreContentConsensusFactory ScoreContentConsensusFactoryInst;
     SubscribeConsensusFactory SubscribeConsensusFactoryInst;
     SubscribeCancelConsensusFactory SubscribeCancelConsensusFactoryInst;
     SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;
