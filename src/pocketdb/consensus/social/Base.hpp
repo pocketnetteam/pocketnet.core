@@ -8,6 +8,7 @@
 #define POCKETCONSENSUS_SOCIAL_BASE_HPP
 
 #include "univalue/include/univalue.h"
+#include "core_io.h"
 
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/models/base/Base.hpp"
@@ -78,20 +79,16 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) = 0;
 
         // Generic check consistence Transaction and Payload
-        virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx)
+        virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> ptx)
         {
-            // TODO (brangr): implement
-            // std::vector<std::string> vasm;
-            // boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
-            // if (vasm.size() < 3) {
-            //     resultCode = ANTIBOTRESULT::FailedOpReturn;
-            //     return;
-            // }
+            if (IsEmpty(ptx->GetOpReturnPayload()))
+                return {false, SocialConsensusResult_Failed};
 
-            // if (vasm[2] != oitm["data_hash"].get_str()) {
-            //         resultCode = ANTIBOTRESULT::FailedOpReturn;
-            //         return;
-            // }
+            if (IsEmpty(ptx->GetOpReturnTx()))
+                return {false, SocialConsensusResult_Failed};
+
+             if (*ptx->GetOpReturnTx() != *ptx->GetOpReturnPayload())
+                 return {false, SocialConsensusResult_FailedOpReturn};
 
             return Success;
         }

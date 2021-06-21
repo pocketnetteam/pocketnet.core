@@ -23,18 +23,18 @@ namespace PocketTx
     {
     public:
 
-        //TODO mb change to string& hash (reference) and in dto too
-        Transaction(string& hash, int64_t time) : Base()
+        Transaction(string& hash, int64_t time, shared_ptr<string> opReturn) : Base()
         {
             SetHash(hash);
             SetTime(time);
+            m_opreturn_tx = opReturn;
         }
 
         virtual shared_ptr<UniValue> Serialize() const
         {
             auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
             result->pushKV("time", *GetTime());
-            result->pushKV("txid", *GetHash()); //TODO (brangr): check pls
+            result->pushKV("txid", *GetHash());
 
             return result;
         }
@@ -91,10 +91,14 @@ namespace PocketTx
             m_payload->SetTxHash(*GetHash());
         }
 
+        shared_ptr<string> GetOpReturnTx() const { return m_opreturn_tx; }
+        shared_ptr<string> GetOpReturnPayload() const { return m_opreturn_payload; }
+
         virtual void BuildHash(const UniValue& src) = 0;
 
     protected:
-        shared_ptr<string> m_opreturn_hash = nullptr;
+        shared_ptr<string> m_opreturn_tx = nullptr;
+        shared_ptr<string> m_opreturn_payload = nullptr;
 
         shared_ptr<PocketTxType> m_type = nullptr;
         shared_ptr<string> m_hash = nullptr;
@@ -121,7 +125,8 @@ namespace PocketTx
             CSHA256().Write((const unsigned char*) dataSrc.data(), dataSrc.size()).Finalize(hash);
             CSHA256().Write(hash, 32).Finalize(hash);
             std::vector<unsigned char> vec(hash, hash + sizeof(hash));
-            m_opreturn_hash = make_shared<string>(HexStr(vec));
+
+            m_opreturn_payload = make_shared<string>(HexStr(vec));
         }
 
     };

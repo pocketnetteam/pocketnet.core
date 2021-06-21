@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Subscribe(string& hash, int64_t time) : Transaction(hash, time)
+        Subscribe(string& hash, int64_t time, shared_ptr<string> opReturn) : Transaction(hash, time, opReturn)
         {
             SetType(PocketTxType::ACTION_SUBSCRIBE);
         }

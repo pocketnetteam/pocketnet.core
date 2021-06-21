@@ -42,7 +42,7 @@ namespace PocketServices
     {
     public:
 
-        static PocketBlock DeserializeBlock(CDataStream& stream, CBlock& block)
+        static tuple<bool, PocketBlock> DeserializeBlock(CDataStream& stream, CBlock& block)
         {
             LogPrint(BCLog::SYNC, "+++ DeserializeBlock: %s\n", block.GetHash().GetHex());
 
@@ -81,7 +81,10 @@ namespace PocketServices
                 if (ptx) pocketBlock.push_back(ptx);
             }
 
-            return pocketBlock;
+            // TODO (brangr): check all pocket transactions deserialized
+            // /?????????????
+
+            return {true, pocketBlock};
         }
 
         static shared_ptr<Transaction> DeserializeTransaction(CDataStream& stream, const CTransactionRef& tx)
@@ -118,9 +121,22 @@ namespace PocketServices
         static shared_ptr<Transaction> BuildInstance(const CTransactionRef& tx, const UniValue& src)
         {
             auto txHash = tx->GetHash().GetHex();
-            PocketTxType txType = ParseType(tx);
 
-            shared_ptr<Transaction> ptx = CreateInstance(txType, txHash, tx->nTime);
+            // Get OpReturn hash for validate consistence payload
+            const CTxOut& txout = tx->vout[0];
+            if (txout.scriptPubKey[0] != OP_RETURN)
+                return nullptr;
+
+            auto asmString = ScriptToAsmStr(txout.scriptPubKey);
+
+            std::vector<std::string> vasm;
+            boost::split(vasm, asmString, boost::is_any_of("\t "));
+            if (vasm.size() < 3)
+                return nullptr;
+
+            shared_ptr<string> opReturn = make_shared<string>(vasm[2]);
+            PocketTxType txType = ParseType(tx);
+            shared_ptr<Transaction> ptx = CreateInstance(txType, txHash, tx->nTime, opReturn);
             if (!ptx)
                 return nullptr;
 
@@ -141,7 +157,8 @@ namespace PocketServices
                 ptx->BuildHash(txDataSrc);
             }
 
-            LogPrint(BCLog::SYNC, " ++ BuildInstance: %s (type: %d) (payload: %b)\n", txHash, txType, ptx->HasPayload());
+            LogPrint(BCLog::SYNC, " ++ BuildInstance: %s (type: %d) (payload: %b)\n", txHash, txType,
+                ptx->HasPayload());
 
             return ptx;
         }

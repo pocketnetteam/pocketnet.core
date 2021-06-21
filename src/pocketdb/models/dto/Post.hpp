@@ -10,7 +10,7 @@ namespace PocketTx
     {
     public:
 
-        Post(string& hash, int64_t time) : Transaction(hash, time)
+        Post(string& hash, int64_t time, shared_ptr<string> opReturn) : Transaction(hash, time, opReturn)
         {
             SetType(PocketTxType::CONTENT_POST);
         }

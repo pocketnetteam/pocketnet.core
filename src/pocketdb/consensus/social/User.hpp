@@ -97,15 +97,10 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr <Transaction> tx) override
         {
-            // TODO (brangr): implement
             if (auto[baseCheckOk, baseCheckResult] = SocialBaseConsensus::CheckOpReturnHash(tx); !baseCheckOk)
-            {
-                //     if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str())) {
-                //         LogPrintf("FailedOpReturn vasm: %s - oitm: %s\n", vasm[2], oitm.write());
-                //         resultCode = ANTIBOTRESULT::FailedOpReturn;
-                //         return;
-                //     }
-            }
+                LogPrintf("!!! OP_RETURN INCONSISTENT USER > %s\n", *tx->GetHash());
+
+            return Success;
         }
 
         // Check op_return hash

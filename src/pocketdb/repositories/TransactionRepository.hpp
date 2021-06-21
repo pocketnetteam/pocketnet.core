@@ -413,7 +413,7 @@ namespace PocketDb
             auto txHash = GetColumnString(*stmt, 1);
             auto nTime = GetColumnInt64(*stmt, 2);
 
-            auto ptx = PocketHelpers::CreateInstance(txType, txHash, nTime);
+            auto ptx = PocketHelpers::CreateInstance(txType, txHash, nTime, nullptr);
             if (ptx == nullptr)
             {
                 return make_tuple(false, nullptr);

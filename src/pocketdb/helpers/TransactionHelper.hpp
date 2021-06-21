@@ -18,6 +18,7 @@
 
 #include "pocketdb/models/dto/Blocking.hpp"
 #include "pocketdb/models/dto/BlockingCancel.hpp"
+#include "pocketdb/models/dto/Coinbase.hpp"
 #include "pocketdb/models/dto/Coinstake.hpp"
 #include "pocketdb/models/dto/Default.hpp"
 #include "pocketdb/models/dto/Post.hpp"
@@ -234,59 +235,62 @@ namespace PocketHelpers
         return make_tuple(finalCheck, scoreData);
     }
 
-    static shared_ptr<Transaction> CreateInstance(PocketTxType txType, std::string txHash, uint32_t nTime)
+    static shared_ptr<Transaction> CreateInstance(PocketTxType txType, std::string txHash, uint32_t nTime,
+        shared_ptr<string> opReturn)
     {
         shared_ptr<Transaction> ptx = nullptr;
         switch (txType)
         {
             case TX_COINBASE:
+                ptx = make_shared<Coinbase>(txHash, nTime, opReturn);
+                break;
             case TX_COINSTAKE:
-                ptx = make_shared<Coinstake>(txHash, nTime);
+                ptx = make_shared<Coinstake>(txHash, nTime, opReturn);
                 break;
             case TX_DEFAULT:
-                ptx = make_shared<Default>(txHash, nTime);
+                ptx = make_shared<Default>(txHash, nTime, opReturn);
                 break;
             case ACCOUNT_USER:
-                ptx = make_shared<User>(txHash, nTime);
+                ptx = make_shared<User>(txHash, nTime, opReturn);
                 break;
             case CONTENT_POST:
-                ptx = make_shared<Post>(txHash, nTime);
+                ptx = make_shared<Post>(txHash, nTime, opReturn);
                 break;
             case CONTENT_VIDEO:
-                ptx = make_shared<Video>(txHash, nTime);
+                ptx = make_shared<Video>(txHash, nTime, opReturn);
                 break;
             case CONTENT_COMMENT:
-                ptx = make_shared<Comment>(txHash, nTime);
+                ptx = make_shared<Comment>(txHash, nTime, opReturn);
                 break;
             case CONTENT_COMMENT_EDIT:
-                ptx = make_shared<CommentEdit>(txHash, nTime);
+                ptx = make_shared<CommentEdit>(txHash, nTime, opReturn);
                 break;
             case CONTENT_COMMENT_DELETE:
-                ptx = make_shared<CommentDelete>(txHash, nTime);
+                ptx = make_shared<CommentDelete>(txHash, nTime, opReturn);
                 break;
             case ACTION_SCORE_CONTENT:
-                ptx = make_shared<ScoreContent>(txHash, nTime);
+                ptx = make_shared<ScoreContent>(txHash, nTime, opReturn);
                 break;
             case ACTION_SCORE_COMMENT:
-                ptx = make_shared<ScoreComment>(txHash, nTime);
+                ptx = make_shared<ScoreComment>(txHash, nTime, opReturn);
                 break;
             case ACTION_SUBSCRIBE:
-                ptx = make_shared<Subscribe>(txHash, nTime);
+                ptx = make_shared<Subscribe>(txHash, nTime, opReturn);
                 break;
             case ACTION_SUBSCRIBE_PRIVATE:
-                ptx = make_shared<SubscribePrivate>(txHash, nTime);
+                ptx = make_shared<SubscribePrivate>(txHash, nTime, opReturn);
                 break;
             case ACTION_SUBSCRIBE_CANCEL:
-                ptx = make_shared<SubscribeCancel>(txHash, nTime);
+                ptx = make_shared<SubscribeCancel>(txHash, nTime, opReturn);
                 break;
             case ACTION_BLOCKING:
-                ptx = make_shared<Blocking>(txHash, nTime);
+                ptx = make_shared<Blocking>(txHash, nTime, opReturn);
                 break;
             case ACTION_BLOCKING_CANCEL:
-                ptx = make_shared<BlockingCancel>(txHash, nTime);
+                ptx = make_shared<BlockingCancel>(txHash, nTime, opReturn);
                 break;
             case ACTION_COMPLAIN:
-                ptx = make_shared<Complain>(txHash, nTime);
+                ptx = make_shared<Complain>(txHash, nTime, opReturn);
                 break;
             default:
                 return nullptr;

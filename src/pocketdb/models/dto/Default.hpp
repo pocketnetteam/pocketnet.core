@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Default(string& hash, int64_t time) : Transaction(hash, time)
+        Default(string& hash, int64_t time, shared_ptr<string> opReturn) : Transaction(hash, time, opReturn)
         {
             SetType(PocketTxType::TX_DEFAULT);
         }

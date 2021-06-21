@@ -1890,7 +1890,8 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     // Rollback PocketDb
     try
     {
-        PocketServices::TransactionIndexer::Rollback(pindex->nHeight);
+        if (fClean)
+            PocketServices::TransactionIndexer::Rollback(pindex->nHeight);
     }
     catch (std::exception& ex)
     {
@@ -2527,7 +2528,15 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketHelpers::PocketB
     // -----------------------------------------------------------------------------------------------------------------
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
     // TODO (brangr): DEBUG!
-    PocketServices::TransactionIndexer::Index(block, pindex->nHeight);
+    try
+    {
+        PocketServices::TransactionIndexer::Index(block, pindex->nHeight);
+    }
+    catch (const std::exception& e)
+    {
+        LogPrintf("Error indexing social data: %s\n", e.what());
+        return false;
+    }
 
     int64_t nTime6 = GetTimeMicros();
     nTimeVerify += nTime6 - nTime5;
@@ -4229,7 +4238,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     }
 
     // Check transactions
-    // TODO (brangr): add pocket validation for transaction
     for (const auto& tx : block.vtx)
     {
         if (!CheckTransaction(*tx, state, true))
@@ -4247,9 +4255,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     }
     if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST)
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
-
-    // TODO (brangr): add pocket validation for block
-
 
     if (fCheckPOW && fCheckMerkleRoot)
         block.fChecked = true;
@@ -5442,8 +5447,8 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
     {
         boost::this_thread::interruption_point();
         int percentageDone = std::max(1, std::min(99,
-            (int) (((double) (chainActive.Height() - pindex->nHeight)) / (double) nCheckDepth * 100)));
-                // 100 = (nCheckLevel >= 4 ? 50 : 100))));
+            (int) (((double) (chainActive.Height() - pindex->nHeight)) /
+                   (double) nCheckDepth * (nCheckLevel >= 4 ? 50 : 100))));
 
         if (reportDone < percentageDone / 10)
         {
@@ -5530,8 +5535,14 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
 
             std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock;
             if (!ReadBlockPayloadFromDisk(block, pocketBlock))
-                return error("VerifyDB(): *** ReadBlockPayloadFromDisk failed at %d, hash=%s", pindex->nHeight,
-                    pindex->GetBlockHash().ToString());
+            {
+                LogPrintf("\nWarning: found lost payload data (block: %s) - continue work from this height: %d\n",
+                    block.GetHash().GetHex(), pindex->nHeight);
+                break;
+
+                //return error("VerifyDB(): *** ReadBlockPayloadFromDisk failed at %d, hash=%s", pindex->nHeight,
+                //    pindex->GetBlockHash().ToString());
+            }
 
             if (!g_chainstate.ConnectBlock(block, *pocketBlock, state, pindex, coins, chainparams))
                 return error("VerifyDB(): *** found unconnectable block at %d, hash=%s (%s)", pindex->nHeight,

@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Coinstake(string& hash, int64_t time) : Transaction(hash, time)
+        Coinstake(string& hash, int64_t time, shared_ptr<string> opReturn) : Transaction(hash, time, opReturn)
         {
             SetType(PocketTxType::TX_COINSTAKE);
         }
