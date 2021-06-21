@@ -4888,7 +4888,6 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime1 = GetTimeMicros();
 
         CBlockIndex* pindex = nullptr;
-        bool ret = true;
         if (fNewBlock) *fNewBlock = false;
 
         // CheckBlock() does not support multi-threaded block validation because CBlock::fChecked can cause data race.
@@ -4903,10 +4902,17 @@ bool ProcessNewBlock(CValidationState& state,
 
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
-        ret &= CheckBlock(*pblock, state, chainparams.GetConsensus());
+        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
 
         // check pocket block with general pocketnet consensus rules
-        ret &= PocketConsensus::SocialConsensusHelper::Check(pocketBlock);
+        if (ret)
+        {
+            if (!PocketConsensus::SocialConsensusHelper::Check(pocketBlock))
+            {
+                ret = false;
+                *fNewBlock = false;
+            }
+        }
 
         int64_t nTime3 = GetTimeMicros();
         nTimeVerify += nTime3 - nTime2;
@@ -4935,6 +4941,7 @@ bool ProcessNewBlock(CValidationState& state,
             {
                 LogPrintf("Error: ProcessNewBlock (%s) - %s\n", pblock->GetHash().GetHex(), e.what());
                 ret = false;
+                *fNewBlock = false;
             }
         }
 

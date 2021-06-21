@@ -2752,7 +2752,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             }
 
             // Deserialize pocket part if exists
-            auto pocketBlock = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+            auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
 
             // Setting fForceProcessing to true means that we bypass some of
             // our anti-DoS protections in AcceptBlock, which filters
@@ -2842,7 +2842,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         } // Don't hold cs_main when we call into ProcessNewBlock
 
         if (fBlockRead) {
-            auto pocketBlock = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+            auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
 
             bool fNewBlock = false;
             // Since we requested this block (it was in mapBlocksInFlight), force it to be processed,
@@ -2909,7 +2909,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         // Deserialize pocket part if exists
-        auto pocketBlock = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+        auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
 
         bool fNewBlock = false;
         CValidationState state;
