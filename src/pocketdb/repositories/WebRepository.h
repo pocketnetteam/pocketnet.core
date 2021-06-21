@@ -29,7 +29,12 @@ public:
     void Destroy() override;
 
     UniValue GetAddressInfo(int count);
+    UniValue GetCommentsByPost(const std::string& postHash, const std::string& parentHash, const std::string& addressHash);
+    UniValue GetCommentsByIds(string& addressHash, vector<string>& commentHashes);
     UniValue GetLastComments(int count, int height, std::string lang = "");
+
+private:
+    UniValue ParseCommentRow(sqlite3_stmt* stmt);
 };
 
 } // namespace PocketDb
