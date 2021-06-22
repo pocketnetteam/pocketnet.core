@@ -68,7 +68,8 @@ namespace PocketConsensus
         SocialConsensusResult_OpReturnFailed = 41,
         SocialConsensusResult_CommentDeletedEdit = 42,
         SocialConsensusResult_ReferrerAfterRegistration = 43,
-        SocialConsensusResult_NotAllowed = 44
+        SocialConsensusResult_NotAllowed = 44,
+        SocialConsensusResult_AlreadyExists = 45,
     };
 
     enum AccountMode

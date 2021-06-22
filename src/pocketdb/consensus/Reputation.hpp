@@ -156,15 +156,21 @@ namespace PocketConsensus
     public:
         ReputationConsensus(int height) : BaseConsensus(height) {}
 
-        virtual AccountMode GetAccountMode(string& address)
+        virtual tuple<AccountMode, int, int64_t> GetAccountInfo(string& address)
         {
             auto reputation = PocketDb::ConsensusRepoInst.GetUserReputation(address);
-            auto balance = PocketDb::ConsensusRepoInst.GetUserBalance(address);;
+            auto balance = PocketDb::ConsensusRepoInst.GetUserBalance(address);
 
             if (reputation >= GetThresholdReputation() || balance >= GetThresholdBalance())
-                return AccountMode_Full;
+                return {AccountMode_Full, reputation, balance};
             else
-                return AccountMode_Trial;
+                return {AccountMode_Trial, reputation, balance};
+        }
+
+        virtual AccountMode GetAccountMode(string& address)
+        {
+            auto[mode, reputation, balance] = GetAccountInfo(address);
+            return mode;
         }
 
         virtual bool AllowModifyReputation(shared_ptr <ScoreDataDto> scoreData, const CTransactionRef& tx, int height,

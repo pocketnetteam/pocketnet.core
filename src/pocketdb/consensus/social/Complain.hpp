@@ -7,6 +7,7 @@
 #ifndef POCKETCONSENSUS_COMPLAIN_HPP
 #define POCKETCONSENSUS_COMPLAIN_HPP
 
+#include <pocketdb/consensus/Reputation.hpp>
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/Complain.hpp"
 
@@ -24,6 +25,15 @@ namespace PocketConsensus
 
     protected:
 
+        virtual int64_t GetFullAccountComplainsLimit() { return 12; }
+        virtual int64_t GetTrialAccountComplainsLimit() { return 6; }
+        virtual int64_t GetThresholdReputation() { return 500; }
+
+        virtual int64_t GetComplainsLimit(AccountMode mode)
+        {
+            return mode == AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
+        }
+
         tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
         {
             auto ptx = static_pointer_cast<Complain>(tx);
@@ -33,145 +43,93 @@ namespace PocketConsensus
             if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
                 return {false, SocialConsensusResult_NotRegistered};
 
-            // Authot or post must be exists
+            // Author or post must be exists
             auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*ptx->GetPostTxHash());
             if (postAddress == nullptr)
                 return {false, SocialConsensusResult_NotFound};
-
-            // TODO (brangr): такое чувство что это избыточная логика
-            // Мы не проверяем наличие комплейнутого поста в мемпуле, соответственно
-            // и в блоке искать бесполезно - нужно проверить наличие такой ситуации в живой БД
-//                auto notFound = true;
-//                for (const auto& otherTx : block)
-//                {
-//                    if (*otherTx->GetType() != CONTENT_POST)
-//                    {
-//                        continue;
-//                    }
-//
-//                    //TODO question (brangr): if post in current block will be not valid, complain anyway will be valid?
-//                    if (*otherTx->GetHash() == *ptx->GetPostTxHash())
-//                    {
-//                        notFound = false;
-//                        break;
-//                    }
-//                }
-//                if (notFound)
-//                {
-//                    return {false, SocialConsensusResult_NotFound};
-//                }
 
             // Complain to self
             if (*postAddress == *ptx->GetAddress())
                 return {false, SocialConsensusResult_SelfComplain};
 
             // Check double complain
-            if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetPostTxHash(), *ptx->GetAddress()))
+            if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetHash(), *ptx->GetPostTxHash(), *ptx->GetAddress()))
                 return {false, SocialConsensusResult_DoubleComplain};
-
-            // Complains allow only with high reputation
-            // int reputation = 0;
-            // int64_t balance = 0;
-            // getMode(_address, mode, reputation, balance, height);
-            // int64_t minRep = GetActualLimit(Limit::threshold_reputation_complains, height);
-            // if (reputation < minRep) {
-            //     LogPrintf("%s - %s < %s\n", _address, reputation, minRep);
-            //     result = ANTIBOTRESULT::LowReputation;
-            //     return false;
-            // }
 
             return Success;
         }
 
+
+        virtual bool CheckBlockLimitTime(shared_ptr <Complain> ptx, shared_ptr <Complain> blockPtx)
+        {
+            return *blockPtx->GetTime() <= *ptx->GetTime();
+        }
+
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, const PocketBlock& block) override
         {
-            // reindexer::QueryResults complainsRes;
-            // if (!g_pocketdb->DB()->Select(
-            //                         reindexer::Query("Complains")
-            //                             .Where("address", CondEq, _address)
-            //                             .Where("time", CondGe, _time - 86400)
-            //                             .Where("block", CondLt, height),
-            //                         complainsRes)
-            //         .ok()) {
-            //     result = ANTIBOTRESULT::Failed;
-            //     return false;
-            // }
+            auto ptx = static_pointer_cast<Complain>(tx);
 
-            // int complainCount = complainsRes.Count();
+            // from chain
+            int count = ConsensusRepoInst.CountChainComplain(
+                *ptx->GetAddress(),
+                *ptx->GetTime()
+            );
 
+            // from block
+            for (auto blockTx : block)
+            {
+                if (!IsIn(*blockTx->GetType(), {ACTION_COMPLAIN}))
+                    continue;
 
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
 
-            // if (blockVtx.Exists("Complains")) {
-            //     for (auto& mtx : blockVtx.Data["Complains"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
-            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
-            //                 complainCount += 1;
+                auto blockPtx = static_pointer_cast<Complain>(blockTx);
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                {
+                    if (CheckBlockLimitTime(ptx, blockPtx))
+                        count += 1;
 
-            //             if (mtx["posttxid"].get_str() == _post) {
-            //                 result = ANTIBOTRESULT::DoubleComplain;
-            //                 return false;
-            //             }
-            //         }
-            //     }
-            // }
+                    // Maybe in block
+                    if (*ptx->GetPostTxHash() == *blockPtx->GetPostTxHash())
+                        return {false, SocialConsensusResult_DoubleComplain};
+                }
+            }
 
-
-
-            // int limit = getLimit(Complain, mode, height);
-            // if (complainCount >= limit) {
-            //     result = ANTIBOTRESULT::ComplainLimit;
-            //     return false;
-            // }
+            return ValidateLimit(ptx, count);
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
         {
-            // reindexer::QueryResults complainsRes;
-            // if (!g_pocketdb->DB()->Select(
-            //                         reindexer::Query("Complains")
-            //                             .Where("address", CondEq, _address)
-            //                             .Where("time", CondGe, _time - 86400)
-            //                             .Where("block", CondLt, height),
-            //                         complainsRes)
-            //         .ok()) {
-            //     result = ANTIBOTRESULT::Failed;
-            //     return false;
-            // }
+            auto ptx = static_pointer_cast<Complain>(tx);
 
-            // int complainCount = complainsRes.Count();
+            // from chain
+            int count = ConsensusRepoInst.CountChainComplain(
+                *ptx->GetAddress(),
+                *ptx->GetTime()
+            );
 
+            count += ConsensusRepoInst.CountMempoolComplain(*ptx->GetAddress());
 
-
-            //     reindexer::QueryResults res;
-            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Complains").Not().Where("txid", CondEq, _txid), res).ok()) {
-            //         for (auto& m : res) {
-            //             reindexer::Item mItm = m.GetItem();
-            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
-
-            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Complains");
-            //             if (t_itm.FromJSON(t_src).ok()) {
-            //                 if (t_itm["address"].As<string>() == _address) {
-            //                     if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
-            //                         complainCount += 1;
-
-            //                     if (t_itm["posttxid"].As<string>() == _post) {
-            //                         result = ANTIBOTRESULT::DoubleComplain;
-            //                         return false;
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-
-
-
-
-            // int limit = getLimit(Complain, mode, height);
-            // if (complainCount >= limit) {
-            //     result = ANTIBOTRESULT::ComplainLimit;
-            //     return false;
-            // }
+            return ValidateLimit(ptx, count);
         }
+
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Complain> tx, int count)
+        {
+            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
+            auto limit = GetComplainsLimit(mode);
+
+            if (count >= limit)
+                return {false, SocialConsensusResult_ComplainLimit};
+
+            auto minimumReputation = GetThresholdReputation();
+            if (reputation < minimumReputation)
+                return {false, SocialConsensusResult_LowReputation};
+
+            return Success;
+        }
+
 
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
         {
@@ -188,6 +146,39 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 292800 block
+    *
+    *******************************************************************************************************************/
+    class ComplainConsensus_checkpoint_292800 : public ComplainConsensus
+    {
+    public:
+        ComplainConsensus_checkpoint_292800(int height) : ComplainConsensus(height) {}
+    protected:
+        int CheckpointHeight() override { return 292800; }
+        int64_t GetThresholdReputation() override { return 1000; }
+    };
+
+    /*******************************************************************************************************************
+    *
+    *  Start checkpoint at 1124000 block
+    *
+    *******************************************************************************************************************/
+    class ComplainConsensus_checkpoint_1124000 : public ComplainConsensus_checkpoint_292800
+    {
+    public:
+        ComplainConsensus_checkpoint_1124000(int height) : ComplainConsensus_checkpoint_292800(height) {}
+    protected:
+        int CheckpointHeight() override { return 1124000; }
+
+        bool CheckBlockLimitTime(shared_ptr <Complain> ptx, shared_ptr <Complain> blockPtx) override
+        {
+            return true;
+        }
+    };
+
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -196,6 +187,8 @@ namespace PocketConsensus
     private:
         static inline const std::map<int, std::function<ComplainConsensus*(int height)>> m_rules =
             {
+                {1124000, [](int height) { return new ComplainConsensus_checkpoint_1124000(height); }},
+                {292800, [](int height) { return new ComplainConsensus_checkpoint_292800(height); }},
                 {0, [](int height) { return new ComplainConsensus(height); }},
             };
     public:

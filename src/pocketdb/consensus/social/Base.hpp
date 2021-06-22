@@ -16,7 +16,10 @@
 
 namespace PocketConsensus
 {
+    using namespace PocketDb;
+
     using std::static_pointer_cast;
+    using PocketTx::PocketTxType;
 
     class SocialBaseConsensus : public BaseConsensus
     {
@@ -27,10 +30,10 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, const PocketBlock& block)
         {
             if (auto[ok, result] = ValidateModel(tx); !ok)
-                return {ok, result};
+                return {false, result};
 
             if (auto[ok, result] = ValidateLimit(tx, block); !ok)
-                return {ok, result};
+                return {false, result};
 
             return Success;
         }
@@ -39,10 +42,10 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx)
         {
             if (auto[ok, result] = ValidateModel(tx); !ok)
-                return {ok, result};
+                return {false, result};
 
             if (auto[ok, result] = ValidateLimit(tx); !ok)
-                return {ok, result};
+                return {false, result};
 
             return Success;
         }
@@ -50,11 +53,14 @@ namespace PocketConsensus
         // Generic transactions validating
         virtual tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx)
         {
+            if (auto[ok, result] = AlreadyExists(tx); !ok)
+                return {false, result};
+
             if (auto[ok, result] = CheckModel(tx); !ok)
-                return {ok, result};
+                return {false, result};
 
             if (auto[ok, result] = CheckOpReturnHash(tx); !ok)
-                return {ok, result};
+                return {false, result};
 
             return Success;
         }
@@ -79,16 +85,25 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) = 0;
 
         // Generic check consistence Transaction and Payload
-        virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> ptx)
+        virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx)
         {
-            if (IsEmpty(ptx->GetOpReturnPayload()))
+            if (IsEmpty(tx->GetOpReturnPayload()))
                 return {false, SocialConsensusResult_Failed};
 
-            if (IsEmpty(ptx->GetOpReturnTx()))
+            if (IsEmpty(tx->GetOpReturnTx()))
                 return {false, SocialConsensusResult_Failed};
 
-             if (*ptx->GetOpReturnTx() != *ptx->GetOpReturnPayload())
-                 return {false, SocialConsensusResult_FailedOpReturn};
+            if (*tx->GetOpReturnTx() != *tx->GetOpReturnPayload())
+                return {false, SocialConsensusResult_FailedOpReturn};
+
+            return Success;
+        }
+
+        // If transaction already in DB - skip next checks
+        virtual tuple<bool, SocialConsensusResult> AlreadyExists(shared_ptr<Transaction>)
+        {
+            // TODO (brangr): implement request in repo for find by TXHASH in Transacions
+            // return {false, SocialConsensusResult_AlreadyExists};
 
             return Success;
         }
@@ -98,6 +113,16 @@ namespace PocketConsensus
         bool IsEmpty(shared_ptr<string> ptr) const { return !ptr || (*ptr).empty(); }
         bool IsEmpty(shared_ptr<int> ptr) const { return !ptr; }
         bool IsEmpty(shared_ptr<int64_t> ptr) const { return !ptr; }
+
+        // Helpers
+        bool IsIn(PocketTxType txType, const vector<PocketTxType>& inTypes)
+        {
+            for (auto inType : inTypes)
+                if (inType == txType)
+                    return true;
+
+            return false;
+        }
     };
 }
 

@@ -28,18 +28,42 @@ public:
     void Init() override;
     void Destroy() override;
 
-    bool ExistsAnotherByName(const string& address, const string& name);
+
     shared_ptr<Transaction> GetLastAccountTransaction(const string& address);
-    bool ExistsUserRegistrations(vector<string>& addresses);
     tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
     tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);
-    shared_ptr<string> GetPostAddress(const string& postHash);
-    bool ExistsComplain(const string& postHash, const string& address);
     shared_ptr<string> GetLastActiveCommentAddress(const string& rootHash);
-    bool ExistsScore(const string& address, const string& contentHash, PocketTxType type);
+
+    shared_ptr<string> GetPostAddress(const string& postHash);
     int64_t GetUserBalance(const string& address);
     int GetUserReputation(const string& addressId);
     int GetUserReputation(int addressId);
+
+    // Exists
+    bool ExistsComplain(const string& txHash, const string& postHash, const string& address);
+    bool ExistsScore(const string& address, const string& contentHash, PocketTxType type);
+    bool ExistsUserRegistrations(vector<string>& addresses);
+    bool ExistsAnotherByName(const string& address, const string& name);
+
+    // get counts in "mempool" - Height is null
+    int CountMempoolBlocking(const string& address, const string& addressTo);
+    int CountMempoolComplain(const string& address);
+
+    // get counts in "chain" - Height is not null
+    int CountChainComplain(const string& address, int64_t time)
+    {
+     /*    reindexer::Query("Complains")
+             .Where("address", CondEq, _address)
+             .Where("time", CondGe, _time - 86400)
+             .Where("block", CondLt, height),
+         complainsRes)*/
+     return 999999;
+    }
+
+
+
+
+
 };
 
 } // namespace PocketDb

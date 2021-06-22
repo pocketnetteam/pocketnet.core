@@ -2127,6 +2127,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 8: start indexers
     // TXIndex need! Force enabled!
+    // TODO (brangr): Remove after complete SQLITE?
     g_txindex = MakeUnique<TxIndex>(nTxIndexCache, false, fReindex);
     g_txindex->Start();
     // ********************************************************* Step 9: load wallet

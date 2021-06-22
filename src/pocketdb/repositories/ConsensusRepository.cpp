@@ -71,6 +71,7 @@ namespace PocketDb
         return tx;
     }
 
+    // TODO (brangr): change for vAccounts and pass type as argument
     bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
     {
         auto result = false;
@@ -153,7 +154,7 @@ namespace PocketDb
             FROM vSubscribes u
             WHERE u.AddressHash = ?
                 AND u.AddressToHash = ?
-            ORDER BY u.Height DESC, u.Time DESC
+                AND u.Last = 1
             LIMIT 1
         )sql");
 
@@ -177,6 +178,7 @@ namespace PocketDb
         return {subscribeExists, subscribeType};
     }
 
+    // TODO (brangr): change for vContents and pass type as argument
     shared_ptr<string> ConsensusRepository::GetPostAddress(const string& postHash)
     {
         shared_ptr<string> result = nullptr;
@@ -202,7 +204,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsComplain(const string& postHash, const string& address)
+    bool ConsensusRepository::ExistsComplain(const string& txHash, const string& postHash, const string& address)
     {
         bool result = false;
 
@@ -211,11 +213,13 @@ namespace PocketDb
             FROM vComplains u
             WHERE u.AddressHash = ?
                 AND u.PostTxHash = ?
+                AND u.Hash != ?
             LIMIT 1
         )sql");
 
         TryBindStatementText(stmt, 1, address);
         TryBindStatementText(stmt, 2, postHash);
+        TryBindStatementText(stmt, 3, txHash);
 
         TryTransactionStep([&]()
         {
@@ -235,28 +239,19 @@ namespace PocketDb
     {
         shared_ptr<string> result = nullptr;
 
-        auto sql = R"sql(
-                    SELECT u.AddressHash
-                    FROM vComments u
-                    WHERE u.RootTxHash = ?
-                        AND u.Last = 1
-                        AND u.Type IN (204, 205) -- Comment, CommentDelete
-                    LIMIT 1
-                )sql";
+        auto stmt = SetupSqlStatement(R"sql(
+            SELECT u.AddressHash
+            FROM vComments u
+            WHERE u.Hash = ?
+            LIMIT 1
+        )sql");
+        TryBindStatementText(stmt, 1, rootHash);
 
         TryTransactionStep([&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, 1, rootHash);
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
-                {
                     result = make_shared<string>(value);
-                }
-            }
 
             FinalizeSqlStatement(*stmt);
         });
@@ -268,30 +263,23 @@ namespace PocketDb
     {
         bool result = false;
 
-        auto sql = R"sql(
+        auto stmt = SetupSqlStatement(R"sql(
             SELECT 1
             FROM vScores u
             WHERE u.AddressHash = ?
                 AND u.ContentTxHash = ?
                 AND u.Type = ?
             LIMIT 1
-        )sql";
+        )sql");
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementText(stmt, 2, contentHash);
+        TryBindStatementInt(stmt, 3, (int) type);
 
         TryTransactionStep([&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementText(stmt, 2, contentHash);
-            TryBindStatementInt(stmt, 3, (int) type);
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                {
                     result = true;
-                }
-            }
 
             FinalizeSqlStatement(*stmt);
         });

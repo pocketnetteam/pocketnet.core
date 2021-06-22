@@ -46,35 +46,37 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, const PocketBlock& block) override
         {
-            // if (blockVtx.Exists("Blocking")) {
-            //     for (auto& mtx : blockVtx.Data["Blocking"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["address_to"].get_str() == _address_to) {
-            //             result = ANTIBOTRESULT::ManyTransactions;
-            //             return false;
-            //         }
-            //     }
-            // }
+            auto ptx = static_pointer_cast<Blocking>(tx);
+
+            // Only one transaction (address -> addressTo) allowed in block
+            for (auto blockTx : block)
+            {
+                if (!IsIn(*blockTx->GetType(), {ACTION_BLOCKING, ACTION_BLOCKING_CANCEL}))
+                    continue;
+
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                auto blockPtx = static_pointer_cast<Blocking>(blockTx);
+                if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
+                    return {false, SocialConsensusResult_ManyTransactions};
+
+            }
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx) override
         {
-            //     reindexer::QueryResults res;
-            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Blocking").Not().Where("txid", CondEq, _txid), res).ok()) {
-            //         for (auto& m : res) {
-            //             reindexer::Item mItm = m.GetItem();
-            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
+            auto ptx = static_pointer_cast<Blocking>(tx);
 
-            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Blocking");
-            //             if (t_itm.FromJSON(t_src).ok()) {
-            //                 if (t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
-            //                     if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
-            //                         result = ANTIBOTRESULT::ManyTransactions;
-            //                         return false;
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
+            int mempoolCount = ConsensusRepoInst.CountMempoolBlocking(
+                *ptx->GetAddress(),
+                *ptx->GetAddressTo()
+            );
+
+            if (mempoolCount > 0)
+                return {false, SocialConsensusResult_ManyTransactions};
+
+            return Success;
         }
 
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) override
