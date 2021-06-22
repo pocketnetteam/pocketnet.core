@@ -26,7 +26,7 @@ namespace PocketConsensus
 
     protected:
 
-        virtual int64_t GetChangeInfoTimeout() { return 3600; }
+        virtual int64_t GetChangeInfoDepth() { return 3600; }
 
 
         tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
@@ -36,13 +36,18 @@ namespace PocketConsensus
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
                 return {false, SocialConsensusResult_NicknameDouble};
 
+            return ValidateModelEdit(ptx);
+        }
+
+        virtual tuple<bool, SocialConsensusResult> ValidateModelEdit(shared_ptr <User> ptx)
+        {
             // First user account transaction allowed without next checks
             auto prevTx = ConsensusRepoInst.GetLastAccountTransaction(*ptx->GetAddress());
             if (!prevTx)
                 return Success;
 
             // We allow edit profile only with delay
-            if (!ValidateEditProfileLimit(ptx, static_pointer_cast<User>(prevTx)))
+            if ((*ptx->GetTime() - *prevTx->GetTime()) > GetChangeInfoDepth())
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
             // For edit user profile referrer not allowed
@@ -52,46 +57,35 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual bool ValidateEditProfileLimit(shared_ptr <User> tx, shared_ptr <User> prevTx)
-        {
-            return (*tx->GetTime() - *prevTx->GetTime()) > GetChangeInfoTimeout();
-        }
-
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<User>(tx);
 
+            // Only one transaction allowed in block
+            for (auto blockTx : block)
+            {
+                if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                    continue;
 
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
 
-            // if (blockVtx.Exists("Users")) {
-            //     for (auto& mtx : blockVtx.Data["Users"]) {
-            //         if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid) {
-            //             result = ANTIBOTRESULT::ChangeInfoLimit;
-            //             return false;
-            //         }
-            //     }
-            // }
+                auto blockPtx = static_pointer_cast<User>(blockTx);
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                    return {false, SocialConsensusResult_ChangeInfoLimit};
+            }
+
+            return Success;
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
         {
-            //     reindexer::QueryResults res;
-            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, _txid), res).ok()) {
-            //         for (auto& m : res) {
-            //             reindexer::Item mItm = m.GetItem();
-            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
+            auto ptx = static_pointer_cast<User>(tx);
 
-            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
-            //             if (t_itm.FromJSON(t_src).ok()) {
-            //                 if (t_itm["address"].As<string>() == _address) {
-            //                     if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
-            //                         result = ANTIBOTRESULT::ChangeInfoLimit;
-            //                         return false;
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
+            if (ConsensusRepoInst.CountMempoolAccount(*ptx->GetAddress()) > 0)
+                return {false, SocialConsensusResult_ChangeInfoLimit};
+
+            return Success;
         }
 
 
@@ -118,7 +112,7 @@ namespace PocketConsensus
 
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
-                 return make_tuple(false, SocialConsensusResult_ReferrerSelf);
+                return make_tuple(false, SocialConsensusResult_ReferrerSelf);
 
             // Maximum length for user name
             auto name = *ptx->GetPayloadName();
@@ -144,10 +138,21 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1180000; }
 
-        bool ValidateEditProfileLimit(shared_ptr <User> tx, shared_ptr <User> prevTx) override
+        tuple<bool, SocialConsensusResult> ValidateModelEdit(shared_ptr <User> ptx) override
         {
-            //return (*tx->GetHeight() - *prevTx->GetHeight()) > GetChangeInfoTimeout();
-            // TODO (brangr): implement
+            // First user account transaction allowed without next checks
+            auto[ok, prevTxHeight] = ConsensusRepoInst.GetLastAccountHeight(*ptx->GetAddress());
+            if (!ok) return Success;
+
+            // We allow edit profile only with delay
+            if ((Height - prevTxHeight) > GetChangeInfoDepth())
+                return {false, SocialConsensusResult_ChangeInfoLimit};
+
+            // For edit user profile referrer not allowed
+            if (ptx->GetReferrerAddress() != nullptr)
+                return {false, SocialConsensusResult_ReferrerAfterRegistration};
+
+            return Success;
         }
 
     public:

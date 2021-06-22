@@ -30,6 +30,8 @@ public:
 
 
     shared_ptr<Transaction> GetLastAccountTransaction(const string& address);
+    tuple<bool, int64_t> GetLastAccountHeight(const string& address); // TODO (brangr): implement
+
     tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
     tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);
     shared_ptr<string> GetLastActiveCommentAddress(const string& rootHash);
@@ -49,6 +51,7 @@ public:
     int CountMempoolBlocking(const string& address, const string& addressTo); // TODO (brangr): implement
     int CountMempoolSubscribe(const string& address, const string& addressTo); // TODO (brangr): implement
     int CountMempoolComplain(const string& address); // TODO (brangr): implement
+    int CountMempoolAccount(const string& address); // TODO (brangr): implement
 
     // get counts in "chain" - Height is not null
     int CountChainComplain(const string& address, int64_t time) // TODO (brangr): implement
