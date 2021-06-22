@@ -1887,18 +1887,6 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
-    // Rollback PocketDb
-    try
-    {
-        if (fClean)
-            PocketServices::TransactionIndexer::Rollback(pindex->nHeight);
-    }
-    catch (std::exception& ex)
-    {
-        LogPrintf("Error: Rollback failed with message: %s\n", ex.what());
-        fClean = false;
-    }
-
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }
 
@@ -2864,6 +2852,18 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     }
 
     chainActive.SetTip(pindexDelete->pprev);
+
+    // Rollback PocketDb
+    try
+    {
+        PocketServices::TransactionIndexer::Rollback(chainActive.Height());
+    }
+    catch (std::exception& ex)
+    {
+        LogPrintf("Error: Rollback failed with message: %s\n", ex.what());
+        return false;
+    }
+
     UpdateTip(pindexDelete->pprev, chainparams);
 
     // Let wallets know transactions went from 1-confirmed to
