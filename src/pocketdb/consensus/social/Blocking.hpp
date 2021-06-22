@@ -60,8 +60,9 @@ namespace PocketConsensus
                 auto blockPtx = static_pointer_cast<Blocking>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
                     return {false, SocialConsensusResult_ManyTransactions};
-
             }
+
+            return Success;
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx) override

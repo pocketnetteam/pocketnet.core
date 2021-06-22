@@ -46,11 +46,12 @@ public:
     bool ExistsAnotherByName(const string& address, const string& name);
 
     // get counts in "mempool" - Height is null
-    int CountMempoolBlocking(const string& address, const string& addressTo);
-    int CountMempoolComplain(const string& address);
+    int CountMempoolBlocking(const string& address, const string& addressTo); // TODO (brangr): implement
+    int CountMempoolSubscribe(const string& address, const string& addressTo); // TODO (brangr): implement
+    int CountMempoolComplain(const string& address); // TODO (brangr): implement
 
     // get counts in "chain" - Height is not null
-    int CountChainComplain(const string& address, int64_t time)
+    int CountChainComplain(const string& address, int64_t time) // TODO (brangr): implement
     {
      /*    reindexer::Query("Complains")
              .Where("address", CondEq, _address)
