@@ -124,7 +124,7 @@ public:
         consensus.lottery_referral_limitation = 1035000;
         consensus.checkpoint_0_19_3 = 1124000; // ~ 20210408
         consensus.checkpoint_0_19_6 = 1180000; // ~ 20210517
-        consensus.checkpoint_non_unique_account_name = 2000000; // ~ 
+        //consensus.checkpoint_non_unique_account_name = 2000000; // ~
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000251aca9d2e68aff89c"); // 1183010
@@ -248,7 +248,7 @@ public:
         consensus.lottery_referral_limitation = 0;
         consensus.checkpoint_0_19_3 = 0;
         consensus.checkpoint_0_19_6 = 1;
-        consensus.checkpoint_non_unique_account_name = 0;
+        //consensus.checkpoint_non_unique_account_name = 0;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
