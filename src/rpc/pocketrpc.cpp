@@ -2753,6 +2753,51 @@ UniValue getpagescores(const JSONRPCRequest& request)
 //--METHODS 2.0
 //----------------------------------------------------------
 //----------------------------------------------------------
+UniValue getaddressid(const JSONRPCRequest& request)
+{
+    if (request.params.size() == 0 || request.fHelp)
+        throw std::runtime_error(
+            "getaddressid\n"
+            "\n.\n");
+
+    int idaddress = -1;
+    std::string address = "";
+
+    if (request.params.size() > 0) {
+        if (request.params[0].isNum()) {
+            idaddress = request.params[0].get_int();
+        }
+        else if (request.params[0].isStr()) {
+            address = request.params[0].get_str();
+        }
+        else {
+            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid input type");
+        }
+    }
+
+    if (idaddress < 0 && address.empty()){
+        throw JSONRPCError(RPC_INVALID_PARAMS, "There is no address or id");
+    }
+
+    reindexer::Error err;
+    reindexer::Query query;
+    reindexer::QueryResults queryResults;
+
+    query = reindexer::Query("UsersView");
+    if(idaddress >= 0) {
+        query = query.Where("id", CondEq, idaddress);
+    }
+    if(!address.empty()) {
+        query = query.Where("address", CondEq, address);
+    }
+    query = query.Limit(1);
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("idaddress", idaddress);
+    result.pushKV("address", address);
+    return result;
+}
+
 UniValue converttxidaddress(const JSONRPCRequest& request)
 {
     if (request.params.size() == 0 || request.fHelp)
@@ -3784,7 +3829,7 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc", "getaddressregistration",            &getaddressregistration,            {"addresses"},                                                                         false},
     {"pocketnetrpc", "getuserstate",                      &getuserstate,                      {"address"},                                                                           false},
     {"pocketnetrpc", "gettime",                           &gettime,                           {},                                                                                    false},
-    {"pocketnetrpc", "getrecommendedposts",               &getrecommendedposts,               {"address", "count", "height", "lang", "contenttypes"},                                                                  false},
+    {"pocketnetrpc", "getrecommendedposts",               &getrecommendedposts,               {"address", "count", "height", "lang", "contenttypes"},                                false},
     {"pocketnetrpc", "getrecommendedposts2",              &getrecommendedposts2,              {"address", "count"},                                                                  false},
     {"pocketnetrpc", "searchtags",                        &searchtags,                        {"search_string", "count"},                                                            false},
     {"pocketnetrpc", "search",                            &search,                            {"search_string", "type", "count"},                                                    false},
@@ -3802,6 +3847,7 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc", "getaddressscores",                  &getaddressscores,                  {"address", "txs"},                                                                    false},
     {"pocketnetrpc", "getpostscores",                     &getpostscores,                     {"txs", "address"},                                                                    false},
     {"pocketnetrpc", "getpagescores",                     &getpagescores,                     {"txs", "address", "cmntids"},                                                         false},
+    {"pocketnetrpc", "getaddressid",                      &getaddressid,                      {"address"},                                                                           false},
     {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                                   false},
     {"pocketnetrpc", "gethistoricalstrip",                &gethistoricalstrip,                {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},
     {"pocketnetrpc", "gethierarchicalstrip",              &gethierarchicalstrip,              {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},

@@ -195,6 +195,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"gethotposts",                   2, "height"},
         {"gethotposts",                   4, "contenttypes"},
 
+        {"getaddressid",                  0, "address"},
+
         {"gethistoricalstrip",            0, "height"},
         {"gethistoricalstrip",            2, "count"},
         {"gethistoricalstrip",            4, "tags"},
