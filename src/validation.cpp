@@ -4904,31 +4904,38 @@ bool ProcessNewBlock(CValidationState& state,
         // belt-and-suspenders.
         bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
 
-        // check pocket block with general pocketnet consensus rules
-        if (ret)
-        {
-            if (!PocketConsensus::SocialConsensusHelper::Check(pocketBlock))
-            {
-                ret = false;
-                *fNewBlock = false;
-            }
-        }
-
         int64_t nTime3 = GetTimeMicros();
         nTimeVerify += nTime3 - nTime2;
         LogPrint(BCLog::BENCH, " -- Check block: %.2fms (%.3fms/txin)\n",
             MILLI * (nTime3 - nTime2),
             pocketBlock.size() <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (pocketBlock.size() - 1));
 
+        // check pocket block with general pocketnet consensus rules
+        if (ret)
+        {
+            if (!PocketConsensus::SocialConsensusHelper::Check(pocketBlock))
+            {
+                // TODO (brangr): DEBUG
+                //ret = false;
+                //*fNewBlock = false;
+            }
+        }
+
+        int64_t nTime4 = GetTimeMicros();
+        nTimeVerify += nTime4 - nTime3;
+        LogPrint(BCLog::BENCH, " -- Social check block: %.2fms (%.3fms/txin)\n",
+            MILLI * (nTime4 - nTime3),
+            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (pocketBlock.size() - 1));
+
         // Store generic block to disk
         if (ret)
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
 
-        int64_t nTime4 = GetTimeMicros();
-        nTimeVerify += nTime4 - nTime3;
+        int64_t nTime5 = GetTimeMicros();
+        nTimeVerify += nTime5 - nTime4;
         LogPrint(BCLog::BENCH, " -- Accept LeveDb: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime4 - nTime3),
-            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (pocketBlock.size() - 1));
+            MILLI * (nTime5 - nTime4),
+            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (pocketBlock.size() - 1));
 
         // Store pocketnet block to disk
         if (ret)
@@ -4945,11 +4952,11 @@ bool ProcessNewBlock(CValidationState& state,
             }
         }
 
-        int64_t nTime5 = GetTimeMicros();
-        nTimeVerify += nTime5 - nTime4;
+        int64_t nTime6 = GetTimeMicros();
+        nTimeVerify += nTime6 - nTime5;
         LogPrint(BCLog::BENCH, " -- Accept SQLite: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime5 - nTime4),
-            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (pocketBlock.size() - 1));
+            MILLI * (nTime6 - nTime5),
+            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (pocketBlock.size() - 1));
 
         // Check FAILED
         if (!ret)
@@ -5545,10 +5552,8 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
             {
                 LogPrintf("\nWarning: found lost payload data (block: %s) - continue work from this height: %d\n",
                     block.GetHash().GetHex(), pindex->nHeight);
-                break;
-
-                //return error("VerifyDB(): *** ReadBlockPayloadFromDisk failed at %d, hash=%s", pindex->nHeight,
-                //    pindex->GetBlockHash().ToString());
+                return error("VerifyDB(): *** ReadBlockPayloadFromDisk failed at %d, hash=%s", pindex->nHeight,
+                    pindex->GetBlockHash().ToString());
             }
 
             if (!g_chainstate.ConnectBlock(block, *pocketBlock, state, pindex, coins, chainparams))

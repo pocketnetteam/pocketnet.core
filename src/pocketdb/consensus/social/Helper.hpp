@@ -54,7 +54,7 @@ namespace PocketConsensus
                 auto consensus = GetConsensus(txType, height);
                 if (!consensus)
                 {
-                    LogPrintf("SocialConsensus type %d not found for transaction %s with block height %d\n",
+                    LogPrintf("Warning: SocialConsensus type %d not found for transaction %s with block height %d\n",
                         (int) txType, *tx->GetHash(), height);
 
                     return false;
@@ -62,8 +62,8 @@ namespace PocketConsensus
 
                 if (auto[ok, result] = consensus->Validate(tx, pBlock); !ok)
                 {
-                    LogPrintf(
-                        "SocialConsensus %d validate failed with result %d for transaction %s with block height %d\n",
+                    LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
+                              "for transaction %s with block height %d\n",
                         (int) txType, (int) result, *tx->GetHash(), height);
 
                     return false;
@@ -84,7 +84,7 @@ namespace PocketConsensus
             auto consensus = GetConsensus(txType, height);
             if (!consensus)
             {
-                LogPrintf("SocialConsensus type %d not found for transaction %s\n",
+                LogPrintf("Warning: SocialConsensus type %d not found for transaction %s\n",
                     (int) txType, *tx->GetHash());
 
                 return false;
@@ -92,8 +92,9 @@ namespace PocketConsensus
 
             if (auto[ok, result] = consensus->Validate(tx); !ok)
             {
-                LogPrintf("SocialConsensus %d validate failed with result %d for transaction %s\n",
-                    (int) txType, (int) result, *tx->GetHash());
+                LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
+                          "for transaction %s with block height %d\n",
+                    (int) txType, (int) result, *tx->GetHash(), height);
 
                 return false;
             }
@@ -124,7 +125,7 @@ namespace PocketConsensus
             auto consensus = GetConsensus(txType);
             if (!consensus)
             {
-                LogPrintf("SocialConsensus type %d not found for transaction %s\n",
+                LogPrintf("Warning: SocialConsensus type %d not found for transaction %s\n",
                     (int) txType, *tx->GetHash());
 
                 return false;
@@ -132,7 +133,7 @@ namespace PocketConsensus
 
             if (auto[ok, result] = consensus->Check(tx); !ok)
             {
-                LogPrintf("SocialConsensus %d check failed with result %d for transaction %s\n",
+                LogPrintf("Warning: SocialConsensus %d check failed with result %d for transaction %s\n",
                     (int) txType, (int) result, *tx->GetHash());
 
                 return false;
