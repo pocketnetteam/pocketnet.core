@@ -112,6 +112,8 @@ namespace PocketDb
             m_dir_path = dir_path;
             m_file_path = file_path;
 
+            LogPrintf("SQLite usage version: %d\n", (int)sqlite3_libversion_number());
+
             if (++g_sqlite_count == 1)
             {
                 // Setup logging
