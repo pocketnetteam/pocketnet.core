@@ -127,10 +127,10 @@ public:
         //consensus.checkpoint_non_unique_account_name = 2000000; // ~
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000251aca9d2e68aff89c"); // 1183010
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000027240944d0d13a869c"); // 1233867
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x7353f0dcdc808aefadcb017e913092d92b8cb3bef980db30ceb4dc760d42eb4d"); // 1183010
+        consensus.defaultAssumeValid = uint256S("0xa16e475cda9aebc2cc7c48ac1c0f68b70b2b6702cf9bf22416ac6a1e7645f3e1"); // 1233867
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
