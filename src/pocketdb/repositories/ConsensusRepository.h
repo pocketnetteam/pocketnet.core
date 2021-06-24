@@ -48,10 +48,10 @@ public:
     bool ExistsAnotherByName(const string& address, const string& name);
 
     // get counts in "mempool" - Height is null
-    int CountMempoolBlocking(const string& address, const string& addressTo); // TODO (brangr): implement
-    int CountMempoolSubscribe(const string& address, const string& addressTo); // TODO (brangr): implement
-    int CountMempoolComplain(const string& address); // TODO (brangr): implement
-    int CountMempoolAccount(const string& address); // TODO (brangr): implement
+    int CountMempoolBlocking(const string& address, const string& addressTo) {return 0;} // TODO (brangr): implement
+    int CountMempoolSubscribe(const string& address, const string& addressTo) {return 0;} // TODO (brangr): implement
+    int CountMempoolComplain(const string& address) {return 0;} // TODO (brangr): implement
+    int CountMempoolAccount(const string& address) {return 0;} // TODO (brangr): implement
 
     // get counts in "chain" - Height is not null
     int CountChainComplain(const string& address, int64_t time) // TODO (brangr): implement
