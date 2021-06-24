@@ -101,6 +101,8 @@ POCKETDB_HPP = \
     pocketdb/helpers/TypesHelper.hpp \
     pocketdb/web/PocketCommentsRpc.h \
     pocketdb/web/PocketCommentsRpc.cpp \
+    pocketdb/web/PocketSystemRpc.h \
+    pocketdb/web/PocketSystemRpc.cpp \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/repositories/WebRepository.h \
