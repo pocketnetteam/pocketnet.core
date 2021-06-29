@@ -577,6 +577,186 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
     }
 }
 
+static bool rest_test(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+    std::string param;
+    const RetFormat rf = ParseDataFormat(param, strURIPart);
+
+    std::vector<std::string> uriParts;
+    if (param.length() > 1) {
+        std::string strUriParams = param.substr(1);
+        boost::split(uriParts, strUriParams, boost::is_any_of("/"));
+    }
+
+    // throw exception in case of an empty request
+    std::string strRequestMutable = req->ReadBody();
+    if (strRequestMutable.length() == 0 && uriParts.size() == 0)
+        return RESTERR(req, HTTP_BAD_REQUEST, "Error: empty request");
+
+    bool fInputParsed = false;
+    bool fCheckMemPool = false;
+    std::vector<COutPoint> vOutPoints;
+
+    // parse/deserialize input
+    // input-format = output-format, rest/getutxos/bin requires binary input, gives binary output, ...
+
+    if (uriParts.size() > 0) {
+        //inputs is sent over URI scheme (/rest/getutxos/checkmempool/txid1-n/txid2-n/...)
+        if (uriParts[0] == "checkmempool") fCheckMemPool = true;
+
+        for (size_t i = (fCheckMemPool) ? 1 : 0; i < uriParts.size(); i++) {
+            uint256 txid;
+            int32_t nOutput;
+            std::string strTxid = uriParts[i].substr(0, uriParts[i].find('-'));
+            std::string strOutput = uriParts[i].substr(uriParts[i].find('-') + 1);
+
+            if (!ParseInt32(strOutput, &nOutput) || !IsHex(strTxid))
+                return RESTERR(req, HTTP_BAD_REQUEST, "Parse error");
+
+            txid.SetHex(strTxid);
+            vOutPoints.push_back(COutPoint(txid, (uint32_t)nOutput));
+        }
+
+        if (vOutPoints.size() > 0)
+            fInputParsed = true;
+        else
+            return RESTERR(req, HTTP_BAD_REQUEST, "Error: empty request");
+    }
+
+    switch (rf) {
+    case RetFormat::HEX: {
+        // convert hex to bin, continue then with bin part
+        std::vector<unsigned char> strRequestV = ParseHex(strRequestMutable);
+        strRequestMutable.assign(strRequestV.begin(), strRequestV.end());
+    }
+
+    case RetFormat::BINARY: {
+        try {
+            //deserialize only if user sent a request
+            if (strRequestMutable.size() > 0) {
+                if (fInputParsed) //don't allow sending input over URI and HTTP RAW DATA
+                    return RESTERR(req, HTTP_BAD_REQUEST, "Combination of URI scheme inputs and raw post data is not allowed");
+
+                CDataStream oss(SER_NETWORK, PROTOCOL_VERSION);
+                oss << strRequestMutable;
+                oss >> fCheckMemPool;
+                oss >> vOutPoints;
+            }
+        } catch (const std::ios_base::failure&) {
+            // abort in case of unreadable binary data
+            return RESTERR(req, HTTP_BAD_REQUEST, "Parse error");
+        }
+        break;
+    }
+
+    case RetFormat::JSON: {
+        if (!fInputParsed)
+            return RESTERR(req, HTTP_BAD_REQUEST, "Error: empty request");
+        break;
+    }
+    default: {
+        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: " + AvailableDataFormatsString() + ")");
+    }
+    }
+
+    // limit max outpoints
+    if (vOutPoints.size() > MAX_GETUTXOS_OUTPOINTS)
+        return RESTERR(req, HTTP_BAD_REQUEST, strprintf("Error: max outpoints exceeded (max: %d, tried: %d)", MAX_GETUTXOS_OUTPOINTS, vOutPoints.size()));
+
+    // check spentness and form a bitmap (as well as a JSON capable human-readable string representation)
+    std::vector<unsigned char> bitmap;
+    std::vector<CCoin> outs;
+    std::string bitmapStringRepresentation;
+    std::vector<bool> hits;
+    bitmap.resize((vOutPoints.size() + 7) / 8);
+    {
+        auto process_utxos = [&vOutPoints, &outs, &hits](const CCoinsView& view, const CTxMemPool& mempool) {
+            for (const COutPoint& vOutPoint : vOutPoints) {
+                Coin coin;
+                bool hit = !mempool.isSpent(vOutPoint) && view.GetCoin(vOutPoint, coin);
+                hits.push_back(hit);
+                if (hit) outs.emplace_back(std::move(coin));
+            }
+        };
+
+        if (fCheckMemPool) {
+            // use db+mempool as cache backend in case user likes to query mempool
+            LOCK2(cs_main, mempool.cs);
+            CCoinsViewCache& viewChain = *pcoinsTip;
+            CCoinsViewMemPool viewMempool(&viewChain, mempool);
+            process_utxos(viewMempool, mempool);
+        } else {
+            LOCK(cs_main); // no need to lock mempool!
+            process_utxos(*pcoinsTip, CTxMemPool());
+        }
+
+        for (size_t i = 0; i < hits.size(); ++i) {
+            const bool hit = hits[i];
+            bitmapStringRepresentation.append(hit ? "1" : "0"); // form a binary string representation (human-readable for json output)
+            bitmap[i / 8] |= ((uint8_t)hit) << (i % 8);
+        }
+    }
+
+    switch (rf) {
+    case RetFormat::BINARY: {
+        // serialize data
+        // use exact same output as mentioned in Bip64
+        CDataStream ssGetUTXOResponse(SER_NETWORK, PROTOCOL_VERSION);
+        ssGetUTXOResponse << chainActive.Height() << chainActive.Tip()->GetBlockHash() << bitmap << outs;
+        std::string ssGetUTXOResponseString = ssGetUTXOResponse.str();
+
+        req->WriteHeader("Content-Type", "application/octet-stream");
+        req->WriteReply(HTTP_OK, ssGetUTXOResponseString);
+        return true;
+    }
+
+    case RetFormat::HEX: {
+        CDataStream ssGetUTXOResponse(SER_NETWORK, PROTOCOL_VERSION);
+        ssGetUTXOResponse << chainActive.Height() << chainActive.Tip()->GetBlockHash() << bitmap << outs;
+        std::string strHex = HexStr(ssGetUTXOResponse.begin(), ssGetUTXOResponse.end()) + "\n";
+
+        req->WriteHeader("Content-Type", "text/plain");
+        req->WriteReply(HTTP_OK, strHex);
+        return true;
+    }
+
+    case RetFormat::JSON: {
+        UniValue objGetUTXOResponse(UniValue::VOBJ);
+
+        // pack in some essentials
+        // use more or less the same output as mentioned in Bip64
+        objGetUTXOResponse.pushKV("chainHeight", chainActive.Height());
+        objGetUTXOResponse.pushKV("chaintipHash", chainActive.Tip()->GetBlockHash().GetHex());
+        objGetUTXOResponse.pushKV("bitmap", bitmapStringRepresentation);
+
+        UniValue utxos(UniValue::VARR);
+        for (const CCoin& coin : outs) {
+            UniValue utxo(UniValue::VOBJ);
+            utxo.pushKV("height", (int32_t)coin.nHeight);
+            utxo.pushKV("value", ValueFromAmount(coin.out.nValue));
+
+            // include the script in a json output
+            UniValue o(UniValue::VOBJ);
+            ScriptPubKeyToUniv(coin.out.scriptPubKey, o, true);
+            utxo.pushKV("scriptPubKey", o);
+            utxos.push_back(utxo);
+        }
+        objGetUTXOResponse.pushKV("utxos", utxos);
+
+        // return json string
+        std::string strJSON = objGetUTXOResponse.write() + "\n";
+        req->WriteHeader("Content-Type", "application/json");
+        req->WriteReply(HTTP_OK, strJSON);
+        return true;
+    }
+    default: {
+        return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: " + AvailableDataFormatsString() + ")");
+    }
+    }
+}
+
 static const struct {
     const char* prefix;
     bool (*handler)(HTTPRequest* req, const std::string& strReq);
@@ -589,6 +769,7 @@ static const struct {
       {"/rest/mempool/contents", rest_mempool_contents},
       {"/rest/headers/", rest_headers},
       {"/rest/getutxos", rest_getutxos},
+      {"/rest/test", rest_test},
 };
 
 void StartREST()

@@ -580,7 +580,9 @@ POCKETCOIN_CORE_H = \
     html.cpp \
     html.h \
     pocketdb/pocketnet.cpp \
-    pocketdb/pocketnet.h
+    pocketdb/pocketnet.h \
+    pocketdb/services/NftFileService.h \
+    pocketdb/services/NftFileService.cpp
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
