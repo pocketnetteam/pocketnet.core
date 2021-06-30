@@ -328,7 +328,7 @@ UniValue PocketDb::WebRepository::GetPageScores(std::vector<std::string>& commen
             AND c.Last = 1
     )sql";
 
-    sql += "AND sc.PostTxHash IN ('";
+    sql += "AND c.RootTxHash IN ('";
     sql += commentHashes[0];
     sql += "'";
     for (size_t i = 1; i < commentHashes.size(); i++)
