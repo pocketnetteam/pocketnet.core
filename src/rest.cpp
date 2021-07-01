@@ -125,6 +125,24 @@ static std::tuple<bool, int> TryGetParamInt(std::vector<std::string>& uriParts, 
     }
 }
 
+static std::tuple<bool, std::string> TryGetParamStr(std::vector<std::string>& uriParts, int index)
+{
+    try
+    {
+        if ((int) uriParts.size() > index)
+        {
+            auto val = uriParts[index];
+            return std::make_tuple(true, val);
+        }
+
+        return std::make_tuple(false, "");
+    }
+    catch (...)
+    {
+        return std::make_tuple(false, "");
+    }
+}
+
 static std::string AvailableDataFormatsString()
 {
     std::string formats;
@@ -867,6 +885,23 @@ static bool debug_rewards_check(HTTPRequest* req, const std::string& strURIPart)
     // TODO (brangr): implement
 }
 
+static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    auto[rf, uriParts] = ParseParams(strURIPart);
+
+    if (auto[ok, result] = TryGetParamStr(uriParts, 0); ok)
+    {
+        req->WriteHeader("Content-Type", "text/html");
+        req->WriteReply(HTTP_OK, "<html><head><script src='main.js'></script></head><body>Hello World! " + result + "</body></html>");
+        return true;
+    }
+
+    return RESTERR(req, HTTP_NOT_FOUND, "");
+}
+
 static const struct
 {
     const char* prefix;
@@ -881,15 +916,18 @@ static const struct
     {"/rest/mempool/contents",   rest_mempool_contents},
     {"/rest/headers/",           rest_headers},
     {"/rest/getutxos",           rest_getutxos},
-
     {"/rest/emission",           rest_emission},
     {"/rest/getemission",        rest_emission},
     {"/rest/topaddresses",       rest_topaddresses},
     {"/rest/gettopaddresses",    rest_topaddresses},
     {"/rest/blockhash",          rest_blockhash},
 
+    // Debug
     {"/rest/pindexblock",        debug_index_block},
     {"/rest/prewards",           debug_rewards_check},
+
+    // For static web
+    {"/web",           get_static_web},
 };
 
 void StartREST()
