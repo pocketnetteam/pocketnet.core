@@ -244,8 +244,13 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
             return false;
 
         // Check consensus
-        if (!PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlock, chainActive.Height() + 1))
+        auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlock, chainActive.Height() + 1);
+        if (!ok)
+        {
+            LogPrintf("Warning: build block skip transaction %s with result %d\n",
+                tx->GetHash().GetHex(), (int)result);
             return false;
+        }
 
         // TODO (brangr): NEED ? чет мне кажется лищнее это...
         //     if (!g_antibot->CheckInputs(tx)) {

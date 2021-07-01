@@ -41,12 +41,56 @@ namespace PocketConsensus
     {
     public:
 
-        static bool Validate(shared_ptr<Transaction> tx, shared_ptr<PocketBlock> block, int height)
+        // TODO (brangr): я бы избавился от этих методов - позволив принимать решения по
+        // результатам каждой конекретной проверки в момент вызова
+        static bool Validate(PocketBlock& block, int height)
+        {
+            for (auto tx : block)
+            {
+                if (auto[ok, result] = Validate(tx, block, true, height); !ok)
+                    return false;
+            }
+
+            return true;
+        }
+
+        static tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, int height)
+        {
+            PocketBlock block;
+            return Validate(tx, block, false, height);
+        }
+
+        static tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block, int height)
+        {
+            return Validate(tx, block, true, height);
+        }
+
+        // Проверяет блок транзакций без привязки к цепи
+        static bool Check(const PocketBlock& pBlock)
+        {
+            for (auto tx : pBlock)
+            {
+                if (auto[ok, result] = ValidateCheck(tx); !ok)
+                    return false;
+            }
+
+            return true;
+        }
+
+        // Проверяет транзакцию без привязки к цепи
+        static tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx)
+        {
+            return ValidateCheck(tx);
+        }
+
+    protected:
+
+        static tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block, bool inBlock, int height)
         {
             auto txType = *tx->GetType();
 
             if (!IsConsensusable(txType))
-                return true;
+                return {true, SocialConsensusResult_Success};
 
             auto consensus = GetConsensus(txType, height);
             if (!consensus)
@@ -54,18 +98,18 @@ namespace PocketConsensus
                 LogPrintf("Warning: SocialConsensus type %d not found for transaction %s\n",
                     (int) txType, *tx->GetHash());
 
-                return false;
+                return {false, SocialConsensusResult_Unknown};
             }
 
-            if (block)
+            if (inBlock)
             {
-                if (auto[ok, result] = consensus->Validate(tx, *block); !ok)
+                if (auto[ok, result] = consensus->Validate(tx, block); !ok)
                 {
                     LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
                               "for transaction %s with block at height %d\n",
                         (int) txType, (int) result, *tx->GetHash(), height);
 
-                    return false;
+                    return {false, result};
                 }
             }
             else
@@ -76,56 +120,19 @@ namespace PocketConsensus
                               "for transaction %s without block at height %d\n",
                         (int) txType, (int) result, *tx->GetHash(), height);
 
-                    return false;
+                    return {false, result};
                 }
             }
 
-            return true;
+            return {true, SocialConsensusResult_Success};
         }
 
-        static bool Validate(PocketBlock& block, int height)
-        {
-            auto pBlock = make_shared<PocketBlock>(block);
-
-            for (auto tx : block)
-            {
-                if (!Validate(tx, pBlock, height))
-                    return false;
-            }
-
-            return true;
-        }
-
-        static bool Validate(shared_ptr<Transaction> tx, int height)
-        {
-            return Validate(tx, nullptr, height);
-        }
-
-        static bool Validate(shared_ptr<Transaction> tx, PocketBlock& block, int height)
-        {
-            auto pBlock = make_shared<PocketBlock>(block);
-            return Validate(tx, pBlock, height);
-        }
-
-        // Проверяет блок транзакций без привязки к цепи
-        static bool Check(const PocketBlock& pBlock)
-        {
-            for (auto tx : pBlock)
-            {
-                if (!Check(tx))
-                    return false;
-            }
-
-            return true;
-        }
-
-        // Проверяет транзакцию без привязки к цепи
-        static bool Check(shared_ptr<Transaction> tx)
+        static tuple<bool, SocialConsensusResult> ValidateCheck(shared_ptr<Transaction> tx)
         {
             auto txType = *tx->GetType();
 
             if (!IsConsensusable(txType))
-                return true;
+                return {true, SocialConsensusResult_Success};
 
             auto consensus = GetConsensus(txType);
             if (!consensus)
@@ -133,7 +140,7 @@ namespace PocketConsensus
                 LogPrintf("Warning: SocialConsensus type %d not found for transaction %s\n",
                     (int) txType, *tx->GetHash());
 
-                return false;
+                return {false, SocialConsensusResult_Unknown};
             }
 
             if (auto[ok, result] = consensus->Check(tx); !ok)
@@ -141,13 +148,11 @@ namespace PocketConsensus
                 LogPrintf("Warning: SocialConsensus %d check failed with result %d for transaction %s\n",
                     (int) txType, (int) result, *tx->GetHash());
 
-                return false;
+                return {false, result};
             }
 
-            return true;
+            return {true, SocialConsensusResult_Success};
         }
-
-    protected:
 
         static bool IsConsensusable(PocketTxType txType)
         {
