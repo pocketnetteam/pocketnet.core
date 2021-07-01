@@ -16,6 +16,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 
 #include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/consensus/social/Helper.hpp"
 
 class CBlockIndex;
 class CChainParams;

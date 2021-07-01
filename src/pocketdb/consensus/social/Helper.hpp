@@ -41,40 +41,7 @@ namespace PocketConsensus
     {
     public:
 
-        // Проверяет все консенсусные правила для блока относительно генерируемой цепи
-        static bool Validate(const PocketBlock& pBlock, int height)
-        {
-            for (auto tx : pBlock)
-            {
-                auto txType = *tx->GetType();
-
-                if (!IsConsensusable(txType))
-                    continue;
-
-                auto consensus = GetConsensus(txType, height);
-                if (!consensus)
-                {
-                    LogPrintf("Warning: SocialConsensus type %d not found for transaction %s with block height %d\n",
-                        (int) txType, *tx->GetHash(), height);
-
-                    return false;
-                }
-
-                if (auto[ok, result] = consensus->Validate(tx, pBlock); !ok)
-                {
-                    LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
-                              "for transaction %s with block height %d\n",
-                        (int) txType, (int) result, *tx->GetHash(), height);
-
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        // Проверяет транзакцию относительно генерируемой цепи
-        static bool Validate(shared_ptr<Transaction> tx, int height)
+        static bool Validate(shared_ptr<Transaction> tx, shared_ptr<PocketBlock> block, int height)
         {
             auto txType = *tx->GetType();
 
@@ -90,16 +57,54 @@ namespace PocketConsensus
                 return false;
             }
 
-            if (auto[ok, result] = consensus->Validate(tx); !ok)
+            if (block)
             {
-                LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
-                          "for transaction %s with block height %d\n",
-                    (int) txType, (int) result, *tx->GetHash(), height);
+                if (auto[ok, result] = consensus->Validate(tx, *block); !ok)
+                {
+                    LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
+                              "for transaction %s with block at height %d\n",
+                        (int) txType, (int) result, *tx->GetHash(), height);
 
-                return false;
+                    return false;
+                }
+            }
+            else
+            {
+                if (auto[ok, result] = consensus->Validate(tx); !ok)
+                {
+                    LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
+                              "for transaction %s without block at height %d\n",
+                        (int) txType, (int) result, *tx->GetHash(), height);
+
+                    return false;
+                }
             }
 
             return true;
+        }
+
+        static bool Validate(PocketBlock& block, int height)
+        {
+            auto pBlock = make_shared<PocketBlock>(block);
+
+            for (auto tx : block)
+            {
+                if (!Validate(tx, pBlock, height))
+                    return false;
+            }
+
+            return true;
+        }
+
+        static bool Validate(shared_ptr<Transaction> tx, int height)
+        {
+            return Validate(tx, nullptr, height);
+        }
+
+        static bool Validate(shared_ptr<Transaction> tx, PocketBlock& block, int height)
+        {
+            auto pBlock = make_shared<PocketBlock>(block);
+            return Validate(tx, pBlock, height);
         }
 
         // Проверяет блок транзакций без привязки к цепи

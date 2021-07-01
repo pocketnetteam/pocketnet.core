@@ -293,7 +293,7 @@ namespace PocketDb
             return result;
         }
 
-        shared_ptr<Transaction> GetById(string& hash, bool includePayload = false)
+        shared_ptr<Transaction> GetById(const string& hash, bool includePayload = false)
         {
             auto lst = GetList({ hash }, includePayload);
             if (!lst->empty())

@@ -89,7 +89,7 @@ BlockAssembler::BlockAssembler(const CChainParams& params) : BlockAssembler(para
 void BlockAssembler::resetBlock()
 {
     inBlock.clear();
-    //blockVtx = {};
+    pocketBlock.clear();
 
     // Reserve space for coinbase tx
     nBlockWeight = 4000;
@@ -234,57 +234,30 @@ void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
 
 bool BlockAssembler::TestTransaction(CTransactionRef& tx)
 {
-    // TODO (brangr): REINDEXER -> SQLITE
-    // Принять аргументом инстанс единого консенсуса для моделей
-    // Проверить валидность включаемой в блок транзакции
+    // Read transaction social payload
+    if (PocketHelpers::IsPocketTransaction(tx))
+    {
+        auto ptx = PocketDb::TransRepoInst.GetById(tx->GetHash().GetHex(), true);
+
+        // Payload should be in operative table Transactions
+        if (!ptx)
+            return false;
+
+        // Check consensus
+        if (!PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlock, chainActive.Height() + 1))
+            return false;
+
+        // TODO (brangr): NEED ? чет мне кажется лищнее это...
+        //     if (!g_antibot->CheckInputs(tx)) {
+        //         LogPrintf("Warning! Block generate (CheckInputs): %s\n", txid);
+        //         return false;
+        //     }
+
+        // Al is good - save for descendants
+        pocketBlock.push_back(ptx);
+    }
+
     return true;
-
-    // std::string ri_table;
-    // if (g_addrindex->GetPocketnetTXType(tx, ri_table)) {
-    //     reindexer::Item itm;
-    //     std::string txid = tx->GetHash().GetHex();
-
-    //     if (g_pocketdb->SelectOne(reindexer::Query("Mempool").Where("txid", CondEq, txid), itm).ok()) {
-    //         ri_table = itm["table"].As<string>();
-    //         std::string _data = itm["data"].As<string>();
-
-    //         itm = g_pocketdb->DB()->NewItem(ri_table);
-    //         std::string itmSrc = DecodeBase64(_data);
-    //         if (!itm.FromJSON(itmSrc).ok()) {
-    //             LogPrintf("Warning! Block generate (parse): %s\n", txid);
-    //             return false;
-    //         }
-    //     }
-    //     else {
-    //         LogPrintf("Warning! Block generate (notfound): %s\n", txid);
-    //         return false;
-    //     }
-
-    //     UniValue oitm = g_addrindex->GetUniValue(tx, itm, ri_table);
-    //     ANTIBOTRESULT resultCode;
-    //     g_antibot->CheckTransactionRIItem(oitm, blockVtx, false, chainActive.Height() + 1, resultCode);
-    //     if (resultCode != ANTIBOTRESULT::Success) {
-    //         return false;
-    //     }
-
-    //     if (!g_antibot->CheckInputs(tx)) {
-    //         LogPrintf("Warning! Block generate (CheckInputs): %s\n", txid);
-    //         return false;
-    //     }
-
-    //     // Al is good - save for descendants
-    //     blockVtx.Add(ri_table, oitm);
-
-    //     // For temporary test block
-    //     if (chainActive.Height()+1 < Params().GetConsensus().checkpoint_0_19_3) {
-    //         if (ri_table == "Scores" && !g_antibot->CheckBlock(blockVtx, chainActive.Height() + 1)) {
-    //             blockVtx.RemoveLast(ri_table);
-    //             return false;
-    //         }
-    //     }
-    // }
-
-    // return true;
 }
 
 bool BlockAssembler::TestPackage(uint64_t packageSize, int64_t packageSigOpsCost) const
@@ -342,8 +315,6 @@ bool BlockAssembler::AddToBlock(CTxMemPool::txiter iter)
 int BlockAssembler::UpdatePackagesForAdded(const CTxMemPool::setEntries& alreadyAdded,
     indexed_modified_transaction_set& mapModifiedTx)
 {
-    // TODO (brangr): get descedants for pocketnet transactions
-
     int nDescendantsUpdated = 0;
     for (CTxMemPool::txiter it : alreadyAdded)
     {
