@@ -2378,7 +2378,7 @@ UniValue getlastcomments(const JSONRPCRequest& request)
 
     int resultCount = 10;
     if (request.params.size() > 0) {
-        if (request.params[2].isNum()) {
+        if (request.params[0].isNum()) {
             resultCount = request.params[0].get_int();
         }
     }
@@ -2541,7 +2541,9 @@ UniValue getpostscores(const JSONRPCRequest& request)
 
     reindexer::QueryResults queryRes1;
     g_pocketdb->DB()->Select(
-        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds).InnerJoin("address", "address_to", CondEq, Query("SubscribesView").Where("address", CondEq, address)).InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address))
+        reindexer::Query("Scores").Where("posttxid", CondSet, TxIds)
+            .InnerJoin("address", "address_to", CondEq, Query("SubscribesView").Where("address", CondEq, address))
+            .InnerJoin("address", "address", CondEq, Query("UsersView").Where("address", CondEq, address))
         //.Sort("txid", true).Sort("private", true).Sort("reputation", true)
         ,
         queryRes1);
@@ -3369,6 +3371,19 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
                     }
                 }
             }
+        }
+    }
+
+    // Do not show posts from users with reputation < Limit::bad_reputation
+    {
+        int64_t _bad_reputation_limit = GetActualLimit(Limit::bad_reputation, chainActive.Height());
+        reindexer::QueryResults queryResultsBadReputation;
+        reindexer::Error errorBadReputation = g_pocketdb->DB()->Select(reindexer::Query("UsersView").Where("reputation", CondLe, _bad_reputation_limit), queryResultsBadReputation);
+
+        for (auto it : queryResultsBadReputation) {
+            reindexer::Item itm(it.GetItem());
+            adrsExcluded.push_back(itm["address"].As<string>());
+            uvAdrsExcluded.push_back(itm["address"].As<string>());
         }
     }
 
