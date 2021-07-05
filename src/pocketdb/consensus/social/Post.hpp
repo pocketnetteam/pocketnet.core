@@ -62,15 +62,20 @@ namespace PocketConsensus
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
+            // Change type not allowed
+            if (*originalTx->GetType() != *tx->GetType())
+                return {false, SocialConsensusResult_NotAllowed};
+
+            // Cast tx to Post for next checks
             auto originalPostTx = static_pointer_cast<Post>(originalTx);
 
             // You are author? Really?
             if (*tx->GetAddress() != *originalPostTx->GetAddress())
-                return {false, SocialConsensusResult_PostEditUnauthorized};
+                return {false, SocialConsensusResult_ContentEditUnauthorized};
 
             // Original post edit only 24 hours
             if ((*tx->GetTime() - *originalPostTx->GetTime()) > GetEditPostWindow())
-                return {false, SocialConsensusResult_PostEditLimit};
+                return {false, SocialConsensusResult_ContentEditLimit};
 
             return make_tuple(true, SocialConsensusResult_Success);
         }
@@ -95,9 +100,10 @@ namespace PocketConsensus
             // New posts
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainPost(
+            int count = ConsensusRepoInst.CountChainContent(
                 *ptx->GetAddress(),
-                *ptx->GetTime()
+                *ptx->GetTime(),
+                PocketTxType::CONTENT_POST
             );
 
             // Get count from block
@@ -133,12 +139,13 @@ namespace PocketConsensus
             // New posts
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainPost(
+            int count = ConsensusRepoInst.CountChainContent(
                 *ptx->GetAddress(),
-                *ptx->GetTime()
+                *ptx->GetTime(),
+                PocketTxType::CONTENT_POST
             );
 
-            count += ConsensusRepoInst.CountMempoolPost(*ptx->GetAddress());
+            count += ConsensusRepoInst.CountMempoolContent(*ptx->GetAddress(), PocketTxType::CONTENT_POST);
 
             return ValidateLimit(ptx, count);
         }
@@ -150,7 +157,7 @@ namespace PocketConsensus
             auto limit = GetLimit(mode);
 
             if (count >= limit)
-                return {false, SocialConsensusResult_PostLimit};
+                return {false, SocialConsensusResult_ContentLimit};
 
             return Success;
         }
@@ -170,26 +177,26 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<Post>(blockTx);
                 if (*tx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, SocialConsensusResult_DoublePostEdit};
+                    return {false, SocialConsensusResult_DoubleContentEdit};
             }
 
             // Check edit one post limit
-            int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetRootTxHash());
+            int count = ConsensusRepoInst.CountChainContentEdit(*tx->GetRootTxHash());
 
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetEditLimit(mode);
 
             if (count >= limit)
-                return {false, SocialConsensusResult_PostEditLimit};
+                return {false, SocialConsensusResult_ContentEditLimit};
 
             return Success;
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx)
         {
-            if (ConsensusRepoInst.CountMempoolPostEdit(*tx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_DoublePostEdit};
+            if (ConsensusRepoInst.CountMempoolContentEdit(*tx->GetRootTxHash()) > 0)
+                return {false, SocialConsensusResult_DoubleContentEdit};
 
             return Success;
         }
@@ -249,6 +256,7 @@ namespace PocketConsensus
     private:
         const std::map<int, std::function<PostConsensus*(int height)>> m_rules =
             {
+                {1124000, [](int height) { return new PostConsensus_checkpoint_1124000(height); }},
                 {0, [](int height) { return new PostConsensus(height); }},
             };
     public:

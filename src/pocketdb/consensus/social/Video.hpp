@@ -14,7 +14,7 @@ namespace PocketConsensus
 {
     /*******************************************************************************************************************
     *
-    *  Post consensus base class
+    *  Video consensus base class
     *
     *******************************************************************************************************************/
     class VideoConsensus : public SocialBaseConsensus
@@ -24,6 +24,7 @@ namespace PocketConsensus
 
     protected:
 
+        // TODO (brangr): setup limits after close https://github.com/pocketnetteam/pocketnet.core/issues/22
         virtual int64_t GetEditWindow() { return 86400; }
         virtual int64_t GetFullLimit() { return 30; }
         virtual int64_t GetFullEditLimit() { return 5; }
@@ -43,7 +44,7 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
         {
-            auto ptx = static_pointer_cast<Post>(tx);
+            auto ptx = static_pointer_cast<Video>(tx);
 
             vector<string> addresses = {*ptx->GetAddress()};
             if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
@@ -55,66 +56,64 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditModel(shared_ptr <Post> tx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditModel(shared_ptr <Video> tx)
         {
             // First get original post transaction
             auto originalTx = PocketDb::TransRepoInst.GetByHash(*tx->GetRootTxHash());
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
-            auto originalPostTx = static_pointer_cast<Post>(originalTx);
+            // Change type not allowed
+            if (*originalTx->GetType() != *tx->GetType())
+                return {false, SocialConsensusResult_NotAllowed};
+
+            // Cast tx to Video for next checks
+            auto originalVideoTx = static_pointer_cast<Video>(originalTx);
 
             // You are author? Really?
-            if (*tx->GetAddress() != *originalPostTx->GetAddress())
-                return {false, SocialConsensusResult_PostEditUnauthorized};
+            if (*tx->GetAddress() != *originalVideoTx->GetAddress())
+                return {false, SocialConsensusResult_ContentEditUnauthorized};
 
             // Original post edit only 24 hours
-            if ((*tx->GetTime() - *originalPostTx->GetTime()) > GetEditWindow())
-                return {false, SocialConsensusResult_PostEditLimit};
+            if ((*tx->GetTime() - *originalVideoTx->GetTime()) > GetEditWindow())
+                return {false, SocialConsensusResult_ContentEditLimit};
 
             return make_tuple(true, SocialConsensusResult_Success);
         }
 
         // ------------------------------------------------------------------------------------------------------------
 
-        virtual bool CheckBlockLimitTime(shared_ptr <Post> ptx, shared_ptr <Post> blockPtx)
-        {
-            return *blockPtx->GetTime() <= *ptx->GetTime();
-        }
-
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, const PocketBlock& block) override
         {
-            auto ptx = static_pointer_cast<Post>(tx);
+            auto ptx = static_pointer_cast<Video>(tx);
 
             // ---------------------------------------------------------
-            // Edit posts
+            // Edit
             if (ptx->IsEdit())
                 return ValidateEditLimit(ptx, block);
 
             // ---------------------------------------------------------
-            // New posts
+            // New
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainPost(
+            int count = ConsensusRepoInst.CountChainContent(
                 *ptx->GetAddress(),
-                *ptx->GetTime()
+                *ptx->GetTime(),
+                PocketTxType::CONTENT_VIDEO
             );
 
             // Get count from block
             for (auto blockTx : block)
             {
-                if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
+                if (!IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                auto blockPtx = static_pointer_cast<Post>(blockTx);
+                auto blockPtx = static_pointer_cast<Video>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                {
-                    if (CheckBlockLimitTime(ptx, blockPtx))
-                        count += 1;
-                }
+                    count += 1;
             }
 
             return ValidateLimit(ptx, count);
@@ -122,74 +121,75 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
         {
-            auto ptx = static_pointer_cast<Post>(tx);
+            auto ptx = static_pointer_cast<Video>(tx);
 
             // ---------------------------------------------------------
-            // Edit posts
+            // Edit
             if (ptx->IsEdit())
                 return ValidateEditLimit(ptx);
 
             // ---------------------------------------------------------
-            // New posts
+            // New
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainPost(
+            int count = ConsensusRepoInst.CountChainContent(
                 *ptx->GetAddress(),
-                *ptx->GetTime()
+                *ptx->GetTime(),
+                PocketTxType::CONTENT_VIDEO
             );
 
-            count += ConsensusRepoInst.CountMempoolPost(*ptx->GetAddress());
+            count += ConsensusRepoInst.CountMempoolContent(*ptx->GetAddress(), PocketTxType::CONTENT_VIDEO);
 
             return ValidateLimit(ptx, count);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Post> tx, int count)
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Video> tx, int count)
         {
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetLimit(mode);
 
             if (count >= limit)
-                return {false, SocialConsensusResult_PostLimit};
+                return {false, SocialConsensusResult_ContentLimit};
 
             return Success;
         }
 
         // ------------------------------------------------------------------------------------------------------------
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx, const PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Video> tx, const PocketBlock& block)
         {
             // Double edit in block not allowed
             for (auto blockTx : block)
             {
-                if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
+                if (!IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
                     continue;
 
                 if (*blockTx->GetHash() == *tx->GetHash())
                     continue;
 
-                auto blockPtx = static_pointer_cast<Post>(blockTx);
+                auto blockPtx = static_pointer_cast<Video>(blockTx);
                 if (*tx->GetRootTxHash() == *blockPtx->GetRootTxHash())
-                    return {false, SocialConsensusResult_DoublePostEdit};
+                    return {false, SocialConsensusResult_DoubleContentEdit};
             }
 
-            // Check edit one post limit
-            int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetRootTxHash());
+            // Check edit one itm limit
+            int count = ConsensusRepoInst.CountChainContentEdit(*tx->GetRootTxHash());
 
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetEditLimit(mode);
 
             if (count >= limit)
-                return {false, SocialConsensusResult_PostEditLimit};
+                return {false, SocialConsensusResult_ContentEditLimit};
 
             return Success;
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Video> tx)
         {
-            if (ConsensusRepoInst.CountMempoolPostEdit(*tx->GetRootTxHash()) > 0)
-                return {false, SocialConsensusResult_DoublePostEdit};
+            if (ConsensusRepoInst.CountMempoolContentEdit(*tx->GetRootTxHash()) > 0)
+                return {false, SocialConsensusResult_DoubleContentEdit};
 
             return Success;
         }
@@ -197,46 +197,17 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
         {
-            auto ptx = static_pointer_cast<Post>(tx);
+            auto ptx = static_pointer_cast<Video>(tx);
 
             // Check required fields
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
 
+            // Repost not allowed
+            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
+
             return Success;
         }
 
-    };
-
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at ? block
-    *
-    *******************************************************************************************************************/
-    // TODO (brangr): change time to block height
-    class VideoConsensus_checkpoint_ : public VideoConsensus
-    {
-    protected:
-        int CheckpointHeight() override { return 0; }
-    public:
-        VideoConsensus_checkpoint_(int height) : VideoConsensus(height) {}
-    };
-
-    /*******************************************************************************************************************
-    *
-    *  Start checkpoint at 1124000 block
-    *
-    *******************************************************************************************************************/
-    class VideoConsensus_checkpoint_1124000 : public VideoConsensus
-    {
-    public:
-        VideoConsensus_checkpoint_1124000(int height) : VideoConsensus(height) {}
-    protected:
-        int CheckpointHeight() override { return 1124000; }
-
-        bool CheckBlockLimitTime(shared_ptr <Post> ptx, shared_ptr <Post> blockPtx) override
-        {
-            return true;
-        }
     };
 
     /*******************************************************************************************************************
