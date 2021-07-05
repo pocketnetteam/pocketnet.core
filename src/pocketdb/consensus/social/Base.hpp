@@ -53,8 +53,8 @@ namespace PocketConsensus
         // Generic transactions validating
         virtual tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx)
         {
-            if (auto[ok, result] = AlreadyExists(tx); !ok)
-                return {false, result};
+            if (AlreadyExists(tx))
+                return {true, SocialConsensusResult_AlreadyExists};
 
             if (auto[ok, result] = CheckModel(tx); !ok)
                 return {false, result};
@@ -100,12 +100,9 @@ namespace PocketConsensus
         }
 
         // If transaction already in DB - skip next checks
-        virtual tuple<bool, SocialConsensusResult> AlreadyExists(shared_ptr<Transaction>)
+        virtual bool AlreadyExists(shared_ptr<Transaction> tx)
         {
-            // TODO (brangr): implement request in repo for find by TXHASH in Transacions
-            // return {false, SocialConsensusResult_AlreadyExists};
-
-            return Success;
+            return TransRepoInst.ExistsByHash(*tx->GetHash());
         }
 
 

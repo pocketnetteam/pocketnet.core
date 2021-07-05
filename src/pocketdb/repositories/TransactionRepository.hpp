@@ -293,13 +293,35 @@ namespace PocketDb
             return result;
         }
 
-        shared_ptr<Transaction> GetById(const string& hash, bool includePayload = false)
+        shared_ptr<Transaction> GetByHash(const string& hash, bool includePayload = false)
         {
-            auto lst = GetList({ hash }, includePayload);
+            auto lst = GetList({hash}, includePayload);
             if (!lst->empty())
                 return lst->front();
-            
+
             return nullptr;
+        }
+
+        bool ExistsByHash(const string& hash)
+        {
+            bool result = false;
+
+            auto stmt = SetupSqlStatement(R"sql(
+                SELECT count(*)
+                FROM Transactions
+                WHERE Hash = ?
+            )sql");
+
+            TryTransactionStep([&]()
+            {
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                        result = (value >= 1);
+
+                FinalizeSqlStatement(*stmt);
+            });
+
+            return result;
         }
 
     private:

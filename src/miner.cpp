@@ -237,7 +237,7 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     // Read transaction social payload
     if (PocketHelpers::IsPocketTransaction(tx))
     {
-        auto ptx = PocketDb::TransRepoInst.GetById(tx->GetHash().GetHex(), true);
+        auto ptx = PocketDb::TransRepoInst.GetByHash(tx->GetHash().GetHex(), true);
 
         // Payload should be in operative table Transactions
         if (!ptx)

@@ -44,7 +44,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateEditModel(shared_ptr <Post> tx)
         {
             // First get original post transaction
-            auto originalTx = PocketDb::TransRepoInst.GetById(*tx->GetRootTxHash());
+            auto originalTx = PocketDb::TransRepoInst.GetByHash(*tx->GetRootTxHash());
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
