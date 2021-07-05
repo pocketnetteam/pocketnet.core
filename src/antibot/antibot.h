@@ -78,7 +78,9 @@ enum CHECKTYPE {
     Complain,
     Comment,
     CommentEdit,
-    CommentScore
+    CommentScore,
+    CheckType_ContentVideo,
+    CheckType_ContentVideoEdit
 };
 //-----------------------------------------------------
 enum ABMODE {

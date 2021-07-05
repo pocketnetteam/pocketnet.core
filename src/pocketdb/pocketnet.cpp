@@ -173,6 +173,16 @@ void FillLimits(const CChainParams &params)
     _trial_post_edit_limit.insert({0, 5});
     Limits.insert(std::make_pair(Limit::trial_post_edit_limit, _trial_post_edit_limit));
 
+    // trial_video_limit
+    std::map<int, int64_t> _trial_video_limit;
+    _trial_video_limit.insert({0, 15});
+    Limits.insert(std::make_pair(Limit::trial_video_limit, _trial_video_limit));
+
+    // trial_video_edit_limit
+    std::map<int, int64_t> _trial_video_edit_limit;
+    _trial_video_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::trial_video_edit_limit, _trial_video_edit_limit));
+
     // trial_score_limit
     std::map<int, int64_t> _trial_score_limit;
     _trial_score_limit.insert({0, 45});
@@ -193,6 +203,16 @@ void FillLimits(const CChainParams &params)
     std::map<int, int64_t> _full_post_edit_limit;
     _full_post_edit_limit.insert({0, 5});
     Limits.insert(std::make_pair(Limit::full_post_edit_limit, _full_post_edit_limit));
+
+    // full_video_limit
+    std::map<int, int64_t> _full_video_limit;
+    _full_video_limit.insert({0, 30});
+    Limits.insert(std::make_pair(Limit::full_video_limit, _full_video_limit));
+
+    // full_video_edit_limit
+    std::map<int, int64_t> _full_video_edit_limit;
+    _full_video_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::full_video_edit_limit, _full_video_edit_limit));
 
     // full_score_limit
     std::map<int, int64_t> _full_score_limit;
@@ -216,6 +236,11 @@ void FillLimits(const CChainParams &params)
     _edit_post_timeout.insert({0, 86400}); // seconds
     _edit_post_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 1440}); // blocks
     Limits.insert(std::make_pair(Limit::edit_post_timeout, _edit_post_timeout));
+
+    // edit_video_timeout
+    std::map<int, int64_t> _edit_video_timeout;
+    _edit_video_timeout.insert({0, 1440});
+    Limits.insert(std::make_pair(Limit::edit_video_timeout, _edit_video_timeout));
 
     // max_user_size
     std::map<int, int64_t> _max_user_size;
