@@ -311,7 +311,7 @@ bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMemp
                 mtx["txidEdit"].get_str().empty())
             {
                 if (!checkTime_19_3 || mtx["time"].get_int64() <= _time)
-                    if (!splitContent || t_itm["type"].As<int>() == (int)ContentType::ContentPost)
+                    if (!splitContent || mtx["type"].get_int() == (int)ContentType::ContentPost)
                         postsCount += 1;
             }
         }
@@ -331,7 +331,7 @@ bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMemp
 }
 
 bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
-    bool checkTime_19_6, int height, ANTIBOTRESULT& result)
+    bool checkTime_19_6, bool splitContent, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();         // Original post id
@@ -348,13 +348,15 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
 
     // Posts exists?
     reindexer::Item _original_post_itm;
-    if (!g_pocketdb->SelectOne(
-        Query("Posts").Where("txid", CondEq, _txid).Where("txidEdit", CondEq, "").Where("block", CondLt, height),
-        _original_post_itm).ok())
+    if (!g_pocketdb->SelectOne(Query("Posts")
+        .Where("txid", CondEq, _txid)
+        .Where("txidEdit", CondEq, "")
+        .Where("block", CondLt, height), _original_post_itm).ok())
     {
-        if (!g_pocketdb->SelectOne(
-            Query("PostsHistory").Where("txid", CondEq, _txid).Where("txidEdit", CondEq, "").Where("block", CondLt,
-                height), _original_post_itm).ok())
+        if (!g_pocketdb->SelectOne(Query("PostsHistory")
+            .Where("txid", CondEq, _txid)
+            .Where("txidEdit", CondEq, "")
+            .Where("block", CondLt, height), _original_post_itm).ok())
         {
             result = ANTIBOTRESULT::NotFound;
             return false;
@@ -376,8 +378,10 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
     }
 
     // Original post edit only 24 hours
-    auto depth = checkTime_19_6 ? (_time - _original_post_itm["time"].As<int64_t>()) : (height -
-                                                                                        _original_post_itm["block"].As<int>());
+    auto depth = checkTime_19_6
+        ? (_time - _original_post_itm["time"].As<int64_t>())
+        : (height - _original_post_itm["block"].As<int>());
+
     if (depth > GetActualLimit(Limit::edit_post_timeout, height))
     {
         result = ANTIBOTRESULT::PostEditLimit;
@@ -429,11 +433,16 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
     // Check limit
     {
         size_t edit_count = g_pocketdb->SelectCount(
-            Query("Posts").Where("txid", CondEq, _txid).Not().Where("txidEdit", CondEq, "").Where("block", CondLt,
-                height));
+            Query("Posts")
+                .Where("txid", CondEq, _txid)
+                .Not().Where("txidEdit", CondEq, "")
+                .Where("block", CondLt, height));
+
         edit_count += g_pocketdb->SelectCount(
-            Query("PostsHistory").Where("txid", CondEq, _txid).Not().Where("txidEdit", CondEq, "").Where("block",
-                CondLt, height));
+            Query("PostsHistory")
+                .Where("txid", CondEq, _txid)
+                .Not().Where("txidEdit", CondEq, "")
+                .Where("block", CondLt, height));
 
         ABMODE mode;
         getMode(_address, mode, height);
@@ -562,12 +571,13 @@ bool AntiBot::check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool ch
     if (!g_pocketdb->SelectOne(Query("Posts")
         .Where("txid", CondEq, _txid)
         .Where("txidEdit", CondEq, "")
-        .Where("block", CondLt, height)
-        .Where("type", CondEq, (int) ContentType::ContentVideo), _original_post_itm).ok())
+        .Where("block", CondLt, height), _original_post_itm).ok())
     {
-        if (!g_pocketdb->SelectOne(
-            Query("PostsHistory").Where("txid", CondEq, _txid).Where("txidEdit", CondEq, "").Where("block", CondLt,
-                height).Where("type", CondEq, (int) ContentType::ContentVideo), _original_post_itm).ok())
+        if (!g_pocketdb->SelectOne(Query("PostsHistory")
+            .Where("txid", CondEq, _txid)
+            .Where("txidEdit", CondEq, "")
+            .Where("block", CondLt, height)
+            , _original_post_itm).ok())
         {
             result = ANTIBOTRESULT::NotFound;
             return false;
@@ -634,7 +644,6 @@ bool AntiBot::check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool ch
                 .Where("txid", CondEq, _txid)
                 .Not().Where("txidEdit", CondEq, "")
                 .Where("block", CondLt, height)
-                .Where("type", CondEq, (int) ContentType::ContentVideo))
         );
 
         edit_count += g_pocketdb->SelectCount(
@@ -642,7 +651,6 @@ bool AntiBot::check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool ch
                 .Where("txid", CondEq, _txid)
                 .Not().Where("txidEdit", CondEq, "")
                 .Where("block", CondLt, height)
-                .Where("type", CondEq, (int) ContentType::ContentVideo))
         );
 
         ABMODE mode;
