@@ -25,7 +25,21 @@ namespace PocketConsensus
     protected:
 
         virtual int64_t GetEditPostWindow() { return 86400; }
+        virtual int64_t GetFullLimit() { return 30; }
+        virtual int64_t GetFullEditLimit() { return 5; }
+        virtual int64_t GetTrialLimit() { return 15; }
+        virtual int64_t GetTrialEditLimit() { return 5; }
 
+        virtual int64_t GetLimit(AccountMode mode)
+        {
+            return mode == AccountMode_Full ? GetFullLimit() : GetTrialLimit();
+        }
+        virtual int64_t GetEditLimit(AccountMode mode)
+        {
+            return mode == AccountMode_Full ? GetFullEditLimit() : GetTrialEditLimit();
+        }
+
+        // ------------------------------------------------------------------------------------------------------------
 
         tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
         {
@@ -58,151 +72,126 @@ namespace PocketConsensus
             if ((*tx->GetTime() - *originalPostTx->GetTime()) > GetEditPostWindow())
                 return {false, SocialConsensusResult_PostEditLimit};
 
-            // Check limit
-            // {
-            //     size_t edit_count = g_pocketdb->SelectCount(Query("Posts").Where("txid", CondEq, _txid).Not().Where("txidEdit", CondEq, "").Where("block", CondLt, height));
-            //     edit_count += g_pocketdb->SelectCount(Query("PostsHistory").Where("txid", CondEq, _txid).Not().Where("txidEdit", CondEq, "").Where("block", CondLt, height));
-
-            //     ABMODE mode;
-            //     getMode(_address, mode, height);
-            //     size_t limit = getLimit(PostEdit, mode, height);
-            //     if (edit_count >= limit) {
-            //         result = ANTIBOTRESULT::PostEditLimit;
-            //         return false;
-            //     }
-            // }
-
             return make_tuple(true, SocialConsensusResult_Success);
         }
 
+        // ------------------------------------------------------------------------------------------------------------
+
+        virtual bool CheckBlockLimitTime(shared_ptr <Post> ptx, shared_ptr <Post> blockPtx)
+        {
+            return *blockPtx->GetTime() <= *ptx->GetTime();
+        }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<Post>(tx);
 
+            // ---------------------------------------------------------
+            // Edit posts
             if (ptx->IsEdit())
                 return ValidateEditLimit(ptx, block);
 
-            // ----------------------------------
+            // ---------------------------------------------------------
+            // New posts
 
-            // // Compute count of posts for last 24 hours
-            // int postsCount = g_pocketdb->SelectCount(
-            //     Query("Posts")
-            //         .Where("address", CondEq, _address)
-            //         .Where("txidEdit", CondEq, "")
-            //         .Where("block", CondLt, height)
-            //         .Where("time", CondGe, _time - 86400)); // TODO (brangr): replace with blocks - this and all time queries
+            // Get count from chain
+            int count = ConsensusRepoInst.CountChainPost(
+                *ptx->GetAddress(),
+                *ptx->GetTime()
+            );
 
-            // // Also get posts from history
-            // postsCount += g_pocketdb->SelectCount(
-            //     Query("PostsHistory")
-            //         .Where("address", CondEq, _address)
-            //         .Where("txidEdit", CondEq, "")
-            //         .Where("block", CondLt, height)
-            //         .Where("time", CondGe, _time - 86400));
+            // Get count from block
+            for (auto blockTx : block)
+            {
+                if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
+                    continue;
 
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
 
-            // if (blockVtx.Exists("Posts")) {
-            //     for (auto& mtx : blockVtx.Data["Posts"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["txidEdit"].get_str().empty()) {
-            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
-            //                 postsCount += 1;
-            //         }
-            //     }
-            // }
+                auto blockPtx = static_pointer_cast<Post>(blockTx);
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                {
+                    if (CheckBlockLimitTime(ptx, blockPtx))
+                        count += 1;
+                }
+            }
 
-
-
-            // ABMODE mode;
-            // getMode(_address, mode, height);
-            // int limit = getLimit(Post, mode, height);
-            // if (postsCount >= limit) {
-            //     result = ANTIBOTRESULT::PostLimit;
-            //     return false;
-            // }
+            return ValidateLimit(ptx, count);
         }
-
-        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx, const PocketBlock& block)
-        {
-            // if (blockVtx.Exists("Posts")) {
-            //     for (auto& mtx : blockVtx.Data["Posts"]) {
-            //         if (mtx["txid"].get_str() == _txid && mtx["txidEdit"].get_str() != _txidEdit) {
-            //             result = ANTIBOTRESULT::DoublePostEdit;
-            //             return false;
-            //         }
-            //     }
-            // }
-        }
-
 
         tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
         {
             auto ptx = static_pointer_cast<Post>(tx);
 
+            // ---------------------------------------------------------
+            // Edit posts
             if (ptx->IsEdit())
                 return ValidateEditLimit(ptx);
 
-            // ---------------------------------
+            // ---------------------------------------------------------
+            // New posts
 
-            // // Compute count of posts for last 24 hours
-            // int postsCount = g_pocketdb->SelectCount(
-            //     Query("Posts")
-            //         .Where("address", CondEq, _address)
-            //         .Where("txidEdit", CondEq, "")
-            //         .Where("block", CondLt, height)
-            //         .Where("time", CondGe, _time - 86400)); // TODO (brangr): replace with blocks - this and all time queries
+            // Get count from chain
+            int count = ConsensusRepoInst.CountChainPost(
+                *ptx->GetAddress(),
+                *ptx->GetTime()
+            );
 
-            // // Also get posts from history
-            // postsCount += g_pocketdb->SelectCount(
-            //     Query("PostsHistory")
-            //         .Where("address", CondEq, _address)
-            //         .Where("txidEdit", CondEq, "")
-            //         .Where("block", CondLt, height)
-            //         .Where("time", CondGe, _time - 86400));
+            count += ConsensusRepoInst.CountMempoolPost(*ptx->GetAddress());
 
+            return ValidateLimit(ptx, count);
+        }
 
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Post> tx, int count)
+        {
+            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
+            auto limit = GetLimit(mode);
 
+            if (count >= limit)
+                return {false, SocialConsensusResult_PostLimit};
 
-            //     reindexer::QueryResults res;
-            //     if (g_pocketdb->Select(
-            //                     reindexer::Query("Mempool")
-            //                         .Where("table", CondEq, "Posts")
-            //                         .Where("txid_source", CondEq, "")
-            //                         .Not()
-            //                         .Where("txid", CondEq, _txid),
-            //                     res)
-            //             .ok()) {
-            //         for (auto& m : res) {
-            //             reindexer::Item mItm = m.GetItem();
-            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
+            return Success;
+        }
 
-            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
-            //             if (t_itm.FromJSON(t_src).ok()) {
-            //                 if (t_itm["address"].As<string>() == _address && t_itm["txidEdit"].As<string>().empty()) {
-            //                     if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
-            //                         postsCount += 1;
-            //                 }
-            //             }
-            //         }
-            //     }
+        // ------------------------------------------------------------------------------------------------------------
 
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx, const PocketBlock& block)
+        {
+            // Double edit in block not allowed
+            for (auto blockTx : block)
+            {
+                if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
+                    continue;
 
+                if (*blockTx->GetHash() == *tx->GetHash())
+                    continue;
 
-            // ABMODE mode;
-            // getMode(_address, mode, height);
-            // int limit = getLimit(Post, mode, height);
-            // if (postsCount >= limit) {
-            //     result = ANTIBOTRESULT::PostLimit;
-            //     return false;
-            // }
+                auto blockPtx = static_pointer_cast<Post>(blockTx);
+                if (*tx->GetRootTxHash() == *blockPtx->GetRootTxHash())
+                    return {false, SocialConsensusResult_DoublePostEdit};
+            }
+
+            // Check edit one post limit
+            int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetRootTxHash());
+
+            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
+            auto limit = GetEditLimit(mode);
+
+            if (count >= limit)
+                return {false, SocialConsensusResult_PostEditLimit};
+
+            return Success;
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx)
         {
-            //     if (g_pocketdb->Exists(reindexer::Query("Mempool").Where("table", CondEq, "Posts").Where("txid_source", CondEq, _txid))) {
-            //         result = ANTIBOTRESULT::DoublePostEdit;
-            //         return false;
-            //     }
+            if (ConsensusRepoInst.CountMempoolPostEdit(*tx->GetRootTxHash()) > 0)
+                return {false, SocialConsensusResult_DoublePostEdit};
+
+            return Success;
         }
 
 
@@ -232,6 +221,23 @@ namespace PocketConsensus
         PostConsensus_checkpoint_(int height) : PostConsensus(height) {}
     };
 
+    /*******************************************************************************************************************
+    *
+    *  Start checkpoint at 1124000 block
+    *
+    *******************************************************************************************************************/
+    class PostConsensus_checkpoint_1124000 : public PostConsensus
+    {
+    public:
+        PostConsensus_checkpoint_1124000(int height) : PostConsensus(height) {}
+    protected:
+        int CheckpointHeight() override { return 1124000; }
+
+        bool CheckBlockLimitTime(shared_ptr <Post> ptx, shared_ptr <Post> blockPtx) override
+        {
+            return true;
+        }
+    };
 
     /*******************************************************************************************************************
     *

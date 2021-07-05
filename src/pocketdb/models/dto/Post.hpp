@@ -10,7 +10,7 @@ namespace PocketTx
     {
     public:
 
-        Post(string& hash, int64_t time, shared_ptr<string> opReturn) : Transaction(hash, time, opReturn)
+        Post(string& hash, int64_t time, shared_ptr <string> opReturn) : Transaction(hash, time, opReturn)
         {
             SetType(PocketTxType::CONTENT_POST);
         }
@@ -21,7 +21,13 @@ namespace PocketTx
 
             if (GetAddress()) result->pushKV("address", *GetAddress());
             if (GetRelayTxHash()) result->pushKV("txidRepost", *GetRelayTxHash());
-            if (GetRootTxHash()) result->pushKV("txid", *GetRootTxHash()); //TODO (brangr): txidEdit
+
+            // For olf protocol edited content
+            // txid     - original content hash
+            // txidEdit - actual transaction hash
+            result->pushKV("txid", *GetRootTxHash());
+            if (*GetRootTxHash() != *GetHash())
+                result->pushKV("txidEdit", *GetHash());
 
             if (!m_payload)
             {

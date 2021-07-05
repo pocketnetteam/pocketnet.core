@@ -8,6 +8,7 @@
 #define POCKETCONSENSUS_SOCIAL_HPP
 
 #include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/consensus.h"
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/consensus/social/User.hpp"
 #include "pocketdb/consensus/social/Video.hpp"

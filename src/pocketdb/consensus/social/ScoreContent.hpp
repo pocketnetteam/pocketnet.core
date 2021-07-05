@@ -216,7 +216,8 @@ namespace PocketConsensus
             // }
 
 
-            // return ValidateLimit(tx, scoresCount);
+            //return ValidateLimit(tx, scoresCount);
+            return Success;
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <ScoreContent> tx, int count)

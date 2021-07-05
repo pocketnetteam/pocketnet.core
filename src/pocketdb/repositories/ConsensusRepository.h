@@ -52,6 +52,8 @@ public:
     int CountMempoolSubscribe(const string& address, const string& addressTo) {return 0;} // TODO (brangr): implement
     int CountMempoolComplain(const string& address) {return 0;} // TODO (brangr): implement
     int CountMempoolAccount(const string& address) {return 0;} // TODO (brangr): implement
+    int CountMempoolPost(const string& address) {return 0;} // TODO (brangr): implement
+    int CountMempoolPostEdit(const string& rootTxHash) {return 0;} // TODO (brangr): implement
 
     // get counts in "chain" - Height is not null
     int CountChainComplain(const string& address, int64_t time) // TODO (brangr): implement
@@ -63,6 +65,9 @@ public:
          complainsRes)*/
      return 999999;
     }
+    int CountChainPost(const string& address, int64_t time) {return 0;} // TODO (brangr): implement as complains root != hash
+    int CountChainPostEdit(const string& rootTxHash) {return 0;} // TODO (brangr): implement find all edited instance of post
+
 
 
 
