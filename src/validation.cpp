@@ -1261,9 +1261,6 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
         return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
             pindex->ToString(), pindex->GetBlockPos().ToString());
 
-    // TODO (brangr): get Pocket Block from db by height or transaction ids
-    // save in block?
-
     return true;
 }
 

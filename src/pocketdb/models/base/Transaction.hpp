@@ -53,9 +53,6 @@ namespace PocketTx
         shared_ptr<int64_t> GetTime() const { return m_time; }
         void SetTime(int64_t value) { m_time = make_shared<int64_t>(value); }
 
-//        shared_ptr<int> GetHeight() const { return m_height; }
-//        void SetHeight(int value) { m_height = make_shared<int>(value); }
-
         shared_ptr<bool> GetLast() const { return m_last; }
         void SetLast(bool value) { m_last = make_shared<bool>(value); }
 
@@ -85,16 +82,18 @@ namespace PocketTx
         shared_ptr<Payload> GetPayload() const { return m_payload; }
         void SetPayload(Payload value) { m_payload = make_shared<Payload>(value); }
         bool HasPayload() const { return m_payload != nullptr; };
-        virtual void BuildPayload(const UniValue& src)
+        virtual void DeserializePayload(const UniValue& src)
         {
             m_payload = make_shared<Payload>();
             m_payload->SetTxHash(*GetHash());
         }
 
         shared_ptr<string> GetOpReturnTx() const { return m_opreturn_tx; }
+        void SetOpReturnTx(string value) { m_opreturn_tx = make_shared<string>(value); }
+
         shared_ptr<string> GetOpReturnPayload() const { return m_opreturn_payload; }
 
-        virtual void BuildHash(const UniValue& src) = 0;
+        virtual void BuildHash() = 0;
 
     protected:
         shared_ptr<string> m_opreturn_tx = nullptr;
@@ -103,7 +102,6 @@ namespace PocketTx
         shared_ptr<PocketTxType> m_type = nullptr;
         shared_ptr<string> m_hash = nullptr;
         shared_ptr<int64_t> m_time = nullptr;
-//        shared_ptr<int> m_height = nullptr;
         shared_ptr<int64_t> m_id = nullptr;
         shared_ptr<bool> m_last = nullptr;
 
@@ -119,10 +117,10 @@ namespace PocketTx
 
         vector<shared_ptr<TransactionOutput>> m_outputs;
 
-        void GenerateHash(string& dataSrc)
+        void GenerateHash(string& data)
         {
             unsigned char hash[32] = {};
-            CSHA256().Write((const unsigned char*) dataSrc.data(), dataSrc.size()).Finalize(hash);
+            CSHA256().Write((const unsigned char*) data.data(), data.size()).Finalize(hash);
             CSHA256().Write(hash, 32).Finalize(hash);
             std::vector<unsigned char> vec(hash, hash + sizeof(hash));
 

@@ -53,8 +53,9 @@ namespace PocketConsensus
         // Generic transactions validating
         virtual tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx)
         {
-            if (AlreadyExists(tx))
-                return {true, SocialConsensusResult_AlreadyExists};
+            // TODO (brangr): commented for debug
+            //if (AlreadyExists(tx))
+            //    return {true, SocialConsensusResult_AlreadyExists};
 
             if (auto[ok, result] = CheckModel(tx); !ok)
                 return {false, result};

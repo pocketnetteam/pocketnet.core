@@ -153,8 +153,8 @@ namespace PocketServices
                 txDataSrc.read(txJson);
 
                 ptx->Deserialize(txDataSrc);
-                ptx->BuildPayload(txDataSrc);
-                ptx->BuildHash(txDataSrc);
+                ptx->DeserializePayload(txDataSrc);
+                ptx->BuildHash();
             }
 
             LogPrint(BCLog::SYNC, " ++ BuildInstance: %s (type: %d) (payload: %b)\n", txHash, txType,

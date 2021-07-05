@@ -21,7 +21,8 @@
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
 
-#include <pocketdb/services/TransactionIndexer.hpp>
+#include "pocketdb/services/TransactionIndexer.hpp"
+#include "pocketdb/consensus/social/Helper.hpp"
 
 static const size_t MAX_GETUTXOS_OUTPOINTS = 15; //allow a max of 15 outpoints to be queried at once
 
@@ -880,6 +881,67 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
     return true;
 }
 
+static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    auto[rf, uriParts] = ParseParams(strURIPart);
+    int start = 0;
+    int height = 1;
+
+    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
+        start = result;
+
+    if (auto[ok, result] = TryGetParamInt(uriParts, 1); ok)
+        height = result;
+
+    int current = start;
+    while (current <= height)
+    {
+        CBlockIndex* pblockindex = chainActive[current];
+        if (!pblockindex)
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
+
+        CBlock block;
+        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
+
+        std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
+        if (!ReadBlockPayloadFromDisk(block, pocketBlock))
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
+
+        if (pocketBlock)
+        {
+            for (auto ptx : *pocketBlock)
+            {
+                for (auto tx : block.vtx)
+                {
+                    if (tx->GetHash().GetHex() != *ptx->GetHash())
+                        continue;
+
+                    const CTxOut& txout = tx->vout[0];
+                    auto asmString = ScriptToAsmStr(txout.scriptPubKey);
+                    std::vector<std::string> vasm;
+                    boost::split(vasm, asmString, boost::is_any_of("\t "));
+
+                    ptx->BuildHash();
+                    ptx->SetOpReturnTx(vasm[2]);
+                }
+            }
+
+            PocketConsensus::SocialConsensusHelper::Check(*pocketBlock);
+        }
+
+        LogPrintf("SocialConsensusHelper::Check at height %d\n", current);
+        current += 1;
+    }
+
+    req->WriteHeader("Content-Type", "text/plain");
+    req->WriteReply(HTTP_OK, "Success\n");
+    return true;
+}
+
 static bool debug_rewards_check(HTTPRequest* req, const std::string& strURIPart)
 {
     // TODO (brangr): implement
@@ -895,7 +957,8 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
     if (auto[ok, result] = TryGetParamStr(uriParts, 0); ok)
     {
         req->WriteHeader("Content-Type", "text/html");
-        req->WriteReply(HTTP_OK, "<html><head><script src='main.js'></script></head><body>Hello World! " + result + "</body></html>");
+        req->WriteReply(HTTP_OK,
+            "<html><head><script src='main.js'></script></head><body>Hello World! " + result + "</body></html>");
         return true;
     }
 
@@ -924,10 +987,11 @@ static const struct
 
     // Debug
     {"/rest/pindexblock",        debug_index_block},
+    {"/rest/pcheckblock",        debug_check_block},
     {"/rest/prewards",           debug_rewards_check},
 
     // For static web
-    {"/web",           get_static_web},
+    {"/web",                     get_static_web},
 };
 
 void StartREST()

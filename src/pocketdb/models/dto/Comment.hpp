@@ -75,9 +75,9 @@ namespace PocketTx
 
     protected:
 
-        void BuildPayload(const UniValue& src) override
+        void DeserializePayload(const UniValue& src) override
         {
-            Transaction::BuildPayload(src);
+            Transaction::DeserializePayload(src);
 
             if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
             else m_payload->SetString1("en");
@@ -85,7 +85,7 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "msg"); ok) m_payload->SetString2(val);
         }
 
-        void BuildHash(const UniValue& src) override
+        void BuildHash() override
         {
             std::string data;
 

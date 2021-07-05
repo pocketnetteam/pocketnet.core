@@ -92,7 +92,10 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr <Transaction> tx) override
         {
             if (auto[baseCheckOk, baseCheckResult] = SocialBaseConsensus::CheckOpReturnHash(tx); !baseCheckOk)
+            {
                 LogPrintf("!!! OP_RETURN INCONSISTENT USER > %s\n", *tx->GetHash());
+                return {false, SocialConsensusResult_FailedOpReturn};
+            }
 
             return Success;
         }

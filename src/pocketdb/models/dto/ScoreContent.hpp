@@ -52,11 +52,11 @@ namespace PocketTx
 
     protected:
 
-        void BuildPayload(const UniValue& src) override
+        void DeserializePayload(const UniValue& src) override
         {
         }
 
-        void BuildHash(const UniValue& src) override
+        void BuildHash() override
         {
             std::string data;
             data += GetContentTxHash() ? *GetContentTxHash() : "";

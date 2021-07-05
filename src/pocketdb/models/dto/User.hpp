@@ -62,9 +62,9 @@ namespace PocketTx
 
     protected:
 
-        void BuildPayload(const UniValue& src) override
+        void DeserializePayload(const UniValue& src) override
         {
-            Transaction::BuildPayload(src);
+            Transaction::DeserializePayload(src);
 
             if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
             if (auto[ok, val] = TryGetStr(src, "name"); ok) m_payload->SetString2(val);
@@ -75,9 +75,10 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "donations"); ok) m_payload->SetString7(val);
         }
 
-        void BuildHash(const UniValue& src) override
+        void BuildHash() override
         {
             std::string data;
+
             data += m_payload->GetString2() ? *m_payload->GetString2() : "";
             data += m_payload->GetString5() ? *m_payload->GetString5() : "";
             data += m_payload->GetString1() ? *m_payload->GetString1() : "";
@@ -86,6 +87,7 @@ namespace PocketTx
             data += m_payload->GetString7() ? *m_payload->GetString7() : "";
             data += GetReferrerAddress() ? *GetReferrerAddress() : "";
             data += m_payload->GetString6() ? *m_payload->GetString6() : "";
+
             Transaction::GenerateHash(data);
         }
 
