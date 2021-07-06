@@ -11,10 +11,10 @@ namespace PocketDb
         create table if not exists Transactions
         (
             Type      int    not null,
-            Hash      string not null primary key,
+            Hash      text   not null primary key,
             Time      int    not null,
 
-            BlockHash string null,
+            BlockHash text   null,
             Height    int    null,
             Last      int    not null default 0,
 
@@ -31,7 +31,7 @@ namespace PocketDb
             -- Subscribe.AddressHash
             -- Blocking.AddressHash
             -- Complain.AddressHash
-            String1   string null,
+            String1   text   null,
 
             -- User.ReferrerAddressHash
             -- Post.RootTxHash
@@ -41,17 +41,17 @@ namespace PocketDb
             -- Subscribe.AddressToHash
             -- Blocking.AddressToHash
             -- Complain.PostTxHash
-            String2   string null,
+            String2   text   null,
 
             -- Post.RelayTxHash
             -- Comment.PostTxHash
-            String3   string null,
+            String3   text   null,
 
             -- Comment.ParentTxHash
-            String4   string null,
+            String4   text   null,
 
             -- Comment.AnswerTxHash
-            String5   string null,
+            String5   text   null,
 
             -- ScorePost.Value
             -- ScoreComment.Value
@@ -65,47 +65,47 @@ namespace PocketDb
         --------------------------------------------
         create table if not exists Payload
         (
-            TxHash  string primary key, -- Transactions.Hash
+            TxHash  text   primary key, -- Transactions.Hash
 
             -- User.Lang
             -- Post.Lang
             -- Comment.Lang
-            String1 string null,
+            String1 text   null,
 
             -- User.Name
             -- Post.Caption
             -- Comment.Message
-            String2 string null,
+            String2 text   null,
 
             -- User.Avatar
             -- Post.Message
-            String3 string null,
+            String3 text   null,
 
             -- User.About
             -- Post.Tags JSON
-            String4 string null,
+            String4 text   null,
 
             -- User.Url
             -- Post.Images JSON
-            String5 string null,
+            String5 text   null,
 
             -- User.Pubkey
             -- Post.Settings JSON
-            String6 string null,
+            String6 text   null,
 
             -- User.Donations JSON
             -- Post.Url
-            String7 string null
+            String7 text   null
         );
         --------------------------------------------
         create table if not exists TxOutputs
         (
-            TxHash      string not null, -- Transactions.Hash
+            TxHash      text   not null, -- Transactions.Hash
             Number      int    not null, -- Number in tx.vout
-            AddressHash string not null, -- Address
+            AddressHash text   not null, -- Address
             Value       int    not null, -- Amount
             SpentHeight int    null,     -- Where spent
-            SpentTxHash string null,     -- Who spent
+            SpentTxHash text   null,     -- Who spent
             primary key (TxHash, Number, AddressHash)
         );
 
