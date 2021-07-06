@@ -908,6 +908,15 @@ int64_t AddrIndex::GetAddressRegistrationDate(std::string _address)
     }
 }
 
+int64_t AddrIndex::GetAddressLikers(std::string _address, int height)
+{
+    auto[userId, userRegBlock] = g_pocketdb->GetUserData(_address);
+    if (userId < 0)
+        return -1;
+
+    return g_pocketdb->GetUserLikersCount(userId, height);
+}
+
 bool AddrIndex::GetUnspentTransactions(std::vector<std::string> addresses,
     std::vector<AddressUnspentTransactionItem>& transactions)
 {

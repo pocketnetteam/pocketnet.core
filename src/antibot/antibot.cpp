@@ -1403,6 +1403,7 @@ bool AntiBot::GetUserState(std::string _address, UserStateItem& _state)
 
     _state.user_registration_date = g_addrindex->GetUserRegistrationDate(_address);
     _state.address_registration_date = g_addrindex->GetAddressRegistrationDate(_address);
+    _state.likers = g_addrindex->GetAddressLikers(_address, chainActive.Height() + 1);
 
     ABMODE mode;
     int reputation = 0;
