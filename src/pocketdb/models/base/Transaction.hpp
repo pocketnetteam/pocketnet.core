@@ -82,6 +82,7 @@ namespace PocketTx
         shared_ptr<Payload> GetPayload() const { return m_payload; }
         void SetPayload(Payload value) { m_payload = make_shared<Payload>(value); }
         bool HasPayload() const { return m_payload != nullptr; };
+
         virtual void DeserializePayload(const UniValue& src)
         {
             m_payload = make_shared<Payload>();

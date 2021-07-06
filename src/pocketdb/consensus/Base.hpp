@@ -69,6 +69,9 @@ namespace PocketConsensus
         SocialConsensusResult_ReferrerAfterRegistration = 43,
         SocialConsensusResult_NotAllowed = 44,
         SocialConsensusResult_AlreadyExists = 45,
+        SocialConsensusResult_PayloadORNotFound = 46,
+        SocialConsensusResult_TxORNotFound = 47,
+
     };
 
     enum AccountMode

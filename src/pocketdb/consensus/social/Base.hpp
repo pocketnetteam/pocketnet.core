@@ -89,13 +89,16 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx)
         {
             if (IsEmpty(tx->GetOpReturnPayload()))
-                return {false, SocialConsensusResult_Failed};
+                return {false, SocialConsensusResult_PayloadORNotFound};
 
             if (IsEmpty(tx->GetOpReturnTx()))
-                return {false, SocialConsensusResult_Failed};
+                return {false, SocialConsensusResult_TxORNotFound};
 
             if (*tx->GetOpReturnTx() != *tx->GetOpReturnPayload())
+            {
+                LogPrintf("+++ %s != %s for %s\n", *tx->GetOpReturnTx(), *tx->GetOpReturnPayload(), *tx->GetHash());
                 return {false, SocialConsensusResult_FailedOpReturn};
+            }
 
             return Success;
         }
