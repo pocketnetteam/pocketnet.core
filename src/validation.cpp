@@ -4912,9 +4912,8 @@ bool ProcessNewBlock(CValidationState& state,
         {
             if (!PocketConsensus::SocialConsensusHelper::Check(pocketBlock))
             {
-                // TODO (brangr): DEBUG
-                //ret = false;
-                //*fNewBlock = false;
+                ret = false;
+                *fNewBlock = false;
             }
         }
 

@@ -96,8 +96,9 @@ namespace PocketConsensus
 
             if (*tx->GetOpReturnTx() != *tx->GetOpReturnPayload())
             {
+                // TODO (brangr): DEBUG
                 LogPrintf("+++ %s != %s for %s\n", *tx->GetOpReturnTx(), *tx->GetOpReturnPayload(), *tx->GetHash());
-                return {false, SocialConsensusResult_FailedOpReturn};
+                //return {false, SocialConsensusResult_FailedOpReturn};
             }
 
             return Success;
