@@ -1021,13 +1021,21 @@ static bool InitSanityCheck()
 
 static bool AppInitServers()
 {
+    
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
     if (!InitHTTPServer())
+    {
         return false;
+    }
+
     StartRPC();
+
     if (!StartHTTPRPC())
+    {
         return false;
+    }
+
     if (gArgs.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST();
     StartHTTPServer();
     return true;
