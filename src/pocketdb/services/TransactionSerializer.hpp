@@ -152,6 +152,13 @@ namespace PocketServices
                 auto txJson = DecodeBase64(txDataBase64);
                 txDataSrc.read(txJson);
 
+                if (src.exists("t") && src["t"].get_str() == "Mempool" && txDataSrc.exists("data"))
+                {
+                    auto txMempoolDataBase64 = txDataSrc["data"].get_str();
+                    auto txMempoolJson = DecodeBase64(txMempoolDataBase64);
+                    txDataSrc.read(txMempoolJson);
+                }
+
                 ptx->Deserialize(txDataSrc);
                 ptx->DeserializePayload(txDataSrc);
                 ptx->BuildHash();
