@@ -268,7 +268,7 @@ UniValue PocketDb::WebRepository::GetPostScores(vector<string>& postHashes, stri
            END AS Private
         FROM vScoreContents sc
         LEFT JOIN vSubscribes sub ON sc.AddressHash = sub.AddressToHash AND sub.AddressHash = ?
-        INNER JOIN vUsers u ON sc.AddressHash = u.AddressHash
+        INNER JOIN vUsers u ON sc.AddressHash = u.AddressHash AND u.Last = 1
         INNER JOIN Payload p ON p.TxHash = u.Hash
         WHERE 1 = 1
     )sql";
