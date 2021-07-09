@@ -2710,6 +2710,13 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
     std::string txidpocketnet = "";
     std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
 
+    auto getNameFrom = [](std::string address) -> std::string {
+      reindexer::Item _itmU;
+      if(g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("address", CondEq, address), _itmU).ok())
+          return _itmU["name"].As<string>();
+      return "";
+    };
+
     for (const auto& tx : block.vtx) {
         // std::vector<std::pair<std::string, std::pair<int,int64_t>>> addrs;
         std::map<std::string, std::pair<int, int64_t>> addrs;
@@ -2804,12 +2811,14 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                 else if (g_pocketdb->SelectOne(reindexer::Query("Posts").InnerJoin("txid", "txidRepost", CondEq, reindexer::Query("Posts").Where("txid", CondEq, txid)), _repost_itm).ok()) {
                     reindexer::Item _itmP;
                     std::string addrFrom = "";
+
                     if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _repost_itm["txid"].As<string>()), _itmP).ok())
                         addrFrom = _itmP["address"].As<string>();
                     custom_fields cFields{
                         {"mesType", "reshare"},
                         {"txidRepost", _repost_itm["txid"].As<string>()},
-                        {"addrFrom", addrFrom}};
+                        {"addrFrom", addrFrom},
+                        {"nameFrom", getNameFrom(addrFrom)}};
 
                     PrepareWSMessage(messages, "event", _repost_itm["address"].As<string>(), txid, txtime, cFields);
                 }
@@ -2820,7 +2829,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                     reindexer::Item _itm(it.GetItem());
                     custom_fields cFields{
                         {"mesType", "postfromprivate"},
-                        {"addrFrom", addr.first}};
+                        {"addrFrom", addr.first},
+                        {"nameFrom", getNameFrom(addr.first)}};
                     PrepareWSMessage(messages, "event", _itm["address"].As<string>(), txid, txtime, cFields);
                 }
 
@@ -2832,7 +2842,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                             if (_user_itm["referrer"].As<string>() != "") {
                                 custom_fields cFields{
                                     {"mesType", optype},
-                                    {"addrFrom", addr.first}};
+                                    {"addrFrom", addr.first},
+                                    {"nameFrom", getNameFrom(addr.first)}};
 
                                 PrepareWSMessage(messages, "event", _user_itm["referrer"].As<string>(), txid, txtime, cFields);
                             }
@@ -2861,6 +2872,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                             custom_fields cFields{
                                 {"mesType", optype},
                                 {"addrFrom", addr.first},
+                                {"nameFrom", getNameFrom(addr.first)},
                                 {"posttxid", itmS["posttxid"].As<string>()},
                                 {"upvoteVal", itmS["value"].As<string>()}};
 
@@ -2881,6 +2893,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                         custom_fields cFields{
                             {"mesType", optype},
                             {"addrFrom", addr.first},
+                            {"nameFrom", getNameFrom(addr.first)}
                         };
 
                         PrepareWSMessage(messages, "event", itm["address_to"].As<string>(), txid, txtime, cFields);
@@ -2908,6 +2921,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                             custom_fields cFields{
                                 {"mesType", optype},
                                 {"addrFrom", addr.first},
+                                {"nameFrom", getNameFrom(addr.first)},
                                 {"commentid", itmS["commentid"].As<string>()},
                                 {"upvoteVal", itmS["value"].As<string>()}};
 
@@ -2938,6 +2952,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                                 custom_fields cFields{
                                     {"mesType", optype},
                                     {"addrFrom", addr.first},
+                                    {"nameFrom", getNameFrom(addr.first)},
                                     {"posttxid", itmS["postid"].As<string>()},
                                     {"parentid", itmS["parentid"].As<string>()},
                                     {"answerid", itmS["answerid"].As<string>()},
@@ -2963,6 +2978,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                                 custom_fields cFields{
                                     {"mesType", optype},
                                     {"addrFrom", addr.first},
+                                    {"nameFrom", getNameFrom(addr.first)},
                                     {"posttxid", itmS["postid"].As<string>()},
                                     {"parentid", itmS["parentid"].As<string>()},
                                     {"answerid", itmS["answerid"].As<string>()},
