@@ -628,7 +628,7 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
 }
 
 static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state,
-    const CTransactionRef& ptx, bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced,
+    const CTransactionRef& ptx, std::shared_ptr<Transaction> pocketTx, bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced,
     bool bypass_limits, const CAmount& nAbsurdFee, std::vector<COutPoint>& coins_to_uncache,
     bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
@@ -821,19 +821,19 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // For PocketNET transaction allow minimal fee
         if (!bypass_limits)
         {
-            // TODO (brangr): REINDEXER -> SQLITE
-//            if (g_addrindex->IsPocketnetTransaction(rtx)) {
-//                if (nModifiedFees < DEFAULT_MIN_POCKETNET_TX_FEE) {
-//                    return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min PocketNet TX fee not met", false, strprintf("%d < %d", nModifiedFees, DEFAULT_MIN_POCKETNET_TX_FEE));
-//                }
-//            } else {
-            // No transactions are allowed below minRelayTxFee except from disconnected blocks
-            if (nModifiedFees < ::minRelayTxFee.GetFee(nSize))
-            {
-                return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min relay fee not met", false,
-                    strprintf("%d < %d", nModifiedFees, ::minRelayTxFee.GetFee(nSize)));
+            if (PocketHelpers::IsPocketTransaction(ptx)) {
+                if (nModifiedFees < DEFAULT_MIN_POCKETNET_TX_FEE) {
+                    return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min PocketNet TX fee not met",
+                        false, strprintf("%d < %d", nModifiedFees, DEFAULT_MIN_POCKETNET_TX_FEE));
+                }
+            } else {
+                // No transactions are allowed below minRelayTxFee except from disconnected blocks
+                if (nModifiedFees < ::minRelayTxFee.GetFee(nSize))
+                {
+                    return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min relay fee not met", false,
+                        strprintf("%d < %d", nModifiedFees, ::minRelayTxFee.GetFee(nSize)));
+                }
             }
-//            }
         }
 
         if (nAbsurdFee && nFees > nAbsurdFee)
@@ -1067,25 +1067,28 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         bool validForFeeEstimation = !fReplacementTransaction && !bypass_limits && IsCurrentForFeeEstimation() &&
                                      pool.HasNoInputsOf(tx);
 
-        // TODO (brangr): REINDEXER -> SQLITE
-        // Write reindexer part to mempool
-        // std::string table;
-        // if (g_addrindex->GetPocketnetTXType(rtx, table)) {
-        //     if (!rtx.pTransaction || rtx.pTable != table) {
-        //         return state.DoS(0, false, REJECT_INTERNAL, "not found reindexer data");
-        //     } else {
-        //         std::string _txid = rtx.pTransaction["txid"].As<string>();
-
-        //         reindexer::Item memItm = g_pocketdb->DB()->NewItem("Mempool");
-        //         memItm["txid"] = hash.GetHex();
-        //         memItm["txid_source"] = hash.GetHex() == _txid ? "" : _txid;
-        //         memItm["table"] = rtx.pTable;
-        //         memItm["data"] = EncodeBase64(rtx.pTransaction.GetJSON().ToString());
-        //         if (!g_addrindex->WriteMemRTransaction(memItm)) {
-        //             return state.DoS(0, false, REJECT_INTERNAL, "error write reindexer data");
-        //         }
-        //     }
-        // }
+        // Write payload part to sqlite db
+        // At this point, we believe that all the checks have been carried 
+        // out and we can safely save the transaction to the database for 
+        // subsequent verification of the consensus and inclusion in the block.
+        if (PocketHelpers::IsPocketTransaction(ptx)) {
+            if (!pocketTx)
+            {
+                return state.DoS(0, false, REJECT_INTERNAL, "not found payload data");
+            }
+            else
+            {
+                try
+                {
+                    PocketBlock pocketBlock{ pocketTx };
+                    PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+                }
+                catch (const std::exception& e)
+                {
+                    return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
+                }
+            }
+        }
 
         // Store transaction in memory
         pool.addUnchecked(entry, setAncestors, validForFeeEstimation);
@@ -1097,10 +1100,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 gArgs.GetArg("-mempoolexpiry", DEFAULT_MEMPOOL_EXPIRY) * 60 * 60);
             if (!pool.exists(hash))
             {
-                // TODO (brangr): REINDEXER -> SQLITE
-//                g_addrindex->ClearMempool(hash.GetHex());
                 return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "mempool full");
             }
+
+            // TODO (brangr): clear "mempool" transactions in sqlite db
         }
     }
 
@@ -1111,11 +1114,11 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
 /** (try to) add transaction to memory pool with a specified acceptance time **/
 static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state,
-    const CTransactionRef& tx, bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced,
-    bool bypass_limits, const CAmount nAbsurdFee, bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+    const CTransactionRef& tx, std::shared_ptr<Transaction> pocketTx, bool* pfMissingInputs, int64_t nAcceptTime,
+    std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount nAbsurdFee, bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     std::vector<COutPoint> coins_to_uncache;
-    bool res = AcceptToMemoryPoolWorker(chainparams, pool, state, tx, pfMissingInputs, nAcceptTime, plTxnReplaced,
+    bool res = AcceptToMemoryPoolWorker(chainparams, pool, state, tx, pocketTx, pfMissingInputs, nAcceptTime, plTxnReplaced,
         bypass_limits, nAbsurdFee, coins_to_uncache, test_accept);
 
     // Transaction is invalid - remove
@@ -1133,11 +1136,11 @@ static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPo
     return res;
 }
 
-bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransactionRef& tx, bool* pfMissingInputs,
-    std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount nAbsurdFee, bool test_accept)
+bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransactionRef& tx, std::shared_ptr<Transaction> pocketTx,
+    bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount nAbsurdFee, bool test_accept)
 {
     const CChainParams& chainparams = Params();
-    return AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pfMissingInputs, GetTime(), plTxnReplaced,
+    return AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pocketTx, pfMissingInputs, GetTime(), plTxnReplaced,
         bypass_limits, nAbsurdFee, test_accept);
 }
 
@@ -2496,7 +2499,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketHelpers::PocketB
 
     // -----------------------------------------------------------------------------------------------------------------
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
-    // TODO (brangr): DEBUG!
     try
     {
         PocketServices::TransactionIndexer::Index(block, pindex->nHeight);

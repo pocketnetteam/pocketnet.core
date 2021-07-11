@@ -46,15 +46,8 @@ namespace PocketServices
         {
             LogPrint(BCLog::SYNC, "+++ DeserializeBlock: %s\n", block.GetHash().GetHex());
 
-            // Prepare source data - old format (Json)
-            UniValue pocketData(UniValue::VOBJ);
-            if (!stream.empty())
-            {
-                // TODO (brangr) (v0.21.0): speed up protocol
-                string src;
-                stream >> src;
-                pocketData.read(src);
-            }
+            // Get Serialized data from stream
+            auto pocketData = parseStream(stream);
 
             // Restore pocket transaction instance
             PocketBlock pocketBlock;
@@ -77,8 +70,8 @@ namespace PocketServices
                     }
                 }
 
-                auto ptx = BuildInstance(tx, entry);
-                if (ptx) pocketBlock.push_back(ptx);
+                if (auto[ok, ptx] = deserializeTransaction); ok && ptx)
+                    pocketBlock.push_back(ptx);
             }
 
             // TODO (brangr): check all pocket transactions deserialized
@@ -87,9 +80,29 @@ namespace PocketServices
             return {true, pocketBlock};
         }
 
-        static shared_ptr<Transaction> DeserializeTransaction(CDataStream& stream, const CTransactionRef& tx)
+        static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(CDataStream& stream, const CTransactionRef& tx)
         {
-            // TODO (brangr): implement
+            LogPrint(BCLog::SYNC, "+++ DeserializeTransaction: %s\n", tx.GetHash().GetHex());
+
+            // Get Serialized data from stream
+            auto pocketData = parseStream(stream);
+
+            // Get source data from received data
+            if (!pocketData.empty())
+            {
+                UniValue entry(UniValue::VOBJ);
+                try
+                {
+                    entry.read(pocketData.get_str());
+                }
+                catch (std::exception& ex)
+                {
+                    LogPrintf("Error deserialize transaction: %s: %s\n", tx->GetHash().GetHex(), ex.what());
+                }
+            }
+            
+            // Build transaction instance
+            return deserializeTransaction(tx, entry);
         }
 
         static shared_ptr<UniValue> SerializeBlock(PocketBlock block)
@@ -118,7 +131,7 @@ namespace PocketServices
 
     private:
 
-        static shared_ptr<Transaction> BuildInstance(const CTransactionRef& tx, const UniValue& src)
+        static shared_ptr<Transaction> buildInstance(const CTransactionRef& tx, const UniValue& src)
         {
             auto txHash = tx->GetHash().GetHex();
 
@@ -141,7 +154,7 @@ namespace PocketServices
                 return nullptr;
 
             // Build outputs & inputs
-            if (!BuildOutputs(tx, ptx))
+            if (!buildOutputs(tx, ptx))
                 return nullptr;
 
             // Deserialize payload if exists
@@ -170,7 +183,7 @@ namespace PocketServices
             return ptx;
         }
 
-        static bool BuildOutputs(const CTransactionRef& tx, shared_ptr<Transaction> ptx)
+        static bool buildOutputs(const CTransactionRef& tx, shared_ptr<Transaction> ptx)
         {
             // indexing Outputs
             for (int i = 0; i < tx->vout.size(); i++)
@@ -197,6 +210,29 @@ namespace PocketServices
 
             return !ptx->Outputs().empty();
         }
+
+        static UniValue& parseStream()
+        {
+            // Prepare source data - old format (Json)
+            UniValue pocketData(UniValue::VOBJ);
+            if (!stream.empty())
+            {
+                // TODO (brangr) (v0.21.0): speed up protocol
+                string src;
+                stream >> src;
+                pocketData.read(src);
+            }
+
+            return pocketData;
+        }
+
+        static tuple<bool, shared_ptr<Transaction>> deserializeTransaction(UniValue& pocketData, const CTransactionRef& tx)
+        {
+            // Restore pocket transaction instance
+            auto ptx = buildInstance(tx, pocketData);
+            return {ptx != nullptr, ptx};
+        }
+
     };
 
 }

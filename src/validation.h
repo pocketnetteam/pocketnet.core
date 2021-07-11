@@ -340,7 +340,7 @@ void PruneBlockFilesManual(int nManualPruneHeight);
 
 /** (try to) add transaction to memory pool
  * plTxnReplaced will be appended to with all transactions replaced from mempool **/
-bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransactionRef& tx,
+bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransactionRef& tx, std::shared_ptr<Transaction> pocketTx,
     bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced,
     bool bypass_limits, const CAmount nAbsurdFee, bool test_accept = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
