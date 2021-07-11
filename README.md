@@ -77,7 +77,7 @@ You can get the full list of parameters:
 $ pocketcoind --help
 ```
 
-# Initialize blockhain data with database checkpoint
+# Initialize blockchain data with database checkpoint
 1. Stop the node.
 2. Download database archive:
     * With torrent:
