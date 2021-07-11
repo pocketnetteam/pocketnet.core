@@ -16,8 +16,6 @@
 #include <netmessagemaker.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
-#include <primitives/block.h>
-#include <primitives/transaction.h>
 #include <random.h>
 #include <reverse_iterator.h>
 #include <scheduler.h>
@@ -783,7 +781,7 @@ static void AddToCompactExtraTransactions(const CTransactionRef& tx) EXCLUSIVE_L
     vExtraTxnForCompactIt = (vExtraTxnForCompactIt + 1) % max_extra_txn;
 }
 
-bool AddOrphanTx(const CTransactionRef& tx, const std::shared_ptr<PocketTx::Transaction> pocketTx, NodeId peer)
+bool AddOrphanTx(const CTransactionRef& tx, const PTransactionRef& pocketTx, NodeId peer)
     EXCLUSIVE_LOCKS_REQUIRED(g_cs_orphans)
 {
     const uint256& hash = tx->GetHash();
@@ -2473,7 +2471,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     pfrom->AddInventoryKnown(_inv);
                     if (!AlreadyHave(_inv)) pfrom->AskFor(_inv);
                 }
-                AddOrphanTx(ptx, pfrom->GetId());
+
+                AddOrphanTx(ptx, pocketTx, pfrom->GetId());
 
                 // DoS prevention: do not allow mapOrphanTransactions to grow unbounded
                 unsigned int nMaxOrphanTx = (unsigned int)std::max((int64_t)0, gArgs.GetArg("-maxorphantx", DEFAULT_MAX_ORPHAN_TRANSACTIONS));
@@ -2579,12 +2578,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         if (gArgs.GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER) && !IsInitialBlockDownload()) {
             LOCK(cs_main);
-            CValidationState state;
+            CValidationState stateSpam;
             CNodeState* nodestate = State(pfrom->GetId());
             nodestate->headers.addHeaders(pindexFirst, pindex);
-            nodestate->headers.updateState(state, true);
+            nodestate->headers.updateState(stateSpam, true);
             int nDos = 0;
-            if (state.IsInvalid(nDos) && nDos > 0) {
+            if (stateSpam.IsInvalid(nDos) && nDos > 0) {
                 Misbehaving(pfrom->GetId(), nDos, "header spam detected via cmpctblock");
                 return true;
             }
@@ -2759,8 +2758,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // compact blocks with less work than our tip, it is safe to treat
             // reconstructed compact blocks as having been requested.
             bool fNewBlock = false;
-            CValidationState state;
-            ProcessNewBlock(state, chainparams, pblock, pocketBlock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            CValidationState stateLocal;
+            ProcessNewBlock(stateLocal, chainparams, pblock, pocketBlock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
