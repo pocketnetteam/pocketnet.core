@@ -232,9 +232,8 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     return true;
 }
 
-bool
-CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout, int64_t *pBlockTime,
-    CWallet *wallet, CDataStream &hashProofOfStakeSource)
+bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout,
+    int64_t *pBlockTime, CWallet *wallet, CDataStream &hashProofOfStakeSource)
 {
     arith_uint256 hashProofOfStake, targetProofOfStake;
 
@@ -273,9 +272,8 @@ CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const CO
         prevout, nTime, hashProofOfStake, hashProofOfStakeSource, targetProofOfStake);
 }
 
-bool
-CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockIndex &blockFrom, CTransactionRef const &txPrev,
-    COutPoint const &prevout, unsigned int nTimeTx, arith_uint256 &hashProofOfStake,
+bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockIndex &blockFrom,
+    CTransactionRef const &txPrev, COutPoint const &prevout, unsigned int nTimeTx, arith_uint256 &hashProofOfStake,
     CDataStream &hashProofOfStakeSource, arith_uint256 &targetProofOfStake, bool fPrintProofOfStake)
 {
     unsigned int nTimeBlockFrom = blockFrom.GetBlockTime();

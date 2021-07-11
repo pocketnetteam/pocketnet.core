@@ -4907,15 +4907,13 @@ bool ProcessNewBlock(CValidationState& state,
             MILLI * (nTime3 - nTime2),
             pocketBlock.size() <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (pocketBlock.size() - 1));
 
+        // It is necessary to check that block and pocket Black contain an equal number of transactions
+        if (ret)
+            ret = pblock->vtx.size() == pocketBlock.size();
+
         // check pocket block with general pocketnet consensus rules
         if (ret)
-        {
-            if (!PocketConsensus::SocialConsensusHelper::Check(pocketBlock))
-            {
-                ret = false;
-                *fNewBlock = false;
-            }
-        }
+             ret = PocketConsensus::SocialConsensusHelper::Check(pocketBlock);
 
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;
