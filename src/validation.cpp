@@ -1264,22 +1264,6 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
     return true;
 }
 
-bool ReadBlockPayloadFromDisk(const CBlock& block, std::shared_ptr<PocketHelpers::PocketBlock>& pocketBlock)
-{
-    std::vector<std::string> txs;
-    for (const auto& tx : block.vtx)
-    {
-        if (PocketHelpers::IsPocketTransaction(tx))
-            txs.push_back(tx->GetHash().GetHex());
-    }
-
-    if (txs.empty())
-        return true;
-
-    pocketBlock = PocketDb::TransRepoInst.GetList(txs, true);
-    return pocketBlock->size() == txs.size();
-}
-
 bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CDiskBlockPos& pos,
     const CMessageHeader::MessageStartChars& message_start)
 {
@@ -2983,7 +2967,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
     if (!pocketBlockPart)
     {
-        if (!ReadBlockPayloadFromDisk(blockConnecting, pocketBlock))
+        if (!PocketServices::GetBlock(blockConnecting, pocketBlock))
         {
             pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
             return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
@@ -4840,6 +4824,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
             pindex->nStatus |= BLOCK_FAILED_VALID;
             setDirtyBlockIndex.insert(pindex);
         }
+
         return error("%s: %s", __func__, FormatStateMessage(state));
     }
 
@@ -5542,11 +5527,11 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
                     pindex->GetBlockHash().ToString());
 
             std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock;
-            if (!ReadBlockPayloadFromDisk(block, pocketBlock))
+            if (!PocketServices::GetBlock(block, pocketBlock))
             {
                 LogPrintf("\nWarning: found lost payload data (block: %s) - continue work from this height: %d\n",
                     block.GetHash().GetHex(), pindex->nHeight);
-                return error("VerifyDB(): *** ReadBlockPayloadFromDisk failed at %d, hash=%s", pindex->nHeight,
+                return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s", pindex->nHeight,
                     pindex->GetBlockHash().ToString());
             }
 
@@ -6013,9 +5998,9 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                         std::shared_ptr<CBlock> pblockrecursive = std::make_shared<CBlock>();
                         if (ReadBlockFromDisk(*pblockrecursive, it->second, chainparams.GetConsensus()))
                         {
-                            LogPrint(BCLog::REINDEX, "%s: Processing out of order child %s of %s\n", __func__,
-                                pblockrecursive->GetHash().ToString(),
-                                head.ToString());
+                            LogPrint(BCLog::REINDEX, "%s: Processing out of order child %s of %s\n",
+                                __func__, pblockrecursive->GetHash().ToString(), head.ToString());
+
                             LOCK(cs_main);
                             CValidationState dummy;
                             if (g_chainstate.AcceptBlock(pblockrecursive, dummy, chainparams, nullptr, true,

@@ -198,7 +198,6 @@ namespace PocketDb
             return result;
         }
 
-        // TODO (joni): стринги в sql не будут работать без бинда
         shared_ptr<PocketBlock> GetList(const vector<string>& txHashes, bool includePayload = false)
         {
             string sql;

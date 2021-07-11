@@ -1018,17 +1018,18 @@ void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std:
         // If the peer has, or we announced to them the previous block already,
         // but we don't think they have this one, go ahead and announce it
         if (state.fPreferHeaderAndIDs && (!fWitnessEnabled || state.fWantsCmpctWitness) &&
-            !PeerHasHeader(&state, pindex) && PeerHasHeader(&state, pindex->pprev)) {
-            //-------------------------
-            // TODO (brangr): REINDEXER -> SQLITE
+            !PeerHasHeader(&state, pindex) && PeerHasHeader(&state, pindex->pprev))
+        {
             // Get PocketData for transactions from this block
-            //std::string pocket_data;
-            //if (g_addrindex->GetBlockRIData(*most_recent_block, pocket_data)) {
+            std::string pocketBlockData;
+            if (PocketServices::GetBlock(*pcmpctblock, pocketBlockData))
+            {
+                connman->PushMessage(pnode, msgMaker.Make(NetMsgType::CMPCTBLOCK, *pcmpctblock, pocketBlockData));
+                state.pindexBestHeaderSent = pindex;
+                
                 LogPrint(BCLog::NET, "%s sending header-and-ids %s to peer=%d\n", "PeerLogicValidation::NewPoWValidBlock",
                     hashBlock.ToString(), pnode->GetId());
-                connman->PushMessage(pnode, msgMaker.Make(NetMsgType::CMPCTBLOCK, *pcmpctblock, "POCKET_DB_DATA"));
-                state.pindexBestHeaderSent = pindex;
-            //}
+            }
         }
     });
 }
@@ -1267,29 +1268,36 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
             if (!ReadRawBlockFromDisk(block_data, pindex, chainparams.MessageStart())) {
                 assert(!"cannot load block from disk");
             }
-            //-----------------------
-            // Get RI data for transactions from this block
+            
             CBlock block;
             if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus())) {
                 assert(!"cannot load block from disk");
             }
 
+            std::string pocketBlockData;
+            if (!PocketServices::GetBlock(block, pocketBlockData)) {
+                assert(!"cannot load block payload from sqlite db");
+            }
 
             int h = pindex->nHeight;
-            // TODO (brangr): REINDEXER -> SQLITE
-            //std::string pocket_data;
-            //if (g_addrindex->GetBlockRIData(block, pocket_data)) {
-                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::BLOCK, MakeSpan(block_data), "POCKET_DB_DATA"));
-                // Don't set pblock as we've sent the block
-            //}
-        } else {
+            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::BLOCK, MakeSpan(block_data), pocketBlockData));
+            // Don't set pblock as we've sent the block
+        }
+        else
+        {
             // Send block from disk
             std::shared_ptr<CBlock> pblockRead = std::make_shared<CBlock>();
             if (!ReadBlockFromDisk(*pblockRead, pindex, consensusParams))
                 assert(!"cannot load block from disk");
             pblock = pblockRead;
         }
-        if (pblock) {
+
+        if (pblock)
+        {
+            std::string pocketBlockData;
+            if (!PocketServices::GetBlock(*pblock, pocketBlockData))
+                assert(!"cannot load block payload from sqlite db");
+
             if (inv.type == MSG_FILTERED_BLOCK) {
                 bool sendMerkleBlock = false;
                 CMerkleBlock merkleBlock;
@@ -1301,7 +1309,8 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
                     }
                 }
                 if (sendMerkleBlock) {
-                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::MERKLEBLOCK, merkleBlock)); // TODO - need pocket_data?
+                    // TODO (brangr): send pocket payload with merkle block
+                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::MERKLEBLOCK, merkleBlock));
                     // CMerkleBlock just contains hashes, so also push any transactions in the block the client did not see
                     // This avoids hurting performance by pointlessly requiring a round-trip
                     // Note that there is currently no way for a node to request any single transactions we didn't send here -
@@ -1313,16 +1322,10 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
                         connman->PushMessage(pfrom, msgMaker.Make(SERIALIZE_TRANSACTION_NO_WITNESS, NetMsgType::TX, *pblock->vtx[pair.first]));
                 }
             } else {
-                // TODO (brangr): refactor this logic
-                // TODO (brangr): REINDEXER -> SQLITE
-                // Get RI data for transactions from this block
-                //std::string pocket_data = "";
-                //g_addrindex->GetBlockRIData(*pblock, pocket_data);
-                //-----------------------
                 if (inv.type == MSG_BLOCK)
-                    connman->PushMessage(pfrom, msgMaker.Make(SERIALIZE_TRANSACTION_NO_WITNESS, NetMsgType::BLOCK, *pblock, "POCKET_DB_DATA"));
+                    connman->PushMessage(pfrom, msgMaker.Make(SERIALIZE_TRANSACTION_NO_WITNESS, NetMsgType::BLOCK, *pblock, pocketBlockData));
                 else if (inv.type == MSG_WITNESS_BLOCK)
-                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::BLOCK, *pblock, "POCKET_DB_DATA"));
+                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::BLOCK, *pblock, pocketBlockData));
                 else if (inv.type == MSG_CMPCT_BLOCK) {
                     // If a peer is asking for old blocks, we're almost guaranteed
                     // they won't have a useful mempool to match against a compact block,
@@ -1332,17 +1335,13 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
                     int nSendFlags = fPeerWantsWitness ? 0 : SERIALIZE_TRANSACTION_NO_WITNESS;
                     if (CanDirectFetch(consensusParams) && pindex->nHeight >= chainActive.Height() - MAX_CMPCTBLOCK_DEPTH) {
                         if ((fPeerWantsWitness || !fWitnessesPresentInARecentCompactBlock) && a_recent_compact_block && a_recent_compact_block->header.GetHash() == pindex->GetBlockHash()) {
-                            // TODO (brangr): REINDEXER -> SQLITE
-                            // Get PocketData for transactions from this block
-                            //std::string _pocket_data;
-                            //g_addrindex->GetBlockRIData(*a_recent_block, _pocket_data);
-                            connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::CMPCTBLOCK, *a_recent_compact_block, "POCKET_DB_DATA"));
+                            connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::CMPCTBLOCK, *a_recent_compact_block, pocketBlockData));
                         } else {
                             CBlockHeaderAndShortTxIDs cmpctblock(*pblock, fPeerWantsWitness);
-                            connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::CMPCTBLOCK, cmpctblock, "POCKET_DB_DATA"));
+                            connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::CMPCTBLOCK, cmpctblock, pocketBlockData));
                         }
                     } else {
-                        connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::BLOCK, *pblock, "POCKET_DB_DATA"));
+                        connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::BLOCK, *pblock, pocketBlockData));
                     }
                 }
             }
@@ -1386,25 +1385,23 @@ void static ProcessGetData(CNode* pfrom, const CChainParams& chainparams, CConnm
             auto mi = mapRelay.find(inv.hash);
             int nSendFlags = (inv.type == MSG_TX ? SERIALIZE_TRANSACTION_NO_WITNESS : 0);
             if (mi != mapRelay.end()) {
-                // TODO (brangr): REINDEXER -> SQLITE
                 // Join PocketNet data from PocketDB to transaction stream
-                // std::string pocket_data;
-                //if (g_addrindex->GetTXRIData(mi->second, pocket_data)) {
-                connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second, "POCKET_DB_DATA"));
-                push = true;
-                //}
+                std::string txPayloadData;
+                if (PocketServices::GetTransaction(*mi->second, txPayloadData)) {
+                    connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second, txPayloadData));
+                    push = true;
+                }
             } else if (pfrom->timeLastMempoolReq) {
                 auto txinfo = mempool.info(inv.hash);
                 // To protect privacy, do not answer getdata using the mempool when
                 // that TX couldn't have been INVed in reply to a MEMPOOL request.
                 if (txinfo.tx && txinfo.nTime <= pfrom->timeLastMempoolReq) {
-                    // TODO (brangr): REINDEXER -> SQLITE
                     // Join PocketNet data from PocketDB to transaction stream
-                    //std::string pocket_data;
-                    //if (g_addrindex->GetTXRIData(txinfo.tx, pocket_data)) {
-                    connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *txinfo.tx, "POCKET_DB_DATA"));
-                    push = true;
-                    //}
+                    std::string txPayloadData;
+                    if (PocketServices::GetTransaction(*txinfo.tx, txPayloadData)) {
+                        connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *txinfo.tx, "POCKET_DB_DATA"));
+                        push = true;
+                    }
                 }
             }
             if (!push) {
@@ -1446,12 +1443,6 @@ static uint32_t GetFetchFlags(CNode* pfrom) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 
 inline void static SendBlockTransactions(const CBlock& block, const BlockTransactionsRequest& req, CNode* pfrom, CConnman* connman)
 {
-    // TODO (brangr): get transactions from resp - not from block
-    // TODO (brangr): REINDEXER -> SQLITE
-    // Get PocketData for transactions from this block
-    //std::string pocket_data;
-    //g_addrindex->GetBlockRIData(block, pocket_data);
-    //-------------------------
     // PocketData for this transactions
     BlockTransactions resp(req);
     for (size_t i = 0; i < req.indexes.size(); i++) {
@@ -1462,10 +1453,18 @@ inline void static SendBlockTransactions(const CBlock& block, const BlockTransac
         }
         resp.txn[i] = block.vtx[req.indexes[i]];
     }
+
+    std::string pocketBlockData;
+    if (!PocketServices::GetBlock(block, pocketBlockData))
+    {
+        LogPrintf("Error get block data for %s from sqlite db\n", block.GetHash().GetHex());
+        return;
+    }
+
     LOCK(cs_main);
     const CNetMsgMaker msgMaker(pfrom->GetSendVersion());
     int nSendFlags = State(pfrom->GetId())->fWantsCmpctWitness ? 0 : SERIALIZE_TRANSACTION_NO_WITNESS;
-    connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::BLOCKTXN, resp, "POCKET_DB_DATA"));
+    connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::BLOCKTXN, resp, pocketBlockData));
 }
 
 bool static ProcessHeadersMessage(CNode* pfrom, CConnman* connman, const std::vector<CBlockHeader>& headers, const CChainParams& chainparams, bool punish_duplicate_invalid)
@@ -2403,9 +2402,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             pfrom->nLastTXTime = GetTime();
 
             LogPrint(BCLog::MEMPOOL, "AcceptToMemoryPool: peer=%d: accepted %s (poolsz %u txn, %u kB)\n",
-                pfrom->GetId(),
-                tx.GetHash().ToString(),
-                mempool.size(), mempool.DynamicMemoryUsage() / 1000);
+                pfrom->GetId(), tx.GetHash().ToString(), mempool.size(), mempool.DynamicMemoryUsage() / 1000);
 
             // Recursively process any orphan transactions that depended on this one
             std::set<NodeId> setMisbehaving;
@@ -3772,17 +3769,17 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                         continue;
                     }
 
-                    // TODO (brangr): REINDEXER -> SQLITE
                     // PocketNET transactions are minimal fee in 1 satoshi
-                    //                    if (g_addrindex->IsPocketnetTransaction(txinfo.tx)) {
-                    //                        if (txinfo.feeRate.GetFeePerK() < DEFAULT_MIN_POCKETNET_TX_FEE) {
-                    //                            continue;
-                    //                        }
-                    //                    } else {
-                    //                        if (filterrate && txinfo.feeRate.GetFeePerK() < filterrate) {
-                    //                            continue;
-                    //                        }
-                    //                    }
+                    if (PocketHelpers::IsPocketTransaction(txinfo.tx))
+                    {
+                        if (txinfo.feeRate.GetFeePerK() < DEFAULT_MIN_POCKETNET_TX_FEE)
+                            continue;
+                    }
+                    else
+                    {
+                        if (filterrate && txinfo.feeRate.GetFeePerK() < filterrate)
+                            continue;
+                    }
 
                     if (pto->pfilter && !pto->pfilter->IsRelevantAndUpdate(*txinfo.tx)) continue;
 
