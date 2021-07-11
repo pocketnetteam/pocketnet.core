@@ -4,15 +4,15 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETDB_TRANSACTIONINDEXER_HPP
-#define POCKETDB_TRANSACTIONINDEXER_HPP
-#include "util.h"
-#include "chain.h"
+#ifndef POCKETDSERVICESTACCESSORHPP
+#define POCKETDSERVICESTACCESSORHPP
+
+#include "primitives/transaction.h"
 #include "primitives/block.h"
 
-#include "pocketdb/consensus.h"
-#include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/pocketnet.h"
+#include "pocketdb/services/TransactionSerializer.hpp"
+#include "pocketdb/helpers/TransactionHelper.hpp"
 
 namespace PocketServices
 {
@@ -25,7 +25,8 @@ namespace PocketServices
     using std::vector;
     using std::find;
 
-    static bool GetBlock(const CBlock& block, string& data)
+
+    static bool GetBlock(const CBlock& block, std::shared_ptr<PocketBlock>& pocketBlock)
     {
         try
         {
@@ -39,9 +40,7 @@ namespace PocketServices
             if (txs.empty())
                 return true;
 
-            auto pocketBlock = PocketDb::TransRepoInst.GetList(txs, true);
-            data = PocketServices::SerializeBlock(pocketBlock)->write();
-
+            pocketBlock = PocketDb::TransRepoInst.GetList(txs, true);
             return pocketBlock->size() == txs.size();
         }
         catch (const std::exception& e)
@@ -51,16 +50,37 @@ namespace PocketServices
         }
     }
 
+    static bool GetBlock(const CBlock& block, string& data)
+    {
+        std::shared_ptr<PocketBlock> pocketBlock;
+        if (GetBlock(block, pocketBlock) && pocketBlock)
+        {
+            data = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock)->write();
+            return true;
+        }
+
+        return false;
+    }
+
+    static bool GetTransaction(const CTransaction& tx, shared_ptr<Transaction>& pocketTx)
+    {
+        pocketTx = PocketDb::TransRepoInst.GetByHash(tx.GetHash().GetHex(), true);
+        return pocketTx != nullptr;
+    }
+
     static bool GetTransaction(const CTransaction& tx, string& data)
     {
-        auto ptx = PocketDb::TransRepoInst.GetByHash(tx.GetHash().GetHex(), true);
-        if (ptx)
-            data = PocketServices::SerializeBlock(*ptx)->write();
+        shared_ptr<Transaction> pocketTx;
+        if (GetTransaction(tx, pocketTx) && pocketTx)
+        {
+            data = PocketServices::TransactionSerializer::SerializeTransaction(*pocketTx)->write();
+            return true;
+        }
         
-        return ptx != nullptr;
+        return false;
     }
 
 
 } // namespace PocketServices
 
-#endif // POCKETDB_TRANSACTIONINDEXER_HPP
+#endif // POCKETSERVICES_ACCESSOR_HPP

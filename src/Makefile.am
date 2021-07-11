@@ -132,6 +132,7 @@ POCKETDB_HPP = \
     pocketdb/consensus/social/Video.hpp \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/TransactionIndexer.hpp \
+    pocketdb/services/Accessor.hpp \
     pocketdb/models/base/PocketTypes.hpp \
     pocketdb/models/base/Base.hpp \
     pocketdb/models/base/Payload.hpp \

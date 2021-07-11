@@ -29,8 +29,10 @@
 #include <utilstrencodings.h>
 #include <validation.h>
 #include <univalue.h>
-
 #include <memory>
+
+#include "pocketdb/consensus/social/Helper.hpp"
+#include "pocketdb/services/Accessor.hpp"
 
 #if defined(NDEBUG)
 #error "Pocketcoin cannot be compiled without assertions."
@@ -999,6 +1001,14 @@ void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std:
     bool fWitnessEnabled = IsWitnessEnabled(pindex->pprev, Params().GetConsensus());
     uint256 hashBlock(pblock->GetHash());
 
+    // Get PocketData for transactions from this block
+    std::string pocketBlockData;
+    if (!PocketServices::GetBlock(*pblock, pocketBlockData))
+    {
+        LogPrintf("Failed get block payload from sqlite db %s\n", pblock->GetHash().GetHex());
+        return;
+    }
+
     {
         LOCK(cs_most_recent_block);
         most_recent_block_hash = hashBlock;
@@ -1007,12 +1017,15 @@ void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std:
         fWitnessesPresentInMostRecentCompactBlock = fWitnessEnabled;
     }
 
-    connman->ForEachNode([this, &pcmpctblock, pindex, &msgMaker, fWitnessEnabled, &hashBlock](CNode* pnode) {
+    connman->ForEachNode([this, &pcmpctblock, pindex, &msgMaker, fWitnessEnabled, &hashBlock,
+                          pocketBlockData](CNode* pnode)
+    {
         AssertLockHeld(cs_main);
 
         // TODO: Avoid the repeated-serialization here
         if (pnode->nVersion < INVALID_CB_NO_BAN_VERSION || pnode->fDisconnect)
             return;
+
         ProcessBlockAvailability(pnode->GetId());
         CNodeState& state = *State(pnode->GetId());
         // If the peer has, or we announced to them the previous block already,
@@ -1020,16 +1033,11 @@ void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std:
         if (state.fPreferHeaderAndIDs && (!fWitnessEnabled || state.fWantsCmpctWitness) &&
             !PeerHasHeader(&state, pindex) && PeerHasHeader(&state, pindex->pprev))
         {
-            // Get PocketData for transactions from this block
-            std::string pocketBlockData;
-            if (PocketServices::GetBlock(*pcmpctblock, pocketBlockData))
-            {
-                connman->PushMessage(pnode, msgMaker.Make(NetMsgType::CMPCTBLOCK, *pcmpctblock, pocketBlockData));
-                state.pindexBestHeaderSent = pindex;
-                
-                LogPrint(BCLog::NET, "%s sending header-and-ids %s to peer=%d\n", "PeerLogicValidation::NewPoWValidBlock",
-                    hashBlock.ToString(), pnode->GetId());
-            }
+            connman->PushMessage(pnode, msgMaker.Make(NetMsgType::CMPCTBLOCK, *pcmpctblock, pocketBlockData));
+            state.pindexBestHeaderSent = pindex;
+
+            LogPrint(BCLog::NET, "%s sending header-and-ids %s to peer=%d\n", "PeerLogicValidation::NewPoWValidBlock",
+                hashBlock.ToString(), pnode->GetId());
         }
     });
 }
@@ -2340,37 +2348,42 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         const CTransactionRef& txRef(ptx);
         const uint256& txhash = tx.GetHash();
 
-        // Deserialize pocket part if exists
-        auto[deserializeOk, pocketTx] = PocketServices::TransactionSerializer::DeserializeTransaction(vRecv, ptx);
-        if (!deserializeOk)
-            state.Invalid(false, 0, "Deserialize");
-
         CInv inv(MSG_TX, txhash);
         pfrom->AddInventoryKnown(inv);
 
         LOCK2(cs_main, g_cs_orphans);
 
-        bool fMissingInputs = false;
         CValidationState state;
+        bool fMissingInputs = false;
         pfrom->setAskFor.erase(inv.hash);
         mapAlreadyAskedFor.erase(inv.hash);
         std::list<CTransactionRef> lRemovedTxn;
 
+        // Deserialize pocket part if exists
+        auto[deserializeOk, pocketTx] = PocketServices::TransactionSerializer::DeserializeTransaction(vRecv, ptx);
+        if (!deserializeOk)
+            state.Invalid(false, 0, "Deserialize");
+
         // Antibot checked transaction with pocketnet consensus rules
-        if (!PocketConsensus::SocialConsensusHelper::Check(pocketTx))
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(pocketTx); !ok)
         {
-            LogPrintf("WARNING! Received transaction check failed (SocialConsensusHelper::Check) %s\n", *pocketTx->GetHash());
-            state.Invalid(false, ab_result, "Antibot");
+            LogPrintf("WARNING! Received transaction check failed (SocialConsensusHelper::Check) %s\n",
+                *pocketTx->GetHash());
+
+            state.Invalid(false, result, "SocialConsensusHelper::Check");
         }
 
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketTx, chainActive.Height() + 1); !ok)
+        int height = chainActive.Height() + 1;
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketTx, height); !ok)
         {
-            LogPrintf("WARNING! Received transaction validate failed (SocialConsensusHelper::Validate): %d %s\n", result, *pocketTx->GetHash());
-            state.Invalid(false, result, "Consensus");
+            LogPrintf("WARNING! Received transaction validate failed (SocialConsensusHelper::Validate): %d %s\n",
+                result, *pocketTx->GetHash());
+
+            state.Invalid(false, result, "SocialConsensusHelper::Validate");
         }
 
-        if (!state.IsInvalid() && !AlreadyHave(inv) && AcceptToMemoryPool(mempool, state, txRef, pocketTx, &fMissingInputs, &lRemovedTxn,
-            false /* bypass_limits */, 0 /* nAbsurdFee */))
+        if (!state.IsInvalid() && !AlreadyHave(inv) && AcceptToMemoryPool(mempool, state, txRef, pocketTx,
+            &fMissingInputs, &lRemovedTxn, false /* bypass_limits */, 0 /* nAbsurdFee */))
         {
             mempool.check(pcoinsTip.get());
             RelayTransaction(tx, connman);

@@ -105,7 +105,7 @@ namespace PocketServices
             return deserializeTransaction(tx, entry);
         }
 
-        static shared_ptr<UniValue> SerializeBlock(PocketBlock block)
+        static shared_ptr<UniValue> SerializeBlock(const PocketBlock& block)
         {
             auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
             for (const auto& transaction : block)

@@ -53,7 +53,10 @@
 
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/services/TransactionIndexer.hpp"
+#include "pocketdb/services/Accessor.hpp"
 #include "pocketdb/consensus/social/Helper.hpp"
+
+using namespace PocketHelpers;
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 std::map<std::string, WSUser> WSConnections;
@@ -539,9 +542,8 @@ static bool IsCurrentForFeeEstimation() EXCLUSIVE_LOCKS_REQUIRED(cs_main)
  * and instead just erase from the mempool as needed.
  */
 
-static void
-UpdateMempoolForReorg(DisconnectedBlockTransactions& disconnectpool, bool fAddToMempool) EXCLUSIVE_LOCKS_REQUIRED(
-    cs_main)
+static void UpdateMempoolForReorg(DisconnectedBlockTransactions& disconnectpool, bool fAddToMempool)
+    EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     AssertLockHeld(cs_main);
     std::vector<uint256> vHashUpdate;
@@ -556,8 +558,9 @@ UpdateMempoolForReorg(DisconnectedBlockTransactions& disconnectpool, bool fAddTo
     {
         // ignore validation errors in resurrected transactions
         CValidationState stateDummy;
-        if (!fAddToMempool || (*it)->IsCoinBase() ||
-            !AcceptToMemoryPool(mempool, stateDummy, *it, nullptr /* pfMissingInputs */,
+        if (!fAddToMempool ||
+            (*it)->IsCoinBase() ||
+            !AcceptToMemoryPool(mempool, stateDummy, *it, nullptr, nullptr /* pfMissingInputs */,
                 nullptr /* plTxnReplaced */, true /* bypass_limits */, 0 /* nAbsurdFee */))
         {
             // If the transaction doesn't make it in to the mempool, remove any
@@ -628,9 +631,9 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
 }
 
 static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state,
-    const CTransactionRef& ptx, std::shared_ptr<Transaction> pocketTx, bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced,
-    bool bypass_limits, const CAmount& nAbsurdFee, std::vector<COutPoint>& coins_to_uncache,
-    bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
+    const CTransactionRef& ptx, std::shared_ptr<PocketTx::Transaction> pocketTx, bool* pfMissingInputs,
+    int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount& nAbsurdFee,
+    std::vector<COutPoint>& coins_to_uncache, bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     const CTransaction& tx = *ptx;
     const uint256 hash = tx.GetHash();
@@ -1071,7 +1074,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // At this point, we believe that all the checks have been carried 
         // out and we can safely save the transaction to the database for 
         // subsequent verification of the consensus and inclusion in the block.
-        if (PocketHelpers::IsPocketTransaction(ptx)) {
+        if (PocketHelpers::IsPocketTransaction(ptx))
+        {
             if (!pocketTx)
             {
                 return state.DoS(0, false, REJECT_INTERNAL, "not found payload data");
@@ -1136,8 +1140,9 @@ static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPo
     return res;
 }
 
-bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransactionRef& tx, std::shared_ptr<Transaction> pocketTx,
-    bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits, const CAmount nAbsurdFee, bool test_accept)
+bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState& state, const CTransactionRef& tx,
+    std::shared_ptr<Transaction> pocketTx, bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced,
+    bool bypass_limits, const CAmount nAbsurdFee, bool test_accept)
 {
     const CChainParams& chainparams = Params();
     return AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pocketTx, pfMissingInputs, GetTime(), plTxnReplaced,
@@ -2966,19 +2971,18 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     const CBlock& blockConnecting = *pthisBlock;
 
     // Read transactions payload from db
-    std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
+    std::shared_ptr<PocketBlock> pocketBlock = nullptr;
     if (!pocketBlockPart)
-    {
-        if (!PocketServices::GetBlock(blockConnecting, pocketBlock))
-        {
-            pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
-            return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
-        }
-    }
+        PocketServices::GetBlock(blockConnecting, pocketBlock);
     else
-    {
         pocketBlock = pocketBlockPart;
+
+    if (!pocketBlock)
+    {
+        pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
+        return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
     }
+
     const PocketHelpers::PocketBlock& pocketBlockConnecting = *pocketBlock;
 
     // Apply the block atomically to the chain state.
@@ -6343,16 +6347,23 @@ bool LoadMempool()
 
             CAmount amountdelta = nFeeDelta;
             if (amountdelta)
-            {
                 mempool.PrioritiseTransaction(tx->GetHash(), amountdelta);
-            }
+
             CValidationState state;
             if (nTime + nExpiryTimeout > nNow)
             {
-                LOCK(cs_main);
-                AcceptToMemoryPoolWithTime(chainparams, mempool, state, tx, nullptr /* pfMissingInputs */, nTime,
-                    nullptr /* plTxnReplaced */, false /* bypass_limits */, 0 /* nAbsurdFee */,
-                    false /* test_accept */);
+                std::shared_ptr<Transaction> pocketTx;
+                if (PocketHelpers::IsPocketTransaction(tx) && !PocketServices::GetTransaction(*tx, pocketTx))
+                    state.Invalid(false, 0, "not found in sqlite db");
+
+                if (state.IsValid())
+                {
+                    LOCK(cs_main);
+                    AcceptToMemoryPoolWithTime(chainparams, mempool, state, tx, pocketTx, nullptr /* pfMissingInputs */, nTime,
+                        nullptr /* plTxnReplaced */, false /* bypass_limits */, 0 /* nAbsurdFee */,
+                        false /* test_accept */);
+                }
+
                 if (state.IsValid())
                 {
                     ++count;
