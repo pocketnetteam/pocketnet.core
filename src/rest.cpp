@@ -24,6 +24,7 @@
 
 #include "pocketdb/services/TransactionIndexer.hpp"
 #include "pocketdb/consensus/social/Helper.hpp"
+#include "pocketdb/services/Accessor.hpp"
 
 static const size_t MAX_GETUTXOS_OUTPOINTS = 15; //allow a max of 15 outpoints to be queried at once
 
@@ -909,7 +910,7 @@ static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
             return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
 
         std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
-        if (!ReadBlockPayloadFromDisk(block, pocketBlock))
+        if (!PocketServices::GetBlock(block, pocketBlock))
             return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
         if (pocketBlock)
@@ -1020,7 +1021,7 @@ static bool debug_consensus_check(HTTPRequest* req, const std::string& strURIPar
             return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
 
         std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
-        if (!ReadBlockPayloadFromDisk(block, pocketBlock))
+        if (!PocketServices::GetBlock(block, pocketBlock))
             return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
         if (pocketBlock)

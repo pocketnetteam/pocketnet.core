@@ -70,7 +70,7 @@ namespace PocketServices
                     }
                 }
 
-                if (auto[ok, ptx] = deserializeTransaction); ok && ptx)
+                if (auto[ok, ptx] = deserializeTransaction(pocketData, tx); ok && ptx)
                     pocketBlock.push_back(ptx);
             }
 
@@ -82,7 +82,7 @@ namespace PocketServices
 
         static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(CDataStream& stream, const CTransactionRef& tx)
         {
-            LogPrint(BCLog::SYNC, "+++ DeserializeTransaction: %s\n", tx.GetHash().GetHex());
+            LogPrint(BCLog::SYNC, "+++ DeserializeTransaction: %s\n", tx->GetHash().GetHex());
 
             // Get Serialized data from stream
             auto pocketData = parseStream(stream);
@@ -102,7 +102,7 @@ namespace PocketServices
             }
             
             // Build transaction instance
-            return deserializeTransaction(tx, entry);
+            return deserializeTransaction(pocketData, tx);
         }
 
         static shared_ptr<UniValue> SerializeBlock(const PocketBlock& block)
@@ -183,7 +183,7 @@ namespace PocketServices
             return ptx;
         }
 
-        static bool buildOutputs(const CTransactionRef& tx, shared_ptr<Transaction> ptx)
+        static bool buildOutputs(const CTransactionRef& tx, shared_ptr<Transaction>& ptx)
         {
             // indexing Outputs
             for (int i = 0; i < tx->vout.size(); i++)
@@ -211,7 +211,7 @@ namespace PocketServices
             return !ptx->Outputs().empty();
         }
 
-        static UniValue& parseStream()
+        static UniValue parseStream(CDataStream& stream)
         {
             // Prepare source data - old format (Json)
             UniValue pocketData(UniValue::VOBJ);

@@ -972,6 +972,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
                                               "Clients should transition to using signrawtransactionwithkey and signrawtransactionwithwallet");
 }
 
+// TODO (brangr): pass pocket payload
 static UniValue _sendrawtransaction(CTransactionRef& tx)
 {
     const uint256& hashTx = tx->GetHash();
@@ -992,7 +993,7 @@ static UniValue _sendrawtransaction(CTransactionRef& tx)
             // push to local node and sync with wallets
             CValidationState state;
             bool fMissingInputs;
-            if (!AcceptToMemoryPool(mempool, state, tx, &fMissingInputs, nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee)) {
+            if (!AcceptToMemoryPool(mempool, state, tx, nullptr, &fMissingInputs, nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee)) {
                 if (state.IsInvalid()) {
                     throw JSONRPCError(RPC_TRANSACTION_REJECTED, FormatStateMessage(state));
                 } else {
@@ -1129,7 +1130,7 @@ static UniValue testmempoolaccept(const JSONRPCRequest& request)
     bool test_accept_res;
     {
         LOCK(cs_main);
-        test_accept_res = AcceptToMemoryPool(mempool, state, std::move(tx), &missing_inputs,
+        test_accept_res = AcceptToMemoryPool(mempool, state, std::move(tx), nullptr, &missing_inputs,
             nullptr /* plTxnReplaced */, false /* bypass_limits */, max_raw_tx_fee, /* test_accept */ true);
     }
     result_0.pushKV("allowed", test_accept_res);
