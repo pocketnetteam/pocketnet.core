@@ -46,7 +46,8 @@ namespace PocketHelpers
     using namespace PocketTx;
 
     // Accumulate transactions in block
-    typedef vector<shared_ptr<Transaction>> PocketBlock;
+    typedef shared_ptr<PocketTx::Transaction> PTransactionRef;
+    typedef vector<PTransactionRef> PocketBlock;
 
     static txnouttype ScriptType(const CScript& scriptPubKey)
     {

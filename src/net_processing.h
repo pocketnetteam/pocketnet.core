@@ -12,7 +12,10 @@
 #include "pocketdb/pocketnet.h"
 #include <utilstrencodings.h>
 
+#include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/services/TransactionSerializer.hpp"
+
+using namespace PocketHelpers;
 
 /** Default for -maxorphantx, maximum number of orphan transactions kept in memory */
 static const unsigned int DEFAULT_MAX_ORPHAN_TRANSACTIONS = 100;
