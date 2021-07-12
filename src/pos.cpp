@@ -642,7 +642,8 @@ bool GenerateOuts(CAmount nCredit,
         if (++current == rewardsCount)
         {
             re = rewardsPool;
-        } else
+        }
+        else
         {
             rewardsPool = rewardsPool - reward;
             re = reward;
@@ -654,4 +655,6 @@ bool GenerateOuts(CAmount nCredit,
 
         lotteryInst->ExtendWinnerTypes(type, winner_types);
     }
+
+    return true;
 }

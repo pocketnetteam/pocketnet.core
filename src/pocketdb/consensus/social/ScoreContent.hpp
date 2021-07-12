@@ -89,7 +89,7 @@ namespace PocketConsensus
             //     }
             // }
 
-            // return true;
+            return Success;
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx,
@@ -128,9 +128,7 @@ namespace PocketConsensus
             //     }
             // }
 
-
-
-            // return ValidateLimit(tx, scoresCount);
+            //return ValidateLimit(tx, scoresCount);
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx) override
