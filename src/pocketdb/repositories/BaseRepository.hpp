@@ -87,19 +87,6 @@ namespace PocketDb
         // --------------------------------
         // BINDS
         // --------------------------------
-
-        // TODO (brangr): remove
-        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, shared_ptr<std::string> value)
-        {
-            if (!value) return true;
-
-            int res = sqlite3_bind_text(*stmt, index, value->c_str(), (int) value->size(), SQLITE_STATIC);
-            if (!CheckValidResult(stmt, res))
-                return false;
-
-            return true;
-        }
-
         void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string& value)
         {
             int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
@@ -108,30 +95,12 @@ namespace PocketDb
                     __func__, index, value));
         }
 
-        // TODO (brangr): remove
-        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int>& value)
-        {
-            if (!value) return true;
-
-            TryBindStatementInt(stmt, index, *value);
-            return true;
-        }
-
         void TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, int value)
         {
             int res = sqlite3_bind_int(*stmt, index, value);
             if (!CheckValidResult(stmt, res))
                 throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
                     __func__, index, value));
-        }
-
-        // TODO (brangr): remove
-        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int64_t>& value)
-        {
-            if (!value) return true;
-
-            TryBindStatementInt64(stmt, index, *value);
-            return true;
         }
 
         void TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, int64_t value)
@@ -177,12 +146,6 @@ namespace PocketDb
                    : make_tuple(true, std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, index))));
         }
 
-        // TODO (brangr): remove
-        std::string GetColumnString(sqlite3_stmt* stmt, int index)
-        {
-            return std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, index)));
-        }
-
         tuple<bool, int64_t> TryGetColumnInt64(sqlite3_stmt* stmt, int index)
         {
             return sqlite3_column_type(stmt, index) == SQLITE_NULL
@@ -190,23 +153,11 @@ namespace PocketDb
                    : make_tuple(true, (int64_t) sqlite3_column_int64(stmt, index));
         }
 
-        // TODO (brangr): remove
-        int64_t GetColumnInt64(sqlite3_stmt* stmt, int index)
-        {
-            return sqlite3_column_int64(stmt, index);
-        }
-
         tuple<bool, int> TryGetColumnInt(sqlite3_stmt* stmt, int index)
         {
             return sqlite3_column_type(stmt, index) == SQLITE_NULL
                    ? make_tuple(false, 0)
                    : make_tuple(true, sqlite3_column_int(stmt, index));
-        }
-
-        // TODO (brangr): remove
-        int GetColumnInt(sqlite3_stmt* stmt, int index)
-        {
-            return sqlite3_column_int(stmt, index);
         }
 
     public:

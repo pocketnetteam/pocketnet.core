@@ -104,8 +104,6 @@ namespace PocketHelpers
         else if (op == OR_COMMENT_SCORE)
             return PocketTxType::ACTION_SCORE_COMMENT;
 
-        // TODO (brangr): new types
-
         return PocketTxType::TX_DEFAULT;
     }
 
@@ -152,34 +150,26 @@ namespace PocketHelpers
         {
             case PocketTxType::ACCOUNT_USER:
                 return "Users";
-                break;
             case PocketTxType::CONTENT_POST:
             case PocketTxType::CONTENT_VIDEO:
                 return "Posts";
-                break;
             case PocketTxType::CONTENT_COMMENT:
             case PocketTxType::CONTENT_COMMENT_EDIT:
             case PocketTxType::CONTENT_COMMENT_DELETE:
                 return "Comment";
-                break;
             case PocketTxType::ACTION_SCORE_CONTENT:
                 return "Scores";
-                break;
             case PocketTxType::ACTION_SCORE_COMMENT:
                 return "CommentScores";
-                break;
             case PocketTxType::ACTION_COMPLAIN:
                 return "Complains";
-                break;
             case PocketTxType::ACTION_BLOCKING_CANCEL:
             case PocketTxType::ACTION_BLOCKING:
                 return "Blocking";
-                break;
             case PocketTxType::ACTION_SUBSCRIBE_CANCEL:
             case PocketTxType::ACTION_SUBSCRIBE_PRIVATE:
             case PocketTxType::ACTION_SUBSCRIBE:
                 return "Subscribes";
-                break;
             default:
                 return "";
         };
@@ -193,6 +183,12 @@ namespace PocketHelpers
                txType != TX_COINBASE &&
                txType != TX_COINSTAKE &&
                txType != TX_DEFAULT;
+    }
+
+    static bool IsPocketTransaction(const CTransaction& tx)
+    {
+        auto txRef = MakeTransactionRef(tx);
+        return IsPocketTransaction(txRef);
     }
 
     static tuple<bool, ScoreDataDto> ParseScore(const CTransactionRef& tx)

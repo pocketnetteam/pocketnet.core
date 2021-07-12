@@ -547,7 +547,6 @@ bool IsCheckpointTransaction(std::string hash) {
     return (std::find(CheckpointsTransactions.begin(), CheckpointsTransactions.end(), hash) != CheckpointsTransactions.end());
 }
 
-// TODO (brangr): REINDEXER -> SQLITE
 //bool GetInputAddress(uint256 txhash, int n, std::string& address)
 //{
 //    uint256 hash_block;

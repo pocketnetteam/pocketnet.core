@@ -55,197 +55,32 @@ namespace PocketDb
             });
         }
 
-        // Selects for get models data
-        // TODO (brangr): move to ConsensusRepository
-        shared_ptr<ScoreDataDto> GetScoreData(const string& txHash)
-        {
-            shared_ptr<ScoreDataDto> result = nullptr;
-
-            auto sql = R"sql(
-                select
-                    s.Hash sTxHash,
-                    s.Type sType,
-                    s.Time sTime,
-                    s.Value sValue,
-                    sa.Id saId,
-                    sa.AddressHash saHash,
-                    c.Hash cTxHash,
-                    c.Type cType,
-                    c.Time cTime,
-                    c.Id cId,
-                    ca.Id caId,
-                    ca.AddressHash caHash
-                from
-                    vScores s
-                    join vAccounts sa on sa.AddressHash=s.AddressHash
-                    join vContents c on c.Hash=s.ContentTxHash
-                    join vAccounts ca on ca.AddressHash=c.AddressHash
-                where s.Hash = ?
-                limit 1
-            )sql";
-
-            // ---------------------------------------
-
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(sql);
-                TryBindStatementText(stmt, 1, txHash);
-
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
-                {
-                    ScoreDataDto data;
-
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) data.ScoreTxHash = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) data.ScoreType = (PocketTxType) value;
-                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) data.ScoreTime = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) data.ScoreValue = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) data.ScoreAddressId = value;
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) data.ScoreAddressHash = value;
-
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) data.ContentTxHash = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) data.ContentType = (PocketTxType) value;
-                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) data.ContentTime = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) data.ContentId = value;
-                    if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) data.ContentAddressId = value;
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) data.ContentAddressHash = value;
-
-                    result = make_shared<ScoreDataDto>(data);
-                }
-
-                FinalizeSqlStatement(*stmt);
-            });
-
-            return result;
-        }
-
-        // Select many referrers
-        // TODO (brangr): move to ConsensusRepository
-        shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight)
-        {
-            shared_ptr<map<string, string>> result = make_shared<map<string, string>>();
-
-            if (addresses.empty())
-                return result;
-
-            string sql = R"sql(
-                select a.AddressHash, ifnull(a.ReferrerAddressHash,'')
-                from vAccounts a
-                where a.Height >= ?
-                    and a.Height = (select min(a1.Height) from vAccounts a1 where a1.AddressHash=a.AddressHash)
-                    and a.ReferrerAddressHash is not null
-                    and a.AddressHash in (
-            )sql";
-
-            sql += addresses[0];
-            for (size_t i = 1; i < addresses.size(); i++)
-            {
-                sql += ',';
-                sql += addresses[i];
-            }
-            sql += ")";
-
-            // --------------------------------------------
-
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(sql);
-                TryBindStatementInt(stmt, 0, minHeight);
-
-                while (sqlite3_step(*stmt) == SQLITE_ROW)
-                {
-                    if (auto[ok1, value1] = TryGetColumnString(*stmt, 1); ok1 && !value1.empty())
-                        if (auto[ok2, value2] = TryGetColumnString(*stmt, 2); ok2 && !value2.empty())
-                            result->emplace(value1, value2);
-                }
-
-                FinalizeSqlStatement(*stmt);
-            });
-
-            return result;
-        }
-
-        // Select referrer for one account
-        // TODO (brangr): move to ConsensusRepository
-        shared_ptr<string> GetReferrer(const string& address, int minTime)
-        {
-            shared_ptr<string> result;
-
-            auto sql = R"sql(
-                select a.ReferrerAddressHash
-                from vAccounts a
-                where a.Time >= ?
-                    and a.AddressHash = ?
-                order by a.Height asc
-                limit 1
-            )sql";
-
-            TryTransactionStep([&]()
-            {
-                auto stmt = SetupSqlStatement(sql);
-
-                TryBindStatementInt(stmt, 1, minTime);
-                TryBindStatementText(stmt, 2, address);
-
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
-                {
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
-                        result = make_shared<string>(value);
-                }
-
-                FinalizeSqlStatement(*stmt);
-            });
-
-            return result;
-        }
-
         shared_ptr<PocketBlock> GetList(const vector<string>& txHashes, bool includePayload = false)
         {
-            string sql;
-            if (!includePayload)
-            {
-                sql = R"sql(
-                    SELECT t.Type,
-                        t.Hash,
-                        t.Time,
-                        t.Last,
-                        t.Id,
-                        t.String1,
-                        t.String2,
-                        t.String3,
-                        t.String4,
-                        t.String5,
-                        t.Int1
-                    FROM Transactions t
-                    WHERE 1 = 1
-                )sql";
-            }
-            else
-            {
-                sql = R"sql(
-                    SELECT t.Type,
-                        t.Hash,
-                        t.Time,
-                        t.Last,
-                        t.Id,
-                        t.String1,
-                        t.String2,
-                        t.String3,
-                        t.String4,
-                        t.String5,
-                        t.Int1,
-                        p.TxHash pHash,
-                        p.String1 pString1,
-                        p.String2 pString2,
-                        p.String3 pString3,
-                        p.String4 pString4,
-                        p.String5 pString5,
-                        p.String6 pString6,
-                        p.String7 pString7
-                    FROM Transactions t
-                    LEFT JOIN Payload p on t.Hash = p.TxHash
-                    WHERE 1 = 1
-                )sql";
-            }
+            string sql = R"sql(
+                SELECT t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                FROM Transactions t
+                LEFT JOIN Payload p on t.Hash = p.TxHash
+                WHERE 1 = 1
+            )sql";
 
             sql += " and t.Hash in ( '";
             sql += txHashes[0];
@@ -272,77 +107,6 @@ namespace PocketDb
                 FinalizeSqlStatement(*stmt);
             });
 
-            return result;
-        }
-
-        shared_ptr<PocketBlock> GetList(int height, bool includePayload = false)
-        {
-            string sql;
-            if (!includePayload)
-            {
-                sql = R"sql(
-                    SELECT t.Type,
-                        t.Hash,
-                        t.Time,
-                        t.Last,
-                        t.Id,
-                        t.String1,
-                        t.String2,
-                        t.String3,
-                        t.String4,
-                        t.String5,
-                        t.Int1
-                    FROM Transactions t
-                    WHERE Height = ?
-                )sql";
-            }
-            else
-            {
-                sql = R"sql(
-                    SELECT t.Type,
-                        t.Hash,
-                        t.Time,
-                        t.Last,
-                        t.Id,
-                        t.String1,
-                        t.String2,
-                        t.String3,
-                        t.String4,
-                        t.String5,
-                        t.Int1,
-                        p.TxHash pHash,
-                        p.String1 pString1,
-                        p.String2 pString2,
-                        p.String3 pString3,
-                        p.String4 pString4,
-                        p.String5 pString5,
-                        p.String6 pString6,
-                        p.String7 pString7
-                    FROM Transactions t
-                    LEFT JOIN Payload p on t.Hash = p.TxHash
-                    WHERE Height = ?
-                )sql";
-            }
-            auto stmt = SetupSqlStatement(sql);
-            auto bindResult = TryBindStatementInt(stmt, 1, make_shared<int>(height));
-
-            if (!bindResult)
-            {
-                FinalizeSqlStatement(*stmt);
-                throw runtime_error(strprintf("%s: can't get list by height (bind out)\n", __func__));
-            }
-
-            auto result = make_shared<PocketBlock>(PocketBlock{});
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, includePayload); ok)
-                {
-                    result->push_back(transaction);
-                }
-            }
-
-            FinalizeSqlStatement(*stmt);
             return result;
         }
 
@@ -401,13 +165,13 @@ namespace PocketDb
                     )
                 )sql");
 
-                TryBindStatementText(stmt, 1, ptx->GetHash());
-                TryBindStatementInt64(stmt, 2, output->GetNumber());
-                TryBindStatementText(stmt, 3, output->GetAddressHash());
-                TryBindStatementInt64(stmt, 4, output->GetValue());
-                TryBindStatementText(stmt, 5, ptx->GetHash());
-                TryBindStatementInt64(stmt, 6, output->GetNumber());
-                TryBindStatementText(stmt, 7, output->GetAddressHash());
+                TryBindStatementText(stmt, 1, *ptx->GetHash());
+                TryBindStatementInt64(stmt, 2, *output->GetNumber());
+                TryBindStatementText(stmt, 3, *output->GetAddressHash());
+                TryBindStatementInt64(stmt, 4, *output->GetValue());
+                TryBindStatementText(stmt, 5, *ptx->GetHash());
+                TryBindStatementInt64(stmt, 6, *output->GetNumber());
+                TryBindStatementText(stmt, 7, *output->GetAddressHash());
 
                 TryStepStatement(stmt);
             }
@@ -432,15 +196,15 @@ namespace PocketDb
                 WHERE not exists (select 1 from Payload p where p.TxHash = ?)
             )sql");
 
-            TryBindStatementText(stmt, 1, ptx->GetHash());
-            TryBindStatementText(stmt, 2, ptx->GetPayload()->GetString1());
-            TryBindStatementText(stmt, 3, ptx->GetPayload()->GetString2());
-            TryBindStatementText(stmt, 4, ptx->GetPayload()->GetString3());
-            TryBindStatementText(stmt, 5, ptx->GetPayload()->GetString4());
-            TryBindStatementText(stmt, 6, ptx->GetPayload()->GetString5());
-            TryBindStatementText(stmt, 7, ptx->GetPayload()->GetString6());
-            TryBindStatementText(stmt, 8, ptx->GetPayload()->GetString7());
-            TryBindStatementText(stmt, 9, ptx->GetHash());
+            TryBindStatementText(stmt, 1, *ptx->GetHash());
+            TryBindStatementText(stmt, 2, *ptx->GetPayload()->GetString1());
+            TryBindStatementText(stmt, 3, *ptx->GetPayload()->GetString2());
+            TryBindStatementText(stmt, 4, *ptx->GetPayload()->GetString3());
+            TryBindStatementText(stmt, 5, *ptx->GetPayload()->GetString4());
+            TryBindStatementText(stmt, 6, *ptx->GetPayload()->GetString5());
+            TryBindStatementText(stmt, 7, *ptx->GetPayload()->GetString6());
+            TryBindStatementText(stmt, 8, *ptx->GetPayload()->GetString7());
+            TryBindStatementText(stmt, 9, *ptx->GetHash());
 
             TryStepStatement(stmt);
 
@@ -464,16 +228,16 @@ namespace PocketDb
                 WHERE not exists (select 1 from Transactions t where t.Hash=?)
             )sql");
 
-            TryBindStatementInt(stmt, 1, ptx->GetTypeInt());
-            TryBindStatementText(stmt, 2, ptx->GetHash());
-            TryBindStatementInt64(stmt, 3, ptx->GetTime());
-            TryBindStatementText(stmt, 4, ptx->GetString1());
-            TryBindStatementText(stmt, 5, ptx->GetString2());
-            TryBindStatementText(stmt, 6, ptx->GetString3());
-            TryBindStatementText(stmt, 7, ptx->GetString4());
-            TryBindStatementText(stmt, 8, ptx->GetString5());
-            TryBindStatementInt64(stmt, 9, ptx->GetInt1());
-            TryBindStatementText(stmt, 10, ptx->GetHash());
+            TryBindStatementInt(stmt, 1, *ptx->GetTypeInt());
+            TryBindStatementText(stmt, 2, *ptx->GetHash());
+            TryBindStatementInt64(stmt, 3, *ptx->GetTime());
+            TryBindStatementText(stmt, 4, *ptx->GetString1());
+            TryBindStatementText(stmt, 5, *ptx->GetString2());
+            TryBindStatementText(stmt, 6, *ptx->GetString3());
+            TryBindStatementText(stmt, 7, *ptx->GetString4());
+            TryBindStatementText(stmt, 8, *ptx->GetString5());
+            TryBindStatementInt64(stmt, 9, *ptx->GetInt1());
+            TryBindStatementText(stmt, 10, *ptx->GetHash());
 
             TryStepStatement(stmt);
 
@@ -485,11 +249,14 @@ namespace PocketDb
         tuple<bool, shared_ptr<Transaction>>
         CreateTransactionFromListRow(const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
         {
-            auto txType = static_cast<PocketTxType>(GetColumnInt(*stmt, 0));
-            auto txHash = GetColumnString(*stmt, 1);
-            auto nTime = GetColumnInt64(*stmt, 2);
+            auto[ok0, txType] = TryGetColumnInt(*stmt, 0);
+            auto[ok1, txHash] = TryGetColumnString(*stmt, 1);
+            auto[ok2, nTime] = TryGetColumnInt64(*stmt, 2);
 
-            auto ptx = PocketHelpers::CreateInstance(txType, txHash, nTime, nullptr);
+            if (!ok0 || !ok1 || !ok2)
+                return make_tuple(false, nullptr);
+
+            auto ptx = PocketHelpers::CreateInstance(static_cast<PocketTxType>(txType), txHash, nTime, nullptr);
             if (ptx == nullptr)
                 return make_tuple(false, nullptr);
 

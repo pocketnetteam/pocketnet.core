@@ -252,12 +252,6 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
             return false;
         }
 
-        // TODO (brangr): NEED ? чет мне кажется лищнее это...
-        //     if (!g_antibot->CheckInputs(tx)) {
-        //         LogPrintf("Warning! Block generate (CheckInputs): %s\n", txid);
-        //         return false;
-        //     }
-
         // Al is good - save for descendants
         pocketBlock.push_back(ptx);
     }

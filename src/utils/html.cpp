@@ -7,7 +7,6 @@ namespace HtmlUtils
 {
     std::string ClearHtmlTags(const std::string& value)
     {
-        // TODO (brangr): spaces vmesto tegov
         bool copy = true;
         std::string plainString = "";
         std::stringstream convertStream;

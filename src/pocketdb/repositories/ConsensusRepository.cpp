@@ -9,6 +9,7 @@
 namespace PocketDb
 {
     void ConsensusRepository::Init() {}
+
     void ConsensusRepository::Destroy() {}
 
     bool ConsensusRepository::ExistsAnotherByName(const string& address, const string& name)
@@ -40,7 +41,7 @@ namespace PocketDb
 
     // Select all user profile edit transaction in chain
     // Transactions.Height is not null
-    // TODO (brangr): change vUser to vAccounts and pass argument type
+    // TODO (brangr) (v0.21.0): change vUser to vAccounts and pass argument type
     shared_ptr<Transaction> ConsensusRepository::GetLastAccountTransaction(const string& address)
     {
         shared_ptr<Transaction> tx;
@@ -71,7 +72,7 @@ namespace PocketDb
         return tx;
     }
 
-    // TODO (brangr): change for vAccounts and pass type as argument
+    // TODO (brangr) (v0.21.0): change for vAccounts and pass type as argument
     bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
     {
         auto result = false;
@@ -144,7 +145,7 @@ namespace PocketDb
     }
 
     tuple<bool, PocketTxType> ConsensusRepository::GetLastSubscribeType(const string& address,
-        const string& addressTo)
+                                                                        const string& addressTo)
     {
         bool subscribeExists = false;
         PocketTxType subscribeType = PocketTxType::NOT_SUPPORTED;
@@ -178,7 +179,7 @@ namespace PocketDb
         return {subscribeExists, subscribeType};
     }
 
-    // TODO (brangr): change for vContents and pass type as argument
+    // TODO (brangr) (v0.21.0): change for vContents and pass type as argument
     shared_ptr<string> ConsensusRepository::GetPostAddress(const string& postHash)
     {
         shared_ptr<string> result = nullptr;
@@ -342,7 +343,8 @@ namespace PocketDb
             TryBindStatementText(stmt, 2, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-                result = GetColumnInt(*stmt, 0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
 
             FinalizeSqlStatement(*stmt);
         });
@@ -368,7 +370,226 @@ namespace PocketDb
         TryTransactionStep([&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-                result = GetColumnInt(*stmt, 0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    // Selects for get models data
+    shared_ptr<ScoreDataDto> ConsensusRepository::GetScoreData(const string& txHash)
+    {
+        shared_ptr<ScoreDataDto> result = nullptr;
+
+        auto sql = R"sql(
+                select
+                    s.Hash sTxHash,
+                    s.Type sType,
+                    s.Time sTime,
+                    s.Value sValue,
+                    sa.Id saId,
+                    sa.AddressHash saHash,
+                    c.Hash cTxHash,
+                    c.Type cType,
+                    c.Time cTime,
+                    c.Id cId,
+                    ca.Id caId,
+                    ca.AddressHash caHash
+                from
+                    vScores s
+                    join vAccounts sa on sa.AddressHash=s.AddressHash
+                    join vContents c on c.Hash=s.ContentTxHash
+                    join vAccounts ca on ca.AddressHash=c.AddressHash
+                where s.Hash = ?
+                limit 1
+            )sql";
+
+        // ---------------------------------------
+
+        TryTransactionStep([&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, txHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                ScoreDataDto data;
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) data.ScoreTxHash = value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) data.ScoreType = (PocketTxType) value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) data.ScoreTime = value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) data.ScoreValue = value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) data.ScoreAddressId = value;
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) data.ScoreAddressHash = value;
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) data.ContentTxHash = value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) data.ContentType = (PocketTxType) value;
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) data.ContentTime = value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) data.ContentId = value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) data.ContentAddressId = value;
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) data.ContentAddressHash = value;
+
+                result = make_shared<ScoreDataDto>(data);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    // Select many referrers
+    shared_ptr<map<string, string>> ConsensusRepository::GetReferrers(const vector<string>& addresses, int minHeight)
+    {
+        shared_ptr<map<string, string>> result = make_shared<map<string, string>>();
+
+        if (addresses.empty())
+            return result;
+
+        string sql = R"sql(
+                select a.AddressHash, ifnull(a.ReferrerAddressHash,'')
+                from vAccounts a
+                where a.Height >= ?
+                    and a.Height = (select min(a1.Height) from vAccounts a1 where a1.AddressHash=a.AddressHash)
+                    and a.ReferrerAddressHash is not null
+                    and a.AddressHash in (
+            )sql";
+
+        sql += addresses[0];
+        for (size_t i = 1; i < addresses.size(); i++)
+        {
+            sql += ',';
+            sql += addresses[i];
+        }
+        sql += ")";
+
+        // --------------------------------------------
+
+        TryTransactionStep([&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 0, minHeight);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok1, value1] = TryGetColumnString(*stmt, 1); ok1 && !value1.empty())
+                    if (auto[ok2, value2] = TryGetColumnString(*stmt, 2); ok2 && !value2.empty())
+                        result->emplace(value1, value2);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    // Select referrer for one account
+    shared_ptr<string> ConsensusRepository::GetReferrer(const string& address, int minTime)
+    {
+        shared_ptr<string> result;
+
+        auto sql = R"sql(
+                select a.ReferrerAddressHash
+                from vAccounts a
+                where a.Time >= ?
+                    and a.AddressHash = ?
+                order by a.Height asc
+                limit 1
+            )sql";
+
+        TryTransactionStep([&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementInt(stmt, 1, minTime);
+            TryBindStatementText(stmt, 2, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
+                    result = make_shared<string>(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::GetUserLikersCount(int addressId)
+    {
+        int result = 0;
+
+        auto stmt = SetupSqlStatement(R"sql(
+                select count(1)
+                from Ratings r
+                where   r.Type = ?
+                    and r.Id = ?
+            )sql");
+        TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
+        TryBindStatementInt(stmt, 2, addressId);
+
+        TryTransactionStep([&]()
+        {
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
+                             const string& scoreAddress, const string& contentAddress,
+                             int height, const CTransactionRef& tx,
+                             const std::vector<int>& values,
+                             int64_t scoresOneToOneDepth)
+    {
+        string sql = R"sql(
+                select count(1)
+                from vScores s -- indexed by Transactions_GetScoreContentCount
+                join vContents c -- indexed by Transactions_GetScoreContentCount_2
+                    on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ? and c.Height <= ?
+                where   s.AddressHash = ?
+                    and s.Height <= ?
+                    and s.Time < ?
+                    and s.Time >= ?
+                    and s.Hash != ?
+                    and s.Type = ?
+                    and s.Value in
+            )sql";
+
+        sql += "(";
+        sql += std::to_string(values[0]);
+        for (size_t i = 1; i < values.size(); i++)
+        {
+            sql += ',';
+            sql += std::to_string(values[i]);
+        }
+        sql += ")";
+
+        auto stmt = SetupSqlStatement(sql);
+        TryBindStatementInt(stmt, 1, contentType);
+        TryBindStatementText(stmt, 2, contentAddress);
+        TryBindStatementInt(stmt, 3, height);
+        TryBindStatementText(stmt, 4, scoreAddress);
+        TryBindStatementInt(stmt, 5, height);
+        TryBindStatementInt64(stmt, 6, tx->nTime);
+        TryBindStatementInt64(stmt, 7, (int64_t) tx->nTime - scoresOneToOneDepth);
+        TryBindStatementText(stmt, 8, tx->GetHash().GetHex());
+        TryBindStatementInt(stmt, 9, scoreType);
+
+        int result = 0;
+        TryTransactionStep([&]()
+        {
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
 
             FinalizeSqlStatement(*stmt);
         });

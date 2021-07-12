@@ -30,7 +30,7 @@ static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
     RegisterMiningRPCCommands(t);
     RegisterRawTransactionRPCCommands(t);
 
-    // TODO (brangr): REINDEXER -> SQLITE
+    // TODO (joni): Register all Web RPC methods here
     //RegisterPocketnetRPCCommands(t);
 }
 

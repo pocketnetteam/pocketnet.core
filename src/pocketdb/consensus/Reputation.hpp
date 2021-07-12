@@ -46,7 +46,7 @@ namespace PocketConsensus
             if (userReputation < minUserReputation)
                 return false;
 
-            auto userLikers = PocketDb::RatingsRepoInst.GetUserLikersCount(addressId);
+            auto userLikers = PocketDb::ConsensusRepoInst.GetUserLikersCount(addressId);
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "        - GetUserLikersCount: %.2fms _ %d\n",
@@ -97,7 +97,7 @@ namespace PocketConsensus
                 values.push_back(5);
             }
 
-            auto scores_one_to_one_count = PocketDb::RatingsRepoInst.GetScoreContentCount(
+            auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreContentCount(
                 scoreData->ScoreType, scoreData->ContentType,
                 checkScoreAddressHash, scoreData->ContentAddressHash,
                 height, tx, values, _scores_one_to_one_depth);
@@ -137,7 +137,7 @@ namespace PocketConsensus
                 values.push_back(1);
             }
 
-            auto scores_one_to_one_count = PocketDb::RatingsRepoInst.GetScoreContentCount(
+            auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreContentCount(
                 scoreData->ScoreType, scoreData->ContentType,
                 scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
                 height, tx, values, _scores_one_to_one_depth);

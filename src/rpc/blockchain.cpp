@@ -44,9 +44,6 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
-
-// TODO (brangr): REINDEXER -> SQLITE
-// #include <pocketdb/pocketdb.h>
 #include <math.h>
 
 struct CUpdatedBlock {

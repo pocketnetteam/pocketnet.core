@@ -18,7 +18,8 @@ namespace PocketConsensus
     using namespace PocketTx;
     using namespace PocketDb;
 
-    enum SocialConsensusResult {
+    enum SocialConsensusResult
+    {
         SocialConsensusResult_Success = 0,
         SocialConsensusResult_NotRegistered = 1,
         SocialConsensusResult_ContentLimit = 2,
@@ -80,17 +81,18 @@ namespace PocketConsensus
     {
     public:
 
-        BaseConsensus() { }
+        BaseConsensus() {}
 
         BaseConsensus(int height)
         {
             Height = height;
         }
 
-        virtual ~BaseConsensus() { }
+        virtual ~BaseConsensus() {}
 
     protected:
         int Height = 0;
+
         virtual int CheckpointHeight() { return 0; };
     private:
     };

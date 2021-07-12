@@ -39,6 +39,7 @@ namespace PocketConsensus
     {
     protected:
         LotteryWinners _winners;
+
         virtual int MaxWinnersCount() const { return 25; }
 
         void SortWinners(map<string, int>& candidates, CDataStream& hashProofOfStakeSource, vector<string>& winners)
@@ -66,15 +67,18 @@ namespace PocketConsensus
                     winners.push_back(it.first);
             }
         }
+
         virtual void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) {}
+
         virtual void ExtendReferrers() {}
 
     public:
         LotteryConsensus(int height) : BaseConsensus(height) {}
 
         // Get all lottery winner
-        virtual LotteryWinners& Winners(const CBlock& block, CDataStream& hashProofOfStakeSource,
-            shared_ptr <ReputationConsensus> reputationConsensus)
+        virtual LotteryWinners& Winners(const CBlock& block,
+                                        CDataStream& hashProofOfStakeSource,
+                                        shared_ptr <ReputationConsensus> reputationConsensus)
         {
             map<string, int> postCandidates;
             map<string, string> postReferrersCandidates;
@@ -92,7 +96,7 @@ namespace PocketConsensus
                     txType != PocketTxType::ACTION_SCORE_COMMENT)
                     continue;
 
-                auto scoreData = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
+                auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
                 if (!scoreData)
                     throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n",
                         __func__, tx->GetHash().GetHex()));
@@ -171,13 +175,15 @@ namespace PocketConsensus
     {
     protected:
         int CheckpointHeight() override { return 514185; }
+
         virtual int GetLotteryReferralDepth() { return 0; }
+
         void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) override
         {
             if (refs.find(contentAddress) != refs.end())
                 return;
 
-            auto referrer = PocketDb::TransRepoInst.GetReferrer(contentAddress, txTime - GetLotteryReferralDepth());
+            auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress, txTime - GetLotteryReferralDepth());
             if (!referrer) return;
 
             refs.emplace(contentAddress, *referrer);
@@ -185,10 +191,12 @@ namespace PocketConsensus
 
     public:
         LotteryConsensus_checkpoint_514185(int height) : LotteryConsensus(height) {}
+
         void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) override
         {
             winner_types.push_back(type);
         }
+
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // Referrer program 5 - 100%; 2.0 - nodes; 3.0 - all for lottery;
@@ -211,6 +219,7 @@ namespace PocketConsensus
     {
     protected:
         int CheckpointHeight() override { return 1035000; }
+
         int GetLotteryReferralDepth() override { return 30 * 24 * 3600; }
 
     public :
@@ -230,6 +239,7 @@ namespace PocketConsensus
 
     public:
         LotteryConsensus_checkpoint_1124000(int height) : LotteryConsensus_checkpoint_1035000(height) {}
+
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // Referrer program 5 - 100%; 4.75 - nodes; 0.25 - all for lottery;
@@ -255,6 +265,7 @@ namespace PocketConsensus
 
     public:
         LotteryConsensus_checkpoint_1180000(int height) : LotteryConsensus_checkpoint_1124000(height) {}
+
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // Reduce all winnings by 10 times
@@ -278,12 +289,14 @@ namespace PocketConsensus
     {
     protected:
         int CheckpointHeight() override { return -1; }
+
         int GetLotteryReferralDepth() override { return -1; }
 
         void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) override
         {
             // This logic replaced with ExtendReferrers()
         }
+
         void ExtendReferrers() override
         {
             auto& postWinners = _winners.PostWinners;
@@ -300,7 +313,7 @@ namespace PocketConsensus
                 if (find(winners.begin(), winners.end(), addr) == winners.end())
                     winners.push_back(addr);
 
-            auto referrers = PocketDb::TransRepoInst.GetReferrers(winners, Height - GetLotteryReferralDepth());
+            auto referrers = PocketDb::ConsensusRepoInst.GetReferrers(winners, Height - GetLotteryReferralDepth());
             if (referrers->empty()) return;
 
             for (const auto& it : *referrers)
@@ -329,15 +342,16 @@ namespace PocketConsensus
     {
     private:
         static inline const std::map<int, std::function<LotteryConsensus*(int height)>> m_rules =
-        {
-            {1180000, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
-            {1124000, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
-            {1035000, [](int height) { return new LotteryConsensus_checkpoint_1035000(height); }},
-            {514185,  [](int height) { return new LotteryConsensus_checkpoint_514185(height); }},
-            {0,       [](int height) { return new LotteryConsensus(height); }},
-        };
+            {
+                {1180000, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
+                {1124000, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
+                {1035000, [](int height) { return new LotteryConsensus_checkpoint_1035000(height); }},
+                {514185,  [](int height) { return new LotteryConsensus_checkpoint_514185(height); }},
+                {0,       [](int height) { return new LotteryConsensus(height); }},
+            };
     public:
         LotteryConsensusFactory() = default;
+
         static shared_ptr <LotteryConsensus> Instance(int height)
         {
             return shared_ptr<LotteryConsensus>(

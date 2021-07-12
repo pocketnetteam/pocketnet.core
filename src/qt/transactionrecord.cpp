@@ -241,7 +241,7 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, int 
         }
     }
 
-    // TODO (brangr): maturity for CoinStake transactions
+    // TODO (brangr): maturity for CoinStake transactions - wtf?
 
     status.needsUpdate = false;
 }

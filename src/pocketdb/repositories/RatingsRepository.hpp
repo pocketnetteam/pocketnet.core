@@ -25,6 +25,7 @@ namespace PocketDb
         explicit RatingsRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
         void Init() override {}
+
         void Destroy() override {}
 
         // Accumulate new rating records
@@ -43,83 +44,6 @@ namespace PocketDb
                 LogPrint(BCLog::BENCH, "      - InsertRating (%d): %.2fms\n", *rating.GetTypeInt(),
                     0.001 * (nTime2 - nTime1));
             }
-        }
-
-        // TODO (brangr): move to ConsensusRepository
-        int GetUserLikersCount(int addressId)
-        {
-            int result = 0;
-
-            auto stmt = SetupSqlStatement(R"sql(
-                select count(1)
-                from Ratings r
-                where   r.Type = ?
-                    and r.Id = ?
-            )sql");
-            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
-            TryBindStatementInt(stmt, 2, addressId);
-
-            TryTransactionStep([&]()
-            {
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
-                    result = GetColumnInt(*stmt, 0);
-
-                FinalizeSqlStatement(*stmt);
-            });
-
-            return result;
-        }
-
-        // TODO (brangr): move to ConsensusRepository
-        int GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
-            const string& scoreAddress, const string& contentAddress,
-            int height, const CTransactionRef& tx,
-            const std::vector<int>& values,
-            int64_t scoresOneToOneDepth)
-        {
-            string sql = R"sql(
-                select count(1)
-                from vScores s -- indexed by Transactions_GetScoreContentCount
-                join vContents c -- indexed by Transactions_GetScoreContentCount_2
-                    on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ? and c.Height <= ?
-                where   s.AddressHash = ?
-                    and s.Height <= ?
-                    and s.Time < ?
-                    and s.Time >= ?
-                    and s.Hash != ?
-                    and s.Type = ?
-                    and s.Value in
-            )sql";
-            sql += "(";
-            sql += std::to_string(values[0]);
-            for (size_t i = 1; i < values.size(); i++)
-            {
-                sql += ',';
-                sql += std::to_string(values[i]);
-            }
-            sql += ")";
-
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 1, contentType);
-            TryBindStatementText(stmt, 2, contentAddress);
-            TryBindStatementInt(stmt, 3, height);
-            TryBindStatementText(stmt, 4, scoreAddress);
-            TryBindStatementInt(stmt, 5, height);
-            TryBindStatementInt64(stmt, 6, tx->nTime);
-            TryBindStatementInt64(stmt, 7, (int64_t) tx->nTime - scoresOneToOneDepth);
-            TryBindStatementText(stmt, 8, tx->GetHash().GetHex());
-            TryBindStatementInt(stmt, 9, scoreType);
-
-            int result = 0;
-            TryTransactionStep([&]()
-            {
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
-                    result = GetColumnInt(*stmt, 0);
-
-                FinalizeSqlStatement(*stmt);
-            });
-
-            return result;
         }
 
     private:

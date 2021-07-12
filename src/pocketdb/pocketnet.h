@@ -71,7 +71,6 @@ int64_t GetActualLimit(Limit type, int height);
 
 
 // Pocketnet transaction types
-// TODO (brangr): replace with asm bit
 //#define OR_SCORE "7570766f74655368617265"
 //#define OR_COMPLAIN "636f6d706c61696e5368617265"
 //#define OR_POST "7368617265"

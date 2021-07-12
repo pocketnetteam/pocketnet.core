@@ -7,6 +7,7 @@
 #include "WebRepository.h"
 
 void PocketDb::WebRepository::Init() {}
+
 void PocketDb::WebRepository::Destroy() {}
 
 // Top addresses info
@@ -86,15 +87,15 @@ UniValue PocketDb::WebRepository::GetLastComments(int count, int height, std::st
 
         TryBindStatementInt(stmt, 1, height);
         TryBindStatementInt64(stmt, 2, GetAdjustedTime());
-        TryBindStatementText(stmt, 3, make_shared<std::string>(lang.empty() ? "en" : lang));
+        TryBindStatementText(stmt, 3, lang.empty() ? "en" : lang);
         TryBindStatementInt(stmt, 4, count);
 
         while (sqlite3_step(*stmt) == SQLITE_ROW)
         {
             UniValue record(UniValue::VOBJ);
 
-            auto txHash = GetColumnString(*stmt, 0);
-            auto rootTxHash = GetColumnString(*stmt, 1);
+            auto[ok0, txHash] = TryGetColumnString(*stmt, 0);
+            auto[ok1, rootTxHash] = TryGetColumnString(*stmt, 1);
 
             record.pushKV("id", rootTxHash);
             if (auto[ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("postid", valueStr);
@@ -119,7 +120,6 @@ UniValue PocketDb::WebRepository::GetLastComments(int count, int height, std::st
                 record.pushKV("deleted", true);
             }
 
-            //TODO (joni) (brangr): тут может быть разрулим типом транзакции
             record.pushKV("edit", txHash != rootTxHash);
 
             result.push_back(record);
@@ -131,7 +131,8 @@ UniValue PocketDb::WebRepository::GetLastComments(int count, int height, std::st
     return result;
 }
 
-UniValue PocketDb::WebRepository::GetCommentsByPost(const std::string& postHash, const std::string& parentHash, const std::string& addressHash)
+UniValue PocketDb::WebRepository::GetCommentsByPost(const std::string& postHash, const std::string& parentHash,
+                                                    const std::string& addressHash)
 {
     auto sql = R"sql(
         SELECT c.Type,
@@ -162,22 +163,23 @@ UniValue PocketDb::WebRepository::GetCommentsByPost(const std::string& postHash,
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]() {
-      auto stmt = SetupSqlStatement(sql);
+    TryTransactionStep([&]()
+    {
+        auto stmt = SetupSqlStatement(sql);
 
-      TryBindStatementText(stmt, 1, addressHash);
-      TryBindStatementText(stmt, 2, postHash);
-      TryBindStatementText(stmt, 3, parentHash);
-      TryBindStatementInt64(stmt, 4, GetAdjustedTime());
+        TryBindStatementText(stmt, 1, addressHash);
+        TryBindStatementText(stmt, 2, postHash);
+        TryBindStatementText(stmt, 3, parentHash);
+        TryBindStatementInt64(stmt, 4, GetAdjustedTime());
 
-      while (sqlite3_step(*stmt) == SQLITE_ROW)
-      {
-          auto record = ParseCommentRow(*stmt);
+        while (sqlite3_step(*stmt) == SQLITE_ROW)
+        {
+            auto record = ParseCommentRow(*stmt);
 
-          result.push_back(record);
-      }
+            result.push_back(record);
+        }
 
-      FinalizeSqlStatement(*stmt);
+        FinalizeSqlStatement(*stmt);
     });
 
     return result;
@@ -233,20 +235,21 @@ UniValue PocketDb::WebRepository::GetCommentsByIds(string& addressHash, vector<s
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]() {
-      auto stmt = SetupSqlStatement(sql);
+    TryTransactionStep([&]()
+    {
+        auto stmt = SetupSqlStatement(sql);
 
-      TryBindStatementText(stmt, 1, addressHash);
-      TryBindStatementInt64(stmt, 2, GetAdjustedTime());
+        TryBindStatementText(stmt, 1, addressHash);
+        TryBindStatementInt64(stmt, 2, GetAdjustedTime());
 
-      while (sqlite3_step(*stmt) == SQLITE_ROW)
-      {
-          auto record = ParseCommentRow(*stmt);
+        while (sqlite3_step(*stmt) == SQLITE_ROW)
+        {
+            auto record = ParseCommentRow(*stmt);
 
-          result.push_back(record);
-      }
+            result.push_back(record);
+        }
 
-      FinalizeSqlStatement(*stmt);
+        FinalizeSqlStatement(*stmt);
     });
 
     return result;
@@ -287,27 +290,28 @@ UniValue PocketDb::WebRepository::GetPostScores(vector<string>& postHashes, stri
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]() {
-      auto stmt = SetupSqlStatement(sql);
+    TryTransactionStep([&]()
+    {
+        auto stmt = SetupSqlStatement(sql);
 
-      TryBindStatementText(stmt, 1, addressHash);
+        TryBindStatementText(stmt, 1, addressHash);
 
-      while (sqlite3_step(*stmt) == SQLITE_ROW)
-      {
-          UniValue record(UniValue::VOBJ);
+        while (sqlite3_step(*stmt) == SQLITE_ROW)
+        {
+            UniValue record(UniValue::VOBJ);
 
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("reputation", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("value", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("isprivate", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("reputation", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("value", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("isprivate", valueStr);
 
-          result.push_back(record);
-      }
+            result.push_back(record);
+        }
 
-      FinalizeSqlStatement(*stmt);
+        FinalizeSqlStatement(*stmt);
     });
 
     return result;
@@ -341,26 +345,27 @@ UniValue PocketDb::WebRepository::GetPageScores(std::vector<std::string>& commen
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]() {
-      auto stmt = SetupSqlStatement(sql);
+    TryTransactionStep([&]()
+    {
+        auto stmt = SetupSqlStatement(sql);
 
-      TryBindStatementText(stmt, 1, addressHash);
-      TryBindStatementInt64(stmt, 2, GetAdjustedTime());
+        TryBindStatementText(stmt, 1, addressHash);
+        TryBindStatementInt64(stmt, 2, GetAdjustedTime());
 
-      while (sqlite3_step(*stmt) == SQLITE_ROW)
-      {
-          UniValue record(UniValue::VOBJ);
+        while (sqlite3_step(*stmt) == SQLITE_ROW)
+        {
+            UniValue record(UniValue::VOBJ);
 
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("cmntid", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("scoreUp", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("scoreDown", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("reputation", valueStr);
-          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("myscore", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("cmntid", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("scoreUp", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("scoreDown", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("reputation", valueStr);
+            if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("myscore", valueStr);
 
-          result.push_back(record);
-      }
+            result.push_back(record);
+        }
 
-      FinalizeSqlStatement(*stmt);
+        FinalizeSqlStatement(*stmt);
     });
 
     return result;
@@ -370,44 +375,47 @@ UniValue PocketDb::WebRepository::ParseCommentRow(sqlite3_stmt* stmt)
 {
     UniValue record(UniValue::VOBJ);
 
-    auto txHash = GetColumnString(stmt, 1);
-    auto rootTxHash = GetColumnString(stmt, 2);
-
+    auto[ok0, txHash] = TryGetColumnString(stmt, 1);
+    auto[ok1, rootTxHash] = TryGetColumnString(stmt, 2);
     record.pushKV("id", rootTxHash);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 3); ok) record.pushKV("postid", valueStr);
 
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 8); ok) {
-        record.pushKV("msg", valueStr);
-    } else {
-        record.pushKV("msg", "");
-    }
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 3); ok)
+        record.pushKV("postid", valueStr);
 
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 4); ok) record.pushKV("address", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 5); ok) record.pushKV("time", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 6); ok) record.pushKV("timeUpd", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 7); ok) record.pushKV("block", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 9); ok) record.pushKV("parentid", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 10); ok) record.pushKV("answerid", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 11); ok) record.pushKV("scoreUp", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 12); ok) record.pushKV("scoreDown", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 13); ok) record.pushKV("reputation", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 14); ok) record.pushKV("myScore", valueStr);
-    if (auto [ok, valueStr] = TryGetColumnString(stmt, 15); ok) record.pushKV("children", valueStr);
+    auto[ok8, msgValue] = TryGetColumnString(stmt, 8);
+    record.pushKV("msg", msgValue);
 
-    switch (static_cast<PocketTxType>(GetColumnInt(stmt, 0)))
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 4); ok) record.pushKV("address", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 5); ok) record.pushKV("time", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 6); ok) record.pushKV("timeUpd", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 7); ok) record.pushKV("block", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 9); ok) record.pushKV("parentid", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 10); ok) record.pushKV("answerid", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 11); ok) record.pushKV("scoreUp", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 12); ok) record.pushKV("scoreDown", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 13); ok) record.pushKV("reputation", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 14); ok) record.pushKV("myScore", valueStr);
+    if (auto[ok, valueStr] = TryGetColumnString(stmt, 15); ok) record.pushKV("children", valueStr);
+
+    if (auto[ok, value] = TryGetColumnInt(stmt, 0); ok)
     {
-    case PocketTx::CONTENT_COMMENT:
-        record.pushKV("deleted", false);
-        record.pushKV("edit", false);
-        break;
-    case PocketTx::CONTENT_COMMENT_EDIT:
-        record.pushKV("deleted", false);
-        record.pushKV("edit", true);
-        break;
-    case PocketTx::CONTENT_COMMENT_DELETE:
-        record.pushKV("deleted", true);
-        record.pushKV("edit", true);
-        break;
+        switch (static_cast<PocketTxType>(value))
+        {
+            case PocketTx::CONTENT_COMMENT:
+                record.pushKV("deleted", false);
+                record.pushKV("edit", false);
+                break;
+            case PocketTx::CONTENT_COMMENT_EDIT:
+                record.pushKV("deleted", false);
+                record.pushKV("edit", true);
+                break;
+            case PocketTx::CONTENT_COMMENT_DELETE:
+                record.pushKV("deleted", true);
+                record.pushKV("edit", true);
+                break;
+            default:
+                break;
+        }
     }
 
     return record;

@@ -74,10 +74,8 @@ namespace PocketServices
                     pocketBlock.push_back(ptx);
             }
 
-            // TODO (brangr): check all pocket transactions deserialized
-            // /?????????????
-
-            return {true, pocketBlock};
+            bool resultCheck = pocketBlock.size() == (block.vtx.size() - 1);
+            return {resultCheck, pocketBlock};
         }
 
         static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(CDataStream& stream, const CTransactionRef& tx)
@@ -149,6 +147,9 @@ namespace PocketServices
 
             shared_ptr<string> opReturn = make_shared<string>(vasm[2]);
             PocketTxType txType = ParseType(tx);
+            if (txType == PocketTxType::NOT_SUPPORTED)
+                return nullptr;
+
             shared_ptr<Transaction> ptx = CreateInstance(txType, txHash, tx->nTime, opReturn);
             if (!ptx)
                 return nullptr;

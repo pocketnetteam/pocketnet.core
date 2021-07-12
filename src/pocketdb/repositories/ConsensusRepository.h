@@ -41,6 +41,16 @@ public:
     int GetUserReputation(const string& addressId);
     int GetUserReputation(int addressId);
 
+    shared_ptr<ScoreDataDto> GetScoreData(const string& txHash);
+    shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
+    shared_ptr<string> GetReferrer(const string& address, int minTime);
+    int GetUserLikersCount(int addressId);
+    int GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
+                              const string& scoreAddress, const string& contentAddress,
+                              int height, const CTransactionRef& tx,
+                              const std::vector<int>& values,
+                              int64_t scoresOneToOneDepth);
+
     // Exists
     bool ExistsComplain(const string& txHash, const string& postHash, const string& address);
     bool ExistsScore(const string& address, const string& contentHash, PocketTxType type);

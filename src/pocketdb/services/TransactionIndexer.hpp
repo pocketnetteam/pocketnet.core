@@ -108,7 +108,7 @@ namespace PocketServices
                     continue;
 
                 // Need select content id for saving rating
-                auto scoreData = PocketDb::TransRepoInst.GetScoreData(tx->GetHash().GetHex());
+                auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
                 if (!scoreData)
                     throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n",
                         __func__, tx->GetHash().GetHex()));

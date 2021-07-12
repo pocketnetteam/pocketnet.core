@@ -311,8 +311,6 @@ inline void SerializeTransaction(const TxType& tx, Stream& s)
         }
     }
     s << tx.nLockTime;
-
-    // TODO (brangr): deserialize pocket part to stream
 }
 
 /** The basic transaction that is broadcasted on the network and contained in

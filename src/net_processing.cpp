@@ -1317,7 +1317,7 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
                     }
                 }
                 if (sendMerkleBlock) {
-                    // TODO (brangr): send pocket payload with merkle block
+                    // TODO (brangr) (v0.21.0): send pocket payload with merkle block
                     connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::MERKLEBLOCK, merkleBlock));
                     // CMerkleBlock just contains hashes, so also push any transactions in the block the client did not see
                     // This avoids hurting performance by pointlessly requiring a round-trip
