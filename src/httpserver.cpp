@@ -184,6 +184,9 @@ HTTPSocket *g_socket;
 HTTPSocket *g_pubSocket;
 HTTPSocket *g_postSocket;
 
+std::thread threadHTTP;
+std::future<bool> threadResult;
+
 /** Check if a network address is allowed to access the HTTP server */
 static bool ClientAllowed(const CNetAddr &netaddr)
 {
@@ -359,26 +362,6 @@ static bool ThreadHTTP(struct event_base *base)
     return event_base_got_break(base) == 0;
 }
 
-void HTTPSocket::BindAddress(string ipAddr, int port)
-{ 
-    // Bind address
-    LogPrint(BCLog::HTTP, "Binding RPC on address %s port %i\n", ipAddr, port);
-    evhttp_bound_socket *bind_handle = evhttp_bind_socket_with_handle(m_eventHTTP,
-        ipAddr.empty() ? nullptr : ipAddr.c_str(), port);
-    if (bind_handle)
-    {
-        m_boundSockets.push_back(bind_handle);
-    } else
-    {
-        LogPrint(BCLog::HTTP,"Binding RPC on address %s port %i failed.\n", ipAddr, port);
-    }
-}
-
-int HTTPSocket::GetAddressCount()
-{
-    return m_boundSockets.size();
-}
-
 /** Bind HTTP server to specified addresses */
 static bool HTTPBindAddresses()
 {
@@ -430,52 +413,6 @@ static void libevent_log_cb(int severity, const char *msg)
         LogPrintf("libevent: %s\n", msg);
     else
         LogPrint(BCLog::LIBEVENT, "libevent: %s\n", msg);
-}
-
-HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth)
-{
-#ifdef WIN32
-    evthread_use_windows_threads();
-#else
-    evthread_use_pthreads();
-#endif
-
-    /* Create a new evhttp object to handle requests. */
-    raii_evhttp http_ctr = obtain_evhttp(base);
-    struct evhttp *http = http_ctr.get();
-    if (!http)
-    {
-        LogPrintf("couldn't create evhttp. Exiting.\n");
-        return;
-    }
-
-    evhttp_set_timeout(http, gArgs.GetArg("-rpcservertimeout", DEFAULT_HTTP_SERVER_TIMEOUT));
-    evhttp_set_max_headers_size(http, MAX_HEADERS_SIZE);
-    evhttp_set_max_body_size(http, MAX_SIZE);
-    evhttp_set_gencb(http, http_request_cb, (void*) this);
-    evhttp_set_allowed_methods(http,
-        evhttp_cmd_type::EVHTTP_REQ_GET |
-        evhttp_cmd_type::EVHTTP_REQ_POST |
-        evhttp_cmd_type::EVHTTP_REQ_HEAD |
-        evhttp_cmd_type::EVHTTP_REQ_PUT |
-        evhttp_cmd_type::EVHTTP_REQ_DELETE |
-        evhttp_cmd_type::EVHTTP_REQ_OPTIONS
-    );
-
-    m_workQueue = new WorkQueue<HTTPClosure>(queueDepth);
-    LogPrintf("HTTP: creating work queue of depth %d\n", queueDepth);
-
-    // transfer ownership to eventBase/HTTP via .release()
-    m_eventHTTP = http_ctr.release(); 
-}
-
-HTTPSocket::~HTTPSocket()
-{
-    if (m_eventHTTP)
-    {
-        evhttp_free(m_eventHTTP);
-        m_eventHTTP = nullptr;
-    }
 }
 
 bool InitHTTPServer()
@@ -533,47 +470,6 @@ bool UpdateHTTPServerLogging(bool enable)
     // Can't update libevent logging if version < 02010100
     return false;
 #endif
-}
-
-std::thread threadHTTP;
-std::future<bool> threadResult;
-
-void HTTPSocket::StartHTTPSocket(int threadCount)
-{
-    for (int i = 0; i < threadCount; i++)
-    {
-        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, m_workQueue);
-    }
-}
-
-void HTTPSocket::StopHTTPSocket()
-{
-    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-    for (auto &thread: m_thread_http_workers)
-    {
-        thread.join();
-    }
-    m_thread_http_workers.clear();
-
-    delete m_workQueue;
-    m_workQueue = nullptr;
-}
-
-void HTTPSocket::InterruptHTTPSocket()
-{
-    if (m_eventHTTP)
-    {
-        // Unlisten sockets
-        for (evhttp_bound_socket *socket : m_boundSockets)
-        {
-            evhttp_del_accept_socket(m_eventHTTP, socket);
-        }
-        // Reject requests on current connections
-        evhttp_set_gencb(m_eventHTTP, http_reject_request_cb, nullptr);
-    }
-
-    if (m_workQueue)
-        m_workQueue->Interrupt();
 }
 
 void StartHTTPServer()
@@ -653,6 +549,124 @@ void StopHTTPServer()
     LogPrint(BCLog::HTTP, "Stopped HTTP server\n");
 }
 
+struct event_base *EventBase()
+{
+    return eventBase;
+}
+
+static void httpevent_callback_fn(evutil_socket_t, short, void *data)
+{
+    // Static handler: simply call inner handler
+    HTTPEvent *self = static_cast<HTTPEvent *>(data);
+    self->handler();
+    if (self->deleteWhenTriggered)
+        delete self;
+}
+
+HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth)
+{
+#ifdef WIN32
+    evthread_use_windows_threads();
+#else
+    evthread_use_pthreads();
+#endif
+
+    /* Create a new evhttp object to handle requests. */
+    raii_evhttp http_ctr = obtain_evhttp(base);
+    struct evhttp *http = http_ctr.get();
+    if (!http)
+    {
+        LogPrintf("couldn't create evhttp. Exiting.\n");
+        return;
+    }
+
+    evhttp_set_timeout(http, gArgs.GetArg("-rpcservertimeout", DEFAULT_HTTP_SERVER_TIMEOUT));
+    evhttp_set_max_headers_size(http, MAX_HEADERS_SIZE);
+    evhttp_set_max_body_size(http, MAX_SIZE);
+    evhttp_set_gencb(http, http_request_cb, (void*) this);
+    evhttp_set_allowed_methods(http,
+        evhttp_cmd_type::EVHTTP_REQ_GET |
+        evhttp_cmd_type::EVHTTP_REQ_POST |
+        evhttp_cmd_type::EVHTTP_REQ_HEAD |
+        evhttp_cmd_type::EVHTTP_REQ_PUT |
+        evhttp_cmd_type::EVHTTP_REQ_DELETE |
+        evhttp_cmd_type::EVHTTP_REQ_OPTIONS
+    );
+
+    m_workQueue = new WorkQueue<HTTPClosure>(queueDepth);
+    LogPrintf("HTTP: creating work queue of depth %d\n", queueDepth);
+
+    // transfer ownership to eventBase/HTTP via .release()
+    m_eventHTTP = http_ctr.release(); 
+}
+
+HTTPSocket::~HTTPSocket()
+{
+    if (m_eventHTTP)
+    {
+        evhttp_free(m_eventHTTP);
+        m_eventHTTP = nullptr;
+    }
+}
+
+void HTTPSocket::StartHTTPSocket(int threadCount)
+{
+    for (int i = 0; i < threadCount; i++)
+    {
+        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, m_workQueue);
+    }
+}
+
+void HTTPSocket::StopHTTPSocket()
+{
+    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
+    for (auto &thread: m_thread_http_workers)
+    {
+        thread.join();
+    }
+    m_thread_http_workers.clear();
+
+    delete m_workQueue;
+    m_workQueue = nullptr;
+}
+
+void HTTPSocket::InterruptHTTPSocket()
+{
+    if (m_eventHTTP)
+    {
+        // Unlisten sockets
+        for (evhttp_bound_socket *socket : m_boundSockets)
+        {
+            evhttp_del_accept_socket(m_eventHTTP, socket);
+        }
+        // Reject requests on current connections
+        evhttp_set_gencb(m_eventHTTP, http_reject_request_cb, nullptr);
+    }
+
+    if (m_workQueue)
+        m_workQueue->Interrupt();
+}
+
+void HTTPSocket::BindAddress(string ipAddr, int port)
+{ 
+    // Bind address
+    LogPrint(BCLog::HTTP, "Binding RPC on address %s port %i\n", ipAddr, port);
+    evhttp_bound_socket *bind_handle = evhttp_bind_socket_with_handle(m_eventHTTP,
+        ipAddr.empty() ? nullptr : ipAddr.c_str(), port);
+    if (bind_handle)
+    {
+        m_boundSockets.push_back(bind_handle);
+    } else
+    {
+        LogPrint(BCLog::HTTP,"Binding RPC on address %s port %i failed.\n", ipAddr, port);
+    }
+}
+
+int HTTPSocket::GetAddressCount()
+{
+    return m_boundSockets.size();
+}
+
 void HTTPSocket::RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler)
 {
     LogPrint(BCLog::HTTP, "Registering HTTP handler for %s (exactmatch %d)\n", prefix, exactMatch);
@@ -671,20 +685,6 @@ void HTTPSocket::UnregisterHTTPHandler(const std::string &prefix, bool exactMatc
         LogPrint(BCLog::HTTP, "Unregistering HTTP handler for %s (exactmatch %d)\n", prefix, exactMatch);
         m_pathHandlers.erase(i);
     }
-}
-
-struct event_base *EventBase()
-{
-    return eventBase;
-}
-
-static void httpevent_callback_fn(evutil_socket_t, short, void *data)
-{
-    // Static handler: simply call inner handler
-    HTTPEvent *self = static_cast<HTTPEvent *>(data);
-    self->handler();
-    if (self->deleteWhenTriggered)
-        delete self;
 }
 
 HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, const std::function<void()> &_handler) :
