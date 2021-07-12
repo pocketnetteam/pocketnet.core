@@ -26,7 +26,7 @@ namespace PocketConsensus
 
         virtual int64_t GetCommentMessageMaxSize() { return 2000; }
     
-        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
             // TODO (brangr): implement
@@ -115,7 +115,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
         {
             // if (blockVtx.Exists("Comment")) {
             //     for (auto& mtx : blockVtx.Data["Comment"]) {
@@ -127,7 +127,7 @@ namespace PocketConsensus
             // }
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
         {
             //     reindexer::QueryResults res;
             //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
@@ -146,7 +146,7 @@ namespace PocketConsensus
             //     }
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
 

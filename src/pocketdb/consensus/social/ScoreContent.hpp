@@ -32,7 +32,7 @@ namespace PocketConsensus
             return mode == AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             return make_tuple(true, SocialConsensusResult_Success);
             // TODO (brangr): implement
@@ -131,7 +131,7 @@ namespace PocketConsensus
             // return true;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
         {
             // // Check limit scores
             // reindexer::QueryResults scoresRes;
@@ -171,7 +171,7 @@ namespace PocketConsensus
             // return ValidateLimit(tx, scoresCount);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
         {
             // // Check limit scores
             // reindexer::QueryResults scoresRes;
@@ -232,7 +232,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<ScoreContent>(tx);
 

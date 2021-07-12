@@ -34,7 +34,7 @@ namespace PocketConsensus
             return mode == AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<Complain>(tx);
 
@@ -65,7 +65,7 @@ namespace PocketConsensus
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<Complain>(tx);
 
@@ -99,7 +99,7 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<Complain>(tx);
 
@@ -131,7 +131,7 @@ namespace PocketConsensus
         }
 
 
-        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<Complain>(tx);
 

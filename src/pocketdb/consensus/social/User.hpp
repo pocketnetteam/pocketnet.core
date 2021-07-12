@@ -11,26 +11,22 @@
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/dto/User.hpp"
 
-namespace PocketConsensus
-{
+namespace PocketConsensus {
     /*******************************************************************************************************************
     *
     *  User consensus base class
     *
     *******************************************************************************************************************/
-    class UserConsensus : public SocialBaseConsensus
-    {
+    class UserConsensus : public SocialBaseConsensus {
     public:
         UserConsensus(int height) : SocialBaseConsensus(height) {}
 
 
     protected:
-
         virtual int64_t GetChangeInfoDepth() { return 3600; }
 
 
-        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr <Transaction> tx) override
-        {
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction>& tx) override {
             auto ptx = static_pointer_cast<User>(tx);
 
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
@@ -39,8 +35,7 @@ namespace PocketConsensus
             return ValidateModelEdit(ptx);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateModelEdit(shared_ptr <User> ptx)
-        {
+        virtual tuple<bool, SocialConsensusResult> ValidateModelEdit(const shared_ptr <User>& ptx) {
             // First user account transaction allowed without next checks
             auto prevTx = ConsensusRepoInst.GetLastAccountTransaction(*ptx->GetAddress());
             if (!prevTx)
@@ -57,13 +52,12 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx, const PocketBlock& block) override
-        {
+        tuple<bool, SocialConsensusResult>
+        ValidateLimit(const shared_ptr <Transaction>& tx, const PocketBlock& block) override {
             auto ptx = static_pointer_cast<User>(tx);
 
             // Only one transaction allowed in block
-            for (auto blockTx : block)
-            {
+            for (auto blockTx : block) {
                 if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
                     continue;
 
@@ -78,8 +72,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <Transaction> tx) override
-        {
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx) override {
             auto ptx = static_pointer_cast<User>(tx);
 
             if (ConsensusRepoInst.CountMempoolAccount(*ptx->GetAddress()) > 0)
@@ -89,10 +82,8 @@ namespace PocketConsensus
         }
 
 
-        tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr <Transaction> tx) override
-        {
-            if (auto[baseCheckOk, baseCheckResult] = SocialBaseConsensus::CheckOpReturnHash(tx); !baseCheckOk)
-            {
+        tuple<bool, SocialConsensusResult> CheckOpReturnHash(const shared_ptr <Transaction>& tx) override {
+            if (auto[baseCheckOk, baseCheckResult] = SocialBaseConsensus::CheckOpReturnHash(tx); !baseCheckOk) {
                 LogPrintf("!!! OP_RETURN INCONSISTENT USER > %s\n", *tx->GetHash());
                 return {false, SocialConsensusResult_FailedOpReturn};
             }
@@ -101,8 +92,7 @@ namespace PocketConsensus
         }
 
         // Check op_return hash
-        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr <Transaction> tx) override
-        {
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override {
             auto ptx = static_pointer_cast<User>(tx);
 
             // Check required fields
@@ -128,7 +118,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
     };
 
     /*******************************************************************************************************************
@@ -136,13 +125,11 @@ namespace PocketConsensus
     *  Start checkpoint at 1180000 block
     *
     *******************************************************************************************************************/
-    class UserConsensus_checkpoint_1180000 : public UserConsensus
-    {
+    class UserConsensus_checkpoint_1180000 : public UserConsensus {
     protected:
         int CheckpointHeight() override { return 1180000; }
 
-        tuple<bool, SocialConsensusResult> ValidateModelEdit(shared_ptr <User> ptx) override
-        {
+        tuple<bool, SocialConsensusResult> ValidateModelEdit(const std::shared_ptr<User>& ptx) override {
             // First user account transaction allowed without next checks
             auto[ok, prevTxHeight] = ConsensusRepoInst.GetLastAccountHeight(*ptx->GetAddress());
             if (!ok) return Success;
@@ -167,19 +154,17 @@ namespace PocketConsensus
     *  Start checkpoint at ?? block
     *
     *******************************************************************************************************************/
-    class UserConsensus_checkpoint_ : public UserConsensus
-    {
+    class UserConsensus_checkpoint_ : public UserConsensus_checkpoint_1180000 {
     protected:
         int CheckpointHeight() override { return 0; }
 
         // TODO (brangr): Starting from this block, we disable the uniqueness of Name
-        virtual tuple<bool, SocialConsensusResult> CheckDoubleName(shared_ptr <User> tx)
-        {
+        virtual tuple<bool, SocialConsensusResult> CheckDoubleName(const std::shared_ptr<User>& tx) {
             return make_tuple(true, SocialConsensusResult_Success);
         }
 
     public:
-        UserConsensus_checkpoint_(int height) : UserConsensus(height) {}
+        UserConsensus_checkpoint_(int height) : UserConsensus_checkpoint_1180000(height) {}
     };
 
     /*******************************************************************************************************************
@@ -187,22 +172,20 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class UserConsensusFactory
-    {
+    class UserConsensusFactory {
     private:
-        static inline const std::map<int, std::function<UserConsensus*(int height)>> m_rules =
+        static inline const std::map<int, std::function<UserConsensus *(int height)>> m_rules =
             {
-                {1180000, [](int height) { return new UserConsensus(height); }},
+                {1180000, [](int height) { return new UserConsensus_checkpoint_1180000(height); }},
                 {0,       [](int height) { return new UserConsensus(height); }},
             };
+
     public:
-        shared_ptr <UserConsensus> Instance(int height)
-        {
+        shared_ptr <UserConsensus> Instance(int height) {
             return shared_ptr<UserConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
-            );
+                (--m_rules.upper_bound(height))->second(height));
         }
     };
-}
+} // namespace PocketConsensus
 
 #endif // POCKETCONSENSUS_USER_HPP

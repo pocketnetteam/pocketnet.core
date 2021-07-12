@@ -14,13 +14,7 @@
 
 namespace PocketConsensus
 {
-    using std::string;
-    using std::shared_ptr;
-    using std::make_shared;
-    using std::map;
-    using std::make_tuple;
-    using std::tuple;
-
+    using namespace std;
     using namespace PocketTx;
     using namespace PocketDb;
 

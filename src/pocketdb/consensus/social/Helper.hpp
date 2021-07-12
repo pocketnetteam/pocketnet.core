@@ -27,13 +27,7 @@
 
 namespace PocketConsensus
 {
-    using std::string;
-    using std::shared_ptr;
-    using std::make_shared;
-    using std::map;
-    using std::make_tuple;
-    using std::tuple;
-
+    using namespace std;
     using namespace PocketTx;
     using namespace PocketDb;
 
@@ -46,7 +40,7 @@ namespace PocketConsensus
         // результатам каждой конекретной проверки в момент вызова
         static bool Validate(PocketBlock& block, int height)
         {
-            for (auto tx : block)
+            for (const auto& tx : block)
             {
                 if (auto[ok, result] = Validate(tx, block, true, height); !ok)
                     return false;
@@ -55,13 +49,13 @@ namespace PocketConsensus
             return true;
         }
 
-        static tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, int height)
+        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, int height)
         {
             PocketBlock block;
             return Validate(tx, block, false, height);
         }
 
-        static tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block, int height)
+        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, PocketBlock& block, int height)
         {
             return Validate(tx, block, true, height);
         }
@@ -69,7 +63,7 @@ namespace PocketConsensus
         // Проверяет блок транзакций без привязки к цепи
         static bool Check(const PocketBlock& pBlock)
         {
-            for (auto tx : pBlock)
+            for (const auto& tx : pBlock)
             {
                 if (auto[ok, result] = ValidateCheck(tx); !ok)
                     return false;
@@ -79,14 +73,14 @@ namespace PocketConsensus
         }
 
         // Проверяет транзакцию без привязки к цепи
-        static tuple<bool, SocialConsensusResult> Check(shared_ptr<Transaction> tx)
+        static tuple<bool, SocialConsensusResult> Check(const shared_ptr<Transaction>& tx)
         {
             return ValidateCheck(tx);
         }
 
     protected:
 
-        static tuple<bool, SocialConsensusResult> Validate(shared_ptr<Transaction> tx, PocketBlock& block, bool inBlock, int height)
+        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, PocketBlock& block, bool inBlock, int height)
         {
             auto txType = *tx->GetType();
 
@@ -128,7 +122,7 @@ namespace PocketConsensus
             return {true, SocialConsensusResult_Success};
         }
 
-        static tuple<bool, SocialConsensusResult> ValidateCheck(shared_ptr<Transaction> tx)
+        static tuple<bool, SocialConsensusResult> ValidateCheck(const shared_ptr<Transaction>& tx)
         {
             auto txType = *tx->GetType();
 

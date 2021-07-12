@@ -12,11 +12,7 @@
 
 namespace PocketTx
 {
-    using std::string;
-    using std::vector;
-    using std::map;
-    using std::shared_ptr;
-    using std::make_shared;
+    using namespace std;
 
     // Base return model
     class BaseReturnDto

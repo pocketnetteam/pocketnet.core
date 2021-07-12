@@ -33,7 +33,7 @@ namespace PocketConsensus
             return mode == AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateModel(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<ScoreComment>(tx);
 
@@ -92,7 +92,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
         {
             // // Check limit scores
             // {
@@ -127,7 +127,7 @@ namespace PocketConsensus
             //     }
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
         {
             // // Check limit scores
             // {
@@ -193,7 +193,7 @@ namespace PocketConsensus
         }
 
 
-        tuple<bool, SocialConsensusResult> CheckModel(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<ScoreComment>(tx);
 
@@ -209,7 +209,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckOpReturnHash(shared_ptr<Transaction> tx) override
+        tuple<bool, SocialConsensusResult> CheckOpReturnHash(const shared_ptr<Transaction>& tx) override
         {
             if (auto[ok, result] = SocialBaseConsensus::CheckOpReturnHash(tx); !ok)
                 return {false, result};

@@ -12,10 +12,7 @@
 
 namespace PocketTx
 {
-    using std::string;
-    using std::vector;
-    using std::map;
-    using std::shared_ptr;
+    using namespace std;
 
     // OpReturn hex codes
     #define OR_SCORE "7570766f74655368617265"

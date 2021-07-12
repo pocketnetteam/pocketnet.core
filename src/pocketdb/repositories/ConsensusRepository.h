@@ -30,7 +30,7 @@ public:
 
 
     shared_ptr<Transaction> GetLastAccountTransaction(const string& address);
-    tuple<bool, int64_t> GetLastAccountHeight(const string& address); // TODO (brangr): implement
+    tuple<bool, int64_t> GetLastAccountHeight(const string& address) { return {true, 0}; } // TODO (brangr): implement
 
     tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
     tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);

@@ -36,13 +36,7 @@
 
 namespace PocketHelpers
 {
-    using std::tuple;
-    using std::string;
-    using std::vector;
-    using std::make_tuple;
-    using std::shared_ptr;
-    using std::map;
-
+    using namespace std;
     using namespace PocketTx;
 
     // Accumulate transactions in block

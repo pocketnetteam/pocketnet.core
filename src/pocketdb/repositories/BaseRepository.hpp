@@ -14,12 +14,7 @@
 
 namespace PocketDb
 {
-    using std::shared_ptr;
-    using std::tuple;
-    using std::make_tuple;
-    using std::vector;
-    using std::map;
-
+    using namespace std;
     using namespace PocketHelpers;
 
     class BaseRepository

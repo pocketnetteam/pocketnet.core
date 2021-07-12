@@ -12,13 +12,7 @@
 
 namespace PocketTx
 {
-    using std::string;
-    using std::shared_ptr;
-    using std::make_shared;
-    using std::tuple;
-    using std::make_tuple;
-    using std::vector;
-    using std::map;
+    using namespace std;
 
     class Base
     {
