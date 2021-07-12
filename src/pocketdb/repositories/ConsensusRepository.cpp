@@ -42,26 +42,23 @@ namespace PocketDb
     // Select all user profile edit transaction in chain
     // Transactions.Height is not null
     // TODO (brangr) (v0.21.0): change vUser to vAccounts and pass argument type
-    shared_ptr<Transaction> ConsensusRepository::GetLastAccountTransaction(const string& address)
+    tuple<bool, PTransactionRef> ConsensusRepository::GetLastAccount(const string& address)
     {
-        shared_ptr<Transaction> tx;
+        PTransactionRef tx = nullptr;
 
-        auto sql = R"sql(
-            SELECT u.Type, u.Hash, u.Time, u.Height, u.AddressHash, u.ReferrerAddressHash, u.String3, u.String4, u.String5, u.Int1,
-                p.TxHash pTxHash, p.String1 pString1, p.String2 pString2, p.String3 pString3, p.String4 pString4, p.String5 pString5, p.String6 pString6, p.String7 pString7
-            FROM vUsers u
-            LEFT JOIN Payload p on p.TxHash = u.Hash
-            WHERE u.AddressHash = ?
-            order by u.Height desc
-            limit 1
+        auto sql = FullTransactionSql;
+        sql += R"sql(
+            and t.String1 = ?
+            and t.Last = 1
+            and t.Height is not null
+            and t.Type in (100, 101, 102)
         )sql";
+
+        auto stmt = SetupSqlStatement(sql);
+        TryBindStatementText(stmt, 1, address);
 
         TryTransactionStep([&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, 1, address);
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
                     tx = transaction;
@@ -69,7 +66,34 @@ namespace PocketDb
             FinalizeSqlStatement(*stmt);
         });
 
-        return tx;
+        return {tx != nullptr, tx};
+    }
+
+    tuple<bool, PTransactionRef> ConsensusRepository::GetLastContent(const string& rootHash)
+    {
+        PTransactionRef tx = nullptr;
+
+        auto sql = FullTransactionSql;
+        sql += R"sql(
+            and t.String2 = ?
+            and t.Last = 1
+            and t.Height is not null
+            and t.Type in (200, 201, 202, 203, 204, 205, 206)
+        )sql";
+
+        auto stmt = SetupSqlStatement(sql);
+        TryBindStatementText(stmt, 1, rootHash);
+
+        TryTransactionStep([&]()
+        {
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
+                    tx = transaction;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {tx != nullptr, tx};
     }
 
     // TODO (brangr) (v0.21.0): change for vAccounts and pass type as argument
@@ -236,29 +260,6 @@ namespace PocketDb
         return result;
     }
 
-    shared_ptr<string> ConsensusRepository::GetLastActiveCommentAddress(const string& rootHash)
-    {
-        shared_ptr<string> result = nullptr;
-
-        auto stmt = SetupSqlStatement(R"sql(
-            SELECT u.AddressHash
-            FROM vComments u
-            WHERE u.Hash = ?
-            LIMIT 1
-        )sql");
-        TryBindStatementText(stmt, 1, rootHash);
-
-        TryTransactionStep([&]()
-        {
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
-                    result = make_shared<string>(value);
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
 
     bool ConsensusRepository::ExistsScore(const string& address, const string& contentHash, PocketTxType type)
     {
@@ -266,10 +267,10 @@ namespace PocketDb
 
         auto stmt = SetupSqlStatement(R"sql(
             SELECT 1
-            FROM vScores u
-            WHERE u.AddressHash = ?
-                AND u.ContentTxHash = ?
-                AND u.Type = ?
+            FROM vScores s
+            WHERE s.AddressHash = ?
+                AND s.ContentTxHash = ?
+                AND s.Type = ?
             LIMIT 1
         )sql");
         TryBindStatementText(stmt, 1, address);

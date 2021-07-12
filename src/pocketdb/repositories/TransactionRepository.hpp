@@ -57,30 +57,7 @@ namespace PocketDb
 
         shared_ptr<PocketBlock> GetList(const vector<string>& txHashes, bool includePayload = false)
         {
-            string sql = R"sql(
-                SELECT t.Type,
-                    t.Hash,
-                    t.Time,
-                    t.Last,
-                    t.Id,
-                    t.String1,
-                    t.String2,
-                    t.String3,
-                    t.String4,
-                    t.String5,
-                    t.Int1,
-                    p.TxHash pHash,
-                    p.String1 pString1,
-                    p.String2 pString2,
-                    p.String3 pString3,
-                    p.String4 pString4,
-                    p.String5 pString5,
-                    p.String6 pString6,
-                    p.String7 pString7
-                FROM Transactions t
-                LEFT JOIN Payload p on t.Hash = p.TxHash
-                WHERE 1 = 1
-            )sql";
+            auto sql = FullTransactionSql;
 
             sql += " and t.Hash in ( '";
             sql += txHashes[0];
@@ -246,8 +223,40 @@ namespace PocketDb
 
     protected:
 
-        tuple<bool, shared_ptr<Transaction>>
-        CreateTransactionFromListRow(const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
+        // Base skelet for build custom selects - simple add where conditions
+        // ----------------------
+        // SELECT ...
+        // FROM Transactions t
+        // LEFT JOIN Payload p on t.Hash = p.TxHash
+        // WHERE 1 = 1
+        string FullTransactionSql = R"sql(
+            SELECT
+                t.Type,
+                t.Hash,
+                t.Time,
+                t.Last,
+                t.Id,
+                t.String1,
+                t.String2,
+                t.String3,
+                t.String4,
+                t.String5,
+                t.Int1,
+                p.TxHash pHash,
+                p.String1 pString1,
+                p.String2 pString2,
+                p.String3 pString3,
+                p.String4 pString4,
+                p.String5 pString5,
+                p.String6 pString6,
+                p.String7 pString7
+            FROM Transactions t
+            LEFT JOIN Payload p on t.Hash = p.TxHash
+            WHERE 1 = 1
+        )sql";
+
+        tuple<bool, shared_ptr<Transaction>> CreateTransactionFromListRow(const shared_ptr<sqlite3_stmt*>& stmt,
+                                                                          bool includedPayload)
         {
             auto[ok0, txType] = TryGetColumnInt(*stmt, 0);
             auto[ok1, txHash] = TryGetColumnString(*stmt, 1);

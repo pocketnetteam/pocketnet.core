@@ -37,7 +37,7 @@ namespace PocketConsensus {
 
         virtual tuple<bool, SocialConsensusResult> ValidateModelEdit(const shared_ptr <User>& ptx) {
             // First user account transaction allowed without next checks
-            auto prevTx = ConsensusRepoInst.GetLastAccountTransaction(*ptx->GetAddress());
+            auto prevTx = ConsensusRepoInst.GetLastAccount(*ptx->GetAddress());
             if (!prevTx)
                 return Success;
 

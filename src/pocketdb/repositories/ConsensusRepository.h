@@ -29,12 +29,13 @@ public:
     void Destroy() override;
 
 
-    shared_ptr<Transaction> GetLastAccountTransaction(const string& address);
+    tuple<bool, PTransactionRef> GetLastAccount(const string& address);
+    tuple<bool, PTransactionRef> GetLastContent(const string& rootHash);
+
     tuple<bool, int64_t> GetLastAccountHeight(const string& address) { return {true, 0}; } // TODO (brangr): implement
 
     tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
     tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);
-    shared_ptr<string> GetLastActiveCommentAddress(const string& rootHash);
 
     shared_ptr<string> GetPostAddress(const string& postHash);
     int64_t GetUserBalance(const string& address);
