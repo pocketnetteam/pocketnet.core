@@ -2578,12 +2578,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         if (gArgs.GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER) && !IsInitialBlockDownload()) {
             LOCK(cs_main);
-            CValidationState stateSpam;
+            CValidationState state;
             CNodeState* nodestate = State(pfrom->GetId());
             nodestate->headers.addHeaders(pindexFirst, pindex);
-            nodestate->headers.updateState(stateSpam, true);
+            nodestate->headers.updateState(state, true);
             int nDos = 0;
-            if (stateSpam.IsInvalid(nDos) && nDos > 0) {
+            if (state.IsInvalid(nDos) && nDos > 0) {
                 Misbehaving(pfrom->GetId(), nDos, "header spam detected via cmpctblock");
                 return true;
             }
@@ -2758,8 +2758,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // compact blocks with less work than our tip, it is safe to treat
             // reconstructed compact blocks as having been requested.
             bool fNewBlock = false;
-            CValidationState stateLocal;
-            ProcessNewBlock(stateLocal, chainparams, pblock, pocketBlock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            CValidationState state;
+            ProcessNewBlock(state, chainparams, pblock, pocketBlock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
