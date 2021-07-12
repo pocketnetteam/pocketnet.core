@@ -15,7 +15,7 @@ class CWallet;
 class Staker
 {
 public:
-    static Staker *getInstance();
+    static Staker* getInstance();
 
     void setIsStaking(bool staking);
 
@@ -49,15 +49,16 @@ private:
     std::unordered_set<std::string> walletWorkers;
 };
 
-//class StakerWorker {
-//public:
-//  StakerWorker(
-//    std::string const & walletName,
-//    unsigned int minerSleep
-//  );
-//
-//private:
-//  std::string walletName;
-//};
+class StakerWorker
+{
+public:
+    StakerWorker(
+        std::string const& walletName,
+        unsigned int minerSleep
+    );
+
+private:
+    std::string walletName;
+};
 
 #endif

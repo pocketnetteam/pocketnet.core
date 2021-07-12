@@ -9,9 +9,13 @@
 #include <pos.h>
 #include <validation.h>
 #include <wallet/wallet.h>
+#include <script/sign.h>
 #include <consensus/merkle.h>
 
-Staker *Staker::getInstance()
+// TODO (brangr): REINDEXER -> SQLITE
+//#include "index/addrindex.h"
+
+Staker* Staker::getInstance()
 {
     static Staker instance;
     return &instance;
@@ -43,13 +47,13 @@ uint64_t Staker::getLastCoinStakeSearchInterval()
 void Staker::startWorkers(
     boost::thread_group& threadGroup,
     CChainParams const& chainparams,
-    unsigned int minerSleep1
+    unsigned int minerSleep
 )
 {
     if (workersStarted) { return; }
     workersStarted = true;
 
-    this->minerSleep = minerSleep1;
+    this->minerSleep = minerSleep;
     threadGroup.create_thread(
         boost::bind(
             &Staker::run, this, boost::cref(chainparams), boost::ref(threadGroup)
@@ -97,7 +101,9 @@ void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGro
     }
 }
 
-void Staker::worker(CChainParams const& chainparams, std::string const& walletName)
+void Staker::worker(
+    CChainParams const& chainparams, std::string const& walletName
+)
 {
     LogPrintf("Staker thread started for %s\n", walletName);
 
@@ -121,15 +127,15 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
 
         while (running)
         {
-            auto _wallet = GetWallet(walletName);
+            auto wallet = GetWallet(walletName);
 
-            if (!_wallet)
+            if (!wallet)
             {
                 running = false;
                 continue;
             }
 
-            while (_wallet->IsLocked())
+            while (wallet->IsLocked())
             {
                 nLastCoinStakeSearchInterval = 0;
                 MilliSleep(1000);
@@ -171,11 +177,12 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
 
             std::shared_ptr<CBlock> block = std::make_shared<CBlock>(blocktemplate->block);
 
-            if (signBlock(block, _wallet, nFees))
+            if (signBlock(block, wallet, nFees))
             {
-                CheckStake(block, _wallet, chainparams);
+                CheckStake(block, wallet, chainparams);
                 MilliSleep(500);
-            } else
+            }
+            else
             {
                 MilliSleep(minerSleep);
             }
@@ -218,6 +225,7 @@ bool Staker::signBlock(
 
     CKey key;
     CMutableTransaction txCoinStake;
+    CTransaction txNew;
     int nBestHeight = chainActive.Tip()->nHeight;
 
     txCoinStake.nTime = GetAdjustedTime();
@@ -246,7 +254,8 @@ bool Staker::signBlock(
                     if (tx->nTime > block->nTime)
                     {
                         it = vtx.erase(it);
-                    } else
+                    }
+                    else
                     {
                         ++it;
                     }
@@ -273,7 +282,8 @@ bool Staker::signBlock(
                     if (!signSuccess)
                     {
                         return false;
-                    } else
+                    }
+                    else
                     {
                         UpdateInput(txCoinStake.vin[i], sigdata);
                     }
@@ -288,7 +298,8 @@ bool Staker::signBlock(
         }
         lastCoinStakeSearchInterval = nSearchTime - nLastCoinStakeSearchTime;
         nLastCoinStakeSearchTime = nSearchTime;
-    } else
+    }
+    else
     {
     }
 #endif
