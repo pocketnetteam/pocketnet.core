@@ -172,7 +172,7 @@ private:
     struct evhttp                      *m_http;
     struct evhttp                      *m_eventHTTP;
     std::vector<evhttp_bound_socket *> m_boundSockets;
-    std::vector<std::thread>           m_thread_http_workers;    
+    std::vector<std::thread>           m_thread_http_workers; 
 
 public:
     HTTPSocket(struct event_base *base, int timeout, int queueDepth);
@@ -182,9 +182,13 @@ public:
     WorkQueue<HTTPClosure> *m_workQueue;
     std::vector<HTTPPathHandler> m_pathHandlers;
 
+    /** Start worker threads to listen on bound http sockets */
     void StartHTTPSocket(int threadCount);
+    /** Stop worker threads on all bound http sockets */
     void StopHTTPSocket();
+    /** Acquire a http socket handle for a provided IP address and port number */
     void BindAddress(std::string ipAddr, int port);
+    /** Get number of bound IP sockets */
     int  GetAddressCount();
 
     void InterruptHTTPSocket();
@@ -201,6 +205,5 @@ std::string urlDecode(const std::string &urlEncoded);
 
 extern HTTPSocket *g_socket;
 extern HTTPSocket *g_pubSocket;
-extern HTTPSocket *g_postSocket;
 
 #endif // POCKETCOIN_HTTPSERVER_H
