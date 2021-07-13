@@ -10,7 +10,7 @@ namespace PocketTx
     {
     public:
 
-        Video(string& hash, int64_t time, shared_ptr<string> opReturn) : Post(hash, time, opReturn)
+        Video(string& hash, int64_t time, string& opReturn) : Post(hash, time, opReturn)
         {
             SetType(PocketTxType::CONTENT_VIDEO);
         }

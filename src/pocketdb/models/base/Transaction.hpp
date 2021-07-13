@@ -23,11 +23,11 @@ namespace PocketTx
     {
     public:
 
-        Transaction(string& hash, int64_t time, shared_ptr<string> opReturn) : Base()
+        Transaction(string& hash, int64_t time, string& opReturn) : Base()
         {
             SetHash(hash);
             SetTime(time);
-            m_opreturn_tx = opReturn;
+            SetOpReturnTx(opReturn);
         }
 
         virtual shared_ptr<UniValue> Serialize() const

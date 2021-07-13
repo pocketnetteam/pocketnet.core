@@ -142,13 +142,13 @@ namespace PocketDb
                     )
                 )sql");
 
-                TryBindStatementText(stmt, 1, *ptx->GetHash());
-                TryBindStatementInt64(stmt, 2, *output->GetNumber());
-                TryBindStatementText(stmt, 3, *output->GetAddressHash());
-                TryBindStatementInt64(stmt, 4, *output->GetValue());
-                TryBindStatementText(stmt, 5, *ptx->GetHash());
-                TryBindStatementInt64(stmt, 6, *output->GetNumber());
-                TryBindStatementText(stmt, 7, *output->GetAddressHash());
+                TryBindStatementText(stmt, 1, ptx->GetHash());
+                TryBindStatementInt64(stmt, 2, output->GetNumber());
+                TryBindStatementText(stmt, 3, output->GetAddressHash());
+                TryBindStatementInt64(stmt, 4, output->GetValue());
+                TryBindStatementText(stmt, 5, ptx->GetHash());
+                TryBindStatementInt64(stmt, 6, output->GetNumber());
+                TryBindStatementText(stmt, 7, output->GetAddressHash());
 
                 TryStepStatement(stmt);
             }
@@ -173,15 +173,15 @@ namespace PocketDb
                 WHERE not exists (select 1 from Payload p where p.TxHash = ?)
             )sql");
 
-            TryBindStatementText(stmt, 1, *ptx->GetHash());
-            TryBindStatementText(stmt, 2, *ptx->GetPayload()->GetString1());
-            TryBindStatementText(stmt, 3, *ptx->GetPayload()->GetString2());
-            TryBindStatementText(stmt, 4, *ptx->GetPayload()->GetString3());
-            TryBindStatementText(stmt, 5, *ptx->GetPayload()->GetString4());
-            TryBindStatementText(stmt, 6, *ptx->GetPayload()->GetString5());
-            TryBindStatementText(stmt, 7, *ptx->GetPayload()->GetString6());
-            TryBindStatementText(stmt, 8, *ptx->GetPayload()->GetString7());
-            TryBindStatementText(stmt, 9, *ptx->GetHash());
+            TryBindStatementText(stmt, 1, ptx->GetHash());
+            TryBindStatementText(stmt, 2, ptx->GetPayload()->GetString1());
+            TryBindStatementText(stmt, 3, ptx->GetPayload()->GetString2());
+            TryBindStatementText(stmt, 4, ptx->GetPayload()->GetString3());
+            TryBindStatementText(stmt, 5, ptx->GetPayload()->GetString4());
+            TryBindStatementText(stmt, 6, ptx->GetPayload()->GetString5());
+            TryBindStatementText(stmt, 7, ptx->GetPayload()->GetString6());
+            TryBindStatementText(stmt, 8, ptx->GetPayload()->GetString7());
+            TryBindStatementText(stmt, 9, ptx->GetHash());
 
             TryStepStatement(stmt);
 
@@ -205,16 +205,16 @@ namespace PocketDb
                 WHERE not exists (select 1 from Transactions t where t.Hash=?)
             )sql");
 
-            TryBindStatementInt(stmt, 1, *ptx->GetTypeInt());
-            TryBindStatementText(stmt, 2, *ptx->GetHash());
-            TryBindStatementInt64(stmt, 3, *ptx->GetTime());
-            TryBindStatementText(stmt, 4, *ptx->GetString1());
-            TryBindStatementText(stmt, 5, *ptx->GetString2());
-            TryBindStatementText(stmt, 6, *ptx->GetString3());
-            TryBindStatementText(stmt, 7, *ptx->GetString4());
-            TryBindStatementText(stmt, 8, *ptx->GetString5());
-            TryBindStatementInt64(stmt, 9, *ptx->GetInt1());
-            TryBindStatementText(stmt, 10, *ptx->GetHash());
+            TryBindStatementInt(stmt, 1, ptx->GetTypeInt());
+            TryBindStatementText(stmt, 2, ptx->GetHash());
+            TryBindStatementInt64(stmt, 3, ptx->GetTime());
+            TryBindStatementText(stmt, 4, ptx->GetString1());
+            TryBindStatementText(stmt, 5, ptx->GetString2());
+            TryBindStatementText(stmt, 6, ptx->GetString3());
+            TryBindStatementText(stmt, 7, ptx->GetString4());
+            TryBindStatementText(stmt, 8, ptx->GetString5());
+            TryBindStatementInt64(stmt, 9, ptx->GetInt1());
+            TryBindStatementText(stmt, 10, ptx->GetHash());
 
             TryStepStatement(stmt);
 
@@ -265,7 +265,8 @@ namespace PocketDb
             if (!ok0 || !ok1 || !ok2)
                 return make_tuple(false, nullptr);
 
-            auto ptx = PocketHelpers::CreateInstance(static_cast<PocketTxType>(txType), txHash, nTime, nullptr);
+            string emptyOpReturn;
+            auto ptx = PocketHelpers::CreateInstance(static_cast<PocketTxType>(txType), txHash, nTime, emptyOpReturn);
             if (ptx == nullptr)
                 return make_tuple(false, nullptr);
 

@@ -11,7 +11,7 @@ namespace PocketTx
     {
     public:
 
-        ScoreComment(string& hash, int64_t time, shared_ptr<string> opReturn) : Transaction(hash, time, opReturn)
+        ScoreComment(string& hash, int64_t time, string& opReturn) : Transaction(hash, time, opReturn)
         {
             SetType(PocketTxType::ACTION_SCORE_COMMENT);
         }

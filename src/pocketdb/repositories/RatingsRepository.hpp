@@ -72,13 +72,13 @@ namespace PocketDb
             {
                 auto stmt = SetupSqlStatement(sql);
 
-                TryBindStatementInt(stmt, 1, *rating.GetTypeInt());
-                TryBindStatementInt(stmt, 2, *rating.GetHeight());
-                TryBindStatementInt64(stmt, 3, *rating.GetId());
-                TryBindStatementInt(stmt, 4, *rating.GetTypeInt());
-                TryBindStatementInt64(stmt, 5, *rating.GetId());
-                TryBindStatementInt(stmt, 6, *rating.GetHeight());
-                TryBindStatementInt64(stmt, 7, *rating.GetValue());
+                TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+                TryBindStatementInt(stmt, 2, rating.GetHeight());
+                TryBindStatementInt64(stmt, 3, rating.GetId());
+                TryBindStatementInt(stmt, 4, rating.GetTypeInt());
+                TryBindStatementInt64(stmt, 5, rating.GetId());
+                TryBindStatementInt(stmt, 6, rating.GetHeight());
+                TryBindStatementInt64(stmt, 7, rating.GetValue());
 
                 TryStepStatement(stmt);
             });
@@ -100,13 +100,13 @@ namespace PocketDb
             {
                 auto stmt = SetupSqlStatement(sql);
 
-                TryBindStatementInt(stmt, 1, *rating.GetTypeInt());
-                TryBindStatementInt(stmt, 2, *rating.GetHeight());
-                TryBindStatementInt64(stmt, 3, *rating.GetId());
-                TryBindStatementInt64(stmt, 4, *rating.GetValue());
-                TryBindStatementInt(stmt, 5, *rating.GetTypeInt());
-                TryBindStatementInt64(stmt, 6, *rating.GetId());
-                TryBindStatementInt64(stmt, 7, *rating.GetValue());
+                TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+                TryBindStatementInt(stmt, 2, rating.GetHeight());
+                TryBindStatementInt64(stmt, 3, rating.GetId());
+                TryBindStatementInt64(stmt, 4, rating.GetValue());
+                TryBindStatementInt(stmt, 5, rating.GetTypeInt());
+                TryBindStatementInt64(stmt, 6, rating.GetId());
+                TryBindStatementInt64(stmt, 7, rating.GetValue());
 
                 TryStepStatement(stmt);
             });

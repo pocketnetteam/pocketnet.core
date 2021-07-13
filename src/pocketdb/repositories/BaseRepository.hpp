@@ -84,33 +84,6 @@ namespace PocketDb
                 throw std::runtime_error(strprintf("%s: Failed execute SQL statement\n", __func__));
         }
 
-        // --------------------------------
-        // BINDS
-        // --------------------------------
-        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string& value)
-        {
-            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
-            if (!CheckValidResult(stmt, res))
-                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%s\n",
-                    __func__, index, value));
-        }
-
-        void TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, int value)
-        {
-            int res = sqlite3_bind_int(*stmt, index, value);
-            if (!CheckValidResult(stmt, res))
-                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
-                    __func__, index, value));
-        }
-
-        void TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, int64_t value)
-        {
-            int res = sqlite3_bind_int64(*stmt, index, value);
-            if (!CheckValidResult(stmt, res))
-                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
-                    __func__, index, value));
-        }
-
         shared_ptr<sqlite3_stmt*> SetupSqlStatement(const std::string& sql) const
         {
             sqlite3_stmt* stmt;
@@ -137,6 +110,61 @@ namespace PocketDb
         int FinalizeSqlStatement(sqlite3_stmt* stmt)
         {
             return sqlite3_finalize(stmt);
+        }
+
+        // --------------------------------
+        // BINDS
+        // --------------------------------
+
+        bool TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, shared_ptr<std::string> value)
+        {
+            if (!value) return true;
+
+            int res = sqlite3_bind_text(*stmt, index, value->c_str(), (int) value->size(), SQLITE_STATIC);
+            if (!CheckValidResult(stmt, res))
+                return false;
+
+            return true;
+        }
+
+        void TryBindStatementText(shared_ptr<sqlite3_stmt*>& stmt, int index, const std::string& value)
+        {
+            int res = sqlite3_bind_text(*stmt, index, value.c_str(), (int) value.size(), SQLITE_STATIC);
+            if (!CheckValidResult(stmt, res))
+                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%s\n",
+                    __func__, index, value));
+        }
+
+        bool TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int>& value)
+        {
+            if (!value) return true;
+
+            TryBindStatementInt(stmt, index, *value);
+            return true;
+        }
+
+        void TryBindStatementInt(shared_ptr<sqlite3_stmt*>& stmt, int index, int value)
+        {
+            int res = sqlite3_bind_int(*stmt, index, value);
+            if (!CheckValidResult(stmt, res))
+                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
+                    __func__, index, value));
+        }
+
+        bool TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, const shared_ptr<int64_t>& value)
+        {
+            if (!value) return true;
+
+            TryBindStatementInt64(stmt, index, *value);
+            return true;
+        }
+
+        void TryBindStatementInt64(shared_ptr<sqlite3_stmt*>& stmt, int index, int64_t value)
+        {
+            int res = sqlite3_bind_int64(*stmt, index, value);
+            if (!CheckValidResult(stmt, res))
+                throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
+                    __func__, index, value));
         }
 
         tuple<bool, std::string> TryGetColumnString(sqlite3_stmt* stmt, int index)
@@ -175,3 +203,4 @@ namespace PocketDb
 }
 
 #endif //POCKETDB_BASEREPOSITORY_HPP
+

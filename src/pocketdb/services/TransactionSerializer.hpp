@@ -49,33 +49,15 @@ namespace PocketServices
             // Get Serialized data from stream
             auto pocketData = parseStream(stream);
 
-            // Restore pocket transaction instance
-            PocketBlock pocketBlock;
-            for (const auto& tx : block.vtx)
-            {
-                auto txHash = tx->GetHash().GetHex();
+            return deserializeBlock(pocketData, block);
+        }
 
-                UniValue entry(UniValue::VOBJ);
-                if (pocketData.exists(txHash))
-                {
-                    auto entrySrc = pocketData[txHash];
+        static tuple<bool, PocketBlock> DeserializeBlock(CBlock& block)
+        {
+            LogPrint(BCLog::SYNC, "+++ DeserializeBlock: %s\n", block.GetHash().GetHex());
 
-                    try
-                    {
-                        entry.read(entrySrc.get_str());
-                    }
-                    catch (std::exception& ex)
-                    {
-                        LogPrintf("Error deserialize transaction: %s: %s\n", txHash, ex.what());
-                    }
-                }
-
-                if (auto[ok, ptx] = deserializeTransaction(pocketData, tx); ok && ptx)
-                    pocketBlock.push_back(ptx);
-            }
-
-            bool resultCheck = pocketBlock.size() == (block.vtx.size() - 1);
-            return {resultCheck, pocketBlock};
+            UniValue pocketData(UniValue::VOBJ);
+            return deserializeBlock(pocketData, block);
         }
 
         static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(CDataStream& stream, const CTransactionRef& tx)
@@ -133,20 +115,12 @@ namespace PocketServices
         {
             auto txHash = tx->GetHash().GetHex();
 
-            // Get OpReturn hash for validate consistence payload
-            const CTxOut& txout = tx->vout[0];
-            if (txout.scriptPubKey[0] != OP_RETURN)
-                return nullptr;
+            vector<string> vasm;
+            string opReturn;
+            PocketTxType txType = PocketHelpers::ParseType(tx, vasm);
+            if (vasm.size() >= 3)
+                opReturn = vasm[2];
 
-            auto asmString = ScriptToAsmStr(txout.scriptPubKey);
-
-            std::vector<std::string> vasm;
-            boost::split(vasm, asmString, boost::is_any_of("\t "));
-            if (vasm.size() < 3)
-                return nullptr;
-
-            shared_ptr<string> opReturn = make_shared<string>(vasm[2]);
-            PocketTxType txType = ParseType(tx);
             if (txType == PocketTxType::NOT_SUPPORTED)
                 return nullptr;
 
@@ -225,6 +199,38 @@ namespace PocketServices
             }
 
             return pocketData;
+        }
+
+        static tuple<bool, PocketBlock> deserializeBlock(UniValue& pocketData, CBlock& block)
+        {
+            // Restore pocket transaction instance
+            PocketBlock pocketBlock;
+            for (const auto& tx : block.vtx)
+            {
+                auto txHash = tx->GetHash().GetHex();
+
+                UniValue entry(UniValue::VOBJ);
+                if (pocketData.exists(txHash))
+                {
+                    auto entrySrc = pocketData[txHash];
+
+                    try
+                    {
+                        entry.read(entrySrc.get_str());
+                    }
+                    catch (std::exception& ex)
+                    {
+                        LogPrintf("Error deserialize transaction: %s: %s\n", txHash, ex.what());
+                    }
+                }
+
+                if (auto[ok, ptx] = deserializeTransaction(pocketData, tx); ok && ptx)
+                    pocketBlock.push_back(ptx);
+            }
+
+            // TODO (brangr): check deserialize success
+            //bool resultCheck = pocketBlock.size() == (block.vtx.size() - 1);
+            return {true, pocketBlock};
         }
 
         static tuple<bool, shared_ptr<Transaction>> deserializeTransaction(UniValue& pocketData, const CTransactionRef& tx)
