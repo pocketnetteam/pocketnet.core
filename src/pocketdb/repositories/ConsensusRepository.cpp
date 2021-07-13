@@ -16,6 +16,7 @@ namespace PocketDb
     {
         bool result = false;
 
+        // TODO (brangr): implement sql for first user record - exists
         auto stmt = SetupSqlStatement(R"sql(
             SELECT 1
             FROM vUsersPayload ap
@@ -141,11 +142,11 @@ namespace PocketDb
         PocketTxType blockingType = PocketTxType::NOT_SUPPORTED;
 
         auto stmt = SetupSqlStatement(R"sql(
-            SELECT t.Type
-            FROM vBlockings u
-            WHERE u.AddressHash = ?
-                AND u.AddressToHash = ?
-                AND u.Last = 1
+            SELECT b.Type
+            FROM vBlockings b
+            WHERE b.AddressHash = ?
+                AND b.AddressToHash = ?
+                AND b.Last = 1
             LIMIT 1
         )sql");
         TryBindStatementText(stmt, 1, address);
@@ -175,11 +176,11 @@ namespace PocketDb
         PocketTxType subscribeType = PocketTxType::NOT_SUPPORTED;
 
         auto stmt = SetupSqlStatement(R"sql(
-            SELECT t.Type
-            FROM vSubscribes u
-            WHERE u.AddressHash = ?
-                AND u.AddressToHash = ?
-                AND u.Last = 1
+            SELECT s.Type
+            FROM vSubscribes s
+            WHERE s.AddressHash = ?
+                AND s.AddressToHash = ?
+                AND s.Last = 1
             LIMIT 1
         )sql");
 
@@ -209,9 +210,9 @@ namespace PocketDb
         shared_ptr<string> result = nullptr;
 
         auto stmt = SetupSqlStatement(R"sql(
-            SELECT t.AddressHash
-            FROM vPosts u
-            WHERE u.Hash = ?
+            SELECT p.AddressHash
+            FROM vPosts p
+            WHERE p.Hash = ?
             LIMIT 1
         )sql");
 
@@ -235,10 +236,10 @@ namespace PocketDb
 
         auto stmt = SetupSqlStatement(R"sql(
             SELECT 1
-            FROM vComplains u
-            WHERE u.AddressHash = ?
-                AND u.PostTxHash = ?
-                AND u.Hash != ?
+            FROM vComplains c
+            WHERE c.AddressHash = ?
+                AND c.PostTxHash = ?
+                AND c.Hash != ?
             LIMIT 1
         )sql");
 
@@ -331,7 +332,7 @@ namespace PocketDb
                 select r.Value
                 from Ratings r
                 where r.Type = ?
-                    and r.Id = (SELECT u.Id FROM vUsers WHERE u.Last = 1 AND u.AddressHash = ? LIMIT 1)
+                    and r.Id = (SELECT u.Id FROM vUsers u WHERE u.Last = 1 AND u.AddressHash = ? LIMIT 1)
                 order by r.Height desc
                 limit 1
             )sql";

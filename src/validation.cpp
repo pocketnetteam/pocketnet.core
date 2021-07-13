@@ -1091,24 +1091,17 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // At this point, we believe that all the checks have been carried 
         // out and we can safely save the transaction to the database for 
         // subsequent verification of the consensus and inclusion in the block.
-        if (PocketHelpers::IsPocketTransaction(ptx))
+        if (!pocketTx)
+            return state.DoS(0, false, REJECT_INTERNAL, "not found payload data");
+
+        try
         {
-            if (!pocketTx)
-            {
-                return state.DoS(0, false, REJECT_INTERNAL, "not found payload data");
-            }
-            else
-            {
-                try
-                {
-                    PocketBlock pocketBlock{pocketTx};
-                    PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
-                }
-                catch (const std::exception& e)
-                {
-                    return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
-                }
-            }
+            PocketBlock pocketBlock{pocketTx};
+            PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+        }
+        catch (const std::exception& e)
+        {
+            return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
         }
 
         // Store transaction in memory
@@ -6386,7 +6379,7 @@ bool LoadMempool()
             if (nTime + nExpiryTimeout > nNow)
             {
                 std::shared_ptr<Transaction> pocketTx;
-                if (PocketHelpers::IsPocketTransaction(tx) && !PocketServices::GetTransaction(*tx, pocketTx))
+                if (!PocketServices::GetTransaction(*tx, pocketTx))
                     state.Invalid(false, 0, "not found in sqlite db");
 
                 if (state.IsValid())

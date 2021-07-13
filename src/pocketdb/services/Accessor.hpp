@@ -26,16 +26,13 @@ namespace PocketServices
     using std::find;
 
 
-    static bool GetBlock(const CBlock& block, std::shared_ptr<PocketBlock>& pocketBlock)
+    static bool GetBlock(const CBlock& block, PBlockRef& pocketBlock)
     {
         try
         {
             std::vector<std::string> txs;
             for (const auto& tx : block.vtx)
-            {
-                if (PocketHelpers::IsPocketTransaction(tx))
-                    txs.push_back(tx->GetHash().GetHex());
-            }
+                txs.push_back(tx->GetHash().GetHex());
 
             if (txs.empty())
                 return true;
@@ -52,7 +49,7 @@ namespace PocketServices
 
     static bool GetBlock(const CBlock& block, string& data)
     {
-        std::shared_ptr<PocketBlock> pocketBlock;
+        PBlockRef pocketBlock;
         if (GetBlock(block, pocketBlock) && pocketBlock)
         {
             data = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock)->write();
@@ -62,7 +59,7 @@ namespace PocketServices
         return false;
     }
 
-    static bool GetTransaction(const CTransaction& tx, shared_ptr<Transaction>& pocketTx)
+    static bool GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
     {
         pocketTx = PocketDb::TransRepoInst.GetByHash(tx.GetHash().GetHex(), true);
         return pocketTx != nullptr;
@@ -70,13 +67,13 @@ namespace PocketServices
 
     static bool GetTransaction(const CTransaction& tx, string& data)
     {
-        shared_ptr<Transaction> pocketTx;
+        PTransactionRef pocketTx;
         if (GetTransaction(tx, pocketTx) && pocketTx)
         {
             data = PocketServices::TransactionSerializer::SerializeTransaction(*pocketTx)->write();
             return true;
         }
-        
+
         return false;
     }
 

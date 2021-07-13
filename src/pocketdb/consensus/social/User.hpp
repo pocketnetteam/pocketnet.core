@@ -32,8 +32,9 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<User>(tx);
 
-            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
-                return {false, SocialConsensusResult_NicknameDouble};
+            // TODO (brangr): unique names disabled
+//            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
+//                return {false, SocialConsensusResult_NicknameDouble};
 
             return ValidateModelEdit(ptx);
         }
@@ -124,7 +125,8 @@ namespace PocketConsensus
 
             // Trim spaces
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
-                return {false, SocialConsensusResult_Failed};
+                LogPrintf("$$$ SPACES CHECKPOINTS - %s\n", *ptx->GetHash());
+            //return {false, SocialConsensusResult_Failed};
 
             return Success;
         }

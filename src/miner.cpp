@@ -234,27 +234,23 @@ void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
 
 bool BlockAssembler::TestTransaction(CTransactionRef& tx)
 {
-    // Read transaction social payload
-    if (PocketHelpers::IsPocketTransaction(tx))
+    auto ptx = PocketDb::TransRepoInst.GetByHash(tx->GetHash().GetHex(), true);
+
+    // Payload should be in operative table Transactions
+    if (!ptx)
+        return false;
+
+    // Check consensus
+    auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlock, chainActive.Height() + 1);
+    if (!ok)
     {
-        auto ptx = PocketDb::TransRepoInst.GetByHash(tx->GetHash().GetHex(), true);
-
-        // Payload should be in operative table Transactions
-        if (!ptx)
-            return false;
-
-        // Check consensus
-        auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlock, chainActive.Height() + 1);
-        if (!ok)
-        {
-            LogPrintf("Warning: build block skip transaction %s with result %d\n",
-                tx->GetHash().GetHex(), (int)result);
-            return false;
-        }
-
-        // Al is good - save for descendants
-        pocketBlock.push_back(ptx);
+        LogPrintf("Warning: build block skip transaction %s with result %d\n",
+            tx->GetHash().GetHex(), (int)result);
+        return false;
     }
+
+    // Al is good - save for descendants
+    pocketBlock.push_back(ptx);
 
     return true;
 }

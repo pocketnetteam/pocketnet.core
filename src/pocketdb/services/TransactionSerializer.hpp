@@ -224,7 +224,7 @@ namespace PocketServices
                     }
                 }
 
-                if (auto[ok, ptx] = deserializeTransaction(pocketData, tx); ok && ptx)
+                if (auto[ok, ptx] = deserializeTransaction(entry, tx); ok && ptx)
                     pocketBlock.push_back(ptx);
             }
 
