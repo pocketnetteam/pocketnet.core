@@ -173,9 +173,13 @@ public:
     WorkQueue<HTTPClosure> *m_workQueue;
     std::vector<HTTPPathHandler> m_pathHandlers;
 
+    /** Start worker threads to listen on bound http sockets */
     void StartHTTPSocket(int threadCount);
+    /** Stop worker threads on all bound http sockets */
     void StopHTTPSocket();
+    /** Acquire a http socket handle for a provided IP address and port number */
     void BindAddress(std::string ipAddr, int port);
+    /** Get number of bound IP sockets */
     int  GetAddressCount();
 
     void InterruptHTTPSocket();
