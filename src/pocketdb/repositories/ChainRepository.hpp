@@ -43,7 +43,7 @@ namespace PocketDb
                     0.001 * (nTime2 - nTime1), txInfo.Hash);
 
                 // The outputs are needed for the explorer
-                UpdateTransactionOutputs(blockHash, height, txInfo.Inputs);
+                UpdateTransactionOutputs(txInfo.Hash, height, txInfo.Inputs);
 
                 int64_t nTime3 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms _ %s\n",
