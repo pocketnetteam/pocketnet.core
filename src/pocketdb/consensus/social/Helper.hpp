@@ -7,6 +7,7 @@
 #ifndef POCKETCONSENSUS_SOCIAL_HPP
 #define POCKETCONSENSUS_SOCIAL_HPP
 
+#include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/consensus.h"
 #include "pocketdb/consensus/social/Base.hpp"
@@ -61,11 +62,23 @@ namespace PocketConsensus
         }
 
         // Проверяет блок транзакций без привязки к цепи
-        static bool Check(const PocketBlock& pBlock)
+        static bool Check(const CBlock& block, const PocketBlock& pBlock)
         {
-            for (const auto& tx : pBlock)
+            for (const auto& tx : block.vtx)
             {
-                if (auto[ok, result] = ValidateCheck(tx); !ok)
+                // NOT_SUPPORTED transactions not checked
+                auto txType = PocketHelpers::ParseType(tx);
+                if (txType == PocketTxType::NOT_SUPPORTED)
+                    continue;
+
+                // Maybe payload not exists?
+                auto txHash = tx->GetHash().GetHex();
+                auto it = find_if(pBlock.begin(), pBlock.end(), [&](PTransactionRef const& ptx) { return *ptx == txHash; });
+                if (it == pBlock.end())
+                    return false;
+
+                // Check founded payload
+                if (auto[ok, result] = ValidateCheck(*it); !ok)
                     return false;
             }
 

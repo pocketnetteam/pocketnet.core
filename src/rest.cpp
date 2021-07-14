@@ -932,7 +932,7 @@ static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
                 }
             }
 
-            PocketConsensus::SocialConsensusHelper::Check(*pocketBlock);
+            PocketConsensus::SocialConsensusHelper::Check(block, *pocketBlock);
         }
 
         LogPrintf("SocialConsensusHelper::Check at height %d\n", current);

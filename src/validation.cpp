@@ -4916,13 +4916,9 @@ bool ProcessNewBlock(CValidationState& state,
             pocketBlock.size() <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (pocketBlock.size() - 1));
 
         // It is necessary to check that block and pocket Black contain an equal number of transactions
-        // TODO (brangr): check deserialize success
-        //if (ret)
-        //    ret = (pblock->vtx.size() - 1) == pocketBlock.size();
-
-        // check pocket block with general pocketnet consensus rules
+        // Also check pocket block with general pocketnet consensus rules
         if (ret)
-            ret = PocketConsensus::SocialConsensusHelper::Check(pocketBlock);
+            ret = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock);
 
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;

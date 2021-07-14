@@ -45,6 +45,7 @@ namespace PocketTx
 
         shared_ptr<string> GetHash() const { return m_hash; }
         void SetHash(string value) { m_hash = make_shared<string>(value); }
+        bool operator==(const string& hash) const { return *m_hash == hash; }
 
         shared_ptr<PocketTxType> GetType() const { return m_type; }
         shared_ptr<int> GetTypeInt() const { return make_shared<int>((int) *m_type); }
