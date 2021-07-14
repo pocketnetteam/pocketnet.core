@@ -91,7 +91,7 @@ namespace PocketTx
     {
         string Hash;
         PocketTxType Type;
-        map<string, int> Inputs;
+        vector<pair<string, int>> Inputs;
 
         bool IsAccount() const
         {

@@ -72,7 +72,7 @@ namespace PocketServices
                 if (!tx->IsCoinBase())
                 {
                     for (const auto& inp : tx->vin)
-                        txInfo.Inputs.emplace(inp.prevout.hash.GetHex(), inp.prevout.n);
+                        txInfo.Inputs.push_back({inp.prevout.hash.GetHex(), inp.prevout.n});
                 }
 
                 txs.push_back(txInfo);

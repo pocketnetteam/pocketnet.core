@@ -43,7 +43,7 @@ namespace PocketDb
                     0.001 * (nTime2 - nTime1), txInfo.Hash);
 
                 // The outputs are needed for the explorer
-                UpdateTransactionOutputs(txInfo.Hash, height, txInfo.Inputs);
+                UpdateTransactionOutputs(txInfo, height);
 
                 int64_t nTime3 = GetTimeMicros();
                 LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms _ %s\n",
@@ -157,7 +157,7 @@ namespace PocketDb
             TryTransactionStep({ stmt });
         }
 
-        void UpdateTransactionOutputs(const string& txHash, int height, const map<string, int>& outputs)
+        void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height)
         {
             auto sql = R"sql(
                 UPDATE TxOutputs SET
@@ -168,14 +168,14 @@ namespace PocketDb
 
             TryTransactionStep([&]()
             {
-                for (auto& out : outputs)
+                for (auto& input : txInfo.Inputs)
                 {
                     auto stmt = SetupSqlStatement(sql);
 
                     TryBindStatementInt(stmt, 1, height);
-                    TryBindStatementText(stmt, 2, txHash);
-                    TryBindStatementText(stmt, 3, out.first);
-                    TryBindStatementInt(stmt, 4, out.second);
+                    TryBindStatementText(stmt, 2, txInfo.Hash);
+                    TryBindStatementText(stmt, 3, input.first);
+                    TryBindStatementInt(stmt, 4, input.second);
 
                     TryStepStatement(stmt);
                 }
