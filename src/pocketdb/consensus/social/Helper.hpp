@@ -68,7 +68,7 @@ namespace PocketConsensus
             auto coinstakeBlock = find_if(block.vtx.begin(), block.vtx.end(), [&](CTransactionRef const& tx)
             {
                 return tx->IsCoinStake();
-            }) == block.vtx.end();
+            }) != block.vtx.end();
 
             for (const auto& tx : block.vtx)
             {
