@@ -111,7 +111,7 @@ namespace PocketDb
             SELECT count(distinct(u.AddressHash))
             FROM vUsers u
             WHERE u.Height is not null
-                u.AddressHash IN (
+                and u.AddressHash IN (
         )sql";
 
         sql += "'";

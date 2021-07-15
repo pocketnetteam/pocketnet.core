@@ -56,7 +56,8 @@ namespace PocketConsensus
             return Validate(tx, block, false, height);
         }
 
-        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, PocketBlock& block, int height)
+        static tuple<bool, SocialConsensusResult>
+        Validate(const shared_ptr<Transaction>& tx, PocketBlock& block, int height)
         {
             return Validate(tx, block, true, height);
         }
@@ -64,16 +65,24 @@ namespace PocketConsensus
         // Проверяет блок транзакций без привязки к цепи
         static bool Check(const CBlock& block, const PocketBlock& pBlock)
         {
+            auto coinstakeBlock = find_if(block.vtx.begin(), block.vtx.end(), [&](CTransactionRef const& tx)
+            {
+                return tx->IsCoinStake();
+            }) == block.vtx.end();
+
             for (const auto& tx : block.vtx)
             {
                 // NOT_SUPPORTED transactions not checked
                 auto txType = PocketHelpers::ParseType(tx);
                 if (txType == PocketTxType::NOT_SUPPORTED)
                     continue;
+                if (coinstakeBlock && txType == PocketTxType::TX_COINBASE)
+                    continue;
 
                 // Maybe payload not exists?
                 auto txHash = tx->GetHash().GetHex();
-                auto it = find_if(pBlock.begin(), pBlock.end(), [&](PTransactionRef const& ptx) { return *ptx == txHash; });
+                auto it = find_if(pBlock.begin(), pBlock.end(),
+                    [&](PTransactionRef const& ptx) { return *ptx == txHash; });
                 if (it == pBlock.end())
                     return false;
 
@@ -93,7 +102,8 @@ namespace PocketConsensus
 
     protected:
 
-        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, const PocketBlock& block, bool inBlock, int height)
+        static tuple<bool, SocialConsensusResult>
+        Validate(const shared_ptr<Transaction>& tx, const PocketBlock& block, bool inBlock, int height)
         {
             auto txType = *tx->GetType();
 
@@ -181,22 +191,10 @@ namespace PocketConsensus
             {
                 case ACCOUNT_USER:
                     return PocketConsensus::UserConsensusFactoryInst.Instance(height);
-                case ACCOUNT_VIDEO_SERVER:
-                    // TODO (brangr): implement
-                    break;
-                case ACCOUNT_MESSAGE_SERVER:
-                    // TODO (brangr): implement
-                    break;
                 case CONTENT_POST:
                     return PocketConsensus::PostConsensusFactoryInst.Instance(height);
                 case CONTENT_VIDEO:
                     return PocketConsensus::VideoConsensusFactoryInst.Instance(height);
-                case CONTENT_TRANSLATE:
-                    // TODO (brangr): implement
-                    break;
-                case CONTENT_SERVERPING:
-                    // TODO (brangr): implement
-                    break;
                 case CONTENT_COMMENT:
                     return PocketConsensus::CommentConsensusFactoryInst.Instance(height);
                 case CONTENT_COMMENT_EDIT:
@@ -219,6 +217,18 @@ namespace PocketConsensus
                     return PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height);
                 case ACTION_COMPLAIN:
                     return PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
+                case ACCOUNT_VIDEO_SERVER:
+                    // TODO (brangr): future realize types
+                    break;
+                case ACCOUNT_MESSAGE_SERVER:
+                    // TODO (brangr): future realize types
+                    break;
+                case CONTENT_TRANSLATE:
+                    // TODO (brangr): future realize types
+                    break;
+                case CONTENT_SERVERPING:
+                    // TODO (brangr): future realize types
+                    break;
                 default:
                     break;
             }
