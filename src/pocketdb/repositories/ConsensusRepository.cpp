@@ -262,18 +262,23 @@ namespace PocketDb
     }
 
 
-    bool ConsensusRepository::ExistsScore(const string& address, const string& contentHash, PocketTxType type)
+    bool ConsensusRepository::ExistsScore(const string& address, const string& contentHash,
+        PocketTxType type, bool mempool)
     {
         bool result = false;
 
-        auto stmt = SetupSqlStatement(R"sql(
+        string sql = R"sql(
             SELECT 1
             FROM vScores s
             WHERE s.AddressHash = ?
-                AND s.ContentTxHash = ?
-                AND s.Type = ?
-            LIMIT 1
-        )sql");
+                and s.ContentTxHash = ?
+                and s.Type = ?
+        )sql";
+
+        if (!mempool)
+            sql += " and s.Height is not null";
+
+        auto stmt = SetupSqlStatement(sql);
         TryBindStatementText(stmt, 1, address);
         TryBindStatementText(stmt, 2, contentHash);
         TryBindStatementInt(stmt, 3, (int) type);

@@ -54,7 +54,7 @@ public:
 
     // Exists
     bool ExistsComplain(const string& txHash, const string& postHash, const string& address);
-    bool ExistsScore(const string& address, const string& contentHash, PocketTxType type);
+    bool ExistsScore(const string& address, const string& contentHash, PocketTxType type, bool mempool);
     bool ExistsUserRegistrations(vector<string>& addresses);
     bool ExistsAnotherByName(const string& address, const string& name);
 
@@ -64,6 +64,7 @@ public:
     int CountMempoolComplain(const string& address) {return 0;} // TODO (brangr): implement
     int CountMempoolAccount(const string& address) {return 0;} // TODO (brangr): implement
     int CountMempoolContent(const string& address, PocketTxType txType) {return 0;} // TODO (brangr): implement
+    int CountMempoolContent(const string& address, const string& contentTxHash) {return 0;} // TODO (brangr): implement
     int CountMempoolContentEdit(const string& rootTxHash) {return 0;} // TODO (brangr): implement
 
     // get counts in "chain" - Height is not null

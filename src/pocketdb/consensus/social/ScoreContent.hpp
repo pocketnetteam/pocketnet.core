@@ -60,7 +60,7 @@ namespace PocketConsensus
 
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
-                *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT))
+                *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, false))
                 return {false, SocialConsensusResult_DoubleScore};
 
             // Check OP_RETURN with Payload
@@ -70,7 +70,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual bool CheckBlockLimitTime(const PTransactionRef & ptx, const PTransactionRef& blockPtx)
+        virtual bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
@@ -112,6 +112,11 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<ScoreContent>(tx);
+
+            // Check already scored content
+            if (PocketDb::ConsensusRepoInst.ExistsScore(
+                *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, true))
+                return {false, SocialConsensusResult_DoubleScore};
 
             // Get count from chain
             int count = ConsensusRepoInst.CountChainContent(
@@ -239,7 +244,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1124000; }
 
-        bool CheckBlockLimitTime(const PTransactionRef & ptx, const PTransactionRef & blockPtx) override
+        bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
         {
             return true;
         }
@@ -256,10 +261,10 @@ namespace PocketConsensus
         static inline const std::map<int, std::function<ScoreContentConsensus*(int height)>> m_rules =
             {
                 {1124000, [](int height) { return new ScoreContentConsensus_checkpoint_1124000(height); }},
-                {514184, [](int height) { return new ScoreContentConsensus_checkpoint_514184(height); }},
-                {430000, [](int height) { return new ScoreContentConsensus_checkpoint_430000(height); }},
-                {175600, [](int height) { return new ScoreContentConsensus_checkpoint_175600(height); }},
-                {0,      [](int height) { return new ScoreContentConsensus(height); }},
+                {514184,  [](int height) { return new ScoreContentConsensus_checkpoint_514184(height); }},
+                {430000,  [](int height) { return new ScoreContentConsensus_checkpoint_430000(height); }},
+                {175600,  [](int height) { return new ScoreContentConsensus_checkpoint_175600(height); }},
+                {0,       [](int height) { return new ScoreContentConsensus(height); }},
             };
     public:
         shared_ptr<ScoreContentConsensus> Instance(int height)
