@@ -70,95 +70,58 @@ namespace PocketConsensus
             return Success;
         }
 
+        virtual bool CheckBlockLimitTime(const PTransactionRef & ptx, const PTransactionRef& blockPtx)
+        {
+            return *blockPtx->GetTime() <= *ptx->GetTime();
+        }
+
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
             const PocketBlock& block) override
         {
-            // TODO (brangr): implement
-            // // Check limit scores
-            // reindexer::QueryResults scoresRes;
-            // if (!g_pocketdb->DB()->Select(
-            //                         reindexer::Query("Scores")
-            //                             .Where("address", CondEq, _address)
-            //                             .Where("time", CondGe, _time - 86400)
-            //                             .Where("block", CondLt, height),
-            //                         scoresRes)
-            //         .ok()) {
-            //     result = ANTIBOTRESULT::Failed;
-            //     return false;
-            // }
+            auto ptx = static_pointer_cast<ScoreContent>(tx);
 
-            // int scoresCount = scoresRes.Count();
+            // Get count from chain
+            int count = ConsensusRepoInst.CountChainContent(
+                *ptx->GetAddress(),
+                *ptx->GetTime(),
+                PocketTxType::ACTION_SCORE_CONTENT);
 
+            // Get count from block
+            for (auto blockTx : block)
+            {
+                if (!IsIn(*blockTx->GetType(), {ACTION_SCORE_CONTENT}))
+                    continue;
 
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
 
+                auto blockPtx = static_pointer_cast<ScoreContent>(blockTx);
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                {
+                    if (CheckBlockLimitTime(tx, blockTx))
+                        count += 1;
 
-            // // Check block
-            // if (blockVtx.Exists("Scores")) {
-            //     for (auto& mtx : blockVtx.Data["Scores"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
-            //             if (!checkWithTime || mtx["time"].get_int64() <= _time)
-            //                 scoresCount += 1;
+                    if (*blockPtx->GetHash() == *ptx->GetContentTxHash())
+                        return {false, SocialConsensusResult_DoubleScore};
+                }
+            }
 
-            //             if (mtx["posttxid"].get_str() == _post) {
-            //                 result = ANTIBOTRESULT::DoubleScore;
-            //                 return false;
-            //             }
-            //         }
-            //     }
-            // }
-
-            //return ValidateLimit(tx, scoresCount);
+            return ValidateLimit(ptx, count);
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
-            // TODO (brangr): implement
+            auto ptx = static_pointer_cast<ScoreContent>(tx);
 
-            // // Check limit scores
-            // reindexer::QueryResults scoresRes;
-            // if (!g_pocketdb->DB()->Select(
-            //                         reindexer::Query("Scores")
-            //                             .Where("address", CondEq, _address)
-            //                             .Where("time", CondGe, _time - 86400)
-            //                             .Where("block", CondLt, height),
-            //                         scoresRes)
-            //         .ok()) {
-            //     result = ANTIBOTRESULT::Failed;
-            //     return false;
-            // }
+            // Get count from chain
+            int count = ConsensusRepoInst.CountChainContent(
+                *ptx->GetAddress(),
+                *ptx->GetTime(),
+                PocketTxType::ACTION_SCORE_CONTENT);
 
-            // int scoresCount = scoresRes.Count();
+            count += ConsensusRepoInst.CountMempoolContent(*ptx->GetAddress(), PocketTxType::ACTION_SCORE_CONTENT);
 
-
-
-
-            // // Also check mempool
-            // if (checkMempool) {
-            //     reindexer::QueryResults res;
-            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Scores").Not().Where("txid", CondEq, _txid), res).ok()) {
-            //         for (auto& m : res) {
-            //             reindexer::Item mItm = m.GetItem();
-            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
-
-            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Scores");
-            //             if (t_itm.FromJSON(t_src).ok()) {
-            //                 if (t_itm["address"].As<string>() == _address) {
-            //                     if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
-            //                         scoresCount += 1;
-
-            //                     if (t_itm["posttxid"].As<string>() == _post) {
-            //                         result = ANTIBOTRESULT::DoubleScore;
-            //                         return false;
-            //                     }
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
-
-
-            //return ValidateLimit(tx, scoresCount);
-            return Success;
+            return ValidateLimit(ptx, count);
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreContent> tx, int count)
@@ -265,6 +228,25 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 1124000 block
+    *
+    *******************************************************************************************************************/
+    class ScoreContentConsensus_checkpoint_1124000 : public ScoreContentConsensus_checkpoint_514184
+    {
+    public:
+        ScoreContentConsensus_checkpoint_1124000(int height) : ScoreContentConsensus_checkpoint_514184(height) {}
+
+    protected:
+        int CheckpointHeight() override { return 1124000; }
+
+        bool CheckBlockLimitTime(const PTransactionRef & ptx, const PTransactionRef & blockPtx) override
+        {
+            return true;
+        }
+    };
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -273,6 +255,7 @@ namespace PocketConsensus
     private:
         static inline const std::map<int, std::function<ScoreContentConsensus*(int height)>> m_rules =
             {
+                {1124000, [](int height) { return new ScoreContentConsensus_checkpoint_1124000(height); }},
                 {514184, [](int height) { return new ScoreContentConsensus_checkpoint_514184(height); }},
                 {430000, [](int height) { return new ScoreContentConsensus_checkpoint_430000(height); }},
                 {175600, [](int height) { return new ScoreContentConsensus_checkpoint_175600(height); }},

@@ -10,17 +10,19 @@
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/Post.hpp"
 
-namespace PocketConsensus {
+namespace PocketConsensus
+{
     /*******************************************************************************************************************
     *
     *  Post consensus base class
     *
     *******************************************************************************************************************/
-    class PostConsensus : public SocialBaseConsensus {
-        public:
+    class PostConsensus : public SocialBaseConsensus
+    {
+    public:
         PostConsensus(int height) : SocialBaseConsensus(height) {}
 
-        protected:
+    protected:
         virtual int64_t GetEditPostWindow() { return 86400; }
 
         virtual int64_t GetFullLimit() { return 30; }
@@ -31,17 +33,20 @@ namespace PocketConsensus {
 
         virtual int64_t GetTrialEditLimit() { return 5; }
 
-        virtual int64_t GetLimit(AccountMode mode) {
+        virtual int64_t GetLimit(AccountMode mode)
+        {
             return mode == AccountMode_Full ? GetFullLimit() : GetTrialLimit();
         }
 
-        virtual int64_t GetEditLimit(AccountMode mode) {
+        virtual int64_t GetEditLimit(AccountMode mode)
+        {
             return mode == AccountMode_Full ? GetFullEditLimit() : GetTrialEditLimit();
         }
 
         // ------------------------------------------------------------------------------------------------------------
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction> &tx) override {
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction>& tx) override
+        {
             auto ptx = static_pointer_cast<Post>(tx);
 
             vector<string> addresses = {*ptx->GetAddress()};
@@ -54,7 +59,8 @@ namespace PocketConsensus {
             return Success;
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditModel(const shared_ptr <Post> &tx) {
+        virtual tuple<bool, SocialConsensusResult> ValidateEditModel(const shared_ptr <Post>& tx)
+        {
             // First get original post transaction
             auto originalTx = PocketDb::TransRepoInst.GetByHash(*tx->GetRootTxHash());
             if (!originalTx)
@@ -80,12 +86,14 @@ namespace PocketConsensus {
 
         // ------------------------------------------------------------------------------------------------------------
 
-        virtual bool CheckBlockLimitTime(const shared_ptr <Post> &ptx, const shared_ptr <Post> &blockPtx) {
+        virtual bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx)
+        {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
 
-        tuple<bool, SocialConsensusResult>
-        ValidateLimit(const shared_ptr <Transaction> &tx, const PocketBlock &block) override {
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
+            const PocketBlock& block) override
+        {
             auto ptx = static_pointer_cast<Post>(tx);
 
             // ---------------------------------------------------------
@@ -103,7 +111,8 @@ namespace PocketConsensus {
                 PocketTxType::CONTENT_POST);
 
             // Get count from block
-            for (auto blockTx : block) {
+            for (auto blockTx : block)
+            {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
                     continue;
 
@@ -111,8 +120,9 @@ namespace PocketConsensus {
                     continue;
 
                 auto blockPtx = static_pointer_cast<Post>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress()) {
-                    if (CheckBlockLimitTime(ptx, blockPtx))
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                {
+                    if (CheckBlockLimitTime(tx, blockTx))
                         count += 1;
                 }
             }
@@ -120,7 +130,8 @@ namespace PocketConsensus {
             return ValidateLimit(ptx, count);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction> &tx) override {
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx) override
+        {
             auto ptx = static_pointer_cast<Post>(tx);
 
             // ---------------------------------------------------------
@@ -142,7 +153,8 @@ namespace PocketConsensus {
             return ValidateLimit(ptx, count);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Post> &tx, int count) {
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Post>& tx, int count)
+        {
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetLimit(mode);
@@ -156,9 +168,11 @@ namespace PocketConsensus {
         // ------------------------------------------------------------------------------------------------------------
 
         virtual tuple<bool, SocialConsensusResult>
-        ValidateEditLimit(const shared_ptr <Post> &tx, const PocketBlock &block) {
+        ValidateEditLimit(const shared_ptr <Post>& tx, const PocketBlock& block)
+        {
             // Double edit in block not allowed
-            for (auto blockTx : block) {
+            for (auto blockTx : block)
+            {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
                     continue;
 
@@ -183,7 +197,8 @@ namespace PocketConsensus {
             return Success;
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx) {
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx)
+        {
             if (ConsensusRepoInst.CountMempoolContentEdit(*tx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
 
@@ -191,7 +206,8 @@ namespace PocketConsensus {
         }
 
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction> &tx) override {
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override
+        {
             auto ptx = static_pointer_cast<Post>(tx);
 
             // Check required fields
@@ -207,11 +223,12 @@ namespace PocketConsensus {
     *
     *******************************************************************************************************************/
 // TODO (brangr): change time to block height
-    class PostConsensus_checkpoint_ : public PostConsensus {
-        protected:
+    class PostConsensus_checkpoint_ : public PostConsensus
+    {
+    protected:
         int CheckpointHeight() override { return 0; }
 
-        public:
+    public:
         PostConsensus_checkpoint_(int height) : PostConsensus(height) {}
     };
 
@@ -220,14 +237,16 @@ namespace PocketConsensus {
     *  Start checkpoint at 1124000 block
     *
     *******************************************************************************************************************/
-    class PostConsensus_checkpoint_1124000 : public PostConsensus {
-        public:
+    class PostConsensus_checkpoint_1124000 : public PostConsensus
+    {
+    public:
         PostConsensus_checkpoint_1124000(int height) : PostConsensus(height) {}
 
-        protected:
+    protected:
         int CheckpointHeight() override { return 1124000; }
 
-        bool CheckBlockLimitTime(const shared_ptr <Post> &ptx, const shared_ptr <Post> &blockPtx) override {
+        bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
+        {
             return true;
         }
     };
@@ -237,16 +256,18 @@ namespace PocketConsensus {
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class PostConsensusFactory {
-        private:
-        const std::map<int, std::function<PostConsensus *(int height)>> m_rules =
+    class PostConsensusFactory
+    {
+    private:
+        const std::map<int, std::function<PostConsensus*(int height)>> m_rules =
             {
                 {1124000, [](int height) { return new PostConsensus_checkpoint_1124000(height); }},
                 {0,       [](int height) { return new PostConsensus(height); }},
             };
 
-        public:
-        shared_ptr <PostConsensus> Instance(int height) {
+    public:
+        shared_ptr <PostConsensus> Instance(int height)
+        {
             return shared_ptr<PostConsensus>(
                 (--m_rules.upper_bound(height))->second(height));
         }
