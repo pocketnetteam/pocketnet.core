@@ -325,6 +325,7 @@ namespace PocketDb
         drop view if exists vWebUsers;
         create view vWebUsers as
         select t.Hash,
+            t.Id,
             t.Time,
             t.BlockHash,
             t.Height,
@@ -340,11 +341,7 @@ namespace PocketDb
             p.String7 as Donations
         from Transactions t
                 join Payload p on t.Hash = p.TxHash
-        where t.Height = (
-            select max(t_.Height)
-            from Transactions t_
-            where t_.String1 = t.String1
-            and t_.Type = t.Type)
+        where t.Last = 1
         and t.Type = 100;
 
         --------------------------------------------

@@ -34,6 +34,10 @@ public:
     UniValue GetLastComments(int count, int height, std::string lang = "");
     UniValue GetPostScores(vector<string>& postHashes, string& address);
     UniValue GetPageScores(vector<string>& commentHashes, string& addressHash);
+    map<string, UniValue> GetUserProfile(vector<string>& addresses, bool shortForm = true, int option = 0);
+    map<string, UniValue> GetSubscribesAddresses(vector<string>& addresses);
+    map<string, UniValue> GetSubscribersAddresses(vector<string>& addresses);
+    map<string, UniValue> GetBlockingToAddresses(vector<string>& addresses);
 private:
     UniValue ParseCommentRow(sqlite3_stmt* stmt);
 };

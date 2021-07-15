@@ -105,6 +105,8 @@ POCKETDB_HPP = \
     pocketdb/web/PocketSystemRpc.cpp \
     pocketdb/web/PocketScoresRpc.h \
     pocketdb/web/PocketScoresRpc.cpp \
+    pocketdb/web/PocketUserRpc.h \
+    pocketdb/web/PocketUserRpc.cpp \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/repositories/WebRepository.h \
