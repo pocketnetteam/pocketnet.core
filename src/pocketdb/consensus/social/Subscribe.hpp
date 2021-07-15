@@ -42,7 +42,7 @@ namespace PocketConsensus
             {
                 // TODO (brangr): я думаю все чекпойнты прямо тут и сложить
                 if (!IsCheckpointTransaction(*tx->GetHash()))
-                    return {false, SocialConsensusResult_DoubleBlocking};
+                    return {false, SocialConsensusResult_DoubleSubscribe};
                 else
                     LogPrintf("Found checkpoint transaction %s\n", *tx->GetHash());
             }

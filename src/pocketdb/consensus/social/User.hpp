@@ -149,7 +149,7 @@ namespace PocketConsensus
             if (!ok) return Success;
 
             // We allow edit profile only with delay
-            if ((Height - prevTxHeight) > GetChangeInfoDepth())
+            if ((Height - prevTxHeight) <= GetChangeInfoDepth())
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
             // For edit user profile referrer not allowed

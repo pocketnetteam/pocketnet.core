@@ -60,7 +60,7 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<SubscribeCancel>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
-                    return {false, SocialConsensusResult_ManyTransactions};
+                    return {false, SocialConsensusResult_DoubleSubscribe};
             }
 
             return Success;
@@ -76,7 +76,7 @@ namespace PocketConsensus
             );
 
             if (mempoolCount > 0)
-                return {false, SocialConsensusResult_ManyTransactions};
+                return {false, SocialConsensusResult_DoubleSubscribe};
 
             return Success;
         }

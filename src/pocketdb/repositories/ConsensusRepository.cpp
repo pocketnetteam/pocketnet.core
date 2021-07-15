@@ -106,7 +106,7 @@ namespace PocketDb
             return result;
 
         string sql = R"sql(
-            SELECT COUNT(DISTINCT(u.AddressHash))
+            SELECT count(distinct(u.AddressHash))
             FROM vUsers u
             WHERE u.AddressHash IN (
         )sql";

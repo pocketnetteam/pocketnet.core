@@ -42,7 +42,7 @@ namespace PocketConsensus
             {
                 // TODO (brangr): чекпойнты сюда
                 if (!IsCheckpointTransaction(*tx->GetHash()))
-                    return {false, SocialConsensusResult_DoubleBlocking};
+                    return {false, SocialConsensusResult_DoubleSubscribe};
             }
 
             return Success;
