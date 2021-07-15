@@ -140,8 +140,7 @@ namespace PocketDb
                t.String5,
                t.Int1
         from Transactions t
-        where t.Height is not null
-          and t.Type in (100, 101, 102);
+        where t.Type in (100, 101, 102);
 
 
         drop view if exists vUsersPayload;
@@ -191,8 +190,7 @@ namespace PocketDb
                t.String4,
                t.String5
         from Transactions t
-        where t.Height is not null
-          and t.Type in (200, 201, 202, 203, 204, 205, 206);
+        where t.Type in (200, 201, 202, 203, 204, 205, 206);
 
 
         drop view if exists vPosts;
@@ -241,8 +239,7 @@ namespace PocketDb
                t.String2 as ContentTxHash,
                t.Int1    as Value
         from Transactions t
-        where t.Height is not null
-          and t.Type in (300, 301);
+        where t.Type in (300, 301);
 
 
         drop view if exists vScoreContents;
@@ -286,8 +283,7 @@ namespace PocketDb
                t.String1 as AddressHash,
                t.String2 as AddressToHash
         from Transactions t
-        where t.Height is not null
-          and t.Type in (305, 306);
+        where t.Type in (305, 306);
 
 
         drop view if exists vSubscribes;
@@ -302,8 +298,7 @@ namespace PocketDb
                t.String2 as AddressToHash,
                t.Int1    as Private
         from Transactions t
-        where t.Height is not null
-          and t.Type in (302, 303, 304);
+        where t.Type in (302, 303, 304);
 
 
         drop view if exists vComplains;
@@ -319,6 +314,9 @@ namespace PocketDb
                t.Int1    as Reason
         from Transactions t
         where Type in (307);
+
+
+
 
         --------------------------------------------
         --               WEB VIEWS                --
