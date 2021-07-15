@@ -21,12 +21,14 @@ namespace PocketDb
             SELECT 1
             FROM vUsersPayload ap
             WHERE ap.Name = ?
-            and not exists (
-                select 1
-                from vAccounts ac
-                where ac.Hash = ap.TxHash
-                  and ac.AddressHash = ?
-            )
+                and ap.Height is not null
+                and not exists (
+                    select 1
+                    from vAccounts ac
+                    where   ac.Hash = ap.TxHash
+                        and a.Height is not null
+                        and ac.AddressHash = ?
+                )
         )sql");
         TryBindStatementText(stmt, 1, name);
         TryBindStatementText(stmt, 2, address);
@@ -108,7 +110,8 @@ namespace PocketDb
         string sql = R"sql(
             SELECT count(distinct(u.AddressHash))
             FROM vUsers u
-            WHERE u.AddressHash IN (
+            WHERE u.Height is not null
+                u.AddressHash IN (
         )sql";
 
         sql += "'";
@@ -145,8 +148,9 @@ namespace PocketDb
             SELECT b.Type
             FROM vBlockings b
             WHERE b.AddressHash = ?
-                AND b.AddressToHash = ?
-                AND b.Last = 1
+                and b.AddressToHash = ?
+                and b.Height is not null
+                and b.Last = 1
             LIMIT 1
         )sql");
         TryBindStatementText(stmt, 1, address);
@@ -179,8 +183,9 @@ namespace PocketDb
             SELECT s.Type
             FROM vSubscribes s
             WHERE s.AddressHash = ?
-                AND s.AddressToHash = ?
-                AND s.Last = 1
+                and s.AddressToHash = ?
+                and s.Height is not null
+                and s.Last = 1
             LIMIT 1
         )sql");
 
@@ -212,8 +217,8 @@ namespace PocketDb
         auto stmt = SetupSqlStatement(R"sql(
             SELECT p.AddressHash
             FROM vPosts p
-            WHERE p.Hash = ?
-            LIMIT 1
+            WHERE   p.Hash = ?
+                and p.Height is not null
         )sql");
 
         TryBindStatementText(stmt, 1, postHash);
@@ -238,8 +243,9 @@ namespace PocketDb
             SELECT 1
             FROM vComplains c
             WHERE c.AddressHash = ?
-                AND c.PostTxHash = ?
-                AND c.Hash != ?
+                and c.PostTxHash = ?
+                and c.Hash != ?
+                and c.Height is not null
             LIMIT 1
         )sql");
 
@@ -270,7 +276,8 @@ namespace PocketDb
         string sql = R"sql(
             SELECT 1
             FROM vScores s
-            WHERE s.AddressHash = ?
+            WHERE s.Height is not null
+                and s.AddressHash = ?
                 and s.ContentTxHash = ?
                 and s.Type = ?
         )sql";
@@ -337,7 +344,7 @@ namespace PocketDb
                 select r.Value
                 from Ratings r
                 where r.Type = ?
-                    and r.Id = (SELECT u.Id FROM vUsers u WHERE u.Last = 1 AND u.AddressHash = ? LIMIT 1)
+                    and r.Id = (SELECT u.Id FROM vUsers u WHERE u.Height is not null and u.Last = 1 AND u.AddressHash = ? LIMIT 1)
                 order by r.Height desc
                 limit 1
             )sql";
@@ -405,12 +412,11 @@ namespace PocketDb
                     c.Id cId,
                     ca.Id caId,
                     ca.AddressHash caHash
-                from
-                    vScores s
-                    join vAccounts sa on sa.AddressHash=s.AddressHash
-                    join vContents c on c.Hash=s.ContentTxHash
-                    join vAccounts ca on ca.AddressHash=c.AddressHash
-                where s.Hash = ?
+                from vScores s
+                    join vAccounts sa on sa.Height is not null and sa.AddressHash=s.AddressHash
+                    join vContents c on c.Height is not null and c.Hash=s.ContentTxHash
+                    join vAccounts ca on ca.Height is not null and ca.AddressHash=c.AddressHash
+                where s.Hash = ? and s.Height is not null
                 limit 1
             )sql";
 
@@ -459,8 +465,9 @@ namespace PocketDb
         string sql = R"sql(
                 select a.AddressHash, ifnull(a.ReferrerAddressHash,'')
                 from vAccounts a
-                where a.Height >= ?
-                    and a.Height = (select min(a1.Height) from vAccounts a1 where a1.AddressHash=a.AddressHash)
+                where a.Height is not null
+                    and a.Height >= ?
+                    and a.Height = (select min(a1.Height) from vAccounts a1 where a1.Height is not null and a1.AddressHash=a.AddressHash)
                     and a.ReferrerAddressHash is not null
                     and a.AddressHash in (
             )sql";
@@ -501,7 +508,8 @@ namespace PocketDb
         auto sql = R"sql(
                 select a.ReferrerAddressHash
                 from vAccounts a
-                where a.Time >= ?
+                where a.Height is not null
+                    and a.Time >= ?
                     and a.AddressHash = ?
                 order by a.Height asc
                 limit 1
@@ -561,8 +569,10 @@ namespace PocketDb
                 select count(1)
                 from vScores s -- indexed by Transactions_GetScoreContentCount
                 join vContents c -- indexed by Transactions_GetScoreContentCount_2
-                    on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ? and c.Height <= ?
+                    on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ?
+                        and c.Height is not null and c.Height <= ?
                 where   s.AddressHash = ?
+                    and s.Height is not null
                     and s.Height <= ?
                     and s.Time < ?
                     and s.Time >= ?

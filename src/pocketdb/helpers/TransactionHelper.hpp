@@ -312,6 +312,12 @@ namespace PocketHelpers
 
         return ptx;
     }
+
+    static shared_ptr<Transaction> CreateInstance(PocketTxType txType,
+        std::string& txHash, uint32_t nTime, std::string& opReturn)
+    {
+        return CreateInstance(nullptr, txType, txHash, nTime, opReturn);
+    }
 }
 
 #endif // POCKETHELPERS_TRANSACTIONHELPER_HPP

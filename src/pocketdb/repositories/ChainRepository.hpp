@@ -191,7 +191,8 @@ namespace PocketDb
                 FROM (
                     select a.Hash, a.Type, a.AddressHash
                     from vAccounts a
-                    where a.Hash = ?
+                    where   a.Height is not null
+                        and a.Hash = ?
                 ) as account
                 WHERE   Transactions.Hash != account.Hash
                     and Transactions.Type = account.Type
@@ -209,6 +210,7 @@ namespace PocketDb
                             select max( a.Id )
                             from vAccounts a
                             where a.Type = Transactions.Type
+                                and a.Height is not null
                                 and a.AddressHash = Transactions.String1
                         ),
                         ifnull(
@@ -217,6 +219,7 @@ namespace PocketDb
                                 select max( a.Id ) + 1
                                 from vAccounts a
                                 where a.Type = Transactions.Type
+                                    and a.Height is not null
                                     and a.Id is not null
                             ),
                             0 -- for first record
@@ -241,6 +244,7 @@ namespace PocketDb
                     select c.Hash, c.Type, c.RootTxHash
                     from vContents c
                     where c.Hash = ?
+                        and c.Height is not null
                         and c.RootTxHash is not null
                 ) as content
                 WHERE   Transactions.Type = content.Type
@@ -260,6 +264,7 @@ namespace PocketDb
                             from vContents c
                             where c.Type = Transactions.Type
                                 and c.RootTxHash = Transactions.String2
+                                and c.Height is not null
                                 and c.Height <= Transactions.Height
                         ),
                         -- new record
@@ -268,6 +273,7 @@ namespace PocketDb
                                 select max( c.Id ) + 1
                                 from vContents c
                                 where c.Type = Transactions.Type
+                                    and c.Height is not null
                             ),
                             0 -- for first record
                         )
@@ -289,7 +295,7 @@ namespace PocketDb
                 FROM (
                     select b.Hash, b.Type, b.AddressHash, b.AddressToHash
                     from vBlockings b
-                    where b.Hash = ?
+                    where b.Hash = ? and b.Height is not null
                 ) as blocking
                 WHERE   Transactions.Hash != blocking.Hash
                     and Transactions.Type = blocking.Type
@@ -320,7 +326,7 @@ namespace PocketDb
                 FROM (
                     select s.Hash, s.Type, s.AddressHash, s.AddressToHash
                     from vSubscribes s
-                    where s.Hash = ?
+                    where s.Hash = ? and s.Height is not null
                 ) as subscribe
                 WHERE   Transactions.Hash != subscribe.Hash
                     and Transactions.Type = subscribe.Type
