@@ -203,7 +203,7 @@ namespace PocketHelpers
             scoreData.ScoreType != PocketTxType::ACTION_SCORE_COMMENT)
             return make_tuple(false, scoreData);
 
-        if (vasm.size() == 4)
+        if (vasm.size() >= 4)
         {
             vector<unsigned char> _data_hex = ParseHex(vasm[3]);
             string _data_str(_data_hex.begin(), _data_hex.end());
@@ -227,8 +227,8 @@ namespace PocketHelpers
         return make_tuple(finalCheck, scoreData);
     }
 
-    static shared_ptr<Transaction> CreateInstance(PocketTxType txType, std::string& txHash, uint32_t nTime,
-        std::string& opReturn)
+    static shared_ptr<Transaction> CreateInstance(const CTransactionRef& tx, PocketTxType txType,
+        std::string& txHash, uint32_t nTime, std::string& opReturn)
     {
         shared_ptr<Transaction> ptx = nullptr;
         switch (txType)
@@ -261,11 +261,33 @@ namespace PocketHelpers
                 ptx = make_shared<CommentDelete>(txHash, nTime, opReturn);
                 break;
             case ACTION_SCORE_CONTENT:
-                ptx = make_shared<ScoreContent>(txHash, nTime, opReturn);
+            {
+                auto scorePtx = make_shared<ScoreContent>(txHash, nTime, opReturn);
+
+                if (auto[ok, scoredata] = ParseScore(tx); ok)
+                {
+                    scorePtx->SetOPRAddress(scoredata.ContentAddressHash);
+                    scorePtx->SetOPRValue(scoredata.ScoreValue);
+                }
+
+                ptx = static_pointer_cast<Transaction>(scorePtx);
+
                 break;
+            }
             case ACTION_SCORE_COMMENT:
-                ptx = make_shared<ScoreComment>(txHash, nTime, opReturn);
+            {
+                auto scorePtx = make_shared<ScoreComment>(txHash, nTime, opReturn);
+
+                if (auto[ok, scoredata] = ParseScore(tx); ok)
+                {
+                    scorePtx->SetOPRAddress(scoredata.ContentAddressHash);
+                    scorePtx->SetOPRValue(scoredata.ScoreValue);
+                }
+
+                ptx = static_pointer_cast<Transaction>(scorePtx);
+
                 break;
+            }
             case ACTION_SUBSCRIBE:
                 ptx = make_shared<Subscribe>(txHash, nTime, opReturn);
                 break;

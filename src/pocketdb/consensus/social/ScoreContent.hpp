@@ -13,6 +13,8 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+
     /*******************************************************************************************************************
     *
     *  ScorePost consensus base class
@@ -33,7 +35,7 @@ namespace PocketConsensus
             return mode == AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<ScoreContent>(tx);
 
@@ -48,6 +50,7 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_NotFound};
 
             // Check score to self
+            // lastContent->GetString1() - author address post
             if (*ptx->GetAddress() == *lastContent->GetString1())
                 return {false, SocialConsensusResult_SelfScore};
 
@@ -55,46 +58,22 @@ namespace PocketConsensus
             if (auto[ok, result] = ValidateBlocking(*lastContent->GetString1(), ptx); !ok)
                 return {false, result};
 
-
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
-                *ptx->GetAddress(),
-                *ptx->GetContentTxHash(),
-                ACTION_SCORE_CONTENT))
+                *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT))
                 return {false, SocialConsensusResult_DoubleScore};
 
-
-
-
-
-
-
-
-            // // Check OP_RETURN
-            // std::vector<std::string> vasm;
-            // boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
-
-            // // Check address and value in asm == reindexer data
-            // if (vasm.size() >= 4) {
-            //     std::stringstream _op_return_data;
-            //     _op_return_data << vasm[3];
-            //     std::string _op_return_hex = _op_return_data.str();
-
-            //     std::string _score_itm_val = _post_address + " " + std::to_string(_score_value);
-            //     std::string _score_itm_hex = HexStr(_score_itm_val.begin(), _score_itm_val.end());
-
-            //     if (_op_return_hex != _score_itm_hex) {
-            //         result = ANTIBOTRESULT::OpReturnFailed;
-            //         return false;
-            //     }
-            // }
+            // Check OP_RETURN with Payload
+            if (*ptx->GetOPRAddress() != *lastContent->GetString1() || *ptx->GetOPRValue() != *ptx->GetValue())
+                return {false, SocialConsensusResult_OpReturnFailed};
 
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx,
-                                                         const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
+            const PocketBlock& block) override
         {
+            // TODO (brangr): implement
             // // Check limit scores
             // reindexer::QueryResults scoresRes;
             // if (!g_pocketdb->DB()->Select(
@@ -131,8 +110,10 @@ namespace PocketConsensus
             //return ValidateLimit(tx, scoresCount);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
+            // TODO (brangr): implement
+
             // // Check limit scores
             // reindexer::QueryResults scoresRes;
             // if (!g_pocketdb->DB()->Select(
@@ -180,7 +161,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <ScoreContent> tx, int count)
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreContent> tx, int count)
         {
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
@@ -193,12 +174,12 @@ namespace PocketConsensus
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
-                                                                    shared_ptr <ScoreContent> tx)
+            const shared_ptr<ScoreContent> tx)
         {
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<ScoreContent>(tx);
 
@@ -245,7 +226,7 @@ namespace PocketConsensus
         int CheckpointHeight() override { return 430000; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
-                                                            shared_ptr <ScoreContent> tx) override
+            shared_ptr<ScoreContent> tx) override
         {
             auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                 contentAddress,
@@ -273,7 +254,7 @@ namespace PocketConsensus
         int CheckpointHeight() override { return 514184; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
-                                                            shared_ptr <ScoreContent> tx) override
+            shared_ptr<ScoreContent> tx) override
         {
             return Success;
         }
@@ -298,7 +279,7 @@ namespace PocketConsensus
                 {0,      [](int height) { return new ScoreContentConsensus(height); }},
             };
     public:
-        shared_ptr <ScoreContentConsensus> Instance(int height)
+        shared_ptr<ScoreContentConsensus> Instance(int height)
         {
             return shared_ptr<ScoreContentConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

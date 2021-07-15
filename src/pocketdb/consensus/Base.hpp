@@ -60,6 +60,7 @@ namespace PocketConsensus
         SocialConsensusResult_SelfCommentScore = 38,
         SocialConsensusResult_DoubleCommentDelete = 39,
         SocialConsensusResult_DoubleCommentScore = 40,
+        SocialConsensusResult_OpReturnFailed = 41,
         SocialConsensusResult_CommentDeletedEdit = 42,
         SocialConsensusResult_ReferrerAfterRegistration = 43,
         SocialConsensusResult_NotAllowed = 44,

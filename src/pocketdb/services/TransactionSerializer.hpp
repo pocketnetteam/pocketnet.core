@@ -124,7 +124,7 @@ namespace PocketServices
             if (txType == PocketTxType::NOT_SUPPORTED)
                 return nullptr;
 
-            shared_ptr<Transaction> ptx = CreateInstance(txType, txHash, tx->nTime, opReturn);
+            shared_ptr<Transaction> ptx = PocketHelpers::CreateInstance(tx, txType, txHash, tx->nTime, opReturn);
             if (!ptx)
                 return nullptr;
 

@@ -28,7 +28,7 @@ namespace PocketConsensus
         SocialBaseConsensus(int height) : BaseConsensus(height) {}
 
         // Validate transaction in block for miner & network full block sync
-        virtual tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, const PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, const PocketBlock& block)
         {
             if (auto[ok, result] = ValidateModel(tx); !ok)
                 return {false, result};
@@ -40,7 +40,7 @@ namespace PocketConsensus
         }
 
         // Validate new transaction received over RPC or network mempool
-        virtual tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx)
+        virtual tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx)
         {
             if (auto[ok, result] = ValidateModel(tx); !ok)
                 return {false, result};
@@ -52,7 +52,7 @@ namespace PocketConsensus
         }
 
         // Generic transactions validating
-        virtual tuple<bool, SocialConsensusResult> Check(const shared_ptr<Transaction>& tx)
+        virtual tuple<bool, SocialConsensusResult> Check(const PTransactionRef& tx)
         {
             // TODO (brangr): commented for debug
             //if (AlreadyExists(tx))
@@ -73,21 +73,21 @@ namespace PocketConsensus
 
 
         // Implement consensus rules for model transaction
-        virtual tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) = 0;
+        virtual tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) = 0;
 
         // Transaction in block validate in chain and block - not mempool
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx,
-                                                                 const PocketBlock& block) = 0;
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
+            const PocketBlock& block) = 0;
 
         // Single transactions limits checked chain and mempool
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) = 0;
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) = 0;
 
 
         // Implement generic rules for model transaction
-        virtual tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) = 0;
+        virtual tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) = 0;
 
         // Generic check consistence Transaction and Payload
-        virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(const shared_ptr<Transaction>& tx)
+        virtual tuple<bool, SocialConsensusResult> CheckOpReturnHash(const PTransactionRef& tx)
         {
             if (IsEmpty(tx->GetOpReturnPayload()))
                 return {false, SocialConsensusResult_PayloadORNotFound};
@@ -106,7 +106,7 @@ namespace PocketConsensus
         }
 
         // If transaction already in DB - skip next checks
-        virtual bool AlreadyExists(const shared_ptr<Transaction>& tx)
+        virtual bool AlreadyExists(const PTransactionRef& tx)
         {
             return TransRepoInst.ExistsByHash(*tx->GetHash());
         }

@@ -67,12 +67,17 @@ namespace PocketConsensus
                 ACTION_SCORE_COMMENT))
                 return {false, SocialConsensusResult_DoubleCommentScore};
 
+            // Check OP_RETURN with Payload
+            if (*ptx->GetOPRAddress() != *lastContent->GetString1() || *ptx->GetOPRValue() != *ptx->GetValue())
+                return {false, SocialConsensusResult_OpReturnFailed};
+
             return Success;
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx,
                                                          const PocketBlock& block) override
         {
+            // TODO (brangr): implement
             // // Check limit scores
             // {
             //     reindexer::QueryResults scoresRes;
@@ -108,6 +113,7 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx) override
         {
+            // TODO (brangr): implement
             // // Check limit scores
             // {
             //     reindexer::QueryResults scoresRes;
@@ -191,25 +197,6 @@ namespace PocketConsensus
         {
             if (auto[ok, result] = SocialBaseConsensus::CheckOpReturnHash(tx); !ok)
                 return {false, result};
-
-            // // Check OP_RETURN
-            // std::vector<std::string> vasm;
-            // boost::split(vasm, oitm["asm"].get_str(), boost::is_any_of("\t "));
-
-            // // Check address and value in asm == reindexer data
-            // if (vasm.size() >= 4) {
-            //     std::stringstream _op_return_data;
-            //     _op_return_data << vasm[3];
-            //     std::string _op_return_hex = _op_return_data.str();
-
-            //     std::string _score_itm_val = _comment_address + " " + std::to_string(_score_value);
-            //     std::string _score_itm_hex = HexStr(_score_itm_val.begin(), _score_itm_val.end());
-
-            //     if (_op_return_hex != _score_itm_hex) {
-            //         result = ANTIBOTRESULT::OpReturnFailed;
-            //         return false;
-            //     }
-            // }
 
             return Success;
         }
