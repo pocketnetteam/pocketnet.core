@@ -264,10 +264,13 @@ namespace PocketHelpers
             {
                 auto scorePtx = make_shared<ScoreContent>(txHash, nTime, opReturn);
 
-                if (auto[ok, scoredata] = ParseScore(tx); ok)
+                if (tx)
                 {
-                    scorePtx->SetOPRAddress(scoredata.ContentAddressHash);
-                    scorePtx->SetOPRValue(scoredata.ScoreValue);
+                    if (auto[ok, scoredata] = ParseScore(tx); ok)
+                    {
+                        scorePtx->SetOPRAddress(scoredata.ContentAddressHash);
+                        scorePtx->SetOPRValue(scoredata.ScoreValue);
+                    }
                 }
 
                 ptx = static_pointer_cast<Transaction>(scorePtx);
@@ -278,10 +281,13 @@ namespace PocketHelpers
             {
                 auto scorePtx = make_shared<ScoreComment>(txHash, nTime, opReturn);
 
-                if (auto[ok, scoredata] = ParseScore(tx); ok)
+                if (tx)
                 {
-                    scorePtx->SetOPRAddress(scoredata.ContentAddressHash);
-                    scorePtx->SetOPRValue(scoredata.ScoreValue);
+                    if (auto[ok, scoredata] = ParseScore(tx); ok)
+                    {
+                        scorePtx->SetOPRAddress(scoredata.ContentAddressHash);
+                        scorePtx->SetOPRValue(scoredata.ScoreValue);
+                    }
                 }
 
                 ptx = static_pointer_cast<Transaction>(scorePtx);

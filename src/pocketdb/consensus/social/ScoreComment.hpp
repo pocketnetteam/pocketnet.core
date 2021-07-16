@@ -65,10 +65,6 @@ namespace PocketConsensus
                 *ptx->GetAddress(), *ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, false))
                 return {false, SocialConsensusResult_DoubleCommentScore};
 
-            // Check OP_RETURN with Payload
-            if (*ptx->GetOPRAddress() != *lastContent->GetString1() || *ptx->GetOPRValue() != *ptx->GetValue())
-                return {false, SocialConsensusResult_OpReturnFailed};
-
             return Success;
         }
 
@@ -162,6 +158,14 @@ namespace PocketConsensus
             auto value = *ptx->GetValue();
             if (value != 1 && value != -1)
                 return {false, SocialConsensusResult_Failed};
+
+            // Check OP_RETURN with Payload
+            if (IsEmpty(ptx->GetOPRAddress()) || *ptx->GetOPRAddress() != *ptx->GetAddress())
+                LogPrintf("000 CHECKPOINT 11 %s\n", *ptx->GetHash());
+                //return {false, SocialConsensusResult_OpReturnFailed};
+            if (IsEmpty(ptx->GetOPRValue()) || *ptx->GetOPRValue() != *ptx->GetValue())
+                LogPrintf("000 CHECKPOINT 22 %s\n", *ptx->GetHash());
+                //return {false, SocialConsensusResult_OpReturnFailed};
 
             return Success;
         }

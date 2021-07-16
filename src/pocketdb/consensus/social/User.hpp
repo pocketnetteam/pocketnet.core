@@ -47,7 +47,7 @@ namespace PocketConsensus
                 return Success;
 
             // We allow edit profile only with delay
-            if ((*ptx->GetTime() - *prevTx->GetTime()) > GetChangeInfoDepth())
+            if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetChangeInfoDepth())
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
             // For edit user profile referrer not allowed
