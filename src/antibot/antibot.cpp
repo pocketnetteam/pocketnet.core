@@ -45,40 +45,34 @@ void AntiBot::getMode(std::string _address, ABMODE& mode, int height)
 int AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height)
 {
     switch (_type) {
-    case Post:
-        return _mode == Full ? GetActualLimit(Limit::full_post_limit, height) : GetActualLimit(Limit::trial_post_limit, height);
-    case PostEdit:
-        return _mode == Full ? GetActualLimit(Limit::full_post_edit_limit, height) : GetActualLimit(Limit::trial_post_edit_limit, height);
-    case Score:
-        return _mode == Full ? GetActualLimit(Limit::full_score_limit, height) : GetActualLimit(Limit::trial_score_limit, height);
-    case Complain:
-        return _mode == Full ? GetActualLimit(Limit::full_complain_limit, height) : GetActualLimit(Limit::trial_complain_limit, height);
-    case Comment:
-        return _mode == Full ? GetActualLimit(Limit::full_comment_limit, height) : GetActualLimit(Limit::trial_comment_limit, height);
-    case CommentEdit:
-        return _mode == Full ? GetActualLimit(Limit::full_comment_edit_limit, height) : GetActualLimit(Limit::trial_comment_edit_limit, height);
-    case CommentScore:
-        return _mode == Full ? GetActualLimit(Limit::full_comment_score_limit, height) : GetActualLimit(Limit::trial_comment_score_limit, height);
-    default:
-        return 0;
+        case Post:
+            return _mode == Full ? GetActualLimit(Limit::full_post_limit, height) : GetActualLimit(Limit::trial_post_limit, height);
+        case PostEdit:
+            return _mode == Full ? GetActualLimit(Limit::full_post_edit_limit, height) : GetActualLimit(Limit::trial_post_edit_limit, height);
+        case Score:
+            return _mode == Full ? GetActualLimit(Limit::full_score_limit, height) : GetActualLimit(Limit::trial_score_limit, height);
+        case Complain:
+            return _mode == Full ? GetActualLimit(Limit::full_complain_limit, height) : GetActualLimit(Limit::trial_complain_limit, height);
+        case Comment:
+            return _mode == Full ? GetActualLimit(Limit::full_comment_limit, height) : GetActualLimit(Limit::trial_comment_limit, height);
+        case CommentEdit:
+            return _mode == Full ? GetActualLimit(Limit::full_comment_edit_limit, height) : GetActualLimit(Limit::trial_comment_edit_limit, height);
+        case CommentScore:
+            return _mode == Full ? GetActualLimit(Limit::full_comment_score_limit, height) : GetActualLimit(Limit::trial_comment_score_limit, height);
+        default:
+            return 0;
     }
 }
 //-----------------------------------------------------
 
 //-----------------------------------------------------
-int getLimitsCount(std::string _table, std::string _address, int64_t _time)
+int getLimitsCount(std::string _table, std::string _address)
 {
     int count = 0;
 
-    reindexer::QueryResults res;
-    if (g_pocketdb->DB()->Select(
-                            reindexer::Query(_table)
-                                .Where("address", CondEq, _address)
-                                .Where("time", CondGe, _time - 86400),
-                            res)
-            .ok()) {
-        count = res.Count();
-    }
+    auto query = reindexer::Query(_table).Where("address", CondEq, _address).Where("block", CondGe, chainActive.Height() - 1440);
+    if (_table == "Comment") query = query.Where("last", CondEq, true);
+    count += g_pocketdb->SelectCount(query);
 
     // Also check mempool
     reindexer::QueryResults mem_res;
@@ -94,10 +88,8 @@ int getLimitsCount(std::string _table, std::string _address, int64_t _time)
             std::string t_src = DecodeBase64(mItm["data"].As<string>());
 
             reindexer::Item t_itm = g_pocketdb->DB()->NewItem(_table);
-            if (t_itm.FromJSON(t_src).ok()) {
-                if (t_itm["time"].As<int64_t>() <= _time && t_itm["address"].As<string>() == _address) {
-                    count += 1;
-                }
+            if (t_itm.FromJSON(t_src).ok() && t_itm["address"].As<string>() == _address) {
+                count += 1;
             }
         }
     }
@@ -107,7 +99,7 @@ int getLimitsCount(std::string _table, std::string _address, int64_t _time)
 //-----------------------------------------------------
 
 //-----------------------------------------------------
-bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMempool, bool checkWithTime, int height, BlockVTX& blockVtx, ANTIBOTRESULT& result)
+bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMempool, bool checkTime_19_3, int height, BlockVTX& blockVtx, ANTIBOTRESULT& result)
 {
     std::string txType = oitm["type"].get_str();
     std::string txId = oitm["txid"].get_str();
@@ -125,7 +117,7 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
     if (userType < 0 && blockVtx.Exists("Users")) {
         for (auto& mtx : blockVtx.Data["Users"]) {
             if (mtx["txid"].get_str() != txId && mtx["address"].get_str() == address) {
-                if (!checkWithTime || mtx["time"].get_int64() <= time)
+                if (!checkTime_19_3 || mtx["time"].get_int64() <= time)
                     userType = mtx["userType"].get_int();
             }
         }
@@ -142,7 +134,7 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == address) {
-                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= time)
+                        if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= time)
                             userType = t_itm["gender"].As<int>();
                     }
                 }
@@ -154,15 +146,6 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
     if (userType < 0) {
         result = ANTIBOTRESULT::NotRegistered;
         return false;
-    }
-
-    // For server accounts allowed only change self info & serverPing post
-    // TODO (brangr): remove or refactor after checkpoint
-    if (height < Params().GetConsensus().checkpoint_0_19_3) {
-        if (txType != OR_SERVER_PING && (userType == AccountType::AccountVideoServer || userType == AccountType::AccountMessageServer)) {
-            result = ANTIBOTRESULT::NotAllowed;
-            return false;
-        }
     }
 
     return true;
@@ -186,43 +169,57 @@ bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBO
 
 //-----------------------------------------------------
 
-bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();
+    std::string _txidRepost = oitm["txidRepost"].get_str();
+    int _tx_content_type = oitm["contentType"].get_int();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
+    if (_txidRepost != "")
+    {
+        reindexer::Item _repost_post_itm;
+        if (!g_pocketdb->SelectOne(Query("Posts").Where("txid", CondEq, _txidRepost).Where("block", CondLt, height), _repost_post_itm).ok()) {
+            result = ANTIBOTRESULT::NotFound;
+            return false;
+        }
+
+        if (_tx_content_type != ContentType::ContentPost) {
+            result = ANTIBOTRESULT::NotAllowed;
+            return false;
+        }
+    }
+
     // Compute count of posts for last 24 hours
-    int postsCount = g_pocketdb->SelectCount(
-        Query("Posts")
-            .Where("address", CondEq, _address)
-            .Where("txidEdit", CondEq, "")
-            .Where("block", CondLt, height)
-            .Where("time", CondGe, _time - 86400)); // TODO (brangr): replace with blocks - this and all time queries
+    int postsCount = 0;
+
+    auto query = Query("Posts").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("block", CondLt, height);
+    if (checkTime_19_6) query = query.Where("time", CondGe, _time - 86400);
+    else query = query.Where("block", CondGe, height - 1440);
+    postsCount += g_pocketdb->SelectCount(query);
 
     // Also get posts from history
-    postsCount += g_pocketdb->SelectCount(
-        Query("PostsHistory")
-            .Where("address", CondEq, _address)
-            .Where("txidEdit", CondEq, "")
-            .Where("block", CondLt, height)
-            .Where("time", CondGe, _time - 86400));
+    auto queryHist = Query("PostsHistory").Where("address", CondEq, _address).Where("txidEdit", CondEq, "").Where("block", CondLt, height);
+    if (checkTime_19_6) queryHist = queryHist.Where("time", CondGe, _time - 86400);
+    else queryHist = queryHist.Where("block", CondGe, height - 1440);
+    postsCount += g_pocketdb->SelectCount(queryHist);
 
     // Also check mempool
     if (checkMempool) {
         reindexer::QueryResults res;
         if (g_pocketdb->Select(
-                          reindexer::Query("Mempool")
-                              .Where("table", CondEq, "Posts")
-                              .Where("txid_source", CondEq, "")
-                              .Not()
-                              .Where("txid", CondEq, _txid),
-                          res)
-                .ok()) {
+                reindexer::Query("Mempool")
+                    .Where("table", CondEq, "Posts")
+                    .Where("txid_source", CondEq, "")
+                    .Not()
+                    .Where("txid", CondEq, _txid),
+                res)
+            .ok()) {
             for (auto& m : res) {
                 reindexer::Item mItm = m.GetItem();
                 std::string t_src = DecodeBase64(mItm["data"].As<string>());
@@ -230,7 +227,7 @@ bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMemp
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == _address && t_itm["txidEdit"].As<string>().empty()) {
-                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                        if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time)
                             postsCount += 1;
                     }
                 }
@@ -242,7 +239,7 @@ bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMemp
     if (blockVtx.Exists("Posts")) {
         for (auto& mtx : blockVtx.Data["Posts"]) {
             if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["txidEdit"].get_str().empty()) {
-                if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                if (!checkTime_19_3 || mtx["time"].get_int64() <= _time)
                     postsCount += 1;
             }
         }
@@ -260,15 +257,17 @@ bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMemp
     return true;
 }
 
-bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();         // Original post id
     std::string _txidEdit = oitm["txidEdit"].get_str(); // new transaction txid
+    std::string _txidRepost = oitm["txidRepost"].get_str();
+    int _tx_content_type = oitm["contentType"].get_int();
     int64_t _time = oitm["time"].get_int64();
 
     // User registered?
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
@@ -281,6 +280,13 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
         }
     }
 
+    // Disable change type
+    if (_tx_content_type != _original_post_itm["type"].As<int>())
+    {
+        result = ANTIBOTRESULT::ChangeTxType;
+        return false;
+    }
+
     // You are author? Really?
     if (_original_post_itm["address"].As<string>() != _address) {
         result = ANTIBOTRESULT::PostEditUnauthorized;
@@ -288,9 +294,25 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
     }
 
     // Original post edit only 24 hours
-    if (_time - _original_post_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_post_timeout, height)) {
+    auto depth = checkTime_19_6 ? (_time - _original_post_itm["time"].As<int64_t>()) : (height - _original_post_itm["block"].As<int>());
+    if (depth > GetActualLimit(Limit::edit_post_timeout, height)) {
         result = ANTIBOTRESULT::PostEditLimit;
         return false;
+    }
+
+    // Check repost
+    if (_txidRepost != "")
+    {
+        reindexer::Item _repost_post_itm;
+        if (!g_pocketdb->SelectOne(Query("Posts").Where("txid", CondEq, _txidRepost).Where("block", CondLt, height), _repost_post_itm).ok()) {
+            result = ANTIBOTRESULT::NotFound;
+            return false;
+        }
+
+        if (_tx_content_type != ContentType::ContentPost) {
+            result = ANTIBOTRESULT::NotAllowed;
+            return false;
+        }
     }
 
     // Double edit in block denied
@@ -328,7 +350,7 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
     return true;
 }
 
-bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -341,7 +363,7 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
@@ -349,10 +371,8 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
     bool not_found = false;
     std::string _post_address;
     reindexer::Item postItm;
-    ContentType postType = ContentType::ContentPost;
     if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _post).Where("block", CondLt, height), postItm).ok()) {
         _post_address = postItm["address"].As<string>();
-        postType = ContentType(postItm["type"].As<int>());
 
         // Score to self post
         if (_post_address == _address) {
@@ -368,7 +388,6 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
             for (auto& mtx : blockVtx.Data["Posts"]) {
                 if (mtx["txid"].get_str() == _post) {
                     _post_address = mtx["address"].get_str();
-                    postType = ContentType(mtx["postType"].get_int());
                     not_found = false;
                     break;
                 }
@@ -390,30 +409,24 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
     // Check double score to post
     reindexer::Item doubleScoreItm;
     if (g_pocketdb->SelectOne(
-                      reindexer::Query("Scores")
-                          .Where("address", CondEq, _address)
-                          .Where("posttxid", CondEq, _post)
-                          .Where("block", CondLt, height),
-                      doubleScoreItm)
-            .ok()) {
+            reindexer::Query("Scores")
+                .Where("address", CondEq, _address)
+                .Where("posttxid", CondEq, _post)
+                .Where("block", CondLt, height),
+            doubleScoreItm)
+        .ok()) {
         result = ANTIBOTRESULT::DoubleScore;
         return false;
     }
 
     // Check limit scores
-    reindexer::QueryResults scoresRes;
-    if (!g_pocketdb->DB()->Select(
-                             reindexer::Query("Scores")
-                                 .Where("address", CondEq, _address)
-                                 .Where("time", CondGe, _time - 86400)
-                                 .Where("block", CondLt, height),
-                             scoresRes)
-             .ok()) {
-        result = ANTIBOTRESULT::Failed;
-        return false;
-    }
+    int scoresCount = 0;
 
-    int scoresCount = scoresRes.Count();
+    // Calculate in DB
+    auto query = reindexer::Query("Scores").Where("address", CondEq, _address).Where("block", CondLt, height);
+    if (checkTime_19_6) query = query.Where("time", CondGe, _time - 86400);
+    else query = query.Where("block", CondGe, height - 1440);
+    scoresCount += g_pocketdb->SelectCount(query);
 
     // Also check mempool
     if (checkMempool) {
@@ -426,7 +439,7 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Scores");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == _address) {
-                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                        if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time)
                             scoresCount += 1;
 
                         if (t_itm["posttxid"].As<string>() == _post) {
@@ -443,7 +456,7 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
     if (blockVtx.Exists("Scores")) {
         for (auto& mtx : blockVtx.Data["Scores"]) {
             if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
-                if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                if (!checkTime_19_3 || mtx["time"].get_int64() <= _time)
                     scoresCount += 1;
 
                 if (mtx["posttxid"].get_str() == _post) {
@@ -484,14 +497,14 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
     return true;
 }
 
-bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
     std::string _post = oitm["posttxid"].get_str();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
@@ -499,11 +512,11 @@ bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool check
     bool not_found = false;
     reindexer::Item postItm;
     if (g_pocketdb->SelectOne(
-                      reindexer::Query("Posts")
-                          .Where("txid", CondEq, _post)
-                          .Where("block", CondLt, height),
-                      postItm)
-            .ok()) {
+            reindexer::Query("Posts")
+                .Where("txid", CondEq, _post)
+                .Where("block", CondLt, height),
+            postItm)
+        .ok()) {
         // Score to self post
         if (postItm["address"].As<string>() == _address) {
             result = ANTIBOTRESULT::SelfComplain;
@@ -532,12 +545,12 @@ bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool check
     // Check double score to post
     reindexer::Item doubleComplainItm;
     if (g_pocketdb->SelectOne(
-                      reindexer::Query("Complains")
-                          .Where("address", CondEq, _address)
-                          .Where("posttxid", CondEq, _post)
-                          .Where("block", CondLt, height),
-                      doubleComplainItm)
-            .ok()) {
+            reindexer::Query("Complains")
+                .Where("address", CondEq, _address)
+                .Where("posttxid", CondEq, _post)
+                .Where("block", CondLt, height),
+            doubleComplainItm)
+        .ok()) {
         result = ANTIBOTRESULT::DoubleComplain;
         return false;
     }
@@ -553,19 +566,13 @@ bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool check
         return false;
     }
 
-    reindexer::QueryResults complainsRes;
-    if (!g_pocketdb->DB()->Select(
-                             reindexer::Query("Complains")
-                                 .Where("address", CondEq, _address)
-                                 .Where("time", CondGe, _time - 86400)
-                                 .Where("block", CondLt, height),
-                             complainsRes)
-             .ok()) {
-        result = ANTIBOTRESULT::Failed;
-        return false;
-    }
+    // Check limits
+    int complainCount = 0;
 
-    int complainCount = complainsRes.Count();
+    auto query = reindexer::Query("Complains").Where("address", CondEq, _address).Where("block", CondLt, height);
+    if (checkTime_19_6) query = query.Where("time", CondGe, _time - 86400);
+    else query = query.Where("block", CondGe, height - 1440);
+    complainCount += g_pocketdb->SelectCount(query);
 
     // Also check mempool
     if (checkMempool) {
@@ -578,7 +585,7 @@ bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool check
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Complains");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == _address) {
-                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                        if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time)
                             complainCount += 1;
 
                         if (t_itm["posttxid"].As<string>() == _post) {
@@ -595,7 +602,7 @@ bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool check
     if (blockVtx.Exists("Complains")) {
         for (auto& mtx : blockVtx.Data["Complains"]) {
             if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
-                if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                if (!checkTime_19_3 || mtx["time"].get_int64() <= _time)
                     complainCount += 1;
 
                 if (mtx["posttxid"].get_str() == _post) {
@@ -615,7 +622,7 @@ bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool check
     return true;
 }
 
-bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -632,18 +639,18 @@ bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool che
     // Get last updated item
     reindexer::Item userItm;
     if (g_pocketdb->SelectOne(
-                      reindexer::Query("UsersView")
-                          .Where("address", CondEq, _address)
-                          .Where("block", CondLt, height),
-                      userItm)
-            .ok()) {
+            reindexer::Query("UsersView")
+                .Where("address", CondEq, _address)
+                .Where("block", CondLt, height),
+            userItm)
+        .ok()) {
         if (!_address_referrer.empty()) {
             result = ANTIBOTRESULT::ReferrerAfterRegistration;
             return false;
         }
 
-        auto userUpdateTime = userItm["time"].As<int64_t>();
-        if (_time - userUpdateTime <= GetActualLimit(Limit::change_info_timeout, height)) {
+        auto depth = checkTime_19_6 ? (_time - userItm["time"].As<int64_t>()) : (height - userItm["block"].As<int>());
+        if (depth <= GetActualLimit(Limit::change_info_timeout, height)) {
             result = ANTIBOTRESULT::ChangeInfoLimit;
             return false;
         }
@@ -660,7 +667,7 @@ bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool che
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Users");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == _address) {
-                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
+                        if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time) {
                             result = ANTIBOTRESULT::ChangeInfoLimit;
                             return false;
                         }
@@ -687,10 +694,12 @@ bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool che
     }
 
     // Check double nickname
+    //if (height < Params().GetConsensus().checkpoint_non_unique_account_name) {
     if (g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("name", CondEq, _name).Not().Where("address", CondEq, _address).Where("block", CondLt, height)) > 0) {
         result = ANTIBOTRESULT::NicknameDouble;
         return false;
     }
+    //}
 
     // TODO (brangr): block all spaces
     // Check spaces in begin and end
@@ -702,7 +711,7 @@ bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool che
     return true;
 }
 
-bool AntiBot::check_subscribe(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_subscribe(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -711,11 +720,11 @@ bool AntiBot::check_subscribe(const UniValue oitm, BlockVTX& blockVtx, bool chec
     bool _unsubscribe = oitm["unsubscribe"].get_bool();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address_to, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address_to, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
@@ -730,7 +739,7 @@ bool AntiBot::check_subscribe(const UniValue oitm, BlockVTX& blockVtx, bool chec
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Subscribes");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
-                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
+                        if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time) {
                             result = ANTIBOTRESULT::ManyTransactions;
                             return false;
                         }
@@ -780,7 +789,7 @@ bool AntiBot::check_subscribe(const UniValue oitm, BlockVTX& blockVtx, bool chec
     return true;
 }
 
-bool AntiBot::check_blocking(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_blocking(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -788,11 +797,11 @@ bool AntiBot::check_blocking(const UniValue oitm, BlockVTX& blockVtx, bool check
     bool _unblocking = oitm["unblocking"].get_bool();
     int64_t _time = oitm["time"].get_int64();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address_to, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address_to, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
@@ -813,7 +822,7 @@ bool AntiBot::check_blocking(const UniValue oitm, BlockVTX& blockVtx, bool check
                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Blocking");
                 if (t_itm.FromJSON(t_src).ok()) {
                     if (t_itm["address"].As<string>() == _address && t_itm["address_to"].As<string>() == _address_to) {
-                        if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time) {
+                        if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time) {
                             result = ANTIBOTRESULT::ManyTransactions;
                             return false;
                         }
@@ -854,7 +863,7 @@ bool AntiBot::check_blocking(const UniValue oitm, BlockVTX& blockVtx, bool check
     return true;
 }
 
-bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();
@@ -866,7 +875,7 @@ bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkM
     std::string _parentid = oitm["parentid"].get_str();
     std::string _answerid = oitm["answerid"].get_str();
 
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
@@ -902,7 +911,15 @@ bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkM
 
     // Compute count of comments for last 24 hours
     {
-        int commentsCount = g_pocketdb->SelectCount(Query("Comment").Where("address", CondEq, _address).Where("last", CondEq, true).Where("time", CondGe, _time - 86400).Where("block", CondLt, height));
+        auto query = Query("Comment")
+            .Where("address", CondEq, _address)
+            .Where("last", CondEq, true)
+            .Where("block", CondLt, height);
+
+        if (checkTime_19_6) query = query.Where("time", CondGe, _time - 86400);
+        else query = query.Where("block", CondGe, height - 1440);
+
+        int commentsCount = g_pocketdb->SelectCount(query);
 
         // Also check mempool
         if (checkMempool) {
@@ -915,7 +932,7 @@ bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkM
                     reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Comment");
                     if (t_itm.FromJSON(t_src).ok()) {
                         if (t_itm["address"].As<string>() == _address && t_itm["otxid"].As<string>() == t_itm["txid"].As<string>()) {
-                            if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                            if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time)
                                 commentsCount += 1;
                         }
                     }
@@ -927,7 +944,7 @@ bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkM
         if (blockVtx.Exists("Comment")) {
             for (auto& mtx : blockVtx.Data["Comment"]) {
                 if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["otxid"].get_str() == mtx["txid"].get_str()) {
-                    if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                    if (!checkTime_19_3 || mtx["time"].get_int64() <= _time)
                         commentsCount += 1;
                 }
             }
@@ -946,7 +963,7 @@ bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkM
     return true;
 }
 
-bool AntiBot::check_comment_edit(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_comment_edit(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     int64_t _time = oitm["time"].get_int64();
@@ -959,7 +976,7 @@ bool AntiBot::check_comment_edit(const UniValue oitm, BlockVTX& blockVtx, bool c
     std::string _answerid = oitm["answerid"].get_str();
 
     // User registered?
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
@@ -995,7 +1012,8 @@ bool AntiBot::check_comment_edit(const UniValue oitm, BlockVTX& blockVtx, bool c
     }
 
     // Original comment edit only 24 hours
-    if (_time - _original_comment_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_comment_timeout, height)) {
+    auto depth = checkTime_19_6 ? (_time - _original_comment_itm["time"].As<int64_t>()) : (height - _original_comment_itm["block"].As<int>());
+    if (depth > GetActualLimit(Limit::edit_comment_timeout, height)) {
         result = ANTIBOTRESULT::CommentEditLimit;
         return false;
     }
@@ -1057,7 +1075,7 @@ bool AntiBot::check_comment_edit(const UniValue oitm, BlockVTX& blockVtx, bool c
     return true;
 }
 
-bool AntiBot::check_comment_delete(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_comment_delete(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     int64_t _time = oitm["time"].get_int64();
@@ -1068,7 +1086,7 @@ bool AntiBot::check_comment_delete(const UniValue oitm, BlockVTX& blockVtx, bool
     std::string _answerid = oitm["answerid"].get_str();
 
     // User registered?
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
@@ -1129,7 +1147,7 @@ bool AntiBot::check_comment_delete(const UniValue oitm, BlockVTX& blockVtx, bool
     return true;
 }
 
-bool AntiBot::check_comment_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkWithTime, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_comment_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
     std::string _address = oitm["address"].get_str();
@@ -1142,7 +1160,7 @@ bool AntiBot::check_comment_score(const UniValue oitm, BlockVTX& blockVtx, bool 
         return false;
     }
 
-    if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
+    if (!CheckRegistration(oitm, _address, checkMempool, checkTime_19_3, height, blockVtx, result)) {
         return false;
     }
 
@@ -1188,31 +1206,23 @@ bool AntiBot::check_comment_score(const UniValue oitm, BlockVTX& blockVtx, bool 
     // Check double score to comment
     reindexer::Item doubleScoreItm;
     if (g_pocketdb->SelectOne(
-                      reindexer::Query("CommentScores")
-                          .Where("address", CondEq, _address)
-                          .Where("commentid", CondEq, _comment_id)
-                          .Where("block", CondLt, height),
-                      doubleScoreItm)
-            .ok()) {
+            reindexer::Query("CommentScores")
+                .Where("address", CondEq, _address)
+                .Where("commentid", CondEq, _comment_id)
+                .Where("block", CondLt, height),
+            doubleScoreItm)
+        .ok()) {
         result = ANTIBOTRESULT::DoubleCommentScore;
         return false;
     }
 
     // Check limit scores
     {
-        reindexer::QueryResults scoresRes;
-        if (!g_pocketdb->DB()->Select(
-                                 reindexer::Query("CommentScores")
-                                     .Where("address", CondEq, _address)
-                                     .Where("time", CondGe, _time - 86400)
-                                     .Where("block", CondLt, height),
-                                 scoresRes)
-                 .ok()) {
-            result = ANTIBOTRESULT::Failed;
-            return false;
-        }
-
-        int scoresCount = scoresRes.Count();
+        int scoresCount = 0;
+        auto query = reindexer::Query("CommentScores").Where("address", CondEq, _address).Where("block", CondLt, height);
+        if (checkTime_19_6) query = query.Where("time", CondGe, _time - 86400);
+        else query = query.Where("block", CondGe, height - 1440);
+        scoresCount += g_pocketdb->SelectCount(query);
 
         // Also check mempool
         if (checkMempool) {
@@ -1225,7 +1235,7 @@ bool AntiBot::check_comment_score(const UniValue oitm, BlockVTX& blockVtx, bool 
                     reindexer::Item t_itm = g_pocketdb->DB()->NewItem("CommentScores");
                     if (t_itm.FromJSON(t_src).ok()) {
                         if (t_itm["address"].As<string>() == _address) {
-                            if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
+                            if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time)
                                 scoresCount += 1;
 
                             if (t_itm["commentid"].As<string>() == _comment_id) {
@@ -1242,7 +1252,7 @@ bool AntiBot::check_comment_score(const UniValue oitm, BlockVTX& blockVtx, bool 
         if (blockVtx.Exists("CommentScores")) {
             for (auto& mtx : blockVtx.Data["CommentScores"]) {
                 if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address) {
-                    if (!checkWithTime || mtx["time"].get_int64() <= _time)
+                    if (!checkTime_19_3 || mtx["time"].get_int64() <= _time)
                         scoresCount += 1;
 
                     if (mtx["commentid"].get_str() == _comment_id) {
@@ -1298,7 +1308,8 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     resultCode = ANTIBOTRESULT::Success;
     std::string table = oitm["table"].get_str();
     std::string tx_type = oitm["type"].get_str();
-    bool checkWithTime = height < Params().GetConsensus().checkpoint_0_19_3;
+    bool checkTime_19_3 = height < Params().GetConsensus().checkpoint_0_19_3;
+    bool checkTime_19_6 = height < Params().GetConsensus().checkpoint_0_19_6;
 
     // If `item` with `txid` already in reindexer db - skip checks
     std::string _txid_check_exists = oitm["txid"].get_str();
@@ -1329,30 +1340,30 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     if (table == "Posts") {
         if (!check_item_size(oitm, Post, height, resultCode)) return;
         if (oitm["txidEdit"].get_str() != "") {
-            check_post_edit(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+            check_post_edit(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
         } else {
-            check_post(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+            check_post(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
         }
     } else if (table == "Scores") {
-        check_score(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+        check_score(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
     } else if (table == "Complains") {
-        check_complain(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+        check_complain(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
     } else if (table == "Subscribes") {
-        check_subscribe(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+        check_subscribe(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
     } else if (table == "Blocking") {
-        check_blocking(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+        check_blocking(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
     } else if (table == "Users") {
         if (!check_item_size(oitm, User, height, resultCode)) return;
-        check_changeInfo(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+        check_changeInfo(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
     } else if (table == "Comment") {
         if (tx_type == OR_COMMENT)
-            check_comment(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+            check_comment(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
         else if (tx_type == OR_COMMENT_EDIT)
-            check_comment_edit(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+            check_comment_edit(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
         else if (tx_type == OR_COMMENT_DELETE)
-            check_comment_delete(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+            check_comment_delete(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
     } else if (table == "CommentScores") {
-        check_comment_score(oitm, blockVtx, checkMempool, checkWithTime, height, resultCode);
+        check_comment_score(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
     } else {
         resultCode = ANTIBOTRESULT::Unknown;
     }
@@ -1362,10 +1373,10 @@ bool AntiBot::CheckInputs(CTransactionRef& tx)
 {
     for (auto& in : tx->vin) {
         if (!g_pocketdb->Exists(
-                reindexer::Query("UTXO")
-                    .Where("txid", CondEq, in.prevout.hash.GetHex())
-                    .Where("txout", CondEq, (int)in.prevout.n)
-                    .Where("spent_block", CondEq, 0))) {
+            reindexer::Query("UTXO")
+                .Where("txid", CondEq, in.prevout.hash.GetHex())
+                .Where("txout", CondEq, (int)in.prevout.n)
+                .Where("spent_block", CondEq, 0))) {
             return false;
         }
     }
@@ -1391,13 +1402,13 @@ bool AntiBot::CheckBlock(BlockVTX& blockVtx, int height)
     return true;
 }
 
-// TODO (brangr): replace time argument to block height
-bool AntiBot::GetUserState(std::string _address, int64_t _time, UserStateItem& _state)
+bool AntiBot::GetUserState(std::string _address, UserStateItem& _state)
 {
     _state = UserStateItem(_address);
 
     _state.user_registration_date = g_addrindex->GetUserRegistrationDate(_address);
     _state.address_registration_date = g_addrindex->GetAddressRegistrationDate(_address);
+    _state.likers = g_addrindex->GetAddressLikers(_address, chainActive.Height() + 1);
 
     ABMODE mode;
     int reputation = 0;
@@ -1408,27 +1419,27 @@ bool AntiBot::GetUserState(std::string _address, int64_t _time, UserStateItem& _
     _state.reputation = reputation;
     _state.balance = balance;
 
-    int postsCount = getLimitsCount("Posts", _address, chainActive.Tip()->nTime);
+    int postsCount = getLimitsCount("Posts", _address);
     int postsLimit = getLimit(Post, mode, chainActive.Height() + 1);
     _state.post_spent = postsCount;
     _state.post_unspent = postsLimit - postsCount;
 
-    int scoresCount = getLimitsCount("Scores", _address, chainActive.Tip()->nTime);
+    int scoresCount = getLimitsCount("Scores", _address);
     int scoresLimit = getLimit(Score, mode, chainActive.Height() + 1);
     _state.score_spent = scoresCount;
     _state.score_unspent = scoresLimit - scoresCount;
 
-    int complainsCount = getLimitsCount("Complains", _address, chainActive.Tip()->nTime);
+    int complainsCount = getLimitsCount("Complains", _address);
     int complainsLimit = getLimit(Complain, mode, chainActive.Height() + 1);
     _state.complain_spent = complainsCount;
     _state.complain_unspent = complainsLimit - complainsCount;
 
-    int commentsCount = getLimitsCount("Comment", _address, chainActive.Tip()->nTime);
+    int commentsCount = getLimitsCount("Comment", _address);
     int commentsLimit = getLimit(Comment, mode, chainActive.Height() + 1);
     _state.comment_spent = commentsCount;
     _state.comment_unspent = commentsLimit - commentsCount;
 
-    int commentScoresCount = getLimitsCount("CommentScores", _address, chainActive.Tip()->nTime);
+    int commentScoresCount = getLimitsCount("CommentScores", _address);
     int commentScoresLimit = getLimit(CommentScore, mode, chainActive.Height() + 1);
     _state.comment_score_spent = commentScoresCount;
     _state.comment_score_unspent = commentScoresLimit - commentScoresCount;
@@ -1449,9 +1460,13 @@ bool AntiBot::AllowModifyReputation(std::string _score_address, int height)
     if (_user_reputation < _min_user_reputation) return false;
 
     // Ignore scores from users with non verificated reputation
+    auto[userId, userRegBlock] = g_pocketdb->GetUserData(_score_address);
+    if (userId < 0 || userRegBlock < 0) return false;
+
     int64_t _min_likers = GetActualLimit(Limit::threshold_likers_count, height);
-    int userId = g_pocketdb->GetUserId(_score_address);
-    if (userId < 0) return false;
+
+    if (height >= Params().GetConsensus().checkpoint_0_19_6)
+        if (height - userRegBlock > 250'000) _min_likers = 30;
 
     int _user_likers = g_pocketdb->GetUserLikersCount(userId, height);
     if (_user_likers < _min_likers) return false;
@@ -1460,7 +1475,7 @@ bool AntiBot::AllowModifyReputation(std::string _score_address, int height)
     return true;
 }
 
-bool AntiBot::AllowModifyReputationOverPost(std::string _score_address, std::string _post_address, int height, const CTransactionRef& tx, bool lottery)
+bool AntiBot::AllowModifyReputationOverPost(std::string _score_address, std::string _post_address, int height, int64_t tx_time, std::string txid, bool lottery)
 {
     // Check user reputation
     if (!AllowModifyReputation(_score_address, height)) return false;
@@ -1485,20 +1500,25 @@ bool AntiBot::AllowModifyReputationOverPost(std::string _score_address, std::str
     // For check lottery not include current block (for reindex)
     int blockHeight = height + (lottery ? 0 : 1);
 
+    // TODO (brangr): change time to blocks
     size_t scores_one_to_one_count = g_pocketdb->SelectCount(
         reindexer::Query("Scores")
             .Where("address", CondEq, _score_address)
-            .Where("time", CondGe, (int64_t)tx->nTime - _scores_one_to_one_depth)
-            .Where("time", CondLt, (int64_t)tx->nTime)
+            .Where("time", CondGe, tx_time - _scores_one_to_one_depth)
+            .Where("time", CondLt, tx_time)
             .Where("block", CondLe, blockHeight)
             .Where("value", CondSet, values)
-            .Not().Where("txid", CondEq, tx->GetHash().GetHex())
+            .Not().Where("txid", CondEq, txid)
             .InnerJoin("posttxid", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, _post_address)));
 
     if (scores_one_to_one_count >= _max_scores_one_to_one) return false;
 
     // All is OK
     return true;
+}
+bool AntiBot::AllowModifyReputationOverPost(std::string _score_address, std::string _post_address, int height, const CTransactionRef& tx, bool lottery)
+{
+    return AllowModifyReputationOverPost(_score_address, _post_address, height, (int64_t)tx->nTime, tx->GetHash().GetHex(), lottery);
 }
 
 bool AntiBot::AllowModifyReputationOverComment(std::string _score_address, std::string _comment_address, int height, const CTransactionRef& tx, bool lottery)
@@ -1522,6 +1542,7 @@ bool AntiBot::AllowModifyReputationOverComment(std::string _score_address, std::
     // For check lottery not include current block (for reindex)
     int blockHeight = height + (lottery ? 0 : 1);
 
+    // TODO (brangr): change time to blocks
     size_t scores_one_to_one_count = g_pocketdb->SelectCount(
         reindexer::Query("CommentScores")
             .Where("address", CondEq, _score_address)
@@ -1530,7 +1551,7 @@ bool AntiBot::AllowModifyReputationOverComment(std::string _score_address, std::
             .Where("block", CondLe, blockHeight)
             .Where("value", CondSet, values)
             .Not().Where("txid", CondEq, tx->GetHash().GetHex())
-            // join by original id with txid, not otxid
+                // join by original id with txid, not otxid
             .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, _comment_address)));
 
     if (scores_one_to_one_count >= _max_scores_one_to_one) return false;

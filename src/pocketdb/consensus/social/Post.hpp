@@ -7,11 +7,14 @@
 #ifndef POCKETCONSENSUS_POST_HPP
 #define POCKETCONSENSUS_POST_HPP
 
+#include <pocketdb/consensus/Reputation.hpp>
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/Post.hpp"
 
 namespace PocketConsensus
 {
+    using namespace std;
+
     /*******************************************************************************************************************
     *
     *  Post consensus base class
@@ -45,7 +48,7 @@ namespace PocketConsensus
 
         // ------------------------------------------------------------------------------------------------------------
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<Post>(tx);
 
@@ -59,7 +62,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditModel(const shared_ptr <Post>& tx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditModel(const shared_ptr<Post>& tx)
         {
             // First get original post transaction
             auto originalTx = PocketDb::TransRepoInst.GetByHash(*tx->GetRootTxHash());
@@ -92,7 +95,7 @@ namespace PocketConsensus
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
-            const PocketBlock& block) override
+                                                         const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<Post>(tx);
 
@@ -130,7 +133,7 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<Post>(tx);
 
@@ -153,7 +156,7 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Post>& tx, int count)
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Post>& tx, int count)
         {
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
@@ -167,8 +170,8 @@ namespace PocketConsensus
 
         // ------------------------------------------------------------------------------------------------------------
 
-        virtual tuple<bool, SocialConsensusResult>
-        ValidateEditLimit(const shared_ptr <Post>& tx, const PocketBlock& block)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(const shared_ptr<Post>& tx,
+                                                                     const PocketBlock& block)
         {
             // Double edit in block not allowed
             for (auto blockTx : block)
@@ -197,7 +200,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr <Post> tx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr<Post> tx)
         {
             if (ConsensusRepoInst.CountMempoolContentEdit(*tx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
@@ -206,7 +209,7 @@ namespace PocketConsensus
         }
 
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<Post>(tx);
 
@@ -266,7 +269,7 @@ namespace PocketConsensus
             };
 
     public:
-        shared_ptr <PostConsensus> Instance(int height)
+        shared_ptr<PostConsensus> Instance(int height)
         {
             return shared_ptr<PostConsensus>(
                 (--m_rules.upper_bound(height))->second(height));

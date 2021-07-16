@@ -7,6 +7,7 @@
 #ifndef POCKETCONSENSUS_COMMENT_HPP
 #define POCKETCONSENSUS_COMMENT_HPP
 
+#include <pocketdb/consensus/Reputation.hpp>
 #include "utils/html.h"
 
 #include "pocketdb/consensus/social/Base.hpp"
@@ -25,108 +26,120 @@ namespace PocketConsensus
         CommentConsensus(int height) : SocialBaseConsensus(height) {}
 
     protected:
-        
+        virtual int64_t GetFullLimit() { return 300; }
+
+        virtual int64_t GetTrialLimit() { return 150; }
+
+        virtual int64_t GetLimit(AccountMode mode)
+        {
+            return mode == AccountMode_Full ? GetFullLimit() : GetTrialLimit();
+        }
+
         virtual int64_t GetCommentMessageMaxSize() { return 2000; }
-    
+
         tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<Comment>(tx);
 
-            // TODO (brangr): implement
-            // std::string _address = oitm["address"].get_str();
-            // std::string _txid = oitm["txid"].get_str();
-            // int64_t _time = oitm["time"].get_int64();
-
-            // std::string _msg = oitm["msg"].get_str();
-            // std::string _otxid = oitm["otxid"].get_str();
-            // std::string _postid = oitm["postid"].get_str();
-            // std::string _parentid = oitm["parentid"].get_str();
-            // std::string _answerid = oitm["answerid"].get_str();
-
-            vector<string> addresses = { *ptx->GetAddress() };
+            vector<string> addresses = {*ptx->GetAddress()};
             if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
                 return make_tuple(false, SocialConsensusResult_NotRegistered);
 
-            
+            // Parent comment
+            if (!IsEmpty(ptx->GetParentTxHash()))
+            {
+                auto parentTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetParentTxHash());
+                if (!parentTx)
+                    return {false, SocialConsensusResult_InvalidParentComment};
+            }
 
-            // // Parent comment
-            // if (_parentid != "" && !g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _parentid).Where("last", CondEq, true).Not().Where("msg", CondEq, "").Where("block", CondLt, height))) {
-            //     result = ANTIBOTRESULT::InvalidParentComment;
-            //     return false;
-            // }
+            // Answer comment
+            if (!IsEmpty(ptx->GetAnswerTxHash()))
+            {
+                auto answerTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetAnswerTxHash());
+                if (!answerTx)
+                    return {false, SocialConsensusResult_InvalidAnswerComment};
+            }
 
-            // // Answer comment
-            // if (_answerid != "" && !g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _answerid).Where("last", CondEq, true).Not().Where("msg", CondEq, "").Where("block", CondLt, height))) {
-            //     result = ANTIBOTRESULT::InvalidAnswerComment;
-            //     return false;
-            // }
+            // Check exists content transaction
+            if (IsEmpty(ptx->GetPostTxHash()))
+                return {false, SocialConsensusResult_NotFound};
 
-            // Item post_itm;
-            // if (_postid == "" || !g_pocketdb->SelectOne(Query("Posts").Where("txid", CondEq, _postid).Where("block", CondLt, height), post_itm).ok()) {
-            //     result = ANTIBOTRESULT::NotFound;
-            //     return false;
-            // }
+            auto contentTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetPostTxHash());
+            if (!contentTx)
+                return {false, SocialConsensusResult_NotFound};
 
-            // // Blocking
-            // if (g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, post_itm["address"].As<string>()).Where("address_to", CondEq, _address).Where("block", CondLt, height))) {
-            //     result = ANTIBOTRESULT::Blocking;
-            //     return false;
-            // }
+            // Check Blocking
+            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
+                    *ptx->GetAddress(), *contentTx->GetString1() // GetString1() returned author content
+                ); existsBlocking && blockingType == ACTION_BLOCKING)
+                return {false, SocialConsensusResult_Blocking};
 
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
+        virtual bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx)
         {
-            //     int commentsCount = g_pocketdb->SelectCount(Query("Comment").Where("address", CondEq, _address).Where("last", CondEq, true).Where("time", CondGe, _time - 86400).Where("block", CondLt, height));
+            return *blockPtx->GetTime() <= *ptx->GetTime();
+        }
 
-            //     if (blockVtx.Exists("Comment")) {
-            //         for (auto& mtx : blockVtx.Data["Comment"]) {
-            //             if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["otxid"].get_str() == mtx["txid"].get_str()) {
-            //                 if (!checkWithTime || mtx["time"].get_int64() <= _time)
-            //                     commentsCount += 1;
-            //             }
-            //         }
-            //     }
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx,
+                                                         const PocketBlock& block) override
+        {
+            auto ptx = static_pointer_cast<Comment>(tx);
 
-            //     ABMODE mode;
-            //     getMode(_address, mode, height);
-            //     int limit = getLimit(Comment, mode, height);
-            //     if (commentsCount >= limit) {
-            //         result = ANTIBOTRESULT::CommentLimit;
-            //         return false;
-            //     }
+            // Get count from chain
+            int count = ConsensusRepoInst.CountChainContent(
+                *ptx->GetAddress(),
+                *ptx->GetTime(),
+                PocketTxType::CONTENT_COMMENT);
+
+            // Get count from block
+            for (auto blockTx : block)
+            {
+                if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT}))
+                    continue;
+
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                auto blockPtx = static_pointer_cast<Comment>(blockTx);
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                {
+                    if (CheckBlockLimitTime(tx, blockTx))
+                        count += 1;
+                }
+            }
+
+            return ValidateLimit(ptx, count);
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
         {
-            //     int commentsCount = g_pocketdb->SelectCount(Query("Comment").Where("address", CondEq, _address).Where("last", CondEq, true).Where("time", CondGe, _time - 86400).Where("block", CondLt, height));
+            auto ptx = static_pointer_cast<Comment>(tx);
 
-            //         reindexer::QueryResults res;
-            //         if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
-            //             for (auto& m : res) {
-            //                 reindexer::Item mItm = m.GetItem();
-            //                 std::string t_src = DecodeBase64(mItm["data"].As<string>());
+            // Get count from chain
+            int count = ConsensusRepoInst.CountChainContent(
+                *ptx->GetAddress(),
+                *ptx->GetTime(),
+                PocketTxType::CONTENT_COMMENT);
 
-            //                 reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Comment");
-            //                 if (t_itm.FromJSON(t_src).ok()) {
-            //                     if (t_itm["address"].As<string>() == _address && t_itm["otxid"].As<string>() == t_itm["txid"].As<string>()) {
-            //                         if (!checkWithTime || t_itm["time"].As<int64_t>() <= _time)
-            //                             commentsCount += 1;
-            //                     }
-            //                 }
-            //             }
-            //         }
+            count += ConsensusRepoInst.CountMempoolContent(*ptx->GetAddress(), PocketTxType::CONTENT_COMMENT);
 
-            //     ABMODE mode;
-            //     getMode(_address, mode, height);
-            //     int limit = getLimit(Comment, mode, height);
-            //     if (commentsCount >= limit) {
-            //         result = ANTIBOTRESULT::CommentLimit;
-            //         return false;
-            //     }
+            return ValidateLimit(ptx, count);
         }
 
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Comment>& tx, int count)
+        {
+            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
+            auto limit = GetLimit(mode);
+
+            if (count >= limit)
+                return {false, SocialConsensusResult_ContentLimit};
+
+            return Success;
+        }
 
         tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
@@ -149,6 +162,25 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 1124000 block
+    *
+    *******************************************************************************************************************/
+    class CommentConsensus_checkpoint_1124000 : public CommentConsensus
+    {
+    public:
+        CommentConsensus_checkpoint_1124000(int height) : CommentConsensus(height) {}
+
+    protected:
+        int CheckpointHeight() override { return 1124000; }
+
+        bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
+        {
+            return true;
+        }
+    };
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -156,11 +188,12 @@ namespace PocketConsensus
     {
     private:
         static inline const std::map<int, std::function<CommentConsensus*(int height)>> m_rules =
-        {
-            {0, [](int height) { return new CommentConsensus(height); }},
-        };
+            {
+                {1124000, [](int height) { return new CommentConsensus_checkpoint_1124000(height); }},
+                {0,       [](int height) { return new CommentConsensus(height); }},
+            };
     public:
-        shared_ptr <CommentConsensus> Instance(int height)
+        shared_ptr<CommentConsensus> Instance(int height)
         {
             return shared_ptr<CommentConsensus>(
                 (--m_rules.upper_bound(height))->second(height)
