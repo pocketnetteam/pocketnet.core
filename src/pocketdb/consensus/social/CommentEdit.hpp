@@ -40,7 +40,7 @@ namespace PocketConsensus
         }
 
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
 
@@ -53,26 +53,38 @@ namespace PocketConsensus
                 !ok || *actuallTx->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
                 return {false, SocialConsensusResult_NotFound};
 
-            // Parent comment
-            if (!IsEmpty(ptx->GetParentTxHash()))
-            {
-                auto parentTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetParentTxHash());
-                if (!parentTx)
-                    return {false, SocialConsensusResult_InvalidParentComment};
-            }
-
-            // Answer comment
-            if (!IsEmpty(ptx->GetAnswerTxHash()))
-            {
-                auto answerTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetAnswerTxHash());
-                if (!answerTx)
-                    return {false, SocialConsensusResult_InvalidAnswerComment};
-            }
-
             // Original comment exists
             auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
+
+            // Parent comment
+            {
+                // GetString4() = ParentTxHash
+                auto currParentTxHash = IsEmpty(ptx->GetParentTxHash()) ? "" : *ptx->GetParentTxHash();
+                auto origParentTxHash = IsEmpty(originalTx->GetString4()) ? "" : *originalTx->GetString4();
+
+                if (currParentTxHash != origParentTxHash)
+                    return {false, SocialConsensusResult_InvalidParentComment};
+
+                if (!IsEmpty(originalTx->GetString4()))
+                    if (!PocketDb::TransRepoInst.GetByHash(origParentTxHash))
+                        return {false, SocialConsensusResult_InvalidParentComment};
+            }
+
+            // Answer comment
+            {
+                // GetString5() = AnswerTxHash
+                auto currAnswerTxHash = IsEmpty(ptx->GetAnswerTxHash()) ? "" : *ptx->GetAnswerTxHash();
+                auto origAnswerTxHash = IsEmpty(originalTx->GetString5()) ? "" : *originalTx->GetString5();
+
+                if (currAnswerTxHash != origAnswerTxHash)
+                    return {false, SocialConsensusResult_InvalidAnswerComment};
+
+                if (!IsEmpty(originalTx->GetString5()))
+                    if (!PocketDb::TransRepoInst.GetByHash(origAnswerTxHash))
+                        return {false, SocialConsensusResult_InvalidAnswerComment};
+            }
 
             // Original comment edit only 24 hours
             if (!AllowEditWindow(tx, originalTx))
@@ -130,7 +142,7 @@ namespace PocketConsensus
             return ValidateEditOneLimit(ptx);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(shared_ptr <Comment> tx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(shared_ptr<Comment> tx)
         {
             int count = ConsensusRepoInst.CountChainContentEdit(*tx->GetRootTxHash());
 
@@ -144,7 +156,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
 
@@ -203,7 +215,7 @@ namespace PocketConsensus
                 {0,       [](int height) { return new CommentEditConsensus(height); }},
             };
     public:
-        shared_ptr <CommentEditConsensus> Instance(int height)
+        shared_ptr<CommentEditConsensus> Instance(int height)
         {
             return shared_ptr<CommentEditConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

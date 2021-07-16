@@ -28,82 +28,72 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
 
+            vector<string> addresses = {*ptx->GetAddress()};
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
+            // Actual comment not deleted
+            if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
+                !ok || *actuallTx->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
+                return {false, SocialConsensusResult_NotFound};
 
-            return Success;
+            // Original comment exists
+            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
+            if (!originalTx)
+                return {false, SocialConsensusResult_NotFound};
 
+            // Parent comment
+            {
+                // GetString4() = ParentTxHash
+                auto currParentTxHash = IsEmpty(ptx->GetParentTxHash()) ? "" : *ptx->GetParentTxHash();
+                auto origParentTxHash = IsEmpty(originalTx->GetString4()) ? "" : *originalTx->GetString4();
 
-            // TODO (brangr): implement
-            // std::string _address = oitm["address"].get_str();
-            // int64_t _time = oitm["time"].get_int64();
+                if (currParentTxHash != origParentTxHash)
+                    return {false, SocialConsensusResult_InvalidParentComment};
 
-            // std::string _txid = oitm["txid"].get_str();
-            // std::string _otxid = oitm["otxid"].get_str();
-            // std::string _parentid = oitm["parentid"].get_str();
-            // std::string _answerid = oitm["answerid"].get_str();
+                if (!IsEmpty(originalTx->GetString4()))
+                    if (!PocketDb::TransRepoInst.GetByHash(origParentTxHash))
+                        return {false, SocialConsensusResult_InvalidParentComment};
+            }
 
-            // // User registered?
-            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
+            // Answer comment
+            {
+                // GetString5() = AnswerTxHash
+                auto currAnswerTxHash = IsEmpty(ptx->GetAnswerTxHash()) ? "" : *ptx->GetAnswerTxHash();
+                auto origAnswerTxHash = IsEmpty(originalTx->GetString5()) ? "" : *originalTx->GetString5();
 
-            // // Original comment exists
-            // reindexer::Item _original_comment_itm;
-            // if (!g_pocketdb->SelectOne(Query("Comment").Where("otxid", CondEq, _otxid).Where("txid", CondEq, _otxid).Where("address", CondEq, _address).Where("block", CondLt, height), _original_comment_itm).ok()) {
-            //     result = ANTIBOTRESULT::NotFound;
-            //     return false;
-            // }
+                if (currAnswerTxHash != origAnswerTxHash)
+                    return {false, SocialConsensusResult_InvalidAnswerComment};
 
-            // // Last comment not deleted
-            // if (!g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _otxid).Where("last", CondEq, true).Where("address", CondEq, _address).Not().Where("msg", CondEq, "").Where("block", CondLt, height))) {
-            //     result = ANTIBOTRESULT::DoubleCommentDelete;
-            //     return false;
-            // }
-
-            // // Parent comment
-            // if (_parentid != _original_comment_itm["parentid"].As<string>()) {
-            //     result = ANTIBOTRESULT::InvalidParentComment;
-            //     return false;
-            // }
-
-            // // Answer comment
-            // if (_answerid != _original_comment_itm["answerid"].As<string>()) {
-            //     result = ANTIBOTRESULT::InvalidAnswerComment;
-            //     return false;
-            // }
+                if (!IsEmpty(originalTx->GetString5()))
+                    if (!PocketDb::TransRepoInst.GetByHash(origAnswerTxHash))
+                        return {false, SocialConsensusResult_InvalidAnswerComment};
+            }
 
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef & tx, const PocketBlock& block) override
         {
-            // if (blockVtx.Exists("Comment")) {
-            //     for (auto& mtx : blockVtx.Data["Comment"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["otxid"].get_str() == _otxid) {
-            //             result = ANTIBOTRESULT::DoubleCommentDelete;
-            //             return false;
-            //         }
-            //     }
-            // }
+            for (auto blockTx : block)
+            {
+                if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
+                    continue;
+
+                if (*blockTx->GetHash() == *tx->GetHash())
+                    continue;
+
+                // GetString2() = RootTxHash
+                if (*tx->GetString2() == *blockTx->GetString2())
+                    return {false, SocialConsensusResult_DoubleCommentDelete};
+            }
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef & tx) override
         {
-            //     reindexer::QueryResults res;
-            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
-            //         for (auto& m : res) {
-            //             reindexer::Item mItm = m.GetItem();
-            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
-
-            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Comment");
-            //             if (t_itm.FromJSON(t_src).ok()) {
-            //                 if (t_itm["otxid"].As<string>() == _otxid) {
-            //                     result = ANTIBOTRESULT::DoubleCommentDelete;
-            //                     return false;
-            //                 }
-            //             }
-            //         }
-            //     }
+            // GetString2() = RootTxHash
+            if (ConsensusRepoInst.CountMempoolContentEdit(*tx->GetString2()) > 0)
+                return {false, SocialConsensusResult_DoubleCommentDelete};
         }
 
         tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
