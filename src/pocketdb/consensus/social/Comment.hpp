@@ -26,6 +26,9 @@ namespace PocketConsensus
         CommentConsensus(int height) : SocialBaseConsensus(height) {}
 
     protected:
+
+        virtual int64_t GetLimitWindow() { return 86400; }
+
         virtual int64_t GetFullLimit() { return 300; }
 
         virtual int64_t GetTrialLimit() { return 150; }
@@ -86,10 +89,7 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<Comment>(tx);
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::CONTENT_COMMENT);
+            int count = GetChainCount(ptx);
 
             // Get count from block
             for (auto blockTx : block)
@@ -116,11 +116,9 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<Comment>(tx);
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::CONTENT_COMMENT);
+            int count = GetChainCount(ptx);
 
+            // Get count from mempool
             count += ConsensusRepoInst.CountMempoolComment(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
@@ -136,6 +134,14 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_ContentLimit};
 
             return Success;
+        }
+
+        virtual int GetChainCount(const shared_ptr<Comment>& ptx)
+        {
+            return ConsensusRepoInst.CountChainCommentTime(
+                *ptx->GetAddress(),
+                *ptx->GetTime() - GetLimitWindow()
+            );
         }
 
         tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
@@ -178,6 +184,30 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 1180000 block
+    *
+    *******************************************************************************************************************/
+    class CommentConsensus_checkpoint_1180000 : public CommentConsensus_checkpoint_1124000
+    {
+    public:
+        CommentConsensus_checkpoint_1180000(int height) : CommentConsensus_checkpoint_1124000(height) {}
+
+    protected:
+        int CheckpointHeight() override { return 1180000; }
+
+        int64_t GetLimitWindow() override { return 1440; }
+
+        int GetChainCount(const shared_ptr<Comment>& ptx) override
+        {
+            return ConsensusRepoInst.CountChainCommentHeight(
+                *ptx->GetAddress(),
+                Height - (int) GetLimitWindow()
+            );
+        }
+    };
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -186,6 +216,7 @@ namespace PocketConsensus
     private:
         static inline const std::map<int, std::function<CommentConsensus*(int height)>> m_rules =
             {
+                {1180000, [](int height) { return new CommentConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new CommentConsensus_checkpoint_1124000(height); }},
                 {0,       [](int height) { return new CommentConsensus(height); }},
             };

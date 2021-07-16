@@ -26,6 +26,9 @@ namespace PocketConsensus
         ScoreContentConsensus(int height) : SocialBaseConsensus(height) {}
 
     protected:
+
+        virtual int64_t GetLimitWindow() { return 86400; }
+
         virtual int64_t GetFullAccountScoresLimit() { return 90; }
 
         virtual int64_t GetTrialAccountScoresLimit() { return 45; }
@@ -77,10 +80,7 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<ScoreContent>(tx);
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::ACTION_SCORE_CONTENT);
+            int count = GetChainCount(ptx);
 
             // Get count from block
             for (auto blockTx : block)
@@ -115,10 +115,7 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_DoubleScore};
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::ACTION_SCORE_CONTENT);
+            int count = GetChainCount(ptx);
 
             count += ConsensusRepoInst.CountMempoolScoreContent(*ptx->GetAddress());
 
@@ -141,6 +138,14 @@ namespace PocketConsensus
             const shared_ptr<ScoreContent> tx)
         {
             return Success;
+        }
+
+        virtual int GetChainCount(const shared_ptr<ScoreContent>& ptx)
+        {
+            return ConsensusRepoInst.CountChainScoreContentTime(
+                *ptx->GetAddress(),
+                *ptx->GetTime() - GetLimitWindow()
+            );
         }
 
         tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
@@ -258,6 +263,30 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 1180000 block
+    *
+    *******************************************************************************************************************/
+    class ScoreContentConsensus_checkpoint_1180000 : public ScoreContentConsensus_checkpoint_1124000
+    {
+    public:
+        ScoreContentConsensus_checkpoint_1180000(int height) : ScoreContentConsensus_checkpoint_1124000(height) {}
+
+    protected:
+        int CheckpointHeight() override { return 1180000; }
+
+        int64_t GetLimitWindow() override { return 1440; }
+
+        int GetChainCount(const shared_ptr<ScoreContent>& ptx) override
+        {
+            return ConsensusRepoInst.CountChainScoreContentHeight(
+                *ptx->GetAddress(),
+                Height - (int) GetLimitWindow()
+            );
+        }
+    };
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -266,6 +295,7 @@ namespace PocketConsensus
     private:
         static inline const std::map<int, std::function<ScoreContentConsensus*(int height)>> m_rules =
             {
+                {1180000, [](int height) { return new ScoreContentConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ScoreContentConsensus_checkpoint_1124000(height); }},
                 {514184,  [](int height) { return new ScoreContentConsensus_checkpoint_514184(height); }},
                 {430000,  [](int height) { return new ScoreContentConsensus_checkpoint_430000(height); }},

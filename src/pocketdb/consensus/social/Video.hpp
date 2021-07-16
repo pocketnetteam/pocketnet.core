@@ -27,7 +27,10 @@ namespace PocketConsensus
     protected:
 
         // TODO (brangr): setup limits after close https://github.com/pocketnetteam/pocketnet.core/issues/22
-        virtual int64_t GetEditWindow() { return 86400; }
+
+        virtual int64_t GetLimitWindow() { return 1440; }
+
+        virtual int64_t GetEditWindow() { return 1440; }
 
         virtual int64_t GetFullLimit() { return 30; }
 
@@ -49,7 +52,7 @@ namespace PocketConsensus
 
         // ------------------------------------------------------------------------------------------------------------
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef & tx) override
         {
             auto ptx = static_pointer_cast<Video>(tx);
 
@@ -82,7 +85,7 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_ContentEditUnauthorized};
 
             // Original post edit only 24 hours
-            if ((*tx->GetTime() - *originalVideoTx->GetTime()) > GetEditWindow())
+            if (!AllowEditWindow(tx, originalVideoTx))
                 return {false, SocialConsensusResult_ContentEditLimit};
 
             return make_tuple(true, SocialConsensusResult_Success);
@@ -90,8 +93,8 @@ namespace PocketConsensus
 
         // ------------------------------------------------------------------------------------------------------------
 
-        tuple<bool, SocialConsensusResult>
-        ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef & tx,
+                                                         const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<Video>(tx);
 
@@ -104,11 +107,7 @@ namespace PocketConsensus
             // New
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::CONTENT_VIDEO
-            );
+            int count = GetChainCount(ptx);
 
             // Get count from block
             for (auto blockTx : block)
@@ -127,7 +126,7 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef & tx) override
         {
             auto ptx = static_pointer_cast<Video>(tx);
 
@@ -140,12 +139,9 @@ namespace PocketConsensus
             // New
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::CONTENT_VIDEO
-            );
+            int count = GetChainCount(ptx);
 
+            // and from mempool
             count += ConsensusRepoInst.CountMempoolVideo(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
@@ -161,6 +157,14 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_ContentLimit};
 
             return Success;
+        }
+
+        virtual int GetChainCount(const shared_ptr<Video>& ptx)
+        {
+            return ConsensusRepoInst.CountChainVideoHeight(
+                *ptx->GetAddress(),
+                Height - GetLimitWindow()
+            );
         }
 
         // ------------------------------------------------------------------------------------------------------------
@@ -183,7 +187,7 @@ namespace PocketConsensus
             }
 
             // Check edit one itm limit
-            int count = ConsensusRepoInst.CountChainContentEdit(*tx->GetRootTxHash());
+            int count = ConsensusRepoInst.CountChainVideoEdit(*tx->GetRootTxHash());
 
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
@@ -203,8 +207,18 @@ namespace PocketConsensus
             return Success;
         }
 
+        virtual bool AllowEditWindow(const PTransactionRef& ptx, const PTransactionRef& originalTx)
+        {
+            auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
+            if (!ok)
+                return false;
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
+            return (Height - originalTxHeight) <= GetEditWindow();
+        }
+
+        // ------------------------------------------------------------------------------------------------------------
+
+        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef & tx) override
         {
             auto ptx = static_pointer_cast<Video>(tx);
 
@@ -227,7 +241,7 @@ namespace PocketConsensus
     class VideoConsensusFactory
     {
     private:
-        const std::map<int, std::function<VideoConsensus *(int height)>> m_rules =
+        const std::map<int, std::function<VideoConsensus*(int height)>> m_rules =
             {
                 {0, [](int height) { return new VideoConsensus(height); }},
             };

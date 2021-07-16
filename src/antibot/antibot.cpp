@@ -928,14 +928,16 @@ bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkM
         // Also check mempool
         if (checkMempool) {
             reindexer::QueryResults res;
-            if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
+            if (g_pocketdb->Select(reindexer::Query("Mempool")
+            .Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
                 for (auto& m : res) {
                     reindexer::Item mItm = m.GetItem();
                     std::string t_src = DecodeBase64(mItm["data"].As<string>());
 
                     reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Comment");
                     if (t_itm.FromJSON(t_src).ok()) {
-                        if (t_itm["address"].As<string>() == _address && t_itm["otxid"].As<string>() == t_itm["txid"].As<string>()) {
+                        if (t_itm["address"].As<string>() == _address
+                        && t_itm["otxid"].As<string>() == t_itm["txid"].As<string>()) {
                             if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time)
                                 commentsCount += 1;
                         }
@@ -947,7 +949,9 @@ bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkM
         // Check block
         if (blockVtx.Exists("Comment")) {
             for (auto& mtx : blockVtx.Data["Comment"]) {
-                if (mtx["txid"].get_str() != _txid && mtx["address"].get_str() == _address && mtx["otxid"].get_str() == mtx["txid"].get_str()) {
+                if (mtx["txid"].get_str() != _txid
+                && mtx["address"].get_str() == _address
+                && mtx["otxid"].get_str() == mtx["txid"].get_str()) {
                     if (!checkTime_19_3 || mtx["time"].get_int64() <= _time)
                         commentsCount += 1;
                 }
@@ -1065,7 +1069,10 @@ bool AntiBot::check_comment_edit(const UniValue oitm, BlockVTX& blockVtx, bool c
 
     // Check limit
     {
-        size_t edit_count = g_pocketdb->SelectCount(Query("Comment").Where("otxid", CondEq, _otxid).Where("block", CondLt, height));
+        size_t edit_count = g_pocketdb->SelectCount(
+            Query("Comment")
+            .Where("otxid", CondEq, _otxid)
+            .Where("block", CondLt, height));
 
         ABMODE mode;
         getMode(_address, mode, height);

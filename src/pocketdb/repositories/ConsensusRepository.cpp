@@ -683,7 +683,6 @@ namespace PocketDb
 
         return GetCount(stmt);
     }
-
     int ConsensusRepository::CountMempoolSubscribe(const string& address, const string& addressTo)
     {
         auto stmt = SetupSqlStatement(R"sql(
@@ -700,6 +699,7 @@ namespace PocketDb
         return GetCount(stmt);
     }
 
+
     int ConsensusRepository::CountMempoolComment(const string& address)
     {
         auto stmt = SetupSqlStatement(R"sql(
@@ -711,6 +711,40 @@ namespace PocketDb
         )sql");
 
         TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainCommentTime(const string& address, int64_t time)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vComments
+            where Height is not null
+                and Time >= ?
+                and AddressHash = ?
+                and Type = 204
+                and Last = 1
+        )sql");
+
+        TryBindStatementInt64(stmt, 1, time);
+        TryBindStatementText(stmt, 2, address);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainCommentHeight(const string& address, int height)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vComments
+            where Height is not null
+                and Height >= ?
+                and AddressHash = ?
+                and Type = 204
+                and Last = 1
+        )sql");
+
+        TryBindStatementInt(stmt, 1, height);
+        TryBindStatementText(stmt, 2, address);
 
         return GetCount(stmt);
     }
@@ -728,6 +762,38 @@ namespace PocketDb
 
         return GetCount(stmt);
     }
+    int ConsensusRepository::CountChainComplainTime(const string& address, int64_t time)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vComplains
+            where Height is not null
+                and Time >= ?
+                and Last = 1
+                and AddressHash = ?
+        )sql");
+
+        TryBindStatementInt64(stmt, 1, time);
+        TryBindStatementText(stmt, 2, address);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainComplainHeight(const string& address, int height)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vComplains
+            where Height is not null
+                and Height >= ?
+                and Last = 1
+                and AddressHash = ?
+        )sql");
+
+        TryBindStatementInt(stmt, 1, height);
+        TryBindStatementText(stmt, 2, address);
+
+        return GetCount(stmt);
+    }
 
     int ConsensusRepository::CountMempoolPost(const string& address)
     {
@@ -739,6 +805,38 @@ namespace PocketDb
         )sql");
 
         TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainPostTime(const string& address, int64_t time)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vPosts
+            where Height is not null
+                and AddressHash = ?
+                and Time >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt64(stmt, 2, time);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainPostHeight(const string& address, int height)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vPosts
+            where Height is not null
+                and AddressHash = ?
+                and Height >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt(stmt, 2, height);
 
         return GetCount(stmt);
     }
@@ -756,6 +854,38 @@ namespace PocketDb
 
         return GetCount(stmt);
     }
+    int ConsensusRepository::CountChainScoreCommentTime(const string& address, int64_t time)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vScoreComments
+            where Height is not null
+                and AddressHash = ?
+                and Time >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt64(stmt, 2, time);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainScoreCommentHeight(const string& address, int height)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vScoreComments
+            where Height is not null
+                and AddressHash = ?
+                and Height >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt(stmt, 2, height);
+
+        return GetCount(stmt);
+    }
 
     int ConsensusRepository::CountMempoolScoreContent(const string& address)
     {
@@ -767,6 +897,38 @@ namespace PocketDb
         )sql");
 
         TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainScoreContentTime(const string& address, int64_t time)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vScoreContents
+            where Height is not null
+                and AddressHash = ?
+                and Time >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt64(stmt, 2, time);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainScoreContentHeight(const string& address, int height)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vScoreContents
+            where Height is not null
+                and AddressHash = ?
+                and Height >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt(stmt, 2, height);
 
         return GetCount(stmt);
     }
@@ -784,6 +946,38 @@ namespace PocketDb
 
         return GetCount(stmt);
     }
+    int ConsensusRepository::CountChainUserTime(const string& address, int64_t time)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vUsers
+            where Height is not null
+                and AddressHash = ?
+                and Time >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt64(stmt, 2, time);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainUserHeight(const string& address, int height)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vUsers
+            where Height is not null
+                and AddressHash = ?
+                and Height >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt(stmt, 2, height);
+
+        return GetCount(stmt);
+    }
 
     int ConsensusRepository::CountMempoolVideo(const string& address)
     {
@@ -795,6 +989,38 @@ namespace PocketDb
         )sql");
 
         TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainVideoTime(const string& address, int64_t time)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vVideos
+            where Height is not null
+                and AddressHash = ?
+                and Time >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt64(stmt, 2, time);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainVideoHeight(const string& address, int height)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vVideos
+            where Height is not null
+                and AddressHash = ?
+                and Height >= ?
+                and Last = 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementInt(stmt, 2, height);
 
         return GetCount(stmt);
     }
@@ -814,14 +1040,41 @@ namespace PocketDb
 
         return GetCount(stmt);
     }
+    int ConsensusRepository::CountChainCommentEdit(const string& rootTxHash)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vComments
+            where Height is not null
+                and RootTxHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, rootTxHash);
+
+        return GetCount(stmt);
+    }
 
     int ConsensusRepository::CountMempoolPostEdit(const string& rootTxHash)
     {
         auto stmt = SetupSqlStatement(R"sql(
             select count(*)
             from vPosts
-            where p.Height is null
-                and p.RootTxHash = ?
+            where Height is null
+                and RootTxHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, rootTxHash);
+
+        return GetCount(stmt);
+    }
+    int ConsensusRepository::CountChainPostEdit(const string& rootTxHash)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vPosts
+            where Height is not null
+                and RootTxHash = ?
+                and Hash != RootTxHash
         )sql");
 
         TryBindStatementText(stmt, 1, rootTxHash);
@@ -834,12 +1087,27 @@ namespace PocketDb
         auto stmt = SetupSqlStatement(R"sql(
             select count(*)
             from vVideos
-            where v.Height is null
-                and v.RootTxHash = ?
+            where Height is null
+                and RootTxHash = ?
         )sql");
 
         TryBindStatementText(stmt, 1, rootTxHash);
 
         return GetCount(stmt);
     }
+    int ConsensusRepository::CountChainVideoEdit(const string& rootTxHash)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vVideos
+            where Height is not null
+                and RootTxHash = ?
+                and Hash != RootTxHash
+        )sql");
+
+        TryBindStatementText(stmt, 1, rootTxHash);
+
+        return GetCount(stmt);
+    }
+
 }

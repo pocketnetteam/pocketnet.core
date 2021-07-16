@@ -13,6 +13,8 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+
     /*******************************************************************************************************************
     *
     *  ScoreComment consensus base class
@@ -24,6 +26,9 @@ namespace PocketConsensus
         ScoreCommentConsensus(int height) : SocialBaseConsensus(height) {}
 
     protected:
+
+        virtual int64_t GetLimitWindow() { return 86400; }
+
         virtual int64_t GetFullAccountScoresLimit() { return 600; }
 
         virtual int64_t GetTrialAccountScoresLimit() { return 300; }
@@ -74,15 +79,12 @@ namespace PocketConsensus
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
-            const PocketBlock& block) override
+                                                         const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<ScoreComment>(tx);
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::ACTION_SCORE_COMMENT);
+            int count = GetChainCount(ptx);
 
             // Get count from block
             for (auto blockTx : block)
@@ -117,17 +119,15 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_DoubleCommentScore};
 
             // Check count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::ACTION_SCORE_COMMENT);
+            int count = GetChainCount(ptx);
 
+            // and from mempool
             count += ConsensusRepoInst.CountMempoolScoreComment(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr <ScoreComment> tx, int count)
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<ScoreComment> tx, int count)
         {
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
@@ -140,11 +140,18 @@ namespace PocketConsensus
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateBlocking(const string& commentAddress,
-            shared_ptr <ScoreComment> tx)
+                                                                    shared_ptr<ScoreComment> tx)
         {
             return Success;
         }
 
+        virtual int GetChainCount(const shared_ptr<ScoreComment>& ptx)
+        {
+            return ConsensusRepoInst.CountChainScoreCommentTime(
+                *ptx->GetAddress(),
+                *ptx->GetTime() - GetLimitWindow()
+            );
+        }
 
         tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
         {
@@ -192,7 +199,7 @@ namespace PocketConsensus
         int CheckpointHeight() override { return 430000; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(
-            const string& commentAddress, shared_ptr <ScoreComment> tx) override
+            const string& commentAddress, shared_ptr<ScoreComment> tx) override
         {
             auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                 commentAddress,
@@ -220,7 +227,7 @@ namespace PocketConsensus
         int CheckpointHeight() override { return 514184; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(
-            const string& commentAddress, shared_ptr <ScoreComment> tx) override
+            const string& commentAddress, shared_ptr<ScoreComment> tx) override
         {
             return Success;
         }
@@ -250,6 +257,30 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 1180000 block
+    *
+    *******************************************************************************************************************/
+    class ScoreCommentConsensus_checkpoint_1180000 : public ScoreCommentConsensus_checkpoint_1124000
+    {
+    public:
+        ScoreCommentConsensus_checkpoint_1180000(int height) : ScoreCommentConsensus_checkpoint_1124000(height) {}
+
+    protected:
+        int CheckpointHeight() override { return 1180000; }
+
+        int64_t GetLimitWindow() override { return 1440; }
+
+        int GetChainCount(const shared_ptr<ScoreComment>& ptx) override
+        {
+            return ConsensusRepoInst.CountChainScoreCommentHeight(
+                *ptx->GetAddress(),
+                Height - (int) GetLimitWindow()
+            );
+        }
+    };
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -258,13 +289,14 @@ namespace PocketConsensus
     private:
         static inline const std::map<int, std::function<ScoreCommentConsensus*(int height)>> m_rules =
             {
+                {1180000, [](int height) { return new ScoreCommentConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ScoreCommentConsensus_checkpoint_1124000(height); }},
                 {514184,  [](int height) { return new ScoreCommentConsensus_checkpoint_514184(height); }},
                 {430000,  [](int height) { return new ScoreCommentConsensus_checkpoint_430000(height); }},
                 {0,       [](int height) { return new ScoreCommentConsensus(height); }},
             };
     public:
-        shared_ptr <ScoreCommentConsensus> Instance(int height)
+        shared_ptr<ScoreCommentConsensus> Instance(int height)
         {
             return shared_ptr<ScoreCommentConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

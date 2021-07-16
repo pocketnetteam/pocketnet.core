@@ -64,19 +64,44 @@ public:
     int CountMempoolSubscribe(const string& address, const string& addressTo);
 
     int CountMempoolComment(const string& address);
+    int CountChainCommentTime(const string& address, int64_t time);
+    int CountChainCommentHeight(const string& address, int height);
+
     int CountMempoolComplain(const string& address);
+    int CountChainComplainTime(const string& address, int64_t time);
+    int CountChainComplainHeight(const string& address, int height);
+
     int CountMempoolPost(const string& address);
+    int CountChainPostTime(const string& address, int64_t time);
+    int CountChainPostHeight(const string& address, int height);
+
     int CountMempoolScoreComment(const string& address);
+    int CountChainScoreCommentTime(const string& address, int64_t time);
+    int CountChainScoreCommentHeight(const string& address, int height);
+
     int CountMempoolScoreContent(const string& address);
+    int CountChainScoreContentTime(const string& address, int64_t time);
+    int CountChainScoreContentHeight(const string& address, int height);
+
     int CountMempoolUser(const string& address);
+    int CountChainUserTime(const string& address, int64_t time);
+    int CountChainUserHeight(const string& address, int height);
+
     int CountMempoolVideo(const string& address);
+    int CountChainVideoTime(const string& address, int64_t time);
+    int CountChainVideoHeight(const string& address, int height);
+
 
     int CountMempoolCommentEdit(const string& rootTxHash);
-    int CountMempoolPostEdit(const string& rootTxHash);
-    int CountMempoolVideoEdit(const string& rootTxHash);
+    int CountChainCommentEdit(const string& rootTxHash);
 
-    int CountChainContent(const string& address, int64_t time, PocketTxType txType) {return 0;} // TODO (brangr): implement as complains root != hash
-    int CountChainContentEdit(const string& rootTxHash) {return 0;} // TODO (brangr): implement find all edited instance of post
+    int CountMempoolPostEdit(const string& rootTxHash);
+    int CountChainPostEdit(const string& rootTxHash);
+
+    int CountMempoolVideoEdit(const string& rootTxHash);
+    int CountChainVideoEdit(const string& rootTxHash);
+
+
 
 
 

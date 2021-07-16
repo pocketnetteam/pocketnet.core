@@ -13,6 +13,8 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+
     /*******************************************************************************************************************
     *
     *  Complain consensus base class
@@ -25,8 +27,12 @@ namespace PocketConsensus
 
     protected:
 
+        virtual int64_t GetLimitWindow() { return 86400; }
+
         virtual int64_t GetFullAccountComplainsLimit() { return 12; }
+
         virtual int64_t GetTrialAccountComplainsLimit() { return 6; }
+
         virtual int64_t GetThresholdReputation() { return 500; }
 
         virtual int64_t GetComplainsLimit(AccountMode mode)
@@ -60,21 +66,18 @@ namespace PocketConsensus
         }
 
 
-        virtual bool CheckBlockLimitTime(shared_ptr <Complain> ptx, shared_ptr <Complain> blockPtx)
+        virtual bool CheckBlockLimitTime(shared_ptr<Complain> ptx, shared_ptr<Complain> blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult>
+        ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<Complain>(tx);
 
             // from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::ACTION_COMPLAIN
-            );
+            int count = GetChainCount(ptx);
 
             // from block
             for (auto blockTx : block)
@@ -105,12 +108,9 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<Complain>(tx);
 
             // from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::ACTION_COMPLAIN
-            );
+            int count = GetChainCount(ptx);
 
+            // from mempool
             count += ConsensusRepoInst.CountMempoolComplain(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
@@ -132,6 +132,13 @@ namespace PocketConsensus
             return Success;
         }
 
+        virtual int GetChainCount(const shared_ptr<Complain>& ptx)
+        {
+            return ConsensusRepoInst.CountChainComplainTime(
+                *ptx->GetAddress(),
+                *ptx->GetTime() - GetLimitWindow()
+            );
+        }
 
         tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
@@ -155,8 +162,10 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus_checkpoint_292800(int height) : ComplainConsensus(height) {}
+
     protected:
         int CheckpointHeight() override { return 292800; }
+
         int64_t GetThresholdReputation() override { return 1000; }
     };
 
@@ -169,12 +178,37 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus_checkpoint_1124000(int height) : ComplainConsensus_checkpoint_292800(height) {}
+
     protected:
         int CheckpointHeight() override { return 1124000; }
 
-        bool CheckBlockLimitTime(shared_ptr <Complain> ptx, shared_ptr <Complain> blockPtx) override
+        bool CheckBlockLimitTime(shared_ptr<Complain> ptx, shared_ptr<Complain> blockPtx) override
         {
             return true;
+        }
+    };
+
+    /*******************************************************************************************************************
+    *
+    *  Start checkpoint at 1180000 block
+    *
+    *******************************************************************************************************************/
+    class ComplainConsensus_checkpoint_1180000 : public ComplainConsensus_checkpoint_1124000
+    {
+    public:
+        ComplainConsensus_checkpoint_1180000(int height) : ComplainConsensus_checkpoint_1124000(height) {}
+
+    protected:
+        int CheckpointHeight() override { return 1180000; }
+
+        int64_t GetLimitWindow() override { return 1440; }
+
+        int GetChainCount(const shared_ptr<Complain>& ptx) override
+        {
+            return ConsensusRepoInst.CountChainComplainHeight(
+                *ptx->GetAddress(),
+                Height - (int) GetLimitWindow()
+            );
         }
     };
 
@@ -189,12 +223,13 @@ namespace PocketConsensus
     private:
         static inline const std::map<int, std::function<ComplainConsensus*(int height)>> m_rules =
             {
+                {1180000, [](int height) { return new ComplainConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ComplainConsensus_checkpoint_1124000(height); }},
-                {292800, [](int height) { return new ComplainConsensus_checkpoint_292800(height); }},
-                {0, [](int height) { return new ComplainConsensus(height); }},
+                {292800,  [](int height) { return new ComplainConsensus_checkpoint_292800(height); }},
+                {0,       [](int height) { return new ComplainConsensus(height); }},
             };
     public:
-        shared_ptr <ComplainConsensus> Instance(int height)
+        shared_ptr<ComplainConsensus> Instance(int height)
         {
             return shared_ptr<ComplainConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

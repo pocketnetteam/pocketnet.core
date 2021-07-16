@@ -13,6 +13,8 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+
     /*******************************************************************************************************************
     *
     *  SubscribePrivate consensus base class
@@ -25,7 +27,7 @@ namespace PocketConsensus
 
     protected:
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<SubscribePrivate>(tx);
 
@@ -48,7 +50,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<SubscribePrivate>(tx);
 
@@ -69,7 +71,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<SubscribePrivate>(tx);
 
@@ -84,7 +86,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<SubscribePrivate>(tx);
 
@@ -102,20 +104,6 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
-    *  Consensus checkpoint at 1 block
-    *
-    *******************************************************************************************************************/
-    class SubscribePrivateConsensus_checkpoint_1 : public SubscribePrivateConsensus
-    {
-    protected:
-        int CheckpointHeight() override { return 1; }
-    public:
-        SubscribePrivateConsensus_checkpoint_1(int height) : SubscribePrivateConsensus(height) {}
-    };
-
-
-    /*******************************************************************************************************************
-    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -123,12 +111,11 @@ namespace PocketConsensus
     {
     private:
         static inline const std::map<int, std::function<SubscribePrivateConsensus*(int height)>> m_rules =
-        {
-            {1, [](int height) { return new SubscribePrivateConsensus_checkpoint_1(height); }},
-            {0, [](int height) { return new SubscribePrivateConsensus(height); }},
-        };
+            {
+                {0, [](int height) { return new SubscribePrivateConsensus(height); }},
+            };
     public:
-        shared_ptr <SubscribePrivateConsensus> Instance(int height)
+        shared_ptr<SubscribePrivateConsensus> Instance(int height)
         {
             return shared_ptr<SubscribePrivateConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

@@ -144,7 +144,7 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(shared_ptr<Comment> tx)
         {
-            int count = ConsensusRepoInst.CountChainContentEdit(*tx->GetRootTxHash());
+            int count = ConsensusRepoInst.CountChainCommentEdit(*tx->GetRootTxHash());
 
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());

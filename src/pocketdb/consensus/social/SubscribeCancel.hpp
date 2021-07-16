@@ -13,6 +13,8 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+
     /*******************************************************************************************************************
     *
     *  SubscribeCancel consensus base class
@@ -25,7 +27,7 @@ namespace PocketConsensus
 
     protected:
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<SubscribeCancel>(tx);
 
@@ -45,7 +47,8 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult>
+        ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<SubscribeCancel>(tx);
 
@@ -66,7 +69,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<SubscribeCancel>(tx);
 
@@ -81,7 +84,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<SubscribeCancel>(tx);
 
@@ -106,6 +109,7 @@ namespace PocketConsensus
     {
     protected:
         int CheckpointHeight() override { return 1; }
+
     public:
         SubscribeCancelConsensus_checkpoint_1(int height) : SubscribeCancelConsensus(height) {}
     };
@@ -125,7 +129,7 @@ namespace PocketConsensus
                 {0, [](int height) { return new SubscribeCancelConsensus(height); }},
             };
     public:
-        shared_ptr <SubscribeCancelConsensus> Instance(int height)
+        shared_ptr<SubscribeCancelConsensus> Instance(int height)
         {
             return shared_ptr<SubscribeCancelConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

@@ -26,6 +26,9 @@ namespace PocketConsensus
         PostConsensus(int height) : SocialBaseConsensus(height) {}
 
     protected:
+
+        virtual int64_t GetLimitWindow() { return 86400; }
+
         virtual int64_t GetEditWindow() { return 86400; }
 
         virtual int64_t GetFullLimit() { return 30; }
@@ -94,9 +97,9 @@ namespace PocketConsensus
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
 
-        virtual bool AllowEditWindow(const PTransactionRef& ptx, const PTransactionRef& blockPtx)
+        virtual bool AllowEditWindow(const PTransactionRef& ptx, const PTransactionRef& originalTx)
         {
-            return (*ptx->GetTime() - *blockPtx->GetTime()) <= GetEditWindow();
+            return (*ptx->GetTime() - *originalTx->GetTime()) <= GetEditWindow();
         }
 
         // ------------------------------------------------------------------------------------------------------------
@@ -115,10 +118,7 @@ namespace PocketConsensus
             // New posts
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::CONTENT_POST);
+            int count = GetChainCount(ptx);
 
             // Get count from block
             for (auto blockTx : block)
@@ -153,11 +153,9 @@ namespace PocketConsensus
             // New posts
 
             // Get count from chain
-            int count = ConsensusRepoInst.CountChainContent(
-                *ptx->GetAddress(),
-                *ptx->GetTime(),
-                PocketTxType::CONTENT_POST);
+            int count = GetChainCount(ptx);
 
+            // Get count from mempool
             count += ConsensusRepoInst.CountMempoolPost(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
@@ -173,6 +171,14 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_ContentLimit};
 
             return Success;
+        }
+
+        virtual int GetChainCount(const shared_ptr<Post>& ptx)
+        {
+            return ConsensusRepoInst.CountChainPostTime(
+                *ptx->GetAddress(),
+                *ptx->GetTime() - GetLimitWindow()
+            );
         }
 
         // ------------------------------------------------------------------------------------------------------------
@@ -209,7 +215,7 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(shared_ptr<Post> tx)
         {
-            int count = ConsensusRepoInst.CountChainContentEdit(*tx->GetRootTxHash());
+            int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetRootTxHash());
 
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
@@ -280,6 +286,17 @@ namespace PocketConsensus
         int CheckpointHeight() override { return 1180000; }
 
         int64_t GetEditWindow() override { return 1440; }
+
+        int64_t GetLimitWindow() override { return 1440; }
+
+
+        int GetChainCount(const shared_ptr<Post>& ptx) override
+        {
+            return ConsensusRepoInst.CountChainComplainHeight(
+                *ptx->GetAddress(),
+                Height - (int) GetLimitWindow()
+            );
+        }
 
         bool AllowEditWindow(const PTransactionRef& ptx, const PTransactionRef& originalTx) override
         {

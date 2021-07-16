@@ -25,6 +25,7 @@ namespace PocketConsensus
 
 
     protected:
+
         virtual int64_t GetChangeInfoDepth() { return 3600; }
 
 
@@ -140,7 +141,10 @@ namespace PocketConsensus
     class UserConsensus_checkpoint_1180000 : public UserConsensus
     {
     protected:
+
         int CheckpointHeight() override { return 1180000; }
+
+        int64_t GetChangeInfoDepth() override { return 60; }
 
         tuple<bool, SocialConsensusResult> ValidateModelEdit(const std::shared_ptr<User>& ptx) override
         {

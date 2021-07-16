@@ -24,7 +24,7 @@ namespace PocketConsensus
 
     protected:
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
         {
             // Blocking checks
             auto ptx = static_pointer_cast<Blocking>(tx);
@@ -44,7 +44,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<Blocking>(tx);
 
@@ -65,22 +65,17 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<Blocking>(tx);
 
-            int mempoolCount = ConsensusRepoInst.CountMempoolBlocking(
-                *ptx->GetAddress(),
-                *ptx->GetAddressTo()
-            );
-
-            if (mempoolCount > 0)
+            if (ConsensusRepoInst.CountMempoolBlocking(*ptx->GetAddress(), *ptx->GetAddressTo()) > 0)
                 return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<Blocking>(tx);
 
