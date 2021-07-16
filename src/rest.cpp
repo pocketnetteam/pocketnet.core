@@ -25,6 +25,10 @@
 #include "pocketdb/services/TransactionIndexer.hpp"
 #include "pocketdb/consensus/social/Helper.hpp"
 #include "pocketdb/services/Accessor.hpp"
+#include "pocketdb/web/PocketFrontend.hpp"
+
+
+static PocketWeb::PocketFrontend _pocketFrontend;
 
 static const size_t MAX_GETUTXOS_OUTPOINTS = 15; //allow a max of 15 outpoints to be queried at once
 
@@ -40,7 +44,7 @@ static const struct
 {
     RetFormat rf;
     const char* name;
-}rf_names[] = {
+} rf_names[] = {
     {RetFormat::UNDEF,  ""},
     {RetFormat::BINARY, "bin"},
     {RetFormat::HEX,    "hex"},
@@ -55,6 +59,7 @@ struct CCoin
     ADD_SERIALIZE_METHODS;
 
     CCoin() : nHeight(0) {}
+
     explicit CCoin(Coin&& in) : nHeight(in.nHeight), out(std::move(in.out)) {}
 
     template<typename Stream, typename Operation>
@@ -181,7 +186,7 @@ static bool CheckWarmup(HTTPRequest* req)
 }
 
 static bool rest_headers(HTTPRequest* req,
-    const std::string& strURIPart)
+                         const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -262,8 +267,8 @@ static bool rest_headers(HTTPRequest* req,
 }
 
 static bool rest_block(HTTPRequest* req,
-    const std::string& strURIPart,
-    bool showTxDetails)
+                       const std::string& strURIPart,
+                       bool showTxDetails)
 {
     if (!CheckWarmup(req))
         return false;
@@ -1062,12 +1067,20 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
 
     auto[rf, uriParts] = ParseParams(strURIPart);
 
-    if (auto[ok, result] = TryGetParamStr(uriParts, 0); ok)
+    // TODO (brangr): parse routes bla blab la
+
+    if (auto[ok, path] = TryGetParamStr(uriParts, 0); ok)
     {
-        req->WriteHeader("Content-Type", "text/html");
-        req->WriteReply(HTTP_OK,
-            "<html><head><script src='main.js'></script></head><body>Hello World! " + result + "</body></html>");
-        return true;
+        if (auto[code, file] = _pocketFrontend.GetFile(path); code == HTTP_OK)
+        {
+            req->WriteHeader("Content-Type", file->ContentType);
+            req->WriteReply(code, file->Content);
+            return true;
+        }
+        else
+        {
+            return RESTERR(req, code, "");
+        }
     }
 
     return RESTERR(req, HTTP_NOT_FOUND, "");
@@ -1076,8 +1089,9 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
 static const struct
 {
     const char* prefix;
+
     bool (* handler)(HTTPRequest* req, const std::string& strReq);
-}uri_prefixes[] = {
+} uri_prefixes[] = {
 
     {"/rest/tx/",                rest_tx},
     {"/rest/block/notxdetails/", rest_block_notxdetails},
@@ -1105,6 +1119,8 @@ static const struct
 
 void StartREST()
 {
+
+
     for (unsigned int i = 0; i < ARRAYLEN(uri_prefixes); i++)
         RegisterHTTPHandler(uri_prefixes[i].prefix, false, uri_prefixes[i].handler);
 }

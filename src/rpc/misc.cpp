@@ -480,6 +480,7 @@ static UniValue getnodeinfo(const JSONRPCRequest& request)
     entry.pushKV("version", FormatVersion(CLIENT_VERSION));
     entry.pushKV("time", GetAdjustedTime());
     entry.pushKV("chain", Params().NetworkIDString());
+    entry.pushKV("proxy", true);
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
     entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
