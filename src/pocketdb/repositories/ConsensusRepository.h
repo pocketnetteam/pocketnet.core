@@ -33,6 +33,7 @@ public:
     tuple<bool, PTransactionRef> GetLastContent(const string& rootHash);
 
     tuple<bool, int64_t> GetLastAccountHeight(const string& address) { return {true, 0}; } // TODO (brangr): implement
+    tuple<bool, int64_t> GetTransactionHeight(const string& hash) { return {true, 0}; } // TODO (brangr): implement
 
     tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
     tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);

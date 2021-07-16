@@ -12,6 +12,8 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+
     /*******************************************************************************************************************
     *
     *  CommentEdit consensus base class
@@ -24,129 +26,125 @@ namespace PocketConsensus
 
     protected:
 
+        virtual int64_t GetEditWindow() { return 86400; }
+
         virtual int64_t GetCommentMessageMaxSize() { return 2000; }
-    
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
+
+        virtual int64_t GetFullEditLimit() { return 5; }
+
+        virtual int64_t GetTrialEditLimit() { return 5; }
+
+        virtual int64_t GetEditLimit(AccountMode mode)
+        {
+            return mode == AccountMode_Full ? GetFullEditLimit() : GetTrialEditLimit();
+        }
+
+
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
-            // TODO (brangr): implement
-            return Success;
 
+            vector<string> addresses = {*ptx->GetAddress()};
+            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
+                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
-            // std::string _address = oitm["address"].get_str();
-            // int64_t _time = oitm["time"].get_int64();
+            // Actual comment not deleted
+            if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
+                !ok || *actuallTx->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
+                return {false, SocialConsensusResult_NotFound};
 
-            // std::string _msg = oitm["msg"].get_str();
-            // std::string _txid = oitm["txid"].get_str();
-            // std::string _otxid = oitm["otxid"].get_str();
-            // std::string _postid = oitm["postid"].get_str();
-            // std::string _parentid = oitm["parentid"].get_str();
-            // std::string _answerid = oitm["answerid"].get_str();
+            // Parent comment
+            if (!IsEmpty(ptx->GetParentTxHash()))
+            {
+                auto parentTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetParentTxHash());
+                if (!parentTx)
+                    return {false, SocialConsensusResult_InvalidParentComment};
+            }
 
-            // // User registered?
-            // if (!CheckRegistration(oitm, _address, checkMempool, checkWithTime, height, blockVtx, result)) {
-            //     return false;
-            // }
+            // Answer comment
+            if (!IsEmpty(ptx->GetAnswerTxHash()))
+            {
+                auto answerTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetAnswerTxHash());
+                if (!answerTx)
+                    return {false, SocialConsensusResult_InvalidAnswerComment};
+            }
 
-            // // Size message limit
-            // if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit, height)) {
-            //     result = ANTIBOTRESULT::Size;
-            //     return false;
-            // }
+            // Original comment exists
+            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
+            if (!originalTx)
+                return {false, SocialConsensusResult_NotFound};
 
-            // // Original comment exists
-            // reindexer::Item _original_comment_itm;
-            // if (!g_pocketdb->SelectOne(Query("Comment").Where("otxid", CondEq, _otxid).Where("txid", CondEq, _otxid).Where("address", CondEq, _address).Where("block", CondLt, height), _original_comment_itm).ok()) {
-            //     result = ANTIBOTRESULT::NotFound;
-            //     return false;
-            // }
+            // Original comment edit only 24 hours
+            if (!AllowEditWindow(tx, originalTx))
+                return {false, SocialConsensusResult_CommentEditLimit};
 
-            // // Last comment not deleted
-            // if (!g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _otxid).Where("last", CondEq, true).Where("address", CondEq, _address).Not().Where("msg", CondEq, "").Where("block", CondLt, height))) {
-            //     result = ANTIBOTRESULT::CommentDeletedEdit;
-            //     return false;
-            // }
+            // Check exists content transaction
+            auto contentTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetPostTxHash());
+            if (!contentTx)
+                return {false, SocialConsensusResult_NotFound};
 
-            // // Parent comment
-            // if (_parentid != _original_comment_itm["parentid"].As<string>() || (_parentid != "" && !g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _parentid).Where("last", CondEq, true).Not().Where("msg", CondEq, "").Where("block", CondLt, height)))) {
-            //     result = ANTIBOTRESULT::InvalidParentComment;
-            //     return false;
-            // }
-
-            // // Answer comment
-            // if (_answerid != _original_comment_itm["answerid"].As<string>() || (_answerid != "" && !g_pocketdb->Exists(Query("Comment").Where("otxid", CondEq, _answerid).Where("last", CondEq, true).Not().Where("msg", CondEq, "").Where("block", CondLt, height)))) {
-            //     result = ANTIBOTRESULT::InvalidAnswerComment;
-            //     return false;
-            // }
-
-            // // Original comment edit only 24 hours
-            // if (_time - _original_comment_itm["time"].As<int64_t>() > GetActualLimit(Limit::edit_comment_timeout, height)) {
-            //     result = ANTIBOTRESULT::CommentEditLimit;
-            //     return false;
-            // }
-
-            // Item post_itm;
-            // if (_postid == "" || !g_pocketdb->SelectOne(Query("Posts").Where("txid", CondEq, _postid).Where("block", CondLt, height), post_itm).ok()) {
-            //     result = ANTIBOTRESULT::NotFound;
-            //     return false;
-            // }
-
-            // // Blocking
-            // if (g_pocketdb->Exists(Query("BlockingView").Where("address", CondEq, post_itm["address"].As<string>()).Where("address_to", CondEq, _address).Where("block", CondLt, height))) {
-            //     result = ANTIBOTRESULT::Blocking;
-            //     return false;
-            // }
-
-
-
-            // // Check limit
-            // {
-            //     size_t edit_count = g_pocketdb->SelectCount(Query("Comment").Where("otxid", CondEq, _otxid).Where("block", CondLt, height));
-
-            //     ABMODE mode;
-            //     getMode(_address, mode, height);
-            //     int limit = getLimit(CommentEdit, mode, height);
-            //     if (edit_count >= limit) {
-            //         result = ANTIBOTRESULT::CommentEditLimit;
-            //         return false;
-            //     }
-            // }
+            // Check Blocking
+            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
+                    *ptx->GetAddress(), *contentTx->GetString1() // GetString1() returned author content
+                ); existsBlocking && blockingType == ACTION_BLOCKING)
+                return {false, SocialConsensusResult_Blocking};
 
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
+        virtual bool AllowEditWindow(const PTransactionRef& ptx, const PTransactionRef& blockPtx)
         {
-            // if (blockVtx.Exists("Comment")) {
-            //     for (auto& mtx : blockVtx.Data["Comment"]) {
-            //         if (mtx["txid"].get_str() != _txid && mtx["otxid"].get_str() == _otxid) {
-            //             result = ANTIBOTRESULT::DoubleCommentEdit;
-            //             return false;
-            //         }
-            //     }
-            // }
+            return (*ptx->GetTime() - *blockPtx->GetTime()) <= GetEditWindow();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
+                                                         const PocketBlock& block) override
         {
-            //     reindexer::QueryResults res;
-            //     if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Comment").Not().Where("txid", CondEq, _txid), res).ok()) {
-            //         for (auto& m : res) {
-            //             reindexer::Item mItm = m.GetItem();
-            //             std::string t_src = DecodeBase64(mItm["data"].As<string>());
+            auto ptx = static_pointer_cast<CommentEdit>(tx);
 
-            //             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Comment");
-            //             if (t_itm.FromJSON(t_src).ok()) {
-            //                 if (t_itm["otxid"].As<string>() == _otxid) {
-            //                     result = ANTIBOTRESULT::DoubleCommentEdit;
-            //                     return false;
-            //                 }
-            //             }
-            //         }
-            //     }
+            for (auto blockTx : block)
+            {
+                if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
+                    continue;
+
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                auto blockPtx = static_pointer_cast<Comment>(blockTx);
+                if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
+                    return {false, SocialConsensusResult_DoubleCommentEdit};
+            }
+
+            // Check edit limit
+            return ValidateEditOneLimit(ptx);
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<CommentEdit>(tx);
+
+            if (ConsensusRepoInst.CountMempoolContentEdit(*ptx->GetRootTxHash()) > 0)
+                return {false, SocialConsensusResult_DoubleCommentEdit};
+
+            // Check edit limit
+            return ValidateEditOneLimit(ptx);
+        }
+
+        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(shared_ptr <Comment> tx)
+        {
+            int count = ConsensusRepoInst.CountChainContentEdit(*tx->GetRootTxHash());
+
+            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
+            auto limit = GetEditLimit(mode);
+
+            if (count >= limit)
+                return {false, SocialConsensusResult_ContentEditLimit};
+
+            return Success;
+        }
+
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
 
@@ -168,6 +166,31 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 1180000 block
+    *
+    *******************************************************************************************************************/
+    class CommentEditConsensus_checkpoint_1180000 : public CommentEditConsensus
+    {
+    public:
+        CommentEditConsensus_checkpoint_1180000(int height) : CommentEditConsensus(height) {}
+
+    protected:
+        int CheckpointHeight() override { return 1180000; }
+
+        int64_t GetEditWindow() override { return 1440; }
+
+        bool AllowEditWindow(const PTransactionRef& ptx, const PTransactionRef& originalTx) override
+        {
+            auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
+            if (!ok)
+                return false;
+
+            return (Height - originalTxHeight) <= GetEditWindow();
+        }
+    };
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -175,9 +198,10 @@ namespace PocketConsensus
     {
     private:
         const std::map<int, std::function<CommentEditConsensus*(int height)>> m_rules =
-        {
-            {0, [](int height) { return new CommentEditConsensus(height); }},
-        };
+            {
+                {1180000, [](int height) { return new CommentEditConsensus_checkpoint_1180000(height); }},
+                {0,       [](int height) { return new CommentEditConsensus(height); }},
+            };
     public:
         shared_ptr <CommentEditConsensus> Instance(int height)
         {

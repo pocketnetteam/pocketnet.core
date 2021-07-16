@@ -62,9 +62,6 @@ namespace PocketConsensus
             }
 
             // Check exists content transaction
-            if (IsEmpty(ptx->GetPostTxHash()))
-                return {false, SocialConsensusResult_NotFound};
-
             auto contentTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetPostTxHash());
             if (!contentTx)
                 return {false, SocialConsensusResult_NotFound};
