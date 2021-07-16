@@ -269,7 +269,7 @@ namespace PocketDb
 
 
     bool ConsensusRepository::ExistsScore(const string& address, const string& contentHash,
-        PocketTxType type, bool mempool)
+                                          PocketTxType type, bool mempool)
     {
         bool result = false;
 
@@ -560,10 +560,10 @@ namespace PocketDb
     }
 
     int ConsensusRepository::GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
-                             const string& scoreAddress, const string& contentAddress,
-                             int height, const CTransactionRef& tx,
-                             const std::vector<int>& values,
-                             int64_t scoresOneToOneDepth)
+                                                  const string& scoreAddress, const string& contentAddress,
+                                                  int height, const CTransactionRef& tx,
+                                                  const std::vector<int>& values,
+                                                  int64_t scoresOneToOneDepth)
     {
         string sql = R"sql(
                 select count(1)
@@ -612,5 +612,234 @@ namespace PocketDb
         });
 
         return result;
+    }
+
+    tuple<bool, int64_t> ConsensusRepository::GetLastAccountHeight(const string& address)
+    {
+        tuple<bool, int64_t> result = {false, 0};
+
+        auto stmt = SetupSqlStatement(R"sql(
+            select a.Height
+            from Accounts a
+            where   a.AddressHash = ?
+                and a.Last = 1
+                and a.Height is not null
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+
+        TryTransactionStep([&]()
+        {
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    result = {true, value};
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    tuple<bool, int64_t> ConsensusRepository::GetTransactionHeight(const string& hash)
+    {
+        tuple<bool, int64_t> result = {false, 0};
+
+        auto stmt = SetupSqlStatement(R"sql(
+            select t.Height
+            from Transactions t
+            where   t.Hash = ?
+                and t.Height is not null
+        )sql");
+
+        TryBindStatementText(stmt, 1, hash);
+
+        TryTransactionStep([&]()
+        {
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    result = {true, value};
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+
+    // Mempool counts
+
+    int ConsensusRepository::CountMempoolBlocking(const string& address, const string& addressTo)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from Blockings
+            where Height is null
+                and AddressHash = ?
+                and AddressToHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementText(stmt, 2, addressTo);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolSubscribe(const string& address, const string& addressTo)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vSubscribes
+            where Height is null
+                and AddressHash = ?
+                and AddressToHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+        TryBindStatementText(stmt, 2, addressTo);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolComment(const string& address)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vComments
+            where Height is null
+                and AddressHash = ?
+                and Type = 204
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolComplain(const string& address)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vComplains
+            where Height is null
+                and AddressHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolPost(const string& address)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vPosts
+            where Height is null
+                and AddressHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolScoreComment(const string& address)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vScoreComments
+            where Height is null
+                and AddressHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolScoreContent(const string& address)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vScoreContents
+            where Height is null
+                and AddressHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolUser(const string& address)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vUsers
+            where Height is null
+                and AddressHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolVideo(const string& address)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vVideos
+            where Height is null
+                and AddressHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+
+        return GetCount(stmt);
+    }
+
+    // EDITS
+
+    int ConsensusRepository::CountMempoolCommentEdit(const string& rootTxHash)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vComments
+            where Height is null
+                and RootTxHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, rootTxHash);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolPostEdit(const string& rootTxHash)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vPosts
+            where p.Height is null
+                and p.RootTxHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, rootTxHash);
+
+        return GetCount(stmt);
+    }
+
+    int ConsensusRepository::CountMempoolVideoEdit(const string& rootTxHash)
+    {
+        auto stmt = SetupSqlStatement(R"sql(
+            select count(*)
+            from vVideos
+            where v.Height is null
+                and v.RootTxHash = ?
+        )sql");
+
+        TryBindStatementText(stmt, 1, rootTxHash);
+
+        return GetCount(stmt);
     }
 }

@@ -23,8 +23,8 @@ namespace PocketConsensus
         CommentDeleteConsensus(int height) : SocialBaseConsensus(height) {}
 
     protected:
-    
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
+
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
 
@@ -73,7 +73,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef & tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
         {
             for (auto blockTx : block)
             {
@@ -89,14 +89,14 @@ namespace PocketConsensus
             }
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef & tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
             // GetString2() = RootTxHash
-            if (ConsensusRepoInst.CountMempoolContentEdit(*tx->GetString2()) > 0)
+            if (ConsensusRepoInst.CountMempoolCommentEdit(*tx->GetString2()) > 0)
                 return {false, SocialConsensusResult_DoubleCommentDelete};
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
 
@@ -119,9 +119,9 @@ namespace PocketConsensus
     {
     private:
         static inline const std::map<int, std::function<CommentDeleteConsensus*(int height)>> m_rules =
-        {
-            {0, [](int height) { return new CommentDeleteConsensus(height); }},
-        };
+            {
+                {0, [](int height) { return new CommentDeleteConsensus(height); }},
+            };
     public:
         shared_ptr <CommentDeleteConsensus> Instance(int height)
         {

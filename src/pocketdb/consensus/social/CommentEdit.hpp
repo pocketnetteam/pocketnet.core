@@ -135,7 +135,7 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
 
-            if (ConsensusRepoInst.CountMempoolContentEdit(*ptx->GetRootTxHash()) > 0)
+            if (ConsensusRepoInst.CountMempoolCommentEdit(*ptx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleCommentEdit};
 
             // Check edit limit

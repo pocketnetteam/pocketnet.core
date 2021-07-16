@@ -146,7 +146,7 @@ namespace PocketConsensus
                 PocketTxType::CONTENT_VIDEO
             );
 
-            count += ConsensusRepoInst.CountMempoolContent(*ptx->GetAddress(), PocketTxType::CONTENT_VIDEO);
+            count += ConsensusRepoInst.CountMempoolVideo(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
         }
@@ -197,7 +197,7 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(const shared_ptr<Video>& tx)
         {
-            if (ConsensusRepoInst.CountMempoolContentEdit(*tx->GetRootTxHash()) > 0)
+            if (ConsensusRepoInst.CountMempoolVideoEdit(*tx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
 
             return Success;

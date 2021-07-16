@@ -70,9 +70,10 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<Complain>(tx);
 
             // from chain
-            int count = ConsensusRepoInst.CountChainComplain(
+            int count = ConsensusRepoInst.CountChainContent(
                 *ptx->GetAddress(),
-                *ptx->GetTime()
+                *ptx->GetTime(),
+                PocketTxType::ACTION_COMPLAIN
             );
 
             // from block
@@ -104,9 +105,10 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<Complain>(tx);
 
             // from chain
-            int count = ConsensusRepoInst.CountChainComplain(
+            int count = ConsensusRepoInst.CountChainContent(
                 *ptx->GetAddress(),
-                *ptx->GetTime()
+                *ptx->GetTime(),
+                PocketTxType::ACTION_COMPLAIN
             );
 
             count += ConsensusRepoInst.CountMempoolComplain(*ptx->GetAddress());

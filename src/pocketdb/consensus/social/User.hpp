@@ -83,7 +83,7 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<User>(tx);
 
-            if (ConsensusRepoInst.CountMempoolAccount(*ptx->GetAddress()) > 0)
+            if (ConsensusRepoInst.CountMempoolUser(*ptx->GetAddress()) > 0)
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
             return Success;

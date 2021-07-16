@@ -172,7 +172,7 @@ namespace PocketDb
                a.String5,
                a.Int1
         from vAccounts a
-        where a.Type = 100;
+        where a.Type in (100);
 
         --------------------------------------------
         drop view if exists vContents;
@@ -206,7 +206,23 @@ namespace PocketDb
                c.RootTxHash,
                c.String3 as RelayTxHash
         from vContents c
-        where c.Type = 200;
+        where c.Type in (200);
+
+
+        drop view if exists vVideos;
+        create view if not exists vPosts as
+        select c.Type,
+               c.Hash,
+               c.Time,
+               c.BlockHash,
+               c.Height,
+               c.Last,
+               c.Id,
+               c.AddressHash,
+               c.RootTxHash,
+               c.String3 as RelayTxHash
+        from vContents c
+        where c.Type in (201);
 
 
         drop view if exists vComments;

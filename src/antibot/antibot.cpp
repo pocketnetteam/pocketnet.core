@@ -327,7 +327,8 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
 
     // Double edit in mempool denied
     if (checkMempool) {
-        if (g_pocketdb->Exists(reindexer::Query("Mempool").Where("table", CondEq, "Posts").Where("txid_source", CondEq, _txid))) {
+        if (g_pocketdb->Exists(reindexer::Query("Mempool")
+        .Where("table", CondEq, "Posts").Where("txid_source", CondEq, _txid))) {
             result = ANTIBOTRESULT::DoublePostEdit;
             return false;
         }
@@ -814,7 +815,10 @@ bool AntiBot::check_blocking(const UniValue oitm, BlockVTX& blockVtx, bool check
     // Also check mempool
     if (checkMempool) {
         reindexer::QueryResults res;
-        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Blocking").Not().Where("txid", CondEq, _txid), res).ok()) {
+        if (g_pocketdb->Select(
+            reindexer::Query("Mempool")
+            .Where("table", CondEq, "Blocking")
+            .Not().Where("txid", CondEq, _txid), res).ok()) {
             for (auto& m : res) {
                 reindexer::Item mItm = m.GetItem();
                 std::string t_src = DecodeBase64(mItm["data"].As<string>());

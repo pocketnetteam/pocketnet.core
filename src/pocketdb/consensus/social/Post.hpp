@@ -158,7 +158,7 @@ namespace PocketConsensus
                 *ptx->GetTime(),
                 PocketTxType::CONTENT_POST);
 
-            count += ConsensusRepoInst.CountMempoolContent(*ptx->GetAddress(), PocketTxType::CONTENT_POST);
+            count += ConsensusRepoInst.CountMempoolPost(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
         }
@@ -200,7 +200,7 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr<Post> tx)
         {
-            if (ConsensusRepoInst.CountMempoolContentEdit(*tx->GetRootTxHash()) > 0)
+            if (ConsensusRepoInst.CountMempoolPostEdit(*tx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
 
             // Check edit limit

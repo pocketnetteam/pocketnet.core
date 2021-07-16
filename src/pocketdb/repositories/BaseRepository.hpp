@@ -188,6 +188,22 @@ namespace PocketDb
                    : make_tuple(true, sqlite3_column_int(stmt, index));
         }
 
+        int GetCount(shared_ptr<sqlite3_stmt*>& stmt)
+        {
+            int result = 0;
+
+            TryTransactionStep([&]()
+            {
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                        result = value;
+
+                FinalizeSqlStatement(*stmt);
+            });
+
+            return result;
+        }
+
     public:
         Mutex SqliteShutdownMutex;
 

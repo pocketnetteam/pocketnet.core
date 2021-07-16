@@ -121,7 +121,7 @@ namespace PocketConsensus
                 *ptx->GetTime(),
                 PocketTxType::CONTENT_COMMENT);
 
-            count += ConsensusRepoInst.CountMempoolContent(*ptx->GetAddress(), PocketTxType::CONTENT_COMMENT);
+            count += ConsensusRepoInst.CountMempoolComment(*ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
         }

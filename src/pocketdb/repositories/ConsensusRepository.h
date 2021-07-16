@@ -32,8 +32,8 @@ public:
     tuple<bool, PTransactionRef> GetLastAccount(const string& address);
     tuple<bool, PTransactionRef> GetLastContent(const string& rootHash);
 
-    tuple<bool, int64_t> GetLastAccountHeight(const string& address) { return {true, 0}; } // TODO (brangr): implement
-    tuple<bool, int64_t> GetTransactionHeight(const string& hash) { return {true, 0}; } // TODO (brangr): implement
+    tuple<bool, int64_t> GetLastAccountHeight(const string& address);
+    tuple<bool, int64_t> GetTransactionHeight(const string& hash);
 
     tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
     tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);
@@ -60,24 +60,21 @@ public:
     bool ExistsAnotherByName(const string& address, const string& name);
 
     // get counts in "mempool" - Height is null
-    int CountMempoolBlocking(const string& address, const string& addressTo) {return 0;} // TODO (brangr): implement
-    int CountMempoolSubscribe(const string& address, const string& addressTo) {return 0;} // TODO (brangr): implement
-    int CountMempoolComplain(const string& address) {return 0;} // TODO (brangr): implement
-    int CountMempoolAccount(const string& address) {return 0;} // TODO (brangr): implement
-    int CountMempoolContent(const string& address, PocketTxType txType) {return 0;} // TODO (brangr): implement
-    int CountMempoolContent(const string& address, const string& contentTxHash) {return 0;} // TODO (brangr): implement
-    int CountMempoolContentEdit(const string& rootTxHash) {return 0;} // TODO (brangr): implement
+    int CountMempoolBlocking(const string& address, const string& addressTo);
+    int CountMempoolSubscribe(const string& address, const string& addressTo);
 
-    // get counts in "chain" - Height is not null
-    int CountChainComplain(const string& address, int64_t time) // TODO (brangr): implement
-    {
-     /*    reindexer::Query("Complains")
-             .Where("address", CondEq, _address)
-             .Where("time", CondGe, _time - 86400)
-             .Where("block", CondLt, height),
-         complainsRes)*/
-     return 0;
-    }
+    int CountMempoolComment(const string& address);
+    int CountMempoolComplain(const string& address);
+    int CountMempoolPost(const string& address);
+    int CountMempoolScoreComment(const string& address);
+    int CountMempoolScoreContent(const string& address);
+    int CountMempoolUser(const string& address);
+    int CountMempoolVideo(const string& address);
+
+    int CountMempoolCommentEdit(const string& rootTxHash);
+    int CountMempoolPostEdit(const string& rootTxHash);
+    int CountMempoolVideoEdit(const string& rootTxHash);
+
     int CountChainContent(const string& address, int64_t time, PocketTxType txType) {return 0;} // TODO (brangr): implement as complains root != hash
     int CountChainContentEdit(const string& rootTxHash) {return 0;} // TODO (brangr): implement find all edited instance of post
 
