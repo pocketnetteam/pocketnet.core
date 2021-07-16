@@ -163,7 +163,7 @@ private:
     struct evhttp                      *m_http;
     struct evhttp                      *m_eventHTTP;
     std::vector<evhttp_bound_socket *> m_boundSockets;
-    std::vector<std::thread>           m_thread_http_workers;    
+    std::vector<std::thread>           m_thread_http_workers; 
 
 public:
     HTTPSocket(struct event_base *base, int timeout, int queueDepth);
@@ -196,6 +196,5 @@ std::string urlDecode(const std::string &urlEncoded);
 
 extern HTTPSocket *g_socket;
 extern HTTPSocket *g_pubSocket;
-extern HTTPSocket *g_postSocket;
 
 #endif // POCKETCOIN_HTTPSERVER_H

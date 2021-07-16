@@ -169,7 +169,6 @@ static std::vector<CSubNet> rpc_allow_subnets;
 //! HTTP socket objects to handle requests on different routes
 HTTPSocket *g_socket;
 HTTPSocket *g_pubSocket;
-HTTPSocket *g_postSocket;
 
 std::thread threadHTTP;
 std::future<bool> threadResult;
@@ -401,6 +400,12 @@ bool InitHTTPServer()
     {
         g_logger->DisableCategory(BCLog::LIBEVENT);
     }
+
+#ifdef WIN32
+    evthread_use_windows_threads();
+#else
+    evthread_use_pthreads();
+#endif
     
     int timeout = gArgs.GetArg("-rpcservertimeout", DEFAULT_HTTP_SERVER_TIMEOUT);
     int workQueueMainDepth = std::max((long) gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
@@ -412,7 +417,6 @@ bool InitHTTPServer()
 
     g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth);
     g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth);
-    g_postSocket = new HTTPSocket(eventBase, timeout, workQueuePostDepth);
  
     if (!HTTPBindAddresses())
     {
@@ -458,9 +462,6 @@ void StartHTTPServer()
     LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
     g_socket->StartHTTPSocket(rpcMainThreads);
 
-    LogPrintf("HTTP: starting %d Post worker threads\n", rpcPostThreads);
-    g_postSocket->StartHTTPSocket(rpcPostThreads);
-
     LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
     g_pubSocket->StartHTTPSocket(rpcPublicThreads);
 }
@@ -470,7 +471,6 @@ void InterruptHTTPServer()
     LogPrint(BCLog::HTTP, "Interrupting HTTP server\n");
     g_socket->InterruptHTTPSocket();
     g_pubSocket->InterruptHTTPSocket();
-    g_postSocket->InterruptHTTPSocket();
 }
 
 void StopHTTPServer()
@@ -480,7 +480,6 @@ void StopHTTPServer()
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
     g_socket->StopHTTPSocket();
     g_pubSocket->StopHTTPSocket();
-    g_postSocket->StopHTTPSocket();
 
     if (eventBase)
     {
@@ -510,9 +509,6 @@ void StopHTTPServer()
     delete g_pubSocket;
     g_pubSocket = nullptr;
 
-    delete g_postSocket;
-    g_postSocket = nullptr;
-
     if (eventBase)
     {
         event_base_free(eventBase);
@@ -535,14 +531,10 @@ static void httpevent_callback_fn(evutil_socket_t, short, void *data)
         delete self;
 }
 
-HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth)
+HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth): m_http(nullptr),
+                                                                              m_eventHTTP(nullptr),
+                                                                              m_workQueue(nullptr)
 {
-#ifdef WIN32
-    evthread_use_windows_threads();
-#else
-    evthread_use_pthreads();
-#endif
-
     /* Create a new evhttp object to handle requests. */
     raii_evhttp http_ctr = obtain_evhttp(base);
     struct evhttp *http = http_ctr.get();
@@ -729,6 +721,7 @@ void HTTPRequest::WriteHeader(const std::string &hdr, const std::string &value)
 void HTTPRequest::WriteReply(int nStatus, const std::string &strReply)
 {
     assert(!replySent && req);
+
     // Send event to main http thread to send reply message
     struct evbuffer *evb = evhttp_request_get_output_buffer(req);
     assert(evb);

@@ -300,7 +300,7 @@ bool StartHTTPRPC()
         return false;
 
     g_socket->RegisterHTTPHandler("/", true, HTTPReq_JSONRPC);
-    g_postSocket->RegisterHTTPHandler("/post/", true, HTTPReq_JSONRPC_Anonymous);
+    g_pubSocket->RegisterHTTPHandler("/post/", true, HTTPReq_JSONRPC_Anonymous);
     g_pubSocket->RegisterHTTPHandler("/public/", true, HTTPReq_JSONRPC_Anonymous);
     if (g_wallet_init_interface.HasWalletSupport()) {
         g_socket->RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC);
@@ -321,7 +321,7 @@ void StopHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
     g_socket->UnregisterHTTPHandler("/", true);
-    g_postSocket->UnregisterHTTPHandler("/post/", true);
+    g_pubSocket->UnregisterHTTPHandler("/post/", true);
     g_pubSocket->UnregisterHTTPHandler("/public/", true);
     if (g_wallet_init_interface.HasWalletSupport()) {
         g_socket->UnregisterHTTPHandler("/wallet/", false);
