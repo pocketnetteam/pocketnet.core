@@ -160,9 +160,6 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_Failed};
 
             // Check OP_RETURN with Payload
-            if (IsEmpty(ptx->GetOPRAddress()) || *ptx->GetOPRAddress() != *ptx->GetAddress())
-                LogPrintf("000 CHECKPOINT 11 %s\n", *ptx->GetHash());
-                //return {false, SocialConsensusResult_OpReturnFailed};
             if (IsEmpty(ptx->GetOPRValue()) || *ptx->GetOPRValue() != *ptx->GetValue())
                 LogPrintf("000 CHECKPOINT 22 %s\n", *ptx->GetHash());
                 //return {false, SocialConsensusResult_OpReturnFailed};

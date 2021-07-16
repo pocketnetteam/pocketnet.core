@@ -50,16 +50,11 @@ namespace PocketTx
         shared_ptr<int64_t> GetValue() const { return m_int1; }
         void SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
-
-        shared_ptr<string> GetOPRAddress() const { return m_opr_address; }
-        void SetOPRAddress(string value) { m_opr_address = make_shared<string>(value); }
-
         shared_ptr<int64_t> GetOPRValue() const { return m_opr_value; }
         void SetOPRValue(int64_t value) { m_opr_value = make_shared<int64_t>(value); }
 
     protected:
 
-        shared_ptr<string> m_opr_address = nullptr;
         shared_ptr<int64_t> m_opr_value = nullptr;
 
         void DeserializePayload(const UniValue& src) override
