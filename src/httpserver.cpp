@@ -462,8 +462,10 @@ void StartHTTPServer()
     LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
     g_socket->StartHTTPSocket(rpcMainThreads);
 
-    LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
-    g_pubSocket->StartHTTPSocket(rpcPublicThreads);
+    // The same worker threads will service POST and PUBLIC RPC requests
+    int pubThreads = rpcPostThreads + rpcPublicThreads;
+    LogPrintf("HTTP: starting %d Public worker threads\n", pubThreads);
+    g_pubSocket->StartHTTPSocket(pubThreads);
 }
 
 void InterruptHTTPServer()
