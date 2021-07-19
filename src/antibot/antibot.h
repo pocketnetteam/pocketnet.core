@@ -58,8 +58,11 @@ struct UserStateItem {
         result.pushKV("balance", balance);
         result.pushKV("trial", trial);
         result.pushKV("likers", likers);
+
         result.pushKV("post_unspent", post_unspent);
         result.pushKV("post_spent", post_spent);
+        result.pushKV("video_unspent", video_unspent);
+        result.pushKV("video_spent", video_spent);
         result.pushKV("score_unspent", score_unspent);
         result.pushKV("score_spent", score_spent);
         result.pushKV("complain_unspent", complain_unspent);
