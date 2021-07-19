@@ -349,7 +349,7 @@ bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMemp
                 mtx["txidEdit"].get_str().empty())
             {
                 if (!checkTime_19_3 || mtx["time"].get_int64() <= _time)
-                    if (!splitContent || mtx["type"].get_int() == (int)ContentType::ContentPost)
+                    if (!splitContent || mtx["contentType"].get_int() == (int)ContentType::ContentPost)
                         postsCount += 1;
             }
         }
@@ -570,7 +570,7 @@ bool AntiBot::check_video(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
             if (mtx["txid"].get_str() != _txid &&
                 mtx["address"].get_str() == _address &&
                 mtx["txidEdit"].get_str().empty() &&
-                mtx["type"].get_int() == (int) ContentType::ContentVideo)
+                mtx["contentType"].get_int() == (int) ContentType::ContentVideo)
             {
                 postsCount += 1;
             }
