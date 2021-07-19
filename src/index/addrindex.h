@@ -175,6 +175,10 @@ public:
     bool GetAddressRegistrationDate(std::vector<std::string> addresses,
         std::vector<AddressRegistrationItem>& registrations);
     /*
+        Count likers with reputation
+    */
+    int64_t GetAddressLikers(std::string _address, int height);
+    /*
 		Returns date of registration user.
 		If not exists - return `-1`
 	*/
