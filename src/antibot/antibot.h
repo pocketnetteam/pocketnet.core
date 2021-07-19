@@ -80,7 +80,9 @@ enum CHECKTYPE {
     Complain,
     Comment,
     CommentEdit,
-    CommentScore
+    CommentScore,
+    CheckType_ContentVideo,
+    CheckType_ContentVideoEdit
 };
 //-----------------------------------------------------
 enum ABMODE {
@@ -177,8 +179,11 @@ private:
     bool check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result);
 
     // Check new post and edited post from address
-    bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
-    bool check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, bool splitContent, int height, ANTIBOTRESULT& result);
+    bool check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, bool splitContent, int height, ANTIBOTRESULT& result);
+
+    bool check_video(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    bool check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
     // Check new score to post from address
     bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
