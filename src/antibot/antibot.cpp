@@ -2048,12 +2048,12 @@ bool AntiBot::GetUserState(std::string _address, UserStateItem& _state)
     _state.reputation = reputation;
     _state.balance = balance;
 
-    int postsCount = getContentLimitsCount(Post, _address);
+    int postsCount = getContentLimitsCount(ContentType::ContentPost, _address);
     int postsLimit = getLimit(Post, mode, chainActive.Height() + 1);
     _state.post_spent = postsCount;
     _state.post_unspent = postsLimit - postsCount;
 
-    int videosCount = getContentLimitsCount(CheckType_ContentVideo, _address);
+    int videosCount = getContentLimitsCount(ContentType::ContentVideo, _address);
     int videosLimit = getLimit(CheckType_ContentVideo, mode, chainActive.Height() + 1);
     _state.video_spent = videosCount;
     _state.video_unspent = videosLimit - videosCount;
