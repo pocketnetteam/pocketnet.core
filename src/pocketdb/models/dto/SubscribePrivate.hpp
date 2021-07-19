@@ -20,6 +20,15 @@ namespace PocketTx
         {
             SetType(PocketTxType::ACTION_SUBSCRIBE_PRIVATE);
         }
+
+        shared_ptr<UniValue> Serialize() const override
+        {
+            auto result = Subscribe::Serialize();
+
+            result->pushKV("private", true);
+
+            return result;
+        }
     };
 
 } // namespace PocketTx

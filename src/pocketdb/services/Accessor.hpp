@@ -26,13 +26,18 @@ namespace PocketServices
     using std::find;
 
 
-    static bool GetBlock(const CBlock& block, PBlockRef& pocketBlock)
+    static bool GetBlock(const CBlock& block, PBlockRef& pocketBlock, bool onlyPocket = false)
     {
         try
         {
             std::vector<std::string> txs;
             for (const auto& tx : block.vtx)
+            {
+                if (onlyPocket && !IsPocketTransaction(tx))
+                    continue;
+
                 txs.push_back(tx->GetHash().GetHex());
+            }
 
             if (txs.empty())
                 return true;
@@ -50,13 +55,14 @@ namespace PocketServices
     static bool GetBlock(const CBlock& block, string& data)
     {
         PBlockRef pocketBlock;
-        if (GetBlock(block, pocketBlock) && pocketBlock)
-        {
-            data = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock)->write();
-            return true;
-        }
+        if (!GetBlock(block, pocketBlock, true))
+            return false;
 
-        return false;
+        if (!pocketBlock)
+            return true;
+
+        data = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock)->write();
+        return true;
     }
 
     static bool GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)

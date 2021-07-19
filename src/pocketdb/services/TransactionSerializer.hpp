@@ -90,7 +90,7 @@ namespace PocketServices
             auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
             for (const auto& transaction : block)
             {
-                result->pushKV(*transaction->GetHash(), *SerializeTransaction(*transaction)); //TODO set block
+                result->pushKV(*transaction->GetHash(), (*SerializeTransaction(*transaction)).write());
             }
 
             return result;

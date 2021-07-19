@@ -20,6 +20,17 @@ namespace PocketTx
         {
             SetType(PocketTxType::ACTION_SUBSCRIBE_CANCEL);
         }
+
+        shared_ptr<UniValue> Serialize() const override
+        {
+            auto result = Subscribe::Serialize();
+
+            result->pushKV("unsubscribe", true);
+
+            return result;
+        }
+
+
     };
 
 } // namespace PocketTx

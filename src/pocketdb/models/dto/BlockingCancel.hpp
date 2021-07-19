@@ -20,6 +20,16 @@ namespace PocketTx
         {
             SetType(PocketTxType::ACTION_BLOCKING_CANCEL);
         }
+
+        shared_ptr<UniValue> Serialize() const override
+        {
+            auto result = Blocking::Serialize();
+
+            result->pushKV("unblocking", true);
+
+            return result;
+        }
+
     };
 
 } // namespace PocketTx
