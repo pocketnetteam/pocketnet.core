@@ -874,13 +874,13 @@ std::string getcontenttype(int type)
 }
 int getcontenttype(std::string type)
 {
-    if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return ContentType::ContentPost;
-    else if (type == "video" || type == OR_VIDEO) return ContentType::ContentVideo;
-    else if (type == "verification" || type == OR_VERIFICATION) return ContentType::ContentVerification;
-    else if (type == "serverPing" || type == OR_SERVER_PING) return ContentType::ContentServerPing;
-    else if (type == "poll" || type == OR_POLL) return ContentType::ContentPoll;
-    else if (type == "translate" || type == OR_TRANSLATE) return ContentType::ContentTranslate;
-    else return ContentType::ContentNotSupported;
+    if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return (int)ContentType::ContentPost;
+    else if (type == "video" || type == OR_VIDEO) return (int)ContentType::ContentVideo;
+    else if (type == "verification" || type == OR_VERIFICATION) return (int)ContentType::ContentVerification;
+    else if (type == "serverPing" || type == OR_SERVER_PING) return (int)ContentType::ContentServerPing;
+    else if (type == "poll" || type == OR_POLL) return (int)ContentType::ContentPoll;
+    else if (type == "translate" || type == OR_TRANSLATE) return (int)ContentType::ContentTranslate;
+    else return (int)ContentType::ContentNotSupported;
 }
 
 /*

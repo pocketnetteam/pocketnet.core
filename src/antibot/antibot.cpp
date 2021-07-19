@@ -117,6 +117,44 @@ int getLimitsCount(std::string _table, std::string _address)
 
     return count;
 }
+
+// TODO (brangr): implement
+int getContentLimitsCount(ContentType _type, std::string _address)
+{
+    int count = 0;
+
+    auto query = reindexer::Query("Posts")
+        .Where("address", CondEq, _address)
+        .Where("block", CondGe, chainActive.Height() - 1440)
+        .Where("type", CondEq, (int)_type);
+
+    count += g_pocketdb->SelectCount(query);
+
+    // Also check mempool
+    reindexer::QueryResults mem_res;
+    if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Posts"), mem_res).ok())
+    {
+        for (auto& m : mem_res)
+        {
+            reindexer::Item mItm = m.GetItem();
+            std::string table = mItm["table"].As<string>();
+            std::string txid_source = mItm["txid_source"].As<string>();
+
+            // Edited posts not count in limits
+            if (txid_source != "") continue;
+
+            std::string t_src = DecodeBase64(mItm["data"].As<string>());
+
+            reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
+            if (t_itm.FromJSON(t_src).ok() && t_itm["address"].As<string>() == _address)
+            {
+                count += 1;
+            }
+        }
+    }
+
+    return count;
+}
 //-----------------------------------------------------
 
 //-----------------------------------------------------
@@ -2010,10 +2048,15 @@ bool AntiBot::GetUserState(std::string _address, UserStateItem& _state)
     _state.reputation = reputation;
     _state.balance = balance;
 
-    int postsCount = getLimitsCount("Posts", _address);
+    int postsCount = getContentLimitsCount(Post, _address);
     int postsLimit = getLimit(Post, mode, chainActive.Height() + 1);
     _state.post_spent = postsCount;
     _state.post_unspent = postsLimit - postsCount;
+
+    int videosCount = getContentLimitsCount(CheckType_ContentVideo, _address);
+    int videosLimit = getLimit(CheckType_ContentVideo, mode, chainActive.Height() + 1);
+    _state.video_spent = videosCount;
+    _state.video_unspent = videosLimit - videosCount;
 
     int scoresCount = getLimitsCount("Scores", _address);
     int scoresLimit = getLimit(Score, mode, chainActive.Height() + 1);

@@ -25,6 +25,9 @@ struct UserStateItem {
     int post_unspent;
     int post_spent;
 
+    int video_unspent;
+    int video_spent;
+
     int score_unspent;
     int score_spent;
 
