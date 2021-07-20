@@ -60,6 +60,7 @@ namespace PocketTx
         CONTENT_VIDEO = 201,
         CONTENT_TRANSLATE = 202,
         CONTENT_SERVERPING = 203,
+
         CONTENT_COMMENT = 204,
         CONTENT_COMMENT_EDIT = 205,
         CONTENT_COMMENT_DELETE = 206,
@@ -103,11 +104,15 @@ namespace PocketTx
         bool IsContent() const
         {
             return Type == PocketTxType::CONTENT_POST ||
-                   Type == PocketTxType::CONTENT_COMMENT ||
-                   Type == PocketTxType::CONTENT_COMMENT_EDIT ||
-                   Type == PocketTxType::CONTENT_COMMENT_DELETE ||
                    Type == PocketTxType::CONTENT_VIDEO ||
                    Type == PocketTxType::CONTENT_TRANSLATE;
+        }
+
+        bool IsComment() const
+        {
+            return Type == PocketTxType::CONTENT_COMMENT ||
+                   Type == PocketTxType::CONTENT_COMMENT_EDIT ||
+                   Type == PocketTxType::CONTENT_COMMENT_DELETE;
         }
 
         bool IsBlocking() const

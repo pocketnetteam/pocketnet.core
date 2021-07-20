@@ -70,6 +70,15 @@ namespace PocketDb
                             0.001 * (nTime4 - nTime3), txInfo.Hash);
                     }
 
+                    if (txInfo.IsComment())
+                    {
+                        IndexComment(txInfo.Hash);
+
+                        int64_t nTime4 = GetTimeMicros();
+                        LogPrint(BCLog::BENCH, "      - SetCommentId: %.2fms _ %s\n",
+                            0.001 * (nTime4 - nTime3), txInfo.Hash);
+                    }
+
                     if (txInfo.IsBlocking())
                     {
                         IndexBlocking(txInfo.Hash);
@@ -286,6 +295,56 @@ namespace PocketDb
             TryTransactionStep({ clearLastStmt, setIdStmt });
         }
 
+        void IndexComment(const string& txHash)
+        {
+            // Clear old last records for set new last
+            auto clearLastStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Last = 0
+                FROM (
+                    select c.Hash, c.RootTxHash
+                    from vComments c
+                    where c.Hash = ?
+                        and c.Height is not null
+                        and c.RootTxHash is not null
+                ) as content
+                WHERE   Transactions.Type in (204, 205, 206)
+                    and Transactions.String2 = content.RootTxHash
+                    and Transactions.Hash != content.Hash
+                    and Transactions.Last = 1
+            )sql");
+            TryBindStatementText(clearLastStmt, 1, txHash);
+
+            // Get new ID or copy previous
+            auto setIdStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Id = ifnull(
+                        -- copy self Id
+                        (
+                            select max( c.Id )
+                            from vComments c
+                            where c.RootTxHash = Transactions.String2
+                                and c.Height is not null
+                                and c.Height <= Transactions.Height
+                        ),
+                        -- new record
+                        ifnull(
+                            (
+                                select max( c.Id ) + 1
+                                from vComments c
+                                where c.Height is not null
+                            ),
+                            0 -- for first record
+                        )
+                    ),
+                    Last = 1
+                WHERE Hash = ?
+            )sql");
+            TryBindStatementText(setIdStmt, 1, txHash);
+
+            TryTransactionStep({ clearLastStmt, setIdStmt });
+        }
+
         void IndexBlocking(const string& txHash)
         {
             // Clear old last records for set new last
@@ -293,12 +352,12 @@ namespace PocketDb
                 UPDATE Transactions SET
                     Last = 0
                 FROM (
-                    select b.Hash, b.Type, b.AddressHash, b.AddressToHash
+                    select b.Hash, b.AddressHash, b.AddressToHash
                     from vBlockings b
                     where b.Hash = ? and b.Height is not null
                 ) as blocking
                 WHERE   Transactions.Hash != blocking.Hash
-                    and Transactions.Type = blocking.Type
+                    and Transactions.Type in (305, 306)
                     and Transactions.String1 = blocking.AddressHash
                     and Transactions.String2 = blocking.AddressToHash
                     and Transactions.Last = 1
@@ -324,12 +383,12 @@ namespace PocketDb
                 UPDATE Transactions SET
                     Last = 0
                 FROM (
-                    select s.Hash, s.Type, s.AddressHash, s.AddressToHash
+                    select s.Hash, s.AddressHash, s.AddressToHash
                     from vSubscribes s
                     where s.Hash = ? and s.Height is not null
                 ) as subscribe
                 WHERE   Transactions.Hash != subscribe.Hash
-                    and Transactions.Type = subscribe.Type
+                    and Transactions.Type in (302, 303, 304)
                     and Transactions.String1 = subscribe.AddressHash
                     and Transactions.String2 = subscribe.AddressToHash
                     and Transactions.Last = 1
