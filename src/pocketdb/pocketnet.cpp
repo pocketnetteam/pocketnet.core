@@ -332,33 +332,24 @@ void FillLimitsMain(const CChainParams &params)
 };
 void FillLimitsTest(const CChainParams &params)
 {
-    // Forks
-    int64_t fork_20190830 = 292800;
-    int64_t fork_20190920 = 322700;
-
     // threshold_reputation
     std::map<int, int64_t> _threshold_reputation;
-    _threshold_reputation.insert({0, 500});
-    _threshold_reputation.insert({fork_20190830, 1000});
+    _threshold_reputation.insert({0, 1000});
     Limits.insert(std::make_pair(Limit::threshold_reputation, _threshold_reputation));
 
     // threshold_reputation_score
     std::map<int, int64_t> _threshold_reputation_score;
-    _threshold_reputation_score.insert({0, -10000});
-    _threshold_reputation_score.insert({(int) params.GetConsensus().nHeight_version_1_0_0, 500});
-    _threshold_reputation_score.insert({fork_20190830, 1000});
+    _threshold_reputation_score.insert({0, 1000});
     Limits.insert(std::make_pair(Limit::threshold_reputation_score, _threshold_reputation_score));
 
     // threshold_reputation_complains
     std::map<int, int64_t> _threshold_reputation_complains;
-    _threshold_reputation_complains.insert({0, 500});
-    _threshold_reputation_complains.insert({fork_20190830, 1000});
+    _threshold_reputation_complains.insert({0, 1000});
     Limits.insert(std::make_pair(Limit::threshold_reputation_complains, _threshold_reputation_complains));
 
     // threshold_reputation_blocking
     std::map<int, int64_t> _threshold_reputation_blocking;
-    _threshold_reputation_blocking.insert({0, 500});
-    _threshold_reputation_blocking.insert({fork_20190830, 1000});
+    _threshold_reputation_blocking.insert({0, 1000});
     Limits.insert(std::make_pair(Limit::threshold_reputation_blocking, _threshold_reputation_blocking));
 
     // threshold_balance
@@ -368,8 +359,7 @@ void FillLimitsTest(const CChainParams &params)
 
     // threshold_likers_count
     std::map<int, int64_t> _threshold_likers_count;
-    _threshold_likers_count.insert({0, 0});
-    _threshold_likers_count.insert({(int) params.GetConsensus().checkpoint_0_19_3, 100});
+    _threshold_likers_count.insert({0, 100});
     Limits.insert(std::make_pair(Limit::threshold_likers_count, _threshold_likers_count));
 
     // trial_post_limit
@@ -394,8 +384,7 @@ void FillLimitsTest(const CChainParams &params)
 
     // trial_score_limit
     std::map<int, int64_t> _trial_score_limit;
-    _trial_score_limit.insert({0, 45});
-    _trial_score_limit.insert({175600, 100});
+    _trial_score_limit.insert({0, 100});
     Limits.insert(std::make_pair(Limit::trial_score_limit, _trial_score_limit));
 
     // trial_complain_limit
@@ -425,8 +414,7 @@ void FillLimitsTest(const CChainParams &params)
 
     // full_score_limit
     std::map<int, int64_t> _full_score_limit;
-    _full_score_limit.insert({0, 90});
-    _full_score_limit.insert({175600, 200});
+    _full_score_limit.insert({0, 200});
     Limits.insert(std::make_pair(Limit::full_score_limit, _full_score_limit));
 
     // full_complain_limit
@@ -436,14 +424,12 @@ void FillLimitsTest(const CChainParams &params)
 
     // change_info_timeout
     std::map<int, int64_t> _change_info_timeout;
-    _change_info_timeout.insert({0, 3600}); // seconds
-    _change_info_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 60}); // blocks
+    _change_info_timeout.insert({0, 60}); // blocks
     Limits.insert(std::make_pair(Limit::change_info_timeout, _change_info_timeout));
 
     // edit_post_timeout
     std::map<int, int64_t> _edit_post_timeout;
-    _edit_post_timeout.insert({0, 86400}); // seconds
-    _edit_post_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 1440}); // blocks
+    _edit_post_timeout.insert({0, 1440}); // blocks
     Limits.insert(std::make_pair(Limit::edit_post_timeout, _edit_post_timeout));
 
     // edit_video_timeout
@@ -468,8 +454,7 @@ void FillLimitsTest(const CChainParams &params)
 
     // scores_one_to_one
     std::map<int, int64_t> _scores_one_to_one;
-    _scores_one_to_one.insert({0, 99999});
-    _scores_one_to_one.insert({225000, 2});
+    _scores_one_to_one.insert({0, 2});
     Limits.insert(std::make_pair(Limit::scores_one_to_one, _scores_one_to_one));
 
     // scores_one_to_one_over_comment
@@ -479,10 +464,7 @@ void FillLimitsTest(const CChainParams &params)
 
     // scores_one_to_one time
     std::map<int, int64_t> _scores_one_to_one_depth;
-    _scores_one_to_one_depth.insert({0, 336 * 24 * 3600});
-    _scores_one_to_one_depth.insert({225000, 1 * 24 * 3600});
-    _scores_one_to_one_depth.insert({fork_20190830, 7 * 24 * 3600});
-    _scores_one_to_one_depth.insert({fork_20190920, 2 * 24 * 3600});
+    _scores_one_to_one_depth.insert({0, 2 * 24 * 3600});
     Limits.insert(std::make_pair(Limit::scores_one_to_one_depth, _scores_one_to_one_depth));
 
     // trial_comment_limit
@@ -522,14 +504,12 @@ void FillLimitsTest(const CChainParams &params)
 
     // edit_comment_timeout
     std::map<int, int64_t> _edit_comment_timeout;
-    _edit_comment_timeout.insert({0, 86400}); // seconds
-    _edit_comment_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 1440}); // blocks
+    _edit_comment_timeout.insert({0, 1440}); // blocks
     Limits.insert(std::make_pair(Limit::edit_comment_timeout, _edit_comment_timeout));
 
     // scores_depth_modify_reputation
     std::map<int, int64_t> _scores_depth_modify_reputation;
-    _scores_depth_modify_reputation.insert({0, 336 * 24 * 3600});
-    _scores_depth_modify_reputation.insert({fork_20190920, 30 * 24 * 3600});
+    _scores_depth_modify_reputation.insert({0, 30 * 24 * 3600});
     Limits.insert(std::make_pair(Limit::scores_depth_modify_reputation, _scores_depth_modify_reputation));
 
     // lottery_referral_depth
