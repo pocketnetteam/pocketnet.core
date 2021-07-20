@@ -23,7 +23,7 @@ namespace PocketTx
 
     protected:
 
-        static tuple<bool, string> TryGetStr(const UniValue& o, const string& key)
+        tuple<bool, string> TryGetStr(const UniValue& o, const string& key)
         {
             if (o.exists(key))
             {
@@ -41,7 +41,7 @@ namespace PocketTx
             return make_tuple(false, "");
         }
 
-        static tuple<bool, int> TryGetInt(const UniValue& o, const string& key)
+        tuple<bool, int> TryGetInt(const UniValue& o, const string& key)
         {
             auto exists = o.exists(key) && o[key].isNum();
             if (exists)
@@ -50,7 +50,7 @@ namespace PocketTx
             return make_tuple(false, 0);
         }
 
-        static tuple<bool, int64_t> TryGetInt64(const UniValue& o, const string& key)
+        tuple<bool, int64_t> TryGetInt64(const UniValue& o, const string& key)
         {
             auto exists = o.exists(key) && o[key].isNum();
             if (exists)

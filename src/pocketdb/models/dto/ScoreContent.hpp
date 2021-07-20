@@ -26,9 +26,9 @@ namespace PocketTx
         {
             auto result = Transaction::Serialize();
 
-            if (GetAddress()) result->pushKV("address", *GetAddress());
-            if (GetContentTxHash()) result->pushKV("posttxid", *GetContentTxHash());
-            if (GetValue()) result->pushKV("value", *GetValue());
+            result->pushKV("address", GetAddress() ? *GetAddress() : "");
+            result->pushKV("posttxid", GetContentTxHash() ? *GetContentTxHash() : "");
+            result->pushKV("value", GetValue() ? *GetValue() : 0);
 
             return result;
         }

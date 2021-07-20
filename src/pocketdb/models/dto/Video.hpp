@@ -15,6 +15,15 @@ namespace PocketTx
             SetType(PocketTxType::CONTENT_VIDEO);
         }
 
+        shared_ptr <UniValue> Serialize() const override
+        {
+            auto result = Post::Serialize();
+
+            result->pushKV("type", 1);
+
+            return result;
+        }
+
     protected:
 
     };

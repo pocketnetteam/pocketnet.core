@@ -25,8 +25,10 @@ namespace PocketTx
         {
             auto result = Transaction::Serialize();
 
-            if (GetAddress()) result->pushKV("address", *GetAddress());
-            if (GetAddressTo()) result->pushKV("address_to", *GetAddressTo());
+            result->pushKV("address", GetAddress() ? *GetAddress() : "");
+            result->pushKV("address_to", GetAddressTo() ? *GetAddressTo() : "");
+            result->pushKV("private", false);
+            result->pushKV("unsubscribe", false);
 
             return result;
         }

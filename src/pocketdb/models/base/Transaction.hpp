@@ -33,8 +33,9 @@ namespace PocketTx
         virtual shared_ptr<UniValue> Serialize() const
         {
             auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
-            result->pushKV("time", *GetTime());
             result->pushKV("txid", *GetHash());
+            result->pushKV("time", *GetTime());
+            result->pushKV("block", 0);
 
             return result;
         }

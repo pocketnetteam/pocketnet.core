@@ -19,8 +19,8 @@ namespace PocketTx
         {
             auto result = Transaction::Serialize();
 
-            if (GetAddress()) result->pushKV("address", *GetAddress());
-            if (GetRelayTxHash()) result->pushKV("txidRepost", *GetRelayTxHash());
+            result->pushKV("address", GetAddress() ? *GetAddress() : "");
+            result->pushKV("txidRepost", GetRelayTxHash() ? *GetRelayTxHash() : "");
 
             // For olf protocol edited content
             // txid     - original content hash
@@ -35,18 +35,21 @@ namespace PocketTx
                 result->pushKV("txid", *GetRootTxHash());
                 result->pushKV("txidEdit", *GetHash());
             }
-            
-
-            if (!m_payload)
-                return result;
                 
-            result->pushKV("lang", m_payload->GetString1() ? *m_payload->GetString1() : "en");
-            if (m_payload->GetString2()) result->pushKV("caption", *m_payload->GetString2());
-            if (m_payload->GetString3()) result->pushKV("message", *m_payload->GetString3());
-            if (m_payload->GetString4()) result->pushKV("tags", *m_payload->GetString4());
-            if (m_payload->GetString7()) result->pushKV("url", *m_payload->GetString7());
-            if (m_payload->GetString5()) result->pushKV("images", *m_payload->GetString5());
-            if (m_payload->GetString6()) result->pushKV("settings", *m_payload->GetString6());
+            result->pushKV("lang", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "en");
+            result->pushKV("caption", (m_payload && m_payload->GetString2()) ? *m_payload->GetString2() : "");
+            result->pushKV("message", (m_payload && m_payload->GetString3()) ? *m_payload->GetString3() : "");
+            result->pushKV("tags", (m_payload && m_payload->GetString4()) ? *m_payload->GetString4() : "");
+            result->pushKV("url", (m_payload && m_payload->GetString7()) ? *m_payload->GetString7() : "");
+            result->pushKV("images", (m_payload && m_payload->GetString5()) ? *m_payload->GetString5() : "");
+            result->pushKV("settings", (m_payload && m_payload->GetString6()) ? *m_payload->GetString6() : "");
+
+            result->pushKV("type", 0);
+            result->pushKV("caption_", "");
+            result->pushKV("message_", "");
+            result->pushKV("scoreSum", 0);
+            result->pushKV("scoreCnt", 0);
+            result->pushKV("reputation", 0);
 
             return result;
         }

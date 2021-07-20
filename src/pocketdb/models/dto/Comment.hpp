@@ -26,18 +26,19 @@ namespace PocketTx
         {
             auto result = Transaction::Serialize();
 
-            if (GetAddress()) result->pushKV("address", *GetAddress());
-            if (GetRootTxHash()) result->pushKV("otxid", *GetRootTxHash());
-            if (GetPostTxHash()) result->pushKV("postid", *GetPostTxHash());
-            if (GetParentTxHash()) result->pushKV("parentid", *GetParentTxHash());
-            if (GetAnswerTxHash()) result->pushKV("answerid", *GetAnswerTxHash());
+            result->pushKV("address", GetAddress() ? *GetAddress() : "");
+            result->pushKV("otxid", GetRootTxHash() ? *GetRootTxHash() : "");
+            result->pushKV("postid", GetPostTxHash() ? *GetPostTxHash() : "");
+            result->pushKV("parentid", GetParentTxHash() ? *GetParentTxHash() : "");
+            result->pushKV("answerid", GetAnswerTxHash() ? *GetAnswerTxHash() : "");
+            result->pushKV("last", (GetLast() && *GetLast()) ? "true" : "false");
 
-            if (!m_payload)
-            {
-                return result;
-            }
-            result->pushKV("lang", m_payload->GetString1() ? *m_payload->GetString1() : "en");
-            if (m_payload->GetString2()) result->pushKV("msg", *m_payload->GetString2());
+            result->pushKV("lang", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "en");
+            result->pushKV("msg", (m_payload && m_payload->GetString2()) ? *m_payload->GetString2() : "");
+
+            result->pushKV("scoreUp", 0);
+            result->pushKV("scoreDown", 0);
+            result->pushKV("reputation", 0);
 
             return result;
         }
