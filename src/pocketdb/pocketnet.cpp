@@ -177,7 +177,7 @@ void FillLimits(const CChainParams& params) {
     // threshold_likers_count
     std::map<int, int64_t> _threshold_likers_count;
     _threshold_likers_count.insert({ 0, 0 });
-    _threshold_likers_count.insert({ (int)params.GetConsensus().checkpoint_0_19_3, 100 });
+    //_threshold_likers_count.insert({ (int)params.GetConsensus().checkpoint_0_19_3, 100 });
     Limits.insert(std::make_pair(Limit::threshold_likers_count, _threshold_likers_count));
 
     // trial_post_limit

@@ -178,14 +178,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
-        tuple<bool, SocialConsensusResult> CheckOpReturnHash(const PTransactionRef& tx) override
-        {
-            if (auto[ok, result] = SocialBaseConsensus::CheckOpReturnHash(tx); !ok)
-                return {false, result};
-
-            return Success;
-        }
     };
 
     /*******************************************************************************************************************

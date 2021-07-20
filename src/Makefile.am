@@ -98,7 +98,7 @@ POCKETDB_HPP = \
     pocketdb/migrations/main.hpp \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/helpers/TransactionHelper.hpp \
-    pocketdb/helpers/TypesHelper.hpp \
+    pocketdb/helpers/CheckpointHelper.hpp \
     pocketdb/web/PocketCommentsRpc.h \
     pocketdb/web/PocketCommentsRpc.cpp \
     pocketdb/web/PocketSystemRpc.h \

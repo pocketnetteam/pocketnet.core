@@ -94,15 +94,6 @@ struct Params {
     unsigned int nHeight_version_1_0_0_pre;
     std::string sVersion_1_0_0_pre_checkpoint;
     unsigned int nHeight_version_1_0_0;
-    unsigned int nHeight_fix_ratings;
-    unsigned int nHeight_version_0_18_11;
-
-    unsigned int score_blocking_on;
-    unsigned int score_blocking_off;
-    unsigned int opreturn_check;
-    unsigned int lottery_referral_beg;
-    unsigned int lottery_referral_limitation;
-    unsigned int checkpoint_0_19_3;
 };
 } // namespace Consensus
 

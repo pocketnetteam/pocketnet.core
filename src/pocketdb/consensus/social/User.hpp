@@ -90,19 +90,6 @@ namespace PocketConsensus
             return Success;
         }
 
-
-        tuple<bool, SocialConsensusResult> CheckOpReturnHash(const shared_ptr <Transaction>& tx) override
-        {
-            if (auto[baseCheckOk, baseCheckResult] = SocialBaseConsensus::CheckOpReturnHash(tx); !baseCheckOk)
-            {
-                LogPrintf("!!! OP_RETURN INCONSISTENT USER > %s\n", *tx->GetHash());
-                return {false, SocialConsensusResult_FailedOpReturn};
-            }
-
-            return Success;
-        }
-
-        // Check op_return hash
         tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<User>(tx);

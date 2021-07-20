@@ -13,6 +13,7 @@
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/models/base/Base.hpp"
 #include "pocketdb/consensus/Base.hpp"
+#include "pocketdb/helpers/CheckpointHelper.hpp"
 
 namespace PocketConsensus
 {
@@ -97,9 +98,12 @@ namespace PocketConsensus
 
             if (*tx->GetOpReturnTx() != *tx->GetOpReturnPayload())
             {
-                // TODO (brangr): DEBUG
-                LogPrintf("+++ %s != %s for %s\n", *tx->GetOpReturnTx(), *tx->GetOpReturnPayload(), *tx->GetHash());
-                //return {false, SocialConsensusResult_FailedOpReturn};
+                PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
+                if (!opReturnCheckpoints.IsCheckpoint(*tx->GetHash(), *tx->GetOpReturnPayload()))
+                    return {false, SocialConsensusResult_FailedOpReturn};
+
+                LogPrint(BCLog::SYNC, "Found inconsistent data checkpoint for tx:%s payloadHash:%s - Skip\n",
+                    *tx->GetHash(), *tx->GetOpReturnPayload());
             }
 
             return Success;
