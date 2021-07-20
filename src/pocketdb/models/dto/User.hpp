@@ -29,9 +29,8 @@ namespace PocketTx
             if (GetReferrerAddress()) result->pushKV("referrer", *GetReferrerAddress());
 
             if (!m_payload)
-            {
                 return result;
-            }
+            
             if (m_payload->GetString1()) result->pushKV("lang", *m_payload->GetString1());
             if (m_payload->GetString2()) result->pushKV("name", *m_payload->GetString2());
             if (m_payload->GetString3()) result->pushKV("avatar", *m_payload->GetString3());

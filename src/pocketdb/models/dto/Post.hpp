@@ -25,14 +25,21 @@ namespace PocketTx
             // For olf protocol edited content
             // txid     - original content hash
             // txidEdit - actual transaction hash
-            result->pushKV("txid", *GetRootTxHash());
-            if (*GetRootTxHash() != *GetHash())
+            if (*GetRootTxHash() == *GetHash())
+            {
+                result->pushKV("txid", *GetHash());
+                result->pushKV("txidEdit", "");
+            }
+            else
+            {
+                result->pushKV("txid", *GetRootTxHash());
                 result->pushKV("txidEdit", *GetHash());
+            }
+            
 
             if (!m_payload)
-            {
                 return result;
-            }
+                
             result->pushKV("lang", m_payload->GetString1() ? *m_payload->GetString1() : "en");
             if (m_payload->GetString2()) result->pushKV("caption", *m_payload->GetString2());
             if (m_payload->GetString3()) result->pushKV("message", *m_payload->GetString3());
