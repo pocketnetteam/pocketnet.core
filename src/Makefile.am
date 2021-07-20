@@ -110,11 +110,13 @@ POCKETDB_HPP = \
     pocketdb/web/PocketFrontend.hpp \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
-    pocketdb/repositories/WebRepository.h \
-    pocketdb/repositories/WebRepository.cpp \
     pocketdb/repositories/ChainRepository.hpp \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/ConsensusRepository.cpp \
+    pocketdb/repositories/web/WebRepository.h \
+    pocketdb/repositories/web/WebRepository.cpp \
+    pocketdb/repositories/web/WebUserRepository.h \
+    pocketdb/repositories/web/WebUserRepository.cpp \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Lottery.hpp \
     pocketdb/consensus/social/Helper.hpp \

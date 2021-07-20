@@ -7,8 +7,9 @@ namespace PocketDb
     TransactionRepository TransRepoInst(PocketDb::SQLiteDbInst);
     ChainRepository ChainRepoInst(PocketDb::SQLiteDbInst);
     RatingsRepository RatingsRepoInst(PocketDb::SQLiteDbInst);
-    WebRepository WebRepoInst(PocketDb::SQLiteDbInst);
     ConsensusRepository ConsensusRepoInst(PocketDb::SQLiteDbInst);
+    WebRepository WebRepoInst(PocketDb::SQLiteDbInst);
+    WebUserRepository WebUserRepoInst(PocketDb::SQLiteDbInst);
 }
 
 

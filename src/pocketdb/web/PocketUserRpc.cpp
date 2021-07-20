@@ -81,3 +81,26 @@ UniValue PocketWeb::PocketUserRpc::GetUserProfile(const JSONRPCRequest& request)
 
     return aResult;
 }
+
+UniValue PocketWeb::PocketUserRpc::GetUserAddress(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 2)
+        throw std::runtime_error(
+            "getuseraddress \"user_name\" ( count )\n"
+            "\nGet list addresses of user.\n");
+
+    std::string userName;
+    if (!request.params[0].isNull()) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        userName = request.params[0].get_str();
+    }
+
+    int count = 7;
+    if (request.params.size() >= 2) {
+        ParseInt32(request.params[1].get_str(), &count);
+    }
+
+    auto result = PocketDb::WebUserRepoInst.GetUserAddress(userName, count);
+
+    return result;
+}

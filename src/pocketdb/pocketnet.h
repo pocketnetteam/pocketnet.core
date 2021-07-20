@@ -13,8 +13,9 @@
 #include "pocketdb/repositories/ChainRepository.hpp"
 #include "pocketdb/repositories/RatingsRepository.hpp"
 #include "pocketdb/repositories/TransactionRepository.hpp"
-#include "pocketdb/repositories/WebRepository.h"
 #include "pocketdb/repositories/ConsensusRepository.h"
+#include "pocketdb/repositories/web/WebRepository.h"
+#include "pocketdb/repositories/web/WebUserRepository.h"
 
 namespace PocketDb
 {
@@ -22,8 +23,9 @@ namespace PocketDb
     extern TransactionRepository TransRepoInst;
     extern ChainRepository ChainRepoInst;
     extern RatingsRepository RatingsRepoInst;
-    extern WebRepository WebRepoInst;
     extern ConsensusRepository ConsensusRepoInst;
+    extern WebRepository WebRepoInst;
+    extern WebUserRepository WebUserRepoInst;
 }; // namespace PocketDb
 
 
