@@ -334,32 +334,34 @@ void FillLimitsTest(const CChainParams &params)
 {
     // threshold_reputation
     std::map<int, int64_t> _threshold_reputation;
-    _threshold_reputation.insert({0, 1000});
+    _threshold_reputation.insert({0, 100});
     Limits.insert(std::make_pair(Limit::threshold_reputation, _threshold_reputation));
 
     // threshold_reputation_score
     std::map<int, int64_t> _threshold_reputation_score;
-    _threshold_reputation_score.insert({0, 1000});
+    _threshold_reputation_score.insert({0, 0});
+    _threshold_reputation_score.insert({100000, 100});
     Limits.insert(std::make_pair(Limit::threshold_reputation_score, _threshold_reputation_score));
 
     // threshold_reputation_complains
     std::map<int, int64_t> _threshold_reputation_complains;
-    _threshold_reputation_complains.insert({0, 1000});
+    _threshold_reputation_complains.insert({0, 100});
     Limits.insert(std::make_pair(Limit::threshold_reputation_complains, _threshold_reputation_complains));
 
     // threshold_reputation_blocking
     std::map<int, int64_t> _threshold_reputation_blocking;
-    _threshold_reputation_blocking.insert({0, 1000});
+    _threshold_reputation_blocking.insert({0, 100});
     Limits.insert(std::make_pair(Limit::threshold_reputation_blocking, _threshold_reputation_blocking));
 
     // threshold_balance
     std::map<int, int64_t> _threshold_balance;
-    _threshold_balance.insert({0, 50 * COIN});
+    _threshold_balance.insert({0, 5 * COIN});
     Limits.insert(std::make_pair(Limit::threshold_balance, _threshold_balance));
 
     // threshold_likers_count
     std::map<int, int64_t> _threshold_likers_count;
-    _threshold_likers_count.insert({0, 100});
+    _threshold_likers_count.insert({0, 0});
+    _threshold_likers_count.insert({100000, 10});
     Limits.insert(std::make_pair(Limit::threshold_likers_count, _threshold_likers_count));
 
     // trial_post_limit
@@ -424,7 +426,7 @@ void FillLimitsTest(const CChainParams &params)
 
     // change_info_timeout
     std::map<int, int64_t> _change_info_timeout;
-    _change_info_timeout.insert({0, 60}); // blocks
+    _change_info_timeout.insert({0, 30}); // blocks
     Limits.insert(std::make_pair(Limit::change_info_timeout, _change_info_timeout));
 
     // edit_post_timeout
@@ -449,7 +451,7 @@ void FillLimitsTest(const CChainParams &params)
 
     // bad_reputation
     std::map<int, int64_t> _bad_reputation;
-    _bad_reputation.insert({0, -500});
+    _bad_reputation.insert({0, -50});
     Limits.insert(std::make_pair(Limit::bad_reputation, _bad_reputation));
 
     // scores_one_to_one

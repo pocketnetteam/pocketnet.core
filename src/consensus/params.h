@@ -104,7 +104,7 @@ struct Params {
     unsigned int lottery_referral_limitation;
     unsigned int checkpoint_0_19_3;
     unsigned int checkpoint_0_19_6;
-    //unsigned int checkpoint_non_unique_account_name;
+    unsigned int checkpoint_non_unique_account_name;
     unsigned int checkpoint_split_content_video;
 };
 } // namespace Consensus
