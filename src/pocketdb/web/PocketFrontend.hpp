@@ -115,7 +115,7 @@ namespace PocketWeb
                 "<html><head><script src='main.js'></script></head><body>Hello World!</body></html>"
             });
 
-            LOCK(CacheMutex);
+            //LOCK(CacheMutex);
             Cache.emplace(
                 "/test.html",
                 testContent
