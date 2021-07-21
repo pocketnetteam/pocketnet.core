@@ -73,7 +73,7 @@ UniValue PocketDb::WebUserRepository::GetAddressesRegistrationDates(vector<strin
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]() {
+    TryTransactionStep(__func__, [&]() {
         auto stmt = SetupSqlStatement(sql);
 
         while (sqlite3_step(*stmt) == SQLITE_ROW) {
