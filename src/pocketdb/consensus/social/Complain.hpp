@@ -40,14 +40,10 @@ namespace PocketConsensus
             return mode == AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
         }
 
+
         tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<Complain>(tx);
-
-            // Check registration
-            vector<string> addresses = {*ptx->GetAddress()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return {false, SocialConsensusResult_NotRegistered};
 
             // Author or post must be exists
             auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*ptx->GetPostTxHash());
@@ -64,7 +60,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
 
         virtual bool CheckBlockLimitTime(shared_ptr<Complain> ptx, shared_ptr<Complain> blockPtx)
         {
@@ -150,6 +145,12 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetReason())) return {false, SocialConsensusResult_Failed};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<Complain>(tx);
+            return {*ptx->GetAddress()};
         }
     };
 

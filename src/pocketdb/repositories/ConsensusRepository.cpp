@@ -5,7 +5,6 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/ConsensusRepository.h"
-#include <boost/algorithm/string/join.hpp>
 
 namespace PocketDb
 {
@@ -60,7 +59,6 @@ namespace PocketDb
         )sql";
 
         auto stmt = SetupSqlStatement(sql);
-
         TryBindStatementText(stmt, 1, address);
 
         TryTransactionStep(__func__, [&]()
@@ -88,7 +86,6 @@ namespace PocketDb
         )sql";
 
         auto stmt = SetupSqlStatement(sql);
-
         TryBindStatementText(stmt, 1, rootHash);
 
         TryTransactionStep(__func__, [&]()
@@ -111,32 +108,30 @@ namespace PocketDb
         if (addresses.empty())
             return result;
 
+        // Build sql string
         string sql = R"sql(
             SELECT count(distinct(AddressHash))
             FROM vUsers
-            WHERE AddressHash IN (
+            WHERE 1=1
         )sql";
 
-        boost::algorithm::join(rpls(addresses, "?"), ",");
-
-        sql += "'";
-        sql += addresses[0];
-        sql += "'";
-        for (size_t i = 1; i < addresses.size(); i++)
-        {
-            sql += ",'";
-            sql += addresses[i];
-            sql += "'";
-        }
-        sql += ")";
+        sql += " and AddressHash in ( ";
+        sql += join(vector<string>(addresses.size(), "?"), ",");
+        sql += " ) ";
 
         if (!mempool)
             sql += " and Height is not null";
 
+        // Compile sql
+        auto stmt = SetupSqlStatement(sql);
+
+        // Bind values
+        for (size_t i = 0; i < addresses.size(); i++)
+            TryBindStatementText(stmt, i + 1, addresses[i]);
+
+        // Execute
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = (value == (int) addresses.size());
@@ -324,12 +319,11 @@ namespace PocketDb
             GROUP BY o.AddressHash
         )sql";
 
+        auto stmt = SetupSqlStatement(sql);
+        TryBindStatementText(stmt, 1, address);
+
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, 1, address);
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
@@ -357,13 +351,12 @@ namespace PocketDb
                 limit 1
             )sql";
 
+        auto stmt = SetupSqlStatement(sql);
+        TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
+        TryBindStatementText(stmt, 2, address);
+
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
-            TryBindStatementText(stmt, 2, address);
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
@@ -407,7 +400,7 @@ namespace PocketDb
     {
         shared_ptr<ScoreDataDto> result = nullptr;
 
-        auto sql = R"sql(
+        auto stmt = SetupSqlStatement(R"sql(
             select
                 s.Hash sTxHash,
                 s.Type sType,
@@ -427,13 +420,11 @@ namespace PocketDb
                 join vAccounts ca on ca.Height is not null and ca.AddressHash=c.AddressHash
             where s.Hash = ? and s.Height is not null
             limit 1
-        )sql";
+        )sql");
+        TryBindStatementText(stmt, 1, txHash);
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, txHash);
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 ScoreDataDto data;
@@ -469,6 +460,7 @@ namespace PocketDb
         if (addresses.empty())
             return result;
 
+        // Build sql string
         string sql = R"sql(
             select a.AddressHash, ifnull(a.ReferrerAddressHash,'')
             from vAccounts a
@@ -476,24 +468,23 @@ namespace PocketDb
                 and a.Height >= ?
                 and a.Height = (select min(a1.Height) from vAccounts a1 where a1.Height is not null and a1.AddressHash=a.AddressHash)
                 and a.ReferrerAddressHash is not null
-                and a.AddressHash in (
         )sql";
 
-        sql += addresses[0];
-        for (size_t i = 1; i < addresses.size(); i++)
-        {
-            sql += ',';
-            sql += addresses[i];
-        }
-        sql += ")";
+        sql += " and a.AddressHash in ( ";
+        sql += join(vector<string>(addresses.size(), "?"), ",");
+        sql += " ) ";
 
-        // --------------------------------------------
+        // Compile sql
+        auto stmt = SetupSqlStatement(sql);
 
+        // Bind values
+        TryBindStatementInt(stmt, 1, minHeight);
+        for (size_t i = 0; i < addresses.size(); i++)
+            TryBindStatementText(stmt, i + 2, addresses[i]);
+
+        // Execute
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt(stmt, 0, minHeight);
-
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok1, value1] = TryGetColumnString(*stmt, 1); ok1 && !value1.empty())
@@ -512,23 +503,20 @@ namespace PocketDb
     {
         shared_ptr<string> result;
 
-        auto sql = R"sql(
-                select a.ReferrerAddressHash
-                from vAccounts a
-                where a.Height is not null
-                    and a.Time >= ?
-                    and a.AddressHash = ?
-                order by a.Height asc
-                limit 1
-            )sql";
+        auto stmt = SetupSqlStatement(R"sql(
+            select a.ReferrerAddressHash
+            from vAccounts a
+            where a.Height is not null
+                and a.Time >= ?
+                and a.AddressHash = ?
+            order by a.Height asc
+            limit 1
+        )sql");
+        TryBindStatementInt(stmt, 1, minTime);
+        TryBindStatementText(stmt, 2, address);
 
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementInt(stmt, 1, minTime);
-            TryBindStatementText(stmt, 2, address);
-
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
@@ -573,6 +561,12 @@ namespace PocketDb
                                                   const std::vector<int>& values,
                                                   int64_t scoresOneToOneDepth)
     {
+        int result = 0;
+
+        if (values.empty())
+            return result;
+
+        // Build sql string
         string sql = R"sql(
             select count(1)
             from vScores s -- indexed by Transactions_GetScoreContentCount
@@ -586,20 +580,17 @@ namespace PocketDb
                 and s.Time >= ?
                 and s.Hash != ?
                 and s.Type = ?
-                and s.Value in
+
         )sql";
 
-        sql += "(";
-        sql += std::to_string(values[0]);
-        for (size_t i = 1; i < values.size(); i++)
-        {
-            sql += ',';
-            sql += std::to_string(values[i]);
-        }
-        sql += ")";
+        sql += " and s.Value in (";
+        sql += join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
+        sql += " ) ";
 
+        // Compile sql
         auto stmt = SetupSqlStatement(sql);
 
+        // Bind values
         TryBindStatementInt(stmt, 1, contentType);
         TryBindStatementText(stmt, 2, contentAddress);
         TryBindStatementInt(stmt, 3, height);
@@ -610,7 +601,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 8, tx->GetHash().GetHex());
         TryBindStatementInt(stmt, 9, scoreType);
 
-        int result = 0;
+        // Execute
         TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -634,7 +625,6 @@ namespace PocketDb
                 and a.Last = 1
                 and a.Height is not null
         )sql");
-
         TryBindStatementText(stmt, 1, address);
 
         TryTransactionStep(__func__, [&]()
@@ -659,7 +649,6 @@ namespace PocketDb
             where   t.Hash = ?
                 and t.Height is not null
         )sql");
-
         TryBindStatementText(stmt, 1, hash);
 
         TryTransactionStep(__func__, [&]()

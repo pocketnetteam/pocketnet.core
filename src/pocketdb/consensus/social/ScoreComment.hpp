@@ -43,11 +43,6 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<ScoreComment>(tx);
 
-            // Check registration
-            vector<string> addresses = {*ptx->GetAddress()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
-
             // Comment should be exists
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetCommentTxHash());
             if (!lastContentOk)
@@ -177,6 +172,12 @@ namespace PocketConsensus
             //  return {false, SocialConsensusResult_OpReturnFailed};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<ScoreComment>(tx);
+            return {*ptx->GetAddress()};
         }
     };
 

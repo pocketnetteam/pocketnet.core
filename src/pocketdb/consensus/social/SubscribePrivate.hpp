@@ -31,11 +31,7 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<SubscribePrivate>(tx);
 
-            vector<string> addresses = {*ptx->GetAddress(), *ptx->GetAddressTo()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return {false, SocialConsensusResult_NotRegistered};
-
-            // Check double blocking
+            // Check double subscribe
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
                 *ptx->GetAddress(),
                 *ptx->GetAddressTo());
@@ -99,6 +95,12 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_SelfSubscribe};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<SubscribePrivate>(tx);
+            return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
     };
 

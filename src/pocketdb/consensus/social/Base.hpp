@@ -35,19 +35,22 @@ namespace PocketConsensus
             {
                 vector<string> addresses = GetAddressesForCheckRegistration(tx);
 
-                // First check block - maybe user registration this?
-                for (auto blockTx : block)
+                if (!addresses.empty())
                 {
-                    if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
-                        continue;
+                    // First check block - maybe user registration this?
+                    for (auto blockTx : block)
+                    {
+                        if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                            continue;
 
-                    auto blockAddress = *blockPtx->GetString1();
-                    if (IsIn(blockAddress, addresses))
-                        addresses.erase(remove(addresses.begin(), addresses.end(), blockAddress), addresses.end());
+                        auto blockAddress = *blockTx->GetString1();
+                        if (find(addresses.begin(), addresses.end(), blockAddress) != addresses.end())
+                            addresses.erase(remove(addresses.begin(), addresses.end(), blockAddress), addresses.end());
+                    }
+
+                    if (!addresses.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, false))
+                        return {false, SocialConsensusResult_NotRegistered};
                 }
-
-                if (!addresses.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, false))
-                    return {false, SocialConsensusResult_NotRegistered};
             }
 
             // Generic validate model
@@ -142,6 +145,9 @@ namespace PocketConsensus
         {
             return TransRepoInst.ExistsByHash(*tx->GetHash());
         }
+
+        // Get addresses from transaction for check registration
+        virtual vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) = 0;
 
 
         // Check empty pointer

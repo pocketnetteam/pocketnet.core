@@ -10,105 +10,104 @@
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/TransactionRepository.hpp"
 
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <timedata.h>
 
 namespace PocketDb
 {
-using std::runtime_error;
-using std::string;
+    using std::runtime_error;
+    using std::string;
 
-using namespace PocketTx;
-using namespace PocketHelpers;
+    using boost::algorithm::join;
+    using boost::adaptors::transformed;
 
-class ConsensusRepository : public TransactionRepository
-{
-public:
-    explicit ConsensusRepository(SQLiteDatabase& db) : TransactionRepository(db) {}
+    using namespace PocketTx;
+    using namespace PocketHelpers;
 
-    void Init() override;
-    void Destroy() override;
+    class ConsensusRepository : public TransactionRepository
+    {
+    public:
+        explicit ConsensusRepository(SQLiteDatabase& db) : TransactionRepository(db) {}
 
-
-    tuple<bool, PTransactionRef> GetLastAccount(const string& address);
-    tuple<bool, PTransactionRef> GetLastContent(const string& rootHash);
-
-    tuple<bool, int64_t> GetLastAccountHeight(const string& address);
-    tuple<bool, int64_t> GetTransactionHeight(const string& hash);
-
-    tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
-    tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);
-
-    shared_ptr<string> GetPostAddress(const string& postHash);
-    int64_t GetUserBalance(const string& address);
-    int GetUserReputation(const string& addressId);
-    int GetUserReputation(int addressId);
-
-    shared_ptr<ScoreDataDto> GetScoreData(const string& txHash);
-    shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
-    shared_ptr<string> GetReferrer(const string& address, int minTime);
-    int GetUserLikersCount(int addressId);
-    int GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
-                              const string& scoreAddress, const string& contentAddress,
-                              int height, const CTransactionRef& tx,
-                              const std::vector<int>& values,
-                              int64_t scoresOneToOneDepth);
-
-    // Exists
-    bool ExistsComplain(const string& txHash, const string& postHash, const string& address);
-    bool ExistsScore(const string& address, const string& contentHash, PocketTxType type, bool mempool);
-    bool ExistsUserRegistrations(vector<string>& addresses);
-    bool ExistsAnotherByName(const string& address, const string& name);
-
-    // get counts in "mempool" - Height is null
-    int CountMempoolBlocking(const string& address, const string& addressTo);
-    int CountMempoolSubscribe(const string& address, const string& addressTo);
-
-    int CountMempoolComment(const string& address);
-    int CountChainCommentTime(const string& address, int64_t time);
-    int CountChainCommentHeight(const string& address, int height);
-
-    int CountMempoolComplain(const string& address);
-    int CountChainComplainTime(const string& address, int64_t time);
-    int CountChainComplainHeight(const string& address, int height);
-
-    int CountMempoolPost(const string& address);
-    int CountChainPostTime(const string& address, int64_t time);
-    int CountChainPostHeight(const string& address, int height);
-
-    int CountMempoolScoreComment(const string& address);
-    int CountChainScoreCommentTime(const string& address, int64_t time);
-    int CountChainScoreCommentHeight(const string& address, int height);
-
-    int CountMempoolScoreContent(const string& address);
-    int CountChainScoreContentTime(const string& address, int64_t time);
-    int CountChainScoreContentHeight(const string& address, int height);
-
-    int CountMempoolUser(const string& address);
-    int CountChainUserTime(const string& address, int64_t time);
-    int CountChainUserHeight(const string& address, int height);
-
-    int CountMempoolVideo(const string& address);
-    int CountChainVideoTime(const string& address, int64_t time);
-    int CountChainVideoHeight(const string& address, int height);
+        void Init() override;
+        void Destroy() override;
 
 
-    int CountMempoolCommentEdit(const string& rootTxHash);
-    int CountChainCommentEdit(const string& rootTxHash);
+        tuple<bool, PTransactionRef> GetLastAccount(const string& address);
+        tuple<bool, PTransactionRef> GetLastContent(const string& rootHash);
 
-    int CountMempoolPostEdit(const string& rootTxHash);
-    int CountChainPostEdit(const string& rootTxHash);
+        tuple<bool, int64_t> GetLastAccountHeight(const string& address);
+        tuple<bool, int64_t> GetTransactionHeight(const string& hash);
 
-    int CountMempoolVideoEdit(const string& rootTxHash);
-    int CountChainVideoEdit(const string& rootTxHash);
+        tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
+        tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);
+
+        shared_ptr<string> GetPostAddress(const string& postHash);
+        int64_t GetUserBalance(const string& address);
+        int GetUserReputation(const string& addressId);
+        int GetUserReputation(int addressId);
+
+        shared_ptr<ScoreDataDto> GetScoreData(const string& txHash);
+        shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
+        shared_ptr<string> GetReferrer(const string& address, int minTime);
+        int GetUserLikersCount(int addressId);
+        int GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
+            const string& scoreAddress, const string& contentAddress,
+            int height, const CTransactionRef& tx,
+            const std::vector<int>& values,
+            int64_t scoresOneToOneDepth);
+
+        // Exists
+        bool ExistsComplain(const string& txHash, const string& postHash, const string& address);
+        bool ExistsScore(const string& address, const string& contentHash, PocketTxType type, bool mempool);
+        bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
+        bool ExistsAnotherByName(const string& address, const string& name);
+
+        // get counts in "mempool" - Height is null
+        int CountMempoolBlocking(const string& address, const string& addressTo);
+        int CountMempoolSubscribe(const string& address, const string& addressTo);
+
+        int CountMempoolComment(const string& address);
+        int CountChainCommentTime(const string& address, int64_t time);
+        int CountChainCommentHeight(const string& address, int height);
+
+        int CountMempoolComplain(const string& address);
+        int CountChainComplainTime(const string& address, int64_t time);
+        int CountChainComplainHeight(const string& address, int height);
+
+        int CountMempoolPost(const string& address);
+        int CountChainPostTime(const string& address, int64_t time);
+        int CountChainPostHeight(const string& address, int height);
+
+        int CountMempoolScoreComment(const string& address);
+        int CountChainScoreCommentTime(const string& address, int64_t time);
+        int CountChainScoreCommentHeight(const string& address, int height);
+
+        int CountMempoolScoreContent(const string& address);
+        int CountChainScoreContentTime(const string& address, int64_t time);
+        int CountChainScoreContentHeight(const string& address, int height);
+
+        int CountMempoolUser(const string& address);
+        int CountChainUserTime(const string& address, int64_t time);
+        int CountChainUserHeight(const string& address, int height);
+
+        int CountMempoolVideo(const string& address);
+        int CountChainVideoTime(const string& address, int64_t time);
+        int CountChainVideoHeight(const string& address, int height);
 
 
+        int CountMempoolCommentEdit(const string& rootTxHash);
+        int CountChainCommentEdit(const string& rootTxHash);
+
+        int CountMempoolPostEdit(const string& rootTxHash);
+        int CountChainPostEdit(const string& rootTxHash);
+
+        int CountMempoolVideoEdit(const string& rootTxHash);
+        int CountChainVideoEdit(const string& rootTxHash);
 
 
-
-
-
-
-};
+    };
 
 } // namespace PocketDb
 

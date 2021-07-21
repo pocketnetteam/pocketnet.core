@@ -118,6 +118,11 @@ namespace PocketConsensus
 
             return Success;
         }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            return {};
+        }
     };
 
     /*******************************************************************************************************************
@@ -195,6 +200,7 @@ namespace PocketConsensus
                 (--m_rules.upper_bound(height))->second(height));
         }
     };
+
 } // namespace PocketConsensus
 
 #endif // POCKETCONSENSUS_USER_HPP

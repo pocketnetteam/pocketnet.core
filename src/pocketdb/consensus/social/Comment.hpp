@@ -40,13 +40,10 @@ namespace PocketConsensus
 
         virtual int64_t GetCommentMessageMaxSize() { return 2000; }
 
+
         tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<Comment>(tx);
-
-            vector<string> addresses = {*ptx->GetAddress()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // Parent comment
             if (!IsEmpty(ptx->GetParentTxHash()))
@@ -159,6 +156,12 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_Size};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<Comment>(tx);
+            return {*ptx->GetAddress()};
         }
 
     };

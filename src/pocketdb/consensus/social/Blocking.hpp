@@ -29,11 +29,6 @@ namespace PocketConsensus
             // Blocking checks
             auto ptx = static_pointer_cast<Blocking>(tx);
 
-            // Account must be registered
-            vector<string> addresses = {*ptx->GetAddress(), *ptx->GetAddressTo()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return {false, SocialConsensusResult_NotRegistered};
-
             // Double blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                     *ptx->GetAddress(),
@@ -88,6 +83,12 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_SelfBlocking};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<Blocking>(tx);
+            return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
 
     };

@@ -38,14 +38,10 @@ namespace PocketConsensus
             return mode == AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
         }
 
+
         tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<ScoreContent>(tx);
-
-            // Check registration
-            vector<string> addresses = {*ptx->GetAddress()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
 
             // Content should be exists
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash());
@@ -172,6 +168,12 @@ namespace PocketConsensus
             //return {false, SocialConsensusResult_OpReturnFailed};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<ScoreContent>(tx);
+            return {*ptx->GetAddress()};
         }
 
     };

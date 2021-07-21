@@ -28,10 +28,6 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
 
-            vector<string> addresses = {*ptx->GetAddress()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return make_tuple(false, SocialConsensusResult_NotRegistered);
-
             // Actual comment not deleted
             if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
                 !ok || *actuallTx->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
@@ -106,6 +102,12 @@ namespace PocketConsensus
             if (ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<CommentDelete>(tx);
+            return {*ptx->GetAddress()};
         }
 
     };

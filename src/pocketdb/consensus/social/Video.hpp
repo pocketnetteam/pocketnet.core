@@ -56,10 +56,6 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<Video>(tx);
 
-            vector<string> addresses = {*ptx->GetAddress()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return {false, SocialConsensusResult_NotRegistered};
-
             if (ptx->IsEdit())
                 return ValidateEditModel(ptx);
 
@@ -229,6 +225,12 @@ namespace PocketConsensus
             if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<Video>(tx);
+            return {*ptx->GetAddress()};
         }
 
     };

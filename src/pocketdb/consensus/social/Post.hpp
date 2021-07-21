@@ -55,10 +55,6 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<Post>(tx);
 
-            vector<string> addresses = {*ptx->GetAddress()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return {false, SocialConsensusResult_NotRegistered};
-
             if (ptx->IsEdit())
                 return ValidateEditModel(ptx);
 
@@ -235,6 +231,12 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<Post>(tx);
+            return {*ptx->GetAddress()};
         }
     };
 

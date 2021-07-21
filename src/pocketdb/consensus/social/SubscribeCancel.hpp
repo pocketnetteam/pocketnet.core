@@ -31,11 +31,6 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<SubscribeCancel>(tx);
 
-            // Check registrations
-            vector<string> addresses = {*ptx->GetAddress(), *ptx->GetAddressTo()};
-            if (!PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses))
-                return {false, SocialConsensusResult_NotRegistered};
-
             // Last record not valid subscribe
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
                 *ptx->GetAddress(),
@@ -47,8 +42,8 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult>
-        ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
+            const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<SubscribeCancel>(tx);
 
@@ -97,6 +92,12 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_SelfSubscribe};
 
             return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        {
+            auto ptx = static_pointer_cast<SubscribeCancel>(tx);
+            return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
     };
 
