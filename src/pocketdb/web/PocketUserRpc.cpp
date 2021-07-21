@@ -104,3 +104,49 @@ UniValue PocketWeb::PocketUserRpc::GetUserAddress(const JSONRPCRequest& request)
 
     return result;
 }
+
+UniValue PocketWeb::PocketUserRpc::GetAddressRegistration(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1) {
+        throw std::runtime_error(
+            "getaddressregistration [\"addresses\",...]\n"
+            "\nReturns array of registration dates.\n"
+            "\nArguments:\n"
+            "1. \"addresses\"      (string) A json array of pocketcoin addresses to filter\n"
+            "    [\n"
+            "      \"address\"     (string) pocketcoin address\n"
+            "      ,...\n"
+            "    ]\n"
+            "\nResult\n"
+            "[                             (array of json objects)\n"
+            "  {\n"
+            "    \"address\" : \"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\",     (string) the pocketcoin address\n"
+            "    \"date\" : \"1544596205\",                                (int64) date in Unix time format\n"
+            "    \"date\" : \"2378659...\"                                 (string) id of first transaction with this address\n"
+            "  },\n"
+            "  ,...\n"
+            "]");
+    }
+
+    std::vector<std::string> addresses;
+    if (!request.params[0].isNull()) {
+        RPCTypeCheckArgument(request.params[0], UniValue::VARR);
+        UniValue inputs = request.params[0].get_array();
+        for (unsigned int idx = 0; idx < inputs.size(); idx++) {
+            const UniValue& input = inputs[idx];
+            CTxDestination dest = DecodeDestination(input.get_str());
+
+            if (!IsValidDestination(dest)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + input.get_str());
+            }
+
+            if (std::find(addresses.begin(), addresses.end(), input.get_str()) == addresses.end()) {
+                addresses.push_back(input.get_str());
+            }
+        }
+    }
+
+    auto result = PocketDb::WebUserRepoInst.GetAddressesRegistrationDates(addresses);
+
+    return result;
+}

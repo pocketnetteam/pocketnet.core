@@ -26,6 +26,7 @@ namespace PocketDb
         void Destroy() override;
 
         UniValue GetUserAddress(string& name, int count);
+        UniValue GetAddressesRegistrationDates(vector<string>& addresses);
     };
 } // namespace PocketDb
 

@@ -44,3 +44,50 @@ UniValue PocketDb::WebUserRepository::GetUserAddress(std::string& name, int coun
 
     return result;
 }
+
+UniValue PocketDb::WebUserRepository::GetAddressesRegistrationDates(vector<string>& addresses)
+{
+    string sql = R"sql(
+        WITH addresses (AddressHash, Height) AS (
+            SELECT AddressHash, MIN(Height) AS Height
+            FROM vUsers
+    )sql";
+
+    sql += "WHERE AddressHash IN ('";
+    sql += addresses[0];
+    sql += "'";
+    for (size_t i = 1; i < addresses.size(); i++) {
+        sql += ",'";
+        sql += addresses[i];
+        sql += "'";
+    }
+    sql += ")";
+
+    sql += R"sql(
+            GROUP BY AddressHash
+        )
+        SELECT u.AddressHash, u.Time, u.Hash
+        FROM vUsers u
+        INNER JOIN addresses a ON u.AddressHash = a.AddressHash AND u.Height = a.Height
+    )sql";
+
+    auto result = UniValue(UniValue::VARR);
+
+    TryTransactionStep([&]() {
+        auto stmt = SetupSqlStatement(sql);
+
+        while (sqlite3_step(*stmt) == SQLITE_ROW) {
+            UniValue record(UniValue::VOBJ);
+
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", valueStr);
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("time", valueStr);
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("txid", valueStr);
+
+            result.push_back(record);
+        }
+
+        FinalizeSqlStatement(*stmt);
+    });
+
+    return result;
+}
