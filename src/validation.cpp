@@ -937,7 +937,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
         // Remove conflicting transactions from the mempool
         for (CTxMemPool::txiter it : allConflicting) {
-            LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s POC additional fees, %d delta bytes\n",
+            LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s PKOIN additional fees, %d delta bytes\n",
                 it->GetTx().GetHash().ToString(),
                 hash.ToString(),
                 FormatMoney(nModifiedFees - nConflictingFees),
