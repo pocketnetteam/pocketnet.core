@@ -35,23 +35,11 @@ namespace PocketConsensus
             auto minUserReputation = GetThresholdReputationScore();
             auto minLikersCount = GetThresholdLikersCount();
 
-            int64_t nTime1 = GetTimeMicros();
-
             auto userReputation = PocketDb::ConsensusRepoInst.GetUserReputation(addressId);
-
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "        - GetUserReputation: %.2fms _ %d\n",
-                0.001 * (nTime2 - nTime1), addressId);
-
             if (userReputation < minUserReputation)
                 return false;
 
             auto userLikers = PocketDb::ConsensusRepoInst.GetUserLikersCount(addressId);
-
-            int64_t nTime3 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "        - GetUserLikersCount: %.2fms _ %d\n",
-                0.001 * (nTime3 - nTime2), addressId);
-
             if (userLikers < minLikersCount)
                 return false;
 
@@ -75,8 +63,6 @@ namespace PocketConsensus
             // Check user reputation
             if (!AllowModifyReputation(checkScoreAddressId, height))
                 return false;
-
-            int64_t nTime1 = GetTimeMicros();
 
             // Disable reputation increment if from one address to one address > 2 scores over day
             int64_t _max_scores_one_to_one = GetScoresOneToOne();
@@ -102,10 +88,6 @@ namespace PocketConsensus
                 checkScoreAddressHash, scoreData->ContentAddressHash,
                 height, tx, values, _scores_one_to_one_depth);
 
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "        - GetScoreContentCount (Post): %.2fms _ %s\n",
-                0.001 * (nTime2 - nTime1), checkScoreAddressHash);
-
             if (scores_one_to_one_count >= _max_scores_one_to_one)
                 return false;
 
@@ -119,8 +101,6 @@ namespace PocketConsensus
             // Check user reputation
             if (!AllowModifyReputation(scoreData->ScoreAddressId, height))
                 return false;
-
-            int64_t nTime1 = GetTimeMicros();
 
             // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
             int64_t _max_scores_one_to_one = GetScoresOneToOneOverComment();
@@ -141,10 +121,6 @@ namespace PocketConsensus
                 scoreData->ScoreType, scoreData->ContentType,
                 scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
                 height, tx, values, _scores_one_to_one_depth);
-
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "        - GetScoreContentCount (Comment): %.2fms _ %s\n",
-                0.001 * (nTime2 - nTime1), scoreData->ScoreAddressHash);
 
             if (scores_one_to_one_count >= _max_scores_one_to_one)
                 return false;

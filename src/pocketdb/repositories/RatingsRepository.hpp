@@ -33,16 +33,10 @@ namespace PocketDb
         {
             for (const auto& rating : *ratings)
             {
-                int64_t nTime1 = GetTimeMicros();
-
                 if (*rating.GetType() == RatingType::RATING_ACCOUNT_LIKERS)
                     InsertLiker(rating);
                 else
                     InsertRating(rating);
-
-                int64_t nTime2 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - InsertRating (%d): %.2fms\n", *rating.GetTypeInt(),
-                    0.001 * (nTime2 - nTime1));
             }
         }
 
@@ -68,7 +62,7 @@ namespace PocketDb
                     ), 0) + ?
             )sql";
 
-            TryTransactionStep([&]()
+            TryTransactionStep(__func__, [&]()
             {
                 auto stmt = SetupSqlStatement(sql);
 
@@ -96,7 +90,7 @@ namespace PocketDb
                 WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
             )sql";
 
-            TryTransactionStep([&]()
+            TryTransactionStep(__func__, [&]()
             {
                 auto stmt = SetupSqlStatement(sql);
 

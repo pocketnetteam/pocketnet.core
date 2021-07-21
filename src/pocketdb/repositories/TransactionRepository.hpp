@@ -36,7 +36,7 @@ namespace PocketDb
         //  Base transaction operations
         void InsertTransactions(PocketBlock& pocketBlock)
         {
-            TryTransactionStep([&]()
+            TryTransactionStep(__func__, [&]()
             {
                 for (const auto& ptx : pocketBlock)
                 {
@@ -71,7 +71,7 @@ namespace PocketDb
             sql += ")";
 
             auto result = make_shared<PocketBlock>(PocketBlock{});
-            TryTransactionStep([&]()
+            TryTransactionStep(__func__, [&]()
             {
                 auto stmt = SetupSqlStatement(sql);
 
@@ -107,7 +107,7 @@ namespace PocketDb
             )sql");
             TryBindStatementText(stmt, 1, hash);
 
-            TryTransactionStep([&]()
+            TryTransactionStep(__func__, [&]()
             {
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                     if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

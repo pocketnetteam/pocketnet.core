@@ -24,7 +24,7 @@ UniValue PocketDb::WebUserRepository::GetUserAddress(std::string& name, int coun
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]() {
+    TryTransactionStep(__func__, [&]() {
         auto stmt = SetupSqlStatement(sql);
 
         TryBindStatementText(stmt, 1, name);

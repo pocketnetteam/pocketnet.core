@@ -25,20 +25,14 @@ namespace PocketDb
         // General method for SQL operations
         // Locked with shutdownMutex
         template<typename T>
-        void TryTransactionStep(T sql)
+        void TryTransactionStep(const string& func, T sql)
         {
             int64_t nTime1 = GetTimeMicros();
 
             LOCK(SqliteShutdownMutex);
 
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "        - TryTransactionStep LOCK: %.2fms\n", 0.001 * (nTime2 - nTime1));
-
             if (!m_database.BeginTransaction())
                 return;
-
-            int64_t nTime3 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "        - TryTransactionStep BEGIN: %.2fms\n", 0.001 * (nTime3 - nTime2));
 
             try
             {
@@ -47,9 +41,6 @@ namespace PocketDb
                 if (!m_database.CommitTransaction())
                     throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));
 
-                int64_t nTime4 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "        - TryTransactionStep COMMIT: %.2fms\n", 0.001 * (nTime4 - nTime3));
-
             }
             catch (std::exception& ex)
             {
@@ -57,21 +48,17 @@ namespace PocketDb
                 m_database.AbortTransaction();
                 throw ex;
             }
+            
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "      - TryTransactionStep (%s): %.2fms\n", func, 0.001 * (nTime2 - nTime1));
         }
 
-        void TryTransactionStep(std::initializer_list<shared_ptr<sqlite3_stmt*>> stmts)
+        void TryTransactionStep(const string& func, std::initializer_list<shared_ptr<sqlite3_stmt*>> stmts)
         {
-            TryTransactionStep([&]()
+            TryTransactionStep(func, [&]()
             {
                 for (auto stmt : stmts)
-                {
-                    int64_t nTime1 = GetTimeMicros();
-
                     TryStepStatement(stmt);
-
-                    int64_t nTime2 = GetTimeMicros();
-                    LogPrint(BCLog::BENCH, "        - TryTransactionStep STEP: %.2fms\n", 0.001 * (nTime2 - nTime1));
-                }
             });
         }
 
@@ -188,11 +175,11 @@ namespace PocketDb
                    : make_tuple(true, sqlite3_column_int(stmt, index));
         }
 
-        int GetCount(shared_ptr<sqlite3_stmt*>& stmt)
+        int GetCount(const string& func, shared_ptr<sqlite3_stmt*>& stmt)
         {
             int result = 0;
 
-            TryTransactionStep([&]()
+            TryTransactionStep(func, [&]()
             {
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                     if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)

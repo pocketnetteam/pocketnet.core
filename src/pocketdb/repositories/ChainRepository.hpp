@@ -33,69 +33,29 @@ namespace PocketDb
         {
             for (const auto& txInfo : txs)
             {
-                int64_t nTime1 = GetTimeMicros();
-
                 // All transactions must have a blockHash & height relation
                 UpdateTransactionHeight(blockHash, height, txInfo.Hash);
 
-                int64_t nTime2 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - UpdateTransactionHeight: %.2fms _ %s\n",
-                    0.001 * (nTime2 - nTime1), txInfo.Hash);
-
                 // The outputs are needed for the explorer
                 UpdateTransactionOutputs(txInfo, height);
-
-                int64_t nTime3 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - UpdateTransactionOutputs: %.2fms _ %s\n",
-                    0.001 * (nTime3 - nTime2), txInfo.Hash);
 
                 // Account and Content must have unique ID
                 // Also all edited transactions must have Last=(0/1) field
                 {
                     if (txInfo.IsAccount())
-                    {
                         IndexAccount(txInfo.Hash);
 
-                        int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - SetAccountId: %.2fms _ %s\n",
-                            0.001 * (nTime4 - nTime3), txInfo.Hash);
-                    }
-
                     if (txInfo.IsContent())
-                    {
                         IndexContent(txInfo.Hash);
 
-                        int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - SetContentId: %.2fms _ %s\n",
-                            0.001 * (nTime4 - nTime3), txInfo.Hash);
-                    }
-
                     if (txInfo.IsComment())
-                    {
                         IndexComment(txInfo.Hash);
 
-                        int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - SetCommentId: %.2fms _ %s\n",
-                            0.001 * (nTime4 - nTime3), txInfo.Hash);
-                    }
-
                     if (txInfo.IsBlocking())
-                    {
                         IndexBlocking(txInfo.Hash);
 
-                        int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - SetBlockingId: %.2fms _ %s\n",
-                            0.001 * (nTime4 - nTime3), txInfo.Hash);
-                    }
-
                     if (txInfo.IsSubscribe())
-                    {
                         IndexSubscribe(txInfo.Hash);
-
-                        int64_t nTime4 = GetTimeMicros();
-                        LogPrint(BCLog::BENCH, "      - SetSubscribeId: %.2fms _ %s\n",
-                            0.001 * (nTime4 - nTime3), txInfo.Hash);
-                    }
                 }
             }
         }
@@ -103,8 +63,6 @@ namespace PocketDb
         // Erase all calculated data great or equals block
         void RollbackBlock(int height)
         {
-            int64_t nTime1 = GetTimeMicros();
-
             // Update transactions
             auto transactionsStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
@@ -114,11 +72,7 @@ namespace PocketDb
                 WHERE Height is not null and Height >= ?
             )sql");
             TryBindStatementInt(transactionsStmt, 1, height);
-            TryTransactionStep({ transactionsStmt });
-
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - RollbackBlock (Chain): %.2fms _ %d\n",
-                0.001 * (nTime2 - nTime1), height);
+            TryTransactionStep(__func__, { transactionsStmt });
 
             // Update transaction outputs
             auto outputsStmt = SetupSqlStatement(R"sql(
@@ -128,11 +82,7 @@ namespace PocketDb
                 WHERE SpentHeight is not null and SpentHeight >= ?
             )sql");
             TryBindStatementInt(outputsStmt, 1, height);
-            TryTransactionStep({ outputsStmt });
-
-            int64_t nTime3 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - RollbackBlock (Outputs): %.2fms _ %d\n",
-                0.001 * (nTime3 - nTime2), height);
+            TryTransactionStep(__func__, { outputsStmt });
 
             // Remove ratings
             auto ratingsStmt = SetupSqlStatement(R"sql(
@@ -141,11 +91,7 @@ namespace PocketDb
             )sql");
 
             TryBindStatementInt(ratingsStmt, 1, height);
-            TryTransactionStep({ ratingsStmt });
-
-            int64_t nTime4 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - RollbackBlock (Ratings): %.2fms _ %d\n",
-                0.001 * (nTime4 - nTime3), height);
+            TryTransactionStep(__func__, { ratingsStmt });
         }
 
     private:
@@ -163,7 +109,7 @@ namespace PocketDb
             TryBindStatementInt(stmt, 2, height);
             TryBindStatementText(stmt, 3, txHash);
 
-            TryTransactionStep({ stmt });
+            TryTransactionStep(__func__, { stmt });
         }
 
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height)
@@ -175,7 +121,7 @@ namespace PocketDb
                 WHERE TxHash=? and Number=?
             )sql";
 
-            TryTransactionStep([&]()
+            TryTransactionStep(__func__, [&]()
             {
                 for (auto& input : txInfo.Inputs)
                 {
@@ -240,7 +186,7 @@ namespace PocketDb
             TryBindStatementText(setIdStmt, 1, txHash);
 
             // Execute all
-            TryTransactionStep({ clearLastStmt, setIdStmt });
+            TryTransactionStep(__func__, { clearLastStmt, setIdStmt });
         }
 
         void IndexContent(const string& txHash)
@@ -292,7 +238,7 @@ namespace PocketDb
             )sql");
             TryBindStatementText(setIdStmt, 1, txHash);
 
-            TryTransactionStep({ clearLastStmt, setIdStmt });
+            TryTransactionStep(__func__, { clearLastStmt, setIdStmt });
         }
 
         void IndexComment(const string& txHash)
@@ -342,7 +288,7 @@ namespace PocketDb
             )sql");
             TryBindStatementText(setIdStmt, 1, txHash);
 
-            TryTransactionStep({ clearLastStmt, setIdStmt });
+            TryTransactionStep(__func__, { clearLastStmt, setIdStmt });
         }
 
         void IndexBlocking(const string& txHash)
@@ -373,7 +319,7 @@ namespace PocketDb
             )sql");
             TryBindStatementText(setLastStmt, 1, txHash);
 
-            TryTransactionStep({ clearLastStmt, setLastStmt });
+            TryTransactionStep(__func__, { clearLastStmt, setLastStmt });
         }
 
         void IndexSubscribe(const string& txHash)
@@ -404,7 +350,7 @@ namespace PocketDb
             )sql");
             TryBindStatementText(setLastStmt, 1, txHash);
 
-            TryTransactionStep({ clearLastStmt, setLastStmt });
+            TryTransactionStep(__func__, { clearLastStmt, setLastStmt });
         }
 
     };

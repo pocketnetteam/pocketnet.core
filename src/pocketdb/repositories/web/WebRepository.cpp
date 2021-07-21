@@ -16,7 +16,7 @@ UniValue PocketDb::WebRepository::GetAddressInfo(int count)
     // shared_ptr<ListDto<AddressInfoDto>> result = make_shared<ListDto<AddressInfoDto>>();
 
     // return make_tuple(
-    //     TryTransactionStep([&]()
+    //     TryTransactionStep(__func__, [&]()
     //     {
     //         bool stepResult = true;
     //         auto stmt = SetupSqlStatement(R"sql(
@@ -82,7 +82,7 @@ UniValue PocketDb::WebRepository::GetLastComments(int count, int height, std::st
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]()
+    TryTransactionStep(__func__, [&]()
     {
         auto stmt = SetupSqlStatement(sql);
 
@@ -165,7 +165,7 @@ UniValue PocketDb::WebRepository::GetCommentsByPost(const std::string& postHash,
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]()
+    TryTransactionStep(__func__, [&]()
     {
         auto stmt = SetupSqlStatement(sql);
 
@@ -238,7 +238,7 @@ UniValue PocketDb::WebRepository::GetCommentsByIds(string& addressHash, vector<s
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]()
+    TryTransactionStep(__func__, [&]()
     {
         auto stmt = SetupSqlStatement(sql);
 
@@ -294,7 +294,7 @@ UniValue PocketDb::WebRepository::GetPostScores(vector<string>& postHashes, stri
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]()
+    TryTransactionStep(__func__, [&]()
     {
         auto stmt = SetupSqlStatement(sql);
 
@@ -350,7 +350,7 @@ UniValue PocketDb::WebRepository::GetPageScores(std::vector<std::string>& commen
 
     auto result = UniValue(UniValue::VARR);
 
-    TryTransactionStep([&]()
+    TryTransactionStep(__func__, [&]()
     {
         auto stmt = SetupSqlStatement(sql);
 
@@ -457,7 +457,7 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetSubscribesAddresses(
         result[address] = UniValue(UniValue::VARR);
     }
 
-    TryTransactionStep([&](){
+    TryTransactionStep(__func__, [&](){
       auto stmt = SetupSqlStatement(sql);
 
       while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -504,7 +504,7 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetSubscribersAddresses
         result[address] = UniValue(UniValue::VARR);
     }
 
-    TryTransactionStep([&](){
+    TryTransactionStep(__func__, [&](){
       auto stmt = SetupSqlStatement(sql);
 
       while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -547,7 +547,7 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetBlockingToAddresses(
         result[address] = UniValue(UniValue::VARR);
     }
 
-    TryTransactionStep([&](){
+    TryTransactionStep(__func__, [&](){
       auto stmt = SetupSqlStatement(sql);
 
       while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -599,7 +599,7 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetUserProfile(std::vec
 
     std::map<std::string, UniValue> result{};
 
-    TryTransactionStep([&]() {
+    TryTransactionStep(__func__, [&]() {
       auto stmt = SetupSqlStatement(sql);
 
       while (sqlite3_step(*stmt) == SQLITE_ROW)

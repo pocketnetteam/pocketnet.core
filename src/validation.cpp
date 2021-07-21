@@ -2487,7 +2487,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketHelpers::PocketB
         int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
         if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
-            return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
+            LogPrintf("@@@ Checkpoint for %d %s\n", pindex->nHeight, block.GetHash().GetHex());
+            //return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
     }
 
     int64_t nTime4 = GetTimeMicros();
@@ -4320,7 +4321,7 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
         auto outType = PocketHelpers::ScriptType(out.scriptPubKey);
         if (outType == TX_PUBKEYHASH)
             blockOuts.push_back(out);
-        }
+    }
 
     if (blockOuts.size() != genOuts.size())
         valid = false;
@@ -4328,26 +4329,21 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
     // Compare block and calculated outs
     if (valid)
     {
-    for (int i = 0; i < (int) blockOuts.size(); i++)
-    {
-        auto bOut = blockOuts[i];
-        auto gOut = genOuts[i];
+        for (int i = 0; i < (int) blockOuts.size(); i++)
+        {
+            auto bOut = blockOuts[i];
+            auto gOut = genOuts[i];
 
-        valid = valid && (bOut == gOut);
+            valid = valid && (bOut == gOut);
         }
     }
 
     // Check hardcoded checkpoints
-        if (!valid)
+    if (!valid)
     {
         PocketHelpers::LotteryCheckpoints lotteryCheckpoints;
         if (lotteryCheckpoints.IsCheckpoint(pindexPrev->nHeight + 1, block.GetHash().GetHex()))
-        {
-            LogPrint(BCLog::SYNC, "Found inconsistent data checkpoint for %d %s - Skip\n",
-                pindexPrev->nHeight + 1, block.GetHash().GetHex());
-
             valid = true;
-        }
     }
 
     return valid;

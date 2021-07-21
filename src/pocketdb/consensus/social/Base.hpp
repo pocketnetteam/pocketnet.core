@@ -31,9 +31,30 @@ namespace PocketConsensus
         // Validate transaction in block for miner & network full block sync
         virtual tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, const PocketBlock& block)
         {
+            // Account must be registered
+            {
+                vector<string> addresses = GetAddressesForCheckRegistration(tx);
+
+                // First check block - maybe user registration this?
+                for (auto blockTx : block)
+                {
+                    if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                        continue;
+
+                    auto blockAddress = *blockPtx->GetString1();
+                    if (IsIn(blockAddress, addresses))
+                        addresses.erase(remove(addresses.begin(), addresses.end(), blockAddress), addresses.end());
+                }
+
+                if (!addresses.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, false))
+                    return {false, SocialConsensusResult_NotRegistered};
+            }
+
+            // Generic validate model
             if (auto[ok, result] = ValidateModel(tx); !ok)
                 return {false, result};
 
+            // Validate limits include block transactions
             if (auto[ok, result] = ValidateLimit(tx, block); !ok)
                 return {false, result};
 
@@ -43,9 +64,16 @@ namespace PocketConsensus
         // Validate new transaction received over RPC or network mempool
         virtual tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx)
         {
+            // Account must be registered
+            vector<string> addresses = GetAddressesForCheckRegistration(tx);
+            if (!addresses.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, true))
+                return {false, SocialConsensusResult_NotRegistered};
+
+            // Generic validate model
             if (auto[ok, result] = ValidateModel(tx); !ok)
                 return {false, result};
 
+            // Validate limits include mempool
             if (auto[ok, result] = ValidateLimit(tx); !ok)
                 return {false, result};
 

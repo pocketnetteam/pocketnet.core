@@ -5,6 +5,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/ConsensusRepository.h"
+#include <boost/algorithm/string/join.hpp>
 
 namespace PocketDb
 {
@@ -30,10 +31,11 @@ namespace PocketDb
                         and ac.AddressHash = ?
                 )
         )sql");
+
         TryBindStatementText(stmt, 1, name);
         TryBindStatementText(stmt, 2, address);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             result = sqlite3_step(*stmt) == SQLITE_ROW;
             FinalizeSqlStatement(*stmt);
@@ -58,9 +60,10 @@ namespace PocketDb
         )sql";
 
         auto stmt = SetupSqlStatement(sql);
+
         TryBindStatementText(stmt, 1, address);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
@@ -85,9 +88,10 @@ namespace PocketDb
         )sql";
 
         auto stmt = SetupSqlStatement(sql);
+
         TryBindStatementText(stmt, 1, rootHash);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
@@ -100,7 +104,7 @@ namespace PocketDb
     }
 
     // TODO (brangr) (v0.21.0): change for vAccounts and pass type as argument
-    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses)
+    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, bool mempool)
     {
         auto result = false;
 
@@ -108,11 +112,12 @@ namespace PocketDb
             return result;
 
         string sql = R"sql(
-            SELECT count(distinct(u.AddressHash))
-            FROM vUsers u
-            WHERE u.Height is not null
-                and u.AddressHash IN (
+            SELECT count(distinct(AddressHash))
+            FROM vUsers
+            WHERE AddressHash IN (
         )sql";
+
+        boost::algorithm::join(rpls(addresses, "?"), ",");
 
         sql += "'";
         sql += addresses[0];
@@ -125,7 +130,10 @@ namespace PocketDb
         }
         sql += ")";
 
-        TryTransactionStep([&]()
+        if (!mempool)
+            sql += " and Height is not null";
+
+        TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
@@ -153,10 +161,11 @@ namespace PocketDb
                 and b.Last = 1
             LIMIT 1
         )sql");
+
         TryBindStatementText(stmt, 1, address);
         TryBindStatementText(stmt, 2, addressTo);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -192,7 +201,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementText(stmt, 2, addressTo);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -223,7 +232,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, postHash);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
@@ -253,7 +262,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 2, postHash);
         TryBindStatementText(stmt, 3, txHash);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -276,8 +285,7 @@ namespace PocketDb
         string sql = R"sql(
             SELECT 1
             FROM vScores s
-            WHERE s.Height is not null
-                and s.AddressHash = ?
+            WHERE   s.AddressHash = ?
                 and s.ContentTxHash = ?
                 and s.Type = ?
         )sql";
@@ -290,7 +298,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 2, contentHash);
         TryBindStatementInt(stmt, 3, (int) type);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -316,7 +324,7 @@ namespace PocketDb
             GROUP BY o.AddressHash
         )sql";
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
@@ -349,7 +357,7 @@ namespace PocketDb
                 limit 1
             )sql";
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
@@ -378,10 +386,11 @@ namespace PocketDb
             order by r.Height desc
             limit 1
         )sql");
+
         TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
         TryBindStatementInt(stmt, 2, addressId);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -399,30 +408,28 @@ namespace PocketDb
         shared_ptr<ScoreDataDto> result = nullptr;
 
         auto sql = R"sql(
-                select
-                    s.Hash sTxHash,
-                    s.Type sType,
-                    s.Time sTime,
-                    s.Value sValue,
-                    sa.Id saId,
-                    sa.AddressHash saHash,
-                    c.Hash cTxHash,
-                    c.Type cType,
-                    c.Time cTime,
-                    c.Id cId,
-                    ca.Id caId,
-                    ca.AddressHash caHash
-                from vScores s
-                    join vAccounts sa on sa.Height is not null and sa.AddressHash=s.AddressHash
-                    join vContents c on c.Height is not null and c.Hash=s.ContentTxHash
-                    join vAccounts ca on ca.Height is not null and ca.AddressHash=c.AddressHash
-                where s.Hash = ? and s.Height is not null
-                limit 1
-            )sql";
+            select
+                s.Hash sTxHash,
+                s.Type sType,
+                s.Time sTime,
+                s.Value sValue,
+                sa.Id saId,
+                sa.AddressHash saHash,
+                c.Hash cTxHash,
+                c.Type cType,
+                c.Time cTime,
+                c.Id cId,
+                ca.Id caId,
+                ca.AddressHash caHash
+            from vScores s
+                join vAccounts sa on sa.Height is not null and sa.AddressHash=s.AddressHash
+                join vContents c on c.Height is not null and c.Hash=s.ContentTxHash
+                join vAccounts ca on ca.Height is not null and ca.AddressHash=c.AddressHash
+            where s.Hash = ? and s.Height is not null
+            limit 1
+        )sql";
 
-        // ---------------------------------------
-
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             TryBindStatementText(stmt, 1, txHash);
@@ -463,14 +470,14 @@ namespace PocketDb
             return result;
 
         string sql = R"sql(
-                select a.AddressHash, ifnull(a.ReferrerAddressHash,'')
-                from vAccounts a
-                where a.Height is not null
-                    and a.Height >= ?
-                    and a.Height = (select min(a1.Height) from vAccounts a1 where a1.Height is not null and a1.AddressHash=a.AddressHash)
-                    and a.ReferrerAddressHash is not null
-                    and a.AddressHash in (
-            )sql";
+            select a.AddressHash, ifnull(a.ReferrerAddressHash,'')
+            from vAccounts a
+            where a.Height is not null
+                and a.Height >= ?
+                and a.Height = (select min(a1.Height) from vAccounts a1 where a1.Height is not null and a1.AddressHash=a.AddressHash)
+                and a.ReferrerAddressHash is not null
+                and a.AddressHash in (
+        )sql";
 
         sql += addresses[0];
         for (size_t i = 1; i < addresses.size(); i++)
@@ -482,7 +489,7 @@ namespace PocketDb
 
         // --------------------------------------------
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             TryBindStatementInt(stmt, 0, minHeight);
@@ -515,7 +522,7 @@ namespace PocketDb
                 limit 1
             )sql";
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
@@ -539,15 +546,16 @@ namespace PocketDb
         int result = 0;
 
         auto stmt = SetupSqlStatement(R"sql(
-                select count(1)
-                from Ratings r
-                where   r.Type = ?
-                    and r.Id = ?
-            )sql");
+            select count(1)
+            from Ratings r
+            where   r.Type = ?
+                and r.Id = ?
+        )sql");
+
         TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
         TryBindStatementInt(stmt, 2, addressId);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -566,20 +574,20 @@ namespace PocketDb
                                                   int64_t scoresOneToOneDepth)
     {
         string sql = R"sql(
-                select count(1)
-                from vScores s -- indexed by Transactions_GetScoreContentCount
-                join vContents c -- indexed by Transactions_GetScoreContentCount_2
-                    on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ?
-                        and c.Height is not null and c.Height <= ?
-                where   s.AddressHash = ?
-                    and s.Height is not null
-                    and s.Height <= ?
-                    and s.Time < ?
-                    and s.Time >= ?
-                    and s.Hash != ?
-                    and s.Type = ?
-                    and s.Value in
-            )sql";
+            select count(1)
+            from vScores s -- indexed by Transactions_GetScoreContentCount
+            join vContents c -- indexed by Transactions_GetScoreContentCount_2
+                on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ?
+                    and c.Height is not null and c.Height <= ?
+            where   s.AddressHash = ?
+                and s.Height is not null
+                and s.Height <= ?
+                and s.Time < ?
+                and s.Time >= ?
+                and s.Hash != ?
+                and s.Type = ?
+                and s.Value in
+        )sql";
 
         sql += "(";
         sql += std::to_string(values[0]);
@@ -591,6 +599,7 @@ namespace PocketDb
         sql += ")";
 
         auto stmt = SetupSqlStatement(sql);
+
         TryBindStatementInt(stmt, 1, contentType);
         TryBindStatementText(stmt, 2, contentAddress);
         TryBindStatementInt(stmt, 3, height);
@@ -602,7 +611,7 @@ namespace PocketDb
         TryBindStatementInt(stmt, 9, scoreType);
 
         int result = 0;
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -628,7 +637,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, address);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
@@ -653,7 +662,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, hash);
 
-        TryTransactionStep([&]()
+        TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
@@ -681,7 +690,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementText(stmt, 2, addressTo);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountMempoolSubscribe(const string& address, const string& addressTo)
     {
@@ -696,7 +705,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementText(stmt, 2, addressTo);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
 
@@ -712,7 +721,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainCommentTime(const string& address, int64_t time)
     {
@@ -729,7 +738,7 @@ namespace PocketDb
         TryBindStatementInt64(stmt, 1, time);
         TryBindStatementText(stmt, 2, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainCommentHeight(const string& address, int height)
     {
@@ -746,7 +755,7 @@ namespace PocketDb
         TryBindStatementInt(stmt, 1, height);
         TryBindStatementText(stmt, 2, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
     int ConsensusRepository::CountMempoolComplain(const string& address)
@@ -760,7 +769,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainComplainTime(const string& address, int64_t time)
     {
@@ -776,7 +785,7 @@ namespace PocketDb
         TryBindStatementInt64(stmt, 1, time);
         TryBindStatementText(stmt, 2, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainComplainHeight(const string& address, int height)
     {
@@ -792,7 +801,7 @@ namespace PocketDb
         TryBindStatementInt(stmt, 1, height);
         TryBindStatementText(stmt, 2, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
     int ConsensusRepository::CountMempoolPost(const string& address)
@@ -806,7 +815,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainPostTime(const string& address, int64_t time)
     {
@@ -822,7 +831,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt64(stmt, 2, time);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainPostHeight(const string& address, int height)
     {
@@ -838,7 +847,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt(stmt, 2, height);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
     int ConsensusRepository::CountMempoolScoreComment(const string& address)
@@ -852,7 +861,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainScoreCommentTime(const string& address, int64_t time)
     {
@@ -868,7 +877,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt64(stmt, 2, time);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainScoreCommentHeight(const string& address, int height)
     {
@@ -884,7 +893,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt(stmt, 2, height);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
     int ConsensusRepository::CountMempoolScoreContent(const string& address)
@@ -898,7 +907,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainScoreContentTime(const string& address, int64_t time)
     {
@@ -914,7 +923,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt64(stmt, 2, time);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainScoreContentHeight(const string& address, int height)
     {
@@ -930,7 +939,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt(stmt, 2, height);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
     int ConsensusRepository::CountMempoolUser(const string& address)
@@ -944,7 +953,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainUserTime(const string& address, int64_t time)
     {
@@ -960,7 +969,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt64(stmt, 2, time);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainUserHeight(const string& address, int height)
     {
@@ -976,7 +985,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt(stmt, 2, height);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
     int ConsensusRepository::CountMempoolVideo(const string& address)
@@ -990,7 +999,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, address);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainVideoTime(const string& address, int64_t time)
     {
@@ -1006,7 +1015,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt64(stmt, 2, time);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainVideoHeight(const string& address, int height)
     {
@@ -1022,7 +1031,7 @@ namespace PocketDb
         TryBindStatementText(stmt, 1, address);
         TryBindStatementInt(stmt, 2, height);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
     // EDITS
@@ -1038,7 +1047,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, rootTxHash);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainCommentEdit(const string& rootTxHash)
     {
@@ -1051,7 +1060,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, rootTxHash);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
     int ConsensusRepository::CountMempoolPostEdit(const string& rootTxHash)
@@ -1065,7 +1074,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, rootTxHash);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainPostEdit(const string& rootTxHash)
     {
@@ -1079,7 +1088,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, rootTxHash);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
     int ConsensusRepository::CountMempoolVideoEdit(const string& rootTxHash)
@@ -1093,7 +1102,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, rootTxHash);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
     int ConsensusRepository::CountChainVideoEdit(const string& rootTxHash)
     {
@@ -1107,7 +1116,7 @@ namespace PocketDb
 
         TryBindStatementText(stmt, 1, rootTxHash);
 
-        return GetCount(stmt);
+        return GetCount(__func__, stmt);
     }
 
 }
