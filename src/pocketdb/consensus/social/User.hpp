@@ -58,8 +58,8 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult>
-        ValidateLimit(const shared_ptr <Transaction>& tx, const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx, 
+            const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<User>(tx);
 
@@ -74,7 +74,11 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<User>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                    return {false, SocialConsensusResult_ChangeInfoLimit};
+                {
+                    PocketHelpers::SocialCheckpoints socialCheckpoints;
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_ChangeInfoLimit))
+                        return {false, SocialConsensusResult_ChangeInfoLimit};
+                }
             }
 
             return Success;

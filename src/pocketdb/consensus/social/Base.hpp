@@ -132,9 +132,6 @@ namespace PocketConsensus
                 PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
                 if (!opReturnCheckpoints.IsCheckpoint(*tx->GetHash(), *tx->GetOpReturnPayload()))
                     return {false, SocialConsensusResult_FailedOpReturn};
-
-                LogPrint(BCLog::SYNC, "Found inconsistent data checkpoint for tx:%s payloadHash:%s - Skip\n",
-                    *tx->GetHash(), *tx->GetOpReturnPayload());
             }
 
             return Success;
