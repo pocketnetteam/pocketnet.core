@@ -629,6 +629,7 @@ namespace PocketDb
         drop index if exists Transactions_String4;
         drop index if exists Transactions_String5;
         drop index if exists Transactions_Int1;
+        drop index if exists Transactions_Hash_Height;
         drop index if exists Transactions_Type_String1_Height;
         drop index if exists Transactions_Type_String2_Height;
         drop index if exists Transactions_Type_Height_Id;
@@ -643,6 +644,7 @@ namespace PocketDb
         drop index if exists Transactions_GetScoreContentCount;
         drop index if exists Transactions_GetScoreContentCount_2;
         drop index if exists Transactions_LastAccount;
+        drop index if exists Transactions_LastContent;
 
     )sql";
 
@@ -659,11 +661,14 @@ namespace PocketDb
         create index if not exists Transactions_String4 on Transactions (String4);
         create index if not exists Transactions_String5 on Transactions (String5);
         create index if not exists Transactions_Int1 on Transactions (Int1);
+        create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
         create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
         create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
         create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
         -- ConsensusRepository::GetUserReputation
         create index if not exists Transactions_LastAccount on Transactions (Type, Last, String1, Height);
+        -- ChainRepository::IndexContent
+        create index if not exists Transactions_LastContent on Transactions (Type, Last, String2, Height);
         -- ConsensusRepository::ExistsScore
         create index if not exists Transactions_ExistsScore on Transactions (Type, String1, String2, Height);
 

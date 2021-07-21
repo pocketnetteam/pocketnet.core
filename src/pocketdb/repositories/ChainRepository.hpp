@@ -152,6 +152,7 @@ namespace PocketDb
                 WHERE   Transactions.Hash != account.Hash
                     and Transactions.Type = account.Type
                     and Transactions.String1 = account.AddressHash
+                    and Transactions.Height is not null
                     and Transactions.Last = 1
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
@@ -162,11 +163,13 @@ namespace PocketDb
                     Id = ifnull(
                         -- copy self Id
                         (
-                            select max( a.Id )
+                            select a.Id
                             from vAccounts a
                             where a.Type = Transactions.Type
+                                and a.Last = 1
                                 and a.Height is not null
                                 and a.AddressHash = Transactions.String1
+                            limit 1
                         ),
                         ifnull(
                             -- new record
@@ -198,13 +201,13 @@ namespace PocketDb
                 FROM (
                     select c.Hash, c.Type, c.RootTxHash
                     from vContents c
-                    where c.Hash = ?
-                        and c.Height is not null
-                        and c.RootTxHash is not null
+                    where c.Height is not null
+                        and c.Hash = ?
                 ) as content
-                WHERE   Transactions.Type = content.Type
+                WHERE   Transactions.Hash != content.Hash
+                    and Transactions.Type = content.Type
                     and Transactions.String2 = content.RootTxHash
-                    and Transactions.Hash != content.Hash
+                    and Transactions.Height is not null
                     and Transactions.Last = 1
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
@@ -215,12 +218,13 @@ namespace PocketDb
                     Id = ifnull(
                         -- copy self Id
                         (
-                            select max( c.Id )
+                            select c.Id
                             from vContents c
                             where c.Type = Transactions.Type
                                 and c.RootTxHash = Transactions.String2
                                 and c.Height is not null
-                                and c.Height <= Transactions.Height
+                                and c.Last = 1
+                            limit 1
                         ),
                         -- new record
                         ifnull(
@@ -229,6 +233,7 @@ namespace PocketDb
                                 from vContents c
                                 where c.Type = Transactions.Type
                                     and c.Height is not null
+                                    and c.Id is not null
                             ),
                             0 -- for first record
                         )
@@ -250,13 +255,13 @@ namespace PocketDb
                 FROM (
                     select c.Hash, c.RootTxHash
                     from vComments c
-                    where c.Hash = ?
-                        and c.Height is not null
-                        and c.RootTxHash is not null
+                    where c.Height is not null
+                        and c.Hash = ?
                 ) as content
-                WHERE   Transactions.Type in (204, 205, 206)
+                WHERE   Transactions.Hash != content.Hash
+                    and Transactions.Type in (204, 205, 206)
                     and Transactions.String2 = content.RootTxHash
-                    and Transactions.Hash != content.Hash
+                    and Transactions.Height is not null
                     and Transactions.Last = 1
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
@@ -300,12 +305,14 @@ namespace PocketDb
                 FROM (
                     select b.Hash, b.AddressHash, b.AddressToHash
                     from vBlockings b
-                    where b.Hash = ? and b.Height is not null
+                    where   b.Hash = ?
+                        and b.Height is not null
                 ) as blocking
                 WHERE   Transactions.Hash != blocking.Hash
                     and Transactions.Type in (305, 306)
                     and Transactions.String1 = blocking.AddressHash
                     and Transactions.String2 = blocking.AddressToHash
+                    and Transactions.Height is not null
                     and Transactions.Last = 1
 
             )sql");
@@ -331,12 +338,14 @@ namespace PocketDb
                 FROM (
                     select s.Hash, s.AddressHash, s.AddressToHash
                     from vSubscribes s
-                    where s.Hash = ? and s.Height is not null
+                    where   s.Hash = ?
+                        and s.Height is not null
                 ) as subscribe
                 WHERE   Transactions.Hash != subscribe.Hash
                     and Transactions.Type in (302, 303, 304)
                     and Transactions.String1 = subscribe.AddressHash
                     and Transactions.String2 = subscribe.AddressToHash
+                    and Transactions.Height is not null
                     and Transactions.Last = 1
 
             )sql");

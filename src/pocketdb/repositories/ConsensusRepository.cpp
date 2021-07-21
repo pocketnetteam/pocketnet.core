@@ -312,11 +312,9 @@ namespace PocketDb
         auto sql = R"sql(
             SELECT SUM(o.Value)
             FROM TxOutputs o
-            INNER JOIN Transactions t ON o.TxHash == t.Hash
+            JOIN Transactions t ON o.TxHash == t.Hash and t.Height is not null
             WHERE o.SpentHeight is null
                 AND o.AddressHash = ?
-                AND t.Height < ?
-            GROUP BY o.AddressHash
         )sql";
 
         auto stmt = SetupSqlStatement(sql);
@@ -325,12 +323,8 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
-                {
                     result = value;
-                }
-            }
 
             FinalizeSqlStatement(*stmt);
         });
@@ -580,7 +574,6 @@ namespace PocketDb
                 and s.Time >= ?
                 and s.Hash != ?
                 and s.Type = ?
-
         )sql";
 
         sql += " and s.Value in (";
