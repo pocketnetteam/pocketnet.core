@@ -83,6 +83,8 @@ namespace PocketConsensus
                 if (*tx->GetString2() == *blockTx->GetString2())
                     return {false, SocialConsensusResult_DoubleCommentDelete};
             }
+
+            return Success;
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
@@ -90,6 +92,8 @@ namespace PocketConsensus
             // GetString2() = RootTxHash
             if (ConsensusRepoInst.CountMempoolCommentEdit(*tx->GetString2()) > 0)
                 return {false, SocialConsensusResult_DoubleCommentDelete};
+
+            return Success;
         }
 
         tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override

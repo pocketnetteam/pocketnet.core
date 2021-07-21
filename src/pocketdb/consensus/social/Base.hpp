@@ -13,7 +13,7 @@
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/models/base/Base.hpp"
 #include "pocketdb/consensus/Base.hpp"
-#include "pocketdb/helpers/CheckpointHelper.hpp"
+#include "pocketdb/helpers/CheckpointHelper.h"
 
 namespace PocketConsensus
 {

@@ -98,7 +98,7 @@ POCKETDB_HPP = \
     pocketdb/migrations/main.hpp \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/helpers/TransactionHelper.hpp \
-    pocketdb/helpers/CheckpointHelper.hpp \
+    pocketdb/helpers/CheckpointHelper.h \
     pocketdb/web/PocketCommentsRpc.h \
     pocketdb/web/PocketCommentsRpc.cpp \
     pocketdb/web/PocketSystemRpc.h \
@@ -162,6 +162,7 @@ POCKETDB_HPP = \
     pocketdb/models/dto/SubscribePrivate.hpp \
     pocketdb/models/dto/SubscribeCancel.hpp \
     pocketdb/models/dto/Complain.hpp
+
 
 # CORE
 POCKETCOIN_CORE_H = \
@@ -347,6 +348,9 @@ libpocketcoin_server_a_SOURCES = \
     versionbits.cpp \
     websocket/ws.cpp \
     utils/html.cpp \
+    pocketdb/helpers/LotteryCheckpointHelper.cpp \
+    pocketdb/helpers/SocialCheckpointHelper.cpp \
+    pocketdb/helpers/OpReturnCheckpointHelper.cpp \
     $(POCKETCOIN_CORE_H)
 
 if !ENABLE_WALLET
