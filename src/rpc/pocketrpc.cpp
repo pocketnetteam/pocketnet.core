@@ -1826,7 +1826,7 @@ UniValue search(const JSONRPCRequest& request)
         type = lower(request.params[1].get_str());
     }
 
-    if (type != "all" && type != "posts" && type != "tags" && type != "users") {
+    if (type != "all" && type != "posts" && type != "videolink" && type != "tags" && type != "users") {
         type = "fs";
     }
 
@@ -1909,6 +1909,33 @@ UniValue search(const JSONRPCRequest& request)
                 oPosts.pushKV("data", aPosts);
                 result.pushKV("posts", oPosts);
             }
+        }
+    }
+
+    if (type == "videolink") {
+        reindexer::QueryResults resVideoLinksBySearchString;
+        if (g_pocketdb->Select(
+                reindexer::Query("Posts", resultStart, resulCount)
+                    .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
+                    .Where("url", CondEq, search_string)
+                    .Where("address", address == "" ? CondGt : CondEq, address)
+                    .Sort("time", true)
+                    .ReqTotal(),
+                resVideoLinksBySearchString)
+            .ok()) {
+            UniValue aPosts(UniValue::VARR);
+
+            for (auto& it : resVideoLinksBySearchString) {
+                Item _itm = it.GetItem();
+                std::string _txid = _itm["txid"].As<string>();
+
+                aPosts.push_back(getPostData(_itm, ""));
+            }
+
+            UniValue oPosts(UniValue::VOBJ);
+            oPosts.pushKV("count", resVideoLinksBySearchString.totalCount);
+            oPosts.pushKV("data", aPosts);
+            result.pushKV("videos", oPosts);
         }
     }
 
