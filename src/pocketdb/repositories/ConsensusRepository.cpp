@@ -456,15 +456,15 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            select a.AddressHash, ifnull(a.ReferrerAddressHash,'')
-            from vAccounts a
-            where a.Height is not null
-                and a.Height >= ?
-                and a.Height = (select min(a1.Height) from vAccounts a1 where a1.Height is not null and a1.AddressHash=a.AddressHash)
-                and a.ReferrerAddressHash is not null
+            select u.AddressHash, ifnull(u.ReferrerAddressHash,'')
+            from vUsers u
+            where u.Height is not null
+                and u.Height >= ?
+                and u.Height = (select min(u1.Height) from vUsers u1 where u1.Height is not null and u1.AddressHash=u.AddressHash)
+                and u.ReferrerAddressHash is not null
         )sql";
 
-        sql += " and a.AddressHash in ( ";
+        sql += " and u.AddressHash in ( ";
         sql += join(vector<string>(addresses.size(), "?"), ",");
         sql += " ) ";
 
@@ -498,12 +498,12 @@ namespace PocketDb
         shared_ptr<string> result;
 
         auto stmt = SetupSqlStatement(R"sql(
-            select a.ReferrerAddressHash
-            from vAccounts a
-            where a.Height is not null
-                and a.Time >= ?
-                and a.AddressHash = ?
-            order by a.Height asc
+            select ReferrerAddressHash
+            from vUsers
+            where Height is not null
+                and Time >= ?
+                and AddressHash = ?
+            order by Height asc
             limit 1
         )sql");
         TryBindStatementInt(stmt, 1, minTime);

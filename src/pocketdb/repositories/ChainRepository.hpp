@@ -139,24 +139,6 @@ namespace PocketDb
 
         void IndexAccount(const string& txHash)
         {
-            // Clear old last records for set new last
-            auto clearLastStmt = SetupSqlStatement(R"sql(
-                UPDATE Transactions SET
-                    Last = 0
-                FROM (
-                    select a.Hash, a.Type, a.AddressHash
-                    from vAccounts a
-                    where   a.Height is not null
-                        and a.Hash = ?
-                ) as account
-                WHERE   Transactions.Hash != account.Hash
-                    and Transactions.Type = account.Type
-                    and Transactions.String1 = account.AddressHash
-                    and Transactions.Height is not null
-                    and Transactions.Last = 1
-            )sql");
-            TryBindStatementText(clearLastStmt, 1, txHash);
-
             // Get new ID or copy previous
             auto setIdStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
@@ -188,30 +170,30 @@ namespace PocketDb
             )sql");
             TryBindStatementText(setIdStmt, 1, txHash);
 
-            // Execute all
-            TryTransactionStep(__func__, { clearLastStmt, setIdStmt });
-        }
-
-        void IndexContent(const string& txHash)
-        {
             // Clear old last records for set new last
             auto clearLastStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
                     Last = 0
                 FROM (
-                    select c.Hash, c.Type, c.RootTxHash
-                    from vContents c
-                    where c.Height is not null
-                        and c.Hash = ?
-                ) as content
-                WHERE   Transactions.Hash != content.Hash
-                    and Transactions.Type = content.Type
-                    and Transactions.String2 = content.RootTxHash
+                    select a.Hash, a.Type, a.AddressHash
+                    from vAccounts a
+                    where   a.Height is not null
+                        and a.Hash = ?
+                ) as account
+                WHERE   Transactions.Hash != account.Hash
+                    and Transactions.Type = account.Type
+                    and Transactions.String1 = account.AddressHash
                     and Transactions.Height is not null
                     and Transactions.Last = 1
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
 
+            // Execute all
+            TryTransactionStep(__func__, { setIdStmt, clearLastStmt });
+        }
+
+        void IndexContent(const string& txHash)
+        {
             // Get new ID or copy previous
             auto setIdStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
@@ -243,29 +225,29 @@ namespace PocketDb
             )sql");
             TryBindStatementText(setIdStmt, 1, txHash);
 
-            TryTransactionStep(__func__, { clearLastStmt, setIdStmt });
-        }
-
-        void IndexComment(const string& txHash)
-        {
             // Clear old last records for set new last
             auto clearLastStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
                     Last = 0
                 FROM (
-                    select c.Hash, c.RootTxHash
-                    from vComments c
+                    select c.Hash, c.Type, c.RootTxHash
+                    from vContents c
                     where c.Height is not null
                         and c.Hash = ?
                 ) as content
                 WHERE   Transactions.Hash != content.Hash
-                    and Transactions.Type in (204, 205, 206)
+                    and Transactions.Type = content.Type
                     and Transactions.String2 = content.RootTxHash
                     and Transactions.Height is not null
                     and Transactions.Last = 1
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
 
+            TryTransactionStep(__func__, { setIdStmt, clearLastStmt });
+        }
+
+        void IndexComment(const string& txHash)
+        {
             // Get new ID or copy previous
             auto setIdStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
@@ -293,11 +275,37 @@ namespace PocketDb
             )sql");
             TryBindStatementText(setIdStmt, 1, txHash);
 
-            TryTransactionStep(__func__, { clearLastStmt, setIdStmt });
+            // Clear old last records for set new last
+            auto clearLastStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Last = 0
+                FROM (
+                    select c.Hash, c.RootTxHash
+                    from vComments c
+                    where c.Height is not null
+                        and c.Hash = ?
+                ) as content
+                WHERE   Transactions.Hash != content.Hash
+                    and Transactions.Type in (204, 205, 206)
+                    and Transactions.String2 = content.RootTxHash
+                    and Transactions.Height is not null
+                    and Transactions.Last = 1
+            )sql");
+            TryBindStatementText(clearLastStmt, 1, txHash);
+
+            TryTransactionStep(__func__, { setIdStmt, clearLastStmt });
         }
 
         void IndexBlocking(const string& txHash)
         {
+            // Set last=1 for new transaction
+            auto setLastStmt = SetupSqlStatement(R"sql(
+                UPDATE Transactions SET
+                    Last = 1
+                WHERE Hash = ?
+            )sql");
+            TryBindStatementText(setLastStmt, 1, txHash);
+
             // Clear old last records for set new last
             auto clearLastStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
@@ -318,7 +326,12 @@ namespace PocketDb
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
 
-            // Get new ID or copy previous
+            TryTransactionStep(__func__, { setLastStmt, clearLastStmt });
+        }
+
+        void IndexSubscribe(const string& txHash)
+        {
+            // Set last=1 for new transaction
             auto setLastStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
                     Last = 1
@@ -326,11 +339,6 @@ namespace PocketDb
             )sql");
             TryBindStatementText(setLastStmt, 1, txHash);
 
-            TryTransactionStep(__func__, { clearLastStmt, setLastStmt });
-        }
-
-        void IndexSubscribe(const string& txHash)
-        {
             // Clear old last records for set new last
             auto clearLastStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
@@ -351,15 +359,7 @@ namespace PocketDb
             )sql");
             TryBindStatementText(clearLastStmt, 1, txHash);
 
-            // Get new ID or copy previous
-            auto setLastStmt = SetupSqlStatement(R"sql(
-                UPDATE Transactions SET
-                    Last = 1
-                WHERE Hash = ?
-            )sql");
-            TryBindStatementText(setLastStmt, 1, txHash);
-
-            TryTransactionStep(__func__, { clearLastStmt, setLastStmt });
+            TryTransactionStep(__func__, { setLastStmt, clearLastStmt });
         }
 
     };
