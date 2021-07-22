@@ -1817,7 +1817,8 @@ UniValue search(const JSONRPCRequest& request)
     std::string search_string = "";
     if (request.params.size() > 0) {
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-        search_string = UrlDecode(request.params[0].get_str());
+        fulltext_search_string_strict = request.params[0].get_str();
+        search_string = UrlDecode(fulltext_search_string_strict);
     }
 
     std::string type = "";
@@ -1917,7 +1918,8 @@ UniValue search(const JSONRPCRequest& request)
         if (g_pocketdb->Select(
                 reindexer::Query("Posts", resultStart, resulCount)
                     .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
-                    .Where("url", CondEq, search_string)
+                    .Where("type", CondEq, getcontenttype("video"))
+                    .Where("url", CondSet, {fulltext_search_string_strict, UrlDecode(fulltext_search_string_strict), UrlEncode(fulltext_search_string_strict)})
                     .Where("address", address == "" ? CondGt : CondEq, address)
                     .Sort("time", true)
                     .ReqTotal(),
