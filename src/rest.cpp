@@ -25,10 +25,7 @@
 #include "pocketdb/services/TransactionIndexer.hpp"
 #include "pocketdb/consensus/social/Helper.hpp"
 #include "pocketdb/services/Accessor.hpp"
-#include "pocketdb/web/PocketFrontend.hpp"
-
-
-static PocketWeb::PocketFrontend _pocketFrontend;
+#include "pocketdb/web/PocketFrontend.h"
 
 static const size_t MAX_GETUTXOS_OUTPOINTS = 15; //allow a max of 15 outpoints to be queried at once
 
@@ -1065,22 +1062,15 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
     if (!CheckWarmup(req))
         return false;
 
-    auto[rf, uriParts] = ParseParams(strURIPart);
-
-    // TODO (brangr): parse routes bla blab la
-
-    if (auto[ok, path] = TryGetParamStr(uriParts, 0); ok)
+    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile(strURIPart); code == HTTP_OK)
     {
-        if (auto[code, file] = _pocketFrontend.GetFile(path); code == HTTP_OK)
-        {
-            req->WriteHeader("Content-Type", file->ContentType);
-            req->WriteReply(code, file->Content);
-            return true;
-        }
-        else
-        {
-            return RESTERR(req, code, "");
-        }
+        req->WriteHeader("Content-Type", file->ContentType);
+        req->WriteReply(code, file->Content);
+        return true;
+    }
+    else
+    {
+        return RESTERR(req, code, "");
     }
 
     return RESTERR(req, HTTP_NOT_FOUND, "");

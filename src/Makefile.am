@@ -90,33 +90,25 @@ endif
 .PHONY: FORCE check-symbols check-security
 
 # PocketDB
-POCKETDB_HPP = \
+POCKETDB_H = \
     pocketdb/pocketnet.h \
-    pocketdb/pocketnet.cpp \
     pocketdb/consensus.h \
-    pocketdb/consensus.cpp \
     pocketdb/migrations/main.hpp \
     pocketdb/SQLiteDatabase.hpp \
     pocketdb/helpers/TransactionHelper.hpp \
     pocketdb/helpers/CheckpointHelper.h \
     pocketdb/web/PocketCommentsRpc.h \
-    pocketdb/web/PocketCommentsRpc.cpp \
     pocketdb/web/PocketSystemRpc.h \
-    pocketdb/web/PocketSystemRpc.cpp \
     pocketdb/web/PocketScoresRpc.h \
-    pocketdb/web/PocketScoresRpc.cpp \
     pocketdb/web/PocketUserRpc.h \
-    pocketdb/web/PocketUserRpc.cpp \
-    pocketdb/web/PocketFrontend.hpp \
+    pocketdb/web/PocketFrontend.h \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/repositories/ChainRepository.hpp \
     pocketdb/repositories/ConsensusRepository.h \
-    pocketdb/repositories/ConsensusRepository.cpp \
     pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/WebUserRepository.h \
-    pocketdb/repositories/web/WebUserRepository.cpp \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Lottery.hpp \
     pocketdb/consensus/social/Helper.hpp \
@@ -163,6 +155,20 @@ POCKETDB_HPP = \
     pocketdb/models/dto/SubscribeCancel.hpp \
     pocketdb/models/dto/Complain.hpp
 
+# PocketDb CPP
+POCKETDB_CPP = \
+    pocketdb/repositories/web/WebUserRepository.cpp \
+    pocketdb/repositories/ConsensusRepository.cpp \
+    pocketdb/pocketnet.cpp \
+    pocketdb/consensus.cpp \
+    pocketdb/web/PocketCommentsRpc.cpp \
+    pocketdb/web/PocketSystemRpc.cpp \
+    pocketdb/web/PocketScoresRpc.cpp \
+    pocketdb/web/PocketUserRpc.cpp \
+    pocketdb/web/PocketFrontend.cpp \
+    pocketdb/helpers/LotteryCheckpointHelper.cpp \
+    pocketdb/helpers/SocialCheckpointHelper.cpp \
+    pocketdb/helpers/OpReturnCheckpointHelper.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \
@@ -286,7 +292,7 @@ POCKETCOIN_CORE_H = \
     zmq/zmqrpc.h \
     websocket/ws.h \
     utils/html.h \
-    $(POCKETDB_HPP)
+    $(POCKETDB_H)
 
 
 obj/build.h: FORCE
@@ -348,9 +354,7 @@ libpocketcoin_server_a_SOURCES = \
     versionbits.cpp \
     websocket/ws.cpp \
     utils/html.cpp \
-    pocketdb/helpers/LotteryCheckpointHelper.cpp \
-    pocketdb/helpers/SocialCheckpointHelper.cpp \
-    pocketdb/helpers/OpReturnCheckpointHelper.cpp \
+    $(POCKETDB_CPP) \
     $(POCKETCOIN_CORE_H)
 
 if !ENABLE_WALLET

@@ -1749,6 +1749,8 @@ bool AppInitMain()
     PocketDb::ChainRepoInst.Init();
     PocketDb::RatingsRepoInst.Init();
 
+    PocketWeb::PocketFrontendInst.Init();
+
     // ********************************************************* Step 4.2: Start AddrIndex
     //g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
     // ********************************************************* Step 4.3: Start AntiBot

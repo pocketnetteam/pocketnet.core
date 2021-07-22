@@ -16,6 +16,7 @@
 #include "pocketdb/repositories/ConsensusRepository.h"
 #include "pocketdb/repositories/web/WebRepository.h"
 #include "pocketdb/repositories/web/WebUserRepository.h"
+#include "pocketdb/web/PocketFrontend.h"
 
 namespace PocketDb
 {
@@ -26,8 +27,12 @@ namespace PocketDb
     extern ConsensusRepository ConsensusRepoInst;
     extern WebRepository WebRepoInst;
     extern WebUserRepository WebUserRepoInst;
-}; // namespace PocketDb
+} // namespace PocketDb
 
+namespace PocketWeb
+{
+    extern PocketWeb::PocketFrontend PocketFrontendInst;
+} // namespace PocketWeb
 
 // Antibot limits
 enum Limit

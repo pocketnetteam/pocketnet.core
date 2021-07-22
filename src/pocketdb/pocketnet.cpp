@@ -12,8 +12,10 @@ namespace PocketDb
     WebUserRepository WebUserRepoInst(PocketDb::SQLiteDbInst);
 }
 
-
-
+namespace PocketWeb
+{
+    PocketFrontend PocketFrontendInst;
+}
 
 
 
