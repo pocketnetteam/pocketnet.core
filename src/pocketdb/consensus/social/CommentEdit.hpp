@@ -93,7 +93,7 @@ namespace PocketConsensus
 
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                    *ptx->GetAddress(), *contentTx->GetString1() // GetString1() returned author content
+                    *contentTx->GetString1(), *ptx->GetAddress() // GetString1() returned author content
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
                 return {false, SocialConsensusResult_Blocking};
 
