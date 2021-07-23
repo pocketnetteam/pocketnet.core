@@ -124,6 +124,9 @@ namespace PocketWeb
 
     tuple <HTTPStatusCode, shared_ptr<StaticFile>> PocketFrontend::GetFile(const string& path, bool stopRecurse)
     {
+        if (path.find("..") != std::string::npos)
+            return {HTTP_BAD_REQUEST, nullptr};
+
         if (path.empty())
             return GetFile("/index.html", true);
 
