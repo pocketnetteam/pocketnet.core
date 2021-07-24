@@ -613,7 +613,7 @@ namespace PocketDb
 
         auto stmt = SetupSqlStatement(R"sql(
             select a.Height
-            from Accounts a
+            from vAccounts a
             where   a.AddressHash = ?
                 and a.Last = 1
                 and a.Height is not null

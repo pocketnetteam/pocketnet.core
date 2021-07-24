@@ -210,7 +210,7 @@ namespace PocketDb
 
 
         drop view if exists vVideos;
-        create view if not exists vPosts as
+        create view if not exists vVideos as
         select c.Type,
                c.Hash,
                c.Time,
