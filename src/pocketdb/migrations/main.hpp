@@ -647,6 +647,7 @@ namespace PocketDb
         drop index if exists Transactions_LastAccount;
         drop index if exists Transactions_LastContent;
         drop index if exists Transactions_LastAction;
+        drop index if exists Transactions_Type_Time;
     )sql";
 
     static std::string MainCreateIndexes = R"sql(
@@ -664,6 +665,7 @@ namespace PocketDb
         create index if not exists Transactions_Int1 on Transactions (Int1);
         create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
         create index if not exists Transactions_Height_Type on Transactions (Height, Type);
+        create index if not exists Transactions_Type_Time on Transactions (Type, Time);
         create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
         create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
         create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);

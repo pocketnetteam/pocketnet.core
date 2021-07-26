@@ -855,68 +855,65 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VARR);
 
-    // Prepare statistic from sqlite db in dictionary (txType, (block, count))
-    std::map<std::string, std::map<int, int>> rStat;
-    std::map<PocketTxType, std::map<int, int>> rStatV2;
-    if (verbose) {
-        rStatV2 = PocketDb::ExplorerRepoInst.GetStatistic(last_height, count);
-
-        if (!version2) {
-            for (auto& tp : rStatV2) {
-                std::string tbl = "";
-
-                switch (tp.first) {
-                    case ACCOUNT_USER:
-                        tbl = "users";
-                        break;
-                    case CONTENT_POST:
-                        tbl = "posts";
-                        break;
-                    case CONTENT_VIDEO:
-                        tbl = "videos";
-                        break;
-                    case CONTENT_COMMENT:
-                    case CONTENT_COMMENT_EDIT:
-                    case CONTENT_COMMENT_DELETE:
-                        tbl = "comments";
-                        break;
-                    case ACTION_SCORE_CONTENT:
-                        tbl = "scores";
-                        break;
-                    case ACTION_SCORE_COMMENT:
-                        tbl = "commentScores";
-                        break;
-                    case ACTION_SUBSCRIBE:
-                    case ACTION_SUBSCRIBE_PRIVATE:
-                    case ACTION_SUBSCRIBE_CANCEL:
-                        tbl = "subscribes";
-                        break;
-                    default:
-                        break;
-                }
-                
-                if (tbl != "") {
-                    for (auto& dt : tp.second)
-                        rStat[tbl][dt.first] = dt.second;
-                }
-            }
-        }
-    }
-
     CBlockIndex* pindex = chainActive[last_height];
     while (pindex && count > 0) {
         UniValue ublock = getcompactblock(pindex);
         UniValue types(UniValue::VOBJ);
 
         if (verbose) {
+            auto rStatV2 = PocketDb::ExplorerRepoInst.GetStatistic(last_height, count);
+
             if (!version2) {
+                std::map<std::string, std::map<int, int>> rStat;
+
+                for (auto& tp : rStatV2) {
+                    std::string tbl = "";
+
+                    switch (tp.first) {
+                        case ACCOUNT_USER:
+                            tbl = "users";
+                            break;
+                        case CONTENT_POST:
+                            tbl = "posts";
+                            break;
+                        case CONTENT_VIDEO:
+                            tbl = "videos";
+                            break;
+                        case CONTENT_COMMENT:
+                        case CONTENT_COMMENT_EDIT:
+                        case CONTENT_COMMENT_DELETE:
+                            tbl = "comments";
+                            break;
+                        case ACTION_SCORE_CONTENT:
+                            tbl = "scores";
+                            break;
+                        case ACTION_SCORE_COMMENT:
+                            tbl = "commentScores";
+                            break;
+                        case ACTION_SUBSCRIBE:
+                        case ACTION_SUBSCRIBE_PRIVATE:
+                        case ACTION_SUBSCRIBE_CANCEL:
+                            tbl = "subscribes";
+                            break;
+                        default:
+                            break;
+                    }
+                    
+                    if (tbl != "") {
+                        for (auto& dt : tp.second)
+                            rStat[tbl][dt.first] = dt.second;
+                    }
+                }
+
                 for (auto s : rStat) {
                     auto f = s.second.find(pindex->nHeight);
                     if (f != s.second.end()) {
                         types.pushKV(s.first, f->second);
                     }
                 }
-            } else {
+            }
+            else
+            {
                 for (auto& s : rStatV2) {
                     auto f = s.second.find(pindex->nHeight);
                     if (f != s.second.end()) {
@@ -989,8 +986,7 @@ static UniValue getaddresstxs(const JSONRPCRequest& request)
     return PocketDb::ExplorerRepoInst.GetAddressTransactions(address, firstNumber);
 }
 
-
-static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
+static UniValue txToUniValue_OLD(const CTransaction& tx, const uint256& hashBlock)
 {
     UniValue entry(UniValue::VOBJ);
 
@@ -1029,7 +1025,6 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
                 in.pushKV("txinwitness", txinwitness);
             }
 
-            // TODO (brangr): REINDEXER -> SQLITE
             // reindexer::Item utxo;
             // if (g_pocketdb->SelectOne(reindexer::Query("UTXO").Where("txid", CondEq, txin.prevout.hash.GetHex()).Where("txout", CondEq, (int)txin.prevout.n), utxo).ok()) {
             // 	CAmount value = utxo["amount"].As<int64_t>();
@@ -1043,7 +1038,6 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
     }
     entry.pushKV("vin", vin);
     //---------------------------------------
-    // TODO (brangr): REINDEXER -> SQLITE
     // reindexer::QueryResults utxos;
     // std::map<int, bool> utxo_outs;
     // if (g_pocketdb->Select(reindexer::Query("UTXO").Where("txid", CondEq, tx.GetHash().GetHex()), utxos).ok()) {
@@ -1061,7 +1055,6 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
 
         out.pushKV("value", txout.nValue);
         out.pushKV("n", (int)i);
-        // TODO (brangr): REINDEXER -> SQLITE
         //        out.pushKV("spent", utxo_outs[i]);
 
         UniValue o(UniValue::VOBJ);
@@ -1091,7 +1084,7 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
     return entry;
 }
 
-static UniValue gettransactions(const JSONRPCRequest& request)
+static UniValue gettransactions_OLD(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
@@ -1127,7 +1120,8 @@ static UniValue gettransactions(const JSONRPCRequest& request)
     return result;
 }
 
-static UniValue checkstringtype(const JSONRPCRequest& request)
+// TODO (brangr): implement get data if hash address, transaction or block
+static UniValue searchbyhash(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
@@ -1142,12 +1136,11 @@ static UniValue checkstringtype(const JSONRPCRequest& request)
     } else {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameter");
     }
-    //--------------------------------------
+    
     UniValue result(UniValue::VOBJ);
 
     if (value.size() == 34) {
         if (IsValidDestination(DecodeDestination(value))) {
-            // TODO (brangr): REINDEXER -> SQLITE
             // if (g_pocketdb->SelectCount(reindexer::Query("Addresses").Where("address", CondEq, value)) > 0) {
             // 	result.pushKV("type", "address");
             // 	return result;
@@ -1207,35 +1200,87 @@ static UniValue getstatistic(const JSONRPCRequest& request)
         if (round <= 0) round = 3600;
     }
 
+    bool version2 = false;
+    if (request.params.size() > 3) {
+        RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
+        version2 = request.params[3].get_bool();
+    }
+
     start_time = floor(start_time / round) * round;
 
     UniValue result(UniValue::VOBJ);
     int stat_count = 300;
 
-    // TODO (brangr): REINDEXER -> SQLITE
     // Loop all days in period start_time - end_time
-    // int64_t dt_end = end_time;
-    // int64_t dt_start = end_time - round;
-    // while (dt_start >= start_time && stat_count > 0) {
-    //     std::string cacheKey = std::to_string(dt_start) + std::to_string(round);
-    //     if (g_statistic_cache.find(cacheKey) == g_statistic_cache.end()) {
-    //         UniValue rStat(UniValue::VOBJ);
-    //         rStat.pushKV("UsersAcc", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondLt, dt_end)));
-    //         rStat.pushKV("Users", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondGe, dt_start).Where("regdate", CondLt, dt_end)));
-    //         rStat.pushKV("Posts", (int)g_pocketdb->SelectCount(reindexer::Query("Posts").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-    //         rStat.pushKV("Ratings", (int)g_pocketdb->SelectCount(reindexer::Query("Scores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-    //         rStat.pushKV("CommentRatings", (int)g_pocketdb->SelectCount(reindexer::Query("CommentScores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-    //         rStat.pushKV("Subscribes", (int)g_pocketdb->SelectCount(reindexer::Query("SubscribesView").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-    //         rStat.pushKV("Comments", (int)g_pocketdb->SelectCount(reindexer::Query("Comment").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
-    //         g_statistic_cache.insert_or_assign(cacheKey, rStat);
-    //     }
+    int64_t dt_end = end_time;
+    int64_t dt_start = end_time - round;
+    while (dt_start >= start_time && stat_count > 0) {
+        //std::string cacheKey = std::to_string(dt_start) + std::to_string(round);
+        //if (g_statistic_cache.find(cacheKey) == g_statistic_cache.end())
+        //{
+            UniValue rStat(UniValue::VOBJ);
+            auto data = PocketDb::ExplorerRepoInst.GetStatistic(dt_start, dt_end);
 
-    //     result.pushKV(std::to_string(dt_start), g_statistic_cache[cacheKey]);
+            if (!version2)
+            {
+                std::map<std::string, int, int> v1Data;
 
-    //     stat_count -= 1;
-    //     dt_end -= round;
-    //     dt_start -= round;
-    // }
+                for (auto& tp : data) {
+                    std::string tbl = "";
+
+                    switch (tp.first) {
+                        case ACCOUNT_USER:
+                            tbl = "Users";
+                            break;
+                        case CONTENT_POST:
+                            tbl = "Posts";
+                            break;
+                        case CONTENT_VIDEO:
+                            tbl = "Videos";
+                            break;
+                        case CONTENT_COMMENT:
+                        case CONTENT_COMMENT_EDIT:
+                        case CONTENT_COMMENT_DELETE:
+                            tbl = "Comments";
+                            break;
+                        case ACTION_SCORE_CONTENT:
+                            tbl = "Ratings";
+                            break;
+                        case ACTION_SCORE_COMMENT:
+                            tbl = "CommentRatings";
+                            break;
+                        case ACTION_SUBSCRIBE:
+                        case ACTION_SUBSCRIBE_PRIVATE:
+                        case ACTION_SUBSCRIBE_CANCEL:
+                            tbl = "Subscribes";
+                            break;
+                        default:
+                            break;
+                    }
+                    
+                    if (tbl != "")
+                        v1Data[tbl] += tp.second;
+                }
+
+                for (auto& d : v1Data)
+                    rStat.pushKV(d.first, d.second);
+            }
+            else
+            {
+                for (auto& d : data)
+                    rStat.pushKV(std::to_string((int)d.first), d.second);
+            }
+
+            //g_statistic_cache.insert_or_assign(cacheKey, rStat);
+        //}
+
+        //result.pushKV(std::to_string(dt_start), g_statistic_cache[cacheKey]);
+        result.pushKV(std::to_string(dt_start), rStat);
+
+        stat_count -= 1;
+        dt_end -= round;
+        dt_start -= round;
+    }
 
     return result;
 }
@@ -2606,9 +2651,9 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getaddressspent",        &getaddressspent,        {"address"}, false },
     { "blockchain",         "getaddresstxs",          &getaddresstxs,          {"address"}, false },
 
-	{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"}, false },
+	//{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"}, false },
 	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"}, false },
-	{ "blockchain",         "checkstringtype",        &checkstringtype,        {"value"}, false },
+	{ "blockchain",         "searchbyhash",           &searchbyhash,           {"value"}, false },
 
     /* Not shown in help */
     { "hidden",             "invalidateblock",        &invalidateblock,        {"blockhash"} },

@@ -43,6 +43,39 @@ namespace PocketDb {
         return result;
     }
 
+    map<PocketTxType, int> ExplorerRepository::GetStatistic(int64_t startTime, int64_t endTime)
+    {
+        map<PocketTxType, int> result;
+
+        auto stmt = SetupSqlStatement(R"sql(
+            select t.Type, count(*)
+            from Transactions t
+            where   t.Time >= ?
+                and t.Time < ?
+                and t.Type > 3
+            group by t.Type
+        )sql");
+
+        TryBindStatementInt64(stmt, 1, startTime);
+        TryBindStatementInt64(stmt, 2, endTime);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto [ok0, sType] = TryGetColumnInt(*stmt, 0);
+                auto [ok1, sCount] = TryGetColumnInt(*stmt, 1);
+
+                if (ok0 && ok1)
+                    result[(PocketTxType)sType] = sCount;
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     tuple<int64_t, int64_t> ExplorerRepository::GetAddressSpent(const string& addressHash)
     {
         int64_t spent = 0;
