@@ -128,7 +128,7 @@ namespace PocketWeb
             return {HTTP_BAD_REQUEST, nullptr};
 
         if (path.empty())
-            return GetFile("/index.html", true);
+            return GetFile("/indexwebnode.html", true);
 
         // Remove parameters - index.html?v2
         auto _path = path;
@@ -148,7 +148,7 @@ namespace PocketWeb
         if (!readOk)
         {
             if (!stopRecurse)
-                return GetFile("/index.html", true);
+                return GetFile("/indexwebnode.html", true);
 
             return {HTTP_NOT_FOUND, nullptr};
         }
