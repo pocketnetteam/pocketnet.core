@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <string>
 
-#include <univalue.h>
+#include <univalue/include/univalue.h>
 
 //! HTTP status codes
 enum HTTPStatusCode
