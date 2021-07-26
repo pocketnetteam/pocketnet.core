@@ -7,6 +7,7 @@
 #ifndef SRC_POCKETFRONTEND_H
 #define SRC_POCKETFRONTEND_H
 
+#include "fs.h"
 #include "sync.h"
 #include "util.h"
 #include "logging.h"
@@ -65,7 +66,7 @@ namespace PocketWeb
 
         tuple<bool, shared_ptr<StaticFile>> CacheGet(const string& path);
 
-        tuple<HTTPStatusCode, shared_ptr<StaticFile>> GetFile(const string& path, bool stopRecurse = false);
+        tuple<HTTPStatusCode, shared_ptr<StaticFile>> GetFile(const string& path, const string& defaultPath, bool stopRecurse = false);
 
     };
 

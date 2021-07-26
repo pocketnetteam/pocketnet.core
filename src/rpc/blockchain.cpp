@@ -861,7 +861,7 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
         UniValue types(UniValue::VOBJ);
 
         if (verbose) {
-            auto rStatV2 = PocketDb::ExplorerRepoInst.GetStatistic(last_height, count);
+            auto rStatV2 = PocketDb::ExplorerRepoInst.GetStatistic(last_height - count, last_height);
 
             if (!version2) {
                 std::map<std::string, std::map<int, int>> rStat;
@@ -1112,8 +1112,8 @@ static UniValue gettransactions_OLD(const JSONRPCRequest& request)
         uint256 blockhash;
         txhash.SetHex(txid);
         if (GetTransaction(txhash, tx, Params().GetConsensus(), blockhash, true)) {
-            UniValue otx = txToUniValue(*tx, blockhash);
-            result.push_back(otx);
+            //UniValue otx = txToUniValue(*tx, blockhash);
+            //result.push_back(otx);
         }
     }
 
@@ -1223,7 +1223,7 @@ static UniValue getstatistic(const JSONRPCRequest& request)
 
             if (!version2)
             {
-                std::map<std::string, int, int> v1Data;
+                std::map<std::string, int> v1Data;
 
                 for (auto& tp : data) {
                     std::string tbl = "";

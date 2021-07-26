@@ -16,9 +16,9 @@ namespace PocketWeb
         {
             string _path = (_rootPath / path).string();
 
-            ifstream file(_path);
-            if (file.good())
+            if (fs::exists(_path) && !fs::is_directory(_path))
             {
+                ifstream file(_path);
                 string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
                 return {true, content};
             }
@@ -74,7 +74,7 @@ namespace PocketWeb
 
     void PocketFrontend::Init()
     {
-        _rootPath = GetDataDir() / "web";
+        _rootPath = GetDataDir() / "static_files";
 
         auto testContent = shared_ptr<StaticFile>(new StaticFile{
             "/test.html",
@@ -122,13 +122,13 @@ namespace PocketWeb
         return {false, nullptr};
     }
 
-    tuple <HTTPStatusCode, shared_ptr<StaticFile>> PocketFrontend::GetFile(const string& path, bool stopRecurse)
+    tuple <HTTPStatusCode, shared_ptr<StaticFile>> PocketFrontend::GetFile(const string& path, const string& defaultPath, bool stopRecurse)
     {
         if (path.find("..") != std::string::npos)
             return {HTTP_BAD_REQUEST, nullptr};
 
         if (path.empty())
-            return GetFile("/indexwebnode.html", true);
+            return GetFile(defaultPath, defaultPath, true);
 
         // Remove parameters - index.html?v2
         auto _path = path;
@@ -148,7 +148,7 @@ namespace PocketWeb
         if (!readOk)
         {
             if (!stopRecurse)
-                return GetFile("/indexwebnode.html", true);
+                return GetFile(defaultPath, defaultPath, true);
 
             return {HTTP_NOT_FOUND, nullptr};
         }

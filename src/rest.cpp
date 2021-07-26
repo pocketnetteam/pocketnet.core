@@ -1062,7 +1062,33 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
     if (!CheckWarmup(req))
         return false;
 
-    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile(strURIPart); code == HTTP_OK)
+    if (strURIPart == "/clearcache")
+    {
+        PocketWeb::PocketFrontendInst.ClearCache();
+        req->WriteReply(HTTP_OK, "Cache cleared!");
+        return true;
+    }
+
+    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile("/web" + strURIPart, "/web/index.html"); code == HTTP_OK)
+    {
+        req->WriteHeader("Content-Type", file->ContentType);
+        req->WriteReply(code, file->Content);
+        return true;
+    }
+    else
+    {
+        return RESTERR(req, code, "");
+    }
+
+    return RESTERR(req, HTTP_NOT_FOUND, "");
+}
+
+static bool get_static_explorer(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile("/explorer" + strURIPart, "/explorer/index.html"); code == HTTP_OK)
     {
         req->WriteHeader("Content-Type", file->ContentType);
         req->WriteReply(code, file->Content);
@@ -1105,6 +1131,7 @@ static const struct
 
     // For static web
     {"/web",                     get_static_web},
+    {"/explorer",                get_static_explorer},
 };
 
 void StartREST()

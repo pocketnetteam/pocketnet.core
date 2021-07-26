@@ -22,7 +22,7 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        map<PocketTxType, map<int, int>> GetStatistic(int lastHeight, int count);
+        map<PocketTxType, map<int, int>> GetStatistic(int bottomHeight, int topHeight);
         map<PocketTxType, int> GetStatistic(int64_t startTime, int64_t endTime);
         tuple<int64_t, int64_t> GetAddressSpent(const string& addressHash);
         UniValue GetAddressTransactions(const string& addressHash, int firstNumber);

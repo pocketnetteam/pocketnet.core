@@ -10,7 +10,7 @@ namespace PocketDb {
 
     void ExplorerRepository::Destroy() {}
 
-    map<PocketTxType, map<int, int>> ExplorerRepository::GetStatistic(int lastHeight, int count)
+    map<PocketTxType, map<int, int>> ExplorerRepository::GetStatistic(int bottomHeight, int topHeight)
     {
         map<PocketTxType, map<int, int>> result;
 
@@ -22,8 +22,8 @@ namespace PocketDb {
             group by t.Type, t.Height
         )sql");
 
-        TryBindStatementInt(stmt, 1, lastHeight);
-        TryBindStatementInt(stmt, 2, count);
+        TryBindStatementInt(stmt, 1, bottomHeight);
+        TryBindStatementInt(stmt, 2, topHeight);
 
         TryTransactionStep(__func__, [&]()
         {
@@ -110,9 +110,10 @@ namespace PocketDb {
         return {spent, unspent};
     }
     
-    UniValue GetAddressTransactions(const string& addressHash, int firstNumber)
+    UniValue ExplorerRepository::GetAddressTransactions(const string& addressHash, int firstNumber)
     {
         // TODO (brangr): implement
+        return UniValue(UniValue::VARR);
     }
 
 }
