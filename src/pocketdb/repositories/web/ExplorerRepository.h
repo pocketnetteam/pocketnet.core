@@ -23,6 +23,8 @@ namespace PocketDb
         void Destroy() override;
 
         map<PocketTxType, map<int, int>> GetStatistic(int lastHeight, int count);
+        tuple<int64_t, int64_t> GetAddressSpent(const string& addressHash);
+        UniValue GetAddressTransactions(const string& addressHash, int firstNumber);
 
     private:
     

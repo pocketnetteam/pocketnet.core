@@ -43,4 +43,43 @@ namespace PocketDb {
         return result;
     }
 
+    tuple<int64_t, int64_t> ExplorerRepository::GetAddressSpent(const string& addressHash)
+    {
+        int64_t spent = 0;
+        int64_t unspent = 0;
+
+        auto stmt = SetupSqlStatement(R"sql(
+            select (o.SpentHeight isnull), sum(o.Value)
+            from TxOutputs o
+            where o.AddressHash = ?
+            group by (o.SpentHeight isnull)
+        )sql");
+
+        TryBindStatementText(stmt, 1, addressHash);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto [ok0, sUnspent] = TryGetColumnInt(*stmt, 0);
+                auto [ok1, sAmount] = TryGetColumnInt64(*stmt, 1);
+
+                if (ok0 && ok1)
+                    if (sUnspent == 1)
+                        unspent = sAmount;
+                    else
+                        spent = sAmount;
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {spent, unspent};
+    }
+    
+    UniValue GetAddressTransactions(const string& addressHash, int firstNumber)
+    {
+        // TODO (brangr): implement
+    }
+
 }

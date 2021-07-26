@@ -936,59 +936,59 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
     return result;
 }
 
-static UniValue getaddressinfo(const JSONRPCRequest& request)
+static UniValue getaddressspent(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
-            "getaddressinfo \"address\"\n"
-            "\nGet address general info.\n"
+            "getaddressspent \"address\"\n"
+            "\nGet address spent & unspent amounts.\n"
             "\nArguments:\n"
             "1. \"address\"    (string) Address\n");
 
     std::string address;
     if (request.params.size() > 0 && request.params[0].isStr()) {
         CTxDestination dest = DecodeDestination(request.params[0].get_str());
-
-        if (!IsValidDestination(dest)) {
+        if (!IsValidDestination(dest))
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[0].get_str());
-        }
-
         address = request.params[0].get_str();
     } else {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
     }
-    //-----------------------------------------
+    
+    auto[spent, unspent] = PocketDb::ExplorerRepoInst.GetAddressSpent(address);
+    
     UniValue addressInfo(UniValue::VOBJ);
-    addressInfo.pushKV("address", address);
-    //-----------------------------------------
-    int64_t spent = 0;
-    int64_t unspent = 0;
-    UniValue txs(UniValue::VARR);
-    std::unordered_set<std::string> s_txs;
-
-    // TODO (brangr): REINDEXER -> SQLITE
-    // reindexer::QueryResults utxo;
-    // if (g_pocketdb->Select(reindexer::Query("UTXO").Where("address", CondEq, address).Sort("time", true), utxo).ok()) {
-    // 	for (auto& u : utxo) {
-    // 		reindexer::Item it = u.GetItem();
-
-    // 		int64_t amount = it["amount"].As<int64_t>();
-    // 		if (it["spent_block"].As<int>() == 0) unspent += amount;
-    // 		else spent += amount;
-
-    //         std::string txid = it["txid"].As<string>();
-    //         if (s_txs.emplace(txid).second) {
-    //             txs.push_back(txid);
-    //         }
-    // 	}
-    // }
-    //-----------------------------------------
-    addressInfo.pushKV("txids", txs);
     addressInfo.pushKV("spent", spent);
     addressInfo.pushKV("unspent", unspent);
-    //-----------------------------------------
     return addressInfo;
 }
+
+static UniValue getaddresstxs(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "getaddresstxs \"address\"\n"
+            "\nGet address transactions list.\n"
+            "\nArguments:\n"
+            "1. \"address\"    (string) Address\n");
+
+    std::string address;
+    if (request.params.size() > 0 && request.params[0].isStr()) {
+        CTxDestination dest = DecodeDestination(request.params[0].get_str());
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[0].get_str());
+        address = request.params[0].get_str();
+    } else {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
+    }
+
+    int firstNumber = 0;
+    if (request.params.size() > 1 && request.params[1].isNum())
+        firstNumber = request.params[1].get_int();
+    
+    return PocketDb::ExplorerRepoInst.GetAddressTransactions(address, firstNumber);
+}
+
 
 static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
 {
@@ -2602,7 +2602,10 @@ static const CRPCCommand commands[] =
     { "blockchain",         "preciousblock",          &preciousblock,          {"blockhash"} },
     { "blockchain",         "scantxoutset",           &scantxoutset,           {"action", "scanobjects"} },
 
-	{ "blockchain",         "getaddressinfo",         &getaddressinfo,         {"address"}, false },
+	{ "blockchain",         "getaddressinto",         &getaddressspent,        {"address"}, false },
+    { "blockchain",         "getaddressspent",        &getaddressspent,        {"address"}, false },
+    { "blockchain",         "getaddresstxs",          &getaddresstxs,          {"address"}, false },
+
 	{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"}, false },
 	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"}, false },
 	{ "blockchain",         "checkstringtype",        &checkstringtype,        {"value"}, false },
