@@ -176,14 +176,12 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 514185; }
 
-        virtual int GetLotteryReferralDepth() { return 0; }
-
         void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) override
         {
             if (refs.find(contentAddress) != refs.end())
                 return;
 
-            auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress, txTime - GetLotteryReferralDepth());
+            auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress);
             if (!referrer) return;
 
             refs.emplace(contentAddress, *referrer);
@@ -220,7 +218,18 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1035000; }
 
-        int GetLotteryReferralDepth() override { return 30 * 24 * 3600; }
+        virtual int GetLotteryReferralDepth() { return 30 * 24 * 3600; }
+
+        void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) override
+        {
+            if (refs.find(contentAddress) != refs.end())
+                return;
+
+            auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress, txTime - GetLotteryReferralDepth());
+            if (!referrer) return;
+
+            refs.emplace(contentAddress, *referrer);
+        }
 
     public :
         LotteryConsensus_checkpoint_1035000(int height) : LotteryConsensus_checkpoint_514185(height) {}

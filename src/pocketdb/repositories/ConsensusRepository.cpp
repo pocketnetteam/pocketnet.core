@@ -493,7 +493,36 @@ namespace PocketDb
     }
 
     // Select referrer for one account
-    shared_ptr<string> ConsensusRepository::GetReferrer(const string& address, int minTime)
+    shared_ptr<string> ConsensusRepository::GetReferrer(const string& address)
+    {
+        shared_ptr<string> result;
+
+        auto stmt = SetupSqlStatement(R"sql(
+            select ReferrerAddressHash
+            from vUsers
+            where Height is not null
+                and AddressHash = ?
+            order by Height asc
+            limit 1
+        )sql");
+
+        TryBindStatementText(stmt, 1, address);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
+                    result = make_shared<string>(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    shared_ptr<string> ConsensusRepository::GetReferrer(const string& address, int64_t minTime)
     {
         shared_ptr<string> result;
 
@@ -506,7 +535,7 @@ namespace PocketDb
             order by Height asc
             limit 1
         )sql");
-        TryBindStatementInt(stmt, 1, minTime);
+        TryBindStatementInt64(stmt, 1, minTime);
         TryBindStatementText(stmt, 2, address);
 
         TryTransactionStep(__func__, [&]()

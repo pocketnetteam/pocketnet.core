@@ -50,7 +50,8 @@ namespace PocketDb
 
         shared_ptr<ScoreDataDto> GetScoreData(const string& txHash);
         shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
-        shared_ptr<string> GetReferrer(const string& address, int minTime);
+        shared_ptr<string> GetReferrer(const string& address);
+        shared_ptr<string> GetReferrer(const string& address, int64_t minTime);
         int GetUserLikersCount(int addressId);
         int GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
             const string& scoreAddress, const string& contentAddress,
