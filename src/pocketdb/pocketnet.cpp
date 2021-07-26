@@ -10,6 +10,7 @@ namespace PocketDb
     ConsensusRepository ConsensusRepoInst(PocketDb::SQLiteDbInst);
     WebRepository WebRepoInst(PocketDb::SQLiteDbInst);
     WebUserRepository WebUserRepoInst(PocketDb::SQLiteDbInst);
+    ExplorerRepository ExplorerRepoInst(PocketDb::SQLiteDbInst);
 }
 
 namespace PocketWeb

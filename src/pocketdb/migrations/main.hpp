@@ -630,6 +630,7 @@ namespace PocketDb
         drop index if exists Transactions_String5;
         drop index if exists Transactions_Int1;
         drop index if exists Transactions_Hash_Height;
+        drop index if exists Transactions_Height_Type;
         drop index if exists Transactions_Type_String1_Height;
         drop index if exists Transactions_Type_String2_Height;
         drop index if exists Transactions_Type_Height_Id;
@@ -662,6 +663,7 @@ namespace PocketDb
         create index if not exists Transactions_String5 on Transactions (String5);
         create index if not exists Transactions_Int1 on Transactions (Int1);
         create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
+        create index if not exists Transactions_Height_Type on Transactions (Height, Type);
         create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
         create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
         create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
@@ -674,10 +676,9 @@ namespace PocketDb
         create index if not exists Transactions_LastAction on Transactions (Type, Last, String1, String2, Height);
         -- ConsensusRepository::ExistsScore
         create index if not exists Transactions_ExistsScore on Transactions (Type, String1, String2, Height);
-
         -- ChainRepository::SetContentId
         create index if not exists Transactions_Type_Id on Transactions (Type, Id);
-
+        
         create index if not exists TxOutput_SpentHeight on TxOutputs (SpentHeight);
         create index if not exists TxOutput_TxHash_Number on TxOutputs (TxHash, Number);
         create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);

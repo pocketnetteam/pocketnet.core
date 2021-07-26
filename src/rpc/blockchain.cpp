@@ -42,9 +42,11 @@
 #include <boost/thread/thread.hpp> // boost::thread::interrupt
 
 #include <condition_variable>
+#include <math.h>
 #include <memory>
 #include <mutex>
-#include <math.h>
+
+using namespace PocketTx;
 
 struct CUpdatedBlock {
     uint256 hash;
@@ -845,78 +847,84 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
         verbose = request.params[2].get_bool();
     }
 
+    bool version2 = false;
+    if (request.params.size() > 3) {
+        RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
+        version2 = request.params[3].get_bool();
+    }
+
     UniValue result(UniValue::VARR);
 
-    // TODO (brangr): REINDEXER -> SQLITE
-    // Prepare statistic from Reindexer in dictionary (table, (block, count))
-    // std::map<std::string, std::map<int, int>> rStat;
-    // if (verbose) {
+    // Prepare statistic from sqlite db in dictionary (txType, (block, count))
+    std::map<std::string, std::map<int, int>> rStat;
+    std::map<PocketTxType, std::map<int, int>> rStatV2;
+    if (verbose) {
+        rStatV2 = PocketDb::ExplorerRepoInst.GetStatistic(last_height, count);
 
-    //     reindexer::AggregationResult aggRes;
+        if (!version2) {
+            for (auto& tp : rStatV2) {
+                std::string tbl = "";
 
-    //     std::map<int, int> oUsers;
-    //     if (g_pocketdb->SelectAggr(reindexer::Query("UsersView").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-    //         for (const auto& f : aggRes.facets) {
-    //             oUsers.emplace(std::stoi(f.value), f.count);
-    //         }
-    //     }
-    //     rStat.emplace("users", oUsers);
-
-    //     std::map<int, int> oPosts;
-    //     if (g_pocketdb->SelectAggr(reindexer::Query("Posts").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-    //         for (const auto& f : aggRes.facets) {
-    //             oPosts.emplace(std::stoi(f.value), f.count);
-    //         }
-    //     }
-    //     rStat.emplace("posts", oPosts);
-
-    //     std::map<int, int> oScores;
-    //     if (g_pocketdb->SelectAggr(reindexer::Query("Scores").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-    //         for (const auto& f : aggRes.facets) {
-    //             oScores.emplace(std::stoi(f.value), f.count);
-    //         }
-    //     }
-    //     rStat.emplace("scores", oScores);
-
-    //     std::map<int, int> oCommentScores;
-    //     if (g_pocketdb->SelectAggr(reindexer::Query("CommentScores").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-    //         for (const auto& f : aggRes.facets) {
-    //             oCommentScores.emplace(std::stoi(f.value), f.count);
-    //         }
-    //     }
-    //     rStat.emplace("commentScores", oCommentScores);
-
-    //     std::map<int, int> oSubscribes;
-    //     if (g_pocketdb->SelectAggr(reindexer::Query("SubscribesView").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-    //         for (const auto& f : aggRes.facets) {
-    //             oSubscribes.emplace(std::stoi(f.value), f.count);
-    //         }
-    //     }
-    //     rStat.emplace("subscribes", oSubscribes);
-
-    //     std::map<int, int> oComments;
-    //     if (g_pocketdb->SelectAggr(reindexer::Query("Comment").Where("block", CondGt, last_height - count).Where("block", CondLe, last_height).Aggregate("block", AggFacet), "block", aggRes).ok()) {
-    //         for (const auto& f : aggRes.facets) {
-    //             oComments.emplace(std::stoi(f.value), f.count);
-    //         }
-    //     }
-    //     rStat.emplace("comments", oComments);
-    // }
+                switch (tp.first) {
+                    case ACCOUNT_USER:
+                        tbl = "users";
+                        break;
+                    case CONTENT_POST:
+                        tbl = "posts";
+                        break;
+                    case CONTENT_VIDEO:
+                        tbl = "videos";
+                        break;
+                    case CONTENT_COMMENT:
+                    case CONTENT_COMMENT_EDIT:
+                    case CONTENT_COMMENT_DELETE:
+                        tbl = "comments";
+                        break;
+                    case ACTION_SCORE_CONTENT:
+                        tbl = "scores";
+                        break;
+                    case ACTION_SCORE_COMMENT:
+                        tbl = "commentScores";
+                        break;
+                    case ACTION_SUBSCRIBE:
+                    case ACTION_SUBSCRIBE_PRIVATE:
+                    case ACTION_SUBSCRIBE_CANCEL:
+                        tbl = "subscribes";
+                        break;
+                    default:
+                        break;
+                }
+                
+                if (tbl != "") {
+                    for (auto& dt : tp.second)
+                        rStat[tbl][dt.first] = dt.second;
+                }
+            }
+        }
+    }
 
     CBlockIndex* pindex = chainActive[last_height];
     while (pindex && count > 0) {
         UniValue ublock = getcompactblock(pindex);
         UniValue types(UniValue::VOBJ);
 
-        // TODO (brangr): REINDEXER -> SQLITE
-//        if (verbose) {
-//            for (auto s : rStat) {
-//                auto f = s.second.find(pindex->nHeight);
-//                if (f != s.second.end()) {
-//                    types.pushKV(s.first, f->second);
-//                }
-//            }
-//        }
+        if (verbose) {
+            if (!version2) {
+                for (auto s : rStat) {
+                    auto f = s.second.find(pindex->nHeight);
+                    if (f != s.second.end()) {
+                        types.pushKV(s.first, f->second);
+                    }
+                }
+            } else {
+                for (auto& s : rStatV2) {
+                    auto f = s.second.find(pindex->nHeight);
+                    if (f != s.second.end()) {
+                        types.pushKV(std::to_string((int)s.first), f->second);
+                    }
+                }
+            }
+        }
 
         ublock.pushKV("types", types);
         result.push_back(ublock);
@@ -1054,7 +1062,7 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
         out.pushKV("value", txout.nValue);
         out.pushKV("n", (int)i);
         // TODO (brangr): REINDEXER -> SQLITE
-//        out.pushKV("spent", utxo_outs[i]);
+        //        out.pushKV("spent", utxo_outs[i]);
 
         UniValue o(UniValue::VOBJ);
         ScriptPubKeyToUniv(txout.scriptPubKey, o, true);
