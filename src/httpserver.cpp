@@ -294,17 +294,20 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
         return;
     }
 
-    if (hreq->GetRequestMethod() == HTTPRequest::OPTIONS)
-    {
-        hreq->WriteHeader("Access-Control-Allow-Origin", "*");
-        hreq->WriteReply(HTTP_OK);
-        return;
-    }
-
     // Early reject unknown HTTP methods
     if (hreq->GetRequestMethod() == HTTPRequest::UNKNOWN)
     {
         hreq->WriteReply(HTTP_BADMETHOD);
+        return;
+    }
+    
+    hreq->WriteHeader("Access-Control-Allow-Origin", "*");
+    hreq->WriteHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+    hreq->WriteHeader("Access-Control-Allow-Headers", "*");
+
+    if (hreq->GetRequestMethod() == HTTPRequest::OPTIONS)
+    {
+        hreq->WriteReply(HTTP_NOCONTENT);
         return;
     }
 

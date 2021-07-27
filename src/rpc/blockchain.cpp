@@ -1140,33 +1140,23 @@ static UniValue searchbyhash(const JSONRPCRequest& request)
     
     UniValue result(UniValue::VOBJ);
 
-    if (value.size() == 34) {
+    if (value.size() == 34)
+    {
         if (IsValidDestination(DecodeDestination(value))) {
-            // if (g_pocketdb->SelectCount(reindexer::Query("Addresses").Where("address", CondEq, value)) > 0) {
-            // 	result.pushKV("type", "address");
-            // 	return result;
-            // }
-        }
-    } else if (value.size() == 64) {
-        uint256 hash(uint256S(value));
-
-        // First check transactions
-        CTransactionRef tx;
-        uint256 _blockhash;
-        if (GetTransaction(hash, tx, Params().GetConsensus(), _blockhash, true)) {
-            result.pushKV("type", "transaction");
+            result.pushKV("type", "address");
             return result;
         }
-
-        // Second check blocks
-        const CBlockIndex* pblockindex = LookupBlockIndex(hash);
+    }
+    else if (value.size() == 64)
+    {
+        const CBlockIndex* pblockindex = LookupBlockIndex(uint256S(value));
         if (pblockindex) {
-            CBlock block;
-            if (ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
-                result.pushKV("type", "block");
-                return result;
-            }
+            result.pushKV("type", "block");
+            return result;
         }
+        
+        result.pushKV("type", "transaction");
+        return result;
     }
     //--------------------------------------
     result.pushKV("type", "notfound");
