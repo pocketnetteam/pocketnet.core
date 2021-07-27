@@ -482,6 +482,14 @@ bool InitHTTPServer()
     evhttp_set_max_headers_size(http, MAX_HEADERS_SIZE);
     evhttp_set_max_body_size(http, MAX_SIZE);
     evhttp_set_gencb(http, http_request_cb, nullptr);
+    evhttp_set_allowed_methods(http,
+        evhttp_cmd_type::EVHTTP_REQ_GET |
+        evhttp_cmd_type::EVHTTP_REQ_POST |
+        evhttp_cmd_type::EVHTTP_REQ_HEAD |
+        evhttp_cmd_type::EVHTTP_REQ_PUT |
+        evhttp_cmd_type::EVHTTP_REQ_DELETE |
+        evhttp_cmd_type::EVHTTP_REQ_OPTIONS
+    );
 
     if (!HTTPBindAddresses(http))
     {
