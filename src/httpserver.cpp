@@ -256,6 +256,9 @@ static std::string RequestMethodString(HTTPRequest::RequestMethod m)
         case HTTPRequest::PUT:
             return "PUT";
             break;
+        case HTTPRequest::OPTIONS:
+            return "OPTIONS";
+            break;
         default:
             return "unknown";
     }
@@ -288,6 +291,13 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     {
         hreq->WriteReply(HTTP_FORBIDDEN);
         LogPrint(BCLog::HTTP, "Request from %s not allowed\n", hreq->GetPeer().ToString());
+        return;
+    }
+
+    if (hreq->GetRequestMethod() == HTTPRequest::OPTIONS)
+    {
+        hreq->WriteHeader("Access-Control-Allow-Origin", "*");
+        hreq->WriteReply(HTTP_OK);
         return;
     }
 
@@ -808,6 +818,9 @@ HTTPRequest::RequestMethod HTTPRequest::GetRequestMethod() const
             break;
         case EVHTTP_REQ_PUT:
             return PUT;
+            break;
+        case EVHTTP_REQ_OPTIONS:
+            return OPTIONS;
             break;
         default:
             return UNKNOWN;

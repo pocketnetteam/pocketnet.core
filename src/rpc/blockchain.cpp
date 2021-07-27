@@ -921,9 +921,10 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
                     }
                 }
             }
+
+            ublock.pushKV("types", types);
         }
 
-        ublock.pushKV("types", types);
         result.push_back(ublock);
 
         pindex = pindex->pprev;
