@@ -103,7 +103,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
                     BlockHash = ?,
-                    BlockNum = ?
+                    BlockNum = ?,
                     Height = ?
                 WHERE Hash = ?
             )sql");
