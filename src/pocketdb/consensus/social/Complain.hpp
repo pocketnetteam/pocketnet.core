@@ -91,7 +91,11 @@ namespace PocketConsensus
 
                     // Maybe in block
                     if (*ptx->GetPostTxHash() == *blockPtx->GetPostTxHash())
-                        return {false, SocialConsensusResult_DoubleComplain};
+                    {
+                        PocketHelpers::SocialCheckpoints socialCheckpoints;
+                        if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleComplain))
+                            return {false, SocialConsensusResult_DoubleComplain};
+                    }
                 }
             }
 

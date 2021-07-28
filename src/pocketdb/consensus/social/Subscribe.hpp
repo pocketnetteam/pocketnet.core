@@ -35,11 +35,9 @@ namespace PocketConsensus
 
             if (subscribeExists && subscribeType == ACTION_SUBSCRIBE)
             {
-                // TODO (brangr): я думаю все чекпойнты прямо тут и сложить
-                if (!IsCheckpointTransaction(*tx->GetHash()))
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleSubscribe))
                     return {false, SocialConsensusResult_DoubleSubscribe};
-                else
-                    LogPrintf("Found checkpoint transaction %s\n", *tx->GetHash());
             }
 
             return Success;
@@ -60,7 +58,11 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<Subscribe>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
+                {
+                    PocketHelpers::SocialCheckpoints socialCheckpoints;
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_ManyTransactions))
                     return {false, SocialConsensusResult_ManyTransactions};
+                }
             }
 
             return Success;
