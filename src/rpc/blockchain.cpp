@@ -961,32 +961,6 @@ static UniValue getaddressspent(const JSONRPCRequest& request)
     return addressInfo;
 }
 
-static UniValue getaddresstxs(const JSONRPCRequest& request)
-{
-    if (request.fHelp || request.params.size() > 1)
-        throw std::runtime_error(
-            "getaddresstxs \"address\"\n"
-            "\nGet address transactions list.\n"
-            "\nArguments:\n"
-            "1. \"address\"    (string) Address\n");
-
-    std::string address;
-    if (request.params.size() > 0 && request.params[0].isStr()) {
-        CTxDestination dest = DecodeDestination(request.params[0].get_str());
-        if (!IsValidDestination(dest))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[0].get_str());
-        address = request.params[0].get_str();
-    } else {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
-    }
-
-    int firstNumber = 0;
-    if (request.params.size() > 1 && request.params[1].isNum())
-        firstNumber = request.params[1].get_int();
-    
-    return PocketDb::ExplorerRepoInst.GetAddressTransactions(address, firstNumber);
-}
-
 static UniValue txToUniValue_OLD(const CTransaction& tx, const uint256& hashBlock)
 {
     UniValue entry(UniValue::VOBJ);
@@ -1119,6 +1093,47 @@ static UniValue gettransactions_OLD(const JSONRPCRequest& request)
     }
 
     return result;
+}
+
+static UniValue getaddresstransactions(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+    {
+        throw std::runtime_error(
+            "getaddresstransactions [address, pageInitBlock, pageStart, pageSize]\n"
+            "\nGet transactions info.\n"
+            "\nArguments:\n"
+            "1. \"address\"       (string, required) Address hash\n"
+            "2. \"pageInitBlock\" (number) Max block height for filter pagination window\n"
+            "3. \"pageStart\"     (number) Row number for start page\n"
+            "3. \"pageSize\"      (number) Page size\n"
+        );
+    }
+
+    std::string address;
+    if (request.params.size() > 0 && request.params[0].isStr())
+        address = request.params[0].get_str();
+    else
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (address)");
+        
+    int pageInitBlock = chainActive.Height();
+    if (request.params.size() > 1 && request.params[1].isNum())
+        pageInitBlock = request.params[1].get_int();
+
+    int pageStart = 1;
+    if (request.params.size() > 2 && request.params[2].isNum())
+        pageStart = request.params[2].get_int();
+
+    int pageSize = 10;
+    if (request.params.size() > 3 && request.params[3].isNum())
+        pageSize = request.params[3].get_int();
+
+    return PocketDb::ExplorerRepoInst.GetAddressTransactions(
+        address,
+        pageInitBlock,
+        pageStart,
+        pageSize
+    );
 }
 
 // TODO (brangr): implement get data if hash address, transaction or block
@@ -2640,7 +2655,7 @@ static const CRPCCommand commands[] =
 
 	{ "blockchain",         "getaddressinto",         &getaddressspent,        {"address"}, false },
     { "blockchain",         "getaddressspent",        &getaddressspent,        {"address"}, false },
-    { "blockchain",         "getaddresstxs",          &getaddresstxs,          {"address"}, false },
+    { "blockchain",         "getaddresstransactions", &getaddresstransactions, {"address"}, false },
 
 	//{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"}, false },
 	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"}, false },

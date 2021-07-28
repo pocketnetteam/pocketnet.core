@@ -8,11 +8,17 @@
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/BaseRepository.hpp"
 
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
+
 namespace PocketDb
 {
     using namespace std;
     using namespace PocketTx;
     using namespace PocketHelpers;
+
+    using boost::algorithm::join;
+    using boost::adaptors::transformed;
 
     class ExplorerRepository : public BaseRepository
     {
@@ -25,7 +31,7 @@ namespace PocketDb
         map<PocketTxType, map<int, int>> GetStatistic(int bottomHeight, int topHeight);
         map<PocketTxType, int> GetStatistic(int64_t startTime, int64_t endTime);
         tuple<int64_t, int64_t> GetAddressSpent(const string& addressHash);
-        UniValue GetAddressTransactions(const string& addressHash, int firstNumber);
+        UniValue GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize);
 
     private:
     

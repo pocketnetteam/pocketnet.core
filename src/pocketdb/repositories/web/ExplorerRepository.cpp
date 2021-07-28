@@ -110,10 +110,123 @@ namespace PocketDb {
         return {spent, unspent};
     }
     
-    UniValue ExplorerRepository::GetAddressTransactions(const string& addressHash, int firstNumber)
+    UniValue ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize)
     {
-        // TODO (brangr): implement
-        return UniValue(UniValue::VARR);
+        UniValue result(UniValue::VARR);
+        map<string, tuple<UniValue, UniValue, UniValue>> txs;
+
+        // Select outputs
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.Time, o.Number, o.AddressHash, o.Value
+                from (
+                    select ROW_NUMBER() OVER (order by txs.Height desc, txs.Time desc) RowNum, txs.Hash, txs.Type, txs.Height, txs.Time
+                    from (
+                        select distinct t.Hash, t.Type, t.Height, t.Time
+                        from Transactions t
+                        join TxOutputs o on o.TxHash = t.Hash and o.AddressHash = ?
+                        where t.Height <= ?
+                    ) txs
+                ) ptxs
+                join TxOutputs o on o.TxHash = ptxs.Hash
+                where RowNum >= ? and RowNum < ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, pageInitBlock);
+            TryBindStatementInt(stmt, 3, pageStart);
+            TryBindStatementInt(stmt, 4, pageStart + pageSize);
+
+            TryTransactionStep(__func__, [&]()
+            {
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    if (auto [ok0, hash] = TryGetColumnString(*stmt, 0); ok0)
+                    {
+                        // Create new transaction in array if not exists
+                        if (txs.find(hash) == txs.end())
+                        {
+                            UniValue tx(UniValue::VOBJ);
+                            UniValue vin(UniValue::VARR);
+                            UniValue vout(UniValue::VARR);
+                            
+                            tx.pushKV("txid", hash);
+                            if (auto [ok, value] = TryGetColumnInt(*stmt, 1); ok) tx.pushKV("rowNumber", value);
+                            if (auto [ok, value] = TryGetColumnInt(*stmt, 2); ok) tx.pushKV("type", value);
+                            if (auto [ok, value] = TryGetColumnInt(*stmt, 3); ok) tx.pushKV("height", value);
+                            if (auto [ok, value] = TryGetColumnInt64(*stmt, 4); ok) tx.pushKV("nTime", value);
+
+                            tuple<UniValue, UniValue, UniValue> _tx{tx, vin, vout};
+                            txs.emplace(hash, _tx);
+                        }
+
+                        // Extend transaction with outputs
+                        UniValue txOut(UniValue::VOBJ);
+                        if (auto [ok, value] = TryGetColumnInt(*stmt, 5); ok) txOut.pushKV("n", value);
+                        if (auto [ok, value] = TryGetColumnString(*stmt, 6); ok) txOut.pushKV("address", value);
+                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 7); ok) txOut.pushKV("value", value);
+                        auto[tx, vin, vout] = txs[hash];
+                        vout.push_back(txOut);
+                    }
+                }
+
+                FinalizeSqlStatement(*stmt);
+            });
+        }
+
+        // Select inputs
+        {
+            string sql = R"sql(
+                select SpentTxHash, TxHash, Number, AddressHash, Value
+                from TxOutputs
+                where 1=1
+            )sql";
+
+            sql += " and SpentTxHash in ( ";
+            sql += join(vector<string>(txs.size(), "?"), ",");
+            sql += " ) ";
+
+            auto stmt = SetupSqlStatement(sql);
+
+            size_t i = 1;
+            for (auto& tx : txs)
+            {
+                TryBindStatementText(stmt, i, tx.first);
+                i += 1;
+            }
+
+            TryTransactionStep(__func__, [&]()
+            {
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    if (auto [ok0, hash] = TryGetColumnString(*stmt, 0); ok0)
+                    {
+                        UniValue txInp(UniValue::VOBJ);
+                        txInp.pushKV("txid", hash);
+                        if (auto [ok, value] = TryGetColumnString(*stmt, 1); ok) txInp.pushKV("txid", value);
+                        if (auto [ok, value] = TryGetColumnInt(*stmt, 2); ok) txInp.pushKV("vout", value);
+                        if (auto [ok, value] = TryGetColumnString(*stmt, 3); ok) txInp.pushKV("address", value);
+                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 4); ok) txInp.pushKV("value", value);
+
+                        auto[tx, vin, vout] = txs[hash];
+                        vin.push_back(txInp);
+                    }
+                }
+
+                FinalizeSqlStatement(*stmt);
+            });
+        }
+
+        for (auto& ftx : txs)
+        {
+            auto[tx, vin, vout] = ftx.second;
+            tx.pushKV("vin", vin);
+            tx.pushKV("vout", vout);
+            
+            result.push_back(tx);
+        }
+
+        return result;
     }
 
 }

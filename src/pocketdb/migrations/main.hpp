@@ -638,6 +638,7 @@ namespace PocketDb
         drop index if exists TxOutput_SpentHeight;
         drop index if exists TxOutput_TxHash_Number;
         drop index if exists TxOutputs_AddressHash_SpentHeight_Value;
+        drop index if exists TxOutputs_SpentTxHash;
         drop index if exists Ratings_Height;
         drop index if exists Ratings_Type_Id_Value;
         drop index if exists Ratings_Type_Id_Height;
@@ -684,6 +685,8 @@ namespace PocketDb
         create index if not exists TxOutput_SpentHeight on TxOutputs (SpentHeight);
         create index if not exists TxOutput_TxHash_Number on TxOutputs (TxHash, Number);
         create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);
+        create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
+
         create index if not exists Ratings_Height on Ratings (Height);
         create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
         create index if not exists Ratings_Type_Id_Height on Ratings (Type, Id, Height desc);
