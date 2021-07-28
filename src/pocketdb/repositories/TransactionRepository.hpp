@@ -100,15 +100,16 @@ namespace PocketDb
         {
             bool result = false;
 
-            auto stmt = SetupSqlStatement(R"sql(
-                SELECT count(*)
-                FROM Transactions
-                WHERE Hash = ?
-            )sql");
-            TryBindStatementText(stmt, 1, hash);
-
             TryTransactionStep(__func__, [&]()
             {
+                auto stmt = SetupSqlStatement(R"sql(
+                    SELECT count(*)
+                    FROM Transactions
+                    WHERE Hash = ?
+                )sql");
+
+                TryBindStatementText(stmt, 1, hash);
+
                 if (sqlite3_step(*stmt) == SQLITE_ROW)
                     if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                         result = (value >= 1);
@@ -256,7 +257,7 @@ namespace PocketDb
         )sql";
 
         tuple<bool, shared_ptr<Transaction>> CreateTransactionFromListRow(const shared_ptr<sqlite3_stmt*>& stmt,
-                                                                          bool includedPayload)
+            bool includedPayload)
         {
             auto[ok0, txType] = TryGetColumnInt(*stmt, 0);
             auto[ok1, txHash] = TryGetColumnString(*stmt, 1);

@@ -158,12 +158,7 @@ static CScheduler scheduler;
 void ShutdownPocketServices()
 {
     // Before close database we must stop all repositories
-
-    LOCK(PocketDb::TransRepoInst.SqliteShutdownMutex);
-    LOCK(PocketDb::ChainRepoInst.SqliteShutdownMutex);
-    LOCK(PocketDb::RatingsRepoInst.SqliteShutdownMutex);
-    LOCK(PocketDb::ConsensusRepoInst.SqliteShutdownMutex);
-    LOCK(PocketDb::WebRepoInst.SqliteShutdownMutex);
+    PocketDb::SQLiteDbInst.m_connection_mutex.lock();
 
     PocketDb::TransRepoInst.Destroy();
     PocketDb::ChainRepoInst.Destroy();
@@ -173,6 +168,8 @@ void ShutdownPocketServices()
 
     // Now we must close database connect
     PocketDb::SQLiteDbInst.Close();
+
+    PocketDb::SQLiteDbInst.m_connection_mutex.unlock();
 }
 
 void Interrupt()

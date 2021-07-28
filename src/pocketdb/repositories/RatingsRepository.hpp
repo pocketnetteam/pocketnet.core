@@ -44,27 +44,25 @@ namespace PocketDb
 
         void InsertRating(const Rating& rating)
         {
-            auto sql = R"sql(
-                INSERT OR FAIL INTO Ratings (
-                    Type,
-                    Height,
-                    Id,
-                    Value
-                ) SELECT ?,?,?,
-                    ifnull((
-                        select r.Value
-                        from Ratings r
-                        where r.Type = ?
-                            and r.Id = ?
-                            and r.Height < ?
-                        order by r.Height desc
-                        limit 1
-                    ), 0) + ?
-            )sql";
-
             TryTransactionStep(__func__, [&]()
             {
-                auto stmt = SetupSqlStatement(sql);
+                auto stmt = SetupSqlStatement(R"sql(
+                    INSERT OR FAIL INTO Ratings (
+                        Type,
+                        Height,
+                        Id,
+                        Value
+                    ) SELECT ?,?,?,
+                        ifnull((
+                            select r.Value
+                            from Ratings r
+                            where r.Type = ?
+                                and r.Id = ?
+                                and r.Height < ?
+                            order by r.Height desc
+                            limit 1
+                        ), 0) + ?
+                )sql");
 
                 TryBindStatementInt(stmt, 1, rating.GetTypeInt());
                 TryBindStatementInt(stmt, 2, rating.GetHeight());
@@ -80,19 +78,17 @@ namespace PocketDb
 
         void InsertLiker(const Rating& rating)
         {
-            auto sql = R"sql(
-                INSERT OR FAIL INTO Ratings (
-                    Type,
-                    Height,
-                    Id,
-                    Value
-                ) SELECT ?,?,?,?
-                WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
-            )sql";
-
             TryTransactionStep(__func__, [&]()
             {
-                auto stmt = SetupSqlStatement(sql);
+                auto stmt = SetupSqlStatement(R"sql(
+                    INSERT OR FAIL INTO Ratings (
+                        Type,
+                        Height,
+                        Id,
+                        Value
+                    ) SELECT ?,?,?,?
+                    WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
+                )sql");
 
                 TryBindStatementInt(stmt, 1, rating.GetTypeInt());
                 TryBindStatementInt(stmt, 2, rating.GetHeight());

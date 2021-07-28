@@ -29,37 +29,19 @@ namespace PocketDb
         {
             int64_t nTime1 = GetTimeMicros();
 
-            LOCK(SqliteShutdownMutex);
-
             if (!m_database.BeginTransaction())
                 return;
 
-            try
-            {
-                sql();
+            sql();
 
-                if (!m_database.CommitTransaction())
-                    throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));
-
-            }
-            catch (std::exception& ex)
+            if (!m_database.CommitTransaction())
             {
-                LogPrintf("Transaction error: %s\n", ex.what());
                 m_database.AbortTransaction();
-                throw ex;
+                throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));
             }
-            
+
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "      - TryTransactionStep (%s): %.2fms\n", func, 0.001 * (nTime2 - nTime1));
-        }
-
-        void TryTransactionStep(const string& func, std::initializer_list<shared_ptr<sqlite3_stmt*>> stmts)
-        {
-            TryTransactionStep(func, [&]()
-            {
-                for (auto stmt : stmts)
-                    TryStepStatement(stmt);
-            });
         }
 
         void TryStepStatement(shared_ptr<sqlite3_stmt*>& stmt)
@@ -175,27 +157,9 @@ namespace PocketDb
                    : make_tuple(true, sqlite3_column_int(stmt, index));
         }
 
-        int GetCount(const string& func, shared_ptr<sqlite3_stmt*>& stmt)
-        {
-            int result = 0;
-
-            TryTransactionStep(func, [&]()
-            {
-                if (sqlite3_step(*stmt) == SQLITE_ROW)
-                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
-                        result = value;
-
-                FinalizeSqlStatement(*stmt);
-            });
-
-            return result;
-        }
-
     public:
-        Mutex SqliteShutdownMutex;
 
-        explicit BaseRepository(SQLiteDatabase& db) :
-            m_database(db)
+        explicit BaseRepository(SQLiteDatabase& db) : m_database(db)
         {
         }
 

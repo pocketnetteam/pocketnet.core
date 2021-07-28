@@ -37,7 +37,8 @@ namespace PocketDb
 
     private:
 
-        UniValue _getTransactions(shared_ptr<sqlite3_stmt*> stmtOut);
+        template<typename T>
+        UniValue _getTransactions(T stmtOut);
     
     };
 

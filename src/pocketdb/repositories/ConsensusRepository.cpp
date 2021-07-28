@@ -16,26 +16,26 @@ namespace PocketDb
     {
         bool result = false;
 
-        // TODO (brangr): implement sql for first user record - exists
-        auto stmt = SetupSqlStatement(R"sql(
-            SELECT 1
-            FROM vUsersPayload ap
-            WHERE ap.Name = ?
-                and ap.Height is not null
-                and not exists (
-                    select 1
-                    from vAccounts ac
-                    where   ac.Hash = ap.TxHash
-                        and a.Height is not null
-                        and ac.AddressHash = ?
-                )
-        )sql");
-
-        TryBindStatementText(stmt, 1, name);
-        TryBindStatementText(stmt, 2, address);
-
         TryTransactionStep(__func__, [&]()
         {
+            // TODO (brangr): implement sql for first user record - exists
+            auto stmt = SetupSqlStatement(R"sql(
+                SELECT 1
+                FROM vUsersPayload ap
+                WHERE ap.Name = ?
+                    and ap.Height is not null
+                    and not exists (
+                        select 1
+                        from vAccounts ac
+                        where   ac.Hash = ap.TxHash
+                            and a.Height is not null
+                            and ac.AddressHash = ?
+                    )
+            )sql");
+
+            TryBindStatementText(stmt, 1, name);
+            TryBindStatementText(stmt, 2, address);
+
             result = sqlite3_step(*stmt) == SQLITE_ROW;
             FinalizeSqlStatement(*stmt);
         });
@@ -50,19 +50,19 @@ namespace PocketDb
     {
         PTransactionRef tx = nullptr;
 
-        auto sql = FullTransactionSql;
-        sql += R"sql(
-            and t.String1 = ?
-            and t.Last = 1
-            and t.Height is not null
-            and t.Type in (100, 101, 102)
-        )sql";
-
-        auto stmt = SetupSqlStatement(sql);
-        TryBindStatementText(stmt, 1, address);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto sql = FullTransactionSql;
+            sql += R"sql(
+                and t.String1 = ?
+                and t.Last = 1
+                and t.Height is not null
+                and t.Type in (100, 101, 102)
+            )sql";
+
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, address);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
                     tx = transaction;
@@ -77,19 +77,19 @@ namespace PocketDb
     {
         PTransactionRef tx = nullptr;
 
-        auto sql = FullTransactionSql;
-        sql += R"sql(
-            and t.String2 = ?
-            and t.Last = 1
-            and t.Height is not null
-            and t.Type in (200, 201, 202, 203, 204, 205, 206)
-        )sql";
-
-        auto stmt = SetupSqlStatement(sql);
-        TryBindStatementText(stmt, 1, rootHash);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto sql = FullTransactionSql;
+            sql += R"sql(
+                and t.String2 = ?
+                and t.Last = 1
+                and t.Height is not null
+                and t.Type in (200, 201, 202, 203, 204, 205, 206)
+            )sql";
+
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, rootHash);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
                     tx = transaction;
@@ -122,16 +122,14 @@ namespace PocketDb
         if (!mempool)
             sql += " and Height is not null";
 
-        // Compile sql
-        auto stmt = SetupSqlStatement(sql);
-
-        // Bind values
-        for (size_t i = 0; i < addresses.size(); i++)
-            TryBindStatementText(stmt, i + 1, addresses[i]);
-
         // Execute
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+
+            for (size_t i = 0; i < addresses.size(); i++)
+                TryBindStatementText(stmt, (int)i + 1, addresses[i]);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = (value == (int) addresses.size());
@@ -147,21 +145,21 @@ namespace PocketDb
         bool blockingExists = false;
         PocketTxType blockingType = PocketTxType::NOT_SUPPORTED;
 
-        auto stmt = SetupSqlStatement(R"sql(
-            SELECT b.Type
-            FROM vBlockings b
-            WHERE b.AddressHash = ?
-                and b.AddressToHash = ?
-                and b.Height is not null
-                and b.Last = 1
-            LIMIT 1
-        )sql");
-
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementText(stmt, 2, addressTo);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(R"sql(
+                SELECT b.Type
+                FROM vBlockings b
+                WHERE b.AddressHash = ?
+                    and b.AddressToHash = ?
+                    and b.Height is not null
+                    and b.Last = 1
+                LIMIT 1
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, addressTo);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -178,26 +176,26 @@ namespace PocketDb
     }
 
     tuple<bool, PocketTxType> ConsensusRepository::GetLastSubscribeType(const string& address,
-                                                                        const string& addressTo)
+        const string& addressTo)
     {
         bool subscribeExists = false;
         PocketTxType subscribeType = PocketTxType::NOT_SUPPORTED;
 
-        auto stmt = SetupSqlStatement(R"sql(
-            SELECT s.Type
-            FROM vSubscribes s
-            WHERE s.AddressHash = ?
-                and s.AddressToHash = ?
-                and s.Height is not null
-                and s.Last = 1
-            LIMIT 1
-        )sql");
-
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementText(stmt, 2, addressTo);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(R"sql(
+                SELECT s.Type
+                FROM vSubscribes s
+                WHERE s.AddressHash = ?
+                    and s.AddressToHash = ?
+                    and s.Height is not null
+                    and s.Last = 1
+                LIMIT 1
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, addressTo);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -218,17 +216,17 @@ namespace PocketDb
     {
         shared_ptr<string> result = nullptr;
 
-        auto stmt = SetupSqlStatement(R"sql(
-            SELECT p.AddressHash
-            FROM vPosts p
-            WHERE   p.Hash = ?
-                and p.Height is not null
-        )sql");
-
-        TryBindStatementText(stmt, 1, postHash);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(R"sql(
+                SELECT p.AddressHash
+                FROM vPosts p
+                WHERE   p.Hash = ?
+                    and p.Height is not null
+            )sql");
+
+            TryBindStatementText(stmt, 1, postHash);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
                     result = make_shared<string>(value);
@@ -243,22 +241,21 @@ namespace PocketDb
     {
         bool result = false;
 
-        auto stmt = SetupSqlStatement(R"sql(
-            SELECT 1
-            FROM vComplains c
-            WHERE c.AddressHash = ?
-                and c.PostTxHash = ?
-                and c.Hash != ?
-                and c.Height is not null
-            LIMIT 1
-        )sql");
-
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementText(stmt, 2, postHash);
-        TryBindStatementText(stmt, 3, txHash);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(R"sql(
+                SELECT 1
+                FROM vComplains c
+                WHERE c.AddressHash = ?
+                    and c.PostTxHash = ?
+                    and c.Hash != ?
+                    and c.Height is not null
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, postHash);
+            TryBindStatementText(stmt, 3, txHash);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -273,7 +270,7 @@ namespace PocketDb
 
 
     bool ConsensusRepository::ExistsScore(const string& address, const string& contentHash,
-                                          PocketTxType type, bool mempool)
+        PocketTxType type, bool mempool)
     {
         bool result = false;
 
@@ -288,13 +285,13 @@ namespace PocketDb
         if (!mempool)
             sql += " and s.Height is not null";
 
-        auto stmt = SetupSqlStatement(sql);
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementText(stmt, 2, contentHash);
-        TryBindStatementInt(stmt, 3, (int) type);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, contentHash);
+            TryBindStatementInt(stmt, 3, (int) type);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = true;
@@ -317,11 +314,11 @@ namespace PocketDb
                 and o.AddressHash = ?
         )sql";
 
-        auto stmt = SetupSqlStatement(sql);
-        TryBindStatementText(stmt, 1, address);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, address);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
                     result = value;
@@ -337,19 +334,19 @@ namespace PocketDb
         int result = 0;
 
         auto sql = R"sql(
-                select r.Value
-                from Ratings r
-                where r.Type = ?
-                    and r.Id = (SELECT u.Id FROM vUsers u WHERE u.Height is not null and u.Last = 1 AND u.AddressHash = ? LIMIT 1)
-                    and r.Height = (select max(r1.Height) from Ratings r1 where r1.Type=r.Type and r1.Id=r.Id)
-            )sql";
-
-        auto stmt = SetupSqlStatement(sql);
-        TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
-        TryBindStatementText(stmt, 2, address);
+            select r.Value
+            from Ratings r
+            where r.Type = ?
+                and r.Id = (SELECT u.Id FROM vUsers u WHERE u.Height is not null and u.Last = 1 AND u.AddressHash = ? LIMIT 1)
+                and r.Height = (select max(r1.Height) from Ratings r1 where r1.Type=r.Type and r1.Id=r.Id)
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
+            TryBindStatementText(stmt, 2, address);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
@@ -364,19 +361,20 @@ namespace PocketDb
     {
         int result = 0;
 
-        auto stmt = SetupSqlStatement(R"sql(
+        string sql = R"sql(
             select r.Value
             from Ratings r
             where r.Type = ?
                 and r.Id = ?
                 and r.Height = (select max(r1.Height) from Ratings r1 where r1.Type=r.Type and r1.Id=r.Id)
-        )sql");
-
-        TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
-        TryBindStatementInt(stmt, 2, addressId);
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
+            TryBindStatementInt(stmt, 2, addressId);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
@@ -392,7 +390,7 @@ namespace PocketDb
     {
         shared_ptr<ScoreDataDto> result = nullptr;
 
-        auto stmt = SetupSqlStatement(R"sql(
+        string sql = R"sql(
             select
                 s.Hash sTxHash,
                 s.Type sType,
@@ -412,11 +410,13 @@ namespace PocketDb
                 join vAccounts ca on ca.Height is not null and ca.AddressHash=c.AddressHash
             where s.Hash = ? and s.Height is not null
             limit 1
-        )sql");
-        TryBindStatementText(stmt, 1, txHash);
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, txHash);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 ScoreDataDto data;
@@ -466,17 +466,15 @@ namespace PocketDb
         sql += join(vector<string>(addresses.size(), "?"), ",");
         sql += " ) ";
 
-        // Compile sql
-        auto stmt = SetupSqlStatement(sql);
-
-        // Bind values
-        TryBindStatementInt(stmt, 1, minHeight);
-        for (size_t i = 0; i < addresses.size(); i++)
-            TryBindStatementText(stmt, i + 2, addresses[i]);
-
         // Execute
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementInt(stmt, 1, minHeight);
+            for (size_t i = 0; i < addresses.size(); i++)
+                TryBindStatementText(stmt, (int)i + 2, addresses[i]);
+
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok1, value1] = TryGetColumnString(*stmt, 1); ok1 && !value1.empty())
@@ -495,19 +493,20 @@ namespace PocketDb
     {
         shared_ptr<string> result;
 
-        auto stmt = SetupSqlStatement(R"sql(
+        string sql = R"sql(
             select ReferrerAddressHash
             from vUsers
             where Height is not null
                 and AddressHash = ?
             order by Height asc
             limit 1
-        )sql");
-
-        TryBindStatementText(stmt, 1, address);
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, address);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
@@ -524,7 +523,7 @@ namespace PocketDb
     {
         shared_ptr<string> result;
 
-        auto stmt = SetupSqlStatement(R"sql(
+        string sql = R"sql(
             select ReferrerAddressHash
             from vUsers
             where Height is not null
@@ -532,12 +531,14 @@ namespace PocketDb
                 and AddressHash = ?
             order by Height asc
             limit 1
-        )sql");
-        TryBindStatementInt64(stmt, 1, minTime);
-        TryBindStatementText(stmt, 2, address);
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt64(stmt, 1, minTime);
+            TryBindStatementText(stmt, 2, address);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
@@ -554,18 +555,19 @@ namespace PocketDb
     {
         int result = 0;
 
-        auto stmt = SetupSqlStatement(R"sql(
+        string sql = R"sql(
             select count(1)
             from Ratings r
             where   r.Type = ?
                 and r.Id = ?
-        )sql");
-
-        TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
-        TryBindStatementInt(stmt, 2, addressId);
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT_LIKERS);
+            TryBindStatementInt(stmt, 2, addressId);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
@@ -577,10 +579,10 @@ namespace PocketDb
     }
 
     int ConsensusRepository::GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
-                                                  const string& scoreAddress, const string& contentAddress,
-                                                  int height, const CTransactionRef& tx,
-                                                  const std::vector<int>& values,
-                                                  int64_t scoresOneToOneDepth)
+        const string& scoreAddress, const string& contentAddress,
+        int height, const CTransactionRef& tx,
+        const std::vector<int>& values,
+        int64_t scoresOneToOneDepth)
     {
         int result = 0;
 
@@ -604,23 +606,21 @@ namespace PocketDb
         sql += join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
         sql += " ) ";
 
-        // Compile sql
-        auto stmt = SetupSqlStatement(sql);
-
-        // Bind values
-        TryBindStatementInt(stmt, 1, contentType);
-        TryBindStatementText(stmt, 2, contentAddress);
-        TryBindStatementInt(stmt, 3, height);
-        TryBindStatementText(stmt, 4, scoreAddress);
-        TryBindStatementInt(stmt, 5, height);
-        TryBindStatementInt64(stmt, 6, tx->nTime);
-        TryBindStatementInt64(stmt, 7, (int64_t) tx->nTime - scoresOneToOneDepth);
-        TryBindStatementText(stmt, 8, tx->GetHash().GetHex());
-        TryBindStatementInt(stmt, 9, scoreType);
-
         // Execute
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementInt(stmt, 1, contentType);
+            TryBindStatementText(stmt, 2, contentAddress);
+            TryBindStatementInt(stmt, 3, height);
+            TryBindStatementText(stmt, 4, scoreAddress);
+            TryBindStatementInt(stmt, 5, height);
+            TryBindStatementInt64(stmt, 6, tx->nTime);
+            TryBindStatementInt64(stmt, 7, (int64_t) tx->nTime - scoresOneToOneDepth);
+            TryBindStatementText(stmt, 8, tx->GetHash().GetHex());
+            TryBindStatementInt(stmt, 9, scoreType);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
@@ -635,17 +635,18 @@ namespace PocketDb
     {
         tuple<bool, int64_t> result = {false, 0};
 
-        auto stmt = SetupSqlStatement(R"sql(
-            select a.Height
-            from vAccounts a
-            where   a.AddressHash = ?
-                and a.Last = 1
-                and a.Height is not null
-        )sql");
-        TryBindStatementText(stmt, 1, address);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(R"sql(
+                select a.Height
+                from vAccounts a
+                where   a.AddressHash = ?
+                    and a.Last = 1
+                    and a.Height is not null
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
                     result = {true, value};
@@ -660,16 +661,17 @@ namespace PocketDb
     {
         tuple<bool, int64_t> result = {false, 0};
 
-        auto stmt = SetupSqlStatement(R"sql(
-            select t.Height
-            from Transactions t
-            where   t.Hash = ?
-                and t.Height is not null
-        )sql");
-        TryBindStatementText(stmt, 1, hash);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(R"sql(
+                select t.Height
+                from Transactions t
+                where   t.Hash = ?
+                    and t.Height is not null
+            )sql");
+
+            TryBindStatementText(stmt, 1, hash);
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
                     result = {true, value};
@@ -685,444 +687,763 @@ namespace PocketDb
 
     int ConsensusRepository::CountMempoolBlocking(const string& address, const string& addressTo)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from Blockings
-            where Height is null
-                and AddressHash = ?
-                and AddressToHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementText(stmt, 2, addressTo);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Blockings
+                where Height is null
+                    and AddressHash = ?
+                    and AddressToHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, addressTo);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountMempoolSubscribe(const string& address, const string& addressTo)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vSubscribes
-            where Height is null
-                and AddressHash = ?
-                and AddressToHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementText(stmt, 2, addressTo);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vSubscribes
+                where Height is null
+                    and AddressHash = ?
+                    and AddressToHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, addressTo);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
 
     int ConsensusRepository::CountMempoolComment(const string& address)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vComments
-            where Height is null
-                and AddressHash = ?
-                and Type = 204
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vComments
+                where Height is null
+                    and AddressHash = ?
+                    and Type = 204
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainCommentTime(const string& address, int64_t time)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vComments
-            where Height is not null
-                and Time >= ?
-                and AddressHash = ?
-                and Type = 204
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementInt64(stmt, 1, time);
-        TryBindStatementText(stmt, 2, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vComments
+                where Height is not null
+                    and Time >= ?
+                    and AddressHash = ?
+                    and Type = 204
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementInt64(stmt, 1, time);
+            TryBindStatementText(stmt, 2, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainCommentHeight(const string& address, int height)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vComments
-            where Height is not null
-                and Height >= ?
-                and AddressHash = ?
-                and Type = 204
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementInt(stmt, 1, height);
-        TryBindStatementText(stmt, 2, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vComments
+                where Height is not null
+                    and Height >= ?
+                    and AddressHash = ?
+                    and Type = 204
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     int ConsensusRepository::CountMempoolComplain(const string& address)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vComplains
-            where Height is null
-                and AddressHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vComplains
+                where Height is null
+                    and AddressHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainComplainTime(const string& address, int64_t time)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vComplains
-            where Height is not null
-                and Time >= ?
-                and Last = 1
-                and AddressHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementInt64(stmt, 1, time);
-        TryBindStatementText(stmt, 2, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vComplains
+                where Height is not null
+                    and Time >= ?
+                    and Last = 1
+                    and AddressHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementInt64(stmt, 1, time);
+            TryBindStatementText(stmt, 2, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainComplainHeight(const string& address, int height)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vComplains
-            where Height is not null
-                and Height >= ?
-                and Last = 1
-                and AddressHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementInt(stmt, 1, height);
-        TryBindStatementText(stmt, 2, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vComplains
+                where Height is not null
+                    and Height >= ?
+                    and Last = 1
+                    and AddressHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     int ConsensusRepository::CountMempoolPost(const string& address)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vPosts
-            where Height is null
-                and AddressHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vPosts
+                where Height is null
+                    and AddressHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainPostTime(const string& address, int64_t time)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vPosts
-            where Height is not null
-                and AddressHash = ?
-                and Time >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt64(stmt, 2, time);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vPosts
+                where Height is not null
+                    and AddressHash = ?
+                    and Time >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt64(stmt, 2, time);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainPostHeight(const string& address, int height)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vPosts
-            where Height is not null
-                and AddressHash = ?
-                and Height >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt(stmt, 2, height);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vPosts
+                where Height is not null
+                    and AddressHash = ?
+                    and Height >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     int ConsensusRepository::CountMempoolScoreComment(const string& address)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vScoreComments
-            where Height is null
-                and AddressHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vScoreComments
+                where Height is null
+                    and AddressHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainScoreCommentTime(const string& address, int64_t time)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vScoreComments
-            where Height is not null
-                and AddressHash = ?
-                and Time >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt64(stmt, 2, time);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vScoreComments
+                where Height is not null
+                    and AddressHash = ?
+                    and Time >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt64(stmt, 2, time);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainScoreCommentHeight(const string& address, int height)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vScoreComments
-            where Height is not null
-                and AddressHash = ?
-                and Height >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt(stmt, 2, height);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vScoreComments
+                where Height is not null
+                    and AddressHash = ?
+                    and Height >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     int ConsensusRepository::CountMempoolScoreContent(const string& address)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vScoreContents
-            where Height is null
-                and AddressHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vScoreContents
+                where Height is null
+                    and AddressHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainScoreContentTime(const string& address, int64_t time)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vScoreContents
-            where Height is not null
-                and AddressHash = ?
-                and Time >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt64(stmt, 2, time);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vScoreContents
+                where Height is not null
+                    and AddressHash = ?
+                    and Time >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt64(stmt, 2, time);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainScoreContentHeight(const string& address, int height)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vScoreContents
-            where Height is not null
-                and AddressHash = ?
-                and Height >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt(stmt, 2, height);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vScoreContents
+                where Height is not null
+                    and AddressHash = ?
+                    and Height >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     int ConsensusRepository::CountMempoolUser(const string& address)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vUsers
-            where Height is null
-                and AddressHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vUsers
+                where Height is null
+                    and AddressHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainUserTime(const string& address, int64_t time)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vUsers
-            where Height is not null
-                and AddressHash = ?
-                and Time >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt64(stmt, 2, time);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vUsers
+                where Height is not null
+                    and AddressHash = ?
+                    and Time >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt64(stmt, 2, time);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainUserHeight(const string& address, int height)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vUsers
-            where Height is not null
-                and AddressHash = ?
-                and Height >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt(stmt, 2, height);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vUsers
+                where Height is not null
+                    and AddressHash = ?
+                    and Height >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     int ConsensusRepository::CountMempoolVideo(const string& address)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vVideos
-            where Height is null
-                and AddressHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vVideos
+                where Height is null
+                    and AddressHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainVideoTime(const string& address, int64_t time)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vVideos
-            where Height is not null
-                and AddressHash = ?
-                and Time >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt64(stmt, 2, time);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vVideos
+                where Height is not null
+                    and AddressHash = ?
+                    and Time >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt64(stmt, 2, time);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainVideoHeight(const string& address, int height)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vVideos
-            where Height is not null
-                and AddressHash = ?
-                and Height >= ?
-                and Last = 1
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt(stmt, 2, height);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vVideos
+                where Height is not null
+                    and AddressHash = ?
+                    and Height >= ?
+                    and Last = 1
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     // EDITS
 
     int ConsensusRepository::CountMempoolCommentEdit(const string& rootTxHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vComments
-            where Height is null
-                and RootTxHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, rootTxHash);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vComments
+                where Height is null
+                    and RootTxHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainCommentEdit(const string& rootTxHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vComments
-            where Height is not null
-                and RootTxHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, rootTxHash);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vComments
+                where Height is not null
+                    and RootTxHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     int ConsensusRepository::CountMempoolPostEdit(const string& rootTxHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vPosts
-            where Height is null
-                and RootTxHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, rootTxHash);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vPosts
+                where Height is null
+                    and RootTxHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainPostEdit(const string& rootTxHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vPosts
-            where Height is not null
-                and RootTxHash = ?
-                and Hash != RootTxHash
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, rootTxHash);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vPosts
+                where Height is not null
+                    and RootTxHash = ?
+                    and Hash != RootTxHash
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     int ConsensusRepository::CountMempoolVideoEdit(const string& rootTxHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vVideos
-            where Height is null
-                and RootTxHash = ?
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, rootTxHash);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vVideos
+                where Height is null
+                    and RootTxHash = ?
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
     int ConsensusRepository::CountChainVideoEdit(const string& rootTxHash)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select count(*)
-            from vVideos
-            where Height is not null
-                and RootTxHash = ?
-                and Hash != RootTxHash
-        )sql");
+        int result = 0;
 
-        TryBindStatementText(stmt, 1, rootTxHash);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from vVideos
+                where Height is not null
+                    and RootTxHash = ?
+                    and Hash != RootTxHash
+            )sql");
 
-        return GetCount(__func__, stmt);
+            TryBindStatementText(stmt, 1, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
 }

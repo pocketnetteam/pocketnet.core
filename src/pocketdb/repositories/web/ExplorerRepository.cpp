@@ -14,19 +14,19 @@ namespace PocketDb {
     {
         map<PocketTxType, map<int, int>> result;
 
-        auto stmt = SetupSqlStatement(R"sql(
-            select t.Type, t.Height, count(*)
-            from Transactions t
-            where   t.Height > ?
-                and t.Height <= ?
-            group by t.Type, t.Height
-        )sql");
-
-        TryBindStatementInt(stmt, 1, bottomHeight);
-        TryBindStatementInt(stmt, 2, topHeight);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(R"sql(
+                select t.Type, t.Height, count(*)
+                from Transactions t
+                where   t.Height > ?
+                    and t.Height <= ?
+                group by t.Type, t.Height
+            )sql");
+
+            TryBindStatementInt(stmt, 1, bottomHeight);
+            TryBindStatementInt(stmt, 2, topHeight);
+
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto [ok0, sType] = TryGetColumnInt(*stmt, 0);
@@ -47,20 +47,20 @@ namespace PocketDb {
     {
         map<PocketTxType, int> result;
 
-        auto stmt = SetupSqlStatement(R"sql(
-            select t.Type, count(*)
-            from Transactions t
-            where   t.Time >= ?
-                and t.Time < ?
-                and t.Type > 3
-            group by t.Type
-        )sql");
-
-        TryBindStatementInt64(stmt, 1, startTime);
-        TryBindStatementInt64(stmt, 2, endTime);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(R"sql(
+                select t.Type, count(*)
+                from Transactions t
+                where   t.Time >= ?
+                    and t.Time < ?
+                    and t.Type > 3
+                group by t.Type
+            )sql");
+
+            TryBindStatementInt64(stmt, 1, startTime);
+            TryBindStatementInt64(stmt, 2, endTime);
+
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto [ok0, sType] = TryGetColumnInt(*stmt, 0);
@@ -81,17 +81,17 @@ namespace PocketDb {
         int64_t spent = 0;
         int64_t unspent = 0;
 
-        auto stmt = SetupSqlStatement(R"sql(
-            select (o.SpentHeight isnull), sum(o.Value)
-            from TxOutputs o
-            where o.AddressHash = ?
-            group by (o.SpentHeight isnull)
-        )sql");
-
-        TryBindStatementText(stmt, 1, addressHash);
-
         TryTransactionStep(__func__, [&]()
         {
+            auto stmt = SetupSqlStatement(R"sql(
+                select (o.SpentHeight isnull), sum(o.Value)
+                from TxOutputs o
+                where o.AddressHash = ?
+                group by (o.SpentHeight isnull)
+            )sql");
+
+            TryBindStatementText(stmt, 1, addressHash);
+
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto [ok0, sUnspent] = TryGetColumnInt(*stmt, 0);
@@ -109,9 +109,9 @@ namespace PocketDb {
 
         return {spent, unspent};
     }
-    
 
-    UniValue ExplorerRepository::_getTransactions(shared_ptr<sqlite3_stmt*> stmtOut)
+    template<typename T>
+    UniValue ExplorerRepository::_getTransactions(T stmtOut)
     {
         UniValue result(UniValue::VARR);
         map<string, tuple<UniValue, UniValue, UniValue>> txs;
@@ -120,9 +120,12 @@ namespace PocketDb {
         {
             TryTransactionStep(__func__, [&]()
             {
-                while (sqlite3_step(*stmtOut) == SQLITE_ROW)
+                shared_ptr<sqlite3_stmt*> stmt;
+                stmtOut(stmt);
+
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
-                    if (auto [ok0, hash] = TryGetColumnString(*stmtOut, 0); ok0)
+                    if (auto [ok0, hash] = TryGetColumnString(*stmt, 0); ok0)
                     {
                         // Create new transaction in array if not exists
                         if (txs.find(hash) == txs.end())
@@ -132,10 +135,10 @@ namespace PocketDb {
                             UniValue vout(UniValue::VARR);
                             
                             tx.pushKV("txid", hash);
-                            if (auto [ok, value] = TryGetColumnInt(*stmtOut, 1); ok) tx.pushKV("rowNumber", value);
-                            if (auto [ok, value] = TryGetColumnInt(*stmtOut, 2); ok) tx.pushKV("type", value);
-                            if (auto [ok, value] = TryGetColumnInt(*stmtOut, 3); ok) tx.pushKV("height", value);
-                            if (auto [ok, value] = TryGetColumnInt64(*stmtOut, 4); ok) tx.pushKV("nTime", value);
+                            if (auto [ok, value] = TryGetColumnInt(*stmt, 1); ok) tx.pushKV("rowNumber", value);
+                            if (auto [ok, value] = TryGetColumnInt(*stmt, 2); ok) tx.pushKV("type", value);
+                            if (auto [ok, value] = TryGetColumnInt(*stmt, 3); ok) tx.pushKV("height", value);
+                            if (auto [ok, value] = TryGetColumnInt64(*stmt, 4); ok) tx.pushKV("nTime", value);
 
                             tuple<UniValue, UniValue, UniValue> _tx{tx, vin, vout};
                             txs.emplace(hash, _tx);
@@ -143,15 +146,15 @@ namespace PocketDb {
 
                         // Extend transaction with outputs
                         UniValue txOut(UniValue::VOBJ);
-                        if (auto [ok, value] = TryGetColumnInt(*stmtOut, 5); ok) txOut.pushKV("n", value);
-                        if (auto [ok, value] = TryGetColumnString(*stmtOut, 6); ok) txOut.pushKV("address", value);
-                        if (auto [ok, value] = TryGetColumnInt64(*stmtOut, 7); ok) txOut.pushKV("value", value);
+                        if (auto [ok, value] = TryGetColumnInt(*stmt, 5); ok) txOut.pushKV("n", value);
+                        if (auto [ok, value] = TryGetColumnString(*stmt, 6); ok) txOut.pushKV("address", value);
+                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 7); ok) txOut.pushKV("value", value);
                         auto[tx, vin, vout] = txs[hash];
                         vout.push_back(txOut);
                     }
                 }
 
-                FinalizeSqlStatement(*stmtOut);
+                FinalizeSqlStatement(*stmt);
             });
         }
 
@@ -167,17 +170,17 @@ namespace PocketDb {
             sql += join(vector<string>(txs.size(), "?"), ",");
             sql += " ) ";
 
-            auto stmt = SetupSqlStatement(sql);
-
-            size_t i = 1;
-            for (auto& tx : txs)
-            {
-                TryBindStatementText(stmt, i, tx.first);
-                i += 1;
-            }
-
             TryTransactionStep(__func__, [&]()
             {
+                auto stmt = SetupSqlStatement(sql);
+
+                size_t i = 1;
+                for (auto& tx : txs)
+                {
+                    TryBindStatementText(stmt, i, tx.first);
+                    i += 1;
+                }
+
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
                     if (auto [ok0, hash] = TryGetColumnString(*stmt, 0); ok0)
@@ -212,78 +215,81 @@ namespace PocketDb {
 
     UniValue ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select ptxs.TxHash, ptxs.RowNum, t.Type, ptxs.TxHeight, t.Time, o.Number, o.AddressHash, o.Value
-            from (
-                select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash, txs.TxHeight
+        return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
+        {
+            stmt = SetupSqlStatement(R"sql(
+                select ptxs.TxHash, ptxs.RowNum, t.Type, ptxs.TxHeight, t.Time, o.Number, o.AddressHash, o.Value
                 from (
-                    select distinct o.TxHash, o.TxHeight
-                    from TxOutputs o
-                    where o.AddressHash = ? and o.SpentHeight is not null and o.TxHeight <= ?
-                ) txs
-            ) ptxs
-            join TxOutputs o on o.TxHash = ptxs.TxHash
-            join Transactions t on t.Hash = ptxs.TxHash
-            where RowNum >= ? and RowNum < ?
-        )sql");
+                    select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash, txs.TxHeight
+                    from (
+                        select distinct o.TxHash, o.TxHeight
+                        from TxOutputs o
+                        where o.AddressHash = ? and o.SpentHeight is not null and o.TxHeight <= ?
+                    ) txs
+                ) ptxs
+                join TxOutputs o on o.TxHash = ptxs.TxHash
+                join Transactions t on t.Hash = ptxs.TxHash
+                where RowNum >= ? and RowNum < ?
+            )sql");
 
-        TryBindStatementText(stmt, 1, address);
-        TryBindStatementInt(stmt, 2, pageInitBlock);
-        TryBindStatementInt(stmt, 3, pageStart);
-        TryBindStatementInt(stmt, 4, pageStart + pageSize);
-
-        return _getTransactions(stmt);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, pageInitBlock);
+            TryBindStatementInt(stmt, 3, pageStart);
+            TryBindStatementInt(stmt, 4, pageStart + pageSize);
+        });
     }
 
     UniValue ExplorerRepository::GetBlockTransactions(const string& blockHash, int pageStart, int pageSize)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.Time, o.Number, o.AddressHash, o.Value
-            from (
-                select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.Time
+        return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
+        {
+            stmt = SetupSqlStatement(R"sql(
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.Time, o.Number, o.AddressHash, o.Value
                 from (
-                    select t.Hash, t.Type, t.Height, t.BlockNum, t.Time
-                    from Transactions t
-                    where t.BlockHash = ?
-                ) txs
-            ) ptxs
-            join TxOutputs o on o.TxHash = ptxs.Hash
-            where RowNum >= ? and RowNum < ?;
-        )sql");
+                    select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.Time
+                    from (
+                        select t.Hash, t.Type, t.Height, t.BlockNum, t.Time
+                        from Transactions t
+                        where t.BlockHash = ?
+                    ) txs
+                ) ptxs
+                join TxOutputs o on o.TxHash = ptxs.Hash
+                where RowNum >= ? and RowNum < ?;
+            )sql");
 
-        TryBindStatementText(stmt, 1, blockHash);
-        TryBindStatementInt(stmt, 2, pageStart);
-        TryBindStatementInt(stmt, 3, pageStart + pageSize);
-
-        return _getTransactions(stmt);
+            TryBindStatementText(stmt, 1, blockHash);
+            TryBindStatementInt(stmt, 2, pageStart);
+            TryBindStatementInt(stmt, 3, pageStart + pageSize);
+        });
     }
     
     UniValue ExplorerRepository::GetTransactions(const vector<string>& transactions, int pageStart, int pageSize)
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.Time, o.Number, o.AddressHash, o.Value
-            from (
-                select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.Time
+        return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
+        {
+            stmt = SetupSqlStatement(R"sql(
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.Time, o.Number, o.AddressHash, o.Value
                 from (
-                    select t.Hash, t.Type, t.Height, t.BlockNum, t.Time
-                    from Transactions t
-                    where t.Hash in (
-                        )sql" + join(vector<string>(transactions.size(), "?"), ",") + R"sql(
-                    )
-                ) txs
-            ) ptxs
-            join TxOutputs o on o.TxHash = ptxs.Hash
-            where RowNum >= ? and RowNum < ?
-        )sql");
+                    select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.Time
+                    from (
+                        select t.Hash, t.Type, t.Height, t.BlockNum, t.Time
+                        from Transactions t
+                        where t.Hash in (
+                            )sql" + join(vector<string>(transactions.size(), "?"), ",") + R"sql(
+                        )
+                    ) txs
+                ) ptxs
+                join TxOutputs o on o.TxHash = ptxs.Hash
+                where RowNum >= ? and RowNum < ?
+            )sql");
 
-        size_t i = 1;
-        for (auto& tx : transactions)
-            TryBindStatementText(stmt, i++, tx);
+            size_t i = 1;
+            for (auto& tx : transactions)
+                TryBindStatementText(stmt, i++, tx);
 
-        TryBindStatementInt(stmt, i++, pageStart);
-        TryBindStatementInt(stmt, i++, pageStart + pageSize);
-
-        return _getTransactions(stmt);
+            TryBindStatementInt(stmt, i++, pageStart);
+            TryBindStatementInt(stmt, i++, pageStart + pageSize);
+        });
     }
 
 }

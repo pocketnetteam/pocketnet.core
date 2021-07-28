@@ -70,7 +70,7 @@ namespace PocketDb
             }
         }
 
-        bool BulkExecute(std::string sql) const
+        bool BulkExecute(std::string sql)
         {
             try
             {
@@ -104,6 +104,7 @@ namespace PocketDb
 
     public:
         sqlite3* m_db{nullptr};
+        std::mutex m_connection_mutex;
 
         SQLiteDatabase() = default;
 
@@ -282,8 +283,10 @@ namespace PocketDb
             m_db = nullptr;
         }
 
-        bool BeginTransaction() const
+        bool BeginTransaction()
         {
+            m_connection_mutex.lock();
+
             if (!m_db || sqlite3_get_autocommit(m_db) == 0) return false;
             int res = sqlite3_exec(m_db, "BEGIN TRANSACTION", nullptr, nullptr, nullptr);
             if (res != SQLITE_OK)
@@ -293,7 +296,7 @@ namespace PocketDb
             return res == SQLITE_OK;
         }
 
-        bool CommitTransaction() const
+        bool CommitTransaction()
         {
             if (!m_db || sqlite3_get_autocommit(m_db) != 0) return false;
             int res = sqlite3_exec(m_db, "COMMIT TRANSACTION", nullptr, nullptr, nullptr);
@@ -301,10 +304,13 @@ namespace PocketDb
             {
                 LogPrintf("%s: %d; Failed to commit the transaction: %s\n", __func__, res, sqlite3_errstr(res));
             }
+
+            m_connection_mutex.unlock();
+
             return res == SQLITE_OK;
         }
 
-        bool AbortTransaction() const
+        bool AbortTransaction()
         {
             if (!m_db || sqlite3_get_autocommit(m_db) != 0) return false;
             int res = sqlite3_exec(m_db, "ROLLBACK TRANSACTION", nullptr, nullptr, nullptr);
@@ -312,6 +318,9 @@ namespace PocketDb
             {
                 LogPrintf("%s: %d; Failed to abort the transaction: %s\n", __func__, res, sqlite3_errstr(res));
             }
+
+            m_connection_mutex.unlock();
+
             return res == SQLITE_OK;
         }
 
