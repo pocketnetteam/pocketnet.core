@@ -1106,7 +1106,7 @@ static UniValue getaddresstransactions(const JSONRPCRequest& request)
             "1. \"address\"       (string, required) Address hash\n"
             "2. \"pageInitBlock\" (number) Max block height for filter pagination window\n"
             "3. \"pageStart\"     (number) Row number for start page\n"
-            "3. \"pageSize\"      (number) Page size\n"
+            "4. \"pageSize\"      (number) Page size\n"
         );
     }
 
@@ -1136,7 +1136,82 @@ static UniValue getaddresstransactions(const JSONRPCRequest& request)
     );
 }
 
-// TODO (brangr): implement get data if hash address, transaction or block
+static UniValue getblocktransactions(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+    {
+        throw std::runtime_error(
+            "getblocktransactions [blockHash, pageStart, pageSize]\n"
+            "\nGet transactions info.\n"
+            "\nArguments:\n"
+            "1. \"blockHash\"     (string, required) Block hash\n"
+            "2. \"pageStart\"     (number) Row number for start page\n"
+            "3. \"pageSize\"      (number) Page size\n"
+        );
+    }
+
+    std::string blockHash;
+    if (request.params.size() > 0 && request.params[0].isStr())
+        blockHash = request.params[0].get_str();
+    else
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (blockHash)");
+        
+    int pageStart = 1;
+    if (request.params.size() > 1 && request.params[1].isNum())
+        pageStart = request.params[1].get_int();
+
+    int pageSize = 10;
+    if (request.params.size() > 2 && request.params[2].isNum())
+        pageSize = request.params[2].get_int();
+
+    return PocketDb::ExplorerRepoInst.GetBlockTransactions(
+        blockHash,
+        pageStart,
+        pageSize
+    );
+}
+
+static UniValue gettransactions(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+    {
+        throw std::runtime_error(
+            "gettransactions [transactions[], pageStart, pageSize]\n"
+            "\nGet transactions info.\n"
+            "\nArguments:\n"
+            "1. \"transactions\"  (array, required) Transaction hashes\n"
+            "2. \"pageStart\"     (number) Row number for start page\n"
+            "3. \"pageSize\"      (number) Page size\n"
+        );
+    }
+
+    std::vector<std::string> transactions;
+    if (request.params[0].isStr())
+        transactions.push_back(request.params[0].get_str());
+    else if (request.params[0].isArray()) {
+        UniValue atransactions = request.params[0].get_array();
+        for (unsigned int idx = 0; idx < atransactions.size(); idx++) {
+            transactions.push_back(atransactions[idx].get_str());
+        }
+    } else {
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
+    }
+        
+    int pageStart = 1;
+    if (request.params.size() > 1 && request.params[1].isNum())
+        pageStart = request.params[1].get_int();
+
+    int pageSize = 10;
+    if (request.params.size() > 2 && request.params[2].isNum())
+        pageSize = request.params[2].get_int();
+
+    return PocketDb::ExplorerRepoInst.GetTransactions(
+        transactions,
+        pageStart,
+        pageSize
+    );
+}
+
 static UniValue searchbyhash(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 1)
@@ -2655,7 +2730,10 @@ static const CRPCCommand commands[] =
 
 	{ "blockchain",         "getaddressinto",         &getaddressspent,        {"address"}, false },
     { "blockchain",         "getaddressspent",        &getaddressspent,        {"address"}, false },
+
+    { "blockchain",         "gettransactions",        &gettransactions,        {"address"}, false },
     { "blockchain",         "getaddresstransactions", &getaddresstransactions, {"address"}, false },
+    { "blockchain",         "getblocktransactions",   &getblocktransactions,   {"address"}, false },
 
 	//{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"}, false },
 	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"}, false },

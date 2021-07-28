@@ -15,6 +15,7 @@ namespace PocketDb
             Time      int    not null,
 
             BlockHash text   null,
+            BlockNum  int    null,
             Height    int    null,
             Last      int    not null default 0,
 
@@ -101,6 +102,7 @@ namespace PocketDb
         create table if not exists TxOutputs
         (
             TxHash      text   not null, -- Transactions.Hash
+            TxHeight    int    null,     -- Transactions.Height
             Number      int    not null, -- Number in tx.vout
             AddressHash text   not null, -- Address
             Value       int    not null, -- Amount
@@ -635,20 +637,23 @@ namespace PocketDb
         drop index if exists Transactions_Type_String2_Height;
         drop index if exists Transactions_Type_Height_Id;
         drop index if exists Transactions_Type_Id;
-        drop index if exists TxOutput_SpentHeight;
-        drop index if exists TxOutput_TxHash_Number;
-        drop index if exists TxOutputs_AddressHash_SpentHeight_Value;
-        drop index if exists TxOutputs_SpentTxHash;
-        drop index if exists Ratings_Height;
-        drop index if exists Ratings_Type_Id_Value;
-        drop index if exists Ratings_Type_Id_Height;
-        drop index if exists Payload_ExistsAnotherByName;
         drop index if exists Transactions_GetScoreContentCount;
         drop index if exists Transactions_GetScoreContentCount_2;
         drop index if exists Transactions_LastAccount;
         drop index if exists Transactions_LastContent;
         drop index if exists Transactions_LastAction;
-        drop index if exists Transactions_Type_Time;
+
+        drop index if exists TxOutputs_SpentHeight;
+        drop index if exists TxOutputs_TxHash_Number;
+        drop index if exists TxOutputs_SpentTxHash;
+        drop index if exists TxOutputs_AddressHash_SpentHeight_TxHeight;
+
+        drop index if exists Ratings_Height;
+        drop index if exists Ratings_Type_Id_Value;
+        drop index if exists Ratings_Type_Id_Height;
+
+        drop index if exists Payload_ExistsAnotherByName;
+
     )sql";
 
     static std::string MainCreateIndexes = R"sql(
@@ -666,7 +671,6 @@ namespace PocketDb
         create index if not exists Transactions_Int1 on Transactions (Int1);
         create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
         create index if not exists Transactions_Height_Type on Transactions (Height, Type);
-        create index if not exists Transactions_Type_Time on Transactions (Type, Time);
         create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
         create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
         create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
@@ -682,9 +686,9 @@ namespace PocketDb
         -- ChainRepository::SetContentId
         create index if not exists Transactions_Type_Id on Transactions (Type, Id);
         
-        create index if not exists TxOutput_SpentHeight on TxOutputs (SpentHeight);
-        create index if not exists TxOutput_TxHash_Number on TxOutputs (TxHash, Number);
-        create index if not exists TxOutputs_AddressHash_SpentHeight_Value on TxOutputs (AddressHash, SpentHeight, Value);
+        create index if not exists TxOutputs_SpentHeight on TxOutputs (SpentHeight);
+        create index if not exists TxOutputs_TxHash_Number on TxOutputs (TxHash, Number);
+        create index if not exists TxOutputs_AddressHash_SpentHeight_TxHeight on TxOutputs (AddressHash, SpentHeight, TxHeight);
         create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
 
         create index if not exists Ratings_Height on Ratings (Height);

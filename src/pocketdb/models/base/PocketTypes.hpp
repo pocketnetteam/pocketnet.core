@@ -91,6 +91,7 @@ namespace PocketTx
     struct TransactionIndexingInfo
     {
         string Hash;
+        int BlockNumber;
         PocketTxType Type;
         vector<pair<string, int>> Inputs;
 

@@ -61,10 +61,15 @@ namespace PocketServices
         {
             // transaction with all inputs
             vector<TransactionIndexingInfo> txs;
-            for (const auto& tx : block.vtx)
+            for (int i = 0; i < (int)block.vtx.size(); i++) // const auto& tx : block.vtx
             {
+                auto& tx = block.vtx[i];
+
+                // TODO (brangr): implement check tx type - NOT_SUPPORTED skip
+
                 TransactionIndexingInfo txInfo;
                 txInfo.Hash = tx->GetHash().GetHex();
+                txInfo.BlockNumber = i;
                 txInfo.Type = ParseType(tx);
 
                 if (!tx->IsCoinBase())

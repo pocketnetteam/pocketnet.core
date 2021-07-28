@@ -34,7 +34,7 @@ namespace PocketDb
             for (const auto& txInfo : txs)
             {
                 // All transactions must have a blockHash & height relation
-                UpdateTransactionHeight(blockHash, height, txInfo.Hash);
+                UpdateTransactionHeight(blockHash, txInfo.BlockNumber, height, txInfo.Hash);
 
                 // The outputs are needed for the explorer
                 UpdateTransactionOutputs(txInfo, height);
@@ -67,6 +67,7 @@ namespace PocketDb
             auto transactionsStmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
                     BlockHash = null,
+                    BlockNum = null,
                     Height = null,
                     Id = null
                 WHERE Height is not null and Height >= ?
@@ -77,6 +78,7 @@ namespace PocketDb
             // Update transaction outputs
             auto outputsStmt = SetupSqlStatement(R"sql(
                 UPDATE TxOutputs SET
+                    TxHeight = null,
                     SpentHeight = null,
                     SpentTxHash = null
                 WHERE SpentHeight is not null and SpentHeight >= ?
@@ -96,29 +98,38 @@ namespace PocketDb
 
     private:
 
-        void UpdateTransactionHeight(const string& blockHash, int height, const string& txHash)
+        void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash)
         {
             auto stmt = SetupSqlStatement(R"sql(
                 UPDATE Transactions SET
-                    BlockHash=?,
-                    Height=?
-                WHERE Hash=?
+                    BlockHash = ?,
+                    BlockNum = ?
+                    Height = ?
+                WHERE Hash = ?
             )sql");
-
             TryBindStatementText(stmt, 1, blockHash);
-            TryBindStatementInt(stmt, 2, height);
-            TryBindStatementText(stmt, 3, txHash);
+            TryBindStatementInt(stmt, 2, blockNumber);
+            TryBindStatementInt(stmt, 3, height);
+            TryBindStatementText(stmt, 4, txHash);
 
-            TryTransactionStep(__func__, { stmt });
+            auto stmtOuts = SetupSqlStatement(R"sql(
+                UPDATE TxOutputs SET
+                    TxHeight = ?
+                WHERE TxHash = ?
+            )sql");
+            TryBindStatementInt(stmtOuts, 1, height);
+            TryBindStatementText(stmtOuts, 2, txHash);
+
+            TryTransactionStep(__func__, { stmt, stmtOuts });
         }
 
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height)
         {
             auto sql = R"sql(
                 UPDATE TxOutputs SET
-                    SpentHeight=?,
-                    SpentTxHash=?
-                WHERE TxHash=? and Number=?
+                    SpentHeight = ?,
+                    SpentTxHash = ?
+                WHERE TxHash = ? and Number = ?
             )sql";
 
             TryTransactionStep(__func__, [&]()

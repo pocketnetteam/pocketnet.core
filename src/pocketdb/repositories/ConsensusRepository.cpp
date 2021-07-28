@@ -310,11 +310,11 @@ namespace PocketDb
         int64_t result = 0;
 
         auto sql = R"sql(
-            SELECT SUM(o.Value)
-            FROM TxOutputs o
-            JOIN Transactions t ON o.TxHash == t.Hash and t.Height is not null
-            WHERE o.SpentHeight is null
-                AND o.AddressHash = ?
+            select sum(o.Value)
+            from TxOutputs o
+            where   o.SpentHeight is null
+                and o.TxHeight is not null
+                and o.AddressHash = ?
         )sql";
 
         auto stmt = SetupSqlStatement(sql);
@@ -341,8 +341,7 @@ namespace PocketDb
                 from Ratings r
                 where r.Type = ?
                     and r.Id = (SELECT u.Id FROM vUsers u WHERE u.Height is not null and u.Last = 1 AND u.AddressHash = ? LIMIT 1)
-                order by r.Height desc
-                limit 1
+                    and r.Height = (select max(r1.Height) from Ratings r1 where r1.Type=r.Type and r1.Id=r.Id)
             )sql";
 
         auto stmt = SetupSqlStatement(sql);
@@ -370,8 +369,7 @@ namespace PocketDb
             from Ratings r
             where r.Type = ?
                 and r.Id = ?
-            order by r.Height desc
-            limit 1
+                and r.Height = (select max(r1.Height) from Ratings r1 where r1.Type=r.Type and r1.Id=r.Id)
         )sql");
 
         TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
@@ -592,12 +590,9 @@ namespace PocketDb
         // Build sql string
         string sql = R"sql(
             select count(1)
-            from vScores s -- indexed by Transactions_GetScoreContentCount
-            join vContents c -- indexed by Transactions_GetScoreContentCount_2
-                on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ?
-                    and c.Height is not null and c.Height <= ?
+            from vScores s
+            join vContents c on c.Type = ? and c.Hash = s.ContentTxHash and c.AddressHash = ? and c.Height <= ?
             where   s.AddressHash = ?
-                and s.Height is not null
                 and s.Height <= ?
                 and s.Time < ?
                 and s.Time >= ?

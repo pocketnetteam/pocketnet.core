@@ -294,7 +294,7 @@ namespace PocketConsensus
 
         int GetChainCount(const shared_ptr<Post>& ptx) override
         {
-            return ConsensusRepoInst.CountChainComplainHeight(
+            return ConsensusRepoInst.CountChainPostHeight(
                 *ptx->GetAddress(),
                 Height - (int) GetLimitWindow()
             );

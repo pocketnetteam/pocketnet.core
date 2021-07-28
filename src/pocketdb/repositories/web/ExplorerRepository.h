@@ -32,8 +32,12 @@ namespace PocketDb
         map<PocketTxType, int> GetStatistic(int64_t startTime, int64_t endTime);
         tuple<int64_t, int64_t> GetAddressSpent(const string& addressHash);
         UniValue GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize);
+        UniValue GetBlockTransactions(const string& blockHash, int pageStart, int pageSize);
+        UniValue GetTransactions(const vector<string>& transactions, int pageStart, int pageSize);
 
     private:
+
+        UniValue _getTransactions(shared_ptr<sqlite3_stmt*> stmtOut);
     
     };
 
