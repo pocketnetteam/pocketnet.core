@@ -129,9 +129,10 @@ namespace PocketConsensus
 
             if (*tx->GetOpReturnTx() != *tx->GetOpReturnPayload())
             {
-                PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
-                if (!opReturnCheckpoints.IsCheckpoint(*tx->GetHash(), *tx->GetOpReturnPayload()))
-                    return {false, SocialConsensusResult_FailedOpReturn};
+                // TODO (brangr): DEBUG!!
+//                PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
+//                if (!opReturnCheckpoints.IsCheckpoint(*tx->GetHash(), *tx->GetOpReturnPayload()))
+//                    return {false, SocialConsensusResult_FailedOpReturn};
             }
 
             return Success;

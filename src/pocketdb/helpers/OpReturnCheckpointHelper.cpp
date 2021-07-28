@@ -9,4 +9,3 @@ using namespace PocketHelpers;
 OpReturnCheckpoints::OpReturnCheckpoints()
 {
 }
-

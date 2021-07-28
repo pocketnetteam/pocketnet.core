@@ -149,8 +149,8 @@ namespace PocketDb {
                         if (auto [ok, value] = TryGetColumnInt(*stmt, 5); ok) txOut.pushKV("n", value);
                         if (auto [ok, value] = TryGetColumnString(*stmt, 6); ok) txOut.pushKV("address", value);
                         if (auto [ok, value] = TryGetColumnInt64(*stmt, 7); ok) txOut.pushKV("value", value);
-                        auto[tx, vin, vout] = txs[hash];
-                        vout.push_back(txOut);
+
+                        get<2>(txs[hash]).push_back(txOut);
                     }
                 }
 
@@ -192,8 +192,7 @@ namespace PocketDb {
                         if (auto [ok, value] = TryGetColumnString(*stmt, 3); ok) txInp.pushKV("address", value);
                         if (auto [ok, value] = TryGetColumnInt64(*stmt, 4); ok) txInp.pushKV("value", value);
 
-                        auto[tx, vin, vout] = txs[hash];
-                        vin.push_back(txInp);
+                        get<1>(txs[hash]).push_back(txInp);
                     }
                 }
 
