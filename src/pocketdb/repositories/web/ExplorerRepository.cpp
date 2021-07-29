@@ -47,48 +47,70 @@ namespace PocketDb {
     {
         UniValue result(UniValue::VOBJ);
 
-        string dataFormtSelect = "%Y%m%d";
-        string dataFormtGroup = "%d";
-
+        string formatTime;
         switch (depth)
         {
             case StatisticDepth_Day:
-                dataFormtSelect = "%Y%m%d%H";
-                dataFormtGroup = "%H";
-                break;
-            case StatisticDepth_Year:
-                dataFormtSelect = "%Y";
-                dataFormtGroup = "%Y";
+                formatTime = "%Y%m%d%H";
                 break;
             default:
+            case StatisticDepth_Month:
+                formatTime = "%Y%m%d";
+                break;
+            case StatisticDepth_Year:
+                formatTime = "%Y";
                 break;
         }
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select strftime(')sql" + dataFormtSelect + R"sql(', datetime(t.Time, 'unixepoch')), t.Type, count(*)
+                select 'txs',
+                    strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')),
+                    t.Type,
+                    count(*)
                 from Transactions t indexed by Transactions_Time_Type
                 where   t.Time >= ?
                     and t.Time < ?
-                group by t.Type, strftime(')sql" + dataFormtGroup + R"sql(', datetime(t.Time, 'unixepoch'))
+                group by strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')), t.Type
+
+                union
+
+                select 'users',
+                    q.Time,
+                    q.Type,
+                    (select count(*) from Transactions t indexed by Transactions_Type_Time where t.Type = q.Type and strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')) <= q.Time)
+                from (
+                    select strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch'))Time, t.Type, count(*)Cnt
+                    from Transactions t indexed by Transactions_Type_Time
+                    where   t.Type in (100, 101, 102)
+                        and t.Time < ?
+                    group by strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')), t.Type
+                ) q
+                where q.Time >= strftime(')sql" + formatTime + R"sql(', datetime(?, 'unixepoch'))
             )sql");
 
             TryBindStatementInt64(stmt, 1, startTime);
             TryBindStatementInt64(stmt, 2, endTime);
+            TryBindStatementInt64(stmt, 3, endTime);
+            TryBindStatementInt64(stmt, 4, startTime);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto [ok1, sDate] = TryGetColumnString(*stmt, 0);
-                auto [ok0, sType] = TryGetColumnString(*stmt, 1);
-                auto [ok2, sCount] = TryGetColumnInt(*stmt, 2);
+                auto [ok0, sGroup] = TryGetColumnString(*stmt, 0);
+                auto [ok1, sDate] = TryGetColumnString(*stmt, 1);
+                auto [ok2, sType] = TryGetColumnString(*stmt, 2);
+                auto [ok3, sCount] = TryGetColumnInt(*stmt, 3);
 
-                if (ok0 && ok1 && ok2)
+                if (ok0 && ok1 && ok2 && ok3)
                 {
-                    if (result[sDate].isNull())
-                        result.pushKV(sDate, UniValue(UniValue::VOBJ));
+                    if (result.At(sGroup).isNull())
+                        result.pushKV(sGroup, UniValue(UniValue::VOBJ));
 
-                    result.At(sDate).pushKV(sType, sCount);
+                    if (result.At(sGroup).At(sDate).isNull())
+                        result.At(sGroup).pushKV(sDate, UniValue(UniValue::VOBJ));
+
+                    result.At(sGroup).At(sDate).pushKV(sType, sCount);
                 }
             }
 
