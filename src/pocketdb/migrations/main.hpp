@@ -626,6 +626,7 @@ namespace PocketDb
         drop index if exists Transactions_Height;
         drop index if exists Transactions_Height_Type;
         drop index if exists Transactions_Time_Type;
+        drop index if exists Transactions_Type_Time;
         drop index if exists Transactions_Type_String1_Height;
         drop index if exists Transactions_Type_String2_Height;
         drop index if exists Transactions_Type_Height_Id;
@@ -655,10 +656,12 @@ namespace PocketDb
         create index if not exists Transactions_BlockHash on Transactions (BlockHash);
         create index if not exists Transactions_Height on Transactions (Height);
         create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
+
         -- ExplorerRepository::GetStatistic
         create index if not exists Transactions_Height_Type on Transactions (Height, Type);
-        -- ExplorerRepository::GetStatistic
         create index if not exists Transactions_Time_Type on Transactions (Time, Type);
+        create index if not exists Transactions_Type_Time on Transactions (Type, Time);
+
         create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
         create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
         create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
