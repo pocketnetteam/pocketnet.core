@@ -842,7 +842,7 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
         UniValue oblock(UniValue::VOBJ);
         oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
         oblock.pushKV("time", (int64_t)pindex->nTime);
-        oblock.pushKV("ntx", (int)pindex->nTx);
+        oblock.pushKV("ntx", (int)pindex->nTx - 1);
 
         result.pushKV(std::to_string(pindex->nHeight), oblock);
 
