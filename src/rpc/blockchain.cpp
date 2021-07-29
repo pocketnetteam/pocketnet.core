@@ -833,21 +833,20 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
         verbose = request.params[2].get_bool();
     }
 
-    UniValue result(UniValue::VOBJ);
-
     // Collect general block information
     CBlockIndex* pindex = chainActive[last_height];
-    while (pindex && count > 0)
+    int i = count;
+    std::map<int, UniValue> blocks;
+    while (pindex && i-- > 0)
     {
         UniValue oblock(UniValue::VOBJ);
+        oblock.pushKV("height", pindex->nHeight);
         oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
         oblock.pushKV("time", (int64_t)pindex->nTime);
         oblock.pushKV("ntx", (int)pindex->nTx - 1);
 
-        result.pushKV(std::to_string(pindex->nHeight), oblock);
-
+        blocks.emplace(pindex->nHeight, oblock);
         pindex = pindex->pprev;
-        count -= 1;
     }
 
     // Extend with transaction statistic data
@@ -857,18 +856,20 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
 
         for (auto& s : data)
         {
-            std::string key = std::to_string(s.first);
-
-            if (result[key].isNull())
+            if (blocks.find(s.first) == blocks.end())
                 continue;
 
-            if (result.At(key)["types"].isNull())
-                result.At(key).pushKV("types", UniValue(UniValue::VOBJ));
+            if (blocks[s.first].At("types").isNull())
+                blocks[s.first].pushKV("types", UniValue(UniValue::VOBJ));
 
             for (auto& d : s.second)
-                result.At(key).At("types").pushKV(std::to_string(d.first), d.second);
+                blocks[s.first].At("types").pushKV(std::to_string(d.first), d.second);
         }
     }
+
+    UniValue result(UniValue::VARR);
+    for (auto& block : blocks)
+        result.push_back(block.second);
 
     return result;
 }
