@@ -622,17 +622,10 @@ namespace PocketDb
 
         drop index if exists Transactions_Type;
         drop index if exists Transactions_Hash;
-        drop index if exists Transactions_Time;
         drop index if exists Transactions_BlockHash;
         drop index if exists Transactions_Height;
-        drop index if exists Transactions_String1;
-        drop index if exists Transactions_String2;
-        drop index if exists Transactions_String3;
-        drop index if exists Transactions_String4;
-        drop index if exists Transactions_String5;
-        drop index if exists Transactions_Int1;
-        drop index if exists Transactions_Hash_Height;
         drop index if exists Transactions_Height_Type;
+        drop index if exists Transactions_Time_Type;
         drop index if exists Transactions_Type_String1_Height;
         drop index if exists Transactions_Type_String2_Height;
         drop index if exists Transactions_Type_Height_Id;
@@ -659,32 +652,21 @@ namespace PocketDb
 
         create index if not exists Transactions_Type on Transactions (Type);
         create index if not exists Transactions_Hash on Transactions (Hash);
-        create index if not exists Transactions_Time on Transactions (Time);
         create index if not exists Transactions_BlockHash on Transactions (BlockHash);
         create index if not exists Transactions_Height on Transactions (Height);
-        create index if not exists Transactions_String1 on Transactions (String1);
-        create index if not exists Transactions_String2 on Transactions (String2);
-        create index if not exists Transactions_String3 on Transactions (String3);
-        create index if not exists Transactions_String4 on Transactions (String4);
-        create index if not exists Transactions_String5 on Transactions (String5);
-        create index if not exists Transactions_Int1 on Transactions (Int1);
         create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
+        -- ExplorerRepository::GetStatistic
         create index if not exists Transactions_Height_Type on Transactions (Height, Type);
+        -- ExplorerRepository::GetStatistic
+        create index if not exists Transactions_Time_Type on Transactions (Time, Type);
         create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
         create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
         create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
-        -- ConsensusRepository::GetUserReputation
         create index if not exists Transactions_LastAccount on Transactions (Type, Last, String1, Height);
-        -- ChainRepository::IndexContent
         create index if not exists Transactions_LastContent on Transactions (Type, Last, String2, Height);
-        -- ConsensusRepository::GetLastBlockingType
-        -- ConsensusRepository::GetLastSubscribeType
         create index if not exists Transactions_LastAction on Transactions (Type, Last, String1, String2, Height);
-        -- ConsensusRepository::ExistsScore
         create index if not exists Transactions_ExistsScore on Transactions (Type, String1, String2, Height);
-        -- ConsensusRepository::CountChain...
         create index if not exists Transactions_CountChain on Transactions (Type, Last, String1, Height, Time);
-        -- ChainRepository::SetContentId
         create index if not exists Transactions_Type_Id on Transactions (Type, Id);
         
         create index if not exists TxOutputs_SpentHeight on TxOutputs (SpentHeight);

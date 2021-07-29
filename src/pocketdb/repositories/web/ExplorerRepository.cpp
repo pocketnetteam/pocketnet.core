@@ -18,7 +18,7 @@ namespace PocketDb {
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select t.Type, t.Height, count(*)
-                from Transactions t
+                from Transactions t indexed by Transactions_Height_Type
                 where   t.Height > ?
                     and t.Height <= ?
                 group by t.Type, t.Height
@@ -51,7 +51,7 @@ namespace PocketDb {
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select t.Type, count(*)
-                from Transactions t
+                from Transactions t indexed by Transactions_Time_Type
                 where   t.Time >= ?
                     and t.Time < ?
                     and t.Type > 3
