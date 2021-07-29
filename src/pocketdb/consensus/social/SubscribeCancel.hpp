@@ -37,7 +37,11 @@ namespace PocketConsensus
                 *ptx->GetAddressTo());
 
             if (!subscribeExists || subscribeType == ACTION_SUBSCRIBE_CANCEL)
-                return {false, SocialConsensusResult_InvalideSubscribe};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_InvalideSubscribe))
+                    return {false, SocialConsensusResult_InvalideSubscribe};
+            }
 
             return Success;
         }

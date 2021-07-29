@@ -54,4 +54,9 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("06ec9b7ee7b89dd71312b7c9c9220730ed025af661c29504620bbd4d4e1fb093", SocialConsensusResult_DoubleSubscribe);
     _checkpoints.emplace("08aa6a715e644abfe47f9623bdc4a568b6edb0432e1bf5b59a2cee7565c81226", SocialConsensusResult_DoubleSubscribe);
     _checkpoints.emplace("87e63741701602706bee96257259054030b8f91c4fcab849aa1aac33cab5d692", SocialConsensusResult_DoubleSubscribe);
+
+    _checkpoints.emplace("42c9efb79919350c3a19c1988c17fab5d8c911250856c215eeea1ccf004eb012", SocialConsensusResult_InvalideSubscribe);
+
+    _checkpoints.emplace("5dbb6b1d74de979dad1ae56c8bd368ce0309611bd508cf111119dcbb92582f9d", SocialConsensusResult_NotFound);
+    
 }

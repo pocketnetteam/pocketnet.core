@@ -50,7 +50,11 @@ namespace PocketConsensus
 
             // Scores to deleted comments not allowed
             if (*lastContent->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
-                return {false, SocialConsensusResult_NotFound};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_NotFound))
+                    return {false, SocialConsensusResult_NotFound};
+            }
 
             // Check score to self
             if (*ptx->GetAddress() == *lastContent->GetString1())
