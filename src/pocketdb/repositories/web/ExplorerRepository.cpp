@@ -58,7 +58,7 @@ namespace PocketDb {
                 formatTime = "%Y%m%d";
                 break;
             case StatisticDepth_Year:
-                formatTime = "%Y";
+                formatTime = "%Y%m";
                 break;
         }
 
