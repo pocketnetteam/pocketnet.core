@@ -134,6 +134,8 @@ namespace PocketDb
                 TryBindStatementInt(stmtOuts, 1, height);
                 TryBindStatementText(stmtOuts, 2, txHash);
                 TryStepStatement(stmtOuts);
+
+                LogPrint(BCLog::BENCH, "      - TryTransactionStep (UpdateTransactionHeight %d): %s\n", height, txHash);
             });
         }
 

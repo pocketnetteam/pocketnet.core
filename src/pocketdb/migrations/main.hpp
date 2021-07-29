@@ -119,7 +119,7 @@ namespace PocketDb
             Height int not null,
             Id     int not null,
             Value  int not null,
-            primary key (Type, Height, Id, Value)
+            primary key (Type, Id, Height, Value)
         );
 
 
@@ -642,15 +642,14 @@ namespace PocketDb
         drop index if exists Transactions_LastAccount;
         drop index if exists Transactions_LastContent;
         drop index if exists Transactions_LastAction;
+        drop index if exists Transactions_CountChain;
+        
+        drop index if exists Ratings_Height;
 
         drop index if exists TxOutputs_SpentHeight;
         drop index if exists TxOutputs_TxHash_Number;
         drop index if exists TxOutputs_SpentTxHash;
         drop index if exists TxOutputs_AddressHash_SpentHeight_TxHeight;
-
-        drop index if exists Ratings_Height;
-        drop index if exists Ratings_Type_Id_Value;
-        drop index if exists Ratings_Type_Id_Height;
 
         drop index if exists Payload_ExistsAnotherByName;
 
@@ -683,6 +682,8 @@ namespace PocketDb
         create index if not exists Transactions_LastAction on Transactions (Type, Last, String1, String2, Height);
         -- ConsensusRepository::ExistsScore
         create index if not exists Transactions_ExistsScore on Transactions (Type, String1, String2, Height);
+        -- ConsensusRepository::CountChain...
+        create index if not exists Transactions_CountChain on Transactions (Type, Last, String1, Height, Time);
         -- ChainRepository::SetContentId
         create index if not exists Transactions_Type_Id on Transactions (Type, Id);
         
@@ -692,8 +693,6 @@ namespace PocketDb
         create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
 
         create index if not exists Ratings_Height on Ratings (Height);
-        create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
-        create index if not exists Ratings_Type_Id_Height on Ratings (Type, Id, Height desc);
 
         -- ConsensusRepository::ExistsAnotherByName
         create index if not exists Payload_ExistsAnotherByName on Payload (String2, TxHash);
