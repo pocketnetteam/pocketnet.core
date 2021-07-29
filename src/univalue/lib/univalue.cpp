@@ -206,7 +206,7 @@ const UniValue& UniValue::operator[](const std::string& key) const
     return values.at(index);
 }
 
-UniValue& UniValue::operator[](const std::string& key)
+UniValue& UniValue::At(const std::string& key)
 {
     if (typ != VOBJ)
         return const_cast<UniValue&>(NullUniValue);

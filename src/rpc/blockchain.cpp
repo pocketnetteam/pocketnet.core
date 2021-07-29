@@ -804,23 +804,9 @@ static UniValue getblock(const JSONRPCRequest& request)
     return blockToJSON(block, pblockindex, verbosity >= 2);
 }
 
-static UniValue getcompactblock(CBlockIndex* pindex)
-{
-    UniValue oblock(UniValue::VOBJ);
-    CBlock block = GetBlockChecked(pindex);
-
-    oblock.pushKV("height", pindex->nHeight);
-    oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
-    oblock.pushKV("time", (int64_t)pindex->nTime);
-    oblock.pushKV("size", (int)::GetSerializeSize(block, PROTOCOL_VERSION));
-    oblock.pushKV("ntx", (int)pindex->nTx);
-
-    return oblock;
-}
-
 static UniValue getlastblocks(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() < 1)
+    if (request.fHelp)
         throw std::runtime_error(
             "getlastblocks ( count, verbosity )\n"
             "\nGet N last blocks.\n"
@@ -847,88 +833,41 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
         verbose = request.params[2].get_bool();
     }
 
-    bool version2 = false;
-    if (request.params.size() > 3) {
-        RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
-        version2 = request.params[3].get_bool();
-    }
+    UniValue result(UniValue::VOBJ);
 
-    UniValue result(UniValue::VARR);
-
+    // Collect general block information
     CBlockIndex* pindex = chainActive[last_height];
-    while (pindex && count > 0) {
-        UniValue ublock = getcompactblock(pindex);
-        UniValue types(UniValue::VOBJ);
+    while (pindex && count > 0)
+    {
+        UniValue oblock(UniValue::VOBJ);
+        oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
+        oblock.pushKV("time", (int64_t)pindex->nTime);
+        oblock.pushKV("ntx", (int)pindex->nTx);
 
-        if (verbose) {
-            auto rStatV2 = PocketDb::ExplorerRepoInst.GetStatistic(last_height - count, last_height);
-
-            if (!version2) {
-                std::map<std::string, std::map<int, int>> rStat;
-
-                for (auto& tp : rStatV2) {
-                    std::string tbl = "";
-
-                    switch (tp.first) {
-                        case ACCOUNT_USER:
-                            tbl = "users";
-                            break;
-                        case CONTENT_POST:
-                            tbl = "posts";
-                            break;
-                        case CONTENT_VIDEO:
-                            tbl = "videos";
-                            break;
-                        case CONTENT_COMMENT:
-                        case CONTENT_COMMENT_EDIT:
-                        case CONTENT_COMMENT_DELETE:
-                            tbl = "comments";
-                            break;
-                        case ACTION_SCORE_CONTENT:
-                            tbl = "scores";
-                            break;
-                        case ACTION_SCORE_COMMENT:
-                            tbl = "commentScores";
-                            break;
-                        case ACTION_SUBSCRIBE:
-                        case ACTION_SUBSCRIBE_PRIVATE:
-                        case ACTION_SUBSCRIBE_CANCEL:
-                            tbl = "subscribes";
-                            break;
-                        default:
-                            break;
-                    }
-                    
-                    if (tbl != "") {
-                        for (auto& dt : tp.second)
-                            rStat[tbl][dt.first] = dt.second;
-                    }
-                }
-
-                for (auto s : rStat) {
-                    auto f = s.second.find(pindex->nHeight);
-                    if (f != s.second.end()) {
-                        types.pushKV(s.first, f->second);
-                    }
-                }
-            }
-            else
-            {
-                for (auto& s : rStatV2) {
-                    auto f = s.second.find(pindex->nHeight);
-                    if (f != s.second.end()) {
-                        types.pushKV(std::to_string((int)s.first), f->second);
-                    }
-                }
-            }
-
-            ublock.pushKV("types", types);
-        }
-
-        result.push_back(ublock);
+        result.pushKV(std::to_string(pindex->nHeight), oblock);
 
         pindex = pindex->pprev;
         count -= 1;
+    }
+
+    // Extend with transaction statistic data
+    if (verbose)
+    {
+        auto data = PocketDb::ExplorerRepoInst.GetStatistic(last_height - count, last_height);
+
+        for (auto& s : data)
+        {
+            std::string key = std::to_string(s.first);
+
+            if (result[key].isNull())
+                continue;
+
+            if (result.At(key)["types"].isNull())
+                result.At(key).pushKV("types", UniValue(UniValue::VOBJ));
+
+            for (auto& d : s.second)
+                result.At(key).At("types").pushKV(std::to_string(d.first), d.second);
+        }
     }
 
     return result;
@@ -1257,116 +1196,34 @@ static UniValue getstatistic(const JSONRPCRequest& request)
 {
     if (request.fHelp)
         throw std::runtime_error(
-            "getstatistic (start_time, end_time)\n"
+            "getstatistic (endTime, depth)\n"
             "\nGet statistics.\n"
             "\nArguments:\n"
-            "1. \"end_time\"   (int64, optional) End time of period\n"
-            "2. \"start_time\" (int64, optional) Start time of period\n"
-            "3. \"round   \"   (int32, optional) Chunk size\n");
+            "1. \"endTime\"   (int64, optional) End time of period\n"
+            "2. \"depth\"     (int32, optional) Day = 1, Month = 2, Year = 3\n");
 
-    int64_t end_time = GetAdjustedTime();
-    if (request.params.size() > 0 && request.params[0].isNum()) {
+    int64_t end_time = (int64_t)chainActive.Tip()->nTime;
+    if (request.params.size() > 0 && request.params[0].isNum())
         end_time = request.params[0].get_int64();
+
+    PocketDb::StatisticDepth depth = PocketDb::StatisticDepth_Month;
+    if (request.params.size() > 1 && request.params[1].isNum() && request.params[1].get_int() >= 1 && request.params[1].get_int() <= 3)
+        depth = (PocketDb::StatisticDepth)request.params[1].get_int();
+
+    int64_t start_time = end_time - (60*60*24*30);
+    switch (depth)
+    {
+        case PocketDb::StatisticDepth_Day:
+            start_time = end_time - (60*60*24);
+            break;
+        case PocketDb::StatisticDepth_Year:
+            start_time = end_time - (60*60*24*365);
+            break;
+        default:
+            break;
     }
 
-    int64_t start_time = end_time - (30 * 86400);
-    if (request.params.size() > 1 && request.params[1].isNum()) {
-        start_time = request.params[1].get_int64();
-    }
-
-    int round = 3600 * 24;
-    if (request.params.size() > 2 && request.params[2].isNum()) {
-        round = request.params[2].get_int();
-        if (round <= 0) round = 3600;
-    }
-
-    bool version2 = false;
-    if (request.params.size() > 3) {
-        RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
-        version2 = request.params[3].get_bool();
-    }
-
-    start_time = floor(start_time / round) * round;
-
-    UniValue result(UniValue::VOBJ);
-    int stat_count = 300;
-
-    // Loop all days in period start_time - end_time
-    int64_t dt_end = end_time;
-    int64_t dt_start = end_time - round;
-    while (dt_start >= start_time && stat_count > 0) {
-        UniValue rStat(UniValue::VOBJ);
-        auto data = PocketDb::ExplorerRepoInst.GetStatistic(dt_start, dt_end);
-
-        if (!version2)
-        {
-            std::map<std::string, int> v1Data;
-
-            for (auto& tp : data) {
-                std::string tbl = "";
-
-                switch (tp.first) {
-                    case ACCOUNT_USER:
-                        tbl = "Users";
-                        break;
-                    case CONTENT_POST:
-                        tbl = "Posts";
-                        break;
-                    case CONTENT_VIDEO:
-                        tbl = "Videos";
-                        break;
-                    case CONTENT_COMMENT:
-                    case CONTENT_COMMENT_EDIT:
-                    case CONTENT_COMMENT_DELETE:
-                        tbl = "Comments";
-                        break;
-                    case ACTION_SCORE_CONTENT:
-                        tbl = "Ratings";
-                        break;
-                    case ACTION_SCORE_COMMENT:
-                        tbl = "CommentRatings";
-                        break;
-                    case ACTION_SUBSCRIBE:
-                    case ACTION_SUBSCRIBE_PRIVATE:
-                    case ACTION_SUBSCRIBE_CANCEL:
-                        tbl = "Subscribes";
-                        break;
-                    default:
-                        break;
-                }
-                
-                if (tbl != "")
-                    v1Data[tbl] += tp.second;
-            }
-
-            for (auto& d : v1Data)
-                rStat.pushKV(d.first, d.second);
-        }
-        else
-        {
-            for (auto& d : data)
-                rStat.pushKV(std::to_string((int)d.first), d.second);
-        }
-
-        result.pushKV(std::to_string(dt_start), rStat);
-
-        stat_count -= 1;
-        dt_end -= round;
-        dt_start -= round;
-    }
-
-    return result;
-}
-static UniValue resetstatistic(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "resetstatistic\n"
-            "\nClear statistic cache.\n");
-
-    g_statistic_cache.clear();
-    UniValue result(UniValue::VOBJ);
-    return result;
+    return PocketDb::ExplorerRepoInst.GetStatistic(start_time, end_time, depth);
 }
 
 struct CCoinsStats {
@@ -2727,7 +2584,6 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getaddresstransactions", &getaddresstransactions, {"address"}, false },
     { "blockchain",         "getblocktransactions",   &getblocktransactions,   {"address"}, false },
 
-	//{ "blockchain",         "gettransactions",        &gettransactions,        {"transactions"}, false },
 	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"}, false },
 	{ "blockchain",         "searchbyhash",           &searchbyhash,           {"value"}, false },
 
@@ -2739,7 +2595,6 @@ static const CRPCCommand commands[] =
     { "hidden",             "waitforblockheight",     &waitforblockheight,     {"height","timeout"} },
     { "hidden",             "syncwithvalidationinterfacequeue", &syncwithvalidationinterfacequeue, {} },
     { "hidden",             "getstatistic",           &getstatistic,           {"end_time","start_time","round"}, false },
-    { "hidden",             "resetstatistic",         &resetstatistic,         {}, false },
 };
 // clang-format on
 

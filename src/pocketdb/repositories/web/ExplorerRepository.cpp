@@ -10,18 +10,18 @@ namespace PocketDb {
 
     void ExplorerRepository::Destroy() {}
 
-    map<PocketTxType, map<int, int>> ExplorerRepository::GetStatistic(int bottomHeight, int topHeight)
+    map<int, map<int, int>> ExplorerRepository::GetStatistic(int bottomHeight, int topHeight)
     {
-        map<PocketTxType, map<int, int>> result;
+        map<int, map<int, int>> result;
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select t.Type, t.Height, count(*)
+                select t.Height, t.Type, count(*)
                 from Transactions t indexed by Transactions_Height_Type
                 where   t.Height > ?
                     and t.Height <= ?
-                group by t.Type, t.Height
+                group by t.Height, t.Type
             )sql");
 
             TryBindStatementInt(stmt, 1, bottomHeight);
@@ -29,12 +29,12 @@ namespace PocketDb {
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto [ok0, sType] = TryGetColumnInt(*stmt, 0);
-                auto [ok1, sBlock] = TryGetColumnInt(*stmt, 1);
+                auto [ok0, sHeight] = TryGetColumnInt(*stmt, 0);
+                auto [ok1, sType] = TryGetColumnInt(*stmt, 1);
                 auto [ok2, sCount] = TryGetColumnInt(*stmt, 2);
 
                 if (ok0 && ok1 && ok2)
-                    result[(PocketTxType)sType][sBlock] = sCount;
+                    result[sHeight][sType] = sCount;
             }
 
             FinalizeSqlStatement(*stmt);
@@ -43,18 +43,35 @@ namespace PocketDb {
         return result;
     }
 
-    UniValue ExplorerRepository::GetStatistic(int64_t startTime, int64_t endTime)
+    UniValue ExplorerRepository::GetStatistic(int64_t startTime, int64_t endTime, StatisticDepth depth)
     {
-        UniValue result(UniValue::VARR);
+        UniValue result(UniValue::VOBJ);
+
+        string dataFormtSelect = "%Y%m%d";
+        string dataFormtGroup = "%d";
+
+        switch (depth)
+        {
+            case StatisticDepth_Day:
+                dataFormtSelect = "%Y%m%d%H";
+                dataFormtGroup = "%H";
+                break;
+            case StatisticDepth_Year:
+                dataFormtSelect = "%Y";
+                dataFormtGroup = "%Y";
+                break;
+            default:
+                break;
+        }
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select t.Type, strftime('%Y%m%d', datetime(t.Time, 'unixepoch')), count(*)
+                select strftime(')sql" + dataFormtSelect + R"sql(', datetime(t.Time, 'unixepoch')), t.Type, count(*)
                 from Transactions t indexed by Transactions_Time_Type
                 where   t.Time >= ?
                     and t.Time < ?
-                group by t.Type, date(t.Time, 'unixepoch')
+                group by t.Type, strftime(')sql" + dataFormtGroup + R"sql(', datetime(t.Time, 'unixepoch'))
             )sql");
 
             TryBindStatementInt64(stmt, 1, startTime);
@@ -62,14 +79,16 @@ namespace PocketDb {
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto [ok0, sType] = TryGetColumnInt(*stmt, 0);
-                auto [ok1, sDate] = TryGetColumnInt(*stmt, 1);
+                auto [ok1, sDate] = TryGetColumnString(*stmt, 0);
+                auto [ok0, sType] = TryGetColumnString(*stmt, 1);
                 auto [ok2, sCount] = TryGetColumnInt(*stmt, 2);
 
                 if (ok0 && ok1 && ok2)
                 {
-                    
-                    result[(PocketTxType)sType] = sCount;
+                    if (result[sDate].isNull())
+                        result.pushKV(sDate, UniValue(UniValue::VOBJ));
+
+                    result.At(sDate).pushKV(sType, sCount);
                 }
             }
 
