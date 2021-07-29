@@ -1253,7 +1253,6 @@ static UniValue searchbyhash(const JSONRPCRequest& request)
     return result;
 }
 
-static std::map<std::string, UniValue> g_statistic_cache;
 static UniValue getstatistic(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -1296,66 +1295,59 @@ static UniValue getstatistic(const JSONRPCRequest& request)
     int64_t dt_end = end_time;
     int64_t dt_start = end_time - round;
     while (dt_start >= start_time && stat_count > 0) {
-        //std::string cacheKey = std::to_string(dt_start) + std::to_string(round);
-        //if (g_statistic_cache.find(cacheKey) == g_statistic_cache.end())
-        //{
-            UniValue rStat(UniValue::VOBJ);
-            auto data = PocketDb::ExplorerRepoInst.GetStatistic(dt_start, dt_end);
+        UniValue rStat(UniValue::VOBJ);
+        auto data = PocketDb::ExplorerRepoInst.GetStatistic(dt_start, dt_end);
 
-            if (!version2)
-            {
-                std::map<std::string, int> v1Data;
+        if (!version2)
+        {
+            std::map<std::string, int> v1Data;
 
-                for (auto& tp : data) {
-                    std::string tbl = "";
+            for (auto& tp : data) {
+                std::string tbl = "";
 
-                    switch (tp.first) {
-                        case ACCOUNT_USER:
-                            tbl = "Users";
-                            break;
-                        case CONTENT_POST:
-                            tbl = "Posts";
-                            break;
-                        case CONTENT_VIDEO:
-                            tbl = "Videos";
-                            break;
-                        case CONTENT_COMMENT:
-                        case CONTENT_COMMENT_EDIT:
-                        case CONTENT_COMMENT_DELETE:
-                            tbl = "Comments";
-                            break;
-                        case ACTION_SCORE_CONTENT:
-                            tbl = "Ratings";
-                            break;
-                        case ACTION_SCORE_COMMENT:
-                            tbl = "CommentRatings";
-                            break;
-                        case ACTION_SUBSCRIBE:
-                        case ACTION_SUBSCRIBE_PRIVATE:
-                        case ACTION_SUBSCRIBE_CANCEL:
-                            tbl = "Subscribes";
-                            break;
-                        default:
-                            break;
-                    }
-                    
-                    if (tbl != "")
-                        v1Data[tbl] += tp.second;
+                switch (tp.first) {
+                    case ACCOUNT_USER:
+                        tbl = "Users";
+                        break;
+                    case CONTENT_POST:
+                        tbl = "Posts";
+                        break;
+                    case CONTENT_VIDEO:
+                        tbl = "Videos";
+                        break;
+                    case CONTENT_COMMENT:
+                    case CONTENT_COMMENT_EDIT:
+                    case CONTENT_COMMENT_DELETE:
+                        tbl = "Comments";
+                        break;
+                    case ACTION_SCORE_CONTENT:
+                        tbl = "Ratings";
+                        break;
+                    case ACTION_SCORE_COMMENT:
+                        tbl = "CommentRatings";
+                        break;
+                    case ACTION_SUBSCRIBE:
+                    case ACTION_SUBSCRIBE_PRIVATE:
+                    case ACTION_SUBSCRIBE_CANCEL:
+                        tbl = "Subscribes";
+                        break;
+                    default:
+                        break;
                 }
-
-                for (auto& d : v1Data)
-                    rStat.pushKV(d.first, d.second);
-            }
-            else
-            {
-                for (auto& d : data)
-                    rStat.pushKV(std::to_string((int)d.first), d.second);
+                
+                if (tbl != "")
+                    v1Data[tbl] += tp.second;
             }
 
-            //g_statistic_cache.insert_or_assign(cacheKey, rStat);
-        //}
+            for (auto& d : v1Data)
+                rStat.pushKV(d.first, d.second);
+        }
+        else
+        {
+            for (auto& d : data)
+                rStat.pushKV(std::to_string((int)d.first), d.second);
+        }
 
-        //result.pushKV(std::to_string(dt_start), g_statistic_cache[cacheKey]);
         result.pushKV(std::to_string(dt_start), rStat);
 
         stat_count -= 1;

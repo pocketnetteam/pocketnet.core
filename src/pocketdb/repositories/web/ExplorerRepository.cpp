@@ -43,19 +43,18 @@ namespace PocketDb {
         return result;
     }
 
-    map<PocketTxType, int> ExplorerRepository::GetStatistic(int64_t startTime, int64_t endTime)
+    UniValue ExplorerRepository::GetStatistic(int64_t startTime, int64_t endTime)
     {
-        map<PocketTxType, int> result;
+        UniValue result(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select t.Type, count(*)
+                select t.Type, strftime('%Y%m%d', datetime(t.Time, 'unixepoch')), count(*)
                 from Transactions t indexed by Transactions_Time_Type
                 where   t.Time >= ?
                     and t.Time < ?
-                    and t.Type > 3
-                group by t.Type
+                group by t.Type, date(t.Time, 'unixepoch')
             )sql");
 
             TryBindStatementInt64(stmt, 1, startTime);
@@ -64,10 +63,14 @@ namespace PocketDb {
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto [ok0, sType] = TryGetColumnInt(*stmt, 0);
-                auto [ok1, sCount] = TryGetColumnInt(*stmt, 1);
+                auto [ok1, sDate] = TryGetColumnInt(*stmt, 1);
+                auto [ok2, sCount] = TryGetColumnInt(*stmt, 2);
 
-                if (ok0 && ok1)
+                if (ok0 && ok1 && ok2)
+                {
+                    
                     result[(PocketTxType)sType] = sCount;
+                }
             }
 
             FinalizeSqlStatement(*stmt);
