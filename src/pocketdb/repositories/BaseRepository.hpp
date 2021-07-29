@@ -10,7 +10,7 @@
 #include <utility>
 #include <util.h>
 #include "shutdown.h"
-#include "pocketdb/SQLiteDatabase.hpp"
+#include "pocketdb/SQLiteDatabase.h"
 
 namespace PocketDb
 {

@@ -94,7 +94,7 @@ POCKETDB_H = \
     pocketdb/pocketnet.h \
     pocketdb/consensus.h \
     pocketdb/migrations/main.hpp \
-    pocketdb/SQLiteDatabase.hpp \
+    pocketdb/SQLiteDatabase.h \
     pocketdb/helpers/TransactionHelper.hpp \
     pocketdb/helpers/CheckpointHelper.h \
     pocketdb/web/PocketCommentsRpc.h \
@@ -157,6 +157,7 @@ POCKETDB_H = \
 
 # PocketDb CPP
 POCKETDB_CPP = \
+    pocketdb/SQLiteDatabase.cpp \
     pocketdb/repositories/web/WebUserRepository.cpp \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
