@@ -206,6 +206,18 @@ const UniValue& UniValue::operator[](const std::string& key) const
     return values.at(index);
 }
 
+UniValue& UniValue::operator[](const std::string& key)
+{
+    if (typ != VOBJ)
+        return const_cast<UniValue&>(NullUniValue);
+
+    size_t index = 0;
+    if (!findKey(key, index))
+        return const_cast<UniValue&>(NullUniValue);
+
+    return values.at(index);
+}
+
 const UniValue& UniValue::operator[](size_t index) const
 {
     if (typ != VOBJ && typ != VARR)
