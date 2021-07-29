@@ -26,6 +26,8 @@ namespace PocketDb
     extern ChainRepository ChainRepoInst;
     extern RatingsRepository RatingsRepoInst;
     extern ConsensusRepository ConsensusRepoInst;
+    
+    extern SQLiteDatabase SQLiteDbWebInst;
     extern WebRepository WebRepoInst;
     extern WebUserRepository WebUserRepoInst;
     extern ExplorerRepository ExplorerRepoInst;

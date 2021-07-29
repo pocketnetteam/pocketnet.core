@@ -159,17 +159,22 @@ void ShutdownPocketServices()
 {
     // Before close database we must stop all repositories
     PocketDb::SQLiteDbInst.m_connection_mutex.lock();
+    PocketDb::SQLiteDbWebInst.m_connection_mutex.lock();
 
     PocketDb::TransRepoInst.Destroy();
     PocketDb::ChainRepoInst.Destroy();
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
     PocketDb::WebRepoInst.Destroy();
+    PocketDb::WebUserRepoInst.Destroy();
+    PocketDb::ExplorerRepoInst.Destroy();
 
     // Now we must close database connect
     PocketDb::SQLiteDbInst.Close();
+    PocketDb::SQLiteDbWebInst.Close();
 
     PocketDb::SQLiteDbInst.m_connection_mutex.unlock();
+    PocketDb::SQLiteDbWebInst.m_connection_mutex.unlock();
 }
 
 void Interrupt()
@@ -1745,13 +1750,17 @@ bool AppInitMain()
     PocketDb::TransRepoInst.Init();
     PocketDb::ChainRepoInst.Init();
     PocketDb::RatingsRepoInst.Init();
+    PocketDb::ConsensusRepoInst.Init();
+    
+    PocketDb::SQLiteDbWebInst.Init(
+        (GetDataDir() / "pocketdb").string(),
+        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
+        
+    PocketDb::WebRepoInst.Init();
+    PocketDb::WebUserRepoInst.Init();
+    PocketDb::ExplorerRepoInst.Init();
 
     PocketWeb::PocketFrontendInst.Init();
-
-    // ********************************************************* Step 4.2: Start AddrIndex
-    //g_addrindex = std::unique_ptr<AddrIndex>(new AddrIndex());
-    // ********************************************************* Step 4.3: Start AntiBot
-    //g_antibot = std::unique_ptr<AntiBot>(new AntiBot());
 
     // ********************************************************* Step 5: verify wallet database integrity
     if (!g_wallet_init_interface.Verify()) return false;

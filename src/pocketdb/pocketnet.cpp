@@ -8,9 +8,11 @@ namespace PocketDb
     ChainRepository ChainRepoInst(PocketDb::SQLiteDbInst);
     RatingsRepository RatingsRepoInst(PocketDb::SQLiteDbInst);
     ConsensusRepository ConsensusRepoInst(PocketDb::SQLiteDbInst);
-    WebRepository WebRepoInst(PocketDb::SQLiteDbInst);
-    WebUserRepository WebUserRepoInst(PocketDb::SQLiteDbInst);
-    ExplorerRepository ExplorerRepoInst(PocketDb::SQLiteDbInst);
+    
+    SQLiteDatabase SQLiteDbWebInst;
+    WebRepository WebRepoInst(PocketDb::SQLiteDbWebInst);
+    WebUserRepository WebUserRepoInst(PocketDb::SQLiteDbWebInst);
+    ExplorerRepository ExplorerRepoInst(PocketDb::SQLiteDbWebInst);
 }
 
 namespace PocketWeb
