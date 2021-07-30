@@ -17,6 +17,8 @@
 
 #include <univalue.h>
 
+#include "pocketdb/SQLiteConnection.h"
+
 static const unsigned int DEFAULT_RPC_SERIALIZE_VERSION = 1;
 
 class CRPCCommand;
@@ -38,6 +40,8 @@ struct UniValueType {
 
 class JSONRPCRequest
 {
+private:
+    DbConnectionRef dbConnection;
 public:
     UniValue id;
     std::string strMethod;
@@ -49,6 +53,9 @@ public:
 
     JSONRPCRequest() : id(NullUniValue), params(NullUniValue), fHelp(false) {}
     void parse(const UniValue& valRequest);
+
+    void SetDbConnection(const DbConnectionRef& _dbConnection);
+    const DbConnectionRef& DbConnection() const;
 };
 
 /** Query whether RPC is running */

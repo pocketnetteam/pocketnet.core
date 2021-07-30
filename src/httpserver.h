@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <functional>
 
+#include "pocketdb/SQLiteConnection.h"
+
 static const int DEFAULT_HTTP_THREADS=4;
 static const int DEFAULT_HTTP_POST_THREADS=4;
 static const int DEFAULT_HTTP_PUBLIC_THREADS=4;
@@ -63,6 +65,8 @@ class HTTPRequest
 private:
     struct evhttp_request* req;
     bool replySent;
+
+    DbConnectionRef dbConnection;
 
 public:
     explicit HTTPRequest(struct evhttp_request* req);
@@ -119,6 +123,10 @@ public:
      * main thread, do not call any other HTTPRequest methods after calling this.
      */
     void WriteReply(int nStatus, const std::string& strReply = "");
+
+    void SetDbConnection(const DbConnectionRef& _dbConnection);
+
+    const DbConnectionRef& DbConnection() const;
 };
 
 /** Event handler closure.
@@ -126,7 +134,7 @@ public:
 class HTTPClosure
 {
 public:
-    virtual void operator()() = 0;
+    virtual void operator()(DbConnectionRef& sqliteConnection) = 0;
     virtual ~HTTPClosure() {}
 };
 

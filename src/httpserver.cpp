@@ -53,10 +53,12 @@ public:
         req(std::move(_req)), path(_path), func(_func)
     {
     }
-    void operator()() override
+    void operator()(DbConnectionRef& dbConnection) override
     {
         auto log = g_logger->WillLogCategory(BCLog::STAT);
         auto jreq = req.get();
+        jreq->SetDbConnection(dbConnection);
+
         auto uri = jreq->GetURI();
         auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
 
@@ -99,47 +101,34 @@ private:
     std::deque<std::unique_ptr<WorkItem>> queue;
     bool running;
     size_t maxDepth;
-
-    // int maxsize = 0;
-    // int period = 100;
-
+    DbConnectionRef sqliteConnection;
 
 public:
-    explicit WorkQueue(size_t _maxDepth) : running(true),
-                                           maxDepth(_maxDepth)
+    explicit WorkQueue(size_t _maxDepth) : running(true), maxDepth(_maxDepth)
     {
+        sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
     }
+
     /** Precondition: worker threads have all stopped (they have been joined).
      */
     ~WorkQueue()
     {
     }
+
     /** Enqueue a work item */
     bool Enqueue(WorkItem *item)
     {
         LOCK(cs);
 
-
-        //--------------------------
-        // period -= 1;
-        // if (queue.size() > maxsize) maxsize = queue.size();
-        // if (period <= 0) {
-        //     LogPrintf("--- max queue.size() from last 100 requests: %d\n", maxsize);
-        //     period = 100;
-        //     maxsize = 0;
-        // }
-        //--------------------------
-
         if (queue.size() >= maxDepth)
-        {
             return false;
-        }
 
         queue.emplace_back(std::unique_ptr<WorkItem>(item));
         cond.notify_one();
 
         return true;
     }
+
     /** Thread function */
     void Run()
     {
@@ -155,9 +144,10 @@ public:
                 i = std::move(queue.front());
                 queue.pop_front();
             }
-            (*i)();
+            (*i)(sqliteConnection);
         }
     }
+
     /** Interrupt and exit loops */
     void Interrupt()
     {
@@ -784,6 +774,16 @@ void HTTPRequest::WriteReply(int nStatus, const std::string &strReply)
     ev->trigger(nullptr);
     replySent = true;
     req = nullptr; // transferred back to main thread
+}
+
+void HTTPRequest::SetDbConnection(const DbConnectionRef& _dbConnection)
+{
+    dbConnection = _dbConnection;
+}
+
+const DbConnectionRef& HTTPRequest::DbConnection() const
+{
+    return dbConnection;
 }
 
 CService HTTPRequest::GetPeer() const

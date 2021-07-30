@@ -167,7 +167,6 @@ void ShutdownPocketServices()
     PocketDb::ConsensusRepoInst.Destroy();
     PocketDb::WebRepoInst.Destroy();
     PocketDb::WebUserRepoInst.Destroy();
-    PocketDb::ExplorerRepoInst.Destroy();
 
     // Now we must close database connect
     PocketDb::SQLiteDbInst.Close();
@@ -1758,7 +1757,6 @@ bool AppInitMain()
         
     PocketDb::WebRepoInst.Init();
     PocketDb::WebUserRepoInst.Init();
-    PocketDb::ExplorerRepoInst.Init();
 
     PocketWeb::PocketFrontendInst.Init();
 

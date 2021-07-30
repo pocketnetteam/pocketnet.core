@@ -386,6 +386,16 @@ void JSONRPCRequest::parse(const UniValue& valRequest)
         throw JSONRPCError(RPC_INVALID_REQUEST, "Params must be an array or object");
 }
 
+void JSONRPCRequest::SetDbConnection(const DbConnectionRef& _dbConnection)
+{
+    dbConnection = _dbConnection;
+}
+
+const DbConnectionRef& JSONRPCRequest::DbConnection() const
+{
+    return dbConnection;
+}
+
 bool IsDeprecatedRPCEnabled(const std::string& method)
 {
     const std::vector<std::string> enabled_methods = gArgs.GetArgs("-deprecatedrpc");

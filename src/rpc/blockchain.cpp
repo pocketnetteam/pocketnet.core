@@ -852,7 +852,7 @@ static UniValue getlastblocks(const JSONRPCRequest& request)
     // Extend with transaction statistic data
     if (verbose)
     {
-        auto data = PocketDb::ExplorerRepoInst.GetStatistic(last_height - count, last_height);
+        auto data = request.DbConnection()->ExplorerRepoInst->GetStatistic(last_height - count, last_height);
 
         for (auto& s : data)
         {
@@ -893,7 +893,7 @@ static UniValue getaddressspent(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
     }
     
-    auto[spent, unspent] = PocketDb::ExplorerRepoInst.GetAddressSpent(address);
+    auto[spent, unspent] = request.DbConnection()->ExplorerRepoInst->GetAddressSpent(address);
     
     UniValue addressInfo(UniValue::VOBJ);
     addressInfo.pushKV("spent", spent);
@@ -1068,7 +1068,7 @@ static UniValue getaddresstransactions(const JSONRPCRequest& request)
     if (request.params.size() > 3 && request.params[3].isNum())
         pageSize = request.params[3].get_int();
 
-    return PocketDb::ExplorerRepoInst.GetAddressTransactions(
+    return request.DbConnection()->ExplorerRepoInst->GetAddressTransactions(
         address,
         pageInitBlock,
         pageStart,
@@ -1104,7 +1104,7 @@ static UniValue getblocktransactions(const JSONRPCRequest& request)
     if (request.params.size() > 2 && request.params[2].isNum())
         pageSize = request.params[2].get_int();
 
-    return PocketDb::ExplorerRepoInst.GetBlockTransactions(
+    return request.DbConnection()->ExplorerRepoInst->GetBlockTransactions(
         blockHash,
         pageStart,
         pageSize
@@ -1145,7 +1145,7 @@ static UniValue gettransactions(const JSONRPCRequest& request)
     if (request.params.size() > 2 && request.params[2].isNum())
         pageSize = request.params[2].get_int();
 
-    return PocketDb::ExplorerRepoInst.GetTransactions(
+    return request.DbConnection()->ExplorerRepoInst->GetTransactions(
         transactions,
         pageStart,
         pageSize
@@ -1224,7 +1224,7 @@ static UniValue getstatistic(const JSONRPCRequest& request)
             break;
     }
 
-    return PocketDb::ExplorerRepoInst.GetStatistic(start_time, end_time, depth);
+    return request.DbConnection()->ExplorerRepoInst->GetStatistic(start_time, end_time, depth);
 }
 
 struct CCoinsStats {
