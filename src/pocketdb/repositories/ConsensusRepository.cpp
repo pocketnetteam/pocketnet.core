@@ -496,10 +496,11 @@ namespace PocketDb
         shared_ptr<string> result;
 
         string sql = R"sql(
-            select ReferrerAddressHash
-            from vUsers
-            where Height is not null
-                and AddressHash = ?
+            select String2
+            from Transactions indexed by Transactions_GetScoreContentCount
+            where Type in (100)
+              and Height is not null
+              and String1 = ?
             order by Height asc
             limit 1
         )sql";
@@ -526,11 +527,12 @@ namespace PocketDb
         shared_ptr<string> result;
 
         string sql = R"sql(
-            select ReferrerAddressHash
-            from vUsers
-            where Height is not null
-                and Time >= ?
-                and AddressHash = ?
+            select String2
+            from Transactions indexed by Transactions_GetScoreContentCount
+            where Type in (100)
+              and Height is not null
+              and Time >= ?
+              and String1 = ?
             order by Height asc
             limit 1
         )sql";
