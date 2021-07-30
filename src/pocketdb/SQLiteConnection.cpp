@@ -8,6 +8,8 @@ namespace PocketDb
 {
     SQLiteConnection::SQLiteConnection()
     {
+        LogPrintf("Created SQLiteConnection()\n");
+
         SQLiteDbInst = new SQLiteDatabase(false, true);
         SQLiteDbInst->Init(
             (GetDataDir() / "pocketdb").string(),

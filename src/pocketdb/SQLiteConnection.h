@@ -25,8 +25,8 @@ namespace PocketDb
 
     public:
 
-        SQLiteConnection() = default;
-        ~SQLiteConnection() = default;
+        SQLiteConnection();
+        ~SQLiteConnection();
 
         WebRepository* WebRepoInst;
         WebUserRepository* WebUserRepoInst;

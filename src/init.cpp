@@ -1715,6 +1715,29 @@ bool AppInitMain()
     CScheduler::Function serviceLoop = boost::bind(&CScheduler::serviceQueue, &scheduler);
     threadGroup.create_thread(boost::bind(&TraceThread < CScheduler::Function > , "scheduler", serviceLoop));
 
+    // ********************************************************* Step 4b: Start PocketDB
+    uiInterface.InitMessage(_("Loading Pocket DB..."));
+
+    PocketDb::SQLiteDbInst.Init(
+        (GetDataDir() / "pocketdb").string(),
+        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
+
+    PocketDb::TransRepoInst.Init();
+    PocketDb::ChainRepoInst.Init();
+    PocketDb::RatingsRepoInst.Init();
+    PocketDb::ConsensusRepoInst.Init();
+    
+    PocketDb::SQLiteDbWebInst.Init(
+        (GetDataDir() / "pocketdb").string(),
+        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
+        
+    PocketDb::WebRepoInst.Init();
+    PocketDb::WebUserRepoInst.Init();
+
+    PocketWeb::PocketFrontendInst.Init();
+
+    // ********************************************************* Step 4b: Start servers
+
     GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
     GetMainSignals().RegisterWithMempoolSignals(mempool);
 
@@ -1738,27 +1761,6 @@ bool AppInitMain()
         if (!AppInitServers())
             return InitError(_("Unable to start HTTP server. See debug log for details."));
     }
-
-    // ********************************************************* Step 4.1: Start PocketDB
-    uiInterface.InitMessage(_("Loading Pocket DB..."));
-
-    PocketDb::SQLiteDbInst.Init(
-        (GetDataDir() / "pocketdb").string(),
-        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
-
-    PocketDb::TransRepoInst.Init();
-    PocketDb::ChainRepoInst.Init();
-    PocketDb::RatingsRepoInst.Init();
-    PocketDb::ConsensusRepoInst.Init();
-    
-    PocketDb::SQLiteDbWebInst.Init(
-        (GetDataDir() / "pocketdb").string(),
-        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
-        
-    PocketDb::WebRepoInst.Init();
-    PocketDb::WebUserRepoInst.Init();
-
-    PocketWeb::PocketFrontendInst.Init();
 
     // ********************************************************* Step 5: verify wallet database integrity
     if (!g_wallet_init_interface.Verify()) return false;
