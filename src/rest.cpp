@@ -851,9 +851,8 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
 
     if (start == 0)
     {
-        PocketDb::SQLiteDbInst.DropIndexes();
         PocketServices::TransactionIndexer::Rollback(0);
-        PocketDb::SQLiteDbInst.CreateIndexes();
+        // TODO (brangr): reindex or drop
     }
 
     int current = start;

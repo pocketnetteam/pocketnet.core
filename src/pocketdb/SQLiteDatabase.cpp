@@ -137,30 +137,18 @@ namespace PocketDb
         if (!m_db || sqlite3_get_autocommit(m_db) == 0)
             throw std::runtime_error(strprintf("%s: Database not opened?\n", __func__));
 
-        if (!BulkExecute(MainStructure))
+        PocketDbMigration migration;
+
+        for (const auto& tbl : migration.Tables)
+            if (!BulkExecute(tbl))
+                throw std::runtime_error(strprintf("%s: Failed to create database structure\n", __func__));
+
+        for (const auto& vw : migration.Views)
+            if (!BulkExecute(vw))
+                throw std::runtime_error(strprintf("%s: Failed to create database structure\n", __func__));
+
+        if (!BulkExecute(migration.Indexes))
             throw std::runtime_error(strprintf("%s: Failed to create database structure\n", __func__));
-    }
-
-    void SQLiteDatabase::DropIndexes()
-    {
-        LogPrintf("Drop Sqlite database indexes..\n");
-
-        if (!m_db || sqlite3_get_autocommit(m_db) == 0)
-            throw std::runtime_error(strprintf("%s: Database not opened?\n", __func__));
-
-        if (!BulkExecute(MainDropIndexes))
-            throw std::runtime_error(strprintf("%s: Failed to drop indexes\n", __func__));
-    }
-
-    void SQLiteDatabase::CreateIndexes()
-    {
-        LogPrintf("Creating Sqlite database indexes..\n");
-
-        if (!m_db || sqlite3_get_autocommit(m_db) == 0)
-            throw std::runtime_error(strprintf("%s: Database not opened?\n", __func__));
-
-        if (!BulkExecute(MainCreateIndexes))
-            throw std::runtime_error(strprintf("%s: Failed to create indexes\n", __func__));
     }
 
     void SQLiteDatabase::Open()
@@ -179,10 +167,7 @@ namespace PocketDb
                     __func__, ret, sqlite3_errstr(ret)));
 
             if (generalConnect)
-            {
                 CreateStructure();
-                CreateIndexes();
-            }
         }
 
         if (!readOnlyConnect && sqlite3_db_readonly(m_db, "main") != 0)

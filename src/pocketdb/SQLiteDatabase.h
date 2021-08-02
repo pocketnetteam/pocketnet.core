@@ -43,10 +43,6 @@ namespace PocketDb
 
         void CreateStructure();
 
-        void DropIndexes();
-
-        void CreateIndexes();
-
         void Open();
 
         void Close();
