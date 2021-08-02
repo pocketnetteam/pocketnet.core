@@ -28,7 +28,9 @@ namespace PocketDb
         UniValue GetUserAddress(string& name, int count);
         UniValue GetAddressesRegistrationDates(vector<string>& addresses);
     };
-} // namespace PocketDb
 
+    typedef std::shared_ptr<WebUserRepository> WebUserRepositoryRef;
+
+} // namespace PocketDb
 
 #endif //SRC_WEBUSERREPOSITORY_H

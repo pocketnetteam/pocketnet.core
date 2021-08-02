@@ -15,22 +15,23 @@
 
 namespace PocketDb
 {
+    using namespace std;
     using namespace PocketWeb;
 
     class SQLiteConnection
     {
     private:
 
-        SQLiteDatabase* SQLiteDbInst;
+        SQLiteDatabaseRef SQLiteDbInst;
 
     public:
 
         SQLiteConnection();
         ~SQLiteConnection();
 
-        WebRepository* WebRepoInst;
-        WebUserRepository* WebUserRepoInst;
-        ExplorerRepository* ExplorerRepoInst;
+        WebRepositoryRef WebRepoInst;
+        WebUserRepositoryRef WebUserRepoInst;
+        ExplorerRepositoryRef ExplorerRepoInst;
 
     };
 

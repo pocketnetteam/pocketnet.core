@@ -49,6 +49,8 @@ namespace PocketDb
     
     };
 
+    typedef std::shared_ptr<ExplorerRepository> ExplorerRepositoryRef;
+
 } // namespace PocketDb
 
 #endif // POCKETDB_EXPLORERREPOSITORY_H

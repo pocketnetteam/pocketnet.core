@@ -101,12 +101,11 @@ private:
     std::deque<std::unique_ptr<WorkItem>> queue;
     bool running;
     size_t maxDepth;
-    DbConnectionRef sqliteConnection;
 
 public:
     explicit WorkQueue(size_t _maxDepth) : running(true), maxDepth(_maxDepth)
     {
-        sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
+
     }
 
     /** Precondition: worker threads have all stopped (they have been joined).
@@ -130,8 +129,12 @@ public:
     }
 
     /** Thread function */
-    void Run()
+    void Run(bool selfDbConnection)
     {
+        DbConnectionRef sqliteConnection;
+        if (selfDbConnection)
+            sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
+
         while (true)
         {
             std::unique_ptr<WorkItem> i;
@@ -430,10 +433,10 @@ static bool HTTPBindAddresses(struct evhttp *http)
 }
 
 /** Simple wrapper to set thread name and run work queue */
-static void HTTPWorkQueueRun(WorkQueue<HTTPClosure> *queue)
+static void HTTPWorkQueueRun(WorkQueue<HTTPClosure> *queue, bool selfDbConnection)
 {
     RenameThread("pocketcoin-httpworker");
-    queue->Run();
+    queue->Run(selfDbConnection);
 }
 
 /** libevent event log callback */
@@ -554,19 +557,19 @@ void StartHTTPServer()
 
     for (int i = 0; i < rpcMainThreads; i++)
     {
-        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueue);
+        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueue, false);
     }
     LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
 
     for (int i = 0; i < rpcPostThreads; i++)
     {
-        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePost);
+        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePost, false);
     }
     LogPrintf("HTTP: starting %d Post worker threads\n", rpcPostThreads);
 
     for (int i = 0; i < rpcPublicThreads; i++)
     {
-        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePublic);
+        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePublic, true);
     }
     LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
 }

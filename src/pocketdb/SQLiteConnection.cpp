@@ -8,17 +8,15 @@ namespace PocketDb
 {
     SQLiteConnection::SQLiteConnection()
     {
-        LogPrintf("Created SQLiteConnection()\n");
-
-        SQLiteDbInst = new SQLiteDatabase(false, true);
+        SQLiteDbInst = make_shared<SQLiteDatabase>(false, true);
         SQLiteDbInst->Init(
             (GetDataDir() / "pocketdb").string(),
             (GetDataDir() / "pocketdb" / "main.sqlite3").string()
         );
 
-        WebRepoInst = new WebRepository(*SQLiteDbInst);
-        WebUserRepoInst = new WebUserRepository(*SQLiteDbInst);
-        ExplorerRepoInst = new ExplorerRepository(*SQLiteDbInst);
+        WebRepoInst = make_shared<WebRepository>(*SQLiteDbInst);
+        WebUserRepoInst = make_shared<WebUserRepository>(*SQLiteDbInst);
+        ExplorerRepoInst = make_shared<ExplorerRepository>(*SQLiteDbInst);
     }
 
     SQLiteConnection::~SQLiteConnection()
@@ -31,12 +29,6 @@ namespace PocketDb
 
         SQLiteDbInst->m_connection_mutex.unlock();
         SQLiteDbInst->Close();
-
-        delete WebRepoInst;
-        delete WebUserRepoInst;
-        delete ExplorerRepoInst;
-
-        delete SQLiteDbInst;
     }
 
 

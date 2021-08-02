@@ -40,6 +40,8 @@ private:
     UniValue ParseCommentRow(sqlite3_stmt* stmt);
 };
 
+typedef std::shared_ptr<WebRepository> WebRepositoryRef;
+
 } // namespace PocketDb
 
 #endif // POCKETDB_WEBREPOSITORY_H

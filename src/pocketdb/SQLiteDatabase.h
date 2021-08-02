@@ -55,6 +55,8 @@ namespace PocketDb
 
     };
 
+    typedef std::shared_ptr<SQLiteDatabase> SQLiteDatabaseRef;
+
 } // namespace PocketDb
 
 #endif // POCKETDB_SQLITEDATABASE_H
