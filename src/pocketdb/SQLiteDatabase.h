@@ -13,7 +13,7 @@
 #include <sqlite3.h>
 #include <iostream>
 
-#include "pocketdb/migrations/main.hpp"
+#include "pocketdb/migrations/main.h"
 
 namespace PocketDb
 {

@@ -93,7 +93,7 @@ endif
 POCKETDB_H = \
     pocketdb/pocketnet.h \
     pocketdb/consensus.h \
-    pocketdb/migrations/main.hpp \
+    pocketdb/migrations/main.h \
     pocketdb/SQLiteDatabase.h \
     pocketdb/SQLiteConnection.h \
     pocketdb/helpers/TransactionHelper.hpp \
@@ -161,6 +161,7 @@ POCKETDB_H = \
 
 # PocketDb CPP
 POCKETDB_CPP = \
+    pocketdb/migrations/main.cpp \
     pocketdb/SQLiteDatabase.cpp \
     pocketdb/SQLiteConnection.cpp \
     pocketdb/repositories/web/WebUserRepository.cpp \
