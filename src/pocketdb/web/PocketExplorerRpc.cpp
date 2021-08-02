@@ -138,7 +138,7 @@ namespace PocketExplorerRpc
         if (request.params[0].isStr())
             blockHash = request.params[0].get_str();
 
-        int blockNumber = 0;
+        int blockNumber = -1;
         if (request.params[0].isNum())
             blockNumber = request.params[0].get_int();
 

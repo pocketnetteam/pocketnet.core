@@ -182,7 +182,8 @@ namespace PocketDb {
                             if (auto [ok, value] = TryGetColumnInt(*stmt, 1); ok) tx.pushKV("rowNumber", value);
                             if (auto [ok, value] = TryGetColumnInt(*stmt, 2); ok) tx.pushKV("type", value);
                             if (auto [ok, value] = TryGetColumnInt(*stmt, 3); ok) tx.pushKV("height", value);
-                            if (auto [ok, value] = TryGetColumnInt64(*stmt, 4); ok) tx.pushKV("nTime", value);
+                            if (auto [ok, value] = TryGetColumnString(*stmt, 4); ok) tx.pushKV("blockHash", value);
+                            if (auto [ok, value] = TryGetColumnInt64(*stmt, 5); ok) tx.pushKV("nTime", value);
 
                             tuple<UniValue, UniValue, UniValue> _tx{tx, vin, vout};
                             txs.emplace(hash, _tx);
@@ -190,9 +191,9 @@ namespace PocketDb {
 
                         // Extend transaction with outputs
                         UniValue txOut(UniValue::VOBJ);
-                        if (auto [ok, value] = TryGetColumnInt(*stmt, 5); ok) txOut.pushKV("n", value);
-                        if (auto [ok, value] = TryGetColumnString(*stmt, 6); ok) txOut.pushKV("address", value);
-                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 7); ok) txOut.pushKV("value", value);
+                        if (auto [ok, value] = TryGetColumnInt(*stmt, 6); ok) txOut.pushKV("n", value);
+                        if (auto [ok, value] = TryGetColumnString(*stmt, 7); ok) txOut.pushKV("address", value);
+                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 8); ok) txOut.pushKV("value", value);
 
                         get<2>(txs[hash]).push_back(txOut);
                     }
@@ -261,9 +262,9 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select ptxs.TxHash, ptxs.RowNum, t.Type, ptxs.TxHeight, t.Time, o.Number, o.AddressHash, o.Value
+                select t.Hash, ptxs.RowNum, t.Type, t.Height, t.BlockHash, t.Time, o.Number, o.AddressHash, o.Value
                 from (
-                    select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash, txs.TxHeight
+                    select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash
                     from (
                         select distinct o.TxHash, o.TxHeight
                         from TxOutputs o
@@ -287,11 +288,11 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.Time, o.Number, o.AddressHash, o.Value
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, o.AddressHash, o.Value
                 from (
-                    select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.Time
+                    select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
                     from (
-                        select t.Hash, t.Type, t.Height, t.BlockNum, t.Time
+                        select t.Hash, t.Type, t.Height, t.BlockNum, t.BlockHash, t.Time
                         from Transactions t
                         where t.BlockHash = ?
                     ) txs
@@ -311,11 +312,11 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.Time, o.Number, o.AddressHash, o.Value
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, o.AddressHash, o.Value
                 from (
-                    select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.Time
+                    select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
                     from (
-                        select t.Hash, t.Type, t.Height, t.BlockNum, t.Time
+                        select t.Hash, t.Type, t.Height, t.BlockNum, t.BlockHash, t.Time
                         from Transactions t
                         where t.Hash in (
                             )sql" + join(vector<string>(transactions.size(), "?"), ",") + R"sql(
