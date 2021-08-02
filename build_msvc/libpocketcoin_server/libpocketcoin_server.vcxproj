@@ -214,20 +214,20 @@
     <ClCompile Include="..\..\src\versionbits.cpp" />
     <ClCompile Include="..\..\src\websocket\ws.cpp" />
     <ClCompile Include="..\..\src\pocketdb\consensus\Base.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\Blocking.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\BlockingCancel.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\Comment.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\Complain.hpp" />
     <ClCompile Include="..\..\src\pocketdb\consensus\Lottery.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\Post.hpp" />
     <ClCompile Include="..\..\src\pocketdb\consensus\Reputation.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\ScoreComment.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\ScorePost.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\Subscribe.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\SubscribeCancel.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\SubscribePrivate.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\User.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\consensus\Video.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\Base.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\Blocking.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\BlockingCancel.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\Comment.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\Complain.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\Post.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\ScoreComment.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\Subscribe.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\SubscribeCancel.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\SubscribePrivate.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\User.hpp" />
+    <ClCompile Include="..\..\src\pocketdb\consensus\social\Video.hpp" />
     <ClCompile Include="..\..\src\pocketdb\helpers\TransactionHelper.hpp" />
     <ClCompile Include="..\..\src\pocketdb\helpers\TypesHelper.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\base\Base.hpp" />
@@ -246,7 +246,6 @@
     <ClCompile Include="..\..\src\pocketdb\models\dto\Post.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\ReturnDtoModels.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\ScoreComment.hpp" />
-    <ClCompile Include="..\..\src\pocketdb\models\dto\ScorePost.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\Subscribe.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\SubscribeCancel.hpp" />
     <ClCompile Include="..\..\src\pocketdb\models\dto\SubscribePrivate.hpp" />
@@ -258,6 +257,10 @@
     <ClCompile Include="..\..\src\pocketdb\services\TransactionIndexer.hpp" />
     <ClCompile Include="..\..\src\pocketdb\services\TransactionSerializer.hpp" />
     <ClCompile Include="..\..\src\pocketdb\SQLiteDatabase.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\pocketdb\consensus\social\ScoreContent.hpp" />
+    <ClInclude Include="..\..\src\pocketdb\models\dto\ScoreContent.hpp" />
   </ItemGroup>
   <Import Label="configTarget" Project="..\common.vcxproj" />
 </Project>
