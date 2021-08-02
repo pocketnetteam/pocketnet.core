@@ -363,6 +363,33 @@ namespace PocketDb
         and t.Type = 100;
 
         --------------------------------------------
+        drop view if exists vWebContents;
+        create view vWebContents as
+        select t.Hash,
+            t.Time,
+            t.BlockHash,
+            t.Height,
+            t.String1 as AddressHash,
+            t.String2 as RootTxHash,
+            t.String3 as RelayTxHash,
+            t.Type,
+            p.String1 as Lang,
+            p.String2 as Caption,
+            p.String3 as Message,
+            p.String4 as Tags,
+            p.String5 as Images,
+            p.String6 as Settings,
+            p.String7 as Url
+        from Transactions t
+                join Payload p on t.Hash = p.TxHash
+        where t.Height = (
+            select max(t_.Height)
+            from Transactions t_
+            where t_.String2 = t.String2
+            and t_.Type = t.Type)
+        and t.Type in (200, 201);
+        --
+        --
         drop view if exists vWebPosts;
         create view vWebPosts as
         select t.Hash,

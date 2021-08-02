@@ -35,6 +35,7 @@ public:
     map<string, UniValue> GetSubscribesAddresses(vector<string>& addresses);
     map<string, UniValue> GetSubscribersAddresses(vector<string>& addresses);
     map<string, UniValue> GetBlockingToAddresses(vector<string>& addresses);
+    map<string, UniValue> GetContentsData(vector<string>& txids);
 private:
     UniValue ParseCommentRow(sqlite3_stmt* stmt);
 };

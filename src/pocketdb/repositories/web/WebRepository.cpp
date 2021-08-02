@@ -643,3 +643,108 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetUserProfile(std::vec
 
     return result;
 }
+
+std::map<std::string, UniValue> PocketDb::WebRepository::GetContentsData(std::vector<std::string>& txids)
+{
+    string sql = R"sql(
+        SELECT c.RootTxHash,
+               case when c.Hash!=c.RootTxHash then 'true' else '' end edit,
+               c.RelayTxHash,
+               c.AddressHash,
+               c.Time,
+               c.Lang,
+               c.Type,
+               c.Caption,
+               c.Message,
+               c.Url,
+               c.Tags,
+               c.Images,
+               c.Settings
+        FROM vWebContents c
+        WHERE 1 = 1
+    )sql";
+
+    sql += "AND c.RootTxHash IN ('";
+    sql += txids[0];
+    sql += "'";
+    for (size_t i = 1; i < txids.size(); i++)
+    {
+        sql += ",'";
+        sql += txids[i];
+        sql += "'";
+    }
+    sql += ")";
+
+    std::map<std::string, UniValue> result{};
+
+    TryTransactionStep(__func__, [&]() {
+      auto stmt = SetupSqlStatement(sql);
+
+      while (sqlite3_step(*stmt) == SQLITE_ROW)
+      {
+          UniValue record(UniValue::VOBJ);
+
+          auto [ok, txid] = TryGetColumnString(*stmt, 0);
+          record.pushKV("txid", txid);
+
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("edit", valueStr);
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("repost", valueStr);
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("address", valueStr);
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", valueStr);
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", valueStr); // lang
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", valueStr);
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", valueStr); // caption
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", valueStr); // message
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", valueStr); // url
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 10); ok) {
+              UniValue t(UniValue::VARR);
+              record.pushKV("t", t);
+          }
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 11); ok) {
+              UniValue t(UniValue::VARR);
+              record.pushKV("i", t);
+          }
+          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 12); ok) record.pushKV("settings", valueStr);
+          //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
+          //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
+          //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
+          //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
+          //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("lastComment", valueStr);
+          //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("reposted", valueStr);
+          //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("userprofile", valueStr);
+
+//          record.pushKV("address", address);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("id", valueStr); //TODO (brangr): check pls in pocketrpc.cpp was id + 1
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("i", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("b", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("r", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 11); ok) record.pushKV("rc", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 12); ok) record.pushKV("postcnt", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", valueStr);
+//
+////          if (option == 1)
+////          {
+////              if (auto [ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("a", valueStr);
+////          }
+////
+////          if (shortForm)
+////          {
+////              result.insert_or_assign(address, record);
+////              continue;
+////          }
+//
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("l", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("s", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("update", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 10); ok) record.pushKV("k", valueStr);
+//          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 14); ok) record.pushKV("regdate", valueStr);
+
+          result.insert_or_assign(txid, record);
+      }
+
+      FinalizeSqlStatement(*stmt);
+    });
+
+    return result;
+}
