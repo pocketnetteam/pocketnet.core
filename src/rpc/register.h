@@ -19,8 +19,6 @@ void RegisterMiscRPCCommands(CRPCTable &tableRPC);
 void RegisterMiningRPCCommands(CRPCTable &tableRPC);
 /** Register raw transaction RPC commands */
 void RegisterRawTransactionRPCCommands(CRPCTable &tableRPC);
-/** Register pocketnet RPC commands */
-void RegisterPocketnetRPCCommands(CRPCTable& tableRPC);
 
 void RegisterPocketnetWebRPCCommands(CRPCTable &tableRPC);
 
@@ -31,9 +29,6 @@ static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
     RegisterMiscRPCCommands(t);
     RegisterMiningRPCCommands(t);
     RegisterRawTransactionRPCCommands(t);
-
-    // TODO (joni): Register all Web RPC methods here
-    //RegisterPocketnetRPCCommands(t);
     RegisterPocketnetWebRPCCommands(t);
 }
 

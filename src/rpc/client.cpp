@@ -174,14 +174,12 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getuserprofile",                0, "addresses"},
         {"getuserstate",                  1, "time"},
 
-        {"gettransactions",               0, "transactions"},
+        // Explorer
         {"getlastblocks",                 0, "count"},
         {"getlastblocks",                 1, "last_height"},
         {"getlastblocks",                 2, "verbose"},
-
         {"getstatistic",                  0, "end_time"},
-        {"getstatistic",                  1, "start_time"},
-        {"getstatistic",                  2, "round"},
+        {"getstatistic",                  1, "depth"},
 
         {"getrawtransactionwithmessage",  3, "count"},
         {"getrawtransactionwithmessage",  5, "tags"},

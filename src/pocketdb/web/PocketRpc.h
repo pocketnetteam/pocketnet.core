@@ -7,9 +7,8 @@
 #ifndef SRC_POCKETRPC_H
 #define SRC_POCKETRPC_H
 
-#include "rpc/server.h"
-#include "rpc/rawtransaction.h"
-
 #include "pocketdb/web/PocketContentRpc.h"
+#include "pocketdb/web/PocketExplorerRpc.h"
+
 
 #endif //SRC_POCKETRPC_H

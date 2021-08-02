@@ -6,7 +6,6 @@
 #include <rpc/blockchain.h>
 
 #include <amount.h>
-#include <base58.h>
 #include <chain.h>
 #include <chainparams.h>
 #include <checkpoints.h>
@@ -15,7 +14,6 @@
 #include <core_io.h>
 #include <hash.h>
 #include <index/txindex.h>
-#include <key_io.h>
 #include <policy/feerate.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
@@ -25,23 +23,16 @@
 #include <streams.h>
 #include <sync.h>
 #include <timedata.h>
-#include <txdb.h>
 #include <txmempool.h>
 #include <util.h>
 #include <utilstrencodings.h>
 #include <validation.h>
 #include <validationinterface.h>
 #include <warnings.h>
-
 #include <assert.h>
 #include <stdint.h>
-
 #include <univalue.h>
-
-#include <boost/algorithm/string.hpp>
 #include <boost/thread/thread.hpp> // boost::thread::interrupt
-
-#include <condition_variable>
 #include <math.h>
 #include <memory>
 #include <mutex>
@@ -57,7 +48,8 @@ static Mutex cs_blockchange;
 static std::condition_variable cond_blockchange;
 static CUpdatedBlock latestblock;
 
-/* Calculate the difficulty for a given block index.
+/*
+ * Calculate the difficulty for a given block index.
  */
 double GetDifficulty(const CBlockIndex* blockindex)
 {
@@ -802,261 +794,6 @@ static UniValue getblock(const JSONRPCRequest& request)
     }
 
     return blockToJSON(block, pblockindex, verbosity >= 2);
-}
-
-static UniValue getlastblocks(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "getlastblocks ( count, verbosity )\n"
-            "\nGet N last blocks.\n"
-            "\nArguments:\n"
-            "1. \"count\"         (int, optional) Count of blocks. Maximum 100 blocks.\n"
-            "2. \"last_height\"   (int, optional) Height of last block, including.\n"
-            "3. \"verbosity\"     (int, optional) Verbosity output.\n");
-
-    int count = 10;
-    if (request.params.size() > 0 && request.params[0].isNum()) {
-        count = request.params[0].get_int();
-        if (count > 100) count = 100;
-    }
-
-    int last_height = chainActive.Height();
-    if (request.params.size() > 1 && request.params[1].isNum()) {
-        last_height = request.params[1].get_int();
-        if (last_height < 0) last_height = chainActive.Height();
-    }
-
-    bool verbose = false;
-    if (request.params.size() > 2) {
-        RPCTypeCheckArgument(request.params[2], UniValue::VBOOL);
-        verbose = request.params[2].get_bool();
-    }
-
-    // Collect general block information
-    CBlockIndex* pindex = chainActive[last_height];
-    int i = count;
-    std::map<int, UniValue> blocks;
-    while (pindex && i-- > 0)
-    {
-        UniValue oblock(UniValue::VOBJ);
-        oblock.pushKV("height", pindex->nHeight);
-        oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
-        oblock.pushKV("time", (int64_t)pindex->nTime);
-        oblock.pushKV("ntx", (int)pindex->nTx - 1);
-
-        blocks.emplace(pindex->nHeight, oblock);
-        pindex = pindex->pprev;
-    }
-
-    // Extend with transaction statistic data
-    if (verbose)
-    {
-        auto data = request.DbConnection()->ExplorerRepoInst->GetStatistic(last_height - count, last_height);
-
-        for (auto& s : data)
-        {
-            if (blocks.find(s.first) == blocks.end())
-                continue;
-
-            if (blocks[s.first].At("types").isNull())
-                blocks[s.first].pushKV("types", UniValue(UniValue::VOBJ));
-
-            for (auto& d : s.second)
-                blocks[s.first].At("types").pushKV(std::to_string(d.first), d.second);
-        }
-    }
-
-    UniValue result(UniValue::VARR);
-    for (auto& block : blocks)
-        result.push_back(block.second);
-
-    return result;
-}
-
-static UniValue getaddressspent(const JSONRPCRequest& request)
-{
-    if (request.fHelp || request.params.size() > 1)
-        throw std::runtime_error(
-            "getaddressspent \"address\"\n"
-            "\nGet address spent & unspent amounts.\n"
-            "\nArguments:\n"
-            "1. \"address\"    (string) Address\n");
-
-    std::string address;
-    if (request.params.size() > 0 && request.params[0].isStr()) {
-        CTxDestination dest = DecodeDestination(request.params[0].get_str());
-        if (!IsValidDestination(dest))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[0].get_str());
-        address = request.params[0].get_str();
-    } else {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
-    }
-    
-    auto[spent, unspent] = request.DbConnection()->ExplorerRepoInst->GetAddressSpent(address);
-    
-    UniValue addressInfo(UniValue::VOBJ);
-    addressInfo.pushKV("spent", spent);
-    addressInfo.pushKV("unspent", unspent);
-    return addressInfo;
-}
-
-static UniValue getaddresstransactions(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-    {
-        throw std::runtime_error(
-            "getaddresstransactions [address, pageInitBlock, pageStart, pageSize]\n"
-            "\nGet transactions info.\n"
-            "\nArguments:\n"
-            "1. \"address\"       (string, required) Address hash\n"
-            "2. \"pageInitBlock\" (number) Max block height for filter pagination window\n"
-            "3. \"pageStart\"     (number) Row number for start page\n"
-            "4. \"pageSize\"      (number) Page size\n"
-        );
-    }
-
-    std::string address;
-    if (request.params.size() > 0 && request.params[0].isStr())
-        address = request.params[0].get_str();
-    else
-        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (address)");
-        
-    int pageInitBlock = chainActive.Height();
-    if (request.params.size() > 1 && request.params[1].isNum())
-        pageInitBlock = request.params[1].get_int();
-
-    int pageStart = 1;
-    if (request.params.size() > 2 && request.params[2].isNum())
-        pageStart = request.params[2].get_int();
-
-    int pageSize = 10;
-    if (request.params.size() > 3 && request.params[3].isNum())
-        pageSize = request.params[3].get_int();
-
-    return request.DbConnection()->ExplorerRepoInst->GetAddressTransactions(
-        address,
-        pageInitBlock,
-        pageStart,
-        pageSize
-    );
-}
-
-static UniValue getblocktransactions(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-    {
-        throw std::runtime_error(
-            "getblocktransactions [blockHash, pageStart, pageSize]\n"
-            "\nGet transactions info.\n"
-            "\nArguments:\n"
-            "1. \"blockHash\"     (string, required) Block hash\n"
-            "2. \"pageStart\"     (number) Row number for start page\n"
-            "3. \"pageSize\"      (number) Page size\n"
-        );
-    }
-
-    std::string blockHash;
-    if (request.params.size() > 0 && request.params[0].isStr())
-        blockHash = request.params[0].get_str();
-    else
-        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (blockHash)");
-        
-    int pageStart = 1;
-    if (request.params.size() > 1 && request.params[1].isNum())
-        pageStart = request.params[1].get_int();
-
-    int pageSize = 10;
-    if (request.params.size() > 2 && request.params[2].isNum())
-        pageSize = request.params[2].get_int();
-
-    return request.DbConnection()->ExplorerRepoInst->GetBlockTransactions(
-        blockHash,
-        pageStart,
-        pageSize
-    );
-}
-
-static UniValue gettransactions(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-    {
-        throw std::runtime_error(
-            "gettransactions [transactions[], pageStart, pageSize]\n"
-            "\nGet transactions info.\n"
-            "\nArguments:\n"
-            "1. \"transactions\"  (array, required) Transaction hashes\n"
-            "2. \"pageStart\"     (number) Row number for start page\n"
-            "3. \"pageSize\"      (number) Page size\n"
-        );
-    }
-
-    std::vector<std::string> transactions;
-    if (request.params[0].isStr())
-        transactions.push_back(request.params[0].get_str());
-    else if (request.params[0].isArray()) {
-        UniValue atransactions = request.params[0].get_array();
-        for (unsigned int idx = 0; idx < atransactions.size(); idx++) {
-            transactions.push_back(atransactions[idx].get_str());
-        }
-    } else {
-        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
-    }
-        
-    int pageStart = 1;
-    if (request.params.size() > 1 && request.params[1].isNum())
-        pageStart = request.params[1].get_int();
-
-    int pageSize = 10;
-    if (request.params.size() > 2 && request.params[2].isNum())
-        pageSize = request.params[2].get_int();
-
-    return request.DbConnection()->ExplorerRepoInst->GetTransactions(
-        transactions,
-        pageStart,
-        pageSize
-    );
-}
-
-static UniValue searchbyhash(const JSONRPCRequest& request)
-{
-    if (request.fHelp || request.params.size() > 1)
-        throw std::runtime_error(
-            "checkstringtype \"string\"\n"
-            "\nCheck type of input string - address, block or tx id.\n"
-            "\nArguments:\n"
-            "1. \"string\"   (string) Input string\n");
-
-    std::string value;
-    if (request.params.size() > 0) {
-        value = request.params[0].get_str();
-    } else {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameter");
-    }
-    
-    UniValue result(UniValue::VOBJ);
-
-    if (value.size() == 34)
-    {
-        if (IsValidDestination(DecodeDestination(value))) {
-            result.pushKV("type", "address");
-            return result;
-        }
-    }
-    else if (value.size() == 64)
-    {
-        const CBlockIndex* pblockindex = LookupBlockIndex(uint256S(value));
-        if (pblockindex) {
-            result.pushKV("type", "block");
-            return result;
-        }
-        
-        result.pushKV("type", "transaction");
-        return result;
-    }
-    //--------------------------------------
-    result.pushKV("type", "notfound");
-    return result;
 }
 
 struct CCoinsStats {
@@ -2386,7 +2123,7 @@ UniValue scantxoutset(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      {}, false },
+    { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      {} },
     { "blockchain",         "getchaintxstats",        &getchaintxstats,        {"nblocks", "blockhash"} },
     { "blockchain",         "getblockstats",          &getblockstats,          {"hash_or_height", "stats"} },
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       {} },
@@ -2406,19 +2143,8 @@ static const CRPCCommand commands[] =
     { "blockchain",         "pruneblockchain",        &pruneblockchain,        {"height"} },
     { "blockchain",         "savemempool",            &savemempool,            {} },
     { "blockchain",         "verifychain",            &verifychain,            {"checklevel","nblocks"} },
-
     { "blockchain",         "preciousblock",          &preciousblock,          {"blockhash"} },
     { "blockchain",         "scantxoutset",           &scantxoutset,           {"action", "scanobjects"} },
-
-	{ "blockchain",         "getaddressinto",         &getaddressspent,        {"address"}, false },
-    { "blockchain",         "getaddressspent",        &getaddressspent,        {"address"}, false },
-
-    { "blockchain",         "gettransactions",        &gettransactions,        {"address"}, false },
-    { "blockchain",         "getaddresstransactions", &getaddresstransactions, {"address"}, false },
-    { "blockchain",         "getblocktransactions",   &getblocktransactions,   {"address"}, false },
-
-	{ "blockchain",         "getlastblocks",          &getlastblocks,          {"count","last_height","verbose"}, false },
-	{ "blockchain",         "searchbyhash",           &searchbyhash,           {"value"}, false },
 
     /* Not shown in help */
     { "hidden",             "invalidateblock",        &invalidateblock,        {"blockhash"} },
@@ -2427,7 +2153,6 @@ static const CRPCCommand commands[] =
     { "hidden",             "waitforblock",           &waitforblock,           {"blockhash","timeout"} },
     { "hidden",             "waitforblockheight",     &waitforblockheight,     {"height","timeout"} },
     { "hidden",             "syncwithvalidationinterfacequeue", &syncwithvalidationinterfacequeue, {} },
-    { "hidden",             "getstatistic",           &getstatistic,           {"end_time","start_time","round"}, false },
 };
 // clang-format on
 

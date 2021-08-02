@@ -5,18 +5,25 @@
 #ifndef SRC_POCKETEXPLORERRPC_H
 #define SRC_POCKETEXPLORERRPC_H
 
+#include "rpc/server.h"
+#include "rpc/blockchain.h"
+#include "validation.h"
+#include "univalue/include/univalue.h"
 
-namespace PocketWeb
+namespace PocketExplorerRpc
 {
     using std::string;
     using std::vector;
     using std::map;
 
-    class PocketExplorerRpc
-    {
-    public:
-        UniValue GetStatistic(const JSONRPCRequest& request);
-    };
+    UniValue GetStatistic(const JSONRPCRequest& request);
+    UniValue GetLastBlocks(const JSONRPCRequest& request);
+    UniValue GetCompactBlock(const JSONRPCRequest& request);
+    UniValue GetAddressSpent(const JSONRPCRequest& request);
+    UniValue SearchByHash(const JSONRPCRequest& request);
+    UniValue GetAddressTransactions(const JSONRPCRequest& request);
+    UniValue GetBlockTransactions(const JSONRPCRequest& request);
+    UniValue GetTransactions(const JSONRPCRequest& request);
 }
 
 
