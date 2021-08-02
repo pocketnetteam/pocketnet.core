@@ -30,7 +30,6 @@ namespace PocketDb
     extern SQLiteDatabase SQLiteDbWebInst;
     extern WebRepository WebRepoInst;
     extern WebUserRepository WebUserRepoInst;
-    // extern ExplorerRepository ExplorerRepoInst;
 } // namespace PocketDb
 
 namespace PocketWeb

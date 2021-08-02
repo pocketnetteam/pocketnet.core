@@ -901,140 +901,6 @@ static UniValue getaddressspent(const JSONRPCRequest& request)
     return addressInfo;
 }
 
-static UniValue txToUniValue_OLD(const CTransaction& tx, const uint256& hashBlock)
-{
-    UniValue entry(UniValue::VOBJ);
-
-    entry.pushKV("txid", tx.GetHash().GetHex());
-    entry.pushKV("hash", tx.GetWitnessHash().GetHex());
-    entry.pushKV("version", tx.nVersion);
-    entry.pushKV("nTime", (int)tx.nTime);
-    entry.pushKV("size", (int)::GetSerializeSize(tx, PROTOCOL_VERSION));
-    entry.pushKV("vsize", (GetTransactionWeight(tx) + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR);
-    entry.pushKV("weight", GetTransactionWeight(tx));
-    entry.pushKV("locktime", (int64_t)tx.nLockTime);
-    entry.pushKV("coinbase", tx.IsCoinBase());
-    entry.pushKV("coinstake", tx.IsCoinStake());
-    //---------------------------------------
-    CAmount fee = 0;
-    CAmount amount = 0;
-    //---------------------------------------
-    UniValue vin(UniValue::VARR);
-    for (unsigned int i = 0; i < tx.vin.size(); i++) {
-        const CTxIn& txin = tx.vin[i];
-        UniValue in(UniValue::VOBJ);
-        if (tx.IsCoinBase())
-            in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
-        else {
-            in.pushKV("txid", txin.prevout.hash.GetHex());
-            in.pushKV("vout", (int64_t)txin.prevout.n);
-            UniValue o(UniValue::VOBJ);
-            o.pushKV("asm", ScriptToAsmStr(txin.scriptSig, true));
-            o.pushKV("hex", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
-            in.pushKV("scriptSig", o);
-            if (!tx.vin[i].scriptWitness.IsNull()) {
-                UniValue txinwitness(UniValue::VARR);
-                for (const auto& item : tx.vin[i].scriptWitness.stack) {
-                    txinwitness.push_back(HexStr(item.begin(), item.end()));
-                }
-                in.pushKV("txinwitness", txinwitness);
-            }
-
-            // reindexer::Item utxo;
-            // if (g_pocketdb->SelectOne(reindexer::Query("UTXO").Where("txid", CondEq, txin.prevout.hash.GetHex()).Where("txout", CondEq, (int)txin.prevout.n), utxo).ok()) {
-            // 	CAmount value = utxo["amount"].As<int64_t>();
-            // 	in.pushKV("address", utxo["address"].As<string>());
-            // 	in.pushKV("value", value);
-            // 	fee += value;
-            // }
-        }
-        in.pushKV("sequence", (int64_t)txin.nSequence);
-        vin.push_back(in);
-    }
-    entry.pushKV("vin", vin);
-    //---------------------------------------
-    // reindexer::QueryResults utxos;
-    // std::map<int, bool> utxo_outs;
-    // if (g_pocketdb->Select(reindexer::Query("UTXO").Where("txid", CondEq, tx.GetHash().GetHex()), utxos).ok()) {
-    // 	for (auto& u : utxos) {
-    // 		reindexer::Item utxo = u.GetItem();
-    // 		utxo_outs.insert(std::make_pair(utxo["txout"].As<int>(), utxo["spent_block"].As<int>() == 0));
-    // 	}
-    // }
-    //---------------------------------------
-    UniValue vout(UniValue::VARR);
-    for (unsigned int i = 0; i < tx.vout.size(); i++) {
-        const CTxOut& txout = tx.vout[i];
-
-        UniValue out(UniValue::VOBJ);
-
-        out.pushKV("value", txout.nValue);
-        out.pushKV("n", (int)i);
-        //        out.pushKV("spent", utxo_outs[i]);
-
-        UniValue o(UniValue::VOBJ);
-        ScriptPubKeyToUniv(txout.scriptPubKey, o, true);
-        out.pushKV("scriptPubKey", o);
-        vout.push_back(out);
-
-        fee -= txout.nValue;
-        amount += txout.nValue;
-    }
-    entry.pushKV("vout", vout);
-    //---------------------------------------
-    entry.pushKV("fee", fee);
-    entry.pushKV("amount", amount);
-
-    if (!hashBlock.IsNull()) {
-        entry.pushKV("blockhash", hashBlock.GetHex());
-
-        CBlockIndex* pindex = LookupBlockIndex(hashBlock);
-        if (pindex) {
-            entry.pushKV("height", pindex->nHeight);
-        }
-    }
-
-    entry.pushKV("hex", EncodeHexTx(tx, RPCSerializationFlags()));
-
-    return entry;
-}
-
-static UniValue gettransactions_OLD(const JSONRPCRequest& request)
-{
-    if (request.fHelp || request.params.size() > 1)
-        throw std::runtime_error(
-            "gettransactions [transactions]\n"
-            "\nGet transactions info.\n"
-            "\nArguments:\n"
-            "1. \"transactions\" (json array) List of transactions or one transaction id string\n");
-
-    std::vector<std::string> transactions;
-    if (request.params[0].isStr())
-        transactions.push_back(request.params[0].get_str());
-    else if (request.params[0].isArray()) {
-        UniValue atransactions = request.params[0].get_array();
-        for (unsigned int idx = 0; idx < atransactions.size(); idx++) {
-            transactions.push_back(atransactions[idx].get_str());
-        }
-    } else {
-        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
-    }
-    //---------------------------------------------------
-    UniValue result(UniValue::VARR);
-    for (auto& txid : transactions) {
-        CTransactionRef tx;
-        uint256 txhash;
-        uint256 blockhash;
-        txhash.SetHex(txid);
-        if (GetTransaction(txhash, tx, Params().GetConsensus(), blockhash, true)) {
-            //UniValue otx = txToUniValue(*tx, blockhash);
-            //result.push_back(otx);
-        }
-    }
-
-    return result;
-}
-
 static UniValue getaddresstransactions(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -1191,40 +1057,6 @@ static UniValue searchbyhash(const JSONRPCRequest& request)
     //--------------------------------------
     result.pushKV("type", "notfound");
     return result;
-}
-
-static UniValue getstatistic(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "getstatistic (endTime, depth)\n"
-            "\nGet statistics.\n"
-            "\nArguments:\n"
-            "1. \"endTime\"   (int64, optional) End time of period\n"
-            "2. \"depth\"     (int32, optional) Day = 1, Month = 2, Year = 3\n");
-
-    int64_t end_time = (int64_t)chainActive.Tip()->nTime;
-    if (request.params.size() > 0 && request.params[0].isNum())
-        end_time = request.params[0].get_int64();
-
-    PocketDb::StatisticDepth depth = PocketDb::StatisticDepth_Month;
-    if (request.params.size() > 1 && request.params[1].isNum() && request.params[1].get_int() >= 1 && request.params[1].get_int() <= 3)
-        depth = (PocketDb::StatisticDepth)request.params[1].get_int();
-
-    int64_t start_time = end_time - (60*60*24*30);
-    switch (depth)
-    {
-        case PocketDb::StatisticDepth_Day:
-            start_time = end_time - (60*60*24);
-            break;
-        case PocketDb::StatisticDepth_Year:
-            start_time = end_time - (60*60*24*365);
-            break;
-        default:
-            break;
-    }
-
-    return request.DbConnection()->ExplorerRepoInst->GetStatistic(start_time, end_time, depth);
 }
 
 struct CCoinsStats {
@@ -2559,7 +2391,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getblockstats",          &getblockstats,          {"hash_or_height", "stats"} },
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       {} },
     { "blockchain",         "getblockcount",          &getblockcount,          {} },
-    { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose"}, false },
+    { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose"} },
     { "blockchain",         "getblockhash",           &getblockhash,           {"height"} },
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
     { "blockchain",         "getchaintips",           &getchaintips,           {} },

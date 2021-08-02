@@ -104,6 +104,7 @@ POCKETDB_H = \
     pocketdb/web/PocketScoresRpc.h \
     pocketdb/web/PocketUserRpc.h \
     pocketdb/web/PocketFrontend.h \
+    pocketdb/web/PocketExplorerRpc.h \
     pocketdb/web/PocketRpc.h \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
@@ -175,6 +176,7 @@ POCKETDB_CPP = \
     pocketdb/web/PocketUserRpc.cpp \
     pocketdb/web/PocketFrontend.cpp \
     pocketdb/web/PocketRpc.cpp \
+    pocketdb/web/PocketExplorerRpc.cpp \
     pocketdb/helpers/LotteryCheckpointHelper.cpp \
     pocketdb/helpers/SocialCheckpointHelper.cpp \
     pocketdb/helpers/OpReturnCheckpointHelper.cpp
