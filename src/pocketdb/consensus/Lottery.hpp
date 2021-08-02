@@ -68,7 +68,8 @@ namespace PocketConsensus
             }
         }
 
-        virtual void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) {}
+        virtual void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
+            map<string, string>& refs) {}
 
         virtual void ExtendReferrers() {}
 
@@ -78,7 +79,7 @@ namespace PocketConsensus
         // Get all lottery winner
         virtual LotteryWinners& Winners(const CBlock& block,
                                         CDataStream& hashProofOfStakeSource,
-                                        shared_ptr <ReputationConsensus> reputationConsensus)
+                                        shared_ptr <ReputationConsensus>& reputationConsensus)
         {
             map<string, int> postCandidates;
             map<string, string> postReferrersCandidates;
@@ -122,13 +123,15 @@ namespace PocketConsensus
                 if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_CONTENT)
                 {
                     postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
-                    ExtendReferrer(scoreData->ContentAddressHash, (int64_t) tx->nTime, postReferrersCandidates);
+                    ExtendReferrer(scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
+                        (int64_t) tx->nTime, postReferrersCandidates);
                 }
 
                 if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT)
                 {
                     commentCandidates[scoreData->ContentAddressHash] += scoreData->ScoreValue;
-                    ExtendReferrer(scoreData->ContentAddressHash, (int64_t) tx->nTime, commentReferrersCandidates);
+                    ExtendReferrer(scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
+                        (int64_t) tx->nTime, commentReferrersCandidates);
                 }
             }
 
@@ -176,13 +179,13 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 514185; }
 
-        void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) override
+        void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map<string, string>& refs) override
         {
             if (refs.find(contentAddress) != refs.end())
                 return;
 
             auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress);
-            if (!referrer) return;
+            if (!referrer || *referrer == scoreAddress) return;
 
             refs.emplace(contentAddress, *referrer);
         }
@@ -220,13 +223,14 @@ namespace PocketConsensus
 
         virtual int GetLotteryReferralDepth() { return 30 * 24 * 3600; }
 
-        void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) override
+        void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
+            map<string, string>& refs) override
         {
             if (refs.find(contentAddress) != refs.end())
                 return;
 
             auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress, txTime - GetLotteryReferralDepth());
-            if (!referrer) return;
+            if (!referrer || *referrer == scoreAddress) return;
 
             refs.emplace(contentAddress, *referrer);
         }
@@ -301,7 +305,8 @@ namespace PocketConsensus
 
         int GetLotteryReferralDepth() override { return -1; }
 
-        void ExtendReferrer(const string& contentAddress, int64_t txTime, map<string, string>& refs) override
+        void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
+            map<string, string>& refs) override
         {
             // This logic replaced with ExtendReferrers()
         }
@@ -314,11 +319,11 @@ namespace PocketConsensus
             auto& commentRefs = _winners.CommentReferrerWinners;
 
             vector<string> winners;
-            for (string addr : postWinners)
+            for (const string& addr : postWinners)
                 if (find(winners.begin(), winners.end(), addr) == winners.end())
                     winners.push_back(addr);
 
-            for (string addr : commentWinners)
+            for (const string& addr : commentWinners)
                 if (find(winners.begin(), winners.end(), addr) == winners.end())
                     winners.push_back(addr);
 
