@@ -284,7 +284,7 @@ bool StartHTTPRPC()
 
     RegisterHTTPHandler("/", true, HTTPReq_JSONRPC);
     RegisterHTTPHandler("/post/", true, HTTPReq_JSONRPC_Anonymous);
-    RegisterHTTPHandler("/public/", true, HTTPReq_JSONRPC_Anonymous);
+    RegisterHTTPHandler("/public/", false, HTTPReq_JSONRPC_Anonymous);
     if (g_wallet_init_interface.HasWalletSupport()) {
         RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC);
     }
