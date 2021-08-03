@@ -191,15 +191,15 @@ public:
         consensus.BIP65Height = 0; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 0; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
         consensus.powLimit = ArithToUint256(~arith_uint256(0) >> 16);
-        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 1 * 60;
+        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60;
+        consensus.nPowTargetSpacing = 1 * 30;
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 95;
         consensus.nMinerConfirmationWindow = 100;
         consensus.nPosFirstBlock = 1020;
         consensus.fPosRequiresPeers = false;
-        consensus.nStakeMinAge = 60 * 60;
+        consensus.nStakeMinAge = 30 * 60;
         consensus.nPosTargetSpacing = consensus.nPowTargetSpacing;
         consensus.nPosTargetTimespan = 7500;
 
@@ -230,10 +230,10 @@ public:
         consensus.nHeight_version_1_0_0 = 108300;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00");
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100001"); // 0
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8"); //534292
+        consensus.defaultAssumeValid = uint256S("0x00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f"); // 0
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -245,7 +245,7 @@ public:
         pchMessageStart[2] = 0xd7;
         pchMessageStart[3] = 0xaf;
 
-        nDefaultPort = 11010;
+        nDefaultPort = 36060;
         nPruneAfterHeight = 100000;
 
         genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
@@ -259,9 +259,9 @@ public:
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 55);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 80);
-        base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 33);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 65); //T
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 78); //Y
+        base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 30);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x1e, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x1e, 0x88, 0xAD, 0xE4};
 
