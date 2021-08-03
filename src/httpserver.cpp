@@ -328,7 +328,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     {
         std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
 
-        if (strURI == "/post/")
+        if (strURI.find("/post/") == 0)
         {
             assert(workQueuePost);
             if (workQueuePost->Enqueue(item.get()))
@@ -338,28 +338,35 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
                 LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (POST) depth exceeded\n");
                 item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (POST)");
             }
-        } else if (strURI == "/public/")
+        }
+        else if (strURI.find("/public/") == 0)
         {
             assert(workQueuePublic);
             if (workQueuePublic->Enqueue(item.get()))
+            {
                 item.release();
+            }
             else
             {
                 LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (PUBLIC) depth exceeded\n");
                 item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (PUBLIC)");
             }
-        } else
+        }
+        else
         {
             assert(workQueue);
             if (workQueue->Enqueue(item.get()))
+            {
                 item.release();
+            }
             else
             {
                 LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (MAIN) depth exceeded.\n");
                 item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (MAIN)");
             }
         }
-    } else
+    }
+    else
     {
         LogPrint(BCLog::HTTP, "Rrequest from %s not found\n", hreq->GetPeer().ToString());
         hreq->WriteReply(HTTP_NOTFOUND);
