@@ -29,7 +29,6 @@ static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE=16;
 static const int DEFAULT_HTTP_SERVER_TIMEOUT=30;
 
 struct evhttp_request;
-//struct event_base;
 class CService;
 class HTTPRequest;
 template<typename WorkItem> class WorkQueue;
@@ -152,7 +151,7 @@ public:
      * deleteWhenTriggered deletes this event object after the event is triggered (and the handler called)
      * handler is the handler to call when the event is triggered.
      */
-    HTTPEvent(struct event_base *base, bool deleteWhenTriggered, const std::function<void()>& handler);
+    HTTPEvent(struct event_base* base, bool deleteWhenTriggered, const std::function<void()>& handler);
     ~HTTPEvent();
 
     /** Trigger the event. If tv is 0, trigger it immediately. Otherwise trigger it after
