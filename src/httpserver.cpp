@@ -329,7 +329,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     {
         std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
 
-        if (path == "/post/")
+        if (strURI.find("/post/") == 0)
         {
             assert(workQueuePost);
             if (workQueuePost->Enqueue(item.get()))
@@ -340,7 +340,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
                 item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (POST)");
             }
         }
-        else if (path == "/public/")
+        else if (strURI.find("/public/") == 0)
         {
             assert(workQueuePublic);
             if (workQueuePublic->Enqueue(item.get()))
