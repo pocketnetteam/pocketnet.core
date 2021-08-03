@@ -305,7 +305,7 @@ void StopHTTPRPC()
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
     UnregisterHTTPHandler("/", true);
     UnregisterHTTPHandler("/post/", true);
-    UnregisterHTTPHandler("/public/", true);
+    UnregisterHTTPHandler("/public/", false);
     if (g_wallet_init_interface.HasWalletSupport()) {
         UnregisterHTTPHandler("/wallet/", false);
     }
