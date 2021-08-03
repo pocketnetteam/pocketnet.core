@@ -104,6 +104,7 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
 
     if (!request.params[2].isNull())
     {
+        LOCK(cs_main);
         uint256 blockhash = ParseHashV(request.params[2], "parameter 3");
         blockindex = LookupBlockIndex(blockhash);
         if (!blockindex)

@@ -229,7 +229,7 @@ namespace PocketExplorerRpc
         }
         else if (value.size() == 64)
         {
-            const CBlockIndex* pblockindex = LookupBlockIndex(uint256S(value));
+            const CBlockIndex* pblockindex = LookupBlockIndexWithoutLock(uint256S(value));
             if (pblockindex)
             {
                 result.pushKV("type", "block");

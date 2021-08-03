@@ -2831,7 +2831,7 @@ UniValue converttxidaddress(const JSONRPCRequest& request)
                     if (!g_addrindex->IsPocketnetTransaction(tx)) {
                         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Not Pocketnet transaction");
                     }
-                    const CBlockIndex* pblockindex = LookupBlockIndex(hash_block);
+                    const CBlockIndex* pblockindex = LookupBlockIndexWithoutLock(hash_block);
                     if (ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
                         nblock = pblockindex->nHeight;
                         ntx = 0;

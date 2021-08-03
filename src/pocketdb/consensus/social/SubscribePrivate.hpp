@@ -38,8 +38,8 @@ namespace PocketConsensus
 
             if (subscribeExists && subscribeType == ACTION_SUBSCRIBE_PRIVATE)
             {
-                // TODO (brangr): чекпойнты сюда
-                if (!IsCheckpointTransaction(*tx->GetHash()))
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleSubscribe))
                     return {false, SocialConsensusResult_DoubleSubscribe};
             }
 
