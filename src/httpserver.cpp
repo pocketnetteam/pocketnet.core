@@ -612,7 +612,6 @@ void HTTPSocket::InterruptHTTPSocket()
 
 void HTTPSocket::BindAddress(string ipAddr, int port)
 { 
-    // Bind address
     LogPrint(BCLog::HTTP, "Binding RPC on address %s port %i\n", ipAddr, port);
     evhttp_bound_socket *bind_handle = evhttp_bind_socket_with_handle(m_eventHTTP,
         ipAddr.empty() ? nullptr : ipAddr.c_str(), port);
