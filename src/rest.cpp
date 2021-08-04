@@ -916,9 +916,10 @@ static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
 
         if (pocketBlock)
         {
-            for (auto ptx : *pocketBlock)
+            // Check op_return hash
+            /*for (auto& ptx : *pocketBlock)
             {
-                for (auto tx : block.vtx)
+                for (auto& tx : block.vtx)
                 {
                     if (tx->GetHash().GetHex() != *ptx->GetHash())
                         continue;
@@ -931,7 +932,7 @@ static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
                     ptx->BuildHash();
                     ptx->SetOpReturnTx(vasm[2]);
                 }
-            }
+            }*/
 
             PocketConsensus::SocialConsensusHelper::Check(block, *pocketBlock);
         }

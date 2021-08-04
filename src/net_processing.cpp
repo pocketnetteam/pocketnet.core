@@ -1013,6 +1013,9 @@ void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std:
         return;
     }
 
+    // TODO (brangr): DEBUG!!!!!!!!!
+    return;
+
     {
         LOCK(cs_most_recent_block);
         most_recent_block_hash = hashBlock;
@@ -1291,6 +1294,9 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
                 assert(!"cannot load block payload from sqlite db");
             }
 
+            // TODO (brangr): DEBUG!!!!!
+            return;
+
             int h = pindex->nHeight;
             connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::BLOCK, MakeSpan(block_data), pocketBlockData));
             // Don't set pblock as we've sent the block
@@ -1309,6 +1315,8 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
             std::string pocketBlockData;
             if (!PocketServices::GetBlock(*pblock, pocketBlockData))
                 assert(!"cannot load block payload from sqlite db");
+// TODO (brangr): DEBUG!!!!!
+            return;
 
             if (inv.type == MSG_FILTERED_BLOCK) {
                 bool sendMerkleBlock = false;
@@ -1472,6 +1480,9 @@ inline void static SendBlockTransactions(const CBlock& block, const BlockTransac
         LogPrintf("Error get block data for %s from sqlite db\n", block.GetHash().GetHex());
         return;
     }
+
+    // TODO (brangr): DEBUG!!!!!
+    return;
 
     LOCK(cs_main);
     const CNetMsgMaker msgMaker(pfrom->GetSendVersion());

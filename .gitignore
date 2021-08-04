@@ -1,6 +1,5 @@
 build_msvc/pocketcoin.sln
 .vscode
-conf
 
 *.tar.gz
 
@@ -133,6 +132,3 @@ contrib/devtools/split-debug.sh
 /build_msvc/libpocketcoin_server/pocketdbworker.cpp
 *.user
 conf
-conf
-/.idea/
-/src/.idea/
