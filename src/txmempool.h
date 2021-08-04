@@ -768,7 +768,10 @@ struct DisconnectedBlockTransactions {
     // to be refactored such that this assumption is no longer true (for
     // instance if there was some other way we cleaned up the mempool after a
     // reorg, besides draining this object).
-    ~DisconnectedBlockTransactions() { assert(queuedTx.empty()); }
+    ~DisconnectedBlockTransactions() {
+        LogPrintf("Warning! ~DisconnectedBlockTransactions with non-empty queuedTx - %d\n", queuedTx.size());
+        //assert(queuedTx.empty());
+    }
 
     indexed_disconnected_transactions queuedTx;
     uint64_t cachedInnerUsage = 0;
