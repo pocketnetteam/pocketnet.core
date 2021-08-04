@@ -66,20 +66,6 @@ namespace PocketServices
 
             // Get Serialized data from stream
             auto pocketData = parseStream(stream);
-
-            // Get source data from received data
-            if (!pocketData.empty())
-            {
-                UniValue entry(UniValue::VOBJ);
-                try
-                {
-                    entry.read(pocketData.get_str());
-                }
-                catch (std::exception& ex)
-                {
-                    LogPrintf("Error deserialize transaction: %s: %s\n", tx->GetHash().GetHex(), ex.what());
-                }
-            }
             
             // Build transaction instance
             return deserializeTransaction(pocketData, tx);
