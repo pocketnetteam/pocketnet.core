@@ -769,7 +769,8 @@ struct DisconnectedBlockTransactions {
     // instance if there was some other way we cleaned up the mempool after a
     // reorg, besides draining this object).
     ~DisconnectedBlockTransactions() {
-        LogPrintf("Warning! ~DisconnectedBlockTransactions with non-empty queuedTx - %d\n", queuedTx.size());
+        if (!queuedTx.empty())
+            LogPrintf("Warning! ~DisconnectedBlockTransactions with non-empty queuedTx - %d\n", queuedTx.size());
         //assert(queuedTx.empty());
     }
 
