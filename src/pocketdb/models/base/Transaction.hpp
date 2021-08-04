@@ -19,6 +19,8 @@
 
 namespace PocketTx
 {
+    using namespace std;
+
     class Transaction : public Base
     {
     public:
@@ -36,6 +38,7 @@ namespace PocketTx
             result->pushKV("txid", *GetHash());
             result->pushKV("time", *GetTime());
             result->pushKV("block", 0);
+            result->pushKV("last", false);
 
             return result;
         }

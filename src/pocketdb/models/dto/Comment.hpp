@@ -31,7 +31,6 @@ namespace PocketTx
             result->pushKV("postid", GetPostTxHash() ? *GetPostTxHash() : "");
             result->pushKV("parentid", GetParentTxHash() ? *GetParentTxHash() : "");
             result->pushKV("answerid", GetAnswerTxHash() ? *GetAnswerTxHash() : "");
-            result->pushKV("last", (GetLast() && *GetLast()) ? "true" : "false");
 
             result->pushKV("lang", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "en");
             result->pushKV("msg", (m_payload && m_payload->GetString2()) ? *m_payload->GetString2() : "");
