@@ -89,7 +89,6 @@ BlockAssembler::BlockAssembler(const CChainParams& params) : BlockAssembler(para
 void BlockAssembler::resetBlock()
 {
     inBlock.clear();
-    pocketBlock->clear();
 
     // Reserve space for coinbase tx
     nBlockWeight = 4000;
