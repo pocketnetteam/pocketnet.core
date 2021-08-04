@@ -26,7 +26,7 @@ struct MainSignalsInstance {
     boost::signals2::signal<void (const CBlockLocator &)> ChainStateFlushed;
     boost::signals2::signal<void (int64_t nBestBlockTime, CConnman* connman)> Broadcast;
     boost::signals2::signal<void (const CBlock&, const CValidationState&)> BlockChecked;
-    boost::signals2::signal<void (const CBlockIndex *, const std::shared_ptr<const CBlock>&)> NewPoWValidBlock;
+    boost::signals2::signal<void (const CBlockIndex *, const std::shared_ptr<const CBlock>&, const PocketBlockRef& pocketBlock)> NewPoWValidBlock;
 
     boost::signals2::signal<void (uint256 const &)> BlockFound;
 
@@ -82,7 +82,7 @@ void RegisterValidationInterface(CValidationInterface* pwalletIn) {
     g_signals.m_internals->ChainStateFlushed.connect(boost::bind(&CValidationInterface::ChainStateFlushed, pwalletIn, boost::placeholders::_1));
     g_signals.m_internals->Broadcast.connect(boost::bind(&CValidationInterface::ResendWalletTransactions, pwalletIn, boost::placeholders::_1, boost::placeholders::_2));
     g_signals.m_internals->BlockChecked.connect(boost::bind(&CValidationInterface::BlockChecked, pwalletIn, boost::placeholders::_1, boost::placeholders::_2));
-    g_signals.m_internals->NewPoWValidBlock.connect(boost::bind(&CValidationInterface::NewPoWValidBlock, pwalletIn, boost::placeholders::_1, boost::placeholders::_2));
+    g_signals.m_internals->NewPoWValidBlock.connect(boost::bind(&CValidationInterface::NewPoWValidBlock, pwalletIn, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 }
 
 void UnregisterValidationInterface(CValidationInterface* pwalletIn) {
@@ -94,7 +94,7 @@ void UnregisterValidationInterface(CValidationInterface* pwalletIn) {
     g_signals.m_internals->BlockDisconnected.disconnect(boost::bind(&CValidationInterface::BlockDisconnected, pwalletIn, boost::placeholders::_1));
     g_signals.m_internals->TransactionRemovedFromMempool.disconnect(boost::bind(&CValidationInterface::TransactionRemovedFromMempool, pwalletIn, boost::placeholders::_1));
     g_signals.m_internals->UpdatedBlockTip.disconnect(boost::bind(&CValidationInterface::UpdatedBlockTip, pwalletIn, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
-    g_signals.m_internals->NewPoWValidBlock.disconnect(boost::bind(&CValidationInterface::NewPoWValidBlock, pwalletIn, boost::placeholders::_1, boost::placeholders::_2));
+    g_signals.m_internals->NewPoWValidBlock.disconnect(boost::bind(&CValidationInterface::NewPoWValidBlock, pwalletIn, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 }
 
 void UnregisterAllValidationInterfaces() {
@@ -176,8 +176,9 @@ void CMainSignals::BlockChecked(const CBlock& block, const CValidationState& sta
     m_internals->BlockChecked(block, state);
 }
 
-void CMainSignals::NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock> &block) {
-    m_internals->NewPoWValidBlock(pindex, block);
+void CMainSignals::NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock> &block,
+    const PocketBlockRef& pocketBlock) {
+    m_internals->NewPoWValidBlock(pindex, block, pocketBlock);
 }
 
 void CMainSignals::BlockFound(uint256 const & blockHash) {

@@ -18,6 +18,8 @@
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/consensus/social/Helper.hpp"
 
+using namespace PocketHelpers;
+
 class CBlockIndex;
 class CChainParams;
 class CScript;
@@ -29,6 +31,7 @@ static const bool DEFAULT_PRINTPRIORITY = false;
 struct CBlockTemplate
 {
     CBlock block;
+    PocketBlock pocketBlock;
     std::vector<CAmount> vTxFees;
     std::vector<int64_t> vTxSigOpsCost;
     std::vector<unsigned char> vchCoinbaseCommitment;
@@ -134,7 +137,7 @@ private:
     CBlock* pblock;
 
     // Pocketnet social payload block
-    PocketHelpers::PocketBlock pocketBlock;
+    PocketBlock* pocketBlock;
 
     // Configuration parameters for the block size
     bool fIncludeWitness;

@@ -986,7 +986,8 @@ static bool fWitnessesPresentInMostRecentCompactBlock GUARDED_BY(cs_most_recent_
  * Maintain state about the best-seen block and fast-announce a compact block
  * to compatible peers.
  */
-void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std::shared_ptr<const CBlock>& pblock)
+void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std::shared_ptr<const CBlock>& pblock,
+    const PocketBlockRef& pocketBlock)
 {
     std::shared_ptr<const CBlockHeaderAndShortTxIDs> pcmpctblock = std::make_shared<const CBlockHeaderAndShortTxIDs>(*pblock, true);
     const CNetMsgMaker msgMaker(PROTOCOL_VERSION);
@@ -1003,9 +1004,12 @@ void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std:
 
     // Get PocketData for transactions from this block
     std::string pocketBlockData;
-    if (!PocketServices::GetBlock(*pblock, pocketBlockData))
+    if (pocketBlock)
+        pocketBlockData = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock)->write();
+
+    if (pocketBlockData.empty() && !PocketServices::GetBlock(*pblock, pocketBlockData))
     {
-        LogPrintf("Failed get block payload from sqlite db %s\n", pblock->GetHash().GetHex());
+        LogPrintf("Error: Failed get block payload from sqlite db %s\n", pblock->GetHash().GetHex());
         return;
     }
 
@@ -2747,6 +2751,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
             // Deserialize pocket part if exists
             auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+            auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
 
             // Setting fForceProcessing to true means that we bypass some of
             // our anti-DoS protections in AcceptBlock, which filters
@@ -2759,7 +2764,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // reconstructed compact blocks as having been requested.
             bool fNewBlock = false;
             CValidationState state;
-            ProcessNewBlock(state, chainparams, pblock, pocketBlock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            ProcessNewBlock(state, chainparams, pblock, pocketBlockRef, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
@@ -2837,6 +2842,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         if (fBlockRead) {
             auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+            auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
 
             bool fNewBlock = false;
             // Since we requested this block (it was in mapBlocksInFlight), force it to be processed,
@@ -2846,7 +2852,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // protections in the compact block handler -- see related comment
             // in compact block optimistic reconstruction handling.
             CValidationState state;
-            ProcessNewBlock(state, chainparams, pblock, pocketBlock, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            ProcessNewBlock(state, chainparams, pblock, pocketBlockRef, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
@@ -2904,10 +2910,11 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         // Deserialize pocket part if exists
         auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+        auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
 
         bool fNewBlock = false;
         CValidationState state;
-        ProcessNewBlock(state, chainparams, pblock, pocketBlock, forceProcessing, /* fReceived */ true, &fNewBlock);
+        ProcessNewBlock(state, chainparams, pblock, pocketBlockRef, forceProcessing, /* fReceived */ true, &fNewBlock);
         if (fNewBlock) {
             pfrom->nLastBlockTime = GetTime();
         } else {

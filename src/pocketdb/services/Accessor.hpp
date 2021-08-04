@@ -26,7 +26,7 @@ namespace PocketServices
     using std::find;
 
 
-    static bool GetBlock(const CBlock& block, PBlockRef& pocketBlock, bool onlyPocket = false)
+    static bool GetBlock(const CBlock& block, PocketBlockRef& pocketBlock, bool onlyPocket = false)
     {
         try
         {
@@ -54,7 +54,7 @@ namespace PocketServices
 
     static bool GetBlock(const CBlock& block, string& data)
     {
-        PBlockRef pocketBlock;
+        PocketBlockRef pocketBlock;
         if (!GetBlock(block, pocketBlock, true))
             return false;
 

@@ -11,6 +11,9 @@
 
 #include "pocketdb/consensus.h"
 #include "pocketdb/consensus/Lottery.hpp"
+#include "pocketdb/helpers/TransactionHelper.hpp"
+
+using namespace PocketHelpers;
 
 static const int STAKE_TIMESTAMP_MASK = 15;
 
@@ -51,7 +54,7 @@ bool CheckStakeKernelHash(CBlockIndex* pindexPrev, unsigned int nBits, CBlockInd
 
 bool CheckProofOfStake(CBlockIndex* pindexPrev, CTransactionRef const & tx, unsigned int nBits, arith_uint256& hashProofOfStake, CDataStream& hashProofOfStakeSource, arith_uint256& targetProofOfStake, std::vector<CScriptCheck> *pvChecks, bool fCheckSignature = false);
 
-bool CheckStake(const std::shared_ptr<CBlock> pblock, std::shared_ptr<CWallet> wallet, CChainParams const & chainparams);
+bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const & chainparams);
 
 bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock, int64_t nTimeTx);
 

@@ -179,9 +179,9 @@ public:
     bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams,
         CBlockIndex** ppindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-    bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state,
-        const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp,
-        bool* fNewBlock)    EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, const PocketBlockRef& pocketBlock,
+        CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested,
+        const CDiskBlockPos* dbp, bool* fNewBlock)    EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     // Block (dis)connection on a given view:
     DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
@@ -4777,8 +4777,8 @@ static CDiskBlockPos SaveBlockToDisk(const CBlock& block, int nHeight, const CCh
 }
 
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
-bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state,
-    const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested,
+bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, const PocketBlockRef& pocketBlock,
+    CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested,
     const CDiskBlockPos* dbp, bool* fNewBlock)
 {
     const CBlock& block = *pblock;
@@ -4840,7 +4840,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     // Header is valid/has work, merkle tree and segwit merkle tree are good...RELAY NOW
     // (but if it does not build on our best tip, let the SendMessages loop relay it)
     if (!IsInitialBlockDownload() && chainActive.Tip() == pindex->pprev)
-        GetMainSignals().NewPoWValidBlock(pindex, pblock);
+        GetMainSignals().NewPoWValidBlock(pindex, pblock, pocketBlock);
 
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;
@@ -4868,8 +4868,8 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 
 bool ProcessNewBlock(CValidationState& state,
     const CChainParams& chainparams,
-    const std::shared_ptr<const CBlock> pblock,
-    PocketHelpers::PocketBlock& pocketBlock,
+    const std::shared_ptr<const CBlock>& pblock,
+    const PocketBlockRef& pocketBlock,
     bool fForceProcessing, bool fReceived, bool* fNewBlock)
 {
     AssertLockNotHeld(cs_main);
@@ -4889,7 +4889,7 @@ bool ProcessNewBlock(CValidationState& state,
         nTimeVerify += nTime2 - nTime1;
         LogPrint(BCLog::BENCH, " -- Lock cs_main: %.2fms (%.3fms/txin)\n",
             MILLI * (nTime2 - nTime1),
-            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime2 - nTime1) / (pocketBlock.size() - 1));
+            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime2 - nTime1) / (pocketBlock->size() - 1));
 
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
@@ -4899,35 +4899,35 @@ bool ProcessNewBlock(CValidationState& state,
         nTimeVerify += nTime3 - nTime2;
         LogPrint(BCLog::BENCH, " -- Check block: %.2fms (%.3fms/txin)\n",
             MILLI * (nTime3 - nTime2),
-            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (pocketBlock.size() - 1));
+            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (pocketBlock->size() - 1));
 
         // It is necessary to check that block and pocket Black contain an equal number of transactions
         // Also check pocket block with general pocketnet consensus rules
         if (ret)
-            ret = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock);
+            ret = PocketConsensus::SocialConsensusHelper::Check(*pblock, *pocketBlock);
 
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;
         LogPrint(BCLog::BENCH, " -- Social check block: %.2fms (%.3fms/txin)\n",
             MILLI * (nTime4 - nTime3),
-            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (pocketBlock.size() - 1));
+            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (pocketBlock->size() - 1));
 
         // Store generic block to disk
         if (ret)
-            ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
+            ret = g_chainstate.AcceptBlock(pblock, pocketBlock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
 
         int64_t nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
         LogPrint(BCLog::BENCH, " -- Accept LeveDb: %.2fms (%.3fms/txin)\n",
             MILLI * (nTime5 - nTime4),
-            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (pocketBlock.size() - 1));
+            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (pocketBlock->size() - 1));
 
         // Store pocketnet block to disk
         if (ret)
         {
             try
             {
-                PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+                PocketDb::TransRepoInst.InsertTransactions(*pocketBlock);
             }
             catch (const std::exception& e)
             {
@@ -4941,7 +4941,7 @@ bool ProcessNewBlock(CValidationState& state,
         nTimeVerify += nTime6 - nTime5;
         LogPrint(BCLog::BENCH, " -- Accept SQLite: %.2fms (%.3fms/txin)\n",
             MILLI * (nTime6 - nTime5),
-            pocketBlock.size() <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (pocketBlock.size() - 1));
+            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (pocketBlock->size() - 1));
 
         // Check FAILED
         if (!ret)
@@ -4963,10 +4963,7 @@ bool ProcessNewBlock(CValidationState& state,
     NotifyHeaderTip();
 
     // Activate in chain
-    std::shared_ptr<PocketHelpers::PocketBlock> pocketBlockPtr =
-        std::make_shared<PocketHelpers::PocketBlock>(pocketBlock);
-
-    if (!g_chainstate.ActivateBestChain(state, chainparams, pblock, pocketBlockPtr))
+    if (!g_chainstate.ActivateBestChain(state, chainparams, pblock, pocketBlock))
         return error("%s: ActivateBestChain failed (%s)", __func__, FormatStateMessage(state));
 
     return true;
@@ -5968,8 +5965,9 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                     CBlockIndex* pindex = LookupBlockIndex(hash);
                     if (!pindex || (pindex->nStatus & BLOCK_HAVE_DATA) == 0)
                     {
+                        // TODO (brangr): read pocket block
                         CValidationState state;
-                        if (g_chainstate.AcceptBlock(pblock, state, chainparams, nullptr, true, dbp, nullptr))
+                        if (g_chainstate.AcceptBlock(pblock, nullptr, state, chainparams, nullptr, true, dbp, nullptr))
                         {
                             nLoaded++;
                         }
@@ -6017,7 +6015,8 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
 
                             LOCK(cs_main);
                             CValidationState dummy;
-                            if (g_chainstate.AcceptBlock(pblockrecursive, dummy, chainparams, nullptr, true,
+                            // TODO (brangr): read pocket block
+                            if (g_chainstate.AcceptBlock(pblockrecursive, nullptr, dummy, chainparams, nullptr, true,
                                 &it->second, nullptr))
                             {
                                 nLoaded++;

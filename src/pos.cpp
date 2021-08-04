@@ -119,7 +119,7 @@ int64_t GetWeight(int64_t nIntervalBeginning, int64_t nIntervalEnd)
     return nIntervalEnd - nIntervalBeginning - Params().GetConsensus().nStakeMinAge;
 }
 
-bool CheckStake(const std::shared_ptr<CBlock> pblock, std::shared_ptr<CWallet> wallet, CChainParams const &chainparams)
+bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const &chainparams)
 {
     arith_uint256 proofHash = arith_uint256(0), hashTarget = arith_uint256(0);
     uint256 hashBlock = pblock->GetHash();
@@ -154,7 +154,6 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, std::shared_ptr<CWallet> w
 
     // Process this block the same as if we had received it from another node
     CValidationState state;
-    PocketHelpers::PocketBlock pocketBlock;
     if (!ProcessNewBlock(state, chainparams, pblock, pocketBlock, true, /* fReceived */ false, NULL))
     {
         return error("CoinStaker: ProcessNewBlock, block not accepted %s", state.GetRejectReason());

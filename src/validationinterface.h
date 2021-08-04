@@ -12,6 +12,9 @@
 #include <functional>
 #include <memory>
 
+#include "pocketdb/helpers/TransactionHelper.hpp"
+using namespace PocketHelpers;
+
 extern CCriticalSection cs_main;
 class CBlock;
 class CBlockIndex;
@@ -110,7 +113,8 @@ protected:
      *
      * Called on a background thread.
      */
-    virtual void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex, const std::vector<CTransactionRef> &txnConflicted) {}
+    virtual void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex,
+        const std::vector<CTransactionRef> &txnConflicted) {}
     /**
      * Notifies listeners of a block being disconnected
      *
@@ -146,7 +150,9 @@ protected:
     /**
      * Notifies listeners that a block which builds directly on our current tip
      * has been received and connected to the headers tree, though not validated yet */
-    virtual void NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& block) {};
+    virtual void NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& block,
+        const PocketBlockRef& pocketBlock) {};
+
     friend void ::RegisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterAllValidationInterfaces();
@@ -186,7 +192,7 @@ public:
     void ChainStateFlushed(const CBlockLocator &);
     void Broadcast(int64_t nBestBlockTime, CConnman* connman);
     void BlockChecked(const CBlock&, const CValidationState&);
-    void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
+    void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&, const PocketBlockRef& pocketBlock);
     void BlockFound(uint256 const &);
 };
 

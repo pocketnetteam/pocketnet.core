@@ -176,10 +176,11 @@ void Staker::worker(
             );
 
             std::shared_ptr<CBlock> block = std::make_shared<CBlock>(blocktemplate->block);
+            auto pocketBlock = std::make_shared<PocketBlock>(blocktemplate->pocketBlock);
 
             if (signBlock(block, wallet, nFees))
             {
-                CheckStake(block, wallet, chainparams);
+                CheckStake(block, pocketBlock, wallet, chainparams);
                 MilliSleep(500);
             }
             else
