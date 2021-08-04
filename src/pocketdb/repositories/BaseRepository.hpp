@@ -32,7 +32,11 @@ namespace PocketDb
             if (!m_database.BeginTransaction())
                 return;
 
+            int64_t nTime2 = GetTimeMicros();
+
             sql();
+
+            int64_t nTime3 = GetTimeMicros();
 
             if (!m_database.CommitTransaction())
             {
@@ -40,8 +44,14 @@ namespace PocketDb
                 throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));
             }
 
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - TryTransactionStep (%s): %.2fms\n", func, 0.001 * (nTime2 - nTime1));
+            int64_t nTime4 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "      - TryTransactionStep (%s): %.2fms + %.2fms + %.2fms = %.2fms\n",
+                func,
+                0.001 * (nTime2 - nTime1),
+                0.001 * (nTime3 - nTime2),
+                0.001 * (nTime4 - nTime3),
+                0.001 * (nTime4 - nTime1)
+            );
         }
 
         void TryStepStatement(shared_ptr<sqlite3_stmt*>& stmt)
