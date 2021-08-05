@@ -5965,7 +5965,6 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
                     CBlockIndex* pindex = LookupBlockIndex(hash);
                     if (!pindex || (pindex->nStatus & BLOCK_HAVE_DATA) == 0)
                     {
-                        // TODO (brangr): read pocket block
                         CValidationState state;
                         if (g_chainstate.AcceptBlock(pblock, nullptr, state, chainparams, nullptr, true, dbp, nullptr))
                         {
@@ -6015,7 +6014,6 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
 
                             LOCK(cs_main);
                             CValidationState dummy;
-                            // TODO (brangr): read pocket block
                             if (g_chainstate.AcceptBlock(pblockrecursive, nullptr, dummy, chainparams, nullptr, true,
                                 &it->second, nullptr))
                             {

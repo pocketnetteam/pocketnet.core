@@ -23,14 +23,14 @@ namespace PocketDb
         std::string m_dir_path;
         std::string m_file_path;
 
-        bool generalConnect;
-        bool readOnlyConnect;
+        bool isGeneralConnect;
+        bool isReadOnlyConnect;
 
         void Cleanup() noexcept;
 
         bool TryCreateDbIfNotExists();
 
-        bool BulkExecute(std::string sql);
+        bool BulkExecute(std::string sql, bool progress = false);
 
     public:
 
@@ -42,6 +42,8 @@ namespace PocketDb
         void Init(const std::string& dir_path, const std::string& file_path);
 
         void CreateStructure();
+
+        void DropIndexes();
 
         void Open();
 

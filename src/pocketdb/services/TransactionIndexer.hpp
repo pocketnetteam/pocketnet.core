@@ -75,7 +75,7 @@ namespace PocketServices
                 if (!tx->IsCoinBase())
                 {
                     for (const auto& inp : tx->vin)
-                        txInfo.Inputs.push_back({inp.prevout.hash.GetHex(), inp.prevout.n});
+                        txInfo.Inputs.emplace_back(inp.prevout.hash.GetHex(), inp.prevout.n);
                 }
 
                 txs.push_back(txInfo);
@@ -121,7 +121,6 @@ namespace PocketServices
                 auto allowModifyReputation = reputationConsensus->AllowModifyReputation(
                     scoreData,
                     tx,
-                    height,
                     false);
 
                 if (!allowModifyReputation)
@@ -209,7 +208,7 @@ namespace PocketServices
 
     private:
 
-        void static ExtendAccountLikers(shared_ptr<ScoreDataDto> scoreData, map<int, vector<int>>& accountLikers)
+        void static ExtendAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
         {
             auto found = find(
                 accountLikers[scoreData->ContentAddressId].begin(),

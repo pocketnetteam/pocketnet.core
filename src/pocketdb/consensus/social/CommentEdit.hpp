@@ -28,7 +28,7 @@ namespace PocketConsensus
 
         virtual int64_t GetEditWindow() { return 86400; }
 
-        virtual int64_t GetCommentMessageMaxSize() { return 2000; }
+        virtual size_t GetCommentMessageMaxSize() { return 2000; }
 
         virtual int64_t GetFullEditLimit() { return 5; }
 
@@ -110,7 +110,7 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
 
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
                     continue;
@@ -138,7 +138,7 @@ namespace PocketConsensus
             return ValidateEditOneLimit(ptx);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(shared_ptr<Comment> tx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const shared_ptr<Comment>& tx)
         {
             int count = ConsensusRepoInst.CountChainCommentEdit(*tx->GetRootTxHash());
 

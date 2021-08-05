@@ -79,7 +79,7 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
 
             // Get count from block
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACTION_SCORE_CONTENT}))
                     continue;
@@ -118,7 +118,7 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreContent> tx, int count)
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreContent>& tx, int count)
         {
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
@@ -131,7 +131,7 @@ namespace PocketConsensus
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
-            const shared_ptr<ScoreContent> tx)
+            const shared_ptr<ScoreContent>& tx)
         {
             return Success;
         }
@@ -207,7 +207,7 @@ namespace PocketConsensus
         int CheckpointHeight() override { return 430000; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
-            shared_ptr<ScoreContent> tx) override
+            const shared_ptr<ScoreContent>& tx) override
         {
             auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                 contentAddress,
@@ -235,7 +235,7 @@ namespace PocketConsensus
         int CheckpointHeight() override { return 514184; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
-            shared_ptr<ScoreContent> tx) override
+            const shared_ptr<ScoreContent>& tx) override
         {
             return Success;
         }

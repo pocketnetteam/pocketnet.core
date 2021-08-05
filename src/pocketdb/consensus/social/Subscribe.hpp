@@ -48,7 +48,7 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<Subscribe>(tx);
 
             // Only one transaction (address -> addressTo) allowed in block
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE, ACTION_SUBSCRIBE_CANCEL}))
                     continue;
@@ -60,8 +60,8 @@ namespace PocketConsensus
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
                 {
                     PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_ManyTransactions))
-                    return {false, SocialConsensusResult_ManyTransactions};
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleSubscribe))
+                        return {false, SocialConsensusResult_DoubleSubscribe};
                 }
             }
 

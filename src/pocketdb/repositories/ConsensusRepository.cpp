@@ -184,13 +184,13 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                SELECT s.Type
-                FROM vSubscribes s
-                WHERE s.AddressHash = ?
-                    and s.AddressToHash = ?
-                    and s.Height is not null
-                    and s.Last = 1
-                LIMIT 1
+                SELECT Type
+                FROM Transactions indexed by Transactions_LastAction
+                WHERE Type in (302, 303, 304)
+                    and String1 = ?
+                    and String2 = ?
+                    and Height is not null
+                    and Last = 1
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -410,7 +410,8 @@ namespace PocketDb
                 join vAccounts sa on sa.Height is not null and sa.AddressHash=s.AddressHash
                 join vContents c on c.Height is not null and c.Hash=s.ContentTxHash
                 join vAccounts ca on ca.Height is not null and ca.AddressHash=c.AddressHash
-            where s.Hash = ? and s.Height is not null
+            where s.Hash = ?
+              and s.Height is not null
             limit 1
         )sql";
 
@@ -582,9 +583,11 @@ namespace PocketDb
         return result;
     }
 
-    int ConsensusRepository::GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
+    int ConsensusRepository::GetScoreContentCount(
+        int height,
+        PocketTxType scoreType, PocketTxType contentType,
         const string& scoreAddress, const string& contentAddress,
-        int height, const CTransactionRef& tx,
+        const CTransactionRef& tx,
         const std::vector<int>& values,
         int64_t scoresOneToOneDepth)
     {
@@ -597,7 +600,8 @@ namespace PocketDb
         string sql = R"sql(
             select count(1)
             from Transactions s indexed by Transactions_GetScoreContentCount
-            join Transactions c indexed by Transactions_GetScoreContentCount_2 on c.Type = ? and c.Hash = s.String2 and c.String1 = ? and c.Height <= ?
+            join Transactions c indexed by Transactions_GetScoreContentCount_2
+                on c.Type = ? and c.Hash = s.String2 and c.String1 = ?
             where   s.String1 = ?
                 and s.Height <= ?
                 and s.Time < ?
@@ -617,13 +621,12 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, 1, contentType);
             TryBindStatementText(stmt, 2, contentAddress);
-            TryBindStatementInt(stmt, 3, height);
-            TryBindStatementText(stmt, 4, scoreAddress);
-            TryBindStatementInt(stmt, 5, height);
-            TryBindStatementInt64(stmt, 6, tx->nTime);
-            TryBindStatementInt64(stmt, 7, (int64_t) tx->nTime - scoresOneToOneDepth);
-            TryBindStatementText(stmt, 8, tx->GetHash().GetHex());
-            TryBindStatementInt(stmt, 9, scoreType);
+            TryBindStatementText(stmt, 3, scoreAddress);
+            TryBindStatementInt(stmt, 4, height);
+            TryBindStatementInt64(stmt, 5, tx->nTime);
+            TryBindStatementInt64(stmt, 6, (int64_t) tx->nTime - scoresOneToOneDepth);
+            TryBindStatementText(stmt, 7, tx->GetHash().GetHex());
+            TryBindStatementInt(stmt, 8, scoreType);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

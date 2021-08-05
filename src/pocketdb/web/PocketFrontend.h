@@ -54,6 +54,8 @@ namespace PocketWeb
 
         string DetectContentType(string fileName);
 
+        tuple <HTTPStatusCode, shared_ptr<StaticFile>> NotFound();
+
     public:
 
         PocketFrontend() = default;
@@ -66,7 +68,7 @@ namespace PocketWeb
 
         tuple<bool, shared_ptr<StaticFile>> CacheGet(const string& path);
 
-        tuple<HTTPStatusCode, shared_ptr<StaticFile>> GetFile(const string& path, const string& defaultPath, bool stopRecurse = false);
+        tuple<HTTPStatusCode, shared_ptr<StaticFile>> GetFile(const string& path, bool stopRecurse = false);
 
     };
 

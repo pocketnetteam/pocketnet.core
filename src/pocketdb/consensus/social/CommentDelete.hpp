@@ -71,7 +71,7 @@ namespace PocketConsensus
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
         {
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
                     continue;

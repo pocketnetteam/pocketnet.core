@@ -77,15 +77,15 @@ namespace PocketWeb
         _rootPath = GetDataDir() / "static_files";
 
         auto testContent = shared_ptr<StaticFile>(new StaticFile{
-            "/test.html",
-            "test.html",
+            "/404.html",
+            "404.html",
             "",
-            "<html><head><script src='main.js'></script></head><body>Hello World!</body></html>"
+            "<html><body>Not Found</body></html>"
         });
 
         LOCK(CacheMutex);
         Cache.emplace(
-            "/test.html",
+            "/404.html",
             testContent
         );
     }
@@ -122,13 +122,18 @@ namespace PocketWeb
         return {false, nullptr};
     }
 
-    tuple <HTTPStatusCode, shared_ptr<StaticFile>> PocketFrontend::GetFile(const string& path, const string& defaultPath, bool stopRecurse)
+    tuple <HTTPStatusCode, shared_ptr<StaticFile>> PocketFrontend::NotFound()
+    {
+        return {HTTP_NOT_FOUND, nullptr};
+    }
+
+    tuple <HTTPStatusCode, shared_ptr<StaticFile>> PocketFrontend::GetFile(const string& path, bool stopRecurse)
     {
         if (path.find("..") != std::string::npos)
             return {HTTP_BAD_REQUEST, nullptr};
 
         if (path.empty())
-            return GetFile(defaultPath, defaultPath, true);
+            return NotFound();
 
         // Remove parameters - index.html?v2
         auto _path = path;
@@ -147,10 +152,10 @@ namespace PocketWeb
         auto[readOk, fileContent] = ReadFile(_path);
         if (!readOk)
         {
-            if (!stopRecurse)
-                return GetFile(defaultPath, defaultPath, true);
+            if (!stopRecurse && _path.find("/web/") == 0)
+                return GetFile("/web/index.html", true);
 
-            return {HTTP_NOT_FOUND, nullptr};
+            return NotFound();
         }
 
         // Save in cache for future

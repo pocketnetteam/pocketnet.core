@@ -66,6 +66,9 @@ namespace PocketDb
         // Erase all calculated data great or equals block
         void RollbackBlock(int height)
         {
+            if (height == 0)
+                LogPrintf("Rollback to first block. This can take from a few minutes to several hours, do not turn off your computer.\n");
+
             // Update transactions
             TryTransactionStep(__func__, [&]()
             {

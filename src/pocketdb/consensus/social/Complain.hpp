@@ -61,7 +61,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual bool CheckBlockLimitTime(shared_ptr<Complain> ptx, shared_ptr<Complain> blockPtx)
+        virtual bool CheckBlockLimitTime(const shared_ptr<Complain>& ptx, const shared_ptr<Complain>& blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
@@ -75,7 +75,7 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
 
             // from block
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACTION_COMPLAIN}))
                     continue;
@@ -115,7 +115,7 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<Complain> tx, int count)
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Complain>& tx, int count)
         {
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
@@ -187,7 +187,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 1124000; }
 
-        bool CheckBlockLimitTime(shared_ptr<Complain> ptx, shared_ptr<Complain> blockPtx) override
+        bool CheckBlockLimitTime(const shared_ptr<Complain>& ptx, const shared_ptr<Complain>& blockPtx) override
         {
             return true;
         }

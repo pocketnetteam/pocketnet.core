@@ -38,7 +38,7 @@ namespace PocketConsensus
             return mode == AccountMode_Full ? GetFullLimit() : GetTrialLimit();
         }
 
-        virtual int64_t GetCommentMessageMaxSize() { return 2000; }
+        virtual size_t GetCommentMessageMaxSize() { return 2000; }
 
 
         tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
@@ -89,7 +89,7 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
 
             // Get count from block
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT}))
                     continue;

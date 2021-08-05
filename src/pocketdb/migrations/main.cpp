@@ -6,22 +6,22 @@ namespace PocketDb
     {
         Tables.emplace_back(R"sql(
             create table if not exists Transactions
-                (
-                    Type      int    not null,
+            (
+                Type      int    not null,
                 Hash      text   not null primary key,
-            Time      int    not null,
+                Time      int    not null,
 
                 BlockHash text   null,
-            BlockNum  int    null,
-            Height    int    null,
-            Last      int    not null default 0,
+                BlockNum  int    null,
+                Height    int    null,
+                Last      int    not null default 0,
 
-                    -- User.Id
-                        -- Post.Id
+                -- User.Id
+                -- Post.Id
                 -- Comment.Id
-            Id        int    null,
+                Id        int    null,
 
-            -- User.AddressHash
+                -- User.AddressHash
                 -- Post.AddressHash
                 -- Comment.AddressHash
                 -- ScorePost.AddressHash
@@ -29,9 +29,9 @@ namespace PocketDb
                 -- Subscribe.AddressHash
                 -- Blocking.AddressHash
                 -- Complain.AddressHash
-            String1   text   null,
+                String1   text   null,
 
-            -- User.ReferrerAddressHash
+                -- User.ReferrerAddressHash
                 -- Post.RootTxHash
                 -- Comment.RootTxHash
                 -- ScorePost.PostTxHash
@@ -39,22 +39,22 @@ namespace PocketDb
                 -- Subscribe.AddressToHash
                 -- Blocking.AddressToHash
                 -- Complain.PostTxHash
-            String2   text   null,
+                String2   text   null,
 
-            -- Post.RelayTxHash
-                -- Comment.PostTxHash
-            String3   text   null,
+                -- Post.RelayTxHash
+                    -- Comment.PostTxHash
+                String3   text   null,
 
-            -- Comment.ParentTxHash
-            String4   text   null,
+                -- Comment.ParentTxHash
+                String4   text   null,
 
-            -- Comment.AnswerTxHash
-            String5   text   null,
+                -- Comment.AnswerTxHash
+                String5   text   null,
 
-            -- ScorePost.Value
+                -- ScorePost.Value
                 -- ScoreComment.Value
                 -- Complain.Reason
-            Int1      int    null
+                Int1      int    null
             );
         )sql");
         Tables.emplace_back(R"sql(
@@ -305,8 +305,7 @@ namespace PocketDb
                    t.Height,
                    t.Last,
                    t.String1 as AddressHash,
-                   t.String2 as AddressToHash,
-                   t.Int1    as Private
+                   t.String2 as AddressToHash
             from Transactions t
             where t.Type in (302, 303, 304);
         )sql");

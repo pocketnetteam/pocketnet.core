@@ -64,7 +64,7 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<User>(tx);
 
             // Only one transaction allowed in block
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
                     continue;
@@ -112,7 +112,7 @@ namespace PocketConsensus
 
             // Maximum length for user name
             auto name = *ptx->GetPayloadName();
-            if (name.size() < 1 && name.size() > 35)
+            if (name.empty() || name.size() > 35)
                 return {false, SocialConsensusResult_NicknameLong};
 
             // Trim spaces

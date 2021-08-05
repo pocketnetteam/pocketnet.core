@@ -38,7 +38,7 @@ namespace PocketConsensus
                 if (!addresses.empty())
                 {
                     // First check block - maybe user registration this?
-                    for (auto blockTx : block)
+                    for (auto& blockTx : block)
                     {
                         if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
                             continue;

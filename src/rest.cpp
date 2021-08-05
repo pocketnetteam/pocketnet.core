@@ -851,8 +851,9 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
 
     if (start == 0)
     {
+        PocketDb::SQLiteDbInst.DropIndexes();
         PocketServices::TransactionIndexer::Rollback(0);
-        // TODO (brangr): reindex or drop
+        PocketDb::SQLiteDbInst.CreateStructure();
     }
 
     int current = start;
@@ -868,6 +869,15 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
 
         try
         {
+            std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
+            if (!PocketServices::GetBlock(block, pocketBlock, true))
+                return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
+
+            PocketServices::TransactionIndexer::Rollback(pblockindex->nHeight);
+
+            if (pocketBlock)
+                PocketConsensus::SocialConsensusHelper::Validate(*pocketBlock, pblockindex->nHeight);
+
             PocketServices::TransactionIndexer::Index(block, pblockindex->nHeight);
         }
         catch (std::exception& ex)
@@ -917,7 +927,7 @@ static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
         if (pocketBlock)
         {
             // Check op_return hash
-            /*for (auto& ptx : *pocketBlock)
+            for (auto& ptx : *pocketBlock)
             {
                 for (auto& tx : block.vtx)
                 {
@@ -932,7 +942,7 @@ static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
                     ptx->BuildHash();
                     ptx->SetOpReturnTx(vasm[2]);
                 }
-            }*/
+            }
 
             PocketConsensus::SocialConsensusHelper::Check(block, *pocketBlock);
         }
@@ -996,80 +1006,12 @@ static bool debug_rewards_check(HTTPRequest* req, const std::string& strURIPart)
     return true;
 }
 
-static bool debug_consensus_check(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-
-    auto[rf, uriParts] = ParseParams(strURIPart);
-    int start = 0;
-    int height = 1;
-
-    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
-        start = result;
-
-    if (auto[ok, result] = TryGetParamInt(uriParts, 1); ok)
-        height = result;
-
-    int current = start;
-    while (current <= height)
-    {
-        CBlockIndex* pblockindex = chainActive[current];
-        if (!pblockindex)
-            return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
-
-        CBlock block;
-        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
-
-        std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
-        if (!PocketServices::GetBlock(block, pocketBlock))
-            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
-
-        if (pocketBlock)
-        {
-            for (auto ptx : *pocketBlock)
-            {
-                for (auto tx : block.vtx)
-                {
-                    if (tx->GetHash().GetHex() != *ptx->GetHash())
-                        continue;
-
-                    const CTxOut& txout = tx->vout[0];
-                    auto asmString = ScriptToAsmStr(txout.scriptPubKey);
-                    std::vector<std::string> vasm;
-                    boost::split(vasm, asmString, boost::is_any_of("\t "));
-
-                    ptx->BuildHash();
-                    ptx->SetOpReturnTx(vasm[2]);
-                }
-            }
-
-            PocketConsensus::SocialConsensusHelper::Validate(*pocketBlock, pblockindex->nHeight);
-        }
-
-        LogPrintf("SocialConsensusHelper::Check at height %d\n", current);
-        current += 1;
-    }
-
-    req->WriteHeader("Content-Type", "text/plain");
-    req->WriteReply(HTTP_OK, "Success\n");
-    return true;
-}
-
 static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
 
-    if (strURIPart == "/clearcache")
-    {
-        PocketWeb::PocketFrontendInst.ClearCache();
-        req->WriteReply(HTTP_OK, "Cache cleared!");
-        return true;
-    }
-
-    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile("/web" + strURIPart, "/web/index.html"); code == HTTP_OK)
+    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile("/" + strURIPart); code == HTTP_OK)
     {
         req->WriteHeader("Content-Type", file->ContentType);
         req->WriteReply(code, file->Content);
@@ -1083,24 +1025,16 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
     return RESTERR(req, HTTP_NOT_FOUND, "");
 }
 
-static bool get_static_explorer(HTTPRequest* req, const std::string& strURIPart)
+static bool clear_web_cache(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
 
-    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile("/explorer" + strURIPart, "/explorer/index.html"); code == HTTP_OK)
-    {
-        req->WriteHeader("Content-Type", file->ContentType);
-        req->WriteReply(code, file->Content);
-        return true;
-    }
-    else
-    {
-        return RESTERR(req, code, "");
-    }
-
-    return RESTERR(req, HTTP_NOT_FOUND, "");
+    PocketWeb::PocketFrontendInst.ClearCache();
+    req->WriteReply(HTTP_OK, "Cache cleared!");
+    return true;
 }
+
 
 static const struct
 {
@@ -1127,11 +1061,10 @@ static const struct
     {"/rest/pindexblock",        debug_index_block},
     {"/rest/pcheckblock",        debug_check_block},
     {"/rest/prewards",           debug_rewards_check},
-    {"/rest/pconsensus",         debug_consensus_check},
 
     // For static web
     {"/web",                     get_static_web},
-    {"/explorer",                get_static_explorer},
+    {"/clearcache",              clear_web_cache},
 };
 
 void StartREST()

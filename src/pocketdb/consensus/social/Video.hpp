@@ -28,7 +28,7 @@ namespace PocketConsensus
 
         // TODO (brangr): setup limits after close https://github.com/pocketnetteam/pocketnet.core/issues/22
 
-        virtual int64_t GetLimitWindow() { return 1440; }
+        virtual int GetLimitWindow() { return 1440; }
 
         virtual int64_t GetEditWindow() { return 1440; }
 
@@ -106,7 +106,7 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
 
             // Get count from block
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
                     continue;
@@ -169,7 +169,7 @@ namespace PocketConsensus
                                                                      const PocketBlock& block)
         {
             // Double edit in block not allowed
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
                     continue;

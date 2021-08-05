@@ -53,9 +53,12 @@ namespace PocketDb
         shared_ptr<string> GetReferrer(const string& address);
         shared_ptr<string> GetReferrer(const string& address, int64_t minTime);
         int GetUserLikersCount(int addressId);
-        int GetScoreContentCount(PocketTxType scoreType, PocketTxType contentType,
+
+        int GetScoreContentCount(
+            int height,
+            PocketTxType scoreType, PocketTxType contentType,
             const string& scoreAddress, const string& contentAddress,
-            int height, const CTransactionRef& tx,
+            const CTransactionRef& tx,
             const std::vector<int>& values,
             int64_t scoresOneToOneDepth);
 

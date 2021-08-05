@@ -117,7 +117,7 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
 
             // Get count from block
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
                     continue;
@@ -183,7 +183,7 @@ namespace PocketConsensus
                                                                      const PocketBlock& block)
         {
             // Double edit in block not allowed
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
                     continue;
@@ -200,7 +200,7 @@ namespace PocketConsensus
             return ValidateEditOneLimit(tx);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(shared_ptr<Post> tx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(const shared_ptr<Post>& tx)
         {
             if (ConsensusRepoInst.CountMempoolPostEdit(*tx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
@@ -209,7 +209,7 @@ namespace PocketConsensus
             return ValidateEditOneLimit(tx);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(shared_ptr<Post> tx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const shared_ptr<Post>& tx)
         {
             int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetRootTxHash());
 

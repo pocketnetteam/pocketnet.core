@@ -86,7 +86,7 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
 
             // Get count from block
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACTION_SCORE_COMMENT}))
                     continue;
@@ -126,7 +126,7 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(shared_ptr<ScoreComment> tx, int count)
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreComment>& tx, int count)
         {
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
@@ -139,7 +139,7 @@ namespace PocketConsensus
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateBlocking(const string& commentAddress,
-                                                                    shared_ptr<ScoreComment> tx)
+                                                                    const shared_ptr<ScoreComment>& tx)
         {
             return Success;
         }
@@ -196,7 +196,7 @@ namespace PocketConsensus
         int CheckpointHeight() override { return 430000; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(
-            const string& commentAddress, shared_ptr<ScoreComment> tx) override
+            const string& commentAddress, const shared_ptr<ScoreComment>& tx) override
         {
             auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                 commentAddress,
@@ -224,7 +224,7 @@ namespace PocketConsensus
         int CheckpointHeight() override { return 514184; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(
-            const string& commentAddress, shared_ptr<ScoreComment> tx) override
+            const string& commentAddress, const shared_ptr<ScoreComment>& tx) override
         {
             return Success;
         }

@@ -44,7 +44,7 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<Blocking>(tx);
 
             // Only one transaction (address -> addressTo) allowed in block
-            for (auto blockTx : block)
+            for (auto& blockTx : block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACTION_BLOCKING, ACTION_BLOCKING_CANCEL}))
                     continue;
