@@ -367,12 +367,7 @@ namespace PocketDb
                 p.String7 as Url
             from Transactions t
                     join Payload p on t.Hash = p.TxHash
-            where t.Height = (
-                select max(t_.Height)
-                from Transactions t_
-                where t_.String2 = t.String2
-                and t_.Type = t.Type)
-            and t.Type in (200, 201);
+            where t.Last = 1;
         )sql");
         Views.emplace_back(R"sql(
             drop view if exists vWebPosts;
