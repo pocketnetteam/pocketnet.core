@@ -40,9 +40,7 @@ namespace PocketTx
             result->pushKV("lang", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "en");
             result->pushKV("caption", (m_payload && m_payload->GetString2()) ? *m_payload->GetString2() : "");
             result->pushKV("message", (m_payload && m_payload->GetString3()) ? *m_payload->GetString3() : "");
-            result->pushKV("tags", (m_payload && m_payload->GetString4()) ? *m_payload->GetString4() : "");
             result->pushKV("url", (m_payload && m_payload->GetString7()) ? *m_payload->GetString7() : "");
-            result->pushKV("images", (m_payload && m_payload->GetString5()) ? *m_payload->GetString5() : "");
             result->pushKV("settings", (m_payload && m_payload->GetString6()) ? *m_payload->GetString6() : "");
 
             result->pushKV("type", 0);
@@ -51,6 +49,16 @@ namespace PocketTx
             result->pushKV("scoreSum", 0);
             result->pushKV("scoreCnt", 0);
             result->pushKV("reputation", 0);
+
+            UniValue vImages(UniValue::VARR);
+            if (m_payload && m_payload->GetString5())
+                vImages.read(*m_payload->GetString5())
+            result->pushKV("images", vImages);
+            
+            UniValue vTags(UniValue::VARR);
+            if (m_payload && m_payload->GetString4())
+                vTags.read(*m_payload->GetString4())
+            result->pushKV("tags", vTags);
 
             return result;
         }
