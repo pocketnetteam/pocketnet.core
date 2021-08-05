@@ -202,15 +202,16 @@ std::string BCLog::Logger::LogTimestampStr(const std::string &str)
     return strStamped;
 }
 
-void BCLog::Logger::LogPrintStr(const std::string &str)
+void BCLog::Logger::LogPrintStr(const std::string &str, bool progressMsg)
 {
     std::string strTimestamped = LogTimestampStr(str);
 
-    if (m_print_to_console) {
+    if (m_print_to_console && (!m_progress || progressMsg)) {
         // print to console
         fwrite(strTimestamped.data(), 1, strTimestamped.size(), stdout);
         fflush(stdout);
     }
+
     if (m_print_to_file) {
         std::lock_guard<std::mutex> scoped_lock(m_file_mutex);
 

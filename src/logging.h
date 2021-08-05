@@ -80,6 +80,8 @@ namespace BCLog {
 
         std::string LogTimestampStr(const std::string& str);
 
+        bool m_progress = false;
+
     public:
         bool m_print_to_console = false;
         bool m_print_to_file = false;
@@ -91,10 +93,11 @@ namespace BCLog {
         std::atomic<bool> m_reopen_file{false};
 
         /** Send a string to the log output */
-        void LogPrintStr(const std::string &str);
+        void LogPrintStr(const std::string &str, bool progressMsg);
 
         /** Returns whether logs will be written to any output */
         bool Enabled() const { return m_print_to_console || m_print_to_file; }
+        bool Progress(bool value) { m_progress = value; return m_progress; }
 
         bool OpenDebugLog();
         void ShrinkDebugFile();
@@ -135,18 +138,29 @@ bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str);
 // peer can fill up a user's disk with debug.log entries.
 
 template <typename... Args>
+static inline void _logPrintf(bool progressMag, const char* fmt, const Args&... args)
+{
+    std::string log_msg;
+    try {
+        log_msg = tfm::format(fmt, args...);
+    } catch (tinyformat::format_error& fmterr) {
+        /* Original format string will have newline so don't add one here */
+        log_msg = "Error \"" + std::string(fmterr.what()) + "\" while formatting log message: " + fmt;
+    }
+    g_logger->LogPrintStr(log_msg, progressMag);
+}
+
+template <typename... Args>
 static inline void LogPrintf(const char* fmt, const Args&... args)
 {
-    if (g_logger->Enabled()) {
-        std::string log_msg;
-        try {
-            log_msg = tfm::format(fmt, args...);
-        } catch (tinyformat::format_error& fmterr) {
-            /* Original format string will have newline so don't add one here */
-            log_msg = "Error \"" + std::string(fmterr.what()) + "\" while formatting log message: " + fmt;
-        }
-        g_logger->LogPrintStr(log_msg);
-    }
+    if (g_logger->Enabled())
+        _logPrintf(false, fmt, args...);
+}
+
+template <typename... Args>
+static inline void ProgressLogPrintf(const char* fmt, const Args&... args)
+{
+    _logPrintf(true, fmt, args...);
 }
 
 template <typename... Args>

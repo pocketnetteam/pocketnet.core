@@ -283,7 +283,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     if (!ClientAllowed(hreq->GetPeer()))
     {
         hreq->WriteReply(HTTP_FORBIDDEN);
-        LogPrint(BCLog::HTTP, "Request from %s not allowed\n", hreq->GetPeer().ToString());
+        //LogPrint(BCLog::HTTP, "Request from %s not allowed\n", hreq ? hreq->GetPeer().ToString() : "unknown");
         return;
     }
 
