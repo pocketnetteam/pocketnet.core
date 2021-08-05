@@ -52,12 +52,12 @@ namespace PocketTx
 
             UniValue vImages(UniValue::VARR);
             if (m_payload && m_payload->GetString5())
-                vImages.read(*m_payload->GetString5())
+                vImages.read(*m_payload->GetString5());
             result->pushKV("images", vImages);
             
             UniValue vTags(UniValue::VARR);
             if (m_payload && m_payload->GetString4())
-                vTags.read(*m_payload->GetString4())
+                vTags.read(*m_payload->GetString4());
             result->pushKV("tags", vTags);
 
             return result;
