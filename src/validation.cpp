@@ -2486,9 +2486,12 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketHelpers::PocketB
 
         int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
+        // TODO (brangr): DEBUG!
         if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
+        {
             LogPrintf("@@@ Checkpoint for %d %s\n", pindex->nHeight, block.GetHash().GetHex());
-            //return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
+            return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
+        }
     }
 
     int64_t nTime4 = GetTimeMicros();

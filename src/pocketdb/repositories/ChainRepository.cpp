@@ -85,10 +85,17 @@ namespace PocketDb
 
     bool ChainRepository::ClearDatabase()
     {
-        LogPrintf("Rollback to first block. This can take from a few minutes to several hours, do not turn off your computer.\n");
+        LogPrintf("Full reindexing database. This can take several hours.\n");
+        
+        g_logger->Progress(true);
+        ProgressLogPrintf("Deleting database indexes: [");
         
         m_database.DropIndexes();
+
+        ProgressLogPrintf("]\n");
+        g_logger->Progress(false);
         
+        LogPrintf("Rollback to first block..\n");
         RollbackBatch(0);
         
         m_database.CreateStructure();
