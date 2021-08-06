@@ -2824,10 +2824,14 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         assert(view.GetBestBlock() == pindexDelete->GetBlockHash());
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
+
+        if (!PocketServices::TransactionIndexer::Rollback(block, chainActive.Height()))
+            return error("DisconnectTip(): DisconnectBlock (Pocketnet part) %s failed", pindexDelete->GetBlockHash().ToString());
+
         bool flushed = view.Flush();
         assert(flushed);
     }
-
+    
     LogPrint(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * MILLI);
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
@@ -2850,17 +2854,6 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     }
 
     chainActive.SetTip(pindexDelete->pprev);
-
-    // Rollback PocketDb
-    try
-    {
-        PocketServices::TransactionIndexer::Rollback(chainActive.Height());
-    }
-    catch (std::exception& ex)
-    {
-        LogPrintf("Error: Rollback failed with message: %s\n", ex.what());
-        return false;
-    }
 
     UpdateTip(pindexDelete->pprev, chainparams);
 

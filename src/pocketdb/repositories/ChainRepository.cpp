@@ -40,59 +40,70 @@ namespace PocketDb
         });
     }
 
-    void ChainRepository::ClearDatabase()
+    bool ChainRepository::ClearDatabase()
     {
-        // TODO (brangr): rollback to 0 height
+        LogPrintf("Rollback to first block. This can take from a few minutes to several hours, do not turn off your computer.\n");
+        // TODO (brangr): implement
     }
 
-    void ChainRepository::RollbackBlock(int height)
+    bool ChainRepository::RollbackBlock(int height, vector<TransactionIndexingInfo>& txs)
     {
         if (height == 0)
-            LogPrintf("Rollback to first block. This can take from a few minutes to several hours, do not turn off your computer.\n");
+            return ClearDatabase();
 
-        // Update transactions
-        TryTransactionStep(__func__, [&]()
+        try
         {
-            // Rollback general transaction information
-            auto stmt0 = SetupSqlStatement(R"sql(
-                UPDATE Transactions SET
-                    BlockHash = null,
-                    BlockNum = null,
-                    Height = null,
-                    Id = null,
-                    Last = 0
-                WHERE Height is not null and Height >= ?
-            )sql");
-            TryBindStatementInt(stmt0, 1, height);
-            TryStepStatement(stmt0);
+            // Update transactions
+            TryTransactionStep(__func__, [&]()
+            {
+                // Rollback general transaction information
+                auto stmt0 = SetupSqlStatement(R"sql(
+                    UPDATE Transactions SET
+                        BlockHash = null,
+                        BlockNum = null,
+                        Height = null,
+                        Id = null,
+                        Last = 0
+                    WHERE Height is not null and Height >= ?
+                )sql");
+                TryBindStatementInt(stmt0, 1, height);
+                TryStepStatement(stmt0);
 
-            // Rollback spent transaction outputs
-            auto stmt1 = SetupSqlStatement(R"sql(
-                UPDATE TxOutputs SET
-                    SpentHeight = null,
-                    SpentTxHash = null
-                WHERE SpentHeight is not null and SpentHeight >= ?
-            )sql");
-            TryBindStatementInt(stmt1, 1, height);
-            TryStepStatement(stmt1);
+                // Rollback spent transaction outputs
+                auto stmt1 = SetupSqlStatement(R"sql(
+                    UPDATE TxOutputs SET
+                        SpentHeight = null,
+                        SpentTxHash = null
+                    WHERE SpentHeight is not null and SpentHeight >= ?
+                )sql");
+                TryBindStatementInt(stmt1, 1, height);
+                TryStepStatement(stmt1);
 
-            // Rollback transaction outputs height
-            auto stmt11 = SetupSqlStatement(R"sql(
-                UPDATE TxOutputs SET
-                    TxHeight = null
-                WHERE TxHeight >= ?
-            )sql");
-            TryBindStatementInt(stmt11, 1, height);
-            TryStepStatement(stmt11);
+                // Rollback transaction outputs height
+                auto stmt11 = SetupSqlStatement(R"sql(
+                    UPDATE TxOutputs SET
+                        TxHeight = null
+                    WHERE TxHeight >= ?
+                )sql");
+                TryBindStatementInt(stmt11, 1, height);
+                TryStepStatement(stmt11);
 
-            // Remove ratings
-            auto stmt2 = SetupSqlStatement(R"sql(
-                DELETE FROM Ratings
-                WHERE Height >= ?
-            )sql");
-            TryBindStatementInt(stmt2, 1, height);
-            TryStepStatement(stmt2);
-        });
+                // Remove ratings
+                auto stmt2 = SetupSqlStatement(R"sql(
+                    DELETE FROM Ratings
+                    WHERE Height >= ?
+                )sql");
+                TryBindStatementInt(stmt2, 1, height);
+                TryStepStatement(stmt2);
+            });
+
+            return true;
+        }
+        catch (std::exception& ex)
+        {
+            LogPrintf("Error: Rollback to height %d failed with message: %s\n", height, ex.what());
+            return false;
+        }
     }
 
     void ChainRepository::UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash)
@@ -326,7 +337,6 @@ namespace PocketDb
                 and Transactions.String2 = blocking.AddressToHash
                 and Transactions.Height is not null
                 and Transactions.Last = 1
-
         )sql");
         TryBindStatementText(clearLastStmt, 1, txHash);
         TryStepStatement(clearLastStmt);
@@ -359,10 +369,53 @@ namespace PocketDb
                 and Transactions.String2 = subscribe.AddressToHash
                 and Transactions.Height is not null
                 and Transactions.Last = 1
-
         )sql");
         TryBindStatementText(clearLastStmt, 1, txHash);
         TryStepStatement(clearLastStmt);
     }
+
+
+    void ChainRepository::RollbackAccount(const string& txHash)
+    {
+        // TODO (brangr): implement
+        // Restore last for old account change
+        auto stmt = SetupSqlStatement(R"sql(
+            UPDATE Transactions SET
+                Last = 0
+            FROM (
+                select a.Hash, a.Type, a.AddressHash
+                from vAccounts a
+                where   a.Height is not null
+                    and a.Hash = ?
+            ) as account
+            WHERE   Transactions.Hash != account.Hash
+                and Transactions.Type = account.Type
+                and Transactions.String1 = account.AddressHash
+                and Transactions.Height is not null
+                and Transactions.Last = 1
+        )sql");
+        TryBindStatementText(stmt, 1, txHash);
+        TryStepStatement(stmt);
+    }
+
+    void ChainRepository::RollbackContent(const string& txHash)
+    {
+        // TODO (brangr): implement
+    }
+
+    void ChainRepository::RollbackComment(const string& txHash)
+    {
+        // TODO (brangr): implement
+    }
+
+    void ChainRepository::RollbackBlocking(const string& txHash)
+    {
+        // TODO (brangr): implement
+    }
+
+    void ChainRepository::RollbackSubscribe(const string& txHash)
+    {
+        // TODO (brangr): implement
+    }    
 
 } // namespace PocketDb

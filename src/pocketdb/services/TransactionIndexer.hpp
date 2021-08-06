@@ -31,41 +31,38 @@ namespace PocketServices
     public:
         static void Index(const CBlock& block, int height)
         {
+            auto txs = PrepareTransactions(block);
+            
             int64_t nTime1 = GetTimeMicros();
 
-            Rollback(height);
+            IndexChain(block.GetHash().GetHex(), height, txs);
 
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - RollbackChain: %.2fms _ %d\n", 0.001 * (nTime2 - nTime1), height);
+            LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (nTime2 - nTime1), height);
 
-            IndexChain(block, height);
+            IndexRatings(height, block);
 
             int64_t nTime3 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (nTime3 - nTime2), height);
-
-            IndexRatings(block, height);
-
-            int64_t nTime4 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (nTime4 - nTime3), height);
+            LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (nTime3 - nTime2), height);
         }
 
-        static void Rollback(int height)
+        static bool Rollback(const CBlock& block, int height)
         {
-            PocketDb::ChainRepoInst.RollbackBlock(height);
+            auto txs = PrepareTransactions(block);
+            return PocketDb::ChainRepoInst.RollbackBlock(height, txs);
         }
 
     protected:
 
-        // Set block height for all transactions in block
-        static void IndexChain(const CBlock& block, int height)
+        static vector<TransactionIndexingInfo> PrepareTransactions(const CBlock& block)
         {
-            // transaction with all inputs
             vector<TransactionIndexingInfo> txs;
-            for (int i = 0; i < (int)block.vtx.size(); i++) // const auto& tx : block.vtx
+            for (int i = 0; i < (int)block.vtx.size(); i++)
             {
                 auto& tx = block.vtx[i];
 
-                // TODO (brangr): implement check tx type - NOT_SUPPORTED skip
+                if (ParseType(tx) == PocketTxType::NOT_SUPPORTED)
+                    continue;
 
                 TransactionIndexingInfo txInfo;
                 txInfo.Hash = tx->GetHash().GetHex();
@@ -80,11 +77,15 @@ namespace PocketServices
 
                 txs.push_back(txInfo);
             }
-
-            PocketDb::ChainRepoInst.IndexBlock(block.GetHash().GetHex(), height, txs);
         }
 
-        static void IndexRatings(const CBlock& block, int height)
+        // Set block height for all transactions in block
+        static void IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
+        {
+            PocketDb::ChainRepoInst.IndexBlock(blockHash, height, txs);
+        }
+
+        static void IndexRatings(int height, const CBlock& block)
         {
             map<RatingType, map<int, int>> ratingValues;
             map<int, vector<int>> accountLikers;

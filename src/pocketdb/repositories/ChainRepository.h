@@ -32,26 +32,27 @@ namespace PocketDb
         void IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs);
 
         // Clear all calculated data
-        void ClearDatabase();
+        bool ClearDatabase();
 
         // Erase all calculated data great or equals block
-        void RollbackBlock(int height);
+        bool RollbackBlock(int height, vector<TransactionIndexingInfo>& txs);
 
     private:
 
         void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
-
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
 
         void IndexAccount(const string& txHash);
-
         void IndexContent(const string& txHash);
-
         void IndexComment(const string& txHash);
-
         void IndexBlocking(const string& txHash);
-
         void IndexSubscribe(const string& txHash);
+
+        void RollbackAccount(const string& txHash);
+        void RollbackContent(const string& txHash);
+        void RollbackComment(const string& txHash);
+        void RollbackBlocking(const string& txHash);
+        void RollbackSubscribe(const string& txHash);
 
     };
 

@@ -128,6 +128,12 @@ namespace PocketTx
                    Type == PocketTxType::ACTION_SUBSCRIBE_CANCEL ||
                    Type == PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
         }
+
+        bool IsActionScore() const
+        {
+            return Type == PocketTxType::ACTION_SCORE_COMMENT ||
+                   Type == PocketTxType::ACTION_SCORE_CONTENT;
+        }
     };
 }
 
