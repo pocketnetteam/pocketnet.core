@@ -10,12 +10,12 @@
 #include <string>
 #include <key_io.h>
 #include <boost/algorithm/string.hpp>
+#include <numeric>
 
 #include "primitives/transaction.h"
 
 #include "pocketdb/models/base/ReturnDtoModels.hpp"
 #include "pocketdb/models/base/PocketTypes.hpp"
-
 #include "pocketdb/models/dto/Blocking.hpp"
 #include "pocketdb/models/dto/BlockingCancel.hpp"
 #include "pocketdb/models/dto/Coinbase.hpp"
@@ -127,11 +127,16 @@ namespace PocketHelpers
 
     static PocketTxType ParseType(const CTransactionRef& tx, vector<string>& vasm)
     {
-        if (tx->vin.empty())
-            return PocketTxType::NOT_SUPPORTED;
-
         if (tx->IsCoinBase())
-            return PocketTxType::TX_COINBASE;
+        {
+            int txOutSum = std::accumulate(begin(tx->vout), end(tx->vout), 0,
+                [](int i, const CTxOut& o) { return o.nValue + i; });
+
+            if (txOutSum <= 0)
+                return PocketTxType::NOT_SUPPORTED;
+            else
+                return PocketTxType::TX_COINBASE;
+        }
 
         if (tx->IsCoinStake())
             return PocketTxType::TX_COINSTAKE;

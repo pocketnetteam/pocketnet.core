@@ -147,7 +147,7 @@ namespace PocketServices
         static bool buildOutputs(const CTransactionRef& tx, shared_ptr<Transaction>& ptx)
         {
             // indexing Outputs
-            for (int i = 0; i < tx->vout.size(); i++)
+            for (size_t i = 0; i < tx->vout.size(); i++)
             {
                 const CTxOut& txout = tx->vout[i];
 
@@ -160,7 +160,7 @@ namespace PocketServices
                     {
                         auto out = make_shared<TransactionOutput>();
                         out->SetTxHash(tx->GetHash().GetHex());
-                        out->SetNumber(i);
+                        out->SetNumber((int)i);
                         out->SetAddressHash(EncodeDestination(dest));
                         out->SetValue(txout.nValue);
 

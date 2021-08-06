@@ -87,7 +87,7 @@ namespace PocketDb
     {
         LogPrintf("Full reindexing database. This can take several hours.\n");
 
-        LogPrintf("Deleting database indexes:\n");
+        LogPrintf("Deleting database indexes..\n");
         m_database.DropIndexes();
         
         LogPrintf("Rollback to first block..\n");
@@ -378,7 +378,7 @@ namespace PocketDb
                 from Transactions t
                 where   t.Hash = ?
             ) as tInner
-            WHERE   Transactions.Type = in ( )sql" + join(txTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
+            WHERE   Transactions.Type in ( )sql" + join(txTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
                 and Transactions.Last = 1
                 and Transactions.Id = tInner.Id
                 and Transactions.Height is not null

@@ -31,8 +31,9 @@ namespace PocketServices
     public:
         static void Index(const CBlock& block, int height)
         {
-            auto txs = PrepareTransactions(block);
-            
+            vector<TransactionIndexingInfo> txs;
+            PrepareTransactions(block, txs);
+
             int64_t nTime1 = GetTimeMicros();
 
             IndexChain(block.GetHash().GetHex(), height, txs);
@@ -48,34 +49,35 @@ namespace PocketServices
 
         static bool Rollback(const CBlock& block, int height)
         {
-            auto txs = PrepareTransactions(block);
+            vector<TransactionIndexingInfo> txs;
+            PrepareTransactions(block, txs);
             return PocketDb::ChainRepoInst.RollbackBlock(height, txs);
         }
 
     protected:
 
-        static vector<TransactionIndexingInfo> PrepareTransactions(const CBlock& block)
+        static void PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs)
         {
-            vector<TransactionIndexingInfo> txs;
-            for (int i = 0; i < (int)block.vtx.size(); i++)
+            for (size_t i = 0; i < block.vtx.size(); i++)
             {
                 auto& tx = block.vtx[i];
+                auto txType = ParseType(tx);
 
-                if (ParseType(tx) == PocketTxType::NOT_SUPPORTED)
-                    continue;
-
-                TransactionIndexingInfo txInfo;
-                txInfo.Hash = tx->GetHash().GetHex();
-                txInfo.BlockNumber = i;
-                txInfo.Type = ParseType(tx);
-
-                if (!tx->IsCoinBase())
+                if (txType != PocketTxType::NOT_SUPPORTED)
                 {
-                    for (const auto& inp : tx->vin)
-                        txInfo.Inputs.emplace_back(inp.prevout.hash.GetHex(), inp.prevout.n);
-                }
+                    TransactionIndexingInfo txInfo;
+                    txInfo.Hash = tx->GetHash().GetHex();
+                    txInfo.BlockNumber = (int)i;
+                    txInfo.Type = txType;
 
-                txs.push_back(txInfo);
+                    if (!tx->IsCoinBase())
+                    {
+                        for (const auto& inp : tx->vin)
+                            txInfo.Inputs.emplace_back(inp.prevout.hash.GetHex(), inp.prevout.n);
+                    }
+
+                    txs.emplace_back(txInfo);
+                }
             }
         }
 
@@ -209,7 +211,7 @@ namespace PocketServices
 
     private:
 
-        void static ExtendAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
+        static void ExtendAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
         {
             auto found = find(
                 accountLikers[scoreData->ContentAddressId].begin(),
