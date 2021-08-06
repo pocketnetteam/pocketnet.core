@@ -852,7 +852,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
     if (start == 0)
     {
         PocketDb::SQLiteDbInst.DropIndexes();
-        PocketServices::TransactionIndexer::Rollback(0);
+        PocketDb::ChainRepoInst.ClearDatabase();
         PocketDb::SQLiteDbInst.CreateStructure();
     }
 
@@ -873,7 +873,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
             if (!PocketServices::GetBlock(block, pocketBlock, true))
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
-            PocketServices::TransactionIndexer::Rollback(pblockindex->nHeight);
+            PocketServices::TransactionIndexer::Rollback(block, pblockindex->nHeight);
 
             if (pocketBlock)
                 PocketConsensus::SocialConsensusHelper::Validate(*pocketBlock, pblockindex->nHeight);

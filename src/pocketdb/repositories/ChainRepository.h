@@ -13,9 +13,14 @@
 #include "pocketdb/models/base/PocketTypes.hpp"
 #include "pocketdb/models/base/ReturnDtoModels.hpp"
 
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
+
 namespace PocketDb
 {
     using std::runtime_error;
+    using boost::algorithm::join;
+    using boost::adaptors::transformed;
 
     using namespace PocketTx;
 
@@ -39,20 +44,18 @@ namespace PocketDb
 
     private:
 
+        void RollbackBatch(int height);
+
         void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
 
-        void IndexAccount(const string& txHash);
-        void IndexContent(const string& txHash);
+        void IndexAccount(const string& txHash, PocketTxType txType);
+        void IndexContent(const string& txHash, PocketTxType txType);
         void IndexComment(const string& txHash);
         void IndexBlocking(const string& txHash);
         void IndexSubscribe(const string& txHash);
-
-        void RollbackAccount(const string& txHash);
-        void RollbackContent(const string& txHash);
-        void RollbackComment(const string& txHash);
-        void RollbackBlocking(const string& txHash);
-        void RollbackSubscribe(const string& txHash);
+        void IndexLast(const string& txHash, const vector<int>& txTypes);
+        void RollbackLast(const TransactionIndexingInfo& txInfo);
 
     };
 

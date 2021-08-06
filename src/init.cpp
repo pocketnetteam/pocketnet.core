@@ -909,12 +909,13 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         // -reindex
         if (fReindex)
         {
-            // Drop all indexes for a quick rollback
             // Rollback to first block
-            // Recreate structure db with indexes
-            PocketDb::SQLiteDbInst.DropIndexes();
-            PocketServices::TransactionIndexer::Rollback(0);
-            PocketDb::SQLiteDbInst.CreateStructure();
+            if(!PocketDb::ChainRepoInst.ClearDatabase())
+            {
+                LogPrintf("Failed clear pocket database\n");
+                StartShutdown();
+                return;
+            }
 
             // Loop all block files for restore chain
             int nFile = 0;

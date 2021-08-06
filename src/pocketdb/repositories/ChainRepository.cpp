@@ -22,10 +22,10 @@ namespace PocketDb
                 // Also all edited transactions must have Last=(0/1) field
                 {
                     if (txInfo.IsAccount())
-                        IndexAccount(txInfo.Hash);
+                        IndexAccount(txInfo.Hash, txInfo.Type);
 
                     if (txInfo.IsContent())
-                        IndexContent(txInfo.Hash);
+                        IndexContent(txInfo.Hash, txInfo.Type);
 
                     if (txInfo.IsComment())
                         IndexComment(txInfo.Hash);
@@ -40,10 +40,58 @@ namespace PocketDb
         });
     }
 
+    void ChainRepository::RollbackBatch(int height)
+    {
+        // Rollback general transaction information
+        auto stmt0 = SetupSqlStatement(R"sql(
+            UPDATE Transactions SET
+                BlockHash = null,
+                BlockNum = null,
+                Height = null,
+                Id = null,
+                Last = 0
+            WHERE Height >= ?
+        )sql");
+        TryBindStatementInt(stmt0, 1, height);
+        TryStepStatement(stmt0);
+
+        // Rollback spent transaction outputs
+        auto stmt1 = SetupSqlStatement(R"sql(
+            UPDATE TxOutputs SET
+                SpentHeight = null,
+                SpentTxHash = null
+            WHERE SpentHeight >= ?
+        )sql");
+        TryBindStatementInt(stmt1, 1, height);
+        TryStepStatement(stmt1);
+
+        // Rollback transaction outputs height
+        auto stmt11 = SetupSqlStatement(R"sql(
+            UPDATE TxOutputs SET
+                TxHeight = null
+            WHERE TxHeight >= ?
+        )sql");
+        TryBindStatementInt(stmt11, 1, height);
+        TryStepStatement(stmt11);
+
+        // Remove ratings
+        auto stmt2 = SetupSqlStatement(R"sql(
+            DELETE FROM Ratings
+            WHERE Height >= ?
+        )sql");
+        TryBindStatementInt(stmt2, 1, height);
+        TryStepStatement(stmt2);
+    }
+
     bool ChainRepository::ClearDatabase()
     {
         LogPrintf("Rollback to first block. This can take from a few minutes to several hours, do not turn off your computer.\n");
-        // TODO (brangr): implement
+        
+        m_database.DropIndexes();
+        
+        RollbackBatch(0);
+        
+        m_database.CreateStructure();
     }
 
     bool ChainRepository::RollbackBlock(int height, vector<TransactionIndexingInfo>& txs)
@@ -56,45 +104,11 @@ namespace PocketDb
             // Update transactions
             TryTransactionStep(__func__, [&]()
             {
-                // Rollback general transaction information
-                auto stmt0 = SetupSqlStatement(R"sql(
-                    UPDATE Transactions SET
-                        BlockHash = null,
-                        BlockNum = null,
-                        Height = null,
-                        Id = null,
-                        Last = 0
-                    WHERE Height is not null and Height >= ?
-                )sql");
-                TryBindStatementInt(stmt0, 1, height);
-                TryStepStatement(stmt0);
+                // Restore previous Last
+                for (const auto& tx : txs)
+                    RollbackLast(tx);
 
-                // Rollback spent transaction outputs
-                auto stmt1 = SetupSqlStatement(R"sql(
-                    UPDATE TxOutputs SET
-                        SpentHeight = null,
-                        SpentTxHash = null
-                    WHERE SpentHeight is not null and SpentHeight >= ?
-                )sql");
-                TryBindStatementInt(stmt1, 1, height);
-                TryStepStatement(stmt1);
-
-                // Rollback transaction outputs height
-                auto stmt11 = SetupSqlStatement(R"sql(
-                    UPDATE TxOutputs SET
-                        TxHeight = null
-                    WHERE TxHeight >= ?
-                )sql");
-                TryBindStatementInt(stmt11, 1, height);
-                TryStepStatement(stmt11);
-
-                // Remove ratings
-                auto stmt2 = SetupSqlStatement(R"sql(
-                    DELETE FROM Ratings
-                    WHERE Height >= ?
-                )sql");
-                TryBindStatementInt(stmt2, 1, height);
-                TryStepStatement(stmt2);
+                RollbackBatch(height);
             });
 
             return true;
@@ -152,7 +166,7 @@ namespace PocketDb
         }
     }
 
-    void ChainRepository::IndexAccount(const string& txHash)
+    void ChainRepository::IndexAccount(const string& txHash, PocketTxType txType)
     {
         // Get new ID or copy previous
         auto setIdStmt = SetupSqlStatement(R"sql(
@@ -161,18 +175,19 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select a.Id
-                        from vAccounts a
+                        from Transactions a indexed by Transactions_LastAccount
                         where a.Type = Transactions.Type
                             and a.Last = 1
+                            -- String1 = AddressHash
+                            and a.String1 = Transactions.String1
                             and a.Height is not null
-                            and a.AddressHash = Transactions.String1
                         limit 1
                     ),
                     ifnull(
                         -- new record
                         (
                             select max( a.Id ) + 1
-                            from vAccounts a
+                            from Transactions a indexed by Transactions_Type_Id
                             where a.Type = Transactions.Type
                                 and a.Height is not null
                                 and a.Id is not null
@@ -187,26 +202,10 @@ namespace PocketDb
         TryStepStatement(setIdStmt);
 
         // Clear old last records for set new last
-        auto clearLastStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                Last = 0
-            FROM (
-                select a.Hash, a.Type, a.AddressHash
-                from vAccounts a
-                where   a.Height is not null
-                    and a.Hash = ?
-            ) as account
-            WHERE   Transactions.Hash != account.Hash
-                and Transactions.Type = account.Type
-                and Transactions.String1 = account.AddressHash
-                and Transactions.Height is not null
-                and Transactions.Last = 1
-        )sql");
-        TryBindStatementText(clearLastStmt, 1, txHash);
-        TryStepStatement(clearLastStmt);
+        IndexLast(txHash, {(int)txType});
     }
 
-    void ChainRepository::IndexContent(const string& txHash)
+    void ChainRepository::IndexContent(const string& txHash, PocketTxType txType)
     {
         // Get new ID or copy previous
         auto setIdStmt = SetupSqlStatement(R"sql(
@@ -215,18 +214,19 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from vContents c
+                        from Transactions c indexed by Transactions_LastContent
                         where c.Type = Transactions.Type
-                            and c.RootTxHash = Transactions.String2
-                            and c.Height is not null
                             and c.Last = 1
+                            -- String2 = RootTxHash
+                            and c.String2 = Transactions.String2
+                            and c.Height is not null
                         limit 1
                     ),
                     -- new record
                     ifnull(
                         (
                             select max( c.Id ) + 1
-                            from vContents c
+                            from Transactions c indexed by Transactions_Type_Id
                             where c.Type = Transactions.Type
                                 and c.Height is not null
                                 and c.Id is not null
@@ -241,23 +241,7 @@ namespace PocketDb
         TryStepStatement(setIdStmt);
 
         // Clear old last records for set new last
-        auto clearLastStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                Last = 0
-            FROM (
-                select c.Hash, c.Type, c.RootTxHash
-                from vContents c
-                where c.Height is not null
-                    and c.Hash = ?
-            ) as content
-            WHERE   Transactions.Hash != content.Hash
-                and Transactions.Type = content.Type
-                and Transactions.String2 = content.RootTxHash
-                and Transactions.Height is not null
-                and Transactions.Last = 1
-        )sql");
-        TryBindStatementText(clearLastStmt, 1, txHash);
-        TryStepStatement(clearLastStmt);
+        IndexLast(txHash, {(int)txType});
     }
 
     void ChainRepository::IndexComment(const string& txHash)
@@ -269,17 +253,21 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select max( c.Id )
-                        from vComments c
-                        where c.RootTxHash = Transactions.String2
+                        from Transactions c indexed by Transactions_LastContent
+                        where c.Type in (204, 205, 206)
+                            and c.Last = 1
+                            -- String2 = RootTxHash
+                            and c.String2 = Transactions.String2
                             and c.Height is not null
-                            and c.Height <= Transactions.Height
                     ),
                     -- new record
                     ifnull(
                         (
                             select max( c.Id ) + 1
-                            from vComments c
-                            where c.Height is not null
+                            from Transactions c indexed by Transactions_Type_Id
+                            where c.Type in (204, 205, 206)
+                                and c.Height is not null
+                                and c.Id is not null
                         ),
                         0 -- for first record
                     )
@@ -291,23 +279,7 @@ namespace PocketDb
         TryStepStatement(setIdStmt);
 
         // Clear old last records for set new last
-        auto clearLastStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                Last = 0
-            FROM (
-                select c.Hash, c.RootTxHash
-                from vComments c
-                where c.Height is not null
-                    and c.Hash = ?
-            ) as content
-            WHERE   Transactions.Hash != content.Hash
-                and Transactions.Type in (204, 205, 206)
-                and Transactions.String2 = content.RootTxHash
-                and Transactions.Height is not null
-                and Transactions.Last = 1
-        )sql");
-        TryBindStatementText(clearLastStmt, 1, txHash);
-        TryStepStatement(clearLastStmt);
+        IndexLast(txHash, {204, 205, 206});
     }
 
     void ChainRepository::IndexBlocking(const string& txHash)
@@ -315,6 +287,32 @@ namespace PocketDb
         // Set last=1 for new transaction
         auto setLastStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select a.Id
+                        from Transactions a indexed by Transactions_LastAction
+                        where a.Type in (305, 306)
+                            and a.Last = 1
+                            -- String1 = AddressHash
+                            and a.String1 = Transactions.String1
+                            -- String2 = AddressToHash
+                            and a.String2 = Transactions.String2
+                            and a.Height is not null
+                        limit 1
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select max( a.Id ) + 1
+                            from Transactions a indexed by Transactions_Type_Id
+                            where a.Type in (305, 306)
+                                and a.Height is not null
+                                and a.Id is not null
+                        ),
+                        0 -- for first record
+                    )
+                ),
                 Last = 1
             WHERE Hash = ?
         )sql");
@@ -322,24 +320,7 @@ namespace PocketDb
         TryStepStatement(setLastStmt);
 
         // Clear old last records for set new last
-        auto clearLastStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                Last = 0
-            FROM (
-                select b.Hash, b.AddressHash, b.AddressToHash
-                from vBlockings b
-                where   b.Hash = ?
-                    and b.Height is not null
-            ) as blocking
-            WHERE   Transactions.Hash != blocking.Hash
-                and Transactions.Type in (305, 306)
-                and Transactions.String1 = blocking.AddressHash
-                and Transactions.String2 = blocking.AddressToHash
-                and Transactions.Height is not null
-                and Transactions.Last = 1
-        )sql");
-        TryBindStatementText(clearLastStmt, 1, txHash);
-        TryStepStatement(clearLastStmt);
+        IndexLast(txHash, {305, 306});
     }
 
     void ChainRepository::IndexSubscribe(const string& txHash)
@@ -347,6 +328,32 @@ namespace PocketDb
         // Set last=1 for new transaction
         auto setLastStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select a.Id
+                        from Transactions a indexed by Transactions_LastAction
+                        where a.Type in (302, 303, 304)
+                            and a.Last = 1
+                            -- String1 = AddressHash
+                            and a.String1 = Transactions.String1
+                            -- String2 = AddressToHash
+                            and a.String2 = Transactions.String2
+                            and a.Height is not null
+                        limit 1
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select max( a.Id ) + 1
+                            from Transactions a indexed by Transactions_Type_Id
+                            where a.Type in (302, 303, 304)
+                                and a.Height is not null
+                                and a.Id is not null
+                        ),
+                        0 -- for first record
+                    )
+                ),
                 Last = 1
             WHERE Hash = ?
         )sql");
@@ -354,68 +361,80 @@ namespace PocketDb
         TryStepStatement(setLastStmt);
 
         // Clear old last records for set new last
-        auto clearLastStmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
-                Last = 0
-            FROM (
-                select s.Hash, s.AddressHash, s.AddressToHash
-                from vSubscribes s
-                where   s.Hash = ?
-                    and s.Height is not null
-            ) as subscribe
-            WHERE   Transactions.Hash != subscribe.Hash
-                and Transactions.Type in (302, 303, 304)
-                and Transactions.String1 = subscribe.AddressHash
-                and Transactions.String2 = subscribe.AddressToHash
-                and Transactions.Height is not null
-                and Transactions.Last = 1
-        )sql");
-        TryBindStatementText(clearLastStmt, 1, txHash);
-        TryStepStatement(clearLastStmt);
+        IndexLast(txHash, {302, 303, 304});
     }
 
-
-    void ChainRepository::RollbackAccount(const string& txHash)
+    void ChainRepository::IndexLast(const string& txHash, const vector<int>& txTypes)
     {
-        // TODO (brangr): implement
-        // Restore last for old account change
         auto stmt = SetupSqlStatement(R"sql(
-            UPDATE Transactions SET
+            UPDATE Transactions indexed by Transactions_LastById SET
                 Last = 0
             FROM (
-                select a.Hash, a.Type, a.AddressHash
-                from vAccounts a
-                where   a.Height is not null
-                    and a.Hash = ?
-            ) as account
-            WHERE   Transactions.Hash != account.Hash
-                and Transactions.Type = account.Type
-                and Transactions.String1 = account.AddressHash
-                and Transactions.Height is not null
+                select t.Hash, t.id
+                from Transactions t
+                where   t.Hash = ?
+            ) as tInner
+            WHERE   Transactions.Type = in ( )sql" + join(txTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
                 and Transactions.Last = 1
+                and Transactions.Id = tInner.Id
+                and Transactions.Height is not null
+                and Transactions.Hash != tInner.Hash
         )sql");
+
         TryBindStatementText(stmt, 1, txHash);
         TryStepStatement(stmt);
     }
 
-    void ChainRepository::RollbackContent(const string& txHash)
+    void ChainRepository::RollbackLast(const TransactionIndexingInfo& txInfo)
     {
-        // TODO (brangr): implement
-    }
+        vector<int> txTypes;
+        switch (txInfo.Type)
+        {
+            case PocketTxType::ACCOUNT_USER:
+            case PocketTxType::ACCOUNT_VIDEO_SERVER:
+            case PocketTxType::ACCOUNT_MESSAGE_SERVER:
+                txTypes = {PocketTxType::ACCOUNT_USER, PocketTxType::ACCOUNT_VIDEO_SERVER, PocketTxType::ACCOUNT_MESSAGE_SERVER};
+                break;
+            case PocketTxType::CONTENT_POST:
+            case PocketTxType::CONTENT_VIDEO:
+            case PocketTxType::CONTENT_TRANSLATE:
+                txTypes = {PocketTxType::CONTENT_POST, PocketTxType::CONTENT_VIDEO, PocketTxType::CONTENT_TRANSLATE};
+                break;
+            case PocketTxType::CONTENT_COMMENT:
+            case PocketTxType::CONTENT_COMMENT_EDIT:
+            case PocketTxType::CONTENT_COMMENT_DELETE:
+                txTypes = {PocketTxType::CONTENT_COMMENT, PocketTxType::CONTENT_COMMENT_EDIT, PocketTxType::CONTENT_COMMENT_DELETE};
+                break;
+            case PocketTxType::ACTION_BLOCKING:
+            case PocketTxType::ACTION_BLOCKING_CANCEL:
+                txTypes = {PocketTxType::ACTION_BLOCKING, PocketTxType::ACTION_BLOCKING_CANCEL};
+                break;
+            case PocketTxType::ACTION_SUBSCRIBE:
+            case PocketTxType::ACTION_SUBSCRIBE_CANCEL:
+            case PocketTxType::ACTION_SUBSCRIBE_PRIVATE:
+                txTypes = {PocketTxType::ACTION_SUBSCRIBE, PocketTxType::ACTION_SUBSCRIBE_CANCEL, PocketTxType::ACTION_SUBSCRIBE_PRIVATE};
+                break;
+            default:
+                return;
+        }
+        
+        auto stmt = SetupSqlStatement(R"sql(
+            update Transactions
+                set Last = 1
+            from (
+                select t.Hash
+                from Transactions t indexed by Transactions_LastById
+                where t.Type in ( )sql" + join(txTypes | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
+                    and t.Last = 0
+                    and t.Id = (select t1.id from Transactions t1 where t1.Hash = ?)
+                order by t.Height desc
+                limit 1
+            ) as tInner
+            where Transactions.Hash = tInner.Hash
+        )sql");
 
-    void ChainRepository::RollbackComment(const string& txHash)
-    {
-        // TODO (brangr): implement
+        TryBindStatementText(stmt, 1, txInfo.Hash);
+        TryStepStatement(stmt);
     }
-
-    void ChainRepository::RollbackBlocking(const string& txHash)
-    {
-        // TODO (brangr): implement
-    }
-
-    void ChainRepository::RollbackSubscribe(const string& txHash)
-    {
-        // TODO (brangr): implement
-    }    
 
 } // namespace PocketDb

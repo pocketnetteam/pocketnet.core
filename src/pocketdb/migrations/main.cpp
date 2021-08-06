@@ -14,15 +14,24 @@ namespace PocketDb
                 BlockHash text   null,
                 BlockNum  int    null,
                 Height    int    null,
+
+                -- AccountUser
+                -- ContentPost
+                -- ContentVideo
+                -- Comment
+                -- Blocking
+                -- Subscribe
                 Last      int    not null default 0,
 
-                -- User.Id
-                -- Post.Id
+                -- AccountUser.Id
+                -- ContentPost.Id
+                -- ContentVideo.Id
                 -- Comment.Id
                 Id        int    null,
 
-                -- User.AddressHash
-                -- Post.AddressHash
+                -- AccountUser.AddressHash
+                -- ContentPost.AddressHash
+                -- ContentVideo.AddressHash
                 -- Comment.AddressHash
                 -- ScorePost.AddressHash
                 -- ScoreComment.AddressHash
@@ -31,8 +40,9 @@ namespace PocketDb
                 -- Complain.AddressHash
                 String1   text   null,
 
-                -- User.ReferrerAddressHash
-                -- Post.RootTxHash
+                -- AccountUser.ReferrerAddressHash
+                -- ContentPost.RootTxHash
+                -- ContentVideo.RootTxHash
                 -- Comment.RootTxHash
                 -- ScorePost.PostTxHash
                 -- ScoreComment.CommentTxHash
@@ -41,8 +51,9 @@ namespace PocketDb
                 -- Complain.PostTxHash
                 String2   text   null,
 
-                -- Post.RelayTxHash
-                    -- Comment.PostTxHash
+                -- ContentPost.RelayTxHash
+                -- ContentVideo.RelayTxHash
+                -- Comment.PostTxHash
                 String3   text   null,
 
                 -- Comment.ParentTxHash
@@ -62,34 +73,41 @@ namespace PocketDb
             (
                 TxHash  text   primary key, -- Transactions.Hash
 
-                -- User.Lang
-                -- Post.Lang
+                -- AccountUser.Lang
+                -- ContentPost.Lang
+                -- ContentVideo.Lang
                 -- Comment.Lang
                 String1 text   null,
 
-                -- User.Name
-                -- Post.Caption
+                -- AccountUser.Name
+                -- ContentPost.Caption
+                -- ContentVideo.Caption
                 -- Comment.Message
                 String2 text   null,
 
-                -- User.Avatar
-                -- Post.Message
+                -- AccountUser.Avatar
+                -- ContentPost.Message
+                -- ContentVideo.Message
                 String3 text   null,
 
-                -- User.About
-                -- Post.Tags JSON
+                -- AccountUser.About
+                -- ContentPost.Tags JSON
+                -- ContentVideo.Tags JSON
                 String4 text   null,
 
-                -- User.Url
-                -- Post.Images JSON
+                -- AccountUser.Url
+                -- ContentPost.Images JSON
+                -- ContentVideo.Images JSON
                 String5 text   null,
 
-                -- User.Pubkey
-                -- Post.Settings JSON
+                -- AccountUser.Pubkey
+                -- ContentPost.Settings JSON
+                -- ContentVideo.Settings JSON
                 String6 text   null,
 
-                -- User.Donations JSON
-                -- Post.Url
+                -- AccountUser.Donations JSON
+                -- ContentPost.Url
+                -- ContentVideo.Url
                 String7 text   null
             );
         )sql");
@@ -467,6 +485,7 @@ namespace PocketDb
             create index if not exists Transactions_LastAccount on Transactions (Type, Last, String1, Height);
             create index if not exists Transactions_LastContent on Transactions (Type, Last, String2, Height);
             create index if not exists Transactions_LastAction on Transactions (Type, Last, String1, String2, Height);
+            create index if not exists Transactions_LastById on Transactions (Type, Last, Id, Height);
             create index if not exists Transactions_ExistsScore on Transactions (Type, String1, String2, Height);
             create index if not exists Transactions_CountChain on Transactions (Type, Last, String1, Height, Time);
             create index if not exists Transactions_Type_Id on Transactions (Type, Id);
