@@ -23,10 +23,10 @@ public:
     class param
     {
     private:
-        int i;
-        std::string s;
-        std::vector<int> vi;
-        std::vector<std::string> vs;
+        std::optional<int> i;
+        std::optional<std::string> s;
+        std::optional<std::vector<int>> vi;
+        std::optional<std::vector<std::string>> vs;
     public:
         param();
         param(int _i);
@@ -55,6 +55,7 @@ public:
     map<string, UniValue> GetSubscribersAddresses(vector<string>& addresses);
     map<string, UniValue> GetBlockingToAddresses(vector<string>& addresses);
     map<string, UniValue> GetContentsData(vector<string>& txids);
+    map<string, UniValue> GetContents(std::map<std::string, param>& conditions, std::optional<int> &counttotal);
     map<string, UniValue> GetContents(std::map<std::string, param>& conditions);
 private:
     UniValue ParseCommentRow(sqlite3_stmt* stmt);

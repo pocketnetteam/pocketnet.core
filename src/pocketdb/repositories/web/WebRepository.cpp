@@ -6,16 +6,16 @@
 
 #include "WebRepository.h"
 
-PocketDb::WebRepository::param::param() {}
-PocketDb::WebRepository::param::param(int _i) { i = _i; }
-PocketDb::WebRepository::param::param(std::string _s) { s = _s; }
-PocketDb::WebRepository::param::param(std::vector<int> _vi) { vi = _vi; }
-PocketDb::WebRepository::param::param(std::vector<std::string> _vs) { vs = _vs; }
+PocketDb::WebRepository::param::param() { i.reset(); s.reset(); vi.reset(); vs.reset(); }
+PocketDb::WebRepository::param::param(int _i) { i = _i; s.reset(); vi.reset(); vs.reset(); }
+PocketDb::WebRepository::param::param(std::string _s) { s = _s; i.reset(); vi.reset(); vs.reset(); }
+PocketDb::WebRepository::param::param(std::vector<int> _vi) { vi = _vi; i.reset(); s.reset(); vs.reset(); }
+PocketDb::WebRepository::param::param(std::vector<std::string> _vs) { vs = _vs; i.reset(); s.reset(); vi.reset(); }
 
-int PocketDb::WebRepository::param::get_int() { return i; }
-std::string PocketDb::WebRepository::param::get_str() { return s; }
-std::vector<int> PocketDb::WebRepository::param::get_vint() { return vi; }
-std::vector<std::string> PocketDb::WebRepository::param::get_vstring() { return vs; }
+int PocketDb::WebRepository::param::get_int() { return i.value_or(0); }
+std::string PocketDb::WebRepository::param::get_str() { return s.value_or(""); }
+std::vector<int> PocketDb::WebRepository::param::get_vint() { return vi.value_or(std::vector<int>()); }
+std::vector<std::string> PocketDb::WebRepository::param::get_vstring() { return vs.value_or(std::vector<std::string>()); }
 
 void PocketDb::WebRepository::Init() {}
 
@@ -760,7 +760,7 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetContentsData(std::ve
     return result;
 }
 
-std::map<std::string, UniValue> PocketDb::WebRepository::GetContents(std::map<std::string, param>& conditions)
+std::map<std::string, UniValue> PocketDb::WebRepository::GetContents(std::map<std::string, param>& conditions, std::optional<int> &counttotal)
 {
     string sql = R"sql(
         SELECT c.RootTxHash,
@@ -785,7 +785,7 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetContents(std::map<st
     if (conditions.count("height")) sql += strprintf(" AND c.Height <= %i", conditions["height"].get_int());
     if (conditions.count("lang")) sql += strprintf(" AND c.Lang = '%s'", conditions["lang"].get_str().c_str());
     //if (conditions.count("tags")) sql += strprintf(" AND c.Tags = '%s'", conditions["tags"].get_str().c_str());
-    if (conditions.count("type")) {
+    if (conditions.count("type") && conditions["types"].get_vint().size()) {
         sql += " AND c.Type in (";
         sql += conditions["types"].get_vint()[0];
         for (size_t i = 1; i < conditions["types"].get_vint().size(); i++)
@@ -870,4 +870,9 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetContents(std::map<st
     });
 
     return result;
+}
+
+std::map<std::string, UniValue> PocketDb::WebRepository::GetContents(std::map<std::string, param>& conditions)
+{
+    //return this->GetContents(conditions, &std::nullopt);
 }
