@@ -29,7 +29,8 @@
     listen=1
     wsuse=1
     port=37070
-    rpcport=38081
+    rpcport=37071
+    publicrpcport=38081
     wsport=8087
     
     rpcthreads=1
