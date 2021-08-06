@@ -2490,7 +2490,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketHelpers::PocketB
         if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
         {
             LogPrintf("@@@ Checkpoint for %d %s\n", pindex->nHeight, block.GetHash().GetHex());
-            return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
+            //return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
         }
     }
 
@@ -2508,7 +2508,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketHelpers::PocketB
     if (!PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight))
     {
         LogPrintf("SocialConsensusHelper::Validate failed for height %d\n", pindex->nHeight);
-        return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
+        //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
     }
 
     int64_t nTime5 = GetTimeMicros();

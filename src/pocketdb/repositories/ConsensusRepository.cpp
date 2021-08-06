@@ -409,8 +409,6 @@ namespace PocketDb
                 join vContents c on c.Height is not null and c.Hash=s.ContentTxHash
                 join vAccounts ca on ca.Height is not null and ca.AddressHash=c.AddressHash
             where s.Hash = ?
-              and s.Height is not null
-            limit 1
         )sql";
 
         TryTransactionStep(__func__, [&]()
