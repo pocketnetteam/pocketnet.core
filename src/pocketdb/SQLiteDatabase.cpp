@@ -51,13 +51,14 @@ namespace PocketDb
         }
     }
 
-    bool SQLiteDatabase::BulkExecute(std::string sql, bool progress)
+    bool SQLiteDatabase::BulkExecute(std::string sql)
     {
         try
         {
             char* errMsg = nullptr;
             size_t pos;
             std::string token;
+            int i = 0;
 
             while ((pos = sql.find(';')) != std::string::npos)
             {
@@ -71,15 +72,12 @@ namespace PocketDb
                 CommitTransaction();
 
                 sql.erase(0, pos + 1);
-
-                if (progress)
-                    ProgressLogPrintf("#");
             }
         }
         catch (const std::exception&)
         {
             AbortTransaction();
-            ProgressLogPrintf("%s: Failed to create init database structure", __func__);
+            LogPrintf("%s: Failed to create init database structure\n", __func__);
             return false;
         }
 
@@ -135,11 +133,9 @@ namespace PocketDb
 
     void SQLiteDatabase::CreateStructure()
     {
-        g_logger->Progress(true);
-
         try
         {
-            ProgressLogPrintf("Creating Sqlite database structure: [");
+            LogPrintf("Creating Sqlite database structure..\n");
 
             if (!m_db || sqlite3_get_autocommit(m_db) == 0)
                 throw std::runtime_error(strprintf("%s: Database not opened?\n", __func__));
@@ -149,24 +145,20 @@ namespace PocketDb
             std::string tables;
             for (const auto& tbl : migration.Tables)
                 tables += tbl + "\n";
-            if (!BulkExecute(tables, true))
+            if (!BulkExecute(tables))
                 throw std::runtime_error(strprintf("%s: Failed to create database structure\n", __func__));
 
             std::string views;
             for (const auto& vw : migration.Views)
                 views += vw + "\n";
-            if (!BulkExecute(views, true))
+            if (!BulkExecute(views))
                 throw std::runtime_error(strprintf("%s: Failed to create database structure\n", __func__));
 
-            if (!BulkExecute(migration.Indexes, true))
+            if (!BulkExecute(migration.Indexes))
                 throw std::runtime_error(strprintf("%s: Failed to create database structure\n", __func__));
-
-            ProgressLogPrintf("]\n");
-            g_logger->Progress(false);
         }
         catch (const std::exception& ex)
         {
-            g_logger->Progress(false);
             throw std::runtime_error(ex.what());
         }
     }
@@ -185,7 +177,7 @@ namespace PocketDb
             sqlite3_stmt* stmt;
             int res = sqlite3_prepare_v2(m_db, sql.c_str(), (int) sql.size(), &stmt, nullptr);
             if (res != SQLITE_OK)
-                throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\nSql: %s",
+                throw std::runtime_error(strprintf("SQLiteDatabase: Failed to setup SQL statements: %s\nSql: %s\n",
                     sqlite3_errstr(res), sql));
 
             while (sqlite3_step(stmt) == SQLITE_ROW)
@@ -203,10 +195,8 @@ namespace PocketDb
             throw std::runtime_error(ex.what());
         }
 
-        if (!BulkExecute(indexesDropSql, true))
+        if (!BulkExecute(indexesDropSql))
             throw std::runtime_error(strprintf("%s: Failed drop indexes\n", __func__));
-
-        LogPrintf("]\n");
     }
 
     void SQLiteDatabase::Open()

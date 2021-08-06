@@ -86,19 +86,16 @@ namespace PocketDb
     bool ChainRepository::ClearDatabase()
     {
         LogPrintf("Full reindexing database. This can take several hours.\n");
-        
-        g_logger->Progress(true);
-        ProgressLogPrintf("Deleting database indexes: [");
-        
-        m_database.DropIndexes();
 
-        ProgressLogPrintf("]\n");
-        g_logger->Progress(false);
+        LogPrintf("Deleting database indexes:\n");
+        m_database.DropIndexes();
         
         LogPrintf("Rollback to first block..\n");
         RollbackBatch(0);
         
         m_database.CreateStructure();
+
+        return true;
     }
 
     bool ChainRepository::RollbackBlock(int height, vector<TransactionIndexingInfo>& txs)

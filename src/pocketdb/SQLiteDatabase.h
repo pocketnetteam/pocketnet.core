@@ -30,7 +30,7 @@ namespace PocketDb
 
         bool TryCreateDbIfNotExists();
 
-        bool BulkExecute(std::string sql, bool progress = false);
+        bool BulkExecute(std::string sql);
 
     public:
 

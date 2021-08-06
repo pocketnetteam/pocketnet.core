@@ -202,11 +202,11 @@ std::string BCLog::Logger::LogTimestampStr(const std::string &str)
     return strStamped;
 }
 
-void BCLog::Logger::LogPrintStr(const std::string &str, bool progressMsg)
+void BCLog::Logger::LogPrintStr(const std::string &str)
 {
     std::string strTimestamped = LogTimestampStr(str);
 
-    if (m_print_to_console && (!m_progress || progressMsg)) {
+    if (m_print_to_console) {
         // print to console
         fwrite(strTimestamped.data(), 1, strTimestamped.size(), stdout);
         fflush(stdout);
