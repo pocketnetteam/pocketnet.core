@@ -1808,17 +1808,34 @@ UniValue search(const JSONRPCRequest& request)
 {
     if (request.fHelp)
         throw std::runtime_error(
-            "search ...\n"
-            "\nSearch in Pocketnet DB.\n");
-
-    std::string fulltext_search_string;
-    std::string fulltext_search_string_strict;
+                "search ...\n"
+                "\nSearch in Pocketnet DB.\n");
 
     std::string search_string = "";
+    std::string search_string_strict = "";
+    std::vector<std::string> search_vector;
+
     if (request.params.size() > 0) {
-        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-        fulltext_search_string_strict = request.params[0].get_str();
-        search_string = UrlDecode(fulltext_search_string_strict);
+        if (request.params[0].isStr()) {
+            search_string_strict = request.params[0].get_str();
+            search_string = UrlDecode(search_string_strict);
+
+            search_vector.emplace_back(search_string_strict);
+            search_vector.emplace_back(UrlDecode(search_string_strict));
+            search_vector.emplace_back(UrlEncode(search_string_strict));
+        } else if (request.params[0].isArray()) {
+            UniValue srchs = request.params[0].get_array();
+            if (srchs.size() > 100) {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array");
+            }
+            if(srchs.size() > 0) {
+                for (unsigned int idx = 0; idx < srchs.size(); idx++) {
+                    search_vector.emplace_back(srchs[idx].get_str());
+                    search_vector.emplace_back(UrlDecode(srchs[idx].get_str()));
+                    search_vector.emplace_back(UrlEncode(srchs[idx].get_str()));
+                }
+            }
+        }
     }
 
     std::string type = "";
@@ -1882,13 +1899,13 @@ UniValue search(const JSONRPCRequest& request)
         //LogPrintf("--- Search: %s\n", fulltext_search_string);
         reindexer::QueryResults resPostsBySearchString;
         if (g_pocketdb->Select(
-                          reindexer::Query("Posts", resultStart, resulCount)
-                              .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
-                              .Where(search_string.at(0) == '#' ? "tags" : "caption+message", CondEq, search_string.at(0) == '#' ? search_string.substr(1) : "\"" + search_string + "\"")
-                              .Where("address", address == "" ? CondGt : CondEq, address)
-                              .Sort("time", true)
-                              .ReqTotal(),
-                          resPostsBySearchString)
+                reindexer::Query("Posts", resultStart, resulCount)
+                .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
+                .Where(search_string.at(0) == '#' ? "tags" : "caption+message", CondEq, search_string.at(0) == '#' ? search_string.substr(1) : "\"" + search_string + "\"")
+                .Where("address", address == "" ? CondGt : CondEq, address)
+                .Sort("time", true)
+                .ReqTotal(),
+                resPostsBySearchString)
                 .ok()) {
             UniValue aPosts(UniValue::VARR);
 
@@ -1917,14 +1934,14 @@ UniValue search(const JSONRPCRequest& request)
         reindexer::QueryResults resVideoLinksBySearchString;
         if (g_pocketdb->Select(
                 reindexer::Query("Posts", resultStart, resulCount)
-                    .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
-                    .Where("type", CondEq, getcontenttype("video"))
-                    .Where("url", CondSet, {fulltext_search_string_strict, UrlDecode(fulltext_search_string_strict), UrlEncode(fulltext_search_string_strict)})
-                    .Where("address", address == "" ? CondGt : CondEq, address)
-                    .Sort("time", true)
-                    .ReqTotal(),
+                .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
+                .Where("type", CondEq, getcontenttype("video"))
+                .Where("url", CondSet, search_vector)
+                .Where("address", address == "" ? CondGt : CondEq, address)
+                .Sort("time", true)
+                .ReqTotal(),
                 resVideoLinksBySearchString)
-            .ok()) {
+                .ok()) {
             UniValue aPosts(UniValue::VARR);
 
             for (auto& it : resVideoLinksBySearchString) {
@@ -1945,12 +1962,12 @@ UniValue search(const JSONRPCRequest& request)
     if (all || type == "users") {
         reindexer::QueryResults resUsersBySearchString;
         if (g_pocketdb->Select(
-                          reindexer::Query("UsersView", resultStart, resulCount)
-                              .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
-                              .Where("name_text", CondEq, "*" + UrlEncode(search_string) + "*")
-                              //.Sort("time", false)  // Do not sort or think about full-text match first
-                              .ReqTotal(),
-                          resUsersBySearchString)
+                reindexer::Query("UsersView", resultStart, resulCount)
+                .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
+                .Where("name_text", CondEq, "*" + UrlEncode(search_string) + "*")
+                //.Sort("time", false)  // Do not sort or think about full-text match first
+                .ReqTotal(),
+                resUsersBySearchString)
                 .ok()) {
             std::vector<std::string> vUserAdresses;
 
