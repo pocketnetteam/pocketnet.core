@@ -10,7 +10,7 @@
 #include <sstream>
 #include <util.h>
 
-#include "pocketdb/repositories/ChainRepository.hpp"
+#include "pocketdb/repositories/ChainRepository.h"
 #include "pocketdb/repositories/RatingsRepository.hpp"
 #include "pocketdb/repositories/TransactionRepository.hpp"
 #include "pocketdb/repositories/ConsensusRepository.h"

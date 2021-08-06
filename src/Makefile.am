@@ -108,7 +108,7 @@ POCKETDB_H = \
     pocketdb/web/PocketRpc.h \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
-    pocketdb/repositories/ChainRepository.hpp \
+    pocketdb/repositories/ChainRepository.h \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/WebUserRepository.h \
@@ -168,6 +168,7 @@ POCKETDB_CPP = \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
     pocketdb/repositories/ConsensusRepository.cpp \
+    pocketdb/repositories/ChainRepository.cpp \
     pocketdb/pocketnet.cpp \
     pocketdb/consensus.cpp \
     pocketdb/web/PocketContentRpc.cpp \
