@@ -641,7 +641,7 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
 }
 
 static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state,
-    const CTransactionRef& ptx, std::shared_ptr<PocketTx::Transaction> pocketTx,
+    const CTransactionRef& ptx, PTransactionRef& pocketTx,
     bool* pfMissingInputs,
     int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits,
     const CAmount& nAbsurdFee,
@@ -1091,9 +1091,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // At this point, we believe that all the checks have been carried 
         // out and we can safely save the transaction to the database for 
         // subsequent verification of the consensus and inclusion in the block.
-        if (!pocketTx)
-            return state.DoS(0, false, REJECT_INTERNAL, "not found payload data");
-
+        if (!pocketTx && !PocketServices::ExistsTransaction(tx))
+            return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
+                
         try
         {
             PocketBlock pocketBlock{pocketTx};

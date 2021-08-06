@@ -71,6 +71,11 @@ namespace PocketServices
         return pocketTx != nullptr;
     }
 
+    static bool ExistsTransaction(const CTransaction& tx)
+    {
+        return PocketDb::TransRepoInst.ExistsByHash(tx.GetHash().GetHex());
+    }
+
     static bool GetTransaction(const CTransaction& tx, string& data)
     {
         PTransactionRef pocketTx;
