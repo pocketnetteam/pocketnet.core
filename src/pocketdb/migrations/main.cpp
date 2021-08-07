@@ -497,7 +497,7 @@ namespace PocketDb
             create index if not exists Ratings_Height on Ratings (Height);
             create index if not exists Payload_ExistsAnotherByName on Payload (String2, TxHash);
             create index if not exists Transactions_GetScoreContentCount on Transactions (Type, String1, Height, Time, Int1);
-            create index if not exists Transactions_GetScoreContentCount_2 on Transactions (Hash, String1, Type, Height);
+            create index if not exists Transactions_GetScoreContentCount_2 on Transactions (Type, String1, String2, Height, Time, Int1);
         )sql";
     }
 }

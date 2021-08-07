@@ -595,20 +595,19 @@ namespace PocketDb
         // Build sql string
         string sql = R"sql(
             select count(1)
-            from Transactions s indexed by Transactions_GetScoreContentCount
-            join Transactions c indexed by Transactions_GetScoreContentCount_2
-                on c.Type = ? and c.Hash = s.String2 and c.String1 = ?
-            where   s.String1 = ?
+            from Transactions c indexed by Transactions_LastAction
+            join Transactions s indexed by Transactions_GetScoreContentCount_2
+                on  s.String2 = c.String2
+                and s.Type = ?
+                and s.String1 = ?
                 and s.Height <= ?
                 and s.Time < ?
                 and s.Time >= ?
-                and s.Hash != ?
-                and s.Type = ?
+                and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+            where c.Type = ?
+              and c.String1 = ?
+              and c.Last = 1
         )sql";
-
-        sql += " and s.Int1 in (";
-        sql += join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
-        sql += " ) ";
 
         // Execute
         TryTransactionStep(__func__, [&]()
@@ -619,17 +618,18 @@ namespace PocketDb
 
             int64_t nTime2 = GetTimeMicros();
 
-            TryBindStatementInt(stmt, 1, contentType);
-            TryBindStatementText(stmt, 2, contentAddress);
-            TryBindStatementText(stmt, 3, scoreAddress);
-            TryBindStatementInt(stmt, 4, height);
-            TryBindStatementInt64(stmt, 5, tx->nTime);
-            TryBindStatementInt64(stmt, 6, (int64_t) tx->nTime - scoresOneToOneDepth);
-            TryBindStatementText(stmt, 7, tx->GetHash().GetHex());
-            TryBindStatementInt(stmt, 8, scoreType);
+            TryBindStatementInt(stmt, 1, scoreType);
+            TryBindStatementText(stmt, 2, scoreAddress);
+            TryBindStatementInt(stmt, 3, height);
+            TryBindStatementInt64(stmt, 4, tx->nTime);
+            TryBindStatementInt64(stmt, 5, (int64_t) tx->nTime - scoresOneToOneDepth);
+            TryBindStatementInt(stmt, 6, contentType);
+            TryBindStatementText(stmt, 7, contentAddress);
 
-            auto endSql = sqlite3_expanded_sql(*stmt);
-            LogPrintf("      - TryTransactionStep (%s) sql: %s\n", endSql);
+            int64_t nTime30 = GetTimeMicros();
+
+            auto endSql = string(sqlite3_expanded_sql(*stmt));
+            LogPrintf("      - TryTransactionStep sql: %s\n", endSql);
 
             int64_t nTime3 = GetTimeMicros();
 
