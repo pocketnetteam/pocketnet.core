@@ -613,7 +613,11 @@ namespace PocketDb
         // Execute
         TryTransactionStep(__func__, [&]()
         {
+            int64_t nTime1 = GetTimeMicros();
+
             auto stmt = SetupSqlStatement(sql);
+
+            int64_t nTime2 = GetTimeMicros();
 
             TryBindStatementInt(stmt, 1, contentType);
             TryBindStatementText(stmt, 2, contentAddress);
@@ -624,11 +628,29 @@ namespace PocketDb
             TryBindStatementText(stmt, 7, tx->GetHash().GetHex());
             TryBindStatementInt(stmt, 8, scoreType);
 
+            auto endSql = sqlite3_expanded_sql(*stmt);
+            LogPrintf("      - TryTransactionStep (%s) sql: %s\n", endSql);
+
+            int64_t nTime3 = GetTimeMicros();
+
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
 
+            int64_t nTime4= GetTimeMicros();
+
             FinalizeSqlStatement(*stmt);
+
+            int64_t nTime5 = GetTimeMicros();
+
+            LogPrint(BCLog::BENCH, "      - TryTransactionStep (%s) details: %.2fms + %.2fms + %.2fms + %.2fms = %.2fms\n",
+                __func__,
+                0.001 * (nTime2 - nTime1),
+                0.001 * (nTime3 - nTime2),
+                0.001 * (nTime4 - nTime3),
+                0.001 * (nTime5 - nTime4),
+                0.001 * (nTime5 - nTime1)
+            );
         });
 
         return result;
