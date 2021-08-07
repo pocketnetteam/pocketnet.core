@@ -635,7 +635,7 @@ namespace PocketDb
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = value;
+                    result = value - 1;
 
             int64_t nTime4= GetTimeMicros();
 
