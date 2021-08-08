@@ -181,10 +181,15 @@ namespace PocketHelpers
         };
     }
 
+    static bool IsPocketSupportedTransaction(const CTransactionRef& tx)
+    {
+        auto txType = ParseType(tx);
+        return txType != NOT_SUPPORTED;
+    }
+
     static bool IsPocketTransaction(const CTransactionRef& tx)
     {
         auto txType = ParseType(tx);
-
         return txType != NOT_SUPPORTED &&
                txType != TX_COINBASE &&
                txType != TX_COINSTAKE &&

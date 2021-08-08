@@ -33,6 +33,9 @@ namespace PocketServices
             std::vector<std::string> txs;
             for (const auto& tx : block.vtx)
             {
+                if (!IsPocketSupportedTransaction(tx))
+                    continue;
+
                 if (onlyPocket && !IsPocketTransaction(tx))
                     continue;
 

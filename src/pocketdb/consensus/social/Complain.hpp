@@ -94,7 +94,8 @@ namespace PocketConsensus
                     {
                         PocketHelpers::SocialCheckpoints socialCheckpoints;
                         if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleComplain))
-                            return {false, SocialConsensusResult_DoubleComplain};
+                            //return {false, SocialConsensusResult_DoubleComplain};
+                            LogPrintf("--- %s %d SocialConsensusResult_DoubleComplain\n", *ptx->GetTypeInt(), *ptx->GetHash());
                     }
                 }
             }

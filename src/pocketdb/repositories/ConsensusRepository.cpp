@@ -624,7 +624,7 @@ namespace PocketDb
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = value - 1;
+                    result = value;
 
             FinalizeSqlStatement(*stmt);
         });

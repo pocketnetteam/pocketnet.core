@@ -40,7 +40,8 @@ namespace PocketConsensus
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
                 if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_InvalideSubscribe))
-                    return {false, SocialConsensusResult_InvalideSubscribe};
+                    //return {false, SocialConsensusResult_InvalideSubscribe};
+                    LogPrintf("--- %s %d SocialConsensusResult_InvalideSubscribe", *ptx->GetTypeInt(), *ptx->GetHash());
             }
 
             return Success;
@@ -62,7 +63,12 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<SubscribeCancel>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
-                    return {false, SocialConsensusResult_DoubleSubscribe};
+                {
+                    PocketHelpers::SocialCheckpoints socialCheckpoints;
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleSubscribe))
+                        //return {false, SocialConsensusResult_DoubleSubscribe};
+                        LogPrintf("--- %s %d SocialConsensusResult_DoubleSubscribe", *ptx->GetTypeInt(), *ptx->GetHash());
+                }
             }
 
             return Success;
@@ -78,7 +84,7 @@ namespace PocketConsensus
             );
 
             if (mempoolCount > 0)
-                return {false, SocialConsensusResult_DoubleSubscribe};
+                return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;
         }

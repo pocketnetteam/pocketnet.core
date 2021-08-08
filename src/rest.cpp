@@ -41,7 +41,7 @@ static const struct
 {
     RetFormat rf;
     const char* name;
-} rf_names[] = {
+}rf_names[] = {
     {RetFormat::UNDEF,  ""},
     {RetFormat::BINARY, "bin"},
     {RetFormat::HEX,    "hex"},
@@ -183,7 +183,7 @@ static bool CheckWarmup(HTTPRequest* req)
 }
 
 static bool rest_headers(HTTPRequest* req,
-                         const std::string& strURIPart)
+    const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -264,8 +264,8 @@ static bool rest_headers(HTTPRequest* req,
 }
 
 static bool rest_block(HTTPRequest* req,
-                       const std::string& strURIPart,
-                       bool showTxDetails)
+    const std::string& strURIPart,
+    bool showTxDetails)
 {
     if (!CheckWarmup(req))
         return false;
@@ -870,13 +870,32 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
         try
         {
             std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
-            if (!PocketServices::GetBlock(block, pocketBlock, true))
+            if (!PocketServices::GetBlock(block, pocketBlock, false) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
             PocketServices::TransactionIndexer::Rollback(block, pblockindex->nHeight);
 
-            if (pocketBlock)
-                PocketConsensus::SocialConsensusHelper::Validate(*pocketBlock, pblockindex->nHeight);
+            CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
+            if (pblockindex->nHeight > 100000 && block.IsProofOfStake())
+            {
+                arith_uint256 hashProof;
+                arith_uint256 targetProofOfStake;
+                CheckProofOfStake(pblockindex->pprev, block.vtx[1], block.nBits, hashProof, hashProofOfStakeSource,
+                    targetProofOfStake, NULL, false);
+
+                int64_t nReward = GetProofOfStakeReward(pblockindex->nHeight, 0, Params().GetConsensus());
+                if (!CheckBlockRatingRewards(block, pblockindex->pprev, nReward, hashProofOfStakeSource))
+                {
+                    LogPrintf("CheckBlockRatingRewards at height %d failed\n", current);
+                    return RESTERR(req, HTTP_BAD_REQUEST, "CheckBlockRatingRewards failed");
+                }
+            }
+
+            if (!PocketConsensus::SocialConsensusHelper::Validate(*pocketBlock, pblockindex->nHeight))
+            {
+                LogPrintf("failed at %d heaihgt\n", pblockindex->nHeight);
+                // return RESTERR(req, HTTP_BAD_REQUEST, "Validate failed");
+            }
 
             PocketServices::TransactionIndexer::Index(block, pblockindex->nHeight);
         }
@@ -1041,7 +1060,7 @@ static const struct
     const char* prefix;
 
     bool (* handler)(HTTPRequest* req, const std::string& strReq);
-} uri_prefixes[] = {
+}uri_prefixes[] = {
 
     {"/rest/tx/",                rest_tx},
     {"/rest/block/notxdetails/", rest_block_notxdetails},

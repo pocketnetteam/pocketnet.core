@@ -53,7 +53,8 @@ namespace PocketConsensus
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
                 if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_NotFound))
-                    return {false, SocialConsensusResult_NotFound};
+                    //return {false, SocialConsensusResult_NotFound};
+                    LogPrintf("--- %s %d SocialConsensusResult_NotFound\n", *ptx->GetTypeInt(), *ptx->GetHash());
             }
 
             // Check score to self
