@@ -342,30 +342,32 @@ static bool HTTPBindAddresses()
     // Determine what addresses to bind to
     if (!gArgs.IsArgSet("-rpcallowip"))
     { // Default to loopback if not allowing external IPs
-        g_pubSocket->BindAddress("::1", publicPort);
-        g_pubSocket->BindAddress("127.0.0.1", publicPort);
         g_socket->BindAddress("::1", securePort);
         g_socket->BindAddress("127.0.0.1", securePort);
+
         if (gArgs.IsArgSet("-rpcbind"))
-        {
-            LogPrintf(
-                "WARNING: option -rpcbind was ignored because -rpcallowip was not specified, refusing to allow everyone to connect\n");
-        }
-    } else if (gArgs.IsArgSet("-rpcbind"))
+            LogPrintf("WARNING: option -rpcbind was ignored because -rpcallowip was not specified, refusing to allow everyone to connect\n");
+    }
+    else if (gArgs.IsArgSet("-rpcbind"))
     { // Specific bind address
         for (const std::string &strRPCBind : gArgs.GetArgs("-rpcbind"))
         {
             std::string host;
             SplitHostPort(strRPCBind, publicPort, host);
-            g_pubSocket->BindAddress(host, publicPort);
             g_socket->BindAddress(host, securePort);
         }
-    } else
+    }
+    else
     { // No specific bind address specified, bind to any
-        g_pubSocket->BindAddress("::", publicPort);
-        g_pubSocket->BindAddress("0.0.0.0", publicPort);
         g_socket->BindAddress("::", securePort);
         g_socket->BindAddress("0.0.0.0", securePort);
+    }
+
+    // Public socket always bind for any connections
+    if (true)
+    {
+        g_pubSocket->BindAddress("::", publicPort);
+        g_pubSocket->BindAddress("0.0.0.0", publicPort);
     }
 
     return (g_pubSocket->GetAddressCount());
