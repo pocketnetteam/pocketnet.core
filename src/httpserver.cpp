@@ -493,12 +493,12 @@ void StartHTTPServer()
     threadHTTP = std::thread(std::move(task), eventBase);
 
     LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
-    g_socket->StartHTTPSocket(rpcMainThreads);
+    g_socket->StartHTTPSocket(rpcMainThreads, false);
 
     // The same worker threads will service POST and PUBLIC RPC requests
     int pubThreads = rpcPostThreads + rpcPublicThreads;
     LogPrintf("HTTP: starting %d Public worker threads\n", pubThreads);
-    g_pubSocket->StartHTTPSocket(pubThreads);
+    g_pubSocket->StartHTTPSocket(pubThreads, true);
 }
 
 void InterruptHTTPServer()
@@ -608,11 +608,11 @@ HTTPSocket::~HTTPSocket()
     }
 }
 
-void HTTPSocket::StartHTTPSocket(int threadCount)
+void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
 {
     for (int i = 0; i < threadCount; i++)
     {
-        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, m_workQueue);
+        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, m_workQueue, selfDbConnection);
     }
 }
 
