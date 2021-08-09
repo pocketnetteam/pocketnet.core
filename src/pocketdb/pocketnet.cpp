@@ -157,6 +157,11 @@ void FillLimitsMain(const CChainParams &params)
     std::map<int, int64_t> _threshold_balance;
     _threshold_balance.insert({0, 50 * COIN});
     Limits.insert(std::make_pair(Limit::threshold_balance, _threshold_balance));
+    
+    // threshold_balance_pro
+    std::map<int, int64_t> _threshold_balance_pro;
+    _threshold_balance_pro.insert({0, 250 * COIN});
+    Limits.insert(std::make_pair(Limit::threshold_balance_pro, _threshold_balance_pro));
 
     // threshold_likers_count
     std::map<int, int64_t> _threshold_likers_count;
@@ -167,6 +172,7 @@ void FillLimitsMain(const CChainParams &params)
     // trial_post_limit
     std::map<int, int64_t> _trial_post_limit;
     _trial_post_limit.insert({0, 15});
+    _trial_post_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 5});
     Limits.insert(std::make_pair(Limit::trial_post_limit, _trial_post_limit));
 
     // trial_post_edit_limit
@@ -177,6 +183,7 @@ void FillLimitsMain(const CChainParams &params)
     // trial_video_limit
     std::map<int, int64_t> _trial_video_limit;
     _trial_video_limit.insert({0, 15});
+    _trial_video_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 5});
     Limits.insert(std::make_pair(Limit::trial_video_limit, _trial_video_limit));
 
     // trial_video_edit_limit
@@ -188,6 +195,7 @@ void FillLimitsMain(const CChainParams &params)
     std::map<int, int64_t> _trial_score_limit;
     _trial_score_limit.insert({0, 45});
     _trial_score_limit.insert({175600, 100});
+    _trial_score_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 15});
     Limits.insert(std::make_pair(Limit::trial_score_limit, _trial_score_limit));
 
     // trial_complain_limit
@@ -225,6 +233,12 @@ void FillLimitsMain(const CChainParams &params)
     std::map<int, int64_t> _full_complain_limit;
     _full_complain_limit.insert({0, 12});
     Limits.insert(std::make_pair(Limit::full_complain_limit, _full_complain_limit));
+
+    // pro_video_limit
+    std::map<int, int64_t> _pro_video_limit;
+    _pro_video_limit.insert({0, 0});
+    _pro_video_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 100});
+    Limits.insert(std::make_pair(Limit::pro_video_limit, _pro_video_limit));
 
     // change_info_timeout
     std::map<int, int64_t> _change_info_timeout;
@@ -357,6 +371,11 @@ void FillLimitsTest(const CChainParams &params)
     std::map<int, int64_t> _threshold_balance;
     _threshold_balance.insert({0, 5 * COIN});
     Limits.insert(std::make_pair(Limit::threshold_balance, _threshold_balance));
+    
+    // threshold_balance_pro
+    std::map<int, int64_t> _threshold_balance_pro;
+    _threshold_balance_pro.insert({0, 25 * COIN});
+    Limits.insert(std::make_pair(Limit::threshold_balance_pro, _threshold_balance_pro));
 
     // threshold_likers_count
     std::map<int, int64_t> _threshold_likers_count;
@@ -423,6 +442,12 @@ void FillLimitsTest(const CChainParams &params)
     std::map<int, int64_t> _full_complain_limit;
     _full_complain_limit.insert({0, 12});
     Limits.insert(std::make_pair(Limit::full_complain_limit, _full_complain_limit));
+
+    // pro_video_limit
+    std::map<int, int64_t> _pro_video_limit;
+    _pro_video_limit.insert({0, 0});
+    _pro_video_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 100});
+    Limits.insert(std::make_pair(Limit::pro_video_limit, _pro_video_limit));
 
     // change_info_timeout
     std::map<int, int64_t> _change_info_timeout;

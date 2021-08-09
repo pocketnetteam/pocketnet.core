@@ -48,6 +48,9 @@ enum Limit {
     edit_comment_timeout,
     scores_depth_modify_reputation,
     lottery_referral_depth,
+
+    threshold_balance_pro,
+    pro_video_limit,
 };
 
 /*enum PostRanks {LAST5, LAST5R, BOOST, UREP, UREPR, DREP, PREP, PREPR, DPOST, POSTRF};

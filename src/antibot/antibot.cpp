@@ -25,11 +25,19 @@ void AntiBot::getMode(std::string _address, ABMODE& mode, int& reputation, int64
 {
     reputation = g_pocketdb->GetUserReputation(_address, height - 1);
     balance = g_pocketdb->GetUserBalance(_address, height);
+
     if (reputation >= GetActualLimit(Limit::threshold_reputation, height) ||
         balance >= GetActualLimit(Limit::threshold_balance, height))
-        mode = Full;
+    {
+        mode = ABMODE_Full;
+
+        if (balance >= GetActualLimit(Limit::threshold_balance_pro, height))
+            mode = ABMODE_Pro;
+    }
     else
-        mode = Trial;
+    {
+        mode = ABMODE_Trial;
+    }
 }
 
 void AntiBot::getMode(std::string _address, ABMODE& mode, int height)
@@ -37,12 +45,6 @@ void AntiBot::getMode(std::string _address, ABMODE& mode, int height)
     int reputation = 0;
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, height);
-
-    if (reputation >= GetActualLimit(Limit::threshold_reputation, height) ||
-        balance >= GetActualLimit(Limit::threshold_balance, height))
-        mode = Full;
-    else
-        mode = Trial;
 }
 
 int AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height)
@@ -50,32 +52,27 @@ int AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height)
     switch (_type)
     {
         case Post:
-            return _mode == Full ? GetActualLimit(Limit::full_post_limit, height) : GetActualLimit(
-                Limit::trial_post_limit, height);
+            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_post_limit, height) : GetActualLimit(Limit::trial_post_limit, height);
         case PostEdit:
-            return _mode == Full ? GetActualLimit(Limit::full_post_edit_limit, height) : GetActualLimit(
-                Limit::trial_post_edit_limit, height);
+            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_post_edit_limit, height) : GetActualLimit(Limit::trial_post_edit_limit, height);
         case CheckType_ContentVideo:
-            return _mode == Full ? GetActualLimit(Limit::full_video_limit, height) : GetActualLimit(
-                Limit::trial_video_limit, height);
+            return (_mode == ABMODE_Full)
+                ? GetActualLimit(Limit::full_video_limit, height)
+                : (_mode == ABMODE_Pro)
+                    ? GetActualLimit(Limit::pro_video_limit, height)
+                    : GetActualLimit(Limit::trial_video_limit, height);
         case CheckType_ContentVideoEdit:
-            return _mode == Full ? GetActualLimit(Limit::full_video_edit_limit, height) : GetActualLimit(
-                Limit::trial_video_edit_limit, height);
+            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_video_edit_limit, height) : GetActualLimit(Limit::trial_video_edit_limit, height);
         case Score:
-            return _mode == Full ? GetActualLimit(Limit::full_score_limit, height) : GetActualLimit(
-                Limit::trial_score_limit, height);
+            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_score_limit, height) : GetActualLimit(Limit::trial_score_limit, height);
         case Complain:
-            return _mode == Full ? GetActualLimit(Limit::full_complain_limit, height) : GetActualLimit(
-                Limit::trial_complain_limit, height);
+            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_complain_limit, height) : GetActualLimit(Limit::trial_complain_limit, height);
         case Comment:
-            return _mode == Full ? GetActualLimit(Limit::full_comment_limit, height) : GetActualLimit(
-                Limit::trial_comment_limit, height);
+            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_comment_limit, height) : GetActualLimit(Limit::trial_comment_limit, height);
         case CommentEdit:
-            return _mode == Full ? GetActualLimit(Limit::full_comment_edit_limit, height) : GetActualLimit(
-                Limit::trial_comment_edit_limit, height);
+            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_comment_edit_limit, height) : GetActualLimit(Limit::trial_comment_edit_limit, height);
         case CommentScore:
-            return _mode == Full ? GetActualLimit(Limit::full_comment_score_limit, height) : GetActualLimit(
-                Limit::trial_comment_score_limit, height);
+            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_comment_score_limit, height) : GetActualLimit(Limit::trial_comment_score_limit, height);
         default:
             return 0;
     }
@@ -2044,7 +2041,8 @@ bool AntiBot::GetUserState(std::string _address, UserStateItem& _state)
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, chainActive.Height() + 1);
 
-    _state.trial = (mode == Trial);
+    _state.trial = (mode == ABMODE_Trial);
+    _state.mode = (mode == ABMODE_Trial ? "trial" : mode == ABMODE_Full ? "full" : "pro");
     _state.reputation = reputation;
     _state.balance = balance;
 

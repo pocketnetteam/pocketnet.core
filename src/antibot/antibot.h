@@ -20,6 +20,7 @@ struct UserStateItem {
     int reputation;
     int64_t balance;
     bool trial;
+    std::string mode;
     int64_t likers;
 
     int post_unspent;
@@ -57,6 +58,7 @@ struct UserStateItem {
         result.pushKV("reputation", reputation / 10.0);
         result.pushKV("balance", balance);
         result.pushKV("trial", trial);
+        result.pushKV("mode", mode);
         result.pushKV("likers", likers);
 
         result.pushKV("post_unspent", post_unspent);
@@ -92,8 +94,9 @@ enum CHECKTYPE {
 };
 //-----------------------------------------------------
 enum ABMODE {
-    Trial,
-    Full
+    ABMODE_Trial,
+    ABMODE_Full,
+    ABMODE_Pro
 };
 //-----------------------------------------------------
 enum ANTIBOTRESULT {
