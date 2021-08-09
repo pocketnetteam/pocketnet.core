@@ -184,8 +184,11 @@ static std::vector<CSubNet> rpc_allow_subnets;
 static WorkQueue<HTTPClosure> *workQueue = nullptr;
 static WorkQueue<HTTPClosure> *workQueuePost = nullptr;
 static WorkQueue<HTTPClosure> *workQueuePublic = nullptr;
+static WorkQueue<HTTPClosure> *workQueueStatic = nullptr;
 //! Handlers for (sub)paths
 std::vector<HTTPPathHandler> pathHandlers;
+//! Handler for static we files
+std::shared_ptr<HTTPPathHandler> staticHandler = nullptr;
 //! Bound listening sockets
 std::vector<evhttp_bound_socket *> boundSockets;
 
@@ -307,8 +310,28 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     // Find registered handler for prefix
     std::string strURI = hreq->GetURI();
     std::string path;
-    std::vector<HTTPPathHandler>::const_iterator i = pathHandlers.begin();
-    std::vector<HTTPPathHandler>::const_iterator iend = pathHandlers.end();
+
+    // Call custom request handler for ALL non rest GET requests
+    if (hreq->GetRequestMethod() == HTTPRequest::GET && strURI.find("/rest/") != 0)
+    {
+        assert(workQueuePost);
+        std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, staticHandler->handler));
+        if (workQueueStatic->Enqueue(item.get()))
+        {
+            item.release();
+        }
+        else
+        {
+            LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue (GET STATIC) depth exceeded\n");
+            item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded (GET STATIC)");
+        }
+
+        return;
+    }
+
+    // Other POST requests
+    auto i = pathHandlers.begin();
+    auto iend = pathHandlers.end();
     for (; i != iend; ++i)
     {
         bool match = false;
@@ -515,15 +538,19 @@ bool InitHTTPServer()
     int workQueueMainDepth = std::max((long) gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
     int workQueuePostDepth = std::max((long) gArgs.GetArg("-rpcpostworkqueue", DEFAULT_HTTP_POST_WORKQUEUE), 1L);
     int workQueuePublicDepth = std::max((long) gArgs.GetArg("-rpcpublicworkqueue", DEFAULT_HTTP_PUBLIC_WORKQUEUE), 1L);
+    int workQueueStaticDepth = std::max((long) gArgs.GetArg("-rpcstaticworkqueue", DEFAULT_HTTP_STATIC_WORKQUEUE), 1L);
 
     workQueue = new WorkQueue<HTTPClosure>(workQueueMainDepth);
     LogPrintf("HTTP: creating work queue of depth %d\n", workQueueMainDepth);
 
     workQueuePost = new WorkQueue<HTTPClosure>(workQueuePostDepth);
-    LogPrintf("HTTP: creating work queue of depth %d\n", workQueuePostDepth);
+    LogPrintf("HTTP: creating post queue of depth %d\n", workQueuePostDepth);
 
     workQueuePublic = new WorkQueue<HTTPClosure>(workQueuePublicDepth);
-    LogPrintf("HTTP: creating work queue of depth %d\n", workQueuePublicDepth);
+    LogPrintf("HTTP: creating public queue of depth %d\n", workQueuePublicDepth);
+
+    workQueueStatic = new WorkQueue<HTTPClosure>(workQueueStaticDepth);
+    LogPrintf("HTTP: creating static queue of depth %d\n", workQueueStaticDepth);
 
     // transfer ownership to eventBase/HTTP via .release()
     eventBase = base_ctr.release();
@@ -558,6 +585,7 @@ void StartHTTPServer()
     int rpcMainThreads = std::max((long) gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
     int rpcPostThreads = std::max((long) gArgs.GetArg("-rpcpostthreads", DEFAULT_HTTP_POST_THREADS), 1L);
     int rpcPublicThreads = std::max((long) gArgs.GetArg("-rpcpublicthreads", DEFAULT_HTTP_PUBLIC_THREADS), 1L);
+    int rpcStaticThreads = std::max((long) gArgs.GetArg("-rpcstaticthreads", DEFAULT_HTTP_STATIC_THREADS), 1L);
 
     std::packaged_task<bool(event_base *)> task(ThreadHTTP);
     threadResult = task.get_future();
@@ -580,6 +608,12 @@ void StartHTTPServer()
         g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueuePublic, true);
     }
     LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
+
+    for (int i = 0; i < rpcStaticThreads; i++)
+    {
+        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueueStatic, true);
+    }
+    LogPrintf("HTTP: starting %d Static worker threads\n", rpcStaticThreads);
 }
 
 void InterruptHTTPServer()
@@ -603,6 +637,9 @@ void InterruptHTTPServer()
 
     if (workQueuePublic)
         workQueuePublic->Interrupt();
+
+    if (workQueueStatic)
+        workQueueStatic->Interrupt();
 }
 
 void StopHTTPServer()
@@ -632,6 +669,12 @@ void StopHTTPServer()
     {
         delete workQueuePublic;
         workQueuePublic = nullptr;
+    }
+
+    if (workQueueStatic)
+    {
+        delete workQueueStatic;
+        workQueueStatic = nullptr;
     }
 
     if (eventBase)
@@ -764,7 +807,7 @@ void HTTPRequest::WriteReply(int nStatus, const std::string &strReply)
     assert(evb);
     evbuffer_add(evb, strReply.data(), strReply.size());
     auto req_copy = req;
-    HTTPEvent *ev = new HTTPEvent(eventBase, true, [req_copy, nStatus]
+    auto *ev = new HTTPEvent(eventBase, true, [req_copy, nStatus]
     {
         evhttp_send_reply(req_copy, nStatus, nullptr, nullptr);
         // Re-enable reading from the socket. This is the second part of the libevent
@@ -845,13 +888,13 @@ HTTPRequest::RequestMethod HTTPRequest::GetRequestMethod() const
 void RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler)
 {
     LogPrint(BCLog::HTTP, "Registering HTTP handler for %s (exactmatch %d)\n", prefix, exactMatch);
-    pathHandlers.push_back(HTTPPathHandler(prefix, exactMatch, handler));
+    pathHandlers.emplace_back(prefix, exactMatch, handler);
 }
 
 void UnregisterHTTPHandler(const std::string &prefix, bool exactMatch)
 {
-    std::vector<HTTPPathHandler>::iterator i = pathHandlers.begin();
-    std::vector<HTTPPathHandler>::iterator iend = pathHandlers.end();
+    auto i = pathHandlers.begin();
+    auto iend = pathHandlers.end();
     for (; i != iend; ++i)
         if (i->prefix == prefix && i->exactMatch == exactMatch)
             break;
@@ -860,6 +903,11 @@ void UnregisterHTTPHandler(const std::string &prefix, bool exactMatch)
         LogPrint(BCLog::HTTP, "Unregistering HTTP handler for %s (exactmatch %d)\n", prefix, exactMatch);
         pathHandlers.erase(i);
     }
+}
+
+void RegisterStaticHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler)
+{
+    staticHandler = std::make_shared<HTTPPathHandler>(prefix, exactMatch, handler);
 }
 
 std::string urlDecode(const std::string &urlEncoded)

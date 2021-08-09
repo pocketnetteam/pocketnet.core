@@ -133,7 +133,12 @@ namespace PocketWeb
             return {HTTP_BAD_REQUEST, nullptr};
 
         if (path.empty())
+        {
+            if (!stopRecurse)
+                return GetFile("/index.html", true);
+
             return NotFound();
+        }
 
         // Remove parameters - index.html?v2
         auto _path = path;
@@ -152,8 +157,13 @@ namespace PocketWeb
         auto[readOk, fileContent] = ReadFile(_path);
         if (!readOk)
         {
-            if (!stopRecurse && _path.find("/web/") == 0)
-                return GetFile("/web/index.html", true);
+            if (!stopRecurse)
+            {
+                if (_path.find("/explorer") == 0)
+                    return GetFile("/explorer/index.html", true);
+
+                return GetFile("/index.html", true);
+            }
 
             return NotFound();
         }

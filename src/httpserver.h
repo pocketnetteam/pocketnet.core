@@ -14,9 +14,11 @@
 static const int DEFAULT_HTTP_THREADS=4;
 static const int DEFAULT_HTTP_POST_THREADS=4;
 static const int DEFAULT_HTTP_PUBLIC_THREADS=4;
+static const int DEFAULT_HTTP_STATIC_THREADS=4;
 static const int DEFAULT_HTTP_WORKQUEUE=16;
 static const int DEFAULT_HTTP_POST_WORKQUEUE=16;
 static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE=16;
+static const int DEFAULT_HTTP_STATIC_WORKQUEUE=16;
 static const int DEFAULT_HTTP_SERVER_TIMEOUT=30;
 
 struct evhttp_request;
@@ -49,6 +51,7 @@ typedef std::function<bool(HTTPRequest* req, const std::string &)> HTTPRequestHa
  * be invoked.
  */
 void RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler);
+void RegisterStaticHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler);
 /** Unregister handler for prefix */
 void UnregisterHTTPHandler(const std::string &prefix, bool exactMatch);
 

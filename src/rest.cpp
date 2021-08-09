@@ -1030,7 +1030,7 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
     if (!CheckWarmup(req))
         return false;
 
-    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile("/" + strURIPart); code == HTTP_OK)
+    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile(strURIPart); code == HTTP_OK)
     {
         req->WriteHeader("Content-Type", file->ContentType);
         req->WriteReply(code, file->Content);
@@ -1058,7 +1058,6 @@ static bool clear_web_cache(HTTPRequest* req, const std::string& strURIPart)
 static const struct
 {
     const char* prefix;
-
     bool (* handler)(HTTPRequest* req, const std::string& strReq);
 }uri_prefixes[] = {
 
@@ -1080,18 +1079,15 @@ static const struct
     {"/rest/pindexblock",        debug_index_block},
     {"/rest/pcheckblock",        debug_check_block},
     {"/rest/prewards",           debug_rewards_check},
-
-    // For static web
-    {"/web",                     get_static_web},
-    {"/clearcache",              clear_web_cache},
 };
 
 void StartREST()
 {
-
-
     for (unsigned int i = 0; i < ARRAYLEN(uri_prefixes); i++)
         RegisterHTTPHandler(uri_prefixes[i].prefix, false, uri_prefixes[i].handler);
+
+    // For static web files getter
+    RegisterStaticHTTPHandler("/", false, get_static_web);
 }
 
 void InterruptREST()
