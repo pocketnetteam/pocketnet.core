@@ -646,7 +646,7 @@ void HTTPSocket::InterruptHTTPSocket()
         m_workQueue->Interrupt();
 }
 
-void HTTPSocket::BindAddress(string ipAddr, int port)
+void HTTPSocket::BindAddress(std::string ipAddr, int port)
 { 
     LogPrint(BCLog::HTTP, "Binding RPC on address %s port %i\n", ipAddr, port);
     evhttp_bound_socket *bind_handle = evhttp_bind_socket_with_handle(m_eventHTTP,
