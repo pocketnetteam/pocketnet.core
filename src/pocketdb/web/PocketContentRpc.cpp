@@ -160,6 +160,11 @@ namespace PocketWeb::PocketContentRpc {
 
 UniValue PocketWeb::PocketContentRpc::GetContentsData(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "GetContentsData\n"
+            "\n.\n");
+
     std::vector<std::string> txids;
     if (request.params.size() > 0) {
         if (request.params[0].isStr()) {
@@ -186,6 +191,11 @@ UniValue PocketWeb::PocketContentRpc::GetContentsData(const JSONRPCRequest& requ
 
 UniValue PocketWeb::PocketContentRpc::GetHistoricalStrip(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "GetHistoricalStrip\n"
+            "\n.\n");
+
     UniValue oResult(UniValue::VOBJ);
     UniValue aContents(UniValue::VARR);
 
@@ -207,6 +217,11 @@ UniValue PocketWeb::PocketContentRpc::GetHistoricalStrip(const JSONRPCRequest& r
 
 UniValue PocketWeb::PocketContentRpc::GetHierarchicalStrip(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "GetHierarchicalStrip\n"
+            "\n.\n");
+
     return GetHistoricalStrip(request);
     UniValue oResult(UniValue::VOBJ);
     return oResult;

@@ -6,6 +6,11 @@
 
 UniValue debug(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "debug\n"
+            "\n.\n");
+
     return PocketWeb::PocketContentRpc::GetContentsData(request);
 }
 
