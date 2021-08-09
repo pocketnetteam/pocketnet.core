@@ -76,7 +76,7 @@ namespace PocketConsensus
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
                     PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_ChangeInfoLimit))
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoLimit))
                         //return {false, SocialConsensusResult_ChangeInfoLimit};
                         LogPrintf("--- %s %d SocialConsensusResult_ChangeInfoLimit\n", *ptx->GetTypeInt(), *ptx->GetHash());
                 }

@@ -93,7 +93,7 @@ namespace PocketConsensus
                     if (*ptx->GetPostTxHash() == *blockPtx->GetPostTxHash())
                     {
                         PocketHelpers::SocialCheckpoints socialCheckpoints;
-                        if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleComplain))
+                        if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleComplain))
                             //return {false, SocialConsensusResult_DoubleComplain};
                             LogPrintf("--- %s %d SocialConsensusResult_DoubleComplain\n", *ptx->GetTypeInt(), *ptx->GetHash());
                     }

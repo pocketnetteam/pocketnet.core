@@ -52,7 +52,7 @@ namespace PocketConsensus
             if (*lastContent->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_NotFound))
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NotFound))
                     //return {false, SocialConsensusResult_NotFound};
                     LogPrintf("--- %s %d SocialConsensusResult_NotFound\n", *ptx->GetTypeInt(), *ptx->GetHash());
             }
