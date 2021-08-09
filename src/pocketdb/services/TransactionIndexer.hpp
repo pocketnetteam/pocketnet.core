@@ -47,11 +47,9 @@ namespace PocketServices
             LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (nTime3 - nTime2), height);
         }
 
-        static bool Rollback(const CBlock& block, int height)
+        static bool Rollback(int height)
         {
-            vector<TransactionIndexingInfo> txs;
-            PrepareTransactions(block, txs);
-            return PocketDb::ChainRepoInst.RollbackBlock(height, txs);
+            return PocketDb::ChainRepoInst.Rollback(height);
         }
 
     protected:

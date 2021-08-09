@@ -40,22 +40,20 @@ namespace PocketDb
         bool ClearDatabase();
 
         // Erase all calculated data great or equals block
-        bool RollbackBlock(int height, vector<TransactionIndexingInfo>& txs);
+        bool Rollback(int height);
 
     private:
 
-        void RollbackBatch(int height);
+        void RollbackHeight(int height);
+        void RestoreOldLast(int height);
 
         void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
 
-        void IndexAccount(const string& txHash, PocketTxType txType);
-        void IndexContent(const string& txHash, PocketTxType txType);
-        void IndexComment(const string& txHash);
-        void IndexBlocking(const string& txHash);
-        void IndexSubscribe(const string& txHash);
-        void IndexLast(const string& txHash, const vector<int>& txTypes);
-        void RollbackLast(const TransactionIndexingInfo& txInfo);
+        void IndexAccount(const string& txHash);
+        void IndexContent(const string& txHash);
+        void IndexAction(const string& txHash);
+        void ClearOldLast(const string& txHash);
 
     };
 

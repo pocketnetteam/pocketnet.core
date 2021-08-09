@@ -873,7 +873,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
             if (!PocketServices::GetBlock(block, pocketBlock, false) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
-            PocketServices::TransactionIndexer::Rollback(block, pblockindex->nHeight);
+            PocketServices::TransactionIndexer::Rollback(pblockindex->nHeight);
 
             CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
             if (pblockindex->nHeight > 100000 && block.IsProofOfStake())
