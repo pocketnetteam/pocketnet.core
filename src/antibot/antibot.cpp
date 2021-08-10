@@ -722,6 +722,17 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
         return false;
     }
 
+    ABMODE mode;
+    getMode(_address, mode, height);
+    if (height >= Params().GetConsensus().checkpoint_disable_low_score_trial)
+    {
+        if (mode == ABMODE_Trial && (_score_value == 1 || _score_value == 2))
+        {
+            result = ANTIBOTRESULT::LowReputation;
+            return false;
+        }
+    }
+
     // Check score to self
     bool not_found = false;
     std::string _post_address;
@@ -847,8 +858,6 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
         }
     }
 
-    ABMODE mode;
-    getMode(_address, mode, height);
     int limit = getLimit(Score, mode, height);
     if (scoresCount >= limit)
     {

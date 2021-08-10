@@ -126,6 +126,7 @@ public:
         consensus.checkpoint_0_19_6 = 1180000; // ~ 20210517
         consensus.checkpoint_non_unique_account_name = 6000000; // ~
         consensus.checkpoint_split_content_video = 6000000; // ~
+        consensus.checkpoint_disable_low_score_trial = 6000000; // ~
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000027240944d0d13a869c"); // 1233867
@@ -251,6 +252,7 @@ public:
         consensus.checkpoint_0_19_6 = 1;
         consensus.checkpoint_non_unique_account_name = 0;
         consensus.checkpoint_split_content_video = 0;
+        consensus.checkpoint_disable_low_score_trial = 65000; // ~
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100001"); // 0
