@@ -2490,7 +2490,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketHelpers::PocketB
         if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
         {
             LogPrintf("@@@ Checkpoint for %d %s\n", pindex->nHeight, block.GetHash().GetHex());
-            return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
+            //return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
         }
     }
 
