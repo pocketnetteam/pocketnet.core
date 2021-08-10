@@ -27,8 +27,14 @@ namespace PocketDb
                     if (txInfo.IsContent())
                         IndexContent(txInfo.Hash);
 
-                    if (txInfo.IsAction())
-                        IndexAction(txInfo.Hash);
+                    if (txInfo.IsComment())
+                        IndexComment(txInfo.Hash);
+
+                    if (txInfo.IsBlocking())
+                        IndexBlocking(txInfo.Hash);
+
+                    if (txInfo.IsSubscribe())
+                        IndexSubscribe(txInfo.Hash);
                 }
             }
         });
@@ -190,7 +196,42 @@ namespace PocketDb
         ClearOldLast(txHash);
     }
 
-    void ChainRepository::IndexAction(const string& txHash)
+    void ChainRepository::IndexComment(const string& txHash)
+    {
+        // Get new ID or copy previous
+        auto setIdStmt = SetupSqlStatement(R"sql(
+            UPDATE Transactions SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select max( c.Id )
+                        from Transactions c indexed by Transactions_LastContent
+                        where c.Type in (204, 205, 206)
+                            and c.Last = 1
+                            -- String2 = RootTxHash
+                            and c.String2 = Transactions.String2
+                            and c.Height is not null
+                    ),
+                    -- new record
+                    ifnull(
+                        (
+                            select max( c.Id ) + 1
+                            from Transactions c indexed by Transactions_Id
+                        ),
+                        0 -- for first record
+                    )
+                ),
+                Last = 1
+            WHERE Hash = ?
+        )sql");
+        TryBindStatementText(setIdStmt, 1, txHash);
+        TryStepStatement(setIdStmt);
+
+        // Clear old last records for set new last
+        ClearOldLast(txHash);
+    }
+
+    void ChainRepository::IndexBlocking(const string& txHash)
     {
         // Set last=1 for new transaction
         auto setLastStmt = SetupSqlStatement(R"sql(
@@ -201,6 +242,44 @@ namespace PocketDb
                         select a.Id
                         from Transactions a indexed by Transactions_LastAction
                         where a.Type in (305, 306)
+                            and a.Last = 1
+                            -- String1 = AddressHash
+                            and a.String1 = Transactions.String1
+                            -- String2 = AddressToHash
+                            and a.String2 = Transactions.String2
+                            and a.Height is not null
+                        limit 1
+                    ),
+                    ifnull(
+                        -- new record
+                        (
+                            select max( a.Id ) + 1
+                            from Transactions a indexed by Transactions_Id
+                        ),
+                        0 -- for first record
+                    )
+                ),
+                Last = 1
+            WHERE Hash = ?
+        )sql");
+        TryBindStatementText(setLastStmt, 1, txHash);
+        TryStepStatement(setLastStmt);
+
+        // Clear old last records for set new last
+        ClearOldLast(txHash);
+    }
+
+    void ChainRepository::IndexSubscribe(const string& txHash)
+    {
+        // Set last=1 for new transaction
+        auto setLastStmt = SetupSqlStatement(R"sql(
+            UPDATE Transactions SET
+                Id = ifnull(
+                    -- copy self Id
+                    (
+                        select a.Id
+                        from Transactions a indexed by Transactions_LastAction
+                        where a.Type in (302, 303, 304)
                             and a.Last = 1
                             -- String1 = AddressHash
                             and a.String1 = Transactions.String1

@@ -116,11 +116,15 @@ namespace PocketTx
                    Type == PocketTxType::CONTENT_COMMENT_DELETE;
         }
 
-        bool IsAction() const
+        bool IsBlocking() const
         {
             return Type == PocketTxType::ACTION_BLOCKING ||
-                   Type == PocketTxType::ACTION_BLOCKING_CANCEL ||
-                   Type == PocketTxType::ACTION_SUBSCRIBE ||
+                   Type == PocketTxType::ACTION_BLOCKING_CANCEL;
+        }
+
+        bool IsSubscribe() const
+        {
+            return Type == PocketTxType::ACTION_SUBSCRIBE ||
                    Type == PocketTxType::ACTION_SUBSCRIBE_CANCEL ||
                    Type == PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
         }
