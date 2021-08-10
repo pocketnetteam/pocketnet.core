@@ -74,7 +74,7 @@ public:
                     start,
                     stop,
                     peer,
-                    0, //valRequest.write().size(),
+                    0,
                     0
                 }
             );
@@ -315,7 +315,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     if (hreq->GetRequestMethod() == HTTPRequest::GET && strURI.find("/rest/") != 0)
     {
         assert(workQueuePost);
-        std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, staticHandler->handler));
+        std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), strURI, staticHandler->handler));
         if (workQueueStatic->Enqueue(item.get()))
         {
             item.release();
@@ -611,7 +611,7 @@ void StartHTTPServer()
 
     for (int i = 0; i < rpcStaticThreads; i++)
     {
-        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueueStatic, true);
+        g_thread_http_workers.emplace_back(HTTPWorkQueueRun, workQueueStatic, false);
     }
     LogPrintf("HTTP: starting %d Static worker threads\n", rpcStaticThreads);
 }
