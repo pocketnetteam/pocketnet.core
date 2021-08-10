@@ -43,7 +43,7 @@ namespace PocketDb
         tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
         tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);
 
-        shared_ptr<string> GetPostAddress(const string& postHash);
+        shared_ptr<string> GetContentAddress(const string& postHash);
         int64_t GetUserBalance(const string& address);
         int GetUserReputation(const string& addressId);
         int GetUserReputation(int addressId);

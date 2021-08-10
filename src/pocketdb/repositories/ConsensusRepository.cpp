@@ -19,15 +19,14 @@ namespace PocketDb
             // TODO (brangr): implement sql for first user record - exists
             auto stmt = SetupSqlStatement(R"sql(
                 SELECT 1
-                FROM vUsersPayload ap
-                WHERE ap.Name = ?
-                    and ap.Height is not null
+                FROM Payload ap
+                WHERE ap.String2 = ?
                     and not exists (
                         select 1
-                        from vAccounts ac
+                        from Transactions ac
                         where   ac.Hash = ap.TxHash
-                            and a.Height is not null
-                            and ac.AddressHash = ?
+                            and ac.Height is not null
+                            and ac.String1 = ?
                     )
             )sql");
 
@@ -43,7 +42,6 @@ namespace PocketDb
 
     // Select all user profile edit transaction in chain
     // Transactions.Height is not null
-    // TODO (brangr) (v0.21.0): change vUser to vAccounts and pass argument type
     tuple<bool, PTransactionRef> ConsensusRepository::GetLastAccount(const string& address)
     {
         PTransactionRef tx = nullptr;
@@ -98,7 +96,6 @@ namespace PocketDb
         return {tx != nullptr, tx};
     }
 
-    // TODO (brangr) (v0.21.0): change for vAccounts and pass type as argument
     bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, bool mempool)
     {
         auto result = false;
@@ -108,12 +105,12 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            SELECT count(distinct(AddressHash))
-            FROM vUsers
-            WHERE 1=1
+            SELECT count(distinct(String1))
+            FROM Transactions
+            WHERE Type in (100, 101, 102)
         )sql";
 
-        sql += " and AddressHash in ( ";
+        sql += " and String1 in ( ";
         sql += join(vector<string>(addresses.size(), "?"), ",");
         sql += " ) ";
 
@@ -209,8 +206,7 @@ namespace PocketDb
         return {subscribeExists, subscribeType};
     }
 
-    // TODO (brangr) (v0.21.0): change for vContents and pass type as argument
-    shared_ptr<string> ConsensusRepository::GetPostAddress(const string& postHash)
+    shared_ptr<string> ConsensusRepository::GetContentAddress(const string& postHash)
     {
         shared_ptr<string> result = nullptr;
 
@@ -337,7 +333,7 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = ?
-                and r.Id = (SELECT u.Id FROM vUsers u WHERE u.Height is not null and u.Last = 1 AND u.AddressHash = ? LIMIT 1)
+                and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 AND u.String1 = ? LIMIT 1)
                 and r.Height = (select max(r1.Height) from Ratings r1 where r1.Type=r.Type and r1.Id=r.Id)
         )sql";
 
@@ -1166,9 +1162,9 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vUsers
+                from Transactions
                 where Height is null
-                    and AddressHash = ?
+                    and String1 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1190,9 +1186,9 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vUsers
+                from Transactions
                 where Height is not null
-                    and AddressHash = ?
+                    and String1 = ?
                     and Time >= ?
                     and Last = 1
             )sql");
@@ -1217,9 +1213,9 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vUsers
+                from Transactions
                 where Height is not null
-                    and AddressHash = ?
+                    and String1 = ?
                     and Height >= ?
                     and Last = 1
             )sql");
@@ -1245,9 +1241,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is null
-                    and AddressHash = ?
+                from Transactions
+                where Type in (201)
+                    and Height is null
+                    and String1 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1269,9 +1266,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is not null
-                    and AddressHash = ?
+                from Transactions
+                where Type in (201)
+                    and Height is not null
+                    and String1 = ?
                     and Time >= ?
                     and Last = 1
             )sql");
@@ -1296,9 +1294,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is not null
-                    and AddressHash = ?
+                from Transactions
+                where Type in (201)
+                    and Height is not null
+                    and String1 = ?
                     and Height >= ?
                     and Last = 1
             )sql");
@@ -1326,9 +1325,11 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vComments
-                where Height is null
-                    and RootTxHash = ?
+                from Transactions
+                where Type in (204, 205, 206)
+                    and Height is null
+                    and String2 = ?
+                    and Hash != String2
             )sql");
 
             TryBindStatementText(stmt, 1, rootTxHash);
@@ -1350,9 +1351,11 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vComments
-                where Height is not null
-                    and RootTxHash = ?
+                from Transactions
+                where Type in (204, 205, 206)
+                    and Height is not null
+                    and String2 = ?
+                    and Hash != String2
             )sql");
 
             TryBindStatementText(stmt, 1, rootTxHash);
@@ -1375,9 +1378,11 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vPosts
-                where Height is null
-                    and RootTxHash = ?
+                from Transactions
+                where Type in (200)
+                    and Height is null
+                    and String2 = ?
+                    and Hash != String2
             )sql");
 
             TryBindStatementText(stmt, 1, rootTxHash);
@@ -1399,10 +1404,11 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vPosts
-                where Height is not null
-                    and RootTxHash = ?
-                    and Hash != RootTxHash
+                from Transactions
+                where Type in (200)
+                    and Height is not null
+                    and String2 = ?
+                    and Hash != String2
             )sql");
 
             TryBindStatementText(stmt, 1, rootTxHash);
@@ -1425,9 +1431,11 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is null
-                    and RootTxHash = ?
+                from Transactions
+                where Type in (201)
+                    and Height is null
+                    and String2 = ?
+                    and Hash != String2
             )sql");
 
             TryBindStatementText(stmt, 1, rootTxHash);
@@ -1449,10 +1457,11 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is not null
-                    and RootTxHash = ?
-                    and Hash != RootTxHash
+                from Transactions
+                where Type in (201)
+                    and Height is not null
+                    and String2 = ?
+                    and Hash != String2
             )sql");
 
             TryBindStatementText(stmt, 1, rootTxHash);

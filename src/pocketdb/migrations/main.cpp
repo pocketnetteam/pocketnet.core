@@ -66,8 +66,9 @@ namespace PocketDb
                 -- ScoreComment.Value
                 -- Complain.Reason
                 Int1      int    null
-            );
+            ) without rowid;
         )sql");
+
         Tables.emplace_back(R"sql(
             create table if not exists Payload
             (
@@ -109,8 +110,9 @@ namespace PocketDb
                 -- ContentPost.Url
                 -- ContentVideo.Url
                 String7 text   null
-            );
+            ) without rowid;
         )sql");
+
         Tables.emplace_back(R"sql(
             create table if not exists TxOutputs
             (
@@ -122,8 +124,9 @@ namespace PocketDb
                 SpentHeight int    null,     -- Where spent
                 SpentTxHash text   null,     -- Who spent
                 primary key (TxHash, Number, AddressHash)
-            );
+            ) without rowid;
         )sql");
+
         Tables.emplace_back(R"sql(
             create table if not exists Ratings
             (
@@ -132,216 +135,10 @@ namespace PocketDb
                 Id     int not null,
                 Value  int not null,
                 primary key (Type, Id, Height, Value)
-            );
+            ) without rowid;
         )sql");
 
-        Views.emplace_back(R"sql(
-            drop view if exists vAccounts;
-            create view if not exists vAccounts as
-            select t.Type,
-                   t.Hash,
-                   t.Time,
-                   t.BlockHash,
-                   t.Height,
-                   t.Last,
-                   t.Id,
-                   t.String1 as AddressHash,
-                   t.String2,
-                   t.String3,
-                   t.String4,
-                   t.String5,
-                   t.Int1
-            from Transactions t
-            where t.Type in (100, 101, 102);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vUsersPayload;
-            create view if not exists vUsersPayload as
-            select p.TxHash,
-                   p.String1 as Lang,
-                   p.String2 as Name,
-                   p.String3 as Avatar,
-                   p.String4 as About,
-                   p.String5 as Url,
-                   p.String6 as Pubkey,
-                   p.String7 as Donations
-            from Payload p;
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vUsers;
-            create view if not exists vUsers as
-            select a.Type,
-                   a.Hash,
-                   a.Time,
-                   a.BlockHash,
-                   a.Height,
-                   a.Last,
-                   a.Id,
-                   a.AddressHash,
-                   a.String2 as ReferrerAddressHash,
-                   a.String3,
-                   a.String4,
-                   a.String5,
-                   a.Int1
-            from vAccounts a
-            where a.Type in (100);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vContents;
-            create view if not exists vContents as
-            select t.Type,
-                   t.Hash,
-                   t.Time,
-                   t.BlockHash,
-                   t.Height,
-                   t.Last,
-                   t.Id,
-                   t.String1 as AddressHash,
-                   t.String2 as RootTxHash,
-                   t.String3,
-                   t.String4,
-                   t.String5
-            from Transactions t
-            where t.Type in (200, 201, 202, 203, 204, 205, 206);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vPosts;
-            create view if not exists vPosts as
-            select c.Type,
-                   c.Hash,
-                   c.Time,
-                   c.BlockHash,
-                   c.Height,
-                   c.Last,
-                   c.Id,
-                   c.AddressHash,
-                   c.RootTxHash,
-                   c.String3 as RelayTxHash
-            from vContents c
-            where c.Type in (200);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vVideos;
-            create view if not exists vVideos as
-            select c.Type,
-                   c.Hash,
-                   c.Time,
-                   c.BlockHash,
-                   c.Height,
-                   c.Last,
-                   c.Id,
-                   c.AddressHash,
-                   c.RootTxHash,
-                   c.String3 as RelayTxHash
-            from vContents c
-            where c.Type in (201);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vComments;
-            create view if not exists vComments as
-            select c.Type,
-                   c.Hash,
-                   c.Time,
-                   c.BlockHash,
-                   c.Height,
-                   c.Last,
-                   c.Id,
-                   c.AddressHash,
-                   c.RootTxHash,
-                   c.String3 as PostTxHash,
-                   c.String4 as ParentTxHash,
-                   c.String5 as AnswerTxHash
-            from vContents c
-            where c.Type in (204, 205, 206);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vScores;
-            create view if not exists vScores as
-            select t.Type,
-                   t.Hash,
-                   t.Time,
-                   t.BlockHash,
-                   t.Height,
-                   t.Last,
-                   t.String1 as AddressHash,
-                   t.String2 as ContentTxHash,
-                   t.Int1    as Value
-            from Transactions t
-            where t.Type in (300, 301);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vScoreContents;
-            create view if not exists vScoreContents as
-            select s.Type,
-                   s.Hash,
-                   s.Time,
-                   s.BlockHash,
-                   s.Height,
-                   s.Last,
-                   s.AddressHash,
-                   s.ContentTxHash as PostTxHash,
-                   s.Value         as Value
-            from vScores s
-            where s.Type in (300);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vScoreComments;
-            create view if not exists vScoreComments as
-            select s.Type,
-                   s.Hash,
-                   s.Time,
-                   s.BlockHash,
-                   s.Height,
-                   s.Last,
-                   s.AddressHash,
-                   s.ContentTxHash as CommentTxHash,
-                   s.Value         as Value
-            from vScores s
-            where s.Type in (301);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vBlockings;
-            create view if not exists vBlockings as
-            select t.Type,
-                   t.Hash,
-                   t.Time,
-                   t.BlockHash,
-                   t.Height,
-                   t.Last,
-                   t.String1 as AddressHash,
-                   t.String2 as AddressToHash
-            from Transactions t
-            where t.Type in (305, 306);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vSubscribes;
-            create view if not exists vSubscribes as
-            select t.Type,
-                   t.Hash,
-                   t.Time,
-                   t.BlockHash,
-                   t.Height,
-                   t.Last,
-                   t.String1 as AddressHash,
-                   t.String2 as AddressToHash
-            from Transactions t
-            where t.Type in (302, 303, 304);
-        )sql");
-        Views.emplace_back(R"sql(
-            drop view if exists vComplains;
-            create view vComplains as
-            select t.Type,
-                   t.Hash,
-                   t.Time,
-                   t.BlockHash,
-                   t.Height,
-                   t.Last,
-                   t.String1 as AddressHash,
-                   t.String2 as PostTxHash,
-                   t.Int1    as Reason
-            from Transactions t
-            where Type in (307);
-        )sql");
+
         Views.emplace_back(R"sql(
             drop view if exists vWebUsers;
             create view vWebUsers as
@@ -365,6 +162,7 @@ namespace PocketDb
             where t.Last = 1
             and t.Type = 100;
         )sql");
+
         Views.emplace_back(R"sql(
             drop view if exists vWebContents;
             create view vWebContents as
@@ -387,6 +185,7 @@ namespace PocketDb
                     join Payload p on t.Hash = p.TxHash
             where t.Last = 1;
         )sql");
+
         Views.emplace_back(R"sql(
             drop view if exists vWebPosts;
             create view vWebPosts as
@@ -412,6 +211,7 @@ namespace PocketDb
                 and t_.Type = t.Type)
             and t.Type = 200;
         )sql");
+
         Views.emplace_back(R"sql(
             drop view if exists vWebComments;
             create view vWebComments as
@@ -435,6 +235,7 @@ namespace PocketDb
                 and t_.Type = t.Type)
             and t.Type = 204;
         )sql");
+
         Views.emplace_back(R"sql(
             drop view if exists vWebScorePosts;
             create view vWebScorePosts as
@@ -444,6 +245,7 @@ namespace PocketDb
             from Transactions
             where Type in (300);
         )sql");
+
         Views.emplace_back(R"sql(
             drop view if exists vWebScoreComments;
             create view vWebScoreComments as
@@ -453,6 +255,7 @@ namespace PocketDb
             from Transactions
             where Type in (301);
         )sql");
+
         Views.emplace_back(R"sql(
             drop view if exists vWebScoresPosts;
             create view vWebScoresPosts as
@@ -461,6 +264,7 @@ namespace PocketDb
             where Type = 300
             group by String2;
         )sql");
+
         Views.emplace_back(R"sql(
             drop view if exists vWebScoresComments;
             create view vWebScoresComments as
@@ -469,6 +273,7 @@ namespace PocketDb
             where Type = 301
             group by String2;
         )sql");
+
 
         Indexes = R"sql(
             create index if not exists Transactions_Last_Id_Height on Transactions (Last, Id, Height);

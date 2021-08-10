@@ -46,7 +46,7 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<Complain>(tx);
 
             // Author or post must be exists
-            auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*ptx->GetPostTxHash());
+            auto postAddress = PocketDb::ConsensusRepoInst.GetContentAddress(*ptx->GetPostTxHash());
             if (postAddress == nullptr)
                 return {false, SocialConsensusResult_NotFound};
 
