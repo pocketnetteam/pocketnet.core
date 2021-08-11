@@ -16,9 +16,8 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            // TODO (brangr): implement sql for first user record - exists
             auto stmt = SetupSqlStatement(R"sql(
-                SELECT 1
+                SELECT count(*)
                 FROM Payload ap
                 WHERE ap.String2 = ?
                     and not exists (
@@ -26,6 +25,7 @@ namespace PocketDb
                         from Transactions ac
                         where   ac.Hash = ap.TxHash
                             and ac.Height is not null
+                            and ac.Last = 1
                             and ac.String1 = ?
                     )
             )sql");
@@ -33,7 +33,10 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, name);
             TryBindStatementText(stmt, 2, address);
 
-            result = sqlite3_step(*stmt) == SQLITE_ROW;
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = (value > 0);
+
             FinalizeSqlStatement(*stmt);
         });
 

@@ -33,9 +33,9 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<User>(tx);
 
-            // TODO (brangr): unique names disabled
-//            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
-//                return {false, SocialConsensusResult_NicknameDouble};
+            // TODO (brangr): unique names disabled in future
+            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
+                return {false, SocialConsensusResult_NicknameDouble};
 
             return ValidateModelEdit(ptx);
         }

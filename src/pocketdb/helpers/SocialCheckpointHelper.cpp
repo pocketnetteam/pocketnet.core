@@ -22,6 +22,8 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("4cf6e53c78f0738a20266562c76b12e12951b87cc0571b280be118843bd30066", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("dedcb086b48c09d4f0083a64859ad1aa2f4d1dc91fcb3d34b5136b50cd09a127", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("d7e8b58a824b6655990a96e16e182e4951635dfe59065d176a55afba42b7e9ed", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
+    _checkpoints.emplace("62e32d7edc098b6042377dab0f88d19e837d046bf729cf621c82396ed1b381b3", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
+    _checkpoints.emplace("49bcd806b5a19e36f48b8b1d2fd87672f4cf54bca9017682fdcc9b77669bb26d", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
 
 
     _checkpoints.emplace("34d3db603ac0ba65960a3ef2508967ab4a9fc5e55a3c637af7aa50580a0f32dd", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
