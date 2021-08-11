@@ -17,17 +17,12 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                SELECT count(*)
-                FROM Payload ap
+                SELECT *
+                FROM Payload ap indexed by Payload_String2
+                join Transactions t indexed by Transactions_Hash_Height
+                  on t.Type in (100, 101, 102) and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
                 WHERE ap.String2 = ?
-                    and not exists (
-                        select 1
-                        from Transactions ac
-                        where   ac.Hash = ap.TxHash
-                            and ac.Height is not null
-                            and ac.Last = 1
-                            and ac.String1 = ?
-                    )
+                  and t.String1 != ?
             )sql");
 
             TryBindStatementText(stmt, 1, name);
@@ -51,12 +46,33 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto sql = FullTransactionSql;
-            sql += R"sql(
-                and t.String1 = ?
-                and t.Last = 1
-                and t.Height is not null
-                and t.Type in (100, 101, 102)
+            string sql = R"sql(
+                SELECT
+                    t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                FROM Transactions t indexed by Transactions_Type_Last_String1_Height
+                LEFT JOIN Payload p on t.Hash = p.TxHash
+                WHERE t.Type in (100, 101, 102)
+                    and t.String1 = ?
+                    and t.Last = 1
+                    and t.Height is not null
             )sql";
 
             auto stmt = SetupSqlStatement(sql);
@@ -78,12 +94,33 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto sql = FullTransactionSql;
-            sql += R"sql(
-                and t.String2 = ?
-                and t.Last = 1
-                and t.Height is not null
-                and t.Type in (200, 201, 202, 203, 204, 205, 206)
+            string sql = R"sql(
+                SELECT
+                    t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                FROM Transactions t indexed by Transactions_Type_Last_String2_Height
+                LEFT JOIN Payload p on t.Hash = p.TxHash
+                WHERE t.Type in (200, 201, 202, 203, 204, 205, 206)
+                    and t.String2 = ?
+                    and t.Last = 1
+                    and t.Height is not null
             )sql";
 
             auto stmt = SetupSqlStatement(sql);
@@ -111,14 +148,9 @@ namespace PocketDb
             SELECT count(distinct(String1))
             FROM Transactions
             WHERE Type in (100, 101, 102)
+              and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+              )sql" + (mempool ? "" : " and Height is not null ") + R"sql(
         )sql";
-
-        sql += " and String1 in ( ";
-        sql += join(vector<string>(addresses.size(), "?"), ",");
-        sql += " ) ";
-
-        if (!mempool)
-            sql += " and Height is not null";
 
         // Execute
         TryTransactionStep(__func__, [&]()
@@ -147,7 +179,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 SELECT Type
-                FROM Transactions indexed by Transactions_LastAction
+                FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
                 WHERE Type in (305, 306)
                     and String1 = ?
                     and String2 = ?
@@ -183,7 +215,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 SELECT Type
-                FROM Transactions indexed by Transactions_LastAction
+                FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
                 WHERE Type in (302, 303, 304)
                     and String1 = ?
                     and String2 = ?
@@ -499,7 +531,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select String2
-            from Transactions indexed by Transactions_GetScoreContentCount
+            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
             where Type in (100)
               and Height is not null
               and String1 = ?
@@ -530,7 +562,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select String2
-            from Transactions indexed by Transactions_GetScoreContentCount
+            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
             where Type in (100)
               and Height is not null
               and Time >= ?
@@ -600,8 +632,8 @@ namespace PocketDb
         // Build sql string
         string sql = R"sql(
             select count(1)
-            from Transactions c indexed by Transactions_LastAction
-            join Transactions s indexed by Transactions_ExistsScore
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions s indexed by Transactions_Type_String1_String2_Height
                 on  s.String2 = c.String2
                 and s.Type = ?
                 and s.String1 = ?
@@ -755,7 +787,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
                   and Height is null
                   and String1 = ?
@@ -780,7 +812,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
                   and Height is not null
                   and Time >= ?
@@ -808,7 +840,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
                   and Height is not null
                   and Height >= ?
@@ -919,7 +951,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is null
                   and String1 = ?
@@ -944,7 +976,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is not null
                   and String1 = ?
@@ -972,7 +1004,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is not null
                   and String1 = ?
@@ -1001,7 +1033,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
                   and Height is null
                   and String1 = ?
@@ -1026,7 +1058,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
                   and Height is not null
                   and String1 = ?
@@ -1054,7 +1086,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
                   and Height is not null
                   and Height >= ?
@@ -1083,7 +1115,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_GetScoreContentCount
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is null
                   and String1 = ?
@@ -1108,7 +1140,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is not null
                   and String1 = ?
@@ -1136,7 +1168,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is not null
                   and Height >= ?

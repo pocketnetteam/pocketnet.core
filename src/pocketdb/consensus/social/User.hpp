@@ -33,7 +33,7 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<User>(tx);
 
-            // TODO (brangr): unique names disabled in future
+            // TODO (brangr) (v0.21.0): unique names disabled in future
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
                 return {false, SocialConsensusResult_NicknameDouble};
 

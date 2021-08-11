@@ -101,8 +101,6 @@ namespace PocketDb
         TryBindStatementInt(stmtOuts, 1, height);
         TryBindStatementText(stmtOuts, 2, txHash);
         TryStepStatement(stmtOuts);
-
-        LogPrint(BCLog::BENCH, "      - TryTransactionStep (UpdateTransactionHeight %d): %s\n", height, txHash);
     }
 
     void ChainRepository::UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height)
@@ -133,7 +131,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select a.Id
-                        from Transactions a indexed by Transactions_LastAccount
+                        from Transactions a indexed by Transactions_Type_Last_String1_Height
                         where a.Type = Transactions.Type
                             and a.Last = 1
                             -- String1 = AddressHash
@@ -169,7 +167,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select c.Id
-                        from Transactions c indexed by Transactions_LastContent
+                        from Transactions c indexed by Transactions_Type_Last_String2_Height
                         where c.Type = Transactions.Type
                             and c.Last = 1
                             -- String2 = RootTxHash
@@ -205,7 +203,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select max( c.Id )
-                        from Transactions c indexed by Transactions_LastContent
+                        from Transactions c indexed by Transactions_Type_Last_String2_Height
                         where c.Type in (204, 205, 206)
                             and c.Last = 1
                             -- String2 = RootTxHash
@@ -240,7 +238,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select a.Id
-                        from Transactions a indexed by Transactions_LastAction
+                        from Transactions a indexed by Transactions_Type_Last_String1_String2_Height
                         where a.Type in (305, 306)
                             and a.Last = 1
                             -- String1 = AddressHash
@@ -278,7 +276,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select a.Id
-                        from Transactions a indexed by Transactions_LastAction
+                        from Transactions a indexed by Transactions_Type_Last_String1_String2_Height
                         where a.Type in (302, 303, 304)
                             and a.Last = 1
                             -- String1 = AddressHash

@@ -66,7 +66,7 @@ namespace PocketDb
                 -- ScoreComment.Value
                 -- Complain.Reason
                 Int1      int    null
-            ) --without rowid;
+            );
         )sql");
 
         Tables.emplace_back(R"sql(
@@ -110,7 +110,7 @@ namespace PocketDb
                 -- ContentPost.Url
                 -- ContentVideo.Url
                 String7 text   null
-            ) --without rowid;
+            );
         )sql");
 
         Tables.emplace_back(R"sql(
@@ -124,7 +124,7 @@ namespace PocketDb
                 SpentHeight int    null,     -- Where spent
                 SpentTxHash text   null,     -- Who spent
                 primary key (TxHash, Number, AddressHash)
-            ) --without rowid;
+            );
         )sql");
 
         Tables.emplace_back(R"sql(
@@ -135,7 +135,7 @@ namespace PocketDb
                 Id     int not null,
                 Value  int not null,
                 primary key (Type, Id, Height, Value)
-            ) --without rowid;
+            );
         )sql");
 
 
@@ -276,37 +276,24 @@ namespace PocketDb
 
 
         Indexes = R"sql(
-            create index if not exists Transactions_Last_Id_Height on Transactions (Last, Id, Height);
-            create index if not exists Transactions_Height_BlockHash on Transactions (Height, BlockHash);
-            create index if not exists Transactions_Hash on Transactions (Hash);
             create index if not exists Transactions_Id on Transactions (Id);
             create index if not exists Transactions_Id_Last on Transactions (Id, Last);
-            create index if not exists Transactions_Type on Transactions (Type);
             create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
-            create index if not exists Transactions_Height_Type on Transactions (Height, Type);
-            create index if not exists Transactions_Time_Type on Transactions (Time, Type);
-            create index if not exists Transactions_Type_Time on Transactions (Type, Time);
-            create index if not exists Transactions_Type_String1_Height on Transactions (Type, String1, Height, Hash);
-            create index if not exists Transactions_Type_String2_Height on Transactions (Type, String2, Height, Hash);
-            create index if not exists Transactions_Type_Height_Id on Transactions (Type, Height, Id);
-            create index if not exists Transactions_LastAccount on Transactions (Type, Last, String1, Height);
-            create index if not exists Transactions_LastContent on Transactions (Type, Last, String2, Height);
-            create index if not exists Transactions_LastAction on Transactions (Type, Last, String1, String2, Height);
-            create index if not exists Transactions_ExistsScore on Transactions (Type, String1, String2, Height);
-            create index if not exists Transactions_CountChain on Transactions (Type, Last, String1, Height, Time);
-            create index if not exists Transactions_Type_Id on Transactions (Type, Id);
-            create index if not exists Transactions_GetScoreContentCount on Transactions (Type, String1, Height, Time, Int1);
-            create index if not exists Transactions_GetScoreContentCount_2 on Transactions (Type, String1, String2, Height, Time, Int1);
+            create index if not exists Transactions_Type_Last_String1_Height on Transactions (Type, Last, String1, Height);
+            create index if not exists Transactions_Type_Last_String2_Height on Transactions (Type, Last, String2, Height);
+            create index if not exists Transactions_Type_Last_String1_String2_Height on Transactions (Type, Last, String1, String2, Height);
+            create index if not exists Transactions_Type_String1_String2_Height on Transactions (Type, String1, String2, Height);
+            create index if not exists Transactions_Type_String1_Height_Time_Int1 on Transactions (Type, String1, Height, Time, Int1);
+            create index if not exists Transactions_String1_Last_Height on Transactions (String1, Last, Height);
 
             create index if not exists TxOutputs_TxHeight on TxOutputs (TxHeight);
             create index if not exists TxOutputs_SpentHeight on TxOutputs (SpentHeight);
-            create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
             create index if not exists TxOutputs_TxHash_Number on TxOutputs (TxHash, Number);
             create index if not exists TxOutputs_AddressHash_SpentHeight_TxHeight on TxOutputs (AddressHash, SpentHeight, TxHeight);
 
             create index if not exists Ratings_Height on Ratings (Height);
 
-            create index if not exists Payload_ExistsAnotherByName on Payload (String2, TxHash);
+            create index if not exists Payload_String2 on Payload (String2);
         )sql";
     }
 }

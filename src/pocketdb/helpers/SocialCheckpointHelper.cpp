@@ -24,7 +24,8 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("d7e8b58a824b6655990a96e16e182e4951635dfe59065d176a55afba42b7e9ed", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("62e32d7edc098b6042377dab0f88d19e837d046bf729cf621c82396ed1b381b3", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("49bcd806b5a19e36f48b8b1d2fd87672f4cf54bca9017682fdcc9b77669bb26d", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
-
+    _checkpoints.emplace("71f06d7118bcaff282b4ff5b2b45570c028595e45bce1e8c5c1d7e96c05531ac", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
+    _checkpoints.emplace("e918fea2aa1956127fee9b5d5ddad40eb29d8966583c2e4c834985eed49fd14b", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
 
     _checkpoints.emplace("34d3db603ac0ba65960a3ef2508967ab4a9fc5e55a3c637af7aa50580a0f32dd", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("812fca4ea40a58ff99fcd96fefd307f33c4daef4bc13918e7a82a5b92720c2f6", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
