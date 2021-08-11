@@ -731,9 +731,13 @@ static UniValue getblockheader(const JSONRPCRequest& request)
     if (!request.params[1].isNull())
         fVerbose = request.params[1].get_bool();
 
-    const CBlockIndex* pblockindex = LookupBlockIndex(hash);
-    if (!pblockindex) {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+    CBlockIndex* pblockindex;
+    {
+        LOCK(cs_main);
+        pblockindex = LookupBlockIndex(hash);
+        if (!pblockindex) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+        }
     }
 	
     if (!fVerbose)
@@ -828,7 +832,7 @@ static UniValue getblock(const JSONRPCRequest& request)
             verbosity = request.params[1].get_bool() ? 1 : 0;
     }
 
-    const CBlockIndex* pblockindex = LookupBlockIndex(hash);
+    CBlockIndex* pblockindex = LookupBlockIndexWithoutLock(hash);
     if (!pblockindex) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
     }
@@ -1102,7 +1106,7 @@ static UniValue txToUniValue(const CTransaction& tx, const uint256& hashBlock)
 	if (!hashBlock.IsNull()) {
 		entry.pushKV("blockhash", hashBlock.GetHex());
 
-		CBlockIndex* pindex = LookupBlockIndex(hashBlock);
+		CBlockIndex* pindex = LookupBlockIndexWithoutLock(hashBlock);
 		if (pindex) {
 			entry.pushKV("height", pindex->nHeight);
 		}
@@ -1151,7 +1155,7 @@ static UniValue gettransactions(const JSONRPCRequest& request) {
 }
 
 static UniValue checkstringtype(const JSONRPCRequest& request) {
-    if (request.fHelp || request.params.size() > 1)
+    if (request.fHelp)
         throw std::runtime_error(
             "checkstringtype \"string\"\n"
             "\nCheck type of input string - address, block or tx id.\n"
@@ -1159,48 +1163,35 @@ static UniValue checkstringtype(const JSONRPCRequest& request) {
             "1. \"string\"   (string) Input string\n"
         );
 
-	std::string value;
-	if (request.params.size() > 0) {
-		value = request.params[0].get_str();
-	}
-	else {
-		throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameter");
-	}
-	//--------------------------------------
-	UniValue result(UniValue::VOBJ);
+	if (request.params.empty())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameter");
 
-	if (value.size() == 34) {
-		if (IsValidDestination(DecodeDestination(value))) {
-			if (g_pocketdb->SelectCount(reindexer::Query("Addresses").Where("address", CondEq, value)) > 0) {
-				result.pushKV("type", "address");
-				return result;
-			}
-		}
-	}
-	else if (value.size() == 64) {
-		uint256 hash(uint256S(value));
+    string value = request.params[0].get_str();
+    UniValue result(UniValue::VOBJ);
 
-		// First check transactions
-		CTransactionRef tx;
-		uint256 _blockhash;
-		if (GetTransaction(hash, tx, Params().GetConsensus(), _blockhash, true)) {
-			result.pushKV("type", "transaction");
-			return result;
-		}
+    if (value.size() == 34)
+    {
+        if (IsValidDestination(DecodeDestination(value)))
+        {
+            result.pushKV("type", "address");
+            return result;
+        }
+    }
+    else if (value.size() == 64)
+    {
+        const CBlockIndex* pblockindex = LookupBlockIndexWithoutLock(uint256S(value));
+        if (pblockindex)
+        {
+            result.pushKV("type", "block");
+            return result;
+        }
 
-		// Second check blocks
-		const CBlockIndex* pblockindex = LookupBlockIndex(hash);
-		if (pblockindex) {
-			CBlock block;
-			if (ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) {
-				result.pushKV("type", "block");
-				return result;
-			}
-		}
-	}
-	//--------------------------------------
-	result.pushKV("type", "notfound");
-	return result;
+        result.pushKV("type", "transaction");
+        return result;
+    }
+
+    result.pushKV("type", "notfound");
+    return result;
 }
 
 static std::map<std::string, UniValue> g_statistic_cache;
@@ -1315,6 +1306,7 @@ static bool GetUTXOStats(CCoinsView *view, CCoinsStats &stats)
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
     stats.hashBlock = pcursor->GetBestBlock();
     {
+        LOCK(cs_main);
         stats.nHeight = LookupBlockIndex(stats.hashBlock)->nHeight;
     }
     ss << stats.hashBlock;
@@ -1496,13 +1488,17 @@ UniValue gettxout(const JSONRPCRequest& request)
         }
     }
 
-    const CBlockIndex* pindex = LookupBlockIndex(pcoinsTip->GetBestBlock());
-    ret.pushKV("bestblock", pindex->GetBlockHash().GetHex());
-    if (coin.nHeight == MEMPOOL_HEIGHT) {
-        ret.pushKV("confirmations", 0);
-    } else {
-        ret.pushKV("confirmations", (int64_t)(pindex->nHeight - coin.nHeight + 1));
+    {
+        LOCK(cs_main);
+        const CBlockIndex* pindex = LookupBlockIndex(pcoinsTip->GetBestBlock());
+        ret.pushKV("bestblock", pindex->GetBlockHash().GetHex());
+        if (coin.nHeight == MEMPOOL_HEIGHT) {
+            ret.pushKV("confirmations", 0);
+        } else {
+            ret.pushKV("confirmations", (int64_t)(pindex->nHeight - coin.nHeight + 1));
+        }
     }
+
     ret.pushKV("value", ValueFromAmount(coin.out.nValue));
     UniValue o(UniValue::VOBJ);
     ScriptPubKeyToUniv(coin.out.scriptPubKey, o, true);
