@@ -2,22 +2,21 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "WebUserRepository.h"
+#include "pocketdb/repositories/web/WebUserRepository.h"
 
 void PocketDb::WebUserRepository::Init() {}
 
 void PocketDb::WebUserRepository::Destroy() {}
 
-UniValue PocketDb::WebUserRepository::GetUserAddress(std::string& name, int count)
+UniValue PocketDb::WebUserRepository::GetUserAddress(std::string& name)
 {
     string sql = R"sql(
-        SELECT p.String2 as Name, u.AddressHash
-        FROM vUsers u
+        SELECT p.String2, u.String1
+        FROM Transactions u
         JOIN Payload p on u.Hash = p.TxHash
-        WHERE p.String2 = ?
-        GROUP BY u.Id
-        ORDER BY u.Id
-        LIMIT ?
+        WHERE   u.Type in (100, 101, 102)
+            and p.String2 = ?
+        LIMIT 1
     )sql";
 
     auto result = UniValue(UniValue::VARR);
@@ -26,7 +25,6 @@ UniValue PocketDb::WebUserRepository::GetUserAddress(std::string& name, int coun
         auto stmt = SetupSqlStatement(sql);
 
         TryBindStatementText(stmt, 1, name);
-        TryBindStatementInt(stmt, 2, count);
 
         while (sqlite3_step(*stmt) == SQLITE_ROW) {
             UniValue record(UniValue::VOBJ);
@@ -46,33 +44,24 @@ UniValue PocketDb::WebUserRepository::GetUserAddress(std::string& name, int coun
 UniValue PocketDb::WebUserRepository::GetAddressesRegistrationDates(vector<string>& addresses)
 {
     string sql = R"sql(
-        WITH addresses (AddressHash, Height) AS (
-            SELECT AddressHash, MIN(Height) AS Height
-            FROM vUsers
-    )sql";
-
-    sql += "WHERE AddressHash IN ('";
-    sql += addresses[0];
-    sql += "'";
-    for (size_t i = 1; i < addresses.size(); i++) {
-        sql += ",'";
-        sql += addresses[i];
-        sql += "'";
-    }
-    sql += ")";
-
-    sql += R"sql(
-            GROUP BY AddressHash
+        WITH addresses (String1, Height) AS (
+            SELECT u.String1, MIN(u.Height) AS Height
+            FROM Transactions u
+            WHERE u.String1 IN ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            GROUP BY u.String1   
         )
-        SELECT u.AddressHash, u.Time, u.Hash
-        FROM vUsers u
-        INNER JOIN addresses a ON u.AddressHash = a.AddressHash AND u.Height = a.Height
+        SELECT u.String1, u.Time, u.Hash
+        FROM Transactions u
+        JOIN addresses a ON u.String1 = a.String1 AND u.Height = a.Height
     )sql";
 
     auto result = UniValue(UniValue::VARR);
 
     TryTransactionStep(__func__, [&]() {
         auto stmt = SetupSqlStatement(sql);
+
+        for (size_t i = 0; i < addresses.size(); i++)
+            TryBindStatementText(stmt, (int)i + 1, addresses[i]);
 
         while (sqlite3_step(*stmt) == SQLITE_ROW) {
             UniValue record(UniValue::VOBJ);

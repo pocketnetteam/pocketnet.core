@@ -10,9 +10,15 @@
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/BaseRepository.hpp"
 
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
+
 namespace PocketDb
 {
     using std::runtime_error;
+
+    using boost::algorithm::join;
+    using boost::adaptors::transformed;
 
     using namespace PocketTx;
     using namespace PocketHelpers;
@@ -25,7 +31,7 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        UniValue GetUserAddress(string& name, int count);
+        UniValue GetUserAddress(string& name);
         UniValue GetAddressesRegistrationDates(vector<string>& addresses);
     };
 

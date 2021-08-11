@@ -93,12 +93,7 @@ UniValue PocketWeb::PocketUserRpc::GetUserAddress(const JSONRPCRequest& request)
         userName = request.params[0].get_str();
     }
 
-    int count = 7;
-    if (request.params.size() >= 2) {
-        ParseInt32(request.params[1].get_str(), &count);
-    }
-
-    auto result = PocketDb::WebUserRepoInst.GetUserAddress(userName, count);
+    auto result = PocketDb::WebUserRepoInst.GetUserAddress(userName);
 
     return result;
 }
