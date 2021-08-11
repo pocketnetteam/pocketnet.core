@@ -1236,7 +1236,8 @@ static UniValue getstatistic(const JSONRPCRequest& request) {
             UniValue rStat(UniValue::VOBJ);
             rStat.pushKV("UsersAcc", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondLt, dt_end)));
             rStat.pushKV("Users", (int)g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("regdate", CondGe, dt_start).Where("regdate", CondLt, dt_end)));
-            rStat.pushKV("Posts", (int)g_pocketdb->SelectCount(reindexer::Query("Posts").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
+            rStat.pushKV("Posts", (int)g_pocketdb->SelectCount(reindexer::Query("Posts").Where("type", CondEq, ContentType::ContentPost).Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
+            rStat.pushKV("Videos", (int)g_pocketdb->SelectCount(reindexer::Query("Posts").Where("type", CondEq, ContentType::ContentVideo).Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
             rStat.pushKV("Ratings", (int)g_pocketdb->SelectCount(reindexer::Query("Scores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
             rStat.pushKV("CommentRatings", (int)g_pocketdb->SelectCount(reindexer::Query("CommentScores").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
             rStat.pushKV("Subscribes", (int)g_pocketdb->SelectCount(reindexer::Query("SubscribesView").Where("time", CondGe, dt_start).Where("time", CondLt, dt_end)));
