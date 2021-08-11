@@ -115,7 +115,6 @@ int getLimitsCount(std::string _table, std::string _address)
     return count;
 }
 
-// TODO (brangr): implement
 int getContentLimitsCount(ContentType _type, std::string _address)
 {
     int count = 0;
@@ -143,7 +142,7 @@ int getContentLimitsCount(ContentType _type, std::string _address)
             std::string t_src = DecodeBase64(mItm["data"].As<string>());
 
             reindexer::Item t_itm = g_pocketdb->DB()->NewItem("Posts");
-            if (t_itm.FromJSON(t_src).ok() && t_itm["address"].As<string>() == _address)
+            if (t_itm.FromJSON(t_src).ok() && t_itm["address"].As<string>() == _address && t_itm["type"].As<int>() == (int)_type)
             {
                 count += 1;
             }

@@ -251,7 +251,7 @@ public:
         consensus.checkpoint_0_19_3 = 0;
         consensus.checkpoint_0_19_6 = 1;
         consensus.checkpoint_non_unique_account_name = 0;
-        consensus.checkpoint_split_content_video = 0;
+        consensus.checkpoint_split_content_video = 65000;
         consensus.checkpoint_disable_low_score_trial = 65000; // ~
 
         // The best chain should have at least this much work.
