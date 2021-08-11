@@ -183,7 +183,7 @@ namespace PocketConsensus
     protected:
         int CheckpointHeight() override { return 0; }
 
-        // TODO (brangr): Starting from this block, we disable the uniqueness of Name
+        // TODO (brangr) (v0.21.0): Starting from this block, we disable the uniqueness of Name
         virtual tuple<bool, SocialConsensusResult> CheckDoubleName(const std::shared_ptr<User>& tx)
         {
             return make_tuple(true, SocialConsensusResult_Success);
