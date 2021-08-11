@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -12,6 +10,11 @@
 
 UniValue PocketWeb::PocketCommentsRpc::GetComments(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getcomments (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
+            "\nGet Pocketnet comments.\n");
+
     std::vector<std::string> cmnIds;
     if (request.params.size() > 3)
     {
@@ -43,7 +46,7 @@ UniValue PocketWeb::PocketCommentsRpc::GetCommentsByIds(const JSONRPCRequest& re
 {
     if (request.fHelp)
         throw std::runtime_error(
-            "getcomments (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
+            "getcommentsbyids (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
             "\nGet Pocketnet comments.\n");
 
     std::string addressHash;
@@ -68,7 +71,7 @@ UniValue PocketWeb::PocketCommentsRpc::GetCommentsByIds(const JSONRPCRequest& re
         }
     }
 
-    auto aResult = PocketDb::WebRepoInst.GetCommentsByIds(addressHash, cmnIds);
+    auto aResult = request.DbConnection()->WebRepoInst->GetCommentsByIds(addressHash, cmnIds);
 
     return aResult;
 }
@@ -97,7 +100,7 @@ UniValue PocketWeb::PocketCommentsRpc::GetCommentsByPost(const JSONRPCRequest& r
         addressHash = request.params[2].get_str();
     }
 
-    auto aResult = PocketDb::WebRepoInst.GetCommentsByPost(postHash, parentHash, addressHash);
+    auto aResult = request.DbConnection()->WebRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
 
     return aResult;
 }
@@ -128,7 +131,7 @@ UniValue PocketWeb::PocketCommentsRpc::GetLastComments(const JSONRPCRequest& req
 
     int nHeight = chainActive.Height();
 
-    auto aResult = PocketDb::WebRepoInst.GetLastComments(resultCount, nHeight, lang);
+    auto aResult = request.DbConnection()->WebRepoInst->GetLastComments(resultCount, nHeight, lang);
 
     return aResult;
 }
