@@ -114,13 +114,21 @@ namespace PocketConsensus
             // Maximum length for user name
             auto name = *ptx->GetPayloadName();
             if (name.empty() || name.size() > 35)
-                LogPrintf("$$$ SocialConsensusResult_NicknameLong - %s\n", *ptx->GetHash());
-                //return {false, SocialConsensusResult_NicknameLong};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
+                    LogPrintf("$$$ SocialConsensusResult_NicknameLong - %s\n", *ptx->GetHash());
+                    //return {false, SocialConsensusResult_NicknameLong};
+            }
 
             // Trim spaces
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
-                LogPrintf("$$$ SPACES CHECKPOINTS - %s\n", *ptx->GetHash());
-                //return {false, SocialConsensusResult_Failed};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_Failed))
+                    LogPrintf("$$$ SPACES CHECKPOINTS - %s\n", *ptx->GetHash());
+                    //return {false, SocialConsensusResult_Failed};
+            }
 
             return Success;
         }

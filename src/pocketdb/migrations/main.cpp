@@ -66,7 +66,7 @@ namespace PocketDb
                 -- ScoreComment.Value
                 -- Complain.Reason
                 Int1      int    null
-            ) without rowid;
+            ) --without rowid;
         )sql");
 
         Tables.emplace_back(R"sql(
@@ -110,7 +110,7 @@ namespace PocketDb
                 -- ContentPost.Url
                 -- ContentVideo.Url
                 String7 text   null
-            ) without rowid;
+            ) --without rowid;
         )sql");
 
         Tables.emplace_back(R"sql(
@@ -124,7 +124,7 @@ namespace PocketDb
                 SpentHeight int    null,     -- Where spent
                 SpentTxHash text   null,     -- Who spent
                 primary key (TxHash, Number, AddressHash)
-            ) without rowid;
+            ) --without rowid;
         )sql");
 
         Tables.emplace_back(R"sql(
@@ -135,7 +135,7 @@ namespace PocketDb
                 Id     int not null,
                 Value  int not null,
                 primary key (Type, Id, Height, Value)
-            ) without rowid;
+            ) --without rowid;
         )sql");
 
 
