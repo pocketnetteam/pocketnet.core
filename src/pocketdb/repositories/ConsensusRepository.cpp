@@ -598,7 +598,7 @@ namespace PocketDb
         string sql = R"sql(
             select count(1)
             from Transactions c indexed by Transactions_LastAction
-            join Transactions s indexed by Transactions_GetScoreContentCount_2
+            join Transactions s indexed by Transactions_ExistsScore
                 on  s.String2 = c.String2
                 and s.Type = ?
                 and s.String1 = ?
