@@ -832,7 +832,8 @@ static UniValue getblock(const JSONRPCRequest& request)
             verbosity = request.params[1].get_bool() ? 1 : 0;
     }
 
-    CBlockIndex* pblockindex = LookupBlockIndexWithoutLock(hash);
+    LOCK(cs_main);
+    CBlockIndex* pblockindex = LookupBlockIndex(hash);
     if (!pblockindex) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
     }
