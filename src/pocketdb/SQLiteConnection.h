@@ -8,7 +8,6 @@
 #include "pocketdb/SQLiteDatabase.h"
 
 #include "pocketdb/repositories/web/WebRepository.h"
-#include "pocketdb/repositories/web/WebUserRepository.h"
 #include "pocketdb/repositories/web/ExplorerRepository.h"
 
 #include "pocketdb/web/PocketFrontend.h"
@@ -30,7 +29,6 @@ namespace PocketDb
         ~SQLiteConnection();
 
         WebRepositoryRef WebRepoInst;
-        WebUserRepositoryRef WebUserRepoInst;
         ExplorerRepositoryRef ExplorerRepoInst;
 
     };

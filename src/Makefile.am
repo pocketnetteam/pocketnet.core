@@ -111,7 +111,6 @@ POCKETDB_H = \
     pocketdb/repositories/ChainRepository.h \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/web/WebRepository.h \
-    pocketdb/repositories/web/WebUserRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Lottery.hpp \
@@ -164,7 +163,6 @@ POCKETDB_CPP = \
     pocketdb/migrations/main.cpp \
     pocketdb/SQLiteDatabase.cpp \
     pocketdb/SQLiteConnection.cpp \
-    pocketdb/repositories/web/WebUserRepository.cpp \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
     pocketdb/repositories/ConsensusRepository.cpp \

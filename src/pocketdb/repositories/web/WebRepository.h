@@ -8,11 +8,15 @@
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/BaseRepository.hpp"
 
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 #include <timedata.h>
 
 namespace PocketDb
 {
 using std::runtime_error;
+using boost::algorithm::join;
+using boost::adaptors::transformed;
 
 using namespace PocketTx;
 using namespace PocketHelpers;
@@ -44,6 +48,8 @@ public:
     void Init() override;
     void Destroy() override;
 
+    UniValue GetUserAddress(string& name);
+    UniValue GetAddressesRegistrationDates(vector<string>& addresses);
     UniValue GetAddressInfo(int count);
     UniValue GetCommentsByPost(const std::string& postHash, const std::string& parentHash, const std::string& addressHash);
     UniValue GetCommentsByIds(string& addressHash, vector<string>& commentHashes);
@@ -57,8 +63,10 @@ public:
     map<string, UniValue> GetContentsData(vector<string>& txids);
     map<string, UniValue> GetContents(std::map<std::string, param>& conditions, std::optional<int> &counttotal);
     map<string, UniValue> GetContents(std::map<std::string, param>& conditions);
+
 private:
     UniValue ParseCommentRow(sqlite3_stmt* stmt);
+
 };
 
 typedef std::shared_ptr<WebRepository> WebRepositoryRef;
