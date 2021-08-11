@@ -120,7 +120,7 @@ namespace PocketConsensus
             // Trim spaces
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
                 LogPrintf("$$$ SPACES CHECKPOINTS - %s\n", *ptx->GetHash());
-            //return {false, SocialConsensusResult_Failed};
+                //return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
