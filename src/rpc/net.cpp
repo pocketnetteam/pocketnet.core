@@ -727,7 +727,7 @@ static const CRPCCommand commands[] =
   //  --------------------- ------------------------  -----------------------  ----------
     { "network",            "getconnectioncount",     &getconnectioncount,     {} },
     { "network",            "ping",                   &ping,                   {} },
-    { "network",            "getpeerinfo",            &getpeerinfo,            {},                                             false},
+    { "network",            "getpeerinfo",            &getpeerinfo,            {}},
     { "network",            "addnode",                &addnode,                {"node","command"} },
     { "network",            "disconnectnode",         &disconnectnode,         {"address", "nodeid"} },
     { "network",            "getaddednodeinfo",       &getaddednodeinfo,       {"node"} },

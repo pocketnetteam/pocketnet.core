@@ -14,6 +14,10 @@ namespace PocketWeb
     {
     public:
         UniValue GetTime(const JSONRPCRequest& request);
+        // TODO (brangr): implement getpeerinfo
+        // TODO (brangr): implement getnodeinfo
+        // TODO (brangr): implement getrawtransaction ?
+        // TODO (brangr): implement sendrawtransaction ?
     };
 }
 

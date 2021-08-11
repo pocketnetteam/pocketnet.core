@@ -9,6 +9,10 @@
 
 #include "pocketdb/web/PocketContentRpc.h"
 #include "pocketdb/web/PocketExplorerRpc.h"
+#include "pocketdb/web/PocketCommentsRpc.h"
+#include "pocketdb/web/PocketScoresRpc.h"
+#include "pocketdb/web/PocketSystemRpc.h"
+#include "pocketdb/web/PocketUserRpc.h"
 
 
 #endif //SRC_POCKETRPC_H

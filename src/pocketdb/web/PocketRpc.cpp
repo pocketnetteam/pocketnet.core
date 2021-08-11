@@ -14,25 +14,30 @@ UniValue debug(const JSONRPCRequest& request)
     return PocketWeb::PocketContentRpc::GetContentsData(request);
 }
 
-
+// @formatter:off
 static const CRPCCommand commands[] =
 {
     {"debug", "debugweb", &debug, {}, false},
 
-    //Contents
-    { "contents", "gethistoricalstrip",     &PocketWeb::PocketContentRpc::GetHistoricalStrip,   {"endTime", "depth"}, false},
-    { "contents", "gethierarchicalstrip",   &PocketWeb::PocketContentRpc::GetHierarchicalStrip, {"endTime", "depth"}, false},
+    // Contents
+    { "contents", "getcontentsdata",        &PocketWeb::PocketContentRpc::GetContentsData,      {"ids"}},
+    { "contents", "gethistoricalstrip",     &PocketWeb::PocketContentRpc::GetHistoricalStrip,   {"endTime", "depth"}},
+    { "contents", "gethierarchicalstrip",   &PocketWeb::PocketContentRpc::GetHierarchicalStrip, {"endTime", "depth"}},
+
+    // Comments
+
 
     // Explorer
-    { "explorer", "getstatistic",           &PocketExplorerRpc::GetStatistic,                   {"endTime", "depth"}, false},
-    { "explorer", "getaddressspent",        &PocketExplorerRpc::GetAddressSpent,                {"address"}, false },
-    { "explorer", "getcompactblock",        &PocketExplorerRpc::GetCompactBlock,                {"blockHash"}, false },
-    { "explorer", "getlastblocks",          &PocketExplorerRpc::GetLastBlocks,                  {"count", "lastHeight", "verbose"}, false },
-    { "explorer", "searchbyhash",           &PocketExplorerRpc::SearchByHash,                   {"value"}, false },
-    { "explorer", "gettransactions",        &PocketExplorerRpc::GetTransactions,                {"transactions"}, false },
-    { "explorer", "getaddresstransactions", &PocketExplorerRpc::GetAddressTransactions,         {"address"}, false },
-    { "explorer", "getblocktransactions",   &PocketExplorerRpc::GetBlockTransactions,           {"blockHash"}, false },
+    { "explorer", "getstatistic",           &PocketExplorerRpc::GetStatistic,                   {"endTime", "depth"}},
+    { "explorer", "getaddressspent",        &PocketExplorerRpc::GetAddressSpent,                {"address"} },
+    { "explorer", "getcompactblock",        &PocketExplorerRpc::GetCompactBlock,                {"blockHash"} },
+    { "explorer", "getlastblocks",          &PocketExplorerRpc::GetLastBlocks,                  {"count", "lastHeight", "verbose"} },
+    { "explorer", "searchbyhash",           &PocketExplorerRpc::SearchByHash,                   {"value"} },
+    { "explorer", "gettransactions",        &PocketExplorerRpc::GetTransactions,                {"transactions"} },
+    { "explorer", "getaddresstransactions", &PocketExplorerRpc::GetAddressTransactions,         {"address"} },
+    { "explorer", "getblocktransactions",   &PocketExplorerRpc::GetBlockTransactions,           {"blockHash"} },
 };
+// @formatter:on
 
 void RegisterPocketnetWebRPCCommands(CRPCTable& t)
 {

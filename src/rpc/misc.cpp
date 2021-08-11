@@ -521,14 +521,15 @@ static const CRPCCommand commands[] =
     { "util",               "createmultisig",         &createmultisig,         {"nrequired","keys"} },
     { "util",               "verifymessage",          &verifymessage,          {"address","signature","message"} },
     { "util",               "signmessagewithprivkey", &signmessagewithprivkey, {"privkey","message"} },
+    { "util",               "getcoininfo",            &getcoininfo,            {"height"}},
 
     /* Not shown in help */
     { "hidden",             "setmocktime",            &setmocktime,            {"timestamp"}},
     { "hidden",             "echo",                   &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "echojson",               &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 
-    { "util",               "getnodeinfo",            &getnodeinfo,            {}, false},
-    { "util",               "getcoininfo",            &getcoininfo,            {"height"}, false},
+    // TODO (brangr): move to web/PocketSystemRpc
+    { "util",               "getnodeinfo",            &getnodeinfo,            {}},
 };
 // clang-format on
 

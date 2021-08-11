@@ -1897,11 +1897,11 @@ static const CRPCCommand commands[] =
 {
     //  category              name                                    actor (function)                    argNames
     //  --------------------- ------------------------                -----------------------             ---------------------------------------------------
-    {   "rawtransactions",    "getrawtransaction",                    &getrawtransaction,                 {"txid", "verbose", "blockhash"}, false},
+    {   "rawtransactions",    "getrawtransaction",                    &getrawtransaction,                 {"txid", "verbose", "blockhash"}},
     {   "rawtransactions",    "createrawtransaction",                 &createrawtransaction,              {"inputs", "outputs", "locktime", "replaceable"}},
     {   "rawtransactions",    "decoderawtransaction",                 &decoderawtransaction,              {"hexstring", "iswitness"}},
     {   "rawtransactions",    "decodescript",                         &decodescript,                      {"hexstring"}},
-    {   "rawtransactions",    "sendrawtransaction",                   &sendrawtransaction,                {"hexstring", "allowhighfees"}, false},
+    {   "rawtransactions",    "sendrawtransaction",                   &sendrawtransaction,                {"hexstring", "allowhighfees"}},
     {   "rawtransactions",    "combinerawtransaction",                &combinerawtransaction,             {"txs"}},
     {   "hidden",             "signrawtransaction",                   &signrawtransaction,                {"hexstring", "prevtxs", "privkeys", "sighashtype"}},
     {   "rawtransactions",    "signrawtransactionwithkey",            &signrawtransactionwithkey,         {"hexstring", "privkeys", "prevtxs",  "sighashtype"}},
