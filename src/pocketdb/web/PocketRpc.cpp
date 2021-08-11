@@ -17,7 +17,7 @@ UniValue debug(const JSONRPCRequest& request)
 // @formatter:off
 static const CRPCCommand commands[] =
 {
-    {"debug", "debugweb", &debug, {}, false},
+    {"debug", "debugweb", &debug, {}},
 
     // Contents
     { "contents", "getcontentsdata",        &PocketWeb::PocketContentRpc::GetContentsData,      {"ids"}},
@@ -29,13 +29,13 @@ static const CRPCCommand commands[] =
 
     // Explorer
     { "explorer", "getstatistic",           &PocketExplorerRpc::GetStatistic,                   {"endTime", "depth"}},
-    { "explorer", "getaddressspent",        &PocketExplorerRpc::GetAddressSpent,                {"address"} },
-    { "explorer", "getcompactblock",        &PocketExplorerRpc::GetCompactBlock,                {"blockHash"} },
-    { "explorer", "getlastblocks",          &PocketExplorerRpc::GetLastBlocks,                  {"count", "lastHeight", "verbose"} },
-    { "explorer", "searchbyhash",           &PocketExplorerRpc::SearchByHash,                   {"value"} },
-    { "explorer", "gettransactions",        &PocketExplorerRpc::GetTransactions,                {"transactions"} },
-    { "explorer", "getaddresstransactions", &PocketExplorerRpc::GetAddressTransactions,         {"address"} },
-    { "explorer", "getblocktransactions",   &PocketExplorerRpc::GetBlockTransactions,           {"blockHash"} },
+    { "explorer", "getaddressspent",        &PocketExplorerRpc::GetAddressSpent,                {"address"}},
+    { "explorer", "getcompactblock",        &PocketExplorerRpc::GetCompactBlock,                {"blockHash"}},
+    { "explorer", "getlastblocks",          &PocketExplorerRpc::GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
+    { "explorer", "searchbyhash",           &PocketExplorerRpc::SearchByHash,                   {"value"}},
+    { "explorer", "gettransactions",        &PocketExplorerRpc::GetTransactions,                {"transactions"}},
+    { "explorer", "getaddresstransactions", &PocketExplorerRpc::GetAddressTransactions,         {"address"}},
+    { "explorer", "getblocktransactions",   &PocketExplorerRpc::GetBlockTransactions,           {"blockHash"}}
 };
 // @formatter:on
 
