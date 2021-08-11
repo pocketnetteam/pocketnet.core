@@ -1918,7 +1918,6 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
         {
             if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str()))
             {
-                LogPrintf("FailedOpReturn vasm: %s - oitm: %s\n", vasm[2], oitm.write());
                 resultCode = ANTIBOTRESULT::FailedOpReturn;
                 return;
             }
