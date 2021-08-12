@@ -1030,7 +1030,7 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
     if (!CheckWarmup(req))
         return false;
 
-    if (strURIPart.find("clear"))
+    if (strURIPart.find("/clear") == 0)
     {
         PocketWeb::PocketFrontendInst.ClearCache();
         req->WriteReply(HTTP_OK, "Cache cleared!");
