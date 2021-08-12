@@ -195,26 +195,8 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
         std::string strReply;
 
         // singleton request
-        if (valRequest.isObject()) {
-
-            if (!rpcAuthenticate) {
-                UniValue valMethod = find_value(valRequest, "method");
-                if (!valMethod.isNull() && valMethod.isStr()) {
-                    const std::string& sMethd = valMethod.get_str();
-                    const CRPCCommand* pcmd = tableRPC[sMethd];
-                    if (!pcmd)
-                        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
-
-                    if (pcmd->pwdRequied) {
-                        req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
-                        req->WriteReply(HTTP_UNAUTHORIZED);
-                        return false;
-                    }
-                } else {
-                    throw JSONRPCError(RPC_PARSE_ERROR, "method not found");
-                }
-            }
-
+        if (valRequest.isObject())
+        {
             jreq.parse(valRequest);
             jreq.SetDbConnection(req->DbConnection());
 

@@ -149,9 +149,9 @@ namespace PocketWeb::PocketContentRpc {
             return conditions;
         }
 
-        std::map<std::string, UniValue> GetContentsData(std::vector<std::string> txids)
+        std::map<std::string, UniValue> GetContentsData(const DbConnectionRef& dbCon, std::vector<std::string> txids)
         {
-            auto result = PocketDb::WebRepoInst.GetContentsData(txids);
+            auto result = dbCon->WebRepoInst->GetContentsData(txids);
 
             return result;
         }
@@ -160,6 +160,11 @@ namespace PocketWeb::PocketContentRpc {
 
 UniValue PocketWeb::PocketContentRpc::GetContentsData(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "GetContentsData\n"
+            "\n.\n");
+
     std::vector<std::string> txids;
     if (request.params.size() > 0) {
         if (request.params[0].isStr()) {
@@ -175,7 +180,7 @@ UniValue PocketWeb::PocketContentRpc::GetContentsData(const JSONRPCRequest& requ
         }
     }
 
-    std::map<std::string, UniValue> contentsdata = GetContentsData(txids);
+    std::map<std::string, UniValue> contentsdata = GetContentsData(request.DbConnection(), txids);
 
     UniValue aResult(UniValue::VARR);
     for (auto& cd : contentsdata) {
@@ -186,13 +191,18 @@ UniValue PocketWeb::PocketContentRpc::GetContentsData(const JSONRPCRequest& requ
 
 UniValue PocketWeb::PocketContentRpc::GetHistoricalStrip(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "GetHistoricalStrip\n"
+            "\n.\n");
+
     UniValue oResult(UniValue::VOBJ);
     UniValue aContents(UniValue::VARR);
 
     int height = chainActive.Height(); // TODO (only1question): read from input params
     if (request.params.size()>0) {
         std::map<std::string, param> conditions = ParseParams(request.params);
-        map<string, UniValue> contents = PocketDb::WebRepoInst.GetContents(conditions);
+        map<string, UniValue> contents = request.DbConnection()->WebRepoInst->GetContents(conditions);
 
         for (auto& c : contents) {
             aContents.push_back(c.second);
@@ -207,6 +217,11 @@ UniValue PocketWeb::PocketContentRpc::GetHistoricalStrip(const JSONRPCRequest& r
 
 UniValue PocketWeb::PocketContentRpc::GetHierarchicalStrip(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+            "GetHierarchicalStrip\n"
+            "\n.\n");
+
     return GetHistoricalStrip(request);
     UniValue oResult(UniValue::VOBJ);
     return oResult;

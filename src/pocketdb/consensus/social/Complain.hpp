@@ -7,7 +7,7 @@
 #ifndef POCKETCONSENSUS_COMPLAIN_HPP
 #define POCKETCONSENSUS_COMPLAIN_HPP
 
-#include <pocketdb/consensus/Reputation.hpp>
+#include "pocketdb/consensus/Reputation.hpp"
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/Complain.hpp"
 
@@ -46,7 +46,7 @@ namespace PocketConsensus
             auto ptx = static_pointer_cast<Complain>(tx);
 
             // Author or post must be exists
-            auto postAddress = PocketDb::ConsensusRepoInst.GetPostAddress(*ptx->GetPostTxHash());
+            auto postAddress = PocketDb::ConsensusRepoInst.GetContentAddress(*ptx->GetPostTxHash());
             if (postAddress == nullptr)
                 return {false, SocialConsensusResult_NotFound};
 
@@ -93,8 +93,9 @@ namespace PocketConsensus
                     if (*ptx->GetPostTxHash() == *blockPtx->GetPostTxHash())
                     {
                         PocketHelpers::SocialCheckpoints socialCheckpoints;
-                        if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleComplain))
-                            return {false, SocialConsensusResult_DoubleComplain};
+                        if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleComplain))
+                            //return {false, SocialConsensusResult_DoubleComplain};
+                            LogPrintf("--- %s %d SocialConsensusResult_DoubleComplain\n", *ptx->GetTypeInt(), *ptx->GetHash());
                     }
                 }
             }
@@ -117,7 +118,8 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Complain>& tx, int count)
         {
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetComplainsLimit(mode);
 
@@ -167,10 +169,7 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus_checkpoint_292800(int height) : ComplainConsensus(height) {}
-
     protected:
-        int CheckpointHeight() override { return 292800; }
-
         int64_t GetThresholdReputation() override { return 1000; }
     };
 
@@ -183,10 +182,7 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus_checkpoint_1124000(int height) : ComplainConsensus_checkpoint_292800(height) {}
-
     protected:
-        int CheckpointHeight() override { return 1124000; }
-
         bool CheckBlockLimitTime(const shared_ptr<Complain>& ptx, const shared_ptr<Complain>& blockPtx) override
         {
             return true;
@@ -202,12 +198,8 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus_checkpoint_1180000(int height) : ComplainConsensus_checkpoint_1124000(height) {}
-
     protected:
-        int CheckpointHeight() override { return 1180000; }
-
         int64_t GetLimitWindow() override { return 1440; }
-
         int GetChainCount(const shared_ptr<Complain>& ptx) override
         {
             return ConsensusRepoInst.CountChainComplainHeight(
@@ -226,7 +218,7 @@ namespace PocketConsensus
     class ComplainConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<ComplainConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<ComplainConsensus*(int height)>> m_rules =
             {
                 {1180000, [](int height) { return new ComplainConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ComplainConsensus_checkpoint_1124000(height); }},

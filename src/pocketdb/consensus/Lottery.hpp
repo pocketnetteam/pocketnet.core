@@ -176,8 +176,6 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_514185 : public LotteryConsensus
     {
     protected:
-        int CheckpointHeight() override { return 514185; }
-
         void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map<string, string>& refs) override
         {
             if (refs.find(contentAddress) != refs.end())
@@ -218,8 +216,6 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_1035000 : public LotteryConsensus_checkpoint_514185
     {
     protected:
-        int CheckpointHeight() override { return 1035000; }
-
         virtual int GetLotteryReferralDepth() { return 30 * 24 * 3600; }
 
         void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
@@ -247,8 +243,6 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_1124000 : public LotteryConsensus_checkpoint_1035000
     {
     protected:
-        int CheckpointHeight() override { return 1124000; }
-
     public:
         LotteryConsensus_checkpoint_1124000(int height) : LotteryConsensus_checkpoint_1035000(height) {}
 
@@ -273,8 +267,6 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_1180000 : public LotteryConsensus_checkpoint_1124000
     {
     protected:
-        int CheckpointHeight() override { return 1180000; }
-
     public:
         LotteryConsensus_checkpoint_1180000(int height) : LotteryConsensus_checkpoint_1124000(height) {}
 
@@ -300,8 +292,6 @@ namespace PocketConsensus
     class LotteryConsensus_checkpoint_ : public LotteryConsensus_checkpoint_1180000
     {
     protected:
-        int CheckpointHeight() override { return -1; }
-
         int GetLotteryReferralDepth() override { return -1; }
 
         void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
@@ -354,7 +344,7 @@ namespace PocketConsensus
     class LotteryConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<LotteryConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<LotteryConsensus*(int height)>> m_rules =
             {
                 {1180000, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
@@ -365,7 +355,7 @@ namespace PocketConsensus
     public:
         LotteryConsensusFactory() = default;
 
-        static shared_ptr <LotteryConsensus> Instance(int height)
+        shared_ptr <LotteryConsensus> Instance(int height)
         {
             return shared_ptr<LotteryConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

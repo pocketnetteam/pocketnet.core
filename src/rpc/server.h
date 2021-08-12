@@ -142,7 +142,6 @@ public:
     std::string name;
     rpcfn_type actor;
     std::vector<std::string> argNames;
-    bool pwdRequied = true;
 };
 
 /**

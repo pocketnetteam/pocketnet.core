@@ -619,7 +619,7 @@ bool GetRatingRewards(CAmount nCredit, std::vector<CTxOut> &results, CAmount &to
 bool GenerateOuts(CAmount nCredit,
     std::vector<CTxOut>& results, 
     std::vector<std::string>& winners,
-    std::shared_ptr<PocketConsensus::LotteryConsensus> lotteryInst, 
+    std::shared_ptr<PocketConsensus::LotteryConsensus>& lotteryInst,
     opcodetype type,
     CAmount& totalAmount,
     std::vector<opcodetype>& winner_types)

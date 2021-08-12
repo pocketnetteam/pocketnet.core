@@ -39,8 +39,9 @@ namespace PocketConsensus
             if (!subscribeExists || subscribeType == ACTION_SUBSCRIBE_CANCEL)
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_InvalideSubscribe))
-                    return {false, SocialConsensusResult_InvalideSubscribe};
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_InvalideSubscribe))
+                    //return {false, SocialConsensusResult_InvalideSubscribe};
+                    LogPrintf("--- %s %d SocialConsensusResult_InvalideSubscribe", *ptx->GetTypeInt(), *ptx->GetHash());
             }
 
             return Success;
@@ -62,7 +63,12 @@ namespace PocketConsensus
 
                 auto blockPtx = static_pointer_cast<SubscribeCancel>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
-                    return {false, SocialConsensusResult_DoubleSubscribe};
+                {
+                    PocketHelpers::SocialCheckpoints socialCheckpoints;
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
+                        //return {false, SocialConsensusResult_DoubleSubscribe};
+                        LogPrintf("--- %s %d SocialConsensusResult_DoubleSubscribe", *ptx->GetTypeInt(), *ptx->GetHash());
+                }
             }
 
             return Success;
@@ -78,7 +84,7 @@ namespace PocketConsensus
             );
 
             if (mempoolCount > 0)
-                return {false, SocialConsensusResult_DoubleSubscribe};
+                return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;
         }
@@ -107,30 +113,14 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
-    *  Consensus checkpoint at 1 block
-    *
-    *******************************************************************************************************************/
-    class SubscribeCancelConsensus_checkpoint_1 : public SubscribeCancelConsensus
-    {
-    protected:
-        int CheckpointHeight() override { return 1; }
-
-    public:
-        SubscribeCancelConsensus_checkpoint_1(int height) : SubscribeCancelConsensus(height) {}
-    };
-
-
-    /*******************************************************************************************************************
-    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
     class SubscribeCancelConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<SubscribeCancelConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<SubscribeCancelConsensus*(int height)>> m_rules =
             {
-                {1, [](int height) { return new SubscribeCancelConsensus_checkpoint_1(height); }},
                 {0, [](int height) { return new SubscribeCancelConsensus(height); }},
             };
     public:

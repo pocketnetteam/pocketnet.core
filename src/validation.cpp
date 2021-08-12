@@ -2830,7 +2830,7 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
 
-        if (!PocketServices::TransactionIndexer::Rollback(block, chainActive.Height()))
+        if (!PocketServices::TransactionIndexer::Rollback(chainActive.Height()))
             return error("DisconnectTip(): DisconnectBlock (Pocketnet part) %s failed", pindexDelete->GetBlockHash().ToString());
 
         bool flushed = view.Flush();

@@ -11,7 +11,6 @@ namespace PocketDb
     
     SQLiteDatabase SQLiteDbWebInst(false, true);
     WebRepository WebRepoInst(PocketDb::SQLiteDbWebInst);
-    WebUserRepository WebUserRepoInst(PocketDb::SQLiteDbWebInst);
 }
 
 namespace PocketWeb

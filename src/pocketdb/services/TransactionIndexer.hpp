@@ -47,11 +47,9 @@ namespace PocketServices
             LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (nTime3 - nTime2), height);
         }
 
-        static bool Rollback(const CBlock& block, int height)
+        static bool Rollback(int height)
         {
-            vector<TransactionIndexingInfo> txs;
-            PrepareTransactions(block, txs);
-            return PocketDb::ChainRepoInst.RollbackBlock(height, txs);
+            return PocketDb::ChainRepoInst.Rollback(height);
         }
 
     protected:
@@ -144,7 +142,7 @@ namespace PocketServices
                             scoreData->ScoreValue - 3;
 
                         if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
-                            ExtendAccountLikers(scoreData, accountLikers);
+                            reputationConsensus->ExtendAccountLikers(scoreData, accountLikers);
 
                         break;
 
@@ -156,7 +154,7 @@ namespace PocketServices
                             scoreData->ScoreValue;
 
                         if (scoreData->ScoreValue == 1)
-                            ExtendAccountLikers(scoreData, accountLikers);
+                            reputationConsensus->ExtendAccountLikers(scoreData, accountLikers);
 
                         break;
 
@@ -208,20 +206,7 @@ namespace PocketServices
             PocketDb::RatingsRepoInst.InsertRatings(ratings);
         }
 
-
     private:
-
-        static void ExtendAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
-        {
-            auto found = find(
-                accountLikers[scoreData->ContentAddressId].begin(),
-                accountLikers[scoreData->ContentAddressId].end(),
-                scoreData->ScoreAddressId
-            );
-
-            if (found == accountLikers[scoreData->ContentAddressId].end())
-                accountLikers[scoreData->ContentAddressId].push_back(scoreData->ScoreAddressId);
-        }
 
     };
 

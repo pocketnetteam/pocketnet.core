@@ -15,7 +15,6 @@ namespace PocketDb
         );
 
         WebRepoInst = make_shared<WebRepository>(*SQLiteDbInst);
-        WebUserRepoInst = make_shared<WebUserRepository>(*SQLiteDbInst);
         ExplorerRepoInst = make_shared<ExplorerRepository>(*SQLiteDbInst);
     }
 
@@ -24,7 +23,6 @@ namespace PocketDb
         SQLiteDbInst->m_connection_mutex.lock();
 
         WebRepoInst->Destroy();
-        WebUserRepoInst->Destroy();
         ExplorerRepoInst->Destroy();
 
         SQLiteDbInst->m_connection_mutex.unlock();

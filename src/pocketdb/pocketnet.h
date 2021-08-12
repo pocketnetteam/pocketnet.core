@@ -15,7 +15,6 @@
 #include "pocketdb/repositories/TransactionRepository.hpp"
 #include "pocketdb/repositories/ConsensusRepository.h"
 #include "pocketdb/repositories/web/WebRepository.h"
-#include "pocketdb/repositories/web/WebUserRepository.h"
 #include "pocketdb/repositories/web/ExplorerRepository.h"
 #include "pocketdb/web/PocketFrontend.h"
 
@@ -29,7 +28,6 @@ namespace PocketDb
     
     extern SQLiteDatabase SQLiteDbWebInst;
     extern WebRepository WebRepoInst;
-    extern WebUserRepository WebUserRepoInst;
 } // namespace PocketDb
 
 namespace PocketWeb

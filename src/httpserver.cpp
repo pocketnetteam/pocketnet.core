@@ -73,7 +73,7 @@ public:
                     start,
                     stop,
                     peer,
-                    0, //valRequest.write().size(),
+                    0,
                     0
                 }
             );
@@ -179,6 +179,7 @@ static struct event_base *eventBase = nullptr;
 struct evhttp *eventHTTP = nullptr;
 //! List of subnets to allow RPC connections from
 static std::vector<CSubNet> rpc_allow_subnets;
+
 //! HTTP socket objects to handle requests on different routes
 HTTPSocket *g_socket;
 HTTPSocket *g_pubSocket;
@@ -307,6 +308,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     std::string path;
     std::vector<HTTPPathHandler>::const_iterator i = httpSock->m_pathHandlers.begin();
     std::vector<HTTPPathHandler>::const_iterator iend = httpSock->m_pathHandlers.end();
+
     for (; i != iend; ++i)
     {
         bool match = false;
@@ -487,6 +489,7 @@ void StartHTTPServer()
     int rpcMainThreads = std::max((long) gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
     int rpcPostThreads = std::max((long) gArgs.GetArg("-rpcpostthreads", DEFAULT_HTTP_POST_THREADS), 1L);
     int rpcPublicThreads = std::max((long) gArgs.GetArg("-rpcpublicthreads", DEFAULT_HTTP_PUBLIC_THREADS), 1L);
+    int rpcStaticThreads = std::max((long) gArgs.GetArg("-rpcstaticthreads", DEFAULT_HTTP_STATIC_THREADS), 1L);
 
     std::packaged_task<bool(event_base *)> task(ThreadHTTP);
     threadResult = task.get_future();
@@ -515,6 +518,12 @@ void StopHTTPServer()
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
     g_socket->StopHTTPSocket();
     g_pubSocket->StopHTTPSocket();
+
+    if (workQueueStatic)
+    {
+        delete workQueueStatic;
+        workQueueStatic = nullptr;
+    }
 
     if (eventBase)
     {
@@ -769,7 +778,7 @@ void HTTPRequest::WriteReply(int nStatus, const std::string &strReply)
     assert(evb);
     evbuffer_add(evb, strReply.data(), strReply.size());
     auto req_copy = req;
-    HTTPEvent *ev = new HTTPEvent(eventBase, true, [req_copy, nStatus]
+    auto *ev = new HTTPEvent(eventBase, true, [req_copy, nStatus]
     {
         evhttp_send_reply(req_copy, nStatus, nullptr, nullptr);
         // Re-enable reading from the socket. This is the second part of the libevent

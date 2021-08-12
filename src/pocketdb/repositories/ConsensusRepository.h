@@ -43,7 +43,7 @@ namespace PocketDb
         tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
         tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);
 
-        shared_ptr<string> GetPostAddress(const string& postHash);
+        shared_ptr<string> GetContentAddress(const string& postHash);
         int64_t GetUserBalance(const string& address);
         int GetUserReputation(const string& addressId);
         int GetUserReputation(int addressId);
@@ -101,14 +101,14 @@ namespace PocketDb
         int CountChainVideoHeight(const string& address, int height);
 
 
-        int CountMempoolCommentEdit(const string& rootTxHash);
-        int CountChainCommentEdit(const string& rootTxHash);
+        int CountMempoolCommentEdit(const string& address, const string& rootTxHash);
+        int CountChainCommentEdit(const string& address, const string& rootTxHash);
 
-        int CountMempoolPostEdit(const string& rootTxHash);
-        int CountChainPostEdit(const string& rootTxHash);
+        int CountMempoolPostEdit(const string& address, const string& rootTxHash);
+        int CountChainPostEdit(const string& address, const string& rootTxHash);
 
-        int CountMempoolVideoEdit(const string& rootTxHash);
-        int CountChainVideoEdit(const string& rootTxHash);
+        int CountMempoolVideoEdit(const string& address, const string& rootTxHash);
+        int CountChainVideoEdit(const string& address, const string& rootTxHash);
 
 
     };

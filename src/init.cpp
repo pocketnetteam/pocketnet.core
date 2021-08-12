@@ -166,7 +166,6 @@ void ShutdownPocketServices()
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
     PocketDb::WebRepoInst.Destroy();
-    PocketDb::WebUserRepoInst.Destroy();
 
     // Now we must close database connect
     PocketDb::SQLiteDbInst.Close();
@@ -357,6 +356,7 @@ static void OnRPCStopped()
     LogPrint(BCLog::RPC, "RPC stopped.\n");
 }
 
+// @formatter:off
 void SetupServerArgs()
 {
     const auto defaultBaseParams = CreateBaseChainParams(CBaseChainParams::MAIN);
@@ -582,9 +582,7 @@ void SetupServerArgs()
     hidden_args.emplace_back("-zmqpubrawtx=<address>");
 #endif
 
-    gArgs.AddArg("-checkblocks=<n>",
-        strprintf("How many blocks to check at startup (default: %u, 0 = all)", DEFAULT_CHECKBLOCKS), true,
-        OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-checkblocks=<n>", strprintf("How many blocks to check at startup (default: %u, 0 = all)", DEFAULT_CHECKBLOCKS), true, OptionsCategory::DEBUG_TEST);
     gArgs.AddArg("-checklevel=<n>", strprintf("How thorough the block verification of -checkblocks is: "
                                               "level 0 reads the blocks from disk, "
                                               "level 1 verifies block validity, "
@@ -593,184 +591,83 @@ void SetupServerArgs()
                                               "and level 4 tries to reconnect the blocks, "
                                               "each level includes the checks of the previous levels "
                                               "(0-4, default: %u)",
-        DEFAULT_CHECKLEVEL),
-        true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-checkblockindex", strprintf(
-        "Do a full consistency check for mapBlockIndex, setBlockIndexCandidates, chainActive and mapBlocksUnlinked occasionally. (default: %u, regtest: %u)",
-        defaultChainParams->DefaultConsistencyChecks(), regtestChainParams->DefaultConsistencyChecks()), true,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-checkmempool=<n>", strprintf("Run checks every <n> transactions (default: %u, regtest: %u)",
-        defaultChainParams->DefaultConsistencyChecks(), regtestChainParams->DefaultConsistencyChecks()), true,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-checkpoints",
-        strprintf("Disable expensive verification for known chain history (default: %u)", DEFAULT_CHECKPOINTS_ENABLED),
-        true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-deprecatedrpc=<method>", "Allows deprecated RPC method(s) to be used", true,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-dropmessagestest=<n>", "Randomly drop 1 of every <n> network messages", true,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-stopafterblockimport",
-        strprintf("Stop running after importing blocks from disk (default: %u)", DEFAULT_STOPAFTERBLOCKIMPORT), true,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-stopatheight",
-        strprintf("Stop running after reaching the given height in the main chain (default: %u)", DEFAULT_STOPATHEIGHT),
-        true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-limitancestorcount=<n>",
-        strprintf("Do not accept transactions if number of in-mempool ancestors is <n> or more (default: %u)",
-            DEFAULT_ANCESTOR_LIMIT), true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-limitancestorsize=<n>", strprintf(
-        "Do not accept transactions whose size with all in-mempool ancestors exceeds <n> kilobytes (default: %u)",
-        DEFAULT_ANCESTOR_SIZE_LIMIT), true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-limitdescendantcount=<n>", strprintf(
-        "Do not accept transactions if any ancestor would have <n> or more in-mempool descendants (default: %u)",
-        DEFAULT_DESCENDANT_LIMIT), true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-limitdescendantsize=<n>", strprintf(
-        "Do not accept transactions if any ancestor would have more than <n> kilobytes of in-mempool descendants (default: %u).",
-        DEFAULT_DESCENDANT_SIZE_LIMIT), true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-vbparams=deployment:start:end",
-        "Use given start/end times for specified version bits deployment (regtest-only)", true,
-        OptionsCategory::DEBUG_TEST);
+        DEFAULT_CHECKLEVEL), true, OptionsCategory::DEBUG_TEST);
+
+    gArgs.AddArg("-checkblockindex", strprintf("Do a full consistency check for mapBlockIndex, setBlockIndexCandidates, chainActive and mapBlocksUnlinked occasionally. (default: %u, regtest: %u)", defaultChainParams->DefaultConsistencyChecks(), regtestChainParams->DefaultConsistencyChecks()), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-checkmempool=<n>", strprintf("Run checks every <n> transactions (default: %u, regtest: %u)", defaultChainParams->DefaultConsistencyChecks(), regtestChainParams->DefaultConsistencyChecks()), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-checkpoints", strprintf("Disable expensive verification for known chain history (default: %u)", DEFAULT_CHECKPOINTS_ENABLED), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-deprecatedrpc=<method>", "Allows deprecated RPC method(s) to be used", true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-dropmessagestest=<n>", "Randomly drop 1 of every <n> network messages", true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-stopafterblockimport", strprintf("Stop running after importing blocks from disk (default: %u)", DEFAULT_STOPAFTERBLOCKIMPORT), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-stopatheight", strprintf("Stop running after reaching the given height in the main chain (default: %u)", DEFAULT_STOPATHEIGHT), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-limitancestorcount=<n>", strprintf("Do not accept transactions if number of in-mempool ancestors is <n> or more (default: %u)", DEFAULT_ANCESTOR_LIMIT), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-limitancestorsize=<n>", strprintf("Do not accept transactions whose size with all in-mempool ancestors exceeds <n> kilobytes (default: %u)", DEFAULT_ANCESTOR_SIZE_LIMIT), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-limitdescendantcount=<n>", strprintf("Do not accept transactions if any ancestor would have <n> or more in-mempool descendants (default: %u)", DEFAULT_DESCENDANT_LIMIT), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-limitdescendantsize=<n>", strprintf("Do not accept transactions if any ancestor would have more than <n> kilobytes of in-mempool descendants (default: %u).", DEFAULT_DESCENDANT_SIZE_LIMIT), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-vbparams=deployment:start:end", "Use given start/end times for specified version bits deployment (regtest-only)", true, OptionsCategory::DEBUG_TEST);
     gArgs.AddArg("-addrmantest", "Allows to test address relay on localhost", true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-debug=<category>",
-        "Output debugging information (default: -nodebug, supplying <category> is optional). "
-        "If <category> is not supplied or if <category> = 1, output all debugging information. <category> can be: " +
-        ListLogCategories() + ".",
-        false, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-debugexclude=<category>", strprintf(
-        "Exclude debugging information for a category. Can be used in conjunction with -debug=1 to output debug logs for all categories except one or more specified categories."),
-        false, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-help-debug", "Print help message with debugging options and exit", false,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-logips", strprintf("Include IP addresses in debug output (default: %u)", DEFAULT_LOGIPS), false,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-logtimestamps",
-        strprintf("Prepend debug output with timestamp (default: %u)", DEFAULT_LOGTIMESTAMPS), false,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-logtimemicros",
-        strprintf("Add microsecond precision to debug timestamps (default: %u)", DEFAULT_LOGTIMEMICROS), true,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-mocktime=<n>", "Replace actual time with <n> seconds since epoch (default: 0)", true,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-maxsigcachesize=<n>",
-        strprintf("Limit sum of signature cache and script execution cache sizes to <n> MiB (default: %u)",
-            DEFAULT_MAX_SIG_CACHE_SIZE), true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-maxtipage=<n>",
-        strprintf("Maximum tip age in seconds to consider node in initial block download (default: %u)",
-            DEFAULT_MAX_TIP_AGE), true, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-maxtxfee=<amt>", strprintf(
-        "Maximum total fees (in %s) to use in a single wallet transaction or raw transaction; setting this too low may abort large transactions (default: %s)",
-        CURRENCY_UNIT, FormatMoney(DEFAULT_TRANSACTION_MAXFEE)), false, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-printpriority",
-        strprintf("Log transaction fee per kB when mining blocks (default: %u)", DEFAULT_PRINTPRIORITY), true,
-        OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-printtoconsole",
-        "Send trace/debug info to console (default: 1 when no -daemon. To disable logging to file, set -nodebuglogfile)",
-        false, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-debug=<category>", "Output debugging information (default: -nodebug, supplying <category> is optional). If <category> is not supplied or if <category> = 1, output all debugging information. <category> can be: " + ListLogCategories() + ".", false, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-debugexclude=<category>", strprintf("Exclude debugging information for a category. Can be used in conjunction with -debug=1 to output debug logs for all categories except one or more specified categories."), false, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-help-debug", "Print help message with debugging options and exit", false, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-logips", strprintf("Include IP addresses in debug output (default: %u)", DEFAULT_LOGIPS), false, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-logtimestamps", strprintf("Prepend debug output with timestamp (default: %u)", DEFAULT_LOGTIMESTAMPS), false, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-logtimemicros", strprintf("Add microsecond precision to debug timestamps (default: %u)", DEFAULT_LOGTIMEMICROS), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-mocktime=<n>", "Replace actual time with <n> seconds since epoch (default: 0)", true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-maxsigcachesize=<n>", strprintf("Limit sum of signature cache and script execution cache sizes to <n> MiB (default: %u)", DEFAULT_MAX_SIG_CACHE_SIZE), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-maxtipage=<n>", strprintf("Maximum tip age in seconds to consider node in initial block download (default: %u)", DEFAULT_MAX_TIP_AGE), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-maxtxfee=<amt>", strprintf("Maximum total fees (in %s) to use in a single wallet transaction or raw transaction; setting this too low may abort large transactions (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_TRANSACTION_MAXFEE)), false, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-printpriority", strprintf("Log transaction fee per kB when mining blocks (default: %u)", DEFAULT_PRINTPRIORITY), true, OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-printtoconsole", "Send trace/debug info to console (default: 1 when no -daemon. To disable logging to file, set -nodebuglogfile)", false, OptionsCategory::DEBUG_TEST);
     gArgs.AddArg("-silent", "Disable stdout to console (Default: false)", false, OptionsCategory::DEBUG_TEST);
-    gArgs.AddArg("-shrinkdebugfile", "Shrink debug.log file on client startup (default: 1 when no -debug)", false,
-        OptionsCategory::DEBUG_TEST);
+    gArgs.AddArg("-shrinkdebugfile", "Shrink debug.log file on client startup (default: 1 when no -debug)", false, OptionsCategory::DEBUG_TEST);
     gArgs.AddArg("-uacomment=<cmt>", "Append comment to the user agent string", false, OptionsCategory::DEBUG_TEST);
 
     SetupChainParamsBaseOptions();
 
-    gArgs.AddArg("-acceptnonstdtxn",
-        strprintf("Relay and mine \"non-standard\" transactions (%sdefault: %u)", "testnet/regtest only; ",
-            !testnetChainParams->RequireStandard()), true, OptionsCategory::NODE_RELAY);
-    gArgs.AddArg("-incrementalrelayfee=<amt>", strprintf(
-        "Fee rate (in %s/kB) used to define cost of relay, used for mempool limiting and BIP 125 replacement. (default: %s)",
-        CURRENCY_UNIT, FormatMoney(DEFAULT_INCREMENTAL_RELAY_FEE)), true, OptionsCategory::NODE_RELAY);
-    gArgs.AddArg("-dustrelayfee=<amt>", strprintf(
-        "Fee rate (in %s/kB) used to defined dust, the value of an output such that it will cost more than its value in fees at this fee rate to spend it. (default: %s)",
-        CURRENCY_UNIT, FormatMoney(DUST_RELAY_TX_FEE)), true, OptionsCategory::NODE_RELAY);
-    gArgs.AddArg("-bytespersigop",
-        strprintf("Equivalent bytes per sigop in transactions for relay and mining (default: %u)",
-            DEFAULT_BYTES_PER_SIGOP), false, OptionsCategory::NODE_RELAY);
-    gArgs.AddArg("-datacarrier",
-        strprintf("Relay and mine data carrier transactions (default: %u)", DEFAULT_ACCEPT_DATACARRIER), false,
-        OptionsCategory::NODE_RELAY);
-    gArgs.AddArg("-datacarriersize",
-        strprintf("Maximum size of data in data carrier transactions we relay and mine (default: %u)",
-            MAX_OP_RETURN_RELAY), false, OptionsCategory::NODE_RELAY);
-    gArgs.AddArg("-mempoolreplacement",
-        strprintf("Enable transaction replacement in the memory pool (default: %u)", DEFAULT_ENABLE_REPLACEMENT), false,
-        OptionsCategory::NODE_RELAY);
-    gArgs.AddArg("-minrelaytxfee=<amt>", strprintf(
-        "Fees (in %s/kB) smaller than this are considered zero fee for relaying, mining and transaction creation (default: %s)",
-        CURRENCY_UNIT, FormatMoney(DEFAULT_MIN_RELAY_TX_FEE)), false, OptionsCategory::NODE_RELAY);
-    gArgs.AddArg("-whitelistforcerelay", strprintf(
-        "Force relay of transactions from whitelisted peers even if they violate local relay policy (default: %d)",
-        DEFAULT_WHITELISTFORCERELAY), false, OptionsCategory::NODE_RELAY);
-    gArgs.AddArg("-whitelistrelay", strprintf(
-        "Accept relayed transactions received from whitelisted peers even when not relaying transactions (default: %d)",
-        DEFAULT_WHITELISTRELAY), false, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-acceptnonstdtxn", strprintf("Relay and mine \"non-standard\" transactions (%sdefault: %u)", "testnet/regtest only; ", !testnetChainParams->RequireStandard()), true, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-incrementalrelayfee=<amt>", strprintf("Fee rate (in %s/kB) used to define cost of relay, used for mempool limiting and BIP 125 replacement. (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_INCREMENTAL_RELAY_FEE)), true, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-dustrelayfee=<amt>", strprintf("Fee rate (in %s/kB) used to defined dust, the value of an output such that it will cost more than its value in fees at this fee rate to spend it. (default: %s)", CURRENCY_UNIT, FormatMoney(DUST_RELAY_TX_FEE)), true, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-bytespersigop", strprintf("Equivalent bytes per sigop in transactions for relay and mining (default: %u)", DEFAULT_BYTES_PER_SIGOP), false, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-datacarrier", strprintf("Relay and mine data carrier transactions (default: %u)", DEFAULT_ACCEPT_DATACARRIER), false, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-datacarriersize", strprintf("Maximum size of data in data carrier transactions we relay and mine (default: %u)", MAX_OP_RETURN_RELAY), false, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-mempoolreplacement", strprintf("Enable transaction replacement in the memory pool (default: %u)", DEFAULT_ENABLE_REPLACEMENT), false, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-minrelaytxfee=<amt>", strprintf("Fees (in %s/kB) smaller than this are considered zero fee for relaying, mining and transaction creation (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_MIN_RELAY_TX_FEE)), false, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-whitelistforcerelay", strprintf("Force relay of transactions from whitelisted peers even if they violate local relay policy (default: %d)", DEFAULT_WHITELISTFORCERELAY), false, OptionsCategory::NODE_RELAY);
+    gArgs.AddArg("-whitelistrelay", strprintf("Accept relayed transactions received from whitelisted peers even when not relaying transactions (default: %d)", DEFAULT_WHITELISTRELAY), false, OptionsCategory::NODE_RELAY);
 
 
-    gArgs.AddArg("-blockmaxweight=<n>",
-        strprintf("Set maximum BIP141 block weight (default: %d)", DEFAULT_BLOCK_MAX_WEIGHT), false,
-        OptionsCategory::BLOCK_CREATION);
-    gArgs.AddArg("-blockmintxfee=<amt>",
-        strprintf("Set lowest fee rate (in %s/kB) for transactions to be included in block creation. (default: %s)",
-            CURRENCY_UNIT, FormatMoney(DEFAULT_BLOCK_MIN_TX_FEE)), false, OptionsCategory::BLOCK_CREATION);
-    gArgs.AddArg("-blockversion=<n>", "Override block version to test forking scenarios", true,
-        OptionsCategory::BLOCK_CREATION);
+    gArgs.AddArg("-blockmaxweight=<n>", strprintf("Set maximum BIP141 block weight (default: %d)", DEFAULT_BLOCK_MAX_WEIGHT), false, OptionsCategory::BLOCK_CREATION);
+    gArgs.AddArg("-blockmintxfee=<amt>", strprintf("Set lowest fee rate (in %s/kB) for transactions to be included in block creation. (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_BLOCK_MIN_TX_FEE)), false, OptionsCategory::BLOCK_CREATION);
+    gArgs.AddArg("-blockversion=<n>", "Override block version to test forking scenarios", true, OptionsCategory::BLOCK_CREATION);
 
-    gArgs.AddArg("-rest", strprintf("Accept public REST requests (default: %u)", DEFAULT_REST_ENABLE), false,
-        OptionsCategory::RPC);
-    gArgs.AddArg("-rpcallowip=<ip>",
-        "Allow JSON-RPC connections from specified source. Valid for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24). This option can be specified multiple times",
-        false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcauth=<userpw>",
-        "Username and hashed password for JSON-RPC connections. The field <userpw> comes in the format: <USERNAME>:<SALT>$<HASH>. A canonical python script is included in share/rpcauth. The client then connects normally using the rpcuser=<USERNAME>/rpcpassword=<PASSWORD> pair of arguments. This option can be specified multiple times",
-        false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcbind=<addr>[:port]",
-        "Bind to given address to listen for JSON-RPC connections. This option is ignored unless -rpcallowip is also passed. Port is optional and overrides -rpcport. Use [host]:port notation for IPv6. This option can be specified multiple times (default: 127.0.0.1 and ::1 i.e., localhost, or if -rpcallowip has been specified, 0.0.0.0 and :: i.e., all addresses)",
-        false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpccookiefile=<loc>",
-        "Location of the auth cookie. Relative paths will be prefixed by a net-specific datadir location. (default: data dir)",
-        false, OptionsCategory::RPC);
+    gArgs.AddArg("-rest", strprintf("Accept public REST requests (default: %u)", DEFAULT_REST_ENABLE), true, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcallowip=<ip>", "Allow JSON-RPC connections from specified source. Valid for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24). This option can be specified multiple times", false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcauth=<userpw>", "Username and hashed password for JSON-RPC connections. The field <userpw> comes in the format: <USERNAME>:<SALT>$<HASH>. A canonical python script is included in share/rpcauth. The client then connects normally using the rpcuser=<USERNAME>/rpcpassword=<PASSWORD> pair of arguments. This option can be specified multiple times", false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcbind=<addr>[:port]", "Bind to given address to listen for JSON-RPC connections. This option is ignored unless -rpcallowip is also passed. Port is optional and overrides -rpcport. Use [host]:port notation for IPv6. This option can be specified multiple times (default: 127.0.0.1 and ::1 i.e., localhost, or if -rpcallowip has been specified, 0.0.0.0 and :: i.e., all addresses)", false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpccookiefile=<loc>", "Location of the auth cookie. Relative paths will be prefixed by a net-specific datadir location. (default: data dir)", false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcpassword=<pw>", "Password for JSON-RPC connections", false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcport=<port>",
-        strprintf("Listen for JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)",
-            defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort(), regtestBaseParams->RPCPort()), false,
-        OptionsCategory::RPC);
-    gArgs.AddArg("-rpcserialversion", strprintf(
-        "Sets the serialization of raw transaction or block hex returned in non-verbose mode, non-segwit(0) or segwit(1) (default: %d)",
-        DEFAULT_RPC_SERIALIZE_VERSION), false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcservertimeout=<n>",
-        strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT), true,
-        OptionsCategory::RPC);
+    gArgs.AddArg("-rpcport=<port>", strprintf("Listen for JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort(), regtestBaseParams->RPCPort()), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcserialversion", strprintf("Sets the serialization of raw transaction or block hex returned in non-verbose mode, non-segwit(0) or segwit(1) (default: %d)", DEFAULT_RPC_SERIALIZE_VERSION), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT), true, OptionsCategory::RPC);
 
-    gArgs.AddArg("-rpcthreads=<n>",
-        strprintf("Set the number of threads to service RPC (MAIN) calls (default: %d)", DEFAULT_HTTP_THREADS), false,
-        OptionsCategory::RPC);
-    gArgs.AddArg("-rpcpostthreads=<n>",
-        strprintf("Set the number of threads to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_THREADS),
-        false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcpublicthreads=<n>",
-        strprintf("Set the number of threads to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_THREADS),
-        false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcthreads=<n>", strprintf("Set the number of threads to service RPC (MAIN) calls (default: %d)", DEFAULT_HTTP_THREADS), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpostthreads=<n>", strprintf("Set the number of threads to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_THREADS), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpublicthreads=<n>", strprintf("Set the number of threads to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_THREADS), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcstaticthreads=<n>", strprintf("Set the number of threads to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_THREADS), false, OptionsCategory::RPC);
 
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::RPC);
 
-    gArgs.AddArg("-rpcworkqueue=<n>",
-        strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), false,
-        OptionsCategory::RPC);
-    gArgs.AddArg("-rpcworkpostqueue=<n>",
-        strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)",
-            DEFAULT_HTTP_POST_WORKQUEUE), false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcworkpublicqueue=<n>",
-        strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)",
-            DEFAULT_HTTP_PUBLIC_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcworkpostqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcworkpublicqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcworkstaticqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), false, OptionsCategory::RPC);
 
-    gArgs.AddArg("-statdepth=<n>",
-        strprintf("Set the depth of the work queue for statistic in seconds (default: %ds)", 60), false,
-        OptionsCategory::RPC);
+    gArgs.AddArg("-statdepth=<n>", strprintf("Set the depth of the work queue for statistic in seconds (default: %ds)", 60), false, OptionsCategory::RPC);
 
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
 
     gArgs.AddArg("-wsuse", "Accept WebSocket connections", false, OptionsCategory::RPC);
-    gArgs.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), false,
-        OptionsCategory::RPC);
+    gArgs.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), false, OptionsCategory::RPC);
 
 #if HAVE_DECL_DAEMON
     gArgs.AddArg("-daemon", "Run in the background as a daemon and accept commands", false, OptionsCategory::OPTIONS);
@@ -781,8 +678,10 @@ void SetupServerArgs()
     // Add the hidden options
     gArgs.AddHiddenArgs(hidden_args);
 }
+// @formatter:on
 
-std::string LicenseInfo()
+std::string
+LicenseInfo()
 {
     const std::string URL_SOURCE_CODE = "<https://github.com/pocketnetteam/pocketnet.core>";
     const std::string URL_WEBSITE = "<https://github.com/pocketnetteam>";
@@ -910,7 +809,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (fReindex)
         {
             // Rollback to first block
-            if(!PocketDb::ChainRepoInst.ClearDatabase())
+            if (!PocketDb::ChainRepoInst.ClearDatabase())
             {
                 LogPrintf("Failed clear pocket database\n");
                 StartShutdown();
@@ -1729,13 +1628,12 @@ bool AppInitMain()
     PocketDb::ChainRepoInst.Init();
     PocketDb::RatingsRepoInst.Init();
     PocketDb::ConsensusRepoInst.Init();
-    
+
     PocketDb::SQLiteDbWebInst.Init(
         (GetDataDir() / "pocketdb").string(),
         (GetDataDir() / "pocketdb" / "main.sqlite3").string());
-        
+
     PocketDb::WebRepoInst.Init();
-    PocketDb::WebUserRepoInst.Init();
 
     PocketWeb::PocketFrontendInst.Init();
 
@@ -2138,9 +2036,8 @@ bool AppInitMain()
 
     // ********************************************************* Step 8: start indexers
     // TXIndex need! Force enabled!
-    // TODO (brangr): Remove after complete SQLITE?
-    //g_txindex = MakeUnique<TxIndex>(nTxIndexCache, false, fReindex);
-    //g_txindex->Start();
+    g_txindex = MakeUnique<TxIndex>(nTxIndexCache, false, fReindex);
+    g_txindex->Start();
     // ********************************************************* Step 9: load wallet
     if (!g_wallet_init_interface.Open()) return false;
 

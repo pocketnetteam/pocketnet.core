@@ -90,7 +90,7 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
             // GetString2() = RootTxHash
-            if (ConsensusRepoInst.CountMempoolCommentEdit(*tx->GetString2()) > 0)
+            if (ConsensusRepoInst.CountMempoolCommentEdit(*tx->GetString1(), *tx->GetString2()) > 0)
                 return {false, SocialConsensusResult_DoubleCommentDelete};
 
             return Success;
@@ -108,7 +108,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        vector <string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
             return {*ptx->GetAddress()};
@@ -124,7 +124,7 @@ namespace PocketConsensus
     class CommentDeleteConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<CommentDeleteConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<CommentDeleteConsensus*(int height)>> m_rules =
             {
                 {0, [](int height) { return new CommentDeleteConsensus(height); }},
             };

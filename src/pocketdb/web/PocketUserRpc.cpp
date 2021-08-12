@@ -2,20 +2,20 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "PocketUserRpc.h"
+#include "pocketdb/web/PocketUserRpc.h"
 
-std::map<std::string, UniValue> PocketWeb::PocketUserRpc::GetUsersProfiles(std::vector<std::string> addresses, bool shortForm, int option)
+std::map<std::string, UniValue> PocketWeb::PocketUserRpc::GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses, bool shortForm, int option)
 {
-    auto result = PocketDb::WebRepoInst.GetUserProfile(addresses, shortForm, option);
+    auto result = dbCon->WebRepoInst->GetUserProfile(addresses, shortForm, option);
 
     if (shortForm)
     {
         return result;
     }
 
-    auto subscribes = PocketDb::WebRepoInst.GetSubscribesAddresses(addresses);
-    auto subscribers = PocketDb::WebRepoInst.GetSubscribersAddresses(addresses);
-    auto blocking = PocketDb::WebRepoInst.GetBlockingToAddresses(addresses);
+    auto subscribes = dbCon->WebRepoInst->GetSubscribesAddresses(addresses);
+    auto subscribers = dbCon->WebRepoInst->GetSubscribersAddresses(addresses);
+    auto blocking = dbCon->WebRepoInst->GetBlockingToAddresses(addresses);
 
     for (auto i = result.begin(); i != result.end(); ++i)
     {
@@ -40,6 +40,7 @@ std::map<std::string, UniValue> PocketWeb::PocketUserRpc::GetUsersProfiles(std::
 
 UniValue PocketWeb::PocketUserRpc::GetReputations(const JSONRPCRequest& request)
 {
+    // TODO (team): implement
     return UniValue();
 }
 
@@ -72,7 +73,7 @@ UniValue PocketWeb::PocketUserRpc::GetUserProfile(const JSONRPCRequest& request)
 
     UniValue aResult(UniValue::VARR);
 
-    std::map<std::string, UniValue> profiles = GetUsersProfiles(addresses, shortForm);
+    std::map<std::string, UniValue> profiles = GetUsersProfiles(request.DbConnection(), addresses, shortForm);
     for (auto& p : profiles) {
         aResult.push_back(p.second);
     }
@@ -82,10 +83,12 @@ UniValue PocketWeb::PocketUserRpc::GetUserProfile(const JSONRPCRequest& request)
 
 UniValue PocketWeb::PocketUserRpc::GetUserAddress(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 2)
+    if (request.fHelp)
         throw std::runtime_error(
             "getuseraddress \"user_name\" ( count )\n"
             "\nGet list addresses of user.\n");
+
+    // TODO (team): check argument exists for 0 item in params
 
     std::string userName;
     if (!request.params[0].isNull()) {
@@ -93,19 +96,14 @@ UniValue PocketWeb::PocketUserRpc::GetUserAddress(const JSONRPCRequest& request)
         userName = request.params[0].get_str();
     }
 
-    int count = 7;
-    if (request.params.size() >= 2) {
-        ParseInt32(request.params[1].get_str(), &count);
-    }
-
-    auto result = PocketDb::WebUserRepoInst.GetUserAddress(userName, count);
+    auto result = request.DbConnection()->WebRepoInst->GetUserAddress(userName);
 
     return result;
 }
 
 UniValue PocketWeb::PocketUserRpc::GetAddressRegistration(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 1) {
+    if (request.fHelp) {
         throw std::runtime_error(
             "getaddressregistration [\"addresses\",...]\n"
             "\nReturns array of registration dates.\n"
@@ -126,6 +124,8 @@ UniValue PocketWeb::PocketUserRpc::GetAddressRegistration(const JSONRPCRequest& 
             "]");
     }
 
+    // TODO (team): check argument exists for 0 item in params
+
     std::vector<std::string> addresses;
     if (!request.params[0].isNull()) {
         RPCTypeCheckArgument(request.params[0], UniValue::VARR);
@@ -144,7 +144,7 @@ UniValue PocketWeb::PocketUserRpc::GetAddressRegistration(const JSONRPCRequest& 
         }
     }
 
-    auto result = PocketDb::WebUserRepoInst.GetAddressesRegistrationDates(addresses);
+    auto result = request.DbConnection()->WebRepoInst->GetAddressesRegistrationDates(addresses);
 
     return result;
 }

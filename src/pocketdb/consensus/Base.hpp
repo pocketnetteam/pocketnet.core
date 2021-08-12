@@ -82,20 +82,20 @@ namespace PocketConsensus
     {
     public:
 
-        BaseConsensus() {}
+        BaseConsensus() = default;
 
         BaseConsensus(int height)
         {
             Height = height;
         }
 
-        virtual ~BaseConsensus() {}
+        virtual ~BaseConsensus() = default;
 
     protected:
         int Height = 0;
 
-        virtual int CheckpointHeight() { return 0; };
     private:
+
     };
 }
 

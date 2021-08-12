@@ -33,9 +33,13 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<User>(tx);
 
-            // TODO (brangr): unique names disabled
-//            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
-//                return {false, SocialConsensusResult_NicknameDouble};
+            // TODO (brangr) (v0.21.0): unique names disabled in future
+            if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameDouble))
+                    return {false, SocialConsensusResult_NicknameDouble};
+            }
 
             return ValidateModelEdit(ptx);
         }
@@ -76,8 +80,9 @@ namespace PocketConsensus
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
                     PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_ChangeInfoLimit))
-                        return {false, SocialConsensusResult_ChangeInfoLimit};
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoLimit))
+                        //return {false, SocialConsensusResult_ChangeInfoLimit};
+                        LogPrintf("--- %s %d SocialConsensusResult_ChangeInfoLimit\n", *ptx->GetTypeInt(), *ptx->GetHash());
                 }
             }
 
@@ -113,12 +118,21 @@ namespace PocketConsensus
             // Maximum length for user name
             auto name = *ptx->GetPayloadName();
             if (name.empty() || name.size() > 35)
-                return {false, SocialConsensusResult_NicknameLong};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
+                    LogPrintf("$$$ SocialConsensusResult_NicknameLong - %s\n", *ptx->GetHash());
+                    //return {false, SocialConsensusResult_NicknameLong};
+            }
 
             // Trim spaces
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
-                LogPrintf("$$$ SPACES CHECKPOINTS - %s\n", *ptx->GetHash());
-            //return {false, SocialConsensusResult_Failed};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_Failed))
+                    LogPrintf("$$$ SPACES CHECKPOINTS - %s\n", *ptx->GetHash());
+                    //return {false, SocialConsensusResult_Failed};
+            }
 
             return Success;
         }
@@ -137,8 +151,6 @@ namespace PocketConsensus
     class UserConsensus_checkpoint_1180000 : public UserConsensus
     {
     protected:
-
-        int CheckpointHeight() override { return 1180000; }
 
         int64_t GetChangeInfoDepth() override { return 60; }
 
@@ -171,9 +183,8 @@ namespace PocketConsensus
     class UserConsensus_checkpoint_ : public UserConsensus_checkpoint_1180000
     {
     protected:
-        int CheckpointHeight() override { return 0; }
 
-        // TODO (brangr): Starting from this block, we disable the uniqueness of Name
+        // TODO (brangr) (v0.21.0): Starting from this block, we disable the uniqueness of Name
         virtual tuple<bool, SocialConsensusResult> CheckDoubleName(const std::shared_ptr<User>& tx)
         {
             return make_tuple(true, SocialConsensusResult_Success);
@@ -191,7 +202,7 @@ namespace PocketConsensus
     class UserConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<UserConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<UserConsensus*(int height)>> m_rules =
             {
                 {1180000, [](int height) { return new UserConsensus_checkpoint_1180000(height); }},
                 {0,       [](int height) { return new UserConsensus(height); }},

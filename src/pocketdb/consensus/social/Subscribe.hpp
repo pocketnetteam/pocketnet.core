@@ -36,8 +36,9 @@ namespace PocketConsensus
             if (subscribeExists && subscribeType == ACTION_SUBSCRIBE)
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleSubscribe))
-                    return {false, SocialConsensusResult_DoubleSubscribe};
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
+                    //return {false, SocialConsensusResult_DoubleSubscribe};
+                    LogPrintf("--- %s %d SocialConsensusResult_DoubleSubscribe\n", *ptx->GetTypeInt(), *ptx->GetHash());
             }
 
             return Success;
@@ -60,8 +61,9 @@ namespace PocketConsensus
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
                 {
                     PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_DoubleSubscribe))
-                        return {false, SocialConsensusResult_DoubleSubscribe};
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
+                        //return {false, SocialConsensusResult_DoubleSubscribe};
+                        LogPrintf("--- %s %d SocialConsensusResult_DoubleSubscribe\n", *ptx->GetTypeInt(), *ptx->GetHash());
                 }
             }
 
@@ -113,7 +115,7 @@ namespace PocketConsensus
     class SubscribeConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<SubscribeConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<SubscribeConsensus*(int height)>> m_rules =
             {
                 {0, [](int height) { return new SubscribeConsensus(height); }},
             };

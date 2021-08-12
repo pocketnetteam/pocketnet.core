@@ -7,7 +7,7 @@
 #ifndef POCKETCONSENSUS_COMMENT_HPP
 #define POCKETCONSENSUS_COMMENT_HPP
 
-#include <pocketdb/consensus/Reputation.hpp>
+#include "pocketdb/consensus/Reputation.hpp"
 #include "utils/html.h"
 
 #include "pocketdb/consensus/social/Base.hpp"
@@ -123,7 +123,8 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Comment>& tx, int count)
         {
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetLimit(mode);
 
@@ -177,7 +178,6 @@ namespace PocketConsensus
         CommentConsensus_checkpoint_1124000(int height) : CommentConsensus(height) {}
 
     protected:
-        int CheckpointHeight() override { return 1124000; }
 
         bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
         {
@@ -196,7 +196,6 @@ namespace PocketConsensus
         CommentConsensus_checkpoint_1180000(int height) : CommentConsensus_checkpoint_1124000(height) {}
 
     protected:
-        int CheckpointHeight() override { return 1180000; }
 
         int64_t GetLimitWindow() override { return 1440; }
 
@@ -217,7 +216,7 @@ namespace PocketConsensus
     class CommentConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<CommentConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<CommentConsensus*(int height)>> m_rules =
             {
                 {1180000, [](int height) { return new CommentConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new CommentConsensus_checkpoint_1124000(height); }},

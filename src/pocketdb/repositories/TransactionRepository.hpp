@@ -7,8 +7,10 @@
 #ifndef POCKETDB_TRANSACTIONREPOSITORY_HPP
 #define POCKETDB_TRANSACTIONREPOSITORY_HPP
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include <boost/algorithm/string/join.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
+#include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/base/TransactionOutput.hpp"
@@ -21,6 +23,8 @@
 namespace PocketDb
 {
     using std::runtime_error;
+    using boost::algorithm::join;
+    using boost::adaptors::transformed;
 
     using namespace PocketTx;
     using namespace PocketHelpers;
@@ -57,23 +61,39 @@ namespace PocketDb
 
         shared_ptr<PocketBlock> GetList(const vector<string>& txHashes, bool includePayload = false)
         {
-            auto sql = FullTransactionSql;
-
-            sql += " and t.Hash in ( '";
-            sql += txHashes[0];
-            sql += "'";
-            for (size_t i = 1; i < txHashes.size(); i++)
-            {
-                sql += ",'";
-                sql += txHashes[i];
-                sql += "'";
-            }
-            sql += ")";
+            auto sql = R"sql(
+                SELECT
+                    t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                FROM Transactions t
+                LEFT JOIN Payload p on t.Hash = p.TxHash
+                WHERE t.Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+            )sql";
 
             auto result = make_shared<PocketBlock>(PocketBlock{});
             TryTransactionStep(__func__, [&]()
             {
                 auto stmt = SetupSqlStatement(sql);
+
+                for (size_t i = 0; i < txHashes.size(); i++)
+                    TryBindStatementText(stmt, (int)i + 1, txHashes[i]);
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
@@ -223,38 +243,6 @@ namespace PocketDb
         }
 
     protected:
-
-        // Base skelet for build custom selects - simple add where conditions
-        // ----------------------
-        // SELECT ...
-        // FROM Transactions t
-        // LEFT JOIN Payload p on t.Hash = p.TxHash
-        // WHERE 1 = 1
-        string FullTransactionSql = R"sql(
-            SELECT
-                t.Type,
-                t.Hash,
-                t.Time,
-                t.Last,
-                t.Id,
-                t.String1,
-                t.String2,
-                t.String3,
-                t.String4,
-                t.String5,
-                t.Int1,
-                p.TxHash pHash,
-                p.String1 pString1,
-                p.String2 pString2,
-                p.String3 pString3,
-                p.String4 pString4,
-                p.String5 pString5,
-                p.String6 pString6,
-                p.String7 pString7
-            FROM Transactions t
-            LEFT JOIN Payload p on t.Hash = p.TxHash
-            WHERE 1 = 1
-        )sql";
 
         tuple<bool, shared_ptr<Transaction>> CreateTransactionFromListRow(const shared_ptr<sqlite3_stmt*>& stmt,
             bool includedPayload)

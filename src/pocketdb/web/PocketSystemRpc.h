@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -16,6 +14,10 @@ namespace PocketWeb
     {
     public:
         UniValue GetTime(const JSONRPCRequest& request);
+        // TODO (brangr): implement getpeerinfo
+        // TODO (brangr): implement getnodeinfo
+        // TODO (brangr): implement getrawtransaction ?
+        // TODO (brangr): implement sendrawtransaction ?
     };
 }
 

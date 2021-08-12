@@ -16,25 +16,22 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            // TODO (brangr): implement sql for first user record - exists
             auto stmt = SetupSqlStatement(R"sql(
-                SELECT 1
-                FROM vUsersPayload ap
-                WHERE ap.Name = ?
-                    and ap.Height is not null
-                    and not exists (
-                        select 1
-                        from vAccounts ac
-                        where   ac.Hash = ap.TxHash
-                            and a.Height is not null
-                            and ac.AddressHash = ?
-                    )
+                SELECT *
+                FROM Payload ap indexed by Payload_String2
+                join Transactions t indexed by Transactions_Hash_Height
+                  on t.Type in (100, 101, 102) and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
+                WHERE ap.String2 = ?
+                  and t.String1 != ?
             )sql");
 
             TryBindStatementText(stmt, 1, name);
             TryBindStatementText(stmt, 2, address);
 
-            result = sqlite3_step(*stmt) == SQLITE_ROW;
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = (value > 0);
+
             FinalizeSqlStatement(*stmt);
         });
 
@@ -43,19 +40,39 @@ namespace PocketDb
 
     // Select all user profile edit transaction in chain
     // Transactions.Height is not null
-    // TODO (brangr) (v0.21.0): change vUser to vAccounts and pass argument type
     tuple<bool, PTransactionRef> ConsensusRepository::GetLastAccount(const string& address)
     {
         PTransactionRef tx = nullptr;
 
         TryTransactionStep(__func__, [&]()
         {
-            auto sql = FullTransactionSql;
-            sql += R"sql(
-                and t.String1 = ?
-                and t.Last = 1
-                and t.Height is not null
-                and t.Type in (100, 101, 102)
+            string sql = R"sql(
+                SELECT
+                    t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                FROM Transactions t indexed by Transactions_Type_Last_String1_Height
+                LEFT JOIN Payload p on t.Hash = p.TxHash
+                WHERE t.Type in (100, 101, 102)
+                    and t.String1 = ?
+                    and t.Last = 1
+                    and t.Height is not null
             )sql";
 
             auto stmt = SetupSqlStatement(sql);
@@ -77,12 +94,33 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
-            auto sql = FullTransactionSql;
-            sql += R"sql(
-                and t.String2 = ?
-                and t.Last = 1
-                and t.Height is not null
-                and t.Type in (200, 201, 202, 203, 204, 205, 206)
+            string sql = R"sql(
+                SELECT
+                    t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                FROM Transactions t indexed by Transactions_Type_Last_String2_Height
+                LEFT JOIN Payload p on t.Hash = p.TxHash
+                WHERE t.Type in (200, 201, 202, 203, 204, 205, 206)
+                    and t.String2 = ?
+                    and t.Last = 1
+                    and t.Height is not null
             )sql";
 
             auto stmt = SetupSqlStatement(sql);
@@ -98,7 +136,6 @@ namespace PocketDb
         return {tx != nullptr, tx};
     }
 
-    // TODO (brangr) (v0.21.0): change for vAccounts and pass type as argument
     bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, bool mempool)
     {
         auto result = false;
@@ -108,17 +145,12 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            SELECT count(distinct(AddressHash))
-            FROM vUsers
-            WHERE 1=1
+            SELECT count(distinct(String1))
+            FROM Transactions
+            WHERE Type in (100, 101, 102)
+              and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+              )sql" + (mempool ? "" : " and Height is not null ") + R"sql(
         )sql";
-
-        sql += " and AddressHash in ( ";
-        sql += join(vector<string>(addresses.size(), "?"), ",");
-        sql += " ) ";
-
-        if (!mempool)
-            sql += " and Height is not null";
 
         // Execute
         TryTransactionStep(__func__, [&]()
@@ -146,13 +178,13 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                SELECT b.Type
-                FROM vBlockings b
-                WHERE b.AddressHash = ?
-                    and b.AddressToHash = ?
-                    and b.Height is not null
-                    and b.Last = 1
-                LIMIT 1
+                SELECT Type
+                FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
+                WHERE Type in (305, 306)
+                    and String1 = ?
+                    and String2 = ?
+                    and Height is not null
+                    and Last = 1
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -183,7 +215,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 SELECT Type
-                FROM Transactions indexed by Transactions_LastAction
+                FROM Transactions indexed by Transactions_Type_Last_String1_String2_Height
                 WHERE Type in (302, 303, 304)
                     and String1 = ?
                     and String2 = ?
@@ -209,18 +241,18 @@ namespace PocketDb
         return {subscribeExists, subscribeType};
     }
 
-    // TODO (brangr) (v0.21.0): change for vContents and pass type as argument
-    shared_ptr<string> ConsensusRepository::GetPostAddress(const string& postHash)
+    shared_ptr<string> ConsensusRepository::GetContentAddress(const string& postHash)
     {
         shared_ptr<string> result = nullptr;
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                SELECT p.AddressHash
-                FROM vPosts p
-                WHERE   p.Hash = ?
-                    and p.Height is not null
+                SELECT String1
+                FROM Transactions
+                WHERE   Type in (200, 201, 202, 203)
+                    and Hash = ?
+                    and Height is not null
             )sql");
 
             TryBindStatementText(stmt, 1, postHash);
@@ -243,11 +275,12 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 SELECT 1
-                FROM vComplains c
-                WHERE c.AddressHash = ?
-                    and c.PostTxHash = ?
-                    and c.Hash != ?
-                    and c.Height is not null
+                FROM Transactions
+                WHERE   Type in (307)
+                    and String1 = ?
+                    and String2 = ?
+                    and Hash != ?
+                    and Height is not null
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -274,14 +307,14 @@ namespace PocketDb
 
         string sql = R"sql(
             SELECT 1
-            FROM vScores s
-            WHERE   s.AddressHash = ?
-                and s.ContentTxHash = ?
-                and s.Type = ?
+            FROM Transactions
+            WHERE   String1 = ?
+                and String2 = ?
+                and Type = ?
         )sql";
 
         if (!mempool)
-            sql += " and s.Height is not null";
+            sql += " and Height is not null";
 
         TryTransactionStep(__func__, [&]()
         {
@@ -305,11 +338,11 @@ namespace PocketDb
         int64_t result = 0;
 
         auto sql = R"sql(
-            select sum(o.Value)
-            from TxOutputs o
-            where   o.SpentHeight is null
-                and o.TxHeight is not null
-                and o.AddressHash = ?
+            select sum(Value)
+            from TxOutputs
+            where   SpentHeight is null
+                and TxHeight is not null
+                and AddressHash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -335,7 +368,7 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = ?
-                and r.Id = (SELECT u.Id FROM vUsers u WHERE u.Height is not null and u.Last = 1 AND u.AddressHash = ? LIMIT 1)
+                and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 AND u.String1 = ? LIMIT 1)
                 and r.Height = (select max(r1.Height) from Ratings r1 where r1.Type=r.Type and r1.Id=r.Id)
         )sql";
 
@@ -395,19 +428,22 @@ namespace PocketDb
                 s.Hash sTxHash,
                 s.Type sType,
                 s.Time sTime,
-                s.Value sValue,
+                s.Int1 sValue,
                 sa.Id saId,
-                sa.AddressHash saHash,
+                sa.String1 saHash,
                 c.Hash cTxHash,
                 c.Type cType,
                 c.Time cTime,
                 c.Id cId,
                 ca.Id caId,
-                ca.AddressHash caHash
-            from vScores s
-                join vAccounts sa on sa.Height is not null and sa.AddressHash=s.AddressHash
-                join vContents c on c.Height is not null and c.Hash=s.ContentTxHash
-                join vAccounts ca on ca.Height is not null and ca.AddressHash=c.AddressHash
+                ca.String1 caHash
+            from Transactions s
+                -- Score Address
+                join Transactions sa on sa.Type in (100, 101, 102) and sa.Height is not null and sa.String1=s.String1
+                -- Content
+                join Transactions c on c.Type in (200, 201, 202, 203, 204, 205, 206) and c.Height is not null and c.Hash=s.String2
+                -- Content Address
+                join Transactions ca on ca.Type in (100, 101, 102) and ca.Height is not null and ca.String1=c.String1
             where s.Hash = ?
         )sql";
 
@@ -453,12 +489,13 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            select u.AddressHash, ifnull(u.ReferrerAddressHash,'')
-            from vUsers u
-            where u.Height is not null
+            select u.String1, u.String2
+            from Transactions u
+            where   u.Type in (100, 101, 102)
+                and u.Height is not null
                 and u.Height >= ?
-                and u.Height = (select min(u1.Height) from vUsers u1 where u1.Height is not null and u1.AddressHash=u.AddressHash)
-                and u.ReferrerAddressHash is not null
+                and u.Height = (select min(u1.Height) from Transactions u1 where u1.Type in (100, 101, 102) and u1.Height is not null and u1.String1=u.String1)
+                and u.String2 is not null
         )sql";
 
         sql += " and u.AddressHash in ( ";
@@ -494,7 +531,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select String2
-            from Transactions indexed by Transactions_GetScoreContentCount
+            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
             where Type in (100)
               and Height is not null
               and String1 = ?
@@ -525,7 +562,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select String2
-            from Transactions indexed by Transactions_GetScoreContentCount
+            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
             where Type in (100)
               and Height is not null
               and Time >= ?
@@ -595,34 +632,32 @@ namespace PocketDb
         // Build sql string
         string sql = R"sql(
             select count(1)
-            from Transactions s indexed by Transactions_GetScoreContentCount
-            join Transactions c indexed by Transactions_GetScoreContentCount_2
-                on c.Type = ? and c.Hash = s.String2 and c.String1 = ?
-            where   s.String1 = ?
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions s indexed by Transactions_Type_String1_String2_Height
+                on  s.String2 = c.String2
+                and s.Type = ?
+                and s.String1 = ?
                 and s.Height <= ?
                 and s.Time < ?
                 and s.Time >= ?
-                and s.Hash != ?
-                and s.Type = ?
+                and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+            where c.Type = ?
+              and c.String1 = ?
+              and c.Last = 1
         )sql";
-
-        sql += " and s.Int1 in (";
-        sql += join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
-        sql += " ) ";
 
         // Execute
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, contentType);
-            TryBindStatementText(stmt, 2, contentAddress);
-            TryBindStatementText(stmt, 3, scoreAddress);
-            TryBindStatementInt(stmt, 4, height);
-            TryBindStatementInt64(stmt, 5, tx->nTime);
-            TryBindStatementInt64(stmt, 6, (int64_t) tx->nTime - scoresOneToOneDepth);
-            TryBindStatementText(stmt, 7, tx->GetHash().GetHex());
-            TryBindStatementInt(stmt, 8, scoreType);
+            TryBindStatementInt(stmt, 1, scoreType);
+            TryBindStatementText(stmt, 2, scoreAddress);
+            TryBindStatementInt(stmt, 3, height);
+            TryBindStatementInt64(stmt, 4, tx->nTime);
+            TryBindStatementInt64(stmt, 5, (int64_t) tx->nTime - scoresOneToOneDepth);
+            TryBindStatementInt(stmt, 6, contentType);
+            TryBindStatementText(stmt, 7, contentAddress);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -641,11 +676,11 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select a.Height
-                from vAccounts a
-                where   a.AddressHash = ?
-                    and a.Last = 1
-                    and a.Height is not null
+                select Height
+                from Transactions
+                where   String1 = ?
+                    and Last = 1
+                    and Height is not null
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -723,10 +758,11 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vSubscribes
-                where Height is null
-                    and AddressHash = ?
-                    and AddressToHash = ?
+                from Transactions
+                where Type in (302, 303, 304)
+                    and Height is null
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -751,7 +787,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
                   and Height is null
                   and String1 = ?
@@ -776,7 +812,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
                   and Height is not null
                   and Time >= ?
@@ -804,7 +840,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (204)
                   and Height is not null
                   and Height >= ?
@@ -833,9 +869,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vComplains
-                where Height is null
-                    and AddressHash = ?
+                from Transactions
+                where   Type in (307)
+                    and Height is null
+                    and String1 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -857,11 +894,12 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vComplains
-                where Height is not null
+                from Transactions
+                where   Type in (307)
+                    and Height is not null
                     and Time >= ?
                     and Last = 1
-                    and AddressHash = ?
+                    and String1 = ?
             )sql");
 
             TryBindStatementInt64(stmt, 1, time);
@@ -884,11 +922,12 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vComplains
-                where Height is not null
+                from Transactions
+                where   Type in (307)
+                    and Height is not null
                     and Height >= ?
                     and Last = 1
-                    and AddressHash = ?
+                    and String1 = ?
             )sql");
 
             TryBindStatementInt(stmt, 1, height);
@@ -912,7 +951,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is null
                   and String1 = ?
@@ -937,7 +976,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is not null
                   and String1 = ?
@@ -965,7 +1004,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is not null
                   and String1 = ?
@@ -994,7 +1033,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
                   and Height is null
                   and String1 = ?
@@ -1019,7 +1058,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
                   and Height is not null
                   and String1 = ?
@@ -1047,7 +1086,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (301)
                   and Height is not null
                   and Height >= ?
@@ -1076,7 +1115,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_GetScoreContentCount
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is null
                   and String1 = ?
@@ -1101,7 +1140,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is not null
                   and String1 = ?
@@ -1129,7 +1168,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_CountChain
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (300)
                   and Height is not null
                   and Height >= ?
@@ -1158,9 +1197,9 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vUsers
+                from Transactions
                 where Height is null
-                    and AddressHash = ?
+                    and String1 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1182,9 +1221,9 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vUsers
+                from Transactions
                 where Height is not null
-                    and AddressHash = ?
+                    and String1 = ?
                     and Time >= ?
                     and Last = 1
             )sql");
@@ -1209,9 +1248,9 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vUsers
+                from Transactions
                 where Height is not null
-                    and AddressHash = ?
+                    and String1 = ?
                     and Height >= ?
                     and Last = 1
             )sql");
@@ -1237,9 +1276,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is null
-                    and AddressHash = ?
+                from Transactions
+                where Type in (201)
+                    and Height is null
+                    and String1 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1261,9 +1301,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is not null
-                    and AddressHash = ?
+                from Transactions
+                where Type in (201)
+                    and Height is not null
+                    and String1 = ?
                     and Time >= ?
                     and Last = 1
             )sql");
@@ -1288,9 +1329,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is not null
-                    and AddressHash = ?
+                from Transactions
+                where Type in (201)
+                    and Height is not null
+                    and String1 = ?
                     and Height >= ?
                     and Last = 1
             )sql");
@@ -1310,7 +1352,7 @@ namespace PocketDb
 
     // EDITS
 
-    int ConsensusRepository::CountMempoolCommentEdit(const string& rootTxHash)
+    int ConsensusRepository::CountMempoolCommentEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1318,12 +1360,16 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vComments
-                where Height is null
-                    and RootTxHash = ?
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (204, 205, 206)
+                    and Height is null
+                    and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -1334,7 +1380,7 @@ namespace PocketDb
 
         return result;
     }
-    int ConsensusRepository::CountChainCommentEdit(const string& rootTxHash)
+    int ConsensusRepository::CountChainCommentEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1342,62 +1388,16 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vComments
-                where Height is not null
-                    and RootTxHash = ?
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (204, 205, 206)
+                    and Height is not null
+                    and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = value;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    int ConsensusRepository::CountMempoolPostEdit(const string& rootTxHash)
-    {
-        int result = 0;
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(R"sql(
-                select count(*)
-                from vPosts
-                where Height is null
-                    and RootTxHash = ?
-            )sql");
-
-            TryBindStatementText(stmt, 1, rootTxHash);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = value;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-    int ConsensusRepository::CountChainPostEdit(const string& rootTxHash)
-    {
-        int result = 0;
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(R"sql(
-                select count(*)
-                from vPosts
-                where Height is not null
-                    and RootTxHash = ?
-                    and Hash != RootTxHash
-            )sql");
-
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -1409,7 +1409,7 @@ namespace PocketDb
         return result;
     }
 
-    int ConsensusRepository::CountMempoolVideoEdit(const string& rootTxHash)
+    int ConsensusRepository::CountMempoolPostEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1417,12 +1417,16 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is null
-                    and RootTxHash = ?
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (200)
+                    and Height is null
+                    and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -1433,7 +1437,7 @@ namespace PocketDb
 
         return result;
     }
-    int ConsensusRepository::CountChainVideoEdit(const string& rootTxHash)
+    int ConsensusRepository::CountChainPostEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1441,13 +1445,73 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from vVideos
-                where Height is not null
-                    and RootTxHash = ?
-                    and Hash != RootTxHash
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (200)
+                    and Height is not null
+                    and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    int ConsensusRepository::CountMempoolVideoEdit(const string& address, const string& rootTxHash)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (201)
+                    and Height is null
+                    and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+    int ConsensusRepository::CountChainVideoEdit(const string& address, const string& rootTxHash)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (201)
+                    and Height is not null
+                    and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

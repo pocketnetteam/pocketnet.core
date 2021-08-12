@@ -52,8 +52,9 @@ namespace PocketConsensus
             if (*lastContent->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), SocialConsensusResult_NotFound))
-                    return {false, SocialConsensusResult_NotFound};
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NotFound))
+                    //return {false, SocialConsensusResult_NotFound};
+                    LogPrintf("--- %s %d SocialConsensusResult_NotFound\n", *ptx->GetTypeInt(), *ptx->GetHash());
             }
 
             // Check score to self
@@ -128,7 +129,9 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreComment>& tx, int count)
         {
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
+
             auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
             auto limit = GetScoresLimit(accountMode);
 
@@ -193,7 +196,6 @@ namespace PocketConsensus
     class ScoreCommentConsensus_checkpoint_430000 : public ScoreCommentConsensus
     {
     protected:
-        int CheckpointHeight() override { return 430000; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(
             const string& commentAddress, const shared_ptr<ScoreComment>& tx) override
@@ -221,7 +223,6 @@ namespace PocketConsensus
     class ScoreCommentConsensus_checkpoint_514184 : public ScoreCommentConsensus_checkpoint_430000
     {
     protected:
-        int CheckpointHeight() override { return 514184; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(
             const string& commentAddress, const shared_ptr<ScoreComment>& tx) override
@@ -244,7 +245,6 @@ namespace PocketConsensus
         ScoreCommentConsensus_checkpoint_1124000(int height) : ScoreCommentConsensus_checkpoint_514184(height) {}
 
     protected:
-        int CheckpointHeight() override { return 1124000; }
 
         bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
         {
@@ -263,7 +263,6 @@ namespace PocketConsensus
         ScoreCommentConsensus_checkpoint_1180000(int height) : ScoreCommentConsensus_checkpoint_1124000(height) {}
 
     protected:
-        int CheckpointHeight() override { return 1180000; }
 
         int64_t GetLimitWindow() override { return 1440; }
 
@@ -284,7 +283,7 @@ namespace PocketConsensus
     class ScoreCommentConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<ScoreCommentConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<ScoreCommentConsensus*(int height)>> m_rules =
             {
                 {1180000, [](int height) { return new ScoreCommentConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ScoreCommentConsensus_checkpoint_1124000(height); }},

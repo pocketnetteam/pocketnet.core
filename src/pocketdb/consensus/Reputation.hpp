@@ -173,6 +173,26 @@ namespace PocketConsensus
 
             return true;
         }
+
+        virtual void ExtendAccountLikersBase(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
+        {
+            auto found = find(
+                accountLikers[scoreData->ContentAddressId].begin(),
+                accountLikers[scoreData->ContentAddressId].end(),
+                scoreData->ScoreAddressId
+            );
+
+            if (found == accountLikers[scoreData->ContentAddressId].end())
+                accountLikers[scoreData->ContentAddressId].push_back(scoreData->ScoreAddressId);
+        }
+
+        virtual void ExtendAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
+        {
+            if (!accountLikers[scoreData->ContentAddressId].empty())
+                return;
+
+            ExtendAccountLikersBase(scoreData, accountLikers);
+        }
     };
 
     /*******************************************************************************************************************
@@ -184,7 +204,6 @@ namespace PocketConsensus
     {
     protected:
         int64_t GetThresholdReputationScore() override { return 500; }
-        int CheckpointHeight() override { return 108300; }
     public:
         ReputationConsensus_checkpoint_108300(int height) : ReputationConsensus(height) {}
     };
@@ -197,8 +216,6 @@ namespace PocketConsensus
     class ReputationConsensus_checkpoint_151600 : public ReputationConsensus_checkpoint_108300
     {
     protected:
-        int CheckpointHeight() override { return 151600; }
-
         tuple<int, string> SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery) override
         {
             return make_tuple(scoreData->ScoreAddressId, scoreData->ScoreAddressHash);
@@ -218,7 +235,6 @@ namespace PocketConsensus
     protected:
         int64_t GetScoresOneToOne() override { return 2; }
         int64_t GetScoresOneToOneDepth() override { return 1 * 24 * 3600; }
-        int CheckpointHeight() override { return 225000; }
     public:
         ReputationConsensus_checkpoint_225000(int height) : ReputationConsensus_checkpoint_151600(height) {}
     };
@@ -234,7 +250,6 @@ namespace PocketConsensus
         int64_t GetThresholdReputationScore() override { return 1000; }
         int64_t GetThresholdReputation() override { return 1000; }
         int64_t GetScoresOneToOneDepth() override { return 7 * 24 * 3600; }
-        int CheckpointHeight() override { return 292800; }
     public:
         ReputationConsensus_checkpoint_292800(int height) : ReputationConsensus_checkpoint_225000(height) {}
     };
@@ -247,7 +262,6 @@ namespace PocketConsensus
     class ReputationConsensus_checkpoint_322700 : public ReputationConsensus_checkpoint_292800
     {
     protected:
-        int CheckpointHeight() override { return 322700; }
         int64_t GetScoresOneToOneDepth() override { return 2 * 24 * 3600; }
         int64_t GetScoresToPostModifyReputationDepth() override { return 30 * 24 * 3600; }
     public:
@@ -263,9 +277,26 @@ namespace PocketConsensus
     {
     protected:
         int64_t GetThresholdLikersCount() override { return 100; }
-        int CheckpointHeight() override { return 1124000; }
     public:
         ReputationConsensus_checkpoint_1124000(int height) : ReputationConsensus_checkpoint_322700(height) {}
+    };
+
+    // TODO (brangr): implement after relase 0.19.11
+    /*******************************************************************************************************************
+    *
+    *  Consensus checkpoint at ??????? block
+    *
+    *******************************************************************************************************************/
+    class ReputationConsensus_checkpoint_6000000 : public ReputationConsensus_checkpoint_1124000
+    {
+    protected:
+    public:
+        ReputationConsensus_checkpoint_6000000(int height) : ReputationConsensus_checkpoint_1124000(height) {}
+
+        void ExtendAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers) override
+        {
+            ExtendAccountLikersBase(scoreData, accountLikers);
+        }
     };
 
     /*******************************************************************************************************************
@@ -276,8 +307,9 @@ namespace PocketConsensus
     class ReputationConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<ReputationConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<ReputationConsensus*(int height)>> m_rules =
             {
+                {6000000, [](int height) { return new ReputationConsensus_checkpoint_6000000(height); }},
                 {1124000, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
                 {322700,  [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
                 {292800,  [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
@@ -287,7 +319,7 @@ namespace PocketConsensus
                 {0,       [](int height) { return new ReputationConsensus(height); }},
             };
     public:
-        static shared_ptr<ReputationConsensus> Instance(int height)
+        shared_ptr<ReputationConsensus> Instance(int height)
         {
             return shared_ptr<ReputationConsensus>(
                 (--m_rules.upper_bound(height))->second(height)

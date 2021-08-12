@@ -41,7 +41,7 @@ static const struct
 {
     RetFormat rf;
     const char* name;
-} rf_names[] = {
+}rf_names[] = {
     {RetFormat::UNDEF,  ""},
     {RetFormat::BINARY, "bin"},
     {RetFormat::HEX,    "hex"},
@@ -183,7 +183,7 @@ static bool CheckWarmup(HTTPRequest* req)
 }
 
 static bool rest_headers(HTTPRequest* req,
-                         const std::string& strURIPart)
+    const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
         return false;
@@ -264,8 +264,8 @@ static bool rest_headers(HTTPRequest* req,
 }
 
 static bool rest_block(HTTPRequest* req,
-                       const std::string& strURIPart,
-                       bool showTxDetails)
+    const std::string& strURIPart,
+    bool showTxDetails)
 {
     if (!CheckWarmup(req))
         return false;
@@ -870,13 +870,32 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
         try
         {
             std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
-            if (!PocketServices::GetBlock(block, pocketBlock, true))
+            if (!PocketServices::GetBlock(block, pocketBlock, false) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
-            PocketServices::TransactionIndexer::Rollback(block, pblockindex->nHeight);
+            PocketServices::TransactionIndexer::Rollback(pblockindex->nHeight);
 
-            if (pocketBlock)
-                PocketConsensus::SocialConsensusHelper::Validate(*pocketBlock, pblockindex->nHeight);
+            CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
+            if (pblockindex->nHeight > 100000 && block.IsProofOfStake())
+            {
+                arith_uint256 hashProof;
+                arith_uint256 targetProofOfStake;
+                CheckProofOfStake(pblockindex->pprev, block.vtx[1], block.nBits, hashProof, hashProofOfStakeSource,
+                    targetProofOfStake, NULL, false);
+
+                int64_t nReward = GetProofOfStakeReward(pblockindex->nHeight, 0, Params().GetConsensus());
+                if (!CheckBlockRatingRewards(block, pblockindex->pprev, nReward, hashProofOfStakeSource))
+                {
+                    LogPrintf("CheckBlockRatingRewards at height %d failed\n", current);
+                    return RESTERR(req, HTTP_BAD_REQUEST, "CheckBlockRatingRewards failed");
+                }
+            }
+
+            if (!PocketConsensus::SocialConsensusHelper::Validate(*pocketBlock, pblockindex->nHeight))
+            {
+                LogPrintf("failed at %d heaihgt\n", pblockindex->nHeight);
+                // return RESTERR(req, HTTP_BAD_REQUEST, "Validate failed");
+            }
 
             PocketServices::TransactionIndexer::Index(block, pblockindex->nHeight);
         }
@@ -1011,7 +1030,14 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
     if (!CheckWarmup(req))
         return false;
 
-    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile("/" + strURIPart); code == HTTP_OK)
+    if (strURIPart.find("/clear") == 0)
+    {
+        PocketWeb::PocketFrontendInst.ClearCache();
+        req->WriteReply(HTTP_OK, "Cache cleared!");
+        return true;
+    }
+
+    if (auto[code, file] = PocketWeb::PocketFrontendInst.GetFile(strURIPart); code == HTTP_OK)
     {
         req->WriteHeader("Content-Type", file->ContentType);
         req->WriteReply(code, file->Content);
@@ -1025,23 +1051,11 @@ static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
     return RESTERR(req, HTTP_NOT_FOUND, "");
 }
 
-static bool clear_web_cache(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-
-    PocketWeb::PocketFrontendInst.ClearCache();
-    req->WriteReply(HTTP_OK, "Cache cleared!");
-    return true;
-}
-
-
 static const struct
 {
     const char* prefix;
-
     bool (* handler)(HTTPRequest* req, const std::string& strReq);
-} uri_prefixes[] = {
+}uri_prefixes[] = {
 
     {"/rest/tx/",                rest_tx},
     {"/rest/block/notxdetails/", rest_block_notxdetails},
@@ -1061,16 +1075,10 @@ static const struct
     {"/rest/pindexblock",        debug_index_block},
     {"/rest/pcheckblock",        debug_check_block},
     {"/rest/prewards",           debug_rewards_check},
-
-    // For static web
-    {"/web",                     get_static_web},
-    {"/clearcache",              clear_web_cache},
 };
 
 void StartREST()
 {
-
-
     for (unsigned int i = 0; i < ARRAYLEN(uri_prefixes); i++)
         g_socket->RegisterHTTPHandler(uri_prefixes[i].prefix, false, uri_prefixes[i].handler);
 }

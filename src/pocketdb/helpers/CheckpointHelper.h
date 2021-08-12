@@ -21,14 +21,15 @@ namespace PocketHelpers
     {
     private:
         // TxHash - Consensus check result code
-        map<string, SocialConsensusResult> _checkpoints;
+        map<string, tuple<PocketTxType, SocialConsensusResult>> _checkpoints;
 
     public:
 
-        bool IsCheckpoint(const string& txHash, SocialConsensusResult code)
+        bool IsCheckpoint(const string& txHash, PocketTxType txType, SocialConsensusResult code)
         {
             if (_checkpoints.find(txHash) == _checkpoints.end()) return false;
-            return _checkpoints[txHash] == code;
+            auto[_type, _code] = _checkpoints[txHash];
+            return _type == txType && _code == code;
         }
 
         SocialCheckpoints();

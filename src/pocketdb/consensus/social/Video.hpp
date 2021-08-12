@@ -7,6 +7,7 @@
 #ifndef POCKETCONSENSUS_VIDEO_HPP
 #define POCKETCONSENSUS_VIDEO_HPP
 
+#include "pocketdb/consensus/Reputation.hpp"
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/Video.hpp"
 
@@ -145,7 +146,9 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Video>& tx, int count)
         {
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
+
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetLimit(mode);
 
@@ -183,9 +186,11 @@ namespace PocketConsensus
             }
 
             // Check edit one itm limit
-            int count = ConsensusRepoInst.CountChainVideoEdit(*tx->GetRootTxHash());
+            int count = ConsensusRepoInst.CountChainVideoEdit(*tx->GetAddress(), *tx->GetRootTxHash());
 
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
+
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetEditLimit(mode);
 
@@ -197,7 +202,7 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(const shared_ptr<Video>& tx)
         {
-            if (ConsensusRepoInst.CountMempoolVideoEdit(*tx->GetRootTxHash()) > 0)
+            if (ConsensusRepoInst.CountMempoolVideoEdit(*tx->GetAddress(), *tx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
 
             return Success;
