@@ -35,7 +35,11 @@ namespace PocketConsensus
 
             // TODO (brangr) (v0.21.0): unique names disabled in future
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
-                return {false, SocialConsensusResult_NicknameDouble};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameDouble))
+                    return {false, SocialConsensusResult_NicknameDouble};
+            }
 
             return ValidateModelEdit(ptx);
         }
