@@ -142,7 +142,7 @@ namespace PocketServices
                             scoreData->ScoreValue - 3;
 
                         if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
-                            ExtendAccountLikers(scoreData, accountLikers);
+                            reputationConsensus->ExtendAccountLikers(scoreData, accountLikers);
 
                         break;
 
@@ -154,7 +154,7 @@ namespace PocketServices
                             scoreData->ScoreValue;
 
                         if (scoreData->ScoreValue == 1)
-                            ExtendAccountLikers(scoreData, accountLikers);
+                            reputationConsensus->ExtendAccountLikers(scoreData, accountLikers);
 
                         break;
 
@@ -206,20 +206,7 @@ namespace PocketServices
             PocketDb::RatingsRepoInst.InsertRatings(ratings);
         }
 
-
     private:
-
-        static void ExtendAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
-        {
-            auto found = find(
-                accountLikers[scoreData->ContentAddressId].begin(),
-                accountLikers[scoreData->ContentAddressId].end(),
-                scoreData->ScoreAddressId
-            );
-
-            if (found == accountLikers[scoreData->ContentAddressId].end())
-                accountLikers[scoreData->ContentAddressId].push_back(scoreData->ScoreAddressId);
-        }
 
     };
 

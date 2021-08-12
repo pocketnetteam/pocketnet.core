@@ -159,7 +159,8 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Post>& tx, int count)
         {
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetLimit(mode);
 
@@ -213,7 +214,8 @@ namespace PocketConsensus
         {
             int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetAddress(), *tx->GetRootTxHash());
 
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetEditLimit(mode);
 
@@ -249,7 +251,6 @@ namespace PocketConsensus
     class PostConsensus_checkpoint_ : public PostConsensus
     {
     protected:
-        int CheckpointHeight() override { return 0; }
 
     public:
         PostConsensus_checkpoint_(int height) : PostConsensus(height) {}
@@ -266,7 +267,6 @@ namespace PocketConsensus
         PostConsensus_checkpoint_1124000(int height) : PostConsensus(height) {}
 
     protected:
-        int CheckpointHeight() override { return 1124000; }
 
         bool AllowBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
         {
@@ -285,7 +285,6 @@ namespace PocketConsensus
         PostConsensus_checkpoint_1180000(int height) : PostConsensus_checkpoint_1124000(height) {}
 
     protected:
-        int CheckpointHeight() override { return 1180000; }
 
         int64_t GetEditWindow() override { return 1440; }
 

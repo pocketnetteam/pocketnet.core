@@ -121,7 +121,9 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreContent>& tx, int count)
         {
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
+
             auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
             auto limit = GetScoresLimit(accountMode);
 
@@ -187,7 +189,6 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_175600 : public ScoreContentConsensus
     {
     protected:
-        int CheckpointHeight() override { return 175600; }
 
         int64_t GetFullAccountScoresLimit() override { return 200; }
 
@@ -205,7 +206,6 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_430000 : public ScoreContentConsensus_checkpoint_175600
     {
     protected:
-        int CheckpointHeight() override { return 430000; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
             const shared_ptr<ScoreContent>& tx) override
@@ -233,7 +233,6 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_514184 : public ScoreContentConsensus_checkpoint_430000
     {
     protected:
-        int CheckpointHeight() override { return 514184; }
 
         tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
             const shared_ptr<ScoreContent>& tx) override
@@ -256,7 +255,6 @@ namespace PocketConsensus
         ScoreContentConsensus_checkpoint_1124000(int height) : ScoreContentConsensus_checkpoint_514184(height) {}
 
     protected:
-        int CheckpointHeight() override { return 1124000; }
 
         bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
         {
@@ -275,7 +273,6 @@ namespace PocketConsensus
         ScoreContentConsensus_checkpoint_1180000(int height) : ScoreContentConsensus_checkpoint_1124000(height) {}
 
     protected:
-        int CheckpointHeight() override { return 1180000; }
 
         int64_t GetLimitWindow() override { return 1440; }
 
@@ -296,7 +293,7 @@ namespace PocketConsensus
     class ScoreContentConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<ScoreContentConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<ScoreContentConsensus*(int height)>> m_rules =
             {
                 {1180000, [](int height) { return new ScoreContentConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ScoreContentConsensus_checkpoint_1124000(height); }},

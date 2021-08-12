@@ -113,30 +113,14 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
-    *  Consensus checkpoint at 1 block
-    *
-    *******************************************************************************************************************/
-    class SubscribeCancelConsensus_checkpoint_1 : public SubscribeCancelConsensus
-    {
-    protected:
-        int CheckpointHeight() override { return 1; }
-
-    public:
-        SubscribeCancelConsensus_checkpoint_1(int height) : SubscribeCancelConsensus(height) {}
-    };
-
-
-    /*******************************************************************************************************************
-    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
     class SubscribeCancelConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<SubscribeCancelConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<SubscribeCancelConsensus*(int height)>> m_rules =
             {
-                {1, [](int height) { return new SubscribeCancelConsensus_checkpoint_1(height); }},
                 {0, [](int height) { return new SubscribeCancelConsensus(height); }},
             };
     public:

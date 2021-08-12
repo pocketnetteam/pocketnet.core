@@ -118,7 +118,8 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Complain>& tx, int count)
         {
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetComplainsLimit(mode);
 
@@ -168,10 +169,7 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus_checkpoint_292800(int height) : ComplainConsensus(height) {}
-
     protected:
-        int CheckpointHeight() override { return 292800; }
-
         int64_t GetThresholdReputation() override { return 1000; }
     };
 
@@ -184,10 +182,7 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus_checkpoint_1124000(int height) : ComplainConsensus_checkpoint_292800(height) {}
-
     protected:
-        int CheckpointHeight() override { return 1124000; }
-
         bool CheckBlockLimitTime(const shared_ptr<Complain>& ptx, const shared_ptr<Complain>& blockPtx) override
         {
             return true;
@@ -203,12 +198,8 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus_checkpoint_1180000(int height) : ComplainConsensus_checkpoint_1124000(height) {}
-
     protected:
-        int CheckpointHeight() override { return 1180000; }
-
         int64_t GetLimitWindow() override { return 1440; }
-
         int GetChainCount(const shared_ptr<Complain>& ptx) override
         {
             return ConsensusRepoInst.CountChainComplainHeight(
@@ -227,7 +218,7 @@ namespace PocketConsensus
     class ComplainConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<ComplainConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<ComplainConsensus*(int height)>> m_rules =
             {
                 {1180000, [](int height) { return new ComplainConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ComplainConsensus_checkpoint_1124000(height); }},

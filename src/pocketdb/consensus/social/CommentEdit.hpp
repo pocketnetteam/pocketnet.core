@@ -108,7 +108,7 @@ namespace PocketConsensus
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
-                                                         const PocketBlock& block) override
+            const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
 
@@ -144,7 +144,8 @@ namespace PocketConsensus
         {
             int count = ConsensusRepoInst.CountChainCommentEdit(*tx->GetString1(), *tx->GetRootTxHash());
 
-            auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
+            ReputationConsensusFactory reputationConsensusFactoryInst;
+            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetEditLimit(mode);
 
@@ -191,7 +192,6 @@ namespace PocketConsensus
         CommentEditConsensus_checkpoint_1180000(int height) : CommentEditConsensus(height) {}
 
     protected:
-        int CheckpointHeight() override { return 1180000; }
 
         int64_t GetEditWindow() override { return 1440; }
 

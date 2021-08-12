@@ -115,7 +115,7 @@ namespace PocketConsensus
     class SubscribeConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<SubscribeConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<SubscribeConsensus*(int height)>> m_rules =
             {
                 {0, [](int height) { return new SubscribeConsensus(height); }},
             };

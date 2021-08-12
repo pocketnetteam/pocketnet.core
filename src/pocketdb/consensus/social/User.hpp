@@ -148,8 +148,6 @@ namespace PocketConsensus
     {
     protected:
 
-        int CheckpointHeight() override { return 1180000; }
-
         int64_t GetChangeInfoDepth() override { return 60; }
 
         tuple<bool, SocialConsensusResult> ValidateModelEdit(const std::shared_ptr<User>& ptx) override
@@ -181,7 +179,6 @@ namespace PocketConsensus
     class UserConsensus_checkpoint_ : public UserConsensus_checkpoint_1180000
     {
     protected:
-        int CheckpointHeight() override { return 0; }
 
         // TODO (brangr) (v0.21.0): Starting from this block, we disable the uniqueness of Name
         virtual tuple<bool, SocialConsensusResult> CheckDoubleName(const std::shared_ptr<User>& tx)
@@ -201,7 +198,7 @@ namespace PocketConsensus
     class UserConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<UserConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<UserConsensus*(int height)>> m_rules =
             {
                 {1180000, [](int height) { return new UserConsensus_checkpoint_1180000(height); }},
                 {0,       [](int height) { return new UserConsensus(height); }},

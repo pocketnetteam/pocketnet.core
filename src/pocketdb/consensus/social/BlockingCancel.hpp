@@ -100,7 +100,7 @@ namespace PocketConsensus
     class BlockingCancelConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<BlockingCancelConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<BlockingCancelConsensus*(int height)>> m_rules =
             {
                 {0, [](int height) { return new BlockingCancelConsensus(height); }},
             };

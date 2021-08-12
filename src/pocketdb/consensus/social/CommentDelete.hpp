@@ -108,7 +108,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        vector <string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
             return {*ptx->GetAddress()};
@@ -124,7 +124,7 @@ namespace PocketConsensus
     class CommentDeleteConsensusFactory
     {
     private:
-        static inline const std::map<int, std::function<CommentDeleteConsensus*(int height)>> m_rules =
+        const std::map<int, std::function<CommentDeleteConsensus*(int height)>> m_rules =
             {
                 {0, [](int height) { return new CommentDeleteConsensus(height); }},
             };
