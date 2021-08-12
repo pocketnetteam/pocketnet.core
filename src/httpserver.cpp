@@ -183,6 +183,7 @@ static std::vector<CSubNet> rpc_allow_subnets;
 //! HTTP socket objects to handle requests on different routes
 HTTPSocket *g_socket;
 HTTPSocket *g_pubSocket;
+HTTPSocket *g_staticSocket;
 
 std::thread threadHTTP;
 std::future<bool> threadResult;
@@ -368,12 +369,15 @@ static bool HTTPBindAddresses()
 {
     int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
     int securePort = gArgs.GetArg("-rpcport", BaseParams().RPCPort());
+    int staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
 
     // Determine what addresses to bind to
     if (!gArgs.IsArgSet("-rpcallowip"))
     { // Default to loopback if not allowing external IPs
         g_pubSocket->BindAddress("::1", publicPort);
         g_pubSocket->BindAddress("127.0.0.1", publicPort);
+        g_staticSocket->BindAddress("::1", staticPort);
+        g_staticSocket->BindAddress("127.0.0.1", staticPort);
         g_socket->BindAddress("::1", securePort);
         g_socket->BindAddress("127.0.0.1", securePort);
         if (gArgs.IsArgSet("-rpcbind"))
@@ -388,12 +392,15 @@ static bool HTTPBindAddresses()
             std::string host;
             SplitHostPort(strRPCBind, publicPort, host);
             g_pubSocket->BindAddress(host, publicPort);
+            g_staticSocket->BindAddress(host, staticPort);
             g_socket->BindAddress(host, securePort);
         }
     } else
     { // No specific bind address specified, bind to any
         g_pubSocket->BindAddress("::", publicPort);
         g_pubSocket->BindAddress("0.0.0.0", publicPort);
+        g_staticSocket->BindAddress("::", staticPort);
+        g_staticSocket->BindAddress("0.0.0.0", staticPort);
         g_socket->BindAddress("::", securePort);
         g_socket->BindAddress("0.0.0.0", securePort);
     }
@@ -446,12 +453,14 @@ bool InitHTTPServer()
     int workQueueMainDepth = std::max((long) gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
     int workQueuePostDepth = std::max((long) gArgs.GetArg("-rpcpostworkqueue", DEFAULT_HTTP_POST_WORKQUEUE), 1L);
     int workQueuePublicDepth = std::max((long) gArgs.GetArg("-rpcpublicworkqueue", DEFAULT_HTTP_PUBLIC_WORKQUEUE), 1L);
+    int workQueueStaticDepth = std::max((long) gArgs.GetArg("-rpcstaticworkqueue", DEFAULT_HTTP_STATIC_WORKQUEUE), 1L);
 
     raii_event_base base_ctr = obtain_event_base();
     eventBase = base_ctr.get();
 
     g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth);
     g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth);
+    g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth);
  
     if (!HTTPBindAddresses())
     {
@@ -502,6 +511,8 @@ void StartHTTPServer()
     int pubThreads = rpcPostThreads + rpcPublicThreads;
     LogPrintf("HTTP: starting %d Public worker threads\n", pubThreads);
     g_pubSocket->StartHTTPSocket(pubThreads, true);
+
+    g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
 }
 
 void InterruptHTTPServer()
@@ -509,6 +520,7 @@ void InterruptHTTPServer()
     LogPrint(BCLog::HTTP, "Interrupting HTTP server\n");
     g_socket->InterruptHTTPSocket();
     g_pubSocket->InterruptHTTPSocket();
+    g_staticSocket->InterruptHTTPSocket();
 }
 
 void StopHTTPServer()
@@ -518,12 +530,7 @@ void StopHTTPServer()
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
     g_socket->StopHTTPSocket();
     g_pubSocket->StopHTTPSocket();
-
-    if (workQueueStatic)
-    {
-        delete workQueueStatic;
-        workQueueStatic = nullptr;
-    }
+    g_staticSocket->StopHTTPSocket();
 
     if (eventBase)
     {
@@ -552,6 +559,9 @@ void StopHTTPServer()
 
     delete g_pubSocket;
     g_pubSocket = nullptr;
+
+    delete g_staticSocket;
+    g_staticSocket = nullptr;
 
     if (eventBase)
     {
