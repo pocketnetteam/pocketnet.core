@@ -170,7 +170,7 @@ namespace PocketDb
         // Get all indexes in DB
         try
         {
-            std::string sql = "SELECT name FROM sqlite_master WHERE type == 'index'";
+            std::string sql = "SELECT name FROM sqlite_master WHERE type == 'index' and name not like '%autoindex%'";
 
             BeginTransaction();
 
