@@ -26,7 +26,17 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("49bcd806b5a19e36f48b8b1d2fd87672f4cf54bca9017682fdcc9b77669bb26d", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("71f06d7118bcaff282b4ff5b2b45570c028595e45bce1e8c5c1d7e96c05531ac", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("e918fea2aa1956127fee9b5d5ddad40eb29d8966583c2e4c834985eed49fd14b", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
+    _checkpoints.emplace("16b4413b9e9f7b6751535536d2d4f79320e676c3dce6a51d2a025d5afd914777", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
+    _checkpoints.emplace("b7ca6990b7a194b00dbdef427e4e5066493d495a04b08d7215c7535ab70ba5e6", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
+    _checkpoints.emplace("9229b3c2d002cbf4bd9fc79037cba61067ab3a2ae1e423bce194fc14738d9a98", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
 
+    _checkpoints.emplace("45ad6c18c67717ab02c658e5153cbc97e3e7be9ed964739bb3a6181f89973b52", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
+    _checkpoints.emplace("caba0de8cff0173c3777896a79bfdf4d7227b8dcfb9f10df249601e6c148c436", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
+    _checkpoints.emplace("aba1c17900f74fb09ce09316ede13927c292172fe6aceabf0ef3638309f715b7", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
+    _checkpoints.emplace("b11aaacd180160aba063337c6e2b8feed33bcc37cbf9ef9f054f47ac534579a8", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
+    _checkpoints.emplace("5645011f36792de285fba0b588c0c77c3186bece5b7421749b6efb122c230a8b", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
+    _checkpoints.emplace("777e9f4c4622865590ec5a092cbef0a1878cd8a102d59579e3c48f2a716fe827", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
+    
     _checkpoints.emplace("34d3db603ac0ba65960a3ef2508967ab4a9fc5e55a3c637af7aa50580a0f32dd", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("812fca4ea40a58ff99fcd96fefd307f33c4daef4bc13918e7a82a5b92720c2f6", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("81febe8bf55791717e71ba88f9a80f7559aded019d26b164c7afae0ba6f2fc53", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));

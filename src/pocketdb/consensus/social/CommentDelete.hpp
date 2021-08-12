@@ -90,7 +90,7 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
             // GetString2() = RootTxHash
-            if (ConsensusRepoInst.CountMempoolCommentEdit(*tx->GetString2()) > 0)
+            if (ConsensusRepoInst.CountMempoolCommentEdit(*tx->GetString1(), *tx->GetString2()) > 0)
                 return {false, SocialConsensusResult_DoubleCommentDelete};
 
             return Success;

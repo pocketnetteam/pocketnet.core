@@ -7,6 +7,8 @@
 #ifndef POCKETCONSENSUS_COMMENT_EDIT_HPP
 #define POCKETCONSENSUS_COMMENT_EDIT_HPP
 
+#include "utils/html.h"
+#include "pocketdb/consensus/Reputation.hpp"
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/CommentEdit.hpp"
 
@@ -131,7 +133,7 @@ namespace PocketConsensus
         {
             auto ptx = static_pointer_cast<CommentEdit>(tx);
 
-            if (ConsensusRepoInst.CountMempoolCommentEdit(*ptx->GetRootTxHash()) > 0)
+            if (ConsensusRepoInst.CountMempoolCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleCommentEdit};
 
             // Check edit limit
@@ -140,14 +142,14 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const shared_ptr<Comment>& tx)
         {
-            int count = ConsensusRepoInst.CountChainCommentEdit(*tx->GetRootTxHash());
+            int count = ConsensusRepoInst.CountChainCommentEdit(*tx->GetString1(), *tx->GetRootTxHash());
 
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetEditLimit(mode);
 
             if (count >= limit)
-                return {false, SocialConsensusResult_ContentEditLimit};
+                return {false, SocialConsensusResult_CommentEditLimit};
 
             return Success;
         }

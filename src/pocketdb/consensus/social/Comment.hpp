@@ -7,7 +7,7 @@
 #ifndef POCKETCONSENSUS_COMMENT_HPP
 #define POCKETCONSENSUS_COMMENT_HPP
 
-#include <pocketdb/consensus/Reputation.hpp>
+#include "pocketdb/consensus/Reputation.hpp"
 #include "utils/html.h"
 
 #include "pocketdb/consensus/social/Base.hpp"

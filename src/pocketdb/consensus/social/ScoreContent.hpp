@@ -7,6 +7,7 @@
 #ifndef POCKETCONSENSUS_SCORECONTENT_HPP
 #define POCKETCONSENSUS_SCORECONTENT_HPP
 
+#include "pocketdb/consensus/Reputation.hpp"
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/dto/ScoreContent.hpp"

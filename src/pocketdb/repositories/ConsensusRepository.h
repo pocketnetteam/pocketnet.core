@@ -101,14 +101,14 @@ namespace PocketDb
         int CountChainVideoHeight(const string& address, int height);
 
 
-        int CountMempoolCommentEdit(const string& rootTxHash);
-        int CountChainCommentEdit(const string& rootTxHash);
+        int CountMempoolCommentEdit(const string& address, const string& rootTxHash);
+        int CountChainCommentEdit(const string& address, const string& rootTxHash);
 
-        int CountMempoolPostEdit(const string& rootTxHash);
-        int CountChainPostEdit(const string& rootTxHash);
+        int CountMempoolPostEdit(const string& address, const string& rootTxHash);
+        int CountChainPostEdit(const string& address, const string& rootTxHash);
 
-        int CountMempoolVideoEdit(const string& rootTxHash);
-        int CountChainVideoEdit(const string& rootTxHash);
+        int CountMempoolVideoEdit(const string& address, const string& rootTxHash);
+        int CountChainVideoEdit(const string& address, const string& rootTxHash);
 
 
     };

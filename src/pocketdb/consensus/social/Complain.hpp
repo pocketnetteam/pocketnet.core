@@ -7,7 +7,7 @@
 #ifndef POCKETCONSENSUS_COMPLAIN_HPP
 #define POCKETCONSENSUS_COMPLAIN_HPP
 
-#include <pocketdb/consensus/Reputation.hpp>
+#include "pocketdb/consensus/Reputation.hpp"
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/Complain.hpp"
 

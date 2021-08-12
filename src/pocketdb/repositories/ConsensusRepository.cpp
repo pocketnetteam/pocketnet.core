@@ -1352,7 +1352,7 @@ namespace PocketDb
 
     // EDITS
 
-    int ConsensusRepository::CountMempoolCommentEdit(const string& rootTxHash)
+    int ConsensusRepository::CountMempoolCommentEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1360,14 +1360,16 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions
+                from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (204, 205, 206)
                     and Height is null
-                    and String2 = ?
                     and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -1378,7 +1380,7 @@ namespace PocketDb
 
         return result;
     }
-    int ConsensusRepository::CountChainCommentEdit(const string& rootTxHash)
+    int ConsensusRepository::CountChainCommentEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1386,14 +1388,16 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions
+                from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (204, 205, 206)
                     and Height is not null
-                    and String2 = ?
                     and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -1405,7 +1409,7 @@ namespace PocketDb
         return result;
     }
 
-    int ConsensusRepository::CountMempoolPostEdit(const string& rootTxHash)
+    int ConsensusRepository::CountMempoolPostEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1413,14 +1417,16 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions
+                from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200)
                     and Height is null
-                    and String2 = ?
                     and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -1431,7 +1437,7 @@ namespace PocketDb
 
         return result;
     }
-    int ConsensusRepository::CountChainPostEdit(const string& rootTxHash)
+    int ConsensusRepository::CountChainPostEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1439,14 +1445,16 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions
+                from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200)
                     and Height is not null
-                    and String2 = ?
                     and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -1458,7 +1466,7 @@ namespace PocketDb
         return result;
     }
 
-    int ConsensusRepository::CountMempoolVideoEdit(const string& rootTxHash)
+    int ConsensusRepository::CountMempoolVideoEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1466,14 +1474,16 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions
+                from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (201)
                     and Height is null
-                    and String2 = ?
                     and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -1484,7 +1494,7 @@ namespace PocketDb
 
         return result;
     }
-    int ConsensusRepository::CountChainVideoEdit(const string& rootTxHash)
+    int ConsensusRepository::CountChainVideoEdit(const string& address, const string& rootTxHash)
     {
         int result = 0;
 
@@ -1492,14 +1502,16 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions
+                from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (201)
                     and Height is not null
-                    and String2 = ?
                     and Hash != String2
+                    and String1 = ?
+                    and String2 = ?
             )sql");
 
-            TryBindStatementText(stmt, 1, rootTxHash);
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

@@ -7,7 +7,7 @@
 #ifndef POCKETCONSENSUS_POST_HPP
 #define POCKETCONSENSUS_POST_HPP
 
-#include <pocketdb/consensus/Reputation.hpp>
+#include "pocketdb/consensus/Reputation.hpp"
 #include "pocketdb/consensus/social/Base.hpp"
 #include "pocketdb/models/dto/Post.hpp"
 
@@ -202,7 +202,7 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(const shared_ptr<Post>& tx)
         {
-            if (ConsensusRepoInst.CountMempoolPostEdit(*tx->GetRootTxHash()) > 0)
+            if (ConsensusRepoInst.CountMempoolPostEdit(*tx->GetAddress(), *tx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
 
             // Check edit limit
@@ -211,7 +211,7 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const shared_ptr<Post>& tx)
         {
-            int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetRootTxHash());
+            int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetAddress(), *tx->GetRootTxHash());
 
             auto reputationConsensus = ReputationConsensusFactory::Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
