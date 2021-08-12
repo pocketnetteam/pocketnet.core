@@ -209,7 +209,8 @@ bool AddrIndex::indexRating(const CTransactionRef& tx,
                 userLikers.insert(std::make_pair(post_address, likers));
             }
 
-            if (std::find(userLikers[post_address].begin(), userLikers[post_address].end(), score_address) == userLikers[post_address].end())
+            bool secondLiker = pindex->nHeight >= Params().GetConsensus().checkpoint_fix_save_likers || userLikers[post_address].empty();
+            if (secondLiker && std::find(userLikers[post_address].begin(), userLikers[post_address].end(), score_address) == userLikers[post_address].end())
                 userLikers[post_address].push_back(score_address);
         }
     }
@@ -265,8 +266,9 @@ bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
                 std::vector<std::string> likers;
                 userLikers.insert(std::make_pair(comment_address, likers));
             }
-            
-            if (std::find(userLikers[comment_address].begin(), userLikers[comment_address].end(), score_address) == userLikers[comment_address].end())
+
+            bool secondLiker = pindex->nHeight >= Params().GetConsensus().checkpoint_fix_save_likers || userLikers[comment_address].empty();
+            if (secondLiker && std::find(userLikers[comment_address].begin(), userLikers[comment_address].end(), score_address) == userLikers[comment_address].end())
                 userLikers[comment_address].push_back(score_address);
         }
     }

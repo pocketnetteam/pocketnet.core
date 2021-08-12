@@ -411,6 +411,11 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Ratings", {"key", "hash", "int", IndexOpts()});
         db->AddIndex("Ratings", {"value", "hash", "int", IndexOpts()});
         db->AddIndex("Ratings", {"type+block+key", {"type", "block", "key"}, "hash", "composite", IndexOpts().PK()});
+        // -----------------------------------
+        // TODO (brangr): remove force update index after release v0.19.11
+        db->DropIndex("Ratings", "type+block+key");
+        db->AddIndex("Ratings", {"type+block+key+value", {"type", "block", "key", "value"}, "hash", "composite", IndexOpts().PK()});
+        // -----------------------------------
         db->Commit("Ratings");
     }
 

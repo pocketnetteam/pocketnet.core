@@ -107,6 +107,7 @@ struct Params {
     unsigned int checkpoint_non_unique_account_name;
     unsigned int checkpoint_split_content_video;
     unsigned int checkpoint_disable_low_score_trial;
+    unsigned int checkpoint_fix_save_likers;
 };
 } // namespace Consensus
 
