@@ -686,7 +686,12 @@ Error PocketDB::Update(std::string table, Item& item, bool commit)
 Error PocketDB::UpdateUsersView(std::string address, int height)
 {
     Item _user_itm;
-    Error err = SelectOne(Query("Users").Where("address", CondEq, address).Sort("time", true), _user_itm);
+    Error err;
+    if (height >= Params().GetConsensus().checkpoint_split_content_video)
+        err = SelectOne(Query("Users").Where("address", CondEq, address).Sort("block", true), _user_itm);
+    else
+        err = SelectOne(Query("Users").Where("address", CondEq, address).Sort("time", true), _user_itm);
+
     if (err.code() == 13) return DeleteWithCommit(Query("UsersView").Where("address", CondEq, address));
     if (err.ok()) {
         Item _view_itm = db->NewItem("UsersView");
@@ -715,12 +720,18 @@ Error PocketDB::UpdateUsersView(std::string address, int height)
     return err;
 }
 
-Error PocketDB::UpdateSubscribesView(std::string address, std::string address_to)
+Error PocketDB::UpdateSubscribesView(std::string address, std::string address_to, int height)
 {
     DeleteWithCommit(Query("SubscribesView").Where("address", CondEq, address).Where("address_to", CondEq, address_to));
 
     QueryResults _res;
-    Error err = db->Select(Query("Subscribes", 0, 1).Where("address", CondEq, address).Where("address_to", CondEq, address_to).Sort("time", true), _res);
+    Error err;
+
+    if (height >= Params().GetConsensus().checkpoint_split_content_video)
+        err = db->Select(Query("Subscribes", 0, 1).Where("address", CondEq, address).Where("address_to", CondEq, address_to).Sort("block", true), _res);
+    else
+        err = db->Select(Query("Subscribes", 0, 1).Where("address", CondEq, address).Where("address_to", CondEq, address_to).Sort("time", true), _res);
+
     if (err.ok() && _res.Count() > 0) {
         Item _itm = _res[0].GetItem();
         if (!_itm["unsubscribe"].As<bool>())
@@ -730,10 +741,15 @@ Error PocketDB::UpdateSubscribesView(std::string address, std::string address_to
     return err;
 }
 
-Error PocketDB::UpdateBlockingView(std::string address, std::string address_to)
+Error PocketDB::UpdateBlockingView(std::string address, std::string address_to, int height)
 {
     Item _blocking_itm;
-    Error err = SelectOne(Query("Blocking").Where("address", CondEq, address).Where("address_to", CondEq, address_to).Sort("time", true), _blocking_itm);
+    Error err;
+    if (height >= Params().GetConsensus().checkpoint_split_content_video)
+        err = SelectOne(Query("Blocking").Where("address", CondEq, address).Where("address_to", CondEq, address_to).Sort("block", true), _blocking_itm);
+    else
+        err = SelectOne(Query("Blocking").Where("address", CondEq, address).Where("address_to", CondEq, address_to).Sort("time", true), _blocking_itm);
+
     if (err.code() == 13) return DeleteWithCommit(Query("BlockingView").Where("address", CondEq, address).Where("address_to", CondEq, address_to));
     if (err.ok()) {
         if (_blocking_itm["unblocking"].As<bool>() == true) {

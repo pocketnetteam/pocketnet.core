@@ -571,13 +571,13 @@ bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, 
     // New subscribe or unsubscribe
     if (table == "Subscribes") {
         if (!g_pocketdb->UpsertWithCommit("Subscribes", item).ok()) return false;
-        if (!g_pocketdb->UpdateSubscribesView(item["address"].As<string>(), item["address_to"].As<string>()).ok()) return false;
+        if (!g_pocketdb->UpdateSubscribesView(item["address"].As<string>(), item["address_to"].As<string>(), height).ok()) return false;
     }
 
     // New blocking or unblocking
     if (table == "Blocking") {
         if (!g_pocketdb->UpsertWithCommit("Blocking", item).ok()) return false;
-        if (!g_pocketdb->UpdateBlockingView(item["address"].As<string>(), item["address_to"].As<string>()).ok()) return false;
+        if (!g_pocketdb->UpdateBlockingView(item["address"].As<string>(), item["address_to"].As<string>(), height).ok()) return false;
     }
 
     // New Comment
@@ -729,10 +729,11 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
             std::string _subs_txid = _subs_itm["txid"].As<string>();
             std::string _subs_address = _subs_itm["address"].As<string>();
             std::string _subs_address_to = _subs_itm["address_to"].As<string>();
+            int _height_txid = _subs_itm["block"].As<int>();
 
             if (back_to_mempool && !insert_to_mempool(_subs_itm, "Subscribes")) return false;
             if (!g_pocketdb->DeleteWithCommit(reindexer::Query("Subscribes").Where("txid", CondEq, _subs_txid)).ok()) return false;
-            if (!g_pocketdb->UpdateSubscribesView(_subs_address, _subs_address_to).ok()) return false;
+            if (!g_pocketdb->UpdateSubscribesView(_subs_address, _subs_address_to, _height_txid).ok()) return false;
         }
     }
 
@@ -745,10 +746,11 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
             std::string _bl_txid = _bl_itm["txid"].As<string>();
             std::string _bl_address = _bl_itm["address"].As<string>();
             std::string _bl_address_to = _bl_itm["address_to"].As<string>();
+            int _height_txid = _bl_itm["block"].As<int>();
 
             if (back_to_mempool && !insert_to_mempool(_bl_itm, "Blocking")) return false;
             if (!g_pocketdb->DeleteWithCommit(reindexer::Query("Blocking").Where("txid", CondEq, _bl_txid)).ok()) return false;
-            if (!g_pocketdb->UpdateBlockingView(_bl_address, _bl_address_to).ok()) return false;
+            if (!g_pocketdb->UpdateBlockingView(_bl_address, _bl_address_to, _height_txid).ok()) return false;
         }
     }
     
