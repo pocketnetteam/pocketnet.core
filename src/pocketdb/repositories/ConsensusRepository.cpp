@@ -669,6 +669,56 @@ namespace PocketDb
         return result;
     }
 
+    int ConsensusRepository::GetScoreCommentCount(
+        int height,
+        const string& scoreAddress, const string& commentAddress,
+        const CTransactionRef& tx,
+        const std::vector<int>& values,
+        int64_t scoresOneToOneDepth)
+    {
+        int result = 0;
+
+        if (values.empty())
+            return result;
+
+        // Build sql string
+        string sql = R"sql(
+            select count(1)
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions s indexed by Transactions_Type_String1_String2_Height
+                on  s.String2 = c.String2
+                and s.Type = 301
+                and s.String1 = ?
+                and s.Height <= ?
+                and s.Time < ?
+                and s.Time >= ?
+                and s.Int1 in (204, 205, 206)
+            where c.Type = ?
+              and c.String1 = ?
+              and c.Last = 1
+        )sql";
+
+        // Execute
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, scoreAddress);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt64(stmt, 3, tx->nTime);
+            TryBindStatementInt64(stmt, 4, (int64_t) tx->nTime - scoresOneToOneDepth);
+            TryBindStatementText(stmt, 5, commentAddress);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     tuple<bool, int64_t> ConsensusRepository::GetLastAccountHeight(const string& address)
     {
         tuple<bool, int64_t> result = {false, 0};

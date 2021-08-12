@@ -62,6 +62,13 @@ namespace PocketDb
             const std::vector<int>& values,
             int64_t scoresOneToOneDepth);
 
+        int GetScoreCommentCount(
+            int height,
+            const string& scoreAddress, const string& commentAddress,
+            const CTransactionRef& tx,
+            const std::vector<int>& values,
+            int64_t scoresOneToOneDepth);
+
         // Exists
         bool ExistsComplain(const string& txHash, const string& postHash, const string& address);
         bool ExistsScore(const string& address, const string& contentHash, PocketTxType type, bool mempool);

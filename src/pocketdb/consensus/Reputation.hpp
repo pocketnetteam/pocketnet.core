@@ -120,9 +120,8 @@ namespace PocketConsensus
                 values.push_back(1);
             }
 
-            auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreContentCount(
+            auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreCommentCount(
                 Height,
-                scoreData->ScoreType, scoreData->ContentType,
                 scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
                 tx, values, _scores_one_to_one_depth);
 
