@@ -215,6 +215,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getusercontents",          5, "tags"},
         {"getusercontents",          6, "contenttypes"},
         {"getrecomendedsubscriptionsforuser", 1, "count"},
+        {"searchlinks",                    0, "search_request"},
+        {"searchlinks",                    1, "contenttypes"},
+        {"searchlinks",                    2, "height"},
+        {"searchlinks",                    3, "count"},
 
         {"getemission",                   0, "height"},
     };
