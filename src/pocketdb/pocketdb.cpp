@@ -1017,11 +1017,25 @@ int PocketDB::GetUserLikersCount(int userId, int height)
 
 bool PocketDB::ExistsUserLiker(int userId, int likerId, int height)
 {
+    bool existLiker = Exists(
+        Query("Ratings")
+            .Where("type", CondEq, (int)RatingType::RatingUserLikers)
+            .Where("key", CondEq, userId)
+            .Where("value", CondEq, likerId)
+    );
+
+    if (existLiker)
+        return true;
+    
+    if (height >= Params().GetConsensus().checkpoint_fix_save_likers)
+        return false;
+        
     return Exists(
         Query("Ratings")
             .Where("type", CondEq, (int)RatingType::RatingUserLikers)
             .Where("key", CondEq, userId)
-            .Where("value", CondEq, likerId));
+            .Where("block", CondEq, height)
+    );
 }
 
 bool PocketDB::SetUserReputation(std::string address, int rep)
