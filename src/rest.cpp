@@ -913,118 +913,6 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
     return true;
 }
 
-static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-
-    auto[rf, uriParts] = ParseParams(strURIPart);
-    int start = 0;
-    int height = 1;
-
-    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
-        start = result;
-
-    if (auto[ok, result] = TryGetParamInt(uriParts, 1); ok)
-        height = result;
-
-    int current = start;
-    while (current <= height)
-    {
-        CBlockIndex* pblockindex = chainActive[current];
-        if (!pblockindex)
-            return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
-
-        CBlock block;
-        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
-
-        std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
-        if (!PocketServices::GetBlock(block, pocketBlock))
-            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
-
-        if (pocketBlock)
-        {
-            // Check op_return hash
-            for (auto& ptx : *pocketBlock)
-            {
-                for (auto& tx : block.vtx)
-                {
-                    if (tx->GetHash().GetHex() != *ptx->GetHash())
-                        continue;
-
-                    const CTxOut& txout = tx->vout[0];
-                    auto asmString = ScriptToAsmStr(txout.scriptPubKey);
-                    std::vector<std::string> vasm;
-                    boost::split(vasm, asmString, boost::is_any_of("\t "));
-
-                    ptx->BuildHash();
-                    ptx->SetOpReturnTx(vasm[2]);
-                }
-            }
-
-            PocketConsensus::SocialConsensusHelper::Check(block, *pocketBlock);
-        }
-
-        LogPrintf("SocialConsensusHelper::Check at height %d\n", current);
-        current += 1;
-    }
-
-    req->WriteHeader("Content-Type", "text/plain");
-    req->WriteReply(HTTP_OK, "Success\n");
-    return true;
-}
-
-static bool debug_rewards_check(HTTPRequest* req, const std::string& strURIPart)
-{
-    if (!CheckWarmup(req))
-        return false;
-
-    auto[rf, uriParts] = ParseParams(strURIPart);
-    int start = 0;
-    int height = 1;
-
-    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
-        start = result;
-
-    if (auto[ok, result] = TryGetParamInt(uriParts, 1); ok)
-        height = result;
-
-    int current = start;
-    while (current <= height)
-    {
-        CBlockIndex* pblockindex = chainActive[current];
-        if (!pblockindex)
-            return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
-
-        CBlock block;
-        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
-
-        CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
-        if (block.IsProofOfStake())
-        {
-            arith_uint256 hashProof;
-            arith_uint256 targetProofOfStake;
-            CheckProofOfStake(pblockindex->pprev, block.vtx[1], block.nBits, hashProof, hashProofOfStakeSource,
-                targetProofOfStake, NULL, false);
-        }
-
-        int64_t nReward = GetProofOfStakeReward(pblockindex->nHeight, 0, Params().GetConsensus());
-        if (!CheckBlockRatingRewards(block, pblockindex->pprev, nReward, hashProofOfStakeSource))
-            LogPrintf("SocialConsensusHelper::Check at height %d failed\n", current);
-        else
-            LogPrintf("SocialConsensusHelper::Check at height %d success\n", current);
-
-
-        current += 1;
-    }
-
-    req->WriteHeader("Content-Type", "text/plain");
-    req->WriteReply(HTTP_OK, "Success\n");
-    return true;
-}
-
 static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
@@ -1073,8 +961,6 @@ static const struct
 
     // Debug
     {"/rest/pindexblock",        debug_index_block},
-    {"/rest/pcheckblock",        debug_check_block},
-    {"/rest/prewards",           debug_rewards_check},
 };
 
 void StartREST()

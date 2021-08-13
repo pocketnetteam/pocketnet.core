@@ -692,8 +692,8 @@ namespace PocketDb
                 and s.Height <= ?
                 and s.Time < ?
                 and s.Time >= ?
-                and s.Int1 in (204, 205, 206)
-            where c.Type = ?
+                and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+            where c.Type in (204, 205, 206)
               and c.String1 = ?
               and c.Last = 1
         )sql";
