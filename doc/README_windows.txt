@@ -32,6 +32,8 @@ rpcallowip=127.0.0.1/24         # for access from only localhost
 rpcallowip=192.168.0.0/0        # for access from local network
 
 rpcport=37071
+publicrpcport=38081
+staticrpcport=80
 rpcuser=<RPC_LOGIN>
 rpcpassword=<RPC_PASSWORD>
 -----

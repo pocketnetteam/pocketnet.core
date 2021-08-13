@@ -966,10 +966,7 @@ static const struct
 void StartREST()
 {
     for (unsigned int i = 0; i < ARRAYLEN(uri_prefixes); i++)
-        RegisterHTTPHandler(uri_prefixes[i].prefix, false, uri_prefixes[i].handler);
-
-    // For static web files getter
-    RegisterStaticHTTPHandler("/", false, get_static_web);
+        g_socket->RegisterHTTPHandler(uri_prefixes[i].prefix, false, uri_prefixes[i].handler);
 }
 
 void InterruptREST()
@@ -979,5 +976,5 @@ void InterruptREST()
 void StopREST()
 {
     for (unsigned int i = 0; i < ARRAYLEN(uri_prefixes); i++)
-        UnregisterHTTPHandler(uri_prefixes[i].prefix, false);
+        g_socket->UnregisterHTTPHandler(uri_prefixes[i].prefix, false);
 }
