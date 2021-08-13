@@ -106,7 +106,7 @@ public:
     bool UpdateUserReputation(std::string address, int height);
     int GetUserReputation(std::string _address, int height);
     int GetUserLikersCount(int userId, int height);
-    bool ExistsUserLiker(int userId, int likerId, int height);
+    bool ExistsUserLiker(int userId, int likerId);
 
     // Post
     bool UpdatePostRating(std::string posttxid, int sum, int cnt, int& rep);

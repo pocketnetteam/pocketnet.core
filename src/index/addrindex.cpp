@@ -302,6 +302,7 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
             return false;
         }
 
+        std::vector<int> likersForWrite;
         for (auto& liker : ul.second) {
             // get id for liker address
             auto[likerId, likerRegBlock] = g_pocketdb->GetUserData(liker);
@@ -311,18 +312,29 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
             }
 
             // Check likers exists for this user
-            if (!g_pocketdb->ExistsUserLiker(userId, likerId, pindex->nHeight)) {
-                reindexer::Item _itm_rating_new = g_pocketdb->DB()->NewItem("Ratings");
-                _itm_rating_new["type"] = RatingType::RatingUserLikers;
-                _itm_rating_new["block"] = pindex->nHeight;
-                _itm_rating_new["key"] = userId;
-                _itm_rating_new["value"] = likerId;
+            if (!g_pocketdb->ExistsUserLiker(userId, likerId)) {
+                if (pindex->nHeight < Params().GetConsensus().checkpoint_fix_save_likers)
+                    likersForWrite.clear();
 
-                if (!g_pocketdb->UpsertWithCommit("Ratings", _itm_rating_new).ok()) {
-                    LogPrintf("Error save user likers ratings %d - %d\n", userId, likerId);
-                    return false;
-                }
+                likersForWrite.emplace_back(likerId);
             }
+        }
+
+        // Write liker in DB
+        for (auto& likerId : likersForWrite)
+        {
+            reindexer::Item _itm_rating_new = g_pocketdb->DB()->NewItem("Ratings");
+            _itm_rating_new["type"] = RatingType::RatingUserLikers;
+            _itm_rating_new["block"] = pindex->nHeight;
+            _itm_rating_new["key"] = userId;
+            _itm_rating_new["value"] = likerId;
+
+            if (!g_pocketdb->UpsertWithCommit("Ratings", _itm_rating_new).ok()) {
+                LogPrintf("Error save user likers ratings %d - %d\n", userId, likerId);
+                return false;
+            }
+            
+            LogPrintf("--- LIKERS H:%d U:%d L:%d\n", pindex->nHeight, userId, likerId);
         }
     }
 
