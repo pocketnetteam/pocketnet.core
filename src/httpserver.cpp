@@ -367,17 +367,13 @@ static bool ThreadHTTP(struct event_base *base)
 /** Bind HTTP server to specified addresses */
 static bool HTTPBindAddresses()
 {
-    int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
     int securePort = gArgs.GetArg("-rpcport", BaseParams().RPCPort());
+    int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
     int staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
 
     // Determine what addresses to bind to
     if (!gArgs.IsArgSet("-rpcallowip"))
     { // Default to loopback if not allowing external IPs
-        g_pubSocket->BindAddress("::1", publicPort);
-        g_pubSocket->BindAddress("127.0.0.1", publicPort);
-        g_staticSocket->BindAddress("::1", staticPort);
-        g_staticSocket->BindAddress("127.0.0.1", staticPort);
         g_socket->BindAddress("::1", securePort);
         g_socket->BindAddress("127.0.0.1", securePort);
         if (gArgs.IsArgSet("-rpcbind"))
@@ -385,25 +381,28 @@ static bool HTTPBindAddresses()
             LogPrintf(
                 "WARNING: option -rpcbind was ignored because -rpcallowip was not specified, refusing to allow everyone to connect\n");
         }
-    } else if (gArgs.IsArgSet("-rpcbind"))
+    }
+    else if (gArgs.IsArgSet("-rpcbind"))
     { // Specific bind address
         for (const std::string &strRPCBind : gArgs.GetArgs("-rpcbind"))
         {
             std::string host;
-            SplitHostPort(strRPCBind, publicPort, host);
-            g_pubSocket->BindAddress(host, publicPort);
-            g_staticSocket->BindAddress(host, staticPort);
-            g_socket->BindAddress(host, securePort);
+            int port;
+            SplitHostPort(strRPCBind, port, host);
+            g_socket->BindAddress(host, port);
         }
-    } else
+    }
+    else
     { // No specific bind address specified, bind to any
-        g_pubSocket->BindAddress("::", publicPort);
-        g_pubSocket->BindAddress("0.0.0.0", publicPort);
-        g_staticSocket->BindAddress("::", staticPort);
-        g_staticSocket->BindAddress("0.0.0.0", staticPort);
         g_socket->BindAddress("::", securePort);
         g_socket->BindAddress("0.0.0.0", securePort);
     }
+
+    // Public sockets always bind to any IPs
+    g_pubSocket->BindAddress("::", publicPort);
+    g_pubSocket->BindAddress("0.0.0.0", publicPort);
+    g_staticSocket->BindAddress("::", staticPort);
+    g_staticSocket->BindAddress("0.0.0.0", staticPort);
 
     return (g_pubSocket->GetAddressCount());
 }
