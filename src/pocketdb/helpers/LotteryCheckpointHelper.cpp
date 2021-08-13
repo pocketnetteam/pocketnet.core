@@ -8,8 +8,6 @@ using namespace PocketHelpers;
 
 LotteryCheckpoints::LotteryCheckpoints()
 {
-    _checkpoints.emplace(382536, "46d5831c2f7e3ac1e719db7909e77d3f5aba1415931b851ad50768e97c54391a");
-    /*
     _checkpoints.emplace(355728, "ff718a5f0d8fb33aa5454a77cb34d0d009a421a86ff67e81275c68a9220f0ecd");
     _checkpoints.emplace(355729, "e8dd221233ef8955049179d38edd945f202c7672c08919a4dcca4b91b59d1359");
     _checkpoints.emplace(355730, "9b9aa4c3931a91f024a866a69f15979813b3d068a1545f3a96e9ef9e2641d193");
@@ -71,10 +69,5 @@ LotteryCheckpoints::LotteryCheckpoints()
     _checkpoints.emplace(388191, "69591ff21896135332a9f4b84fcbfe5da1bfc209bda10aeaec08c59a7ad06ef6");
     _checkpoints.emplace(388192, "b24b0cf25679b0d43cb4014ed874fa07e73c597c332b328d6bd2314b81757ec5");
     _checkpoints.emplace(388371, "3b790f075fe0a7670e7907b1b04169de7691e22be678bdff2204ff4375c34cea");
-    _checkpoints.emplace(413599, "2383eff8a73d146ca7fca1472b352adf7fc642d40a0600dc99fe273ab7e0c242");
-    _checkpoints.emplace(413613, "5d906b2dc460c935b18b4ef8fc248df576d7a794eed1c49092f90d8a8ec0866a");
-    _checkpoints.emplace(413635, "723a3eb018307912220582bf1271d459c7d0401aec0a7836a4b8858620ce022d");
-    _checkpoints.emplace(413662, "1b4fa351d7e89b659daf9b9fd8f4e0c9cdfaf7b9b393b61e32fb4cee55b980cc");
-     */
 };
 
