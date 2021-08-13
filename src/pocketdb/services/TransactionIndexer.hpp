@@ -88,7 +88,7 @@ namespace PocketServices
         static void IndexRatings(int height, const CBlock& block)
         {
             map<RatingType, map<int, int>> ratingValues;
-            map<int, vector<int>> accountLikers;
+            map<int, vector<int>> accountLikersSrc;
 
             // Actual consensus checker instance by current height
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
@@ -142,7 +142,7 @@ namespace PocketServices
                             scoreData->ScoreValue - 3;
 
                         if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
-                            reputationConsensus->ExtendAccountLikers(scoreData, accountLikers);
+                            BuildAccountLikers(scoreData, accountLikersSrc);
 
                         break;
 
@@ -154,7 +154,7 @@ namespace PocketServices
                             scoreData->ScoreValue;
 
                         if (scoreData->ScoreValue == 1)
-                            reputationConsensus->ExtendAccountLikers(scoreData, accountLikers);
+                            BuildAccountLikers(scoreData, accountLikersSrc);
 
                         break;
 
@@ -185,6 +185,10 @@ namespace PocketServices
             }
 
             // Prepare all ratings model records for Liker type
+            map<int, vector<int>> accountLikers;
+            reputationConsensus->PrepareAccountLikers(accountLikersSrc, accountLikers);
+
+            // Save likers in db
             for (const auto& acc : accountLikers)
             {
                 for (const auto& lkrId : acc.second)
@@ -207,6 +211,20 @@ namespace PocketServices
         }
 
     private:
+
+        static void BuildAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
+        {
+            auto found = find(
+                accountLikers[scoreData->ContentAddressId].begin(),
+                accountLikers[scoreData->ContentAddressId].end(),
+                scoreData->ScoreAddressId
+            );
+
+            if (found == accountLikers[scoreData->ContentAddressId].end())
+                accountLikers[scoreData->ContentAddressId].push_back(scoreData->ScoreAddressId);
+        }
+
+
 
     };
 

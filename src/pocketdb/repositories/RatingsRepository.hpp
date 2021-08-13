@@ -40,6 +40,34 @@ namespace PocketDb
             }
         }
 
+        bool ExistsLiker(int addressId, int likerId, int height)
+        {
+            bool result = false;
+
+            TryTransactionStep(__func__, [&]()
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    select count(*)
+                    from Ratings
+                    where Type = ?
+                      and Id = ?
+                      and Value = ?
+                )sql");
+
+                TryBindStatementInt(stmt, 1, RatingType::RATING_ACCOUNT_LIKERS);
+                TryBindStatementInt(stmt, 2, addressId);
+                TryBindStatementInt(stmt, 3, likerId);
+
+                if (sqlite3_step(*stmt) == SQLITE_ROW)
+                    if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                        result = (value > 0);
+
+                FinalizeSqlStatement(*stmt);
+            });
+
+            return result;
+        }
+
     private:
 
         void InsertRating(const Rating& rating)

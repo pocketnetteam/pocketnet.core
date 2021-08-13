@@ -173,24 +173,19 @@ namespace PocketConsensus
             return true;
         }
 
-        virtual void ExtendAccountLikersBase(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
+        virtual void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)
         {
-            auto found = find(
-                accountLikers[scoreData->ContentAddressId].begin(),
-                accountLikers[scoreData->ContentAddressId].end(),
-                scoreData->ScoreAddressId
-            );
-
-            if (found == accountLikers[scoreData->ContentAddressId].end())
-                accountLikers[scoreData->ContentAddressId].push_back(scoreData->ScoreAddressId);
-        }
-
-        virtual void ExtendAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
-        {
-            if (!accountLikers[scoreData->ContentAddressId].empty())
-                return;
-
-            ExtendAccountLikersBase(scoreData, accountLikers);
+            for (const auto& account : accountLikersSrc)
+            {
+                for (const auto& likerId : account.second)
+                {
+                    if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
+                    {
+                        accountLikers[account.first].clear();
+                        accountLikers[account.first].emplace_back(likerId);
+                    }
+                }
+            }
         }
     };
 
@@ -292,9 +287,12 @@ namespace PocketConsensus
     public:
         ReputationConsensus_checkpoint_6000000(int height) : ReputationConsensus_checkpoint_1124000(height) {}
 
-        void ExtendAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers) override
+        virtual void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)
         {
-            ExtendAccountLikersBase(scoreData, accountLikers);
+            for (const auto& account : accountLikersSrc)
+                for (const auto& likerId : account.second)
+                    if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
+                        accountLikers[account.first].emplace_back(likerId);
         }
     };
 

@@ -274,7 +274,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                SELECT 1
+                SELECT count(*)
                 FROM Transactions
                 WHERE   Type in (307)
                     and String1 = ?
@@ -288,10 +288,8 @@ namespace PocketDb
             TryBindStatementText(stmt, 3, txHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = true;
-            }
+                    result = (value > 0);
 
             FinalizeSqlStatement(*stmt);
         });
@@ -306,7 +304,7 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
-            SELECT 1
+            SELECT count(*)
             FROM Transactions
             WHERE   String1 = ?
                 and String2 = ?
@@ -325,7 +323,7 @@ namespace PocketDb
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = true;
+                    result = (value > 0);
 
             FinalizeSqlStatement(*stmt);
         });
