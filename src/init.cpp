@@ -666,6 +666,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             // Clear ratings for clear reindexing
             g_pocketdb->DropTable("UserRatings");
             g_pocketdb->DropTable("PostRatings");
+            g_pocketdb->DropTable("Ratings");
             g_pocketdb->DropTable("CommentRatings");
             g_pocketdb->DropTable("UTXO");
             LogPrintf("Rating tables cleared\n");
