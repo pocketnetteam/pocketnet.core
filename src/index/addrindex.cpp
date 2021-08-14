@@ -313,6 +313,8 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
 
             // Check likers exists for this user
             if (!g_pocketdb->ExistsUserLiker(userId, likerId)) {
+                LogPrintf("--- LIKERS H:%d U:%d L:%d\n", pindex->nHeight, userId, likerId);
+                
                 if (pindex->nHeight < Params().GetConsensus().checkpoint_fix_save_likers)
                     likersForWrite.clear();
 
@@ -333,8 +335,6 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
                 LogPrintf("Error save user likers ratings %d - %d\n", userId, likerId);
                 return false;
             }
-            
-            LogPrintf("--- LIKERS H:%d U:%d L:%d\n", pindex->nHeight, userId, likerId);
         }
     }
 
