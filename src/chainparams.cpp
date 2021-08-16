@@ -124,16 +124,16 @@ public:
         consensus.lottery_referral_limitation = 1035000;
         consensus.checkpoint_0_19_3 = 1124000; // ~ 20210408
         consensus.checkpoint_0_19_6 = 1180000; // ~ 20210517
-        consensus.checkpoint_non_unique_account_name = 6000000; // ~
-        consensus.checkpoint_split_content_video = 6000000; // ~
-        consensus.checkpoint_disable_low_score_trial = 6000000; // ~
-        consensus.checkpoint_fix_save_likers = 6000000; // ~
+        consensus.checkpoint_non_unique_account_name = 1324655; // ~
+        consensus.checkpoint_split_content_video = 1324655; // ~
+        consensus.checkpoint_disable_low_score_trial = 1324655; // ~
+        consensus.checkpoint_fix_save_likers = 1324655; // ~
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000027240944d0d13a869c"); // 1233867
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000029c05bcbab1d79b2a3"); // 1310253
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0xa16e475cda9aebc2cc7c48ac1c0f68b70b2b6702cf9bf22416ac6a1e7645f3e1"); // 1233867
+        consensus.defaultAssumeValid = uint256S("0x3734d5b5a326d1a12ea10d838268f378c531d1772c0796414682538ffa6de970"); // 1310253
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
