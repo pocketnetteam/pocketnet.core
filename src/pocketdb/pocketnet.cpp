@@ -385,6 +385,7 @@ void FillCheckpointsBlocks(const CChainParams& params)
     CheckpointsBlocks.emplace(378278, "08b8617d9b14e629f6faab155974aa4c7900e816a2a81bdce7e223660f93f798");
     CheckpointsBlocks.emplace(378308, "2e805cd488c4c3d708eac063ec3027c549e3cbdc1939c1b52f50f9ce75ef3ca0");
     CheckpointsBlocks.emplace(378966, "3b3f38f5527adf9f94e1bb3600aec082691eea6198eead71316ddd6a00f29118");
+    CheckpointsBlocks.emplace(382536, "46d5831c2f7e3ac1e719db7909e77d3f5aba1415931b851ad50768e97c54391a");
     CheckpointsBlocks.emplace(382538, "fdb0b23b12cd567dfa539061b5cc8d93dfad8db2d6a04daff64d0368bd13c0cc");
     CheckpointsBlocks.emplace(382539, "fad01113fa7674b8a696efe7b2484508148ebce4fc711b0c015afd7381bc1565");
     CheckpointsBlocks.emplace(382544, "17c3f0d199d61e0175880cf6412c48d320dad6bdf991019f5c6ec9d37f167c1a");
@@ -400,7 +401,6 @@ void FillCheckpointsBlocks(const CChainParams& params)
 
 	// Antibot
     CheckpointsBlocks.emplace(373222, "b8a1527d921a9903fb1020c370595116a9a609dff7d3f5524458e7eef04efde1");
-    CheckpointsBlocks.emplace(382536, "46d5831c2f7e3ac1e719db7909e77d3f5aba1415931b851ad50768e97c54391a");
     CheckpointsBlocks.emplace(543507, "46abb8928c80c9f5fe75a412f2a241128677fbc83c52f52107085b1b0d754dab");
     CheckpointsBlocks.emplace(655459, "9740be55c32f52389efbe7bebd409d7b53c2de7d28b51a443f8650b6a2a8dac8");
     CheckpointsBlocks.emplace(696457, "1f15828f43b557d7cc0a83ea90531a41196fbc0860eff3e7bc77a2992594ed8e");

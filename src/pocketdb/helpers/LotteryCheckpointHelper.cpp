@@ -61,6 +61,7 @@ LotteryCheckpoints::LotteryCheckpoints()
     _checkpoints.emplace(378278, "08b8617d9b14e629f6faab155974aa4c7900e816a2a81bdce7e223660f93f798");
     _checkpoints.emplace(378308, "2e805cd488c4c3d708eac063ec3027c549e3cbdc1939c1b52f50f9ce75ef3ca0");
     _checkpoints.emplace(378966, "3b3f38f5527adf9f94e1bb3600aec082691eea6198eead71316ddd6a00f29118");
+    _checkpoints.emplace(382536, "46d5831c2f7e3ac1e719db7909e77d3f5aba1415931b851ad50768e97c54391a");
     _checkpoints.emplace(382538, "fdb0b23b12cd567dfa539061b5cc8d93dfad8db2d6a04daff64d0368bd13c0cc");
     _checkpoints.emplace(382539, "fad01113fa7674b8a696efe7b2484508148ebce4fc711b0c015afd7381bc1565");
     _checkpoints.emplace(382544, "17c3f0d199d61e0175880cf6412c48d320dad6bdf991019f5c6ec9d37f167c1a");
