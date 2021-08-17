@@ -148,3 +148,23 @@ UniValue PocketWeb::PocketUserRpc::GetAddressRegistration(const JSONRPCRequest& 
 
     return result;
 }
+
+UniValue PocketWeb::PocketUserRpc::GetUserState(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getuserstate \"address\"\n"
+            "\nReturns account limits and rating information\n"
+        );
+
+    if (request.params.empty())
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid or empty Pocketcoin address"));
+
+    RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+    CTxDestination dest = DecodeDestination(request.params[0].get_str());
+    if (!IsValidDestination(dest))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + request.params[0].get_str());
+    auto address = request.params[0].get_str();
+
+    return request.DbConnection()->WebRepoInst->GetUserState(address);
+}

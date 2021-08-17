@@ -22,6 +22,8 @@ void PocketDb::WebRepository::Destroy() {}
 
 UniValue PocketDb::WebRepository::GetUserAddress(std::string& name)
 {
+    UniValue result(UniValue::VARR);
+
     string sql = R"sql(
         SELECT p.String2, u.String1
         FROM Transactions u
@@ -30,8 +32,6 @@ UniValue PocketDb::WebRepository::GetUserAddress(std::string& name)
             and p.String2 = ?
         LIMIT 1
     )sql";
-
-    auto result = UniValue(UniValue::VARR);
 
     TryTransactionStep(__func__, [&]() {
         auto stmt = SetupSqlStatement(sql);
@@ -59,12 +59,15 @@ UniValue PocketDb::WebRepository::GetAddressesRegistrationDates(vector<string>& 
         WITH addresses (String1, Height) AS (
             SELECT u.String1, MIN(u.Height) AS Height
             FROM Transactions u
-            WHERE u.String1 IN ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            WHERE u.Type in (100, 101, 102)
+              and u.Height is not null
+              and u.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+              and u.Last in (0,1)
             GROUP BY u.String1   
         )
         SELECT u.String1, u.Time, u.Hash
         FROM Transactions u
-        JOIN addresses a ON u.String1 = a.String1 AND u.Height = a.Height
+        JOIN addresses a ON u.Type in (100, 101, 102) and u.String1 = a.String1 AND u.Height = a.Height
     )sql";
 
     auto result = UniValue(UniValue::VARR);
@@ -90,7 +93,6 @@ UniValue PocketDb::WebRepository::GetAddressesRegistrationDates(vector<string>& 
 
     return result;
 }
-
 
 // Top addresses info
 UniValue PocketDb::WebRepository::GetAddressInfo(int count)
@@ -128,6 +130,90 @@ UniValue PocketDb::WebRepository::GetAddressInfo(int count)
     //     result
     // );
     // todo (brangr): implement
+}
+
+UniValue PocketDb::WebRepository::GetAccountState(string_view address)
+{
+    UniValue result(UniValue::VOBJ);
+
+    // TODO (brangr): implement
+    string sql = R"sql(
+        select u.String1,
+               ()
+        from Transactions u
+        where u.Type in (100, 102, 102)
+          and u.Height is not null
+          and u.String1 = 'PAyo8YCGgAXVkVT3SNc42CSbGFxcGnNCiH'
+          and u.Last = 1
+
+        ;
+
+        /*
+        result.pushKV("address", address);
+        result.pushKV("user_reg_date", user_registration_date);
+        result.pushKV("addr_reg_date", address_registration_date);
+        result.pushKV("reputation", reputation / 10.0);
+        result.pushKV("balance", balance);
+        result.pushKV("trial", trial);
+        result.pushKV("mode", mode);
+        result.pushKV("likers", likers);
+
+        result.pushKV("post_unspent", post_unspent);
+        result.pushKV("post_spent", post_spent);
+        result.pushKV("video_unspent", video_unspent);
+        result.pushKV("video_spent", video_spent);
+        result.pushKV("score_unspent", score_unspent);
+        result.pushKV("score_spent", score_spent);
+        result.pushKV("complain_unspent", complain_unspent);
+        result.pushKV("complain_spent", complain_spent);
+        result.pushKV("number_of_blocking", number_of_blocking);
+        result.pushKV("comment_spent", comment_spent);
+        result.pushKV("comment_unspent", comment_unspent);
+        result.pushKV("comment_score_spent", comment_score_spent);
+        result.pushKV("comment_score_unspent", comment_score_unspent);
+        */
+    )sql";
+
+    TryTransactionStep(__func__, [&]() {
+        auto stmt = SetupSqlStatement(sql);
+
+        TryBindStatementText(stmt, 1, name);
+
+        if (sqlite3_step(*stmt) == SQLITE_ROW) {
+            UniValue record(UniValue::VOBJ);
+
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", valueStr);
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", valueStr);
+
+            result.pushKV("address", address);
+            result.pushKV("user_reg_date", user_registration_date);
+            result.pushKV("addr_reg_date", address_registration_date);
+            result.pushKV("reputation", reputation / 10.0);
+            result.pushKV("balance", balance);
+            result.pushKV("trial", trial);
+            result.pushKV("mode", mode);
+            result.pushKV("likers", likers);
+
+            result.pushKV("post_unspent", post_unspent);
+            result.pushKV("post_spent", post_spent);
+            result.pushKV("video_unspent", video_unspent);
+            result.pushKV("video_spent", video_spent);
+            result.pushKV("score_unspent", score_unspent);
+            result.pushKV("score_spent", score_spent);
+            result.pushKV("complain_unspent", complain_unspent);
+            result.pushKV("complain_spent", complain_spent);
+            result.pushKV("number_of_blocking", number_of_blocking);
+
+            result.pushKV("comment_spent", comment_spent);
+            result.pushKV("comment_unspent", comment_unspent);
+            result.pushKV("comment_score_spent", comment_score_spent);
+            result.pushKV("comment_score_unspent", comment_score_unspent);
+        }
+
+        FinalizeSqlStatement(*stmt);
+    });
+
+    return result;
 }
 
 UniValue PocketDb::WebRepository::GetLastComments(int count, int height, std::string lang)

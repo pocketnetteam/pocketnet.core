@@ -21,6 +21,7 @@ namespace PocketWeb
         UniValue GetUserProfile(const JSONRPCRequest& request);
         UniValue GetUserAddress(const JSONRPCRequest& request);
         UniValue GetAddressRegistration(const JSONRPCRequest& request);
+        UniValue GetUserState(const JSONRPCRequest& request);
     private:
         map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses, bool shortForm = true, int option = 0);
     };
