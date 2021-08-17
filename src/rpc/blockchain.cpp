@@ -685,9 +685,13 @@ static UniValue getblockheader(const JSONRPCRequest& request)
     if (!request.params[1].isNull())
         fVerbose = request.params[1].get_bool();
 
-    const CBlockIndex* pblockindex = LookupBlockIndex(hash);
-    if (!pblockindex) {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+    CBlockIndex* pblockindex;
+    {
+        LOCK(cs_main);
+        pblockindex = LookupBlockIndex(hash);
+        if (!pblockindex) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+        }
     }
 
     if (!fVerbose) {
@@ -779,6 +783,7 @@ static UniValue getblock(const JSONRPCRequest& request)
             verbosity = request.params[1].get_bool() ? 1 : 0;
     }
 
+    LOCK(cs_main);
     const CBlockIndex* pblockindex = LookupBlockIndex(hash);
     if (!pblockindex) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
@@ -836,6 +841,7 @@ static bool GetUTXOStats(CCoinsView* view, CCoinsStats& stats)
     CHashWriter ss(SER_GETHASH, PROTOCOL_VERSION);
     stats.hashBlock = pcursor->GetBestBlock();
     {
+        LOCK(cs_main);
         stats.nHeight = LookupBlockIndex(stats.hashBlock)->nHeight;
     }
     ss << stats.hashBlock;
@@ -1012,6 +1018,7 @@ UniValue gettxout(const JSONRPCRequest& request)
         }
     }
 
+    LOCK(cs_main);
     const CBlockIndex* pindex = LookupBlockIndex(pcoinsTip->GetBestBlock());
     ret.pushKV("bestblock", pindex->GetBlockHash().GetHex());
     if (coin.nHeight == MEMPOOL_HEIGHT) {
@@ -1696,6 +1703,7 @@ static UniValue getblockstats(const JSONRPCRequest& request)
     } else {
         const std::string strHash = request.params[0].get_str();
         const uint256 hash(uint256S(strHash));
+        LOCK(cs_main);
         pindex = LookupBlockIndex(hash);
         if (!pindex) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
