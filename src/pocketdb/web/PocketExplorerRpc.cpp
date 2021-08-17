@@ -4,11 +4,8 @@
 
 #include "PocketExplorerRpc.h"
 
-namespace PocketExplorerRpc
+namespace PocketWeb::PocketWebRpc
 {
-    using namespace PocketDb;
-    using namespace std;
-
 
     UniValue GetStatistic(const JSONRPCRequest& request)
     {

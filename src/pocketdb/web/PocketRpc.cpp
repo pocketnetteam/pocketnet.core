@@ -11,7 +11,7 @@ UniValue debug(const JSONRPCRequest& request)
             "debug\n"
             "\n.\n");
 
-    return PocketWeb::PocketContentRpc::GetContentsData(request);
+    return GetContentsData(request);
 }
 
 // @formatter:off
@@ -20,27 +20,34 @@ static const CRPCCommand commands[] =
     {"debug", "debugweb", &debug, {}},
 
     // Contents
-    { "contents", "getcontentsdata",        &PocketWeb::PocketContentRpc::GetContentsData,      {"ids"}},
-    { "contents", "gethistoricalstrip",     &PocketWeb::PocketContentRpc::GetHistoricalStrip,   {"endTime", "depth"}},
-    { "contents", "gethierarchicalstrip",   &PocketWeb::PocketContentRpc::GetHierarchicalStrip, {"endTime", "depth"}},
+    { "contents", "getcontentsdata",        &GetContentsData,      {"ids"}},
+    { "contents", "gethistoricalstrip",     &GetHistoricalStrip,   {"endTime", "depth"}},
+    { "contents", "gethierarchicalstrip",   &GetHierarchicalStrip, {"endTime", "depth"}},
 
     // Comments
 
 
+    // Accounts
+    { "accounts", "getreputations",         &GetReputations,                  {}},
+    { "accounts", "getuserprofile",         &GetUserProfile,                  {}},
+    { "accounts", "getuseraddress",         &GetUserAddress,                  {}},
+    { "accounts", "getaddressregistration", &GetAddressRegistration,                  {}},
+    { "accounts", "getuserstate",           &GetUserState,                  {}},
+
     // Explorer
-    { "explorer", "getstatistic",           &PocketExplorerRpc::GetStatistic,                   {"endTime", "depth"}},
-    { "explorer", "getaddressspent",        &PocketExplorerRpc::GetAddressSpent,                {"address"}},
-    { "explorer", "getcompactblock",        &PocketExplorerRpc::GetCompactBlock,                {"blockHash"}},
-    { "explorer", "getlastblocks",          &PocketExplorerRpc::GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
-    { "explorer", "searchbyhash",           &PocketExplorerRpc::SearchByHash,                   {"value"}},
-    { "explorer", "gettransactions",        &PocketExplorerRpc::GetTransactions,                {"transactions"}},
-    { "explorer", "getaddresstransactions", &PocketExplorerRpc::GetAddressTransactions,         {"address"}},
-    { "explorer", "getblocktransactions",   &PocketExplorerRpc::GetBlockTransactions,           {"blockHash"}}
+    { "explorer", "getstatistic",           &GetStatistic,                   {"endTime", "depth"}},
+    { "explorer", "getaddressspent",        &GetAddressSpent,                {"address"}},
+    { "explorer", "getcompactblock",        &GetCompactBlock,                {"blockHash"}},
+    { "explorer", "getlastblocks",          &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
+    { "explorer", "searchbyhash",           &SearchByHash,                   {"value"}},
+    { "explorer", "gettransactions",        &GetTransactions,                {"transactions"}},
+    { "explorer", "getaddresstransactions", &GetAddressTransactions,         {"address"}},
+    { "explorer", "getblocktransactions",   &GetBlockTransactions,           {"blockHash"}}
 };
 // @formatter:on
 
 void RegisterPocketnetWebRPCCommands(CRPCTable& t)
 {
-    for (const auto & command : commands)
+    for (const auto& command : commands)
         t.appendCommand(command.name, &command);
 }

@@ -132,7 +132,7 @@ UniValue PocketDb::WebRepository::GetAddressInfo(int count)
     // todo (brangr): implement
 }
 
-UniValue PocketDb::WebRepository::GetAccountState(string_view address)
+UniValue PocketDb::WebRepository::GetAccountState(const string& address)
 {
     UniValue result(UniValue::VOBJ);
 
@@ -177,37 +177,37 @@ UniValue PocketDb::WebRepository::GetAccountState(string_view address)
     TryTransactionStep(__func__, [&]() {
         auto stmt = SetupSqlStatement(sql);
 
-        TryBindStatementText(stmt, 1, name);
+        TryBindStatementText(stmt, 1, address);
 
         if (sqlite3_step(*stmt) == SQLITE_ROW) {
             UniValue record(UniValue::VOBJ);
 
-            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", valueStr);
-            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", valueStr);
-
-            result.pushKV("address", address);
-            result.pushKV("user_reg_date", user_registration_date);
-            result.pushKV("addr_reg_date", address_registration_date);
-            result.pushKV("reputation", reputation / 10.0);
-            result.pushKV("balance", balance);
-            result.pushKV("trial", trial);
-            result.pushKV("mode", mode);
-            result.pushKV("likers", likers);
-
-            result.pushKV("post_unspent", post_unspent);
-            result.pushKV("post_spent", post_spent);
-            result.pushKV("video_unspent", video_unspent);
-            result.pushKV("video_spent", video_spent);
-            result.pushKV("score_unspent", score_unspent);
-            result.pushKV("score_spent", score_spent);
-            result.pushKV("complain_unspent", complain_unspent);
-            result.pushKV("complain_spent", complain_spent);
-            result.pushKV("number_of_blocking", number_of_blocking);
-
-            result.pushKV("comment_spent", comment_spent);
-            result.pushKV("comment_unspent", comment_unspent);
-            result.pushKV("comment_score_spent", comment_score_spent);
-            result.pushKV("comment_score_unspent", comment_score_unspent);
+            // if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", valueStr);
+            // if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", valueStr);
+            //
+            // result.pushKV("address", address);
+            // result.pushKV("user_reg_date", user_registration_date);
+            // result.pushKV("addr_reg_date", address_registration_date);
+            // result.pushKV("reputation", reputation / 10.0);
+            // result.pushKV("balance", balance);
+            // result.pushKV("trial", trial);
+            // result.pushKV("mode", mode);
+            // result.pushKV("likers", likers);
+            //
+            // result.pushKV("post_unspent", post_unspent);
+            // result.pushKV("post_spent", post_spent);
+            // result.pushKV("video_unspent", video_unspent);
+            // result.pushKV("video_spent", video_spent);
+            // result.pushKV("score_unspent", score_unspent);
+            // result.pushKV("score_spent", score_spent);
+            // result.pushKV("complain_unspent", complain_unspent);
+            // result.pushKV("complain_spent", complain_spent);
+            // result.pushKV("number_of_blocking", number_of_blocking);
+            //
+            // result.pushKV("comment_spent", comment_spent);
+            // result.pushKV("comment_unspent", comment_unspent);
+            // result.pushKV("comment_score_spent", comment_score_spent);
+            // result.pushKV("comment_score_unspent", comment_score_unspent);
         }
 
         FinalizeSqlStatement(*stmt);

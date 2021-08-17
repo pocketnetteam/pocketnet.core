@@ -102,7 +102,7 @@ POCKETDB_H = \
     pocketdb/web/PocketCommentsRpc.h \
     pocketdb/web/PocketSystemRpc.h \
     pocketdb/web/PocketScoresRpc.h \
-    pocketdb/web/PocketUserRpc.h \
+    pocketdb/web/PocketAccountRpc.h \
     pocketdb/web/PocketFrontend.h \
     pocketdb/web/PocketExplorerRpc.h \
     pocketdb/web/PocketRpc.h \
@@ -173,7 +173,7 @@ POCKETDB_CPP = \
     pocketdb/web/PocketCommentsRpc.cpp \
     pocketdb/web/PocketSystemRpc.cpp \
     pocketdb/web/PocketScoresRpc.cpp \
-    pocketdb/web/PocketUserRpc.cpp \
+    pocketdb/web/PocketAccountRpc.cpp \
     pocketdb/web/PocketFrontend.cpp \
     pocketdb/web/PocketRpc.cpp \
     pocketdb/web/PocketExplorerRpc.cpp \

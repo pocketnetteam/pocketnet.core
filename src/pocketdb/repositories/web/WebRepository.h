@@ -51,7 +51,7 @@ public:
     UniValue GetUserAddress(string& name);
     UniValue GetAddressesRegistrationDates(vector<string>& addresses);
     UniValue GetAddressInfo(int count);
-    UniValue GetAccountState(string_view address);
+    UniValue GetAccountState(const string& address);
     UniValue GetCommentsByPost(const std::string& postHash, const std::string& parentHash, const std::string& addressHash);
     UniValue GetCommentsByIds(string& addressHash, vector<string>& commentHashes);
     UniValue GetLastComments(int count, int height, std::string lang = "");

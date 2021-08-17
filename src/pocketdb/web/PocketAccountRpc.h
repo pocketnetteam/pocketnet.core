@@ -2,30 +2,26 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef SRC_POCKETUSERRPC_H
-#define SRC_POCKETUSERRPC_H
+#ifndef SRC_POCKETACCOUNTRPC_H
+#define SRC_POCKETACCOUNTRPC_H
 
 #include "rpc/server.h"
 #include "rpc/rawtransaction.h"
 
-namespace PocketWeb
-{
-    using std::string;
-    using std::vector;
-    using std::map;
-
-    class PocketUserRpc
+namespace PocketWeb::PocketWebRpc
     {
-    public:
+        using std::string;
+        using std::vector;
+        using std::map;
+
         UniValue GetReputations(const JSONRPCRequest& request);
         UniValue GetUserProfile(const JSONRPCRequest& request);
         UniValue GetUserAddress(const JSONRPCRequest& request);
         UniValue GetAddressRegistration(const JSONRPCRequest& request);
         UniValue GetUserState(const JSONRPCRequest& request);
-    private:
-        map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses, bool shortForm = true, int option = 0);
-    };
-}
+        map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses,
+            bool shortForm = true, int option = 0);
+    }
 
 
-#endif //SRC_POCKETUSERRPC_H
+#endif //SRC_POCKETACCOUNTRPC_H

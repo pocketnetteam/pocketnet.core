@@ -10,11 +10,10 @@
 #include "validation.h"
 #include "univalue/include/univalue.h"
 
-namespace PocketExplorerRpc
+namespace PocketWeb::PocketWebRpc
 {
-    using std::string;
-    using std::vector;
-    using std::map;
+    using namespace PocketDb;
+    using namespace std;
 
     UniValue GetStatistic(const JSONRPCRequest& request);
     UniValue GetLastBlocks(const JSONRPCRequest& request);

@@ -12,7 +12,8 @@
 #include "pocketdb/web/PocketCommentsRpc.h"
 #include "pocketdb/web/PocketScoresRpc.h"
 #include "pocketdb/web/PocketSystemRpc.h"
-#include "pocketdb/web/PocketUserRpc.h"
+#include "pocketdb/web/PocketAccountRpc.h"
 
+using namespace PocketWeb::PocketWebRpc;
 
 #endif //SRC_POCKETRPC_H

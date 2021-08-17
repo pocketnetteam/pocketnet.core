@@ -8,14 +8,11 @@
 #include "rpc/server.h"
 #include "rpc/rawtransaction.h"
 
-namespace PocketWeb
-{
-    namespace PocketContentRpc
+namespace PocketWeb::PocketWebRpc
     {
         UniValue GetContentsData(const JSONRPCRequest& request);
         UniValue GetHistoricalStrip(const JSONRPCRequest& request);
         UniValue GetHierarchicalStrip(const JSONRPCRequest& request);
     }
-}
 
 #endif //SRC_POCKETDEBUG_H
