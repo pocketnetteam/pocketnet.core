@@ -41,12 +41,12 @@ namespace PocketConsensus
 
         virtual int64_t GetLimit(AccountMode mode)
         {
-            return mode == AccountMode_Full ? GetFullLimit() : GetTrialLimit();
+            return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit();
         }
 
         virtual int64_t GetEditLimit(AccountMode mode)
         {
-            return mode == AccountMode_Full ? GetFullEditLimit() : GetTrialEditLimit();
+            return mode >= AccountMode_Full ? GetFullEditLimit() : GetTrialEditLimit();
         }
 
         // ------------------------------------------------------------------------------------------------------------
@@ -244,20 +244,6 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
-    *  Consensus checkpoint at ? block
-    *
-    *******************************************************************************************************************/
-// TODO (brangr): change time to block height
-    class PostConsensus_checkpoint_ : public PostConsensus
-    {
-    protected:
-
-    public:
-        PostConsensus_checkpoint_(int height) : PostConsensus(height) {}
-    };
-
-    /*******************************************************************************************************************
-    *
     *  Start checkpoint at 1124000 block
     *
     *******************************************************************************************************************/
@@ -311,6 +297,19 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 1324655 block
+    *
+    *******************************************************************************************************************/
+    class PostConsensus_checkpoint_1324655 : public PostConsensus_checkpoint_1180000
+    {
+    public:
+        PostConsensus_checkpoint_1324655(int height) : PostConsensus_checkpoint_1180000(height) {}
+    protected:
+        int64_t GetTrialLimit() override { return 5; }
+    };
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -319,6 +318,7 @@ namespace PocketConsensus
     private:
         const std::map<int, std::function<PostConsensus*(int height)>> m_rules =
             {
+                {1324655, [](int height) { return new PostConsensus_checkpoint_1324655(height); }},
                 {1180000, [](int height) { return new PostConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new PostConsensus_checkpoint_1124000(height); }},
                 {0,       [](int height) { return new PostConsensus(height); }},

@@ -30,13 +30,13 @@ namespace PocketConsensus
 
         virtual int64_t GetLimitWindow() { return 86400; }
 
-        virtual int64_t GetFullAccountScoresLimit() { return 90; }
+        virtual int64_t GetFullLimit() { return 90; }
 
-        virtual int64_t GetTrialAccountScoresLimit() { return 45; }
+        virtual int64_t GetTrialLimit() { return 45; }
 
         virtual int64_t GetScoresLimit(AccountMode mode)
         {
-            return mode == AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
+            return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit();
         }
 
 
@@ -190,9 +190,9 @@ namespace PocketConsensus
     {
     protected:
 
-        int64_t GetFullAccountScoresLimit() override { return 200; }
+        int64_t GetFullLimit() override { return 200; }
 
-        int64_t GetTrialAccountScoresLimit() override { return 100; }
+        int64_t GetTrialLimit() override { return 100; }
 
     public:
         ScoreContentConsensus_checkpoint_175600(int height) : ScoreContentConsensus(height) {}
@@ -287,6 +287,19 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 1324655 block
+    *
+    *******************************************************************************************************************/
+    class ScoreContentConsensus_checkpoint_1324655 : public ScoreContentConsensus_checkpoint_1180000
+    {
+    public:
+        ScoreContentConsensus_checkpoint_1324655(int height) : ScoreContentConsensus_checkpoint_1180000(height) {}
+    protected:
+        int64_t GetTrialLimit() override { return 15; }
+    };
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -295,6 +308,7 @@ namespace PocketConsensus
     private:
         const std::map<int, std::function<ScoreContentConsensus*(int height)>> m_rules =
             {
+                {1324655, [](int height) { return new ScoreContentConsensus_checkpoint_1324655(height); }},
                 {1180000, [](int height) { return new ScoreContentConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ScoreContentConsensus_checkpoint_1124000(height); }},
                 {514184,  [](int height) { return new ScoreContentConsensus_checkpoint_514184(height); }},

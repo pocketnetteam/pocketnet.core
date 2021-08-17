@@ -38,7 +38,7 @@ namespace PocketConsensus
 
         virtual int64_t GetEditLimit(AccountMode mode)
         {
-            return mode == AccountMode_Full ? GetFullEditLimit() : GetTrialEditLimit();
+            return mode >= AccountMode_Full ? GetFullEditLimit() : GetTrialEditLimit();
         }
 
 

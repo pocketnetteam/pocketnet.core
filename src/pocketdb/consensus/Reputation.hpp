@@ -22,8 +22,9 @@ namespace PocketConsensus
     {
     protected:
         virtual int64_t GetThresholdLikersCount() { return 0; }
-        virtual int64_t GetThresholdBalance() { return 50 * COIN; }
-        virtual int64_t GetThresholdReputation() { return 500; }
+        virtual int64_t GetMinBalanceFull() { return 50 * COIN; }
+        virtual int64_t GetMinBalancePro() { return 250 * COIN; }
+        virtual int64_t GetMinReputationFull() { return 500; }
         virtual int64_t GetThresholdReputationScore() { return -10000; }
         virtual int64_t GetScoresOneToOneOverComment() { return 20; }
         virtual int64_t GetScoresOneToOne() { return 99999; }
@@ -140,7 +141,7 @@ namespace PocketConsensus
             auto reputation = PocketDb::ConsensusRepoInst.GetUserReputation(address);
             auto balance = PocketDb::ConsensusRepoInst.GetUserBalance(address);
 
-            if (reputation >= GetThresholdReputation() || balance >= GetThresholdBalance())
+            if (reputation >= GetMinReputationFull() || balance >= GetMinBalanceFull())
                 return {AccountMode_Full, reputation, balance};
             else
                 return {AccountMode_Trial, reputation, balance};
@@ -242,7 +243,7 @@ namespace PocketConsensus
     {
     protected:
         int64_t GetThresholdReputationScore() override { return 1000; }
-        int64_t GetThresholdReputation() override { return 1000; }
+        int64_t GetMinReputationFull() override { return 1000; }
         int64_t GetScoresOneToOneDepth() override { return 7 * 24 * 3600; }
     public:
         ReputationConsensus_checkpoint_292800(int height) : ReputationConsensus_checkpoint_225000(height) {}
@@ -278,21 +279,43 @@ namespace PocketConsensus
     // TODO (brangr): implement after relase 0.19.11
     /*******************************************************************************************************************
     *
-    *  Consensus checkpoint at ??????? block
+    *  Consensus checkpoint at 1324655 block
     *
     *******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_6000000 : public ReputationConsensus_checkpoint_1124000
+    class ReputationConsensus_checkpoint_1324655 : public ReputationConsensus_checkpoint_1124000
     {
     protected:
     public:
-        ReputationConsensus_checkpoint_6000000(int height) : ReputationConsensus_checkpoint_1124000(height) {}
+        ReputationConsensus_checkpoint_1324655(int height) : ReputationConsensus_checkpoint_1124000(height) {}
 
-        virtual void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)
+        void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers) override
         {
             for (const auto& account : accountLikersSrc)
                 for (const auto& likerId : account.second)
                     if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
                         accountLikers[account.first].emplace_back(likerId);
+        }
+
+        tuple<AccountMode, int, int64_t> GetAccountInfo(string& address) override
+        {
+            auto reputation = PocketDb::ConsensusRepoInst.GetUserReputation(address);
+            auto balance = PocketDb::ConsensusRepoInst.GetUserBalance(address);
+
+            if (reputation >= GetMinReputationFull() || balance >= GetMinBalanceFull())
+            {
+                if (balance >= GetMinBalancePro())
+                {
+                    return {AccountMode_Pro, reputation, balance};
+                }
+                else
+                {
+                    return {AccountMode_Full, reputation, balance};
+                }
+            }
+            else
+            {
+                return {AccountMode_Trial, reputation, balance};
+            }
         }
     };
 
@@ -306,7 +329,7 @@ namespace PocketConsensus
     private:
         const std::map<int, std::function<ReputationConsensus*(int height)>> m_rules =
             {
-                {6000000, [](int height) { return new ReputationConsensus_checkpoint_6000000(height); }},
+                {1324655, [](int height) { return new ReputationConsensus_checkpoint_1324655(height); }},
                 {1124000, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
                 {322700,  [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
                 {292800,  [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},

@@ -35,7 +35,7 @@ namespace PocketConsensus
 
         virtual int64_t GetLimit(AccountMode mode)
         {
-            return mode == AccountMode_Full ? GetFullLimit() : GetTrialLimit();
+            return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit();
         }
 
         virtual size_t GetCommentMessageMaxSize() { return 2000; }

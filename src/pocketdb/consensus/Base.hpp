@@ -72,8 +72,9 @@ namespace PocketConsensus
 
     enum AccountMode
     {
-        AccountMode_Trial,
-        AccountMode_Full
+        AccountMode_Trial = 0,
+        AccountMode_Full = 1,
+        AccountMode_Pro = 2
     };
 
     // --------------------------------------------------------------------------------------

@@ -27,11 +27,11 @@ namespace PocketConsensus
 
     protected:
 
-        // TODO (brangr): setup limits after close https://github.com/pocketnetteam/pocketnet.core/issues/22
-
         virtual int GetLimitWindow() { return 1440; }
 
         virtual int64_t GetEditWindow() { return 1440; }
+
+        virtual int64_t GetProLimit() { return 100; }
 
         virtual int64_t GetFullLimit() { return 30; }
 
@@ -43,17 +43,23 @@ namespace PocketConsensus
 
         virtual int64_t GetLimit(AccountMode mode)
         {
-            return mode == AccountMode_Full ? GetFullLimit() : GetTrialLimit();
+            return mode == AccountMode_Pro
+                ? GetProLimit()
+                : mode == AccountMode_Full
+                    ? GetFullLimit()
+                    : GetTrialLimit();
         }
 
         virtual int64_t GetEditLimit(AccountMode mode)
         {
-            return mode == AccountMode_Full ? GetFullEditLimit() : GetTrialEditLimit();
+            return mode >= AccountMode_Full
+                ? GetFullEditLimit()
+                : GetTrialEditLimit();
         }
 
         // ------------------------------------------------------------------------------------------------------------
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef & tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<Video>(tx);
 
@@ -90,8 +96,8 @@ namespace PocketConsensus
 
         // ------------------------------------------------------------------------------------------------------------
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef & tx,
-                                                         const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
+            const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<Video>(tx);
 
@@ -123,7 +129,7 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef & tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<Video>(tx);
 
@@ -169,7 +175,7 @@ namespace PocketConsensus
         // ------------------------------------------------------------------------------------------------------------
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(const shared_ptr<Video>& tx,
-                                                                     const PocketBlock& block)
+            const PocketBlock& block)
         {
             // Double edit in block not allowed
             for (auto& blockTx : block)
@@ -219,7 +225,7 @@ namespace PocketConsensus
 
         // ------------------------------------------------------------------------------------------------------------
 
-        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef & tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<Video>(tx);
 
@@ -242,6 +248,19 @@ namespace PocketConsensus
 
     /*******************************************************************************************************************
     *
+    *  Start checkpoint at 1324655 block
+    *
+    *******************************************************************************************************************/
+    class VideoConsensus_checkpoint_1324655 : public VideoConsensus
+    {
+    public:
+        VideoConsensus_checkpoint_1324655(int height) : VideoConsensus(height) {}
+    protected:
+        int64_t GetTrialLimit() override { return 5; }
+    };
+
+    /*******************************************************************************************************************
+    *
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
@@ -250,7 +269,8 @@ namespace PocketConsensus
     private:
         const std::map<int, std::function<VideoConsensus*(int height)>> m_rules =
             {
-                {0, [](int height) { return new VideoConsensus(height); }},
+                {1324655, [](int height) { return new VideoConsensus_checkpoint_1324655(height); }},
+                {0,       [](int height) { return new VideoConsensus(height); }},
             };
     public:
         shared_ptr<VideoConsensus> Instance(int height)

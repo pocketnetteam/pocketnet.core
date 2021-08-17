@@ -36,7 +36,7 @@ namespace PocketConsensus
 
         virtual int64_t GetScoresLimit(AccountMode mode)
         {
-            return mode == AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
+            return mode >= AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
         }
 
         tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override

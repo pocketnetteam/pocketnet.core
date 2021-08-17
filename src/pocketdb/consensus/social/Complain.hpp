@@ -37,7 +37,7 @@ namespace PocketConsensus
 
         virtual int64_t GetComplainsLimit(AccountMode mode)
         {
-            return mode == AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
+            return mode >= AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
         }
 
 
