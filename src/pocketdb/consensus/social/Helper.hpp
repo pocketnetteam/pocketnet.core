@@ -37,8 +37,6 @@ namespace PocketConsensus
     {
     public:
 
-        // TODO (brangr): я бы избавился от этих методов - позволив принимать решения по
-        // результатам каждой конекретной проверки в момент вызова
         static bool Validate(const PocketBlock& block, int height)
         {
             for (const auto& tx : block)
@@ -56,8 +54,7 @@ namespace PocketConsensus
             return Validate(tx, block, false, height);
         }
 
-        static tuple<bool, SocialConsensusResult>
-        Validate(const shared_ptr<Transaction>& tx, PocketBlock& block, int height)
+        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, PocketBlock& block, int height)
         {
             return Validate(tx, block, true, height);
         }
@@ -102,8 +99,7 @@ namespace PocketConsensus
 
     protected:
 
-        static tuple<bool, SocialConsensusResult>
-        Validate(const shared_ptr<Transaction>& tx, const PocketBlock& block, bool inBlock, int height)
+        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, const PocketBlock& block, bool inBlock, int height)
         {
             auto txType = *tx->GetType();
 

@@ -27,18 +27,14 @@ namespace PocketConsensus
         ScoreContentConsensus(int height) : SocialBaseConsensus(height) {}
 
     protected:
-
         virtual int64_t GetLimitWindow() { return 86400; }
-
         virtual int64_t GetFullLimit() { return 90; }
-
         virtual int64_t GetTrialLimit() { return 45; }
 
         virtual int64_t GetScoresLimit(AccountMode mode)
         {
             return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit();
         }
-
 
         tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
         {
@@ -71,8 +67,7 @@ namespace PocketConsensus
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
-            const PocketBlock& block) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<ScoreContent>(tx);
 
@@ -99,6 +94,7 @@ namespace PocketConsensus
                 }
             }
 
+            // Check count
             return ValidateLimit(ptx, count);
         }
 
@@ -114,8 +110,10 @@ namespace PocketConsensus
             // Get count from chain
             int count = GetChainCount(ptx);
 
+            // Get count from mempool
             count += ConsensusRepoInst.CountMempoolScoreContent(*ptx->GetAddress());
 
+            // Check count
             return ValidateLimit(ptx, count);
         }
 
@@ -129,6 +127,9 @@ namespace PocketConsensus
 
             if (count >= limit)
                 return {false, SocialConsensusResult_ScoreLimit};
+
+            if (accountMode == AccountMode_Trial && (*tx->GetValue() == 1 || *tx->GetValue() == 2))
+                return {false, SocialConsensusResult_LowReputation};
 
             return Success;
         }
