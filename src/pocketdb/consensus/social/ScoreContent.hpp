@@ -161,7 +161,8 @@ namespace PocketConsensus
             if (value < 1 || value > 5)
                 return {false, SocialConsensusResult_Failed};
 
-            // TODO (brangr): DEBUG!
+            // TODO (brangr): implement - пробросить сюда исходную транзакцию для сверки хешей
+            // + добавить чекпойнт с принудительным включением проверки данные по автору поста и значению лайка
             // по сути нужно пробрасывать хэш из транзакции всегда
             // Check OP_RETURN with Payload
             //if (IsEmpty(ptx->GetOPRAddress()) || *ptx->GetOPRAddress() != *ptx->GetAddress())
