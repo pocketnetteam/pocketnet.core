@@ -17,10 +17,10 @@ namespace PocketConsensus
     *  BlockingCancel consensus base class
     *
     *******************************************************************************************************************/
-    class BlockingCancelConsensus : public SocialBaseConsensus
+    class BlockingCancelConsensus : public SocialConsensus
     {
     public:
-        BlockingCancelConsensus(int height) : SocialBaseConsensus(height) {}
+        BlockingCancelConsensus(int height) : SocialConsensus(height) {}
 
     protected:
 
@@ -97,19 +97,15 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class BlockingCancelConsensusFactory
+    class BlockingCancelConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<BlockingCancelConsensus*(int height)>> m_rules =
+    public:
+        BlockingCancelConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {0, [](int height) { return new BlockingCancelConsensus(height); }},
             };
-    public:
-        shared_ptr <BlockingCancelConsensus> Instance(int height)
-        {
-            return shared_ptr<BlockingCancelConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
-            );
         }
     };
 }

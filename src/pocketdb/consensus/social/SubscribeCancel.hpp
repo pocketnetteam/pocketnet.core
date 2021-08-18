@@ -20,10 +20,10 @@ namespace PocketConsensus
     *  SubscribeCancel consensus base class
     *
     *******************************************************************************************************************/
-    class SubscribeCancelConsensus : public SocialBaseConsensus
+    class SubscribeCancelConsensus : public SocialConsensus
     {
     public:
-        SubscribeCancelConsensus(int height) : SocialBaseConsensus(height) {}
+        SubscribeCancelConsensus(int height) : SocialConsensus(height) {}
 
     protected:
 
@@ -116,19 +116,15 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class SubscribeCancelConsensusFactory
+    class SubscribeCancelConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<SubscribeCancelConsensus*(int height)>> m_rules =
+    public:
+        SubscribeCancelConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {0, [](int height) { return new SubscribeCancelConsensus(height); }},
             };
-    public:
-        shared_ptr<SubscribeCancelConsensus> Instance(int height)
-        {
-            return shared_ptr<SubscribeCancelConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
-            );
         }
     };
 }

@@ -21,10 +21,10 @@ namespace PocketConsensus
     *  ScorePost consensus base class
     *
     *******************************************************************************************************************/
-    class ScoreContentConsensus : public SocialBaseConsensus
+    class ScoreContentConsensus : public SocialConsensus
     {
     public:
-        ScoreContentConsensus(int height) : SocialBaseConsensus(height) {}
+        ScoreContentConsensus(int height) : SocialConsensus(height) {}
 
     protected:
         virtual int64_t GetLimitWindow() { return 86400; }
@@ -301,10 +301,12 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class ScoreContentConsensusFactory
+    class ScoreContentConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<ScoreContentConsensus*(int height)>> m_rules =
+    public:
+        ScoreContentConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {1324655, [](int height) { return new ScoreContentConsensus_checkpoint_1324655(height); }},
                 {1180000, [](int height) { return new ScoreContentConsensus_checkpoint_1180000(height); }},
@@ -314,12 +316,6 @@ namespace PocketConsensus
                 {175600,  [](int height) { return new ScoreContentConsensus_checkpoint_175600(height); }},
                 {0,       [](int height) { return new ScoreContentConsensus(height); }},
             };
-    public:
-        shared_ptr<ScoreContentConsensus> Instance(int height)
-        {
-            return shared_ptr<ScoreContentConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
-            );
         }
     };
 }

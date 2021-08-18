@@ -20,10 +20,10 @@ namespace PocketConsensus
     *  ScoreComment consensus base class
     *
     *******************************************************************************************************************/
-    class ScoreCommentConsensus : public SocialBaseConsensus
+    class ScoreCommentConsensus : public SocialConsensus
     {
     public:
-        ScoreCommentConsensus(int height) : SocialBaseConsensus(height) {}
+        ScoreCommentConsensus(int height) : SocialConsensus(height) {}
 
     protected:
 
@@ -280,10 +280,12 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class ScoreCommentConsensusFactory
+    class ScoreCommentConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<ScoreCommentConsensus*(int height)>> m_rules =
+    public:
+        ScoreCommentConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {1180000, [](int height) { return new ScoreCommentConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ScoreCommentConsensus_checkpoint_1124000(height); }},
@@ -291,12 +293,6 @@ namespace PocketConsensus
                 {430000,  [](int height) { return new ScoreCommentConsensus_checkpoint_430000(height); }},
                 {0,       [](int height) { return new ScoreCommentConsensus(height); }},
             };
-    public:
-        shared_ptr<ScoreCommentConsensus> Instance(int height)
-        {
-            return shared_ptr<ScoreCommentConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
-            );
         }
     };
 }

@@ -20,10 +20,10 @@ namespace PocketConsensus
     *  Video consensus base class
     *
     *******************************************************************************************************************/
-    class VideoConsensus : public SocialBaseConsensus
+    class VideoConsensus : public SocialConsensus
     {
     public:
-        VideoConsensus(int height) : SocialBaseConsensus(height) {}
+        VideoConsensus(int height) : SocialConsensus(height) {}
 
     protected:
 
@@ -264,20 +264,16 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class VideoConsensusFactory
+    class VideoConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<VideoConsensus*(int height)>> m_rules =
+    public:
+        VideoConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {1324655, [](int height) { return new VideoConsensus_checkpoint_1324655(height); }},
                 {0,       [](int height) { return new VideoConsensus(height); }},
             };
-    public:
-        shared_ptr<VideoConsensus> Instance(int height)
-        {
-            return shared_ptr<VideoConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
-            );
         }
     };
 }

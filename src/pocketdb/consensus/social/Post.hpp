@@ -20,10 +20,10 @@ namespace PocketConsensus
     *  Post consensus base class
     *
     *******************************************************************************************************************/
-    class PostConsensus : public SocialBaseConsensus
+    class PostConsensus : public SocialConsensus
     {
     public:
-        PostConsensus(int height) : SocialBaseConsensus(height) {}
+        PostConsensus(int height) : SocialConsensus(height) {}
 
     protected:
 
@@ -313,22 +313,18 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class PostConsensusFactory
+    class PostConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<PostConsensus*(int height)>> m_rules =
+    public:
+        PostConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {1324655, [](int height) { return new PostConsensus_checkpoint_1324655(height); }},
                 {1180000, [](int height) { return new PostConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new PostConsensus_checkpoint_1124000(height); }},
                 {0,       [](int height) { return new PostConsensus(height); }},
             };
-
-    public:
-        shared_ptr<PostConsensus> Instance(int height)
-        {
-            return shared_ptr<PostConsensus>(
-                (--m_rules.upper_bound(height))->second(height));
         }
     };
 } // namespace PocketConsensus

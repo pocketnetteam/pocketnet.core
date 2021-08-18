@@ -181,7 +181,7 @@ namespace PocketConsensus
             }
         }
 
-        static shared_ptr<SocialBaseConsensus> GetConsensus(PocketTxType txType, int height = 0)
+        static shared_ptr<SocialConsensus> GetConsensus(PocketTxType txType, int height = 0)
         {
             switch (txType)
             {

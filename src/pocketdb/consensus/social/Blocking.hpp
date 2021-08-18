@@ -17,10 +17,10 @@ namespace PocketConsensus
     *  Blocking consensus base class
     *
     *******************************************************************************************************************/
-    class BlockingConsensus : public SocialBaseConsensus
+    class BlockingConsensus : public SocialConsensus
     {
     public:
-        BlockingConsensus(int height) : SocialBaseConsensus(height) {}
+        BlockingConsensus(int height) : SocialConsensus(height) {}
 
     protected:
 
@@ -98,19 +98,15 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class BlockingConsensusFactory
+    class BlockingConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<BlockingConsensus*(int height)>> m_rules =
+    public:
+        BlockingConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {0, [](int height) { return new BlockingConsensus(height); }},
             };
-    public:
-        shared_ptr<BlockingConsensus> Instance(int height)
-        {
-            return shared_ptr<BlockingConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
-            );
         }
     };
 }

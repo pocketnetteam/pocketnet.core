@@ -23,10 +23,10 @@ namespace PocketConsensus
     using std::static_pointer_cast;
     using PocketTx::PocketTxType;
 
-    class SocialBaseConsensus : public BaseConsensus
+    class SocialConsensus : public BaseConsensus
     {
     public:
-        SocialBaseConsensus(int height) : BaseConsensus(height) {}
+        SocialConsensus(int height) : BaseConsensus(height) {}
 
         // Validate transaction in block for miner & network full block sync
         virtual tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, const PocketBlock& block)
@@ -163,6 +163,21 @@ namespace PocketConsensus
                     return true;
 
             return false;
+        }
+    };
+
+    class SocialConsensusFactory
+    {
+    protected:
+        std::map<int, std::function<SocialConsensus*(int height)>> m_rules = {};
+    public:
+        SocialConsensusFactory() = default;
+
+        shared_ptr<SocialConsensus> Instance(int height)
+        {
+            return shared_ptr<SocialConsensus>(
+                (--m_rules.upper_bound(height))->second(height)
+            );
         }
     };
 }

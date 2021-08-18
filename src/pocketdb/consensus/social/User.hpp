@@ -18,10 +18,10 @@ namespace PocketConsensus
     *  User consensus base class
     *
     *******************************************************************************************************************/
-    class UserConsensus : public SocialBaseConsensus
+    class UserConsensus : public SocialConsensus
     {
     public:
-        UserConsensus(int height) : SocialBaseConsensus(height) {}
+        UserConsensus(int height) : SocialConsensus(height) {}
 
 
     protected:
@@ -199,20 +199,16 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class UserConsensusFactory
+    class UserConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<UserConsensus*(int height)>> m_rules =
+    public:
+        UserConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {1180000, [](int height) { return new UserConsensus_checkpoint_1180000(height); }},
                 {0,       [](int height) { return new UserConsensus(height); }},
             };
-
-    public:
-        shared_ptr <UserConsensus> Instance(int height)
-        {
-            return shared_ptr<UserConsensus>(
-                (--m_rules.upper_bound(height))->second(height));
         }
     };
 

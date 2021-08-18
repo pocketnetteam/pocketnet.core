@@ -20,10 +20,10 @@ namespace PocketConsensus
     *  Complain consensus base class
     *
     *******************************************************************************************************************/
-    class ComplainConsensus : public SocialBaseConsensus
+    class ComplainConsensus : public SocialConsensus
     {
     public:
-        ComplainConsensus(int height) : SocialBaseConsensus(height) {}
+        ComplainConsensus(int height) : SocialConsensus(height) {}
 
     protected:
 
@@ -215,22 +215,18 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class ComplainConsensusFactory
+    class ComplainConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<ComplainConsensus*(int height)>> m_rules =
+    public:
+        ComplainConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {1180000, [](int height) { return new ComplainConsensus_checkpoint_1180000(height); }},
                 {1124000, [](int height) { return new ComplainConsensus_checkpoint_1124000(height); }},
                 {292800,  [](int height) { return new ComplainConsensus_checkpoint_292800(height); }},
                 {0,       [](int height) { return new ComplainConsensus(height); }},
             };
-    public:
-        shared_ptr<ComplainConsensus> Instance(int height)
-        {
-            return shared_ptr<ComplainConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
-            );
         }
     };
 }

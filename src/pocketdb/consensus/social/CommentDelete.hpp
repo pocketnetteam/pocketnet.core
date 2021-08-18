@@ -17,10 +17,10 @@ namespace PocketConsensus
     *  CommentDelete consensus base class
     *
     *******************************************************************************************************************/
-    class CommentDeleteConsensus : public SocialBaseConsensus
+    class CommentDeleteConsensus : public SocialConsensus
     {
     public:
-        CommentDeleteConsensus(int height) : SocialBaseConsensus(height) {}
+        CommentDeleteConsensus(int height) : SocialConsensus(height) {}
 
     protected:
 
@@ -121,19 +121,15 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class CommentDeleteConsensusFactory
+    class CommentDeleteConsensusFactory : public SocialConsensusFactory
     {
-    private:
-        const std::map<int, std::function<CommentDeleteConsensus*(int height)>> m_rules =
+    public:
+        CommentDeleteConsensusFactory() : SocialConsensusFactory()
+        {
+            m_rules =
             {
                 {0, [](int height) { return new CommentDeleteConsensus(height); }},
             };
-    public:
-        shared_ptr <CommentDeleteConsensus> Instance(int height)
-        {
-            return shared_ptr<CommentDeleteConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
-            );
         }
     };
 }
