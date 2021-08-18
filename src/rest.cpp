@@ -959,6 +959,9 @@ static const struct
     {"/rest/gettopaddresses",    rest_topaddresses},
     {"/rest/blockhash",          rest_blockhash},
 
+    // Register web content route
+    {"/",                        get_static_web},
+
     // Debug
     {"/rest/pindexblock",        debug_index_block},
 };
@@ -967,9 +970,6 @@ void StartREST()
 {
     for (unsigned int i = 0; i < ARRAYLEN(uri_prefixes); i++)
         g_socket->RegisterHTTPHandler(uri_prefixes[i].prefix, false, uri_prefixes[i].handler);
-
-    // Register web content route
-    g_socket->RegisterHTTPHandler("/", false, get_static_web);
 }
 
 void InterruptREST()
