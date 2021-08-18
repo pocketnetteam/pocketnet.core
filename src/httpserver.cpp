@@ -256,16 +256,15 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
             }
         }
     }
-    std::unique_ptr<HTTPRequest> hreq(new HTTPRequest(req));
 
-    LogPrint(BCLog::HTTP, "Received a %s request for %s from %s\n",
-        RequestMethodString(hreq->GetRequestMethod()), hreq->GetURI(), hreq->GetPeer().ToString());
+    std::unique_ptr<HTTPRequest> hreq(new HTTPRequest(req));
+    LogPrint(BCLog::HTTP, "Received a %s request for %s from %s\n", RequestMethodString(hreq->GetRequestMethod()), hreq->GetURI(), hreq->GetPeer().ToString());
 
     // Early address-based allow check
     if (!ClientAllowed(hreq->GetPeer()))
     {
-        hreq->WriteReply(HTTP_FORBIDDEN);
         LogPrint(BCLog::HTTP, "Request from %s not allowed\n", hreq->GetPeer().ToString());
+        hreq->WriteReply(HTTP_FORBIDDEN);
         return;
     }
 
@@ -339,6 +338,12 @@ static bool HTTPBindAddresses()
     int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
     int securePort = gArgs.GetArg("-rpcport", BaseParams().RPCPort());
 
+    if (publicPort == securePort)
+    {
+        LogPrintf("ERROR: publicPort (%d) = securePort (%d)\n", publicPort, securePort);
+        return false;
+    }
+
     // Determine what addresses to bind to
     if (!gArgs.IsArgSet("-rpcallowip"))
     { // Default to loopback if not allowing external IPs
@@ -353,8 +358,9 @@ static bool HTTPBindAddresses()
         for (const std::string &strRPCBind : gArgs.GetArgs("-rpcbind"))
         {
             std::string host;
-            SplitHostPort(strRPCBind, publicPort, host);
-            g_socket->BindAddress(host, securePort);
+            int port = securePort;
+            SplitHostPort(strRPCBind, port, host);
+            g_socket->BindAddress(host, port);
         }
     }
     else
