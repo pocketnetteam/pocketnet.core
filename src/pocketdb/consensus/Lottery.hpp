@@ -16,11 +16,7 @@
 
 namespace PocketConsensus
 {
-    using std::map;
-    using std::vector;
-    using std::string;
-    using std::pair;
-    using std::find;
+    using namespace std;
 
     struct LotteryWinners
     {
@@ -341,22 +337,33 @@ namespace PocketConsensus
     class LotteryConsensusFactory
     {
     private:
-        const std::map<int, std::function<LotteryConsensus*(int height)>> m_rules =
-            {
-                {1180000, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
-                {1124000, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
-                {1035000, [](int height) { return new LotteryConsensus_checkpoint_1035000(height); }},
-                {514185,  [](int height) { return new LotteryConsensus_checkpoint_514185(height); }},
-                {0,       [](int height) { return new LotteryConsensus(height); }},
-            };
-    public:
-        LotteryConsensusFactory() = default;
-
-        shared_ptr <LotteryConsensus> Instance(int height)
+        const vector<tuple<int, int, function<LotteryConsensus*(int height)>>> m_rules =
         {
-            return shared_ptr<LotteryConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
+            {1180000,  0, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
+            {1124000, -1, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
+            {1035000, -1, [](int height) { return new LotteryConsensus_checkpoint_1035000(height); }},
+            {514185,  -1, [](int height) { return new LotteryConsensus_checkpoint_514185(height); }},
+            {0,       -1, [](int height) { return new LotteryConsensus(height); }},
+        };
+    public:
+        shared_ptr<LotteryConsensus> Instance(int height)
+        {
+            auto[main, test, func] = *--upper_bound(m_rules.begin(), m_rules.end(), height,
+                [](int value, const tuple<int, int, string>& itm)
+                {
+                    const auto&[m,t,f] = itm;
+
+                    if (Params().NetworkIDString() == CBaseChainParams::MAIN)
+                        return value < m;
+
+                    if (Params().NetworkIDString() == CBaseChainParams::TESTNET)
+                        return value < t;
+
+                    throw runtime_error("Failed detect consensus for " + Params().NetworkIDString() + " network id");
+                }
             );
+            
+            return shared_ptr<LotteryConsensus>(func(height));
         }
     };
 }

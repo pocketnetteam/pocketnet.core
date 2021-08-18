@@ -119,7 +119,7 @@ namespace PocketConsensus
         {
             m_rules =
             {
-                {0, [](int height) { return new SubscribeConsensus(height); }},
+                {0, 0, [](int height) { return new SubscribeConsensus(height); }},
             };
         }
     };

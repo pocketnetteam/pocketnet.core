@@ -128,7 +128,7 @@ namespace PocketConsensus
         {
             m_rules =
             {
-                {0, [](int height) { return new CommentDeleteConsensus(height); }},
+                {0, 0, [](int height) { return new CommentDeleteConsensus(height); }},
             };
         }
     };

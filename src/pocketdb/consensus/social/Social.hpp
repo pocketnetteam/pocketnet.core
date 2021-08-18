@@ -169,15 +169,28 @@ namespace PocketConsensus
     class SocialConsensusFactory
     {
     protected:
-        std::map<int, std::function<SocialConsensus*(int height)>> m_rules = {};
+        vector<tuple<int, int, function<SocialConsensus*(int height)>>> m_rules = {};
     public:
         SocialConsensusFactory() = default;
 
         shared_ptr<SocialConsensus> Instance(int height)
         {
-            return shared_ptr<SocialConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
+            auto[main, test, func] = *--upper_bound(m_rules.begin(), m_rules.end(), height,
+                [](int value, const tuple<int, int, string>& itm)
+                {
+                    const auto&[m,t,f] = itm;
+
+                    if (Params().NetworkIDString() == CBaseChainParams::MAIN)
+                        return value < m;
+
+                    if (Params().NetworkIDString() == CBaseChainParams::TESTNET)
+                        return value < t;
+
+                    throw runtime_error("Failed detect network consensus");
+                }
             );
+            
+            return shared_ptr<SocialConsensus>(func(height));
         }
     };
 }

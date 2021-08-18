@@ -104,7 +104,7 @@ namespace PocketConsensus
         {
             m_rules =
             {
-                {0, [](int height) { return new BlockingCancelConsensus(height); }},
+                {0, 0, [](int height) { return new BlockingCancelConsensus(height); }},
             };
         }
     };

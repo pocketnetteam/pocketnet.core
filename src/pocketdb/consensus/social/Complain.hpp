@@ -222,10 +222,10 @@ namespace PocketConsensus
         {
             m_rules =
             {
-                {1180000, [](int height) { return new ComplainConsensus_checkpoint_1180000(height); }},
-                {1124000, [](int height) { return new ComplainConsensus_checkpoint_1124000(height); }},
-                {292800,  [](int height) { return new ComplainConsensus_checkpoint_292800(height); }},
-                {0,       [](int height) { return new ComplainConsensus(height); }},
+                {1180000,  0, [](int height) { return new ComplainConsensus_checkpoint_1180000(height); }},
+                {1124000, -1, [](int height) { return new ComplainConsensus_checkpoint_1124000(height); }},
+                {292800,  -1, [](int height) { return new ComplainConsensus_checkpoint_292800(height); }},
+                {0,       -1, [](int height) { return new ComplainConsensus(height); }},
             };
         }
     };

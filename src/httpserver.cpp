@@ -282,8 +282,8 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     // Early address-based allow check
     if (!ClientAllowed(hreq->GetPeer()))
     {
+        LogPrint(BCLog::HTTP, "Request from %s not allowed\n", hreq ? hreq->GetPeer().ToString() : "unknown");
         hreq->WriteReply(HTTP_FORBIDDEN);
-        //LogPrint(BCLog::HTTP, "Request from %s not allowed\n", hreq ? hreq->GetPeer().ToString() : "unknown");
         return;
     }
 

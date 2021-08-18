@@ -320,10 +320,10 @@ namespace PocketConsensus
         {
             m_rules =
             {
-                {1324655, [](int height) { return new PostConsensus_checkpoint_1324655(height); }},
-                {1180000, [](int height) { return new PostConsensus_checkpoint_1180000(height); }},
-                {1124000, [](int height) { return new PostConsensus_checkpoint_1124000(height); }},
-                {0,       [](int height) { return new PostConsensus(height); }},
+                {1324655,  0, [](int height) { return new PostConsensus_checkpoint_1324655(height); }},
+                {1180000, -1, [](int height) { return new PostConsensus_checkpoint_1180000(height); }},
+                {1124000, -1, [](int height) { return new PostConsensus_checkpoint_1124000(height); }},
+                {0,       -1, [](int height) { return new PostConsensus(height); }},
             };
         }
     };

@@ -217,8 +217,8 @@ namespace PocketConsensus
         {
             m_rules =
             {
-                {1180000, [](int height) { return new CommentEditConsensus_checkpoint_1180000(height); }},
-                {0,       [](int height) { return new CommentEditConsensus(height); }},
+                {1180000,  0, [](int height) { return new CommentEditConsensus_checkpoint_1180000(height); }},
+                {0,       -1, [](int height) { return new CommentEditConsensus(height); }},
             };
         }
     };

@@ -206,8 +206,8 @@ namespace PocketConsensus
         {
             m_rules =
             {
-                {1180000, [](int height) { return new UserConsensus_checkpoint_1180000(height); }},
-                {0,       [](int height) { return new UserConsensus(height); }},
+                {1180000,  0, [](int height) { return new UserConsensus_checkpoint_1180000(height); }},
+                {0,       -1, [](int height) { return new UserConsensus(height); }},
             };
         }
     };

@@ -271,8 +271,8 @@ namespace PocketConsensus
         {
             m_rules =
             {
-                {1324655, [](int height) { return new VideoConsensus_checkpoint_1324655(height); }},
-                {0,       [](int height) { return new VideoConsensus(height); }},
+                {1324655,  0, [](int height) { return new VideoConsensus_checkpoint_1324655(height); }},
+                {0,       -1, [](int height) { return new VideoConsensus(height); }},
             };
         }
     };

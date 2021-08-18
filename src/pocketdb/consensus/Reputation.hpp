@@ -8,6 +8,7 @@
 #define POCKETCONSENSUS_REPUTATION_HPP
 
 #include "pocketdb/consensus/Base.hpp"
+#include "pocketdb/consensus/social/Social.hpp"
 
 namespace PocketConsensus
 {
@@ -326,24 +327,37 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class ReputationConsensusFactory
     {
-    private:
-        const std::map<int, std::function<ReputationConsensus*(int height)>> m_rules =
-            {
-                {1324655, [](int height) { return new ReputationConsensus_checkpoint_1324655(height); }},
-                {1124000, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
-                {322700,  [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
-                {292800,  [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
-                {225000,  [](int height) { return new ReputationConsensus_checkpoint_225000(height); }},
-                {151600,  [](int height) { return new ReputationConsensus_checkpoint_151600(height); }},
-                {108300,  [](int height) { return new ReputationConsensus_checkpoint_108300(height); }},
-                {0,       [](int height) { return new ReputationConsensus(height); }},
-            };
+    protected:
+        const vector<tuple<int, int, function<ReputationConsensus*(int height)>>> m_rules =
+        {
+            {1324655,  0, [](int height) { return new ReputationConsensus_checkpoint_1324655(height); }},
+            {1124000, -1, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
+            {322700,  -1, [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
+            {292800,  -1, [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
+            {225000,  -1, [](int height) { return new ReputationConsensus_checkpoint_225000(height); }},
+            {151600,  -1, [](int height) { return new ReputationConsensus_checkpoint_151600(height); }},
+            {108300,  -1, [](int height) { return new ReputationConsensus_checkpoint_108300(height); }},
+            {0,       -1, [](int height) { return new ReputationConsensus(height); }},
+        };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
         {
-            return shared_ptr<ReputationConsensus>(
-                (--m_rules.upper_bound(height))->second(height)
+            auto[main, test, func] = *--upper_bound(m_rules.begin(), m_rules.end(), height,
+                [](int value, const tuple<int, int, string>& itm)
+                {
+                    const auto&[m,t,f] = itm;
+
+                    if (Params().NetworkIDString() == CBaseChainParams::MAIN)
+                        return value < m;
+
+                    if (Params().NetworkIDString() == CBaseChainParams::TESTNET)
+                        return value < t;
+
+                    throw runtime_error("Failed detect consensus for " + Params().NetworkIDString() + " network id");
+                }
             );
+            
+            return shared_ptr<ReputationConsensus>(func(height));
         }
     };
 }

@@ -287,11 +287,11 @@ namespace PocketConsensus
         {
             m_rules =
             {
-                {1180000, [](int height) { return new ScoreCommentConsensus_checkpoint_1180000(height); }},
-                {1124000, [](int height) { return new ScoreCommentConsensus_checkpoint_1124000(height); }},
-                {514184,  [](int height) { return new ScoreCommentConsensus_checkpoint_514184(height); }},
-                {430000,  [](int height) { return new ScoreCommentConsensus_checkpoint_430000(height); }},
-                {0,       [](int height) { return new ScoreCommentConsensus(height); }},
+                {1180000,  0, [](int height) { return new ScoreCommentConsensus_checkpoint_1180000(height); }},
+                {1124000, -1, [](int height) { return new ScoreCommentConsensus_checkpoint_1124000(height); }},
+                {514184,  -1, [](int height) { return new ScoreCommentConsensus_checkpoint_514184(height); }},
+                {430000,  -1, [](int height) { return new ScoreCommentConsensus_checkpoint_430000(height); }},
+                {0,       -1, [](int height) { return new ScoreCommentConsensus(height); }},
             };
         }
     };
