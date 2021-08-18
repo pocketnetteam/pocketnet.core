@@ -92,25 +92,22 @@ namespace PocketConsensus
                 // Get destination address and score value
                 // In lottery allowed only likes to posts and comments
                 // Also in lottery allowed only positive scores
-                auto txType = PocketHelpers::ParseType(tx);
-                if (txType != PocketTxType::ACTION_SCORE_CONTENT &&
-                    txType != PocketTxType::ACTION_SCORE_COMMENT)
+                auto[parseScoreOk, scoreTxData] = PocketHelpers::ParseScore(tx);
+                if (!parseScoreOk)
+                    continue;
+
+                if (scoreTxData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT
+                    && scoreTxData->ScoreValue != 1)
+                    continue;
+
+                if (scoreTxData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_CONTENT
+                    && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
                     continue;
 
                 auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
                 if (!scoreData)
                     throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n",
                         __func__, tx->GetHash().GetHex()));
-
-                //LogPrintf("@@@ 2.1 Winners - tx:%s - score data - %s\n", tx->GetHash().GetHex(),
-                //    scoreData->Serialize()->write());
-
-                if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT && scoreData->ScoreValue != 1)
-                    continue;
-
-                if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_CONTENT &&
-                    scoreData->ScoreValue != 4 && scoreData->ScoreValue != 5)
-                    continue;
 
                 if (!reputationConsensus->AllowModifyReputation(
                     scoreData,
