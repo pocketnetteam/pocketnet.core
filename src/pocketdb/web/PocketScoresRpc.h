@@ -8,19 +8,14 @@
 #include "rpc/server.h"
 #include "rpc/rawtransaction.h"
 
-
-namespace PocketWeb
+namespace PocketWeb::PocketWebRpc
 {
-    using std::string;
-    using std::vector;
+    using namespace std;
 
-    class PocketScoresRpc
-    {
-    public:
-        UniValue GetAddressScores(const JSONRPCRequest& request);
-        UniValue GetPostScores(const JSONRPCRequest& request);
-        UniValue GetPageScores(const JSONRPCRequest& request);
-    };
+    UniValue GetAddressScores(const JSONRPCRequest& request);
+    UniValue GetPostScores(const JSONRPCRequest& request);
+    UniValue GetPageScores(const JSONRPCRequest& request);
+
 }
 
 

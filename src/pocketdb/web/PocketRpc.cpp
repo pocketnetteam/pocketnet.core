@@ -20,29 +20,46 @@ static const CRPCCommand commands[] =
     {"debug", "debugweb", &debug, {}},
 
     // Contents
-    { "contents", "getcontentsdata",        &GetContentsData,      {"ids"}},
-    { "contents", "gethistoricalstrip",     &GetHistoricalStrip,   {"endTime", "depth"}},
-    { "contents", "gethierarchicalstrip",   &GetHierarchicalStrip, {"endTime", "depth"}},
+    { "contents",       "getcontentsdata",                  &GetContentsData,               {"ids"}},
+    { "contents",       "gethistoricalstrip",               &GetHistoricalStrip,            {"endTime", "depth"}},
+    { "contents",       "gethierarchicalstrip",             &GetHierarchicalStrip,          {"endTime", "depth"}},
 
     // Comments
-
+    {"comments",        "getcomments",                      &GetComments,                   {"postid", "parentid", "address", "ids"}},
+    {"comments",        "getlastcomments",                  &GetLastComments,               {"count", "address"}},
+    // TODO (team): implement
+    // GetCommentsByPost
+    // GetCommentsByIds
 
     // Accounts
-    { "accounts", "getreputations",         &GetReputations,                  {}},
-    { "accounts", "getuserprofile",         &GetUserProfile,                  {}},
-    { "accounts", "getuseraddress",         &GetUserAddress,                  {}},
-    { "accounts", "getaddressregistration", &GetAddressRegistration,                  {}},
-    { "accounts", "getuserstate",           &GetUserState,                  {}},
+    { "accounts",       "getuserprofile",                   &GetUserProfile,                {"addresses", "short"}},
+    { "accounts",       "getuseraddress",                   &GetUserAddress,                {"name"}},
+    { "accounts",       "getaddressregistration",           &GetAddressRegistration,        {"addresses"}},
+    { "accounts",       "getuserstate",                     &GetUserState,                  {"address"}},
+    // TODO (team): maybe remove
+    // { "accounts",       "getreputations",                &GetReputations,                {}},
+
+    // Scores
+    {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},
+    {"scores",          "getpostscores",                    &GetPostScores,                 {"txs", "address"}},
+    {"scores",          "getpagescores",                    &GetPageScores,                 {"txs", "address", "cmntids"}},
 
     // Explorer
-    { "explorer", "getstatistic",           &GetStatistic,                   {"endTime", "depth"}},
-    { "explorer", "getaddressspent",        &GetAddressSpent,                {"address"}},
-    { "explorer", "getcompactblock",        &GetCompactBlock,                {"blockHash"}},
-    { "explorer", "getlastblocks",          &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
-    { "explorer", "searchbyhash",           &SearchByHash,                   {"value"}},
-    { "explorer", "gettransactions",        &GetTransactions,                {"transactions"}},
-    { "explorer", "getaddresstransactions", &GetAddressTransactions,         {"address"}},
-    { "explorer", "getblocktransactions",   &GetBlockTransactions,           {"blockHash"}}
+    { "explorer",       "getstatistic",                     &GetStatistic,                  {"endTime", "depth"}},
+    { "explorer",       "getaddressspent",                  &GetAddressSpent,               {"address"}},
+    { "explorer",       "getcompactblock",                  &GetCompactBlock,               {"blockHash"}},
+    { "explorer",       "getlastblocks",                    &GetLastBlocks,                 {"count", "lastHeight", "verbose"}},
+    { "explorer",       "searchbyhash",                     &SearchByHash,                  {"value"}},
+    { "explorer",       "gettransactions",                  &GetTransactions,               {"transactions"}},
+    { "explorer",       "getaddresstransactions",           &GetAddressTransactions,        {"address"}},
+    { "explorer",       "getblocktransactions",             &GetBlockTransactions,          {"blockHash"}}
+
+    // System
+    // TODO (team): implement
+    // { "system",         "getpeerinfo",                      &GetPeerInfo,                   {}},
+    // { "system",         "getnodeinfo",                      &GetNodeInfo,                   {}},
+    // { "system",         "getrawtransaction",                &GetRawTransaction,             {"txid", "verbose", "blockhash"}},
+    // { "system",         "sendrawtransactionwithmessage",    &SetTransaction,                {"hexstring", "message", "type"}},
 };
 // @formatter:on
 

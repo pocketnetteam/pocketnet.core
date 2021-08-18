@@ -7,17 +7,18 @@
 
 #include "rpc/server.h"
 #include "rpc/rawtransaction.h"
+#include <pos.h>
+#include <validation.h>
+#include <logging.h>
 
-namespace PocketWeb
+namespace PocketWeb::PocketWebRpc
 {
-    class PocketCommentsRpc
-    {
-    public:
-        UniValue GetComments(const JSONRPCRequest& request);
-        UniValue GetCommentsByPost(const JSONRPCRequest& request);
-        UniValue GetCommentsByIds(const JSONRPCRequest& request);
-        UniValue GetLastComments(const JSONRPCRequest& request);
-    };
+
+    UniValue GetComments(const JSONRPCRequest& request);
+    UniValue GetCommentsByPost(const JSONRPCRequest& request);
+    UniValue GetCommentsByIds(const JSONRPCRequest& request);
+    UniValue GetLastComments(const JSONRPCRequest& request);
+
 } // namespace PocketWeb
 
 
