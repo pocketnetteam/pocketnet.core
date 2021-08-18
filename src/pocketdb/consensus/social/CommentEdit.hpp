@@ -9,7 +9,7 @@
 
 #include "utils/html.h"
 #include "pocketdb/consensus/Reputation.hpp"
-#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/consensus/social/Social.hpp"
 #include "pocketdb/models/dto/CommentEdit.hpp"
 
 namespace PocketConsensus

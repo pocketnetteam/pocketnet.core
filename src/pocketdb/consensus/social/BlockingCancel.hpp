@@ -7,7 +7,7 @@
 #ifndef POCKETCONSENSUS_BLOCKINGCANCEL_HPP
 #define POCKETCONSENSUS_BLOCKINGCANCEL_HPP
 
-#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/consensus/social/Social.hpp"
 #include "pocketdb/models/dto/BlockingCancel.hpp"
 
 namespace PocketConsensus

@@ -10,7 +10,7 @@
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/consensus.h"
-#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/consensus/social/Social.hpp"
 #include "pocketdb/consensus/social/User.hpp"
 #include "pocketdb/consensus/social/Video.hpp"
 #include "pocketdb/consensus/social/Blocking.hpp"

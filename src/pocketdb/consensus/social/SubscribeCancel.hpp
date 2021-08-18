@@ -7,7 +7,7 @@
 #ifndef POCKETCONSENSUS_SUBSCRIBECANCEL_HPP
 #define POCKETCONSENSUS_SUBSCRIBECANCEL_HPP
 
-#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/consensus/social/Social.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/dto/SubscribeCancel.hpp"
 

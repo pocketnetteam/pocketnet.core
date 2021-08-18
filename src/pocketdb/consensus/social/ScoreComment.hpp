@@ -7,7 +7,7 @@
 #ifndef POCKETCONSENSUS_SCORECOMMENT_HPP
 #define POCKETCONSENSUS_SCORECOMMENT_HPP
 
-#include "pocketdb/consensus/social/Base.hpp"
+#include "pocketdb/consensus/social/Social.hpp"
 #include "pocketdb/models/dto/ScoreComment.hpp"
 #include "pocketdb/consensus/Reputation.hpp"
 
