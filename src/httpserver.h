@@ -163,10 +163,13 @@ private:
     struct evhttp                      *m_eventHTTP;
     std::vector<evhttp_bound_socket *> m_boundSockets;
     std::vector<std::thread>           m_thread_http_workers; 
+    bool m_is_public = false;
 
 public:
-    HTTPSocket(struct event_base *base, int timeout, int queueDepth);
+    HTTPSocket(struct event_base *base, int timeout, int queueDepth, bool isPublic);
     ~HTTPSocket();
+
+    bool IsPublic() { return m_is_public; }
 
     /** Work queue for handling longer requests off the event loop thread */
     WorkQueue<HTTPClosure> *m_workQueue;

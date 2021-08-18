@@ -261,7 +261,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     LogPrint(BCLog::HTTP, "Received a %s request for %s from %s\n", RequestMethodString(hreq->GetRequestMethod()), hreq->GetURI(), hreq->GetPeer().ToString());
 
     // Early address-based allow check
-    if (!ClientAllowed(hreq->GetPeer()))
+    if (!httpSock->IsPublic() && !ClientAllowed(hreq->GetPeer()))
     {
         LogPrint(BCLog::HTTP, "Request from %s not allowed\n", hreq->GetPeer().ToString());
         hreq->WriteReply(HTTP_FORBIDDEN);
@@ -428,8 +428,8 @@ bool InitHTTPServer()
     raii_event_base base_ctr = obtain_event_base();
     eventBase = base_ctr.get();
 
-    g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth);
-    g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth);
+    g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth, false);
+    g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth, true);
  
     if (!HTTPBindAddresses())
     {
@@ -546,9 +546,10 @@ static void httpevent_callback_fn(evutil_socket_t, short, void *data)
         delete self;
 }
 
-HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth): m_http(nullptr),
-                                                                              m_eventHTTP(nullptr),
-                                                                              m_workQueue(nullptr)
+HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, bool isPublic): m_http(nullptr),
+                                                                                             m_eventHTTP(nullptr),
+                                                                                             m_workQueue(nullptr),
+                                                                                             m_is_public(isPublic)
 {
     /* Create a new evhttp object to handle requests. */
     raii_evhttp http_ctr = obtain_evhttp(base);
