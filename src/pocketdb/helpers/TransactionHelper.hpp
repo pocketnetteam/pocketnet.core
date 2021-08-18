@@ -204,7 +204,7 @@ namespace PocketHelpers
 
     static tuple<bool, shared_ptr<ScoreDataDto>> ParseScore(const CTransactionRef& tx)
     {
-        shared_ptr<ScoreDataDto> scoreData = shared_ptr<ScoreDataDto>();
+        shared_ptr<ScoreDataDto> scoreData = make_shared<ScoreDataDto>();
 
         vector<string> vasm;
         scoreData->ScoreType = PocketHelpers::ParseType(tx, vasm);
