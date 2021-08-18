@@ -313,8 +313,6 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
 
             // Check likers exists for this user
             if (!g_pocketdb->ExistsUserLiker(userId, likerId)) {
-                LogPrintf("--- LIKERS H:%d U:%d L:%d\n", pindex->nHeight, userId, likerId);
-                
                 if (pindex->nHeight < Params().GetConsensus().checkpoint_fix_save_likers)
                     likersForWrite.clear();
 
@@ -1674,7 +1672,6 @@ bool AddrIndex::CheckRHash(const CBlock& block, CBlockIndex* pindexPrev)
     return blockRHash == currentRHash;
 }
 
-// TODO (brangr): Enable
 bool AddrIndex::WriteRHash(CBlock& block, CBlockIndex* pindexPrev)
 {
     // std::string currentRHash;
