@@ -161,8 +161,8 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
         UniValue valRequest;
 
         jreq.peerAddr = req->GetPeer().ToString();
-        if (rpcAuthenticate) {
-
+        if (rpcAuthenticate)
+        {
             // Check authorization
             std::pair<bool, std::string> authHeader = req->GetHeader("authorization");
             if (!authHeader.first) {
