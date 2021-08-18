@@ -117,6 +117,11 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
+        virtual bool ValidateLowReputation(const shared_ptr<ScoreContent>& tx, AccountMode mode)
+        {
+            return true;
+        }
+
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreContent>& tx, int count)
         {
             ReputationConsensusFactory reputationConsensusFactoryInst;
@@ -128,7 +133,7 @@ namespace PocketConsensus
             if (count >= limit)
                 return {false, SocialConsensusResult_ScoreLimit};
 
-            if (accountMode == AccountMode_Trial && (*tx->GetValue() == 1 || *tx->GetValue() == 2))
+            if (!ValidateLowReputation(tx, accountMode))
                 return {false, SocialConsensusResult_LowReputation};
 
             return Success;
@@ -191,11 +196,8 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_175600 : public ScoreContentConsensus
     {
     protected:
-
         int64_t GetFullLimit() override { return 200; }
-
         int64_t GetTrialLimit() override { return 100; }
-
     public:
         ScoreContentConsensus_checkpoint_175600(int height) : ScoreContentConsensus(height) {}
     };
@@ -208,7 +210,6 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_430000 : public ScoreContentConsensus_checkpoint_175600
     {
     protected:
-
         tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
             const shared_ptr<ScoreContent>& tx) override
         {
@@ -222,7 +223,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
     public:
         ScoreContentConsensus_checkpoint_430000(int height) : ScoreContentConsensus_checkpoint_175600(height) {}
     };
@@ -235,13 +235,10 @@ namespace PocketConsensus
     class ScoreContentConsensus_checkpoint_514184 : public ScoreContentConsensus_checkpoint_430000
     {
     protected:
-
-        tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
-            const shared_ptr<ScoreContent>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress, const shared_ptr<ScoreContent>& tx) override
         {
             return Success;
         }
-
     public:
         ScoreContentConsensus_checkpoint_514184(int height) : ScoreContentConsensus_checkpoint_430000(height) {}
     };
@@ -255,9 +252,7 @@ namespace PocketConsensus
     {
     public:
         ScoreContentConsensus_checkpoint_1124000(int height) : ScoreContentConsensus_checkpoint_514184(height) {}
-
     protected:
-
         bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
         {
             return true;
@@ -273,11 +268,8 @@ namespace PocketConsensus
     {
     public:
         ScoreContentConsensus_checkpoint_1180000(int height) : ScoreContentConsensus_checkpoint_1124000(height) {}
-
     protected:
-
         int64_t GetLimitWindow() override { return 1440; }
-
         int GetChainCount(const shared_ptr<ScoreContent>& ptx) override
         {
             return ConsensusRepoInst.CountChainScoreContentHeight(
@@ -298,6 +290,10 @@ namespace PocketConsensus
         ScoreContentConsensus_checkpoint_1324655(int height) : ScoreContentConsensus_checkpoint_1180000(height) {}
     protected:
         int64_t GetTrialLimit() override { return 15; }
+        bool ValidateLowReputation(const shared_ptr<ScoreContent>& tx, AccountMode mode) override
+        {
+            return (mode != AccountMode_Trial || (*tx->GetValue() == 1 || *tx->GetValue() == 2));
+        }
     };
 
     /*******************************************************************************************************************
