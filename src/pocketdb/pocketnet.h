@@ -136,6 +136,7 @@ bool IsPocketnetTransaction(const CTransaction& tx);
 
 std::string getcontenttype(int type);
 int getcontenttype(std::string type);
+int64_t getdonationamount(std::string txid);
 //void FindHierarchicalTxIds(int height);
 
 #endif // POCKETNET_H

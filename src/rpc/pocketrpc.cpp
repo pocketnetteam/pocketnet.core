@@ -317,6 +317,12 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
         oCmnt.pushKV("myScore", myScore);
         oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comment").Where("parentid", CondEq, cmntItm["otxid"].As<string>()).Where("last", CondEq, true))));
 
+        int64_t donation = getdonationamount(cmntItm["otxid"].As<string>());
+        if (donation > 0) {
+            oCmnt.pushKV("donation", "true");
+            oCmnt.pushKV("amount", i64tostr(donation));
+        }
+
         entry.pushKV("lastComment", oCmnt);
     }
 
@@ -2409,6 +2415,12 @@ UniValue getcomments(const JSONRPCRequest& request)
         oCmnt.pushKV("myScore", myScore);
         oCmnt.pushKV("children", std::to_string(g_pocketdb->SelectCount(Query("Comment").Where("parentid", CondEq, cmntItm["otxid"].As<string>()).Where("last", CondEq, true))));
 
+        int64_t donation = getdonationamount(cmntItm["otxid"].As<string>());
+        if (donation > 0) {
+            oCmnt.pushKV("donation", "true");
+            oCmnt.pushKV("amount", i64tostr(donation));
+        }
+
         aResult.push_back(oCmnt);
     }
 
@@ -2476,6 +2488,12 @@ UniValue getlastcomments(const JSONRPCRequest& request)
             oCmnt.pushKV("reputation", cmntItm["reputation"].As<string>());
             oCmnt.pushKV("edit", cmntItm["otxid"].As<string>() != cmntItm["txid"].As<string>());
             oCmnt.pushKV("deleted", cmntItm["msg"].As<string>() == "");
+
+            int64_t donation = getdonationamount(cmntItm["otxid"].As<string>());
+            if (donation > 0) {
+                oCmnt.pushKV("donation", "true");
+                oCmnt.pushKV("amount", i64tostr(donation));
+            }
 
             aResult.push_back(oCmnt);
         }
@@ -4014,6 +4032,35 @@ UniValue searchlinks(const JSONRPCRequest& request)
     return result;
 }
 //----------------------------------------------------------
+UniValue debug(const JSONRPCRequest& request)
+{
+    UniValue result(UniValue::VOBJ);
+
+    std::string txid = "";
+    if (request.params.size() > 0) {
+        txid = request.params[0].get_str();
+    }
+
+    UniValue varr(UniValue::VARR);
+
+    if(!txid.empty()){
+        int64_t amount = getdonationamount(txid);
+        if (amount > 0){
+            result.pushKV("txid_donation", amount);
+        }
+    }
+
+    if (request.params.size() > 1) {
+        if(request.params[1].get_str()=="1") {
+            //chainActive.ch
+        }
+        else if (request.params[1].get_str()=="ver"){
+            result.pushKV("ver", "debug1");
+        }
+    }
+
+    return result;
+}
 
 static const CRPCCommand commands[] =
 {
@@ -4056,7 +4103,9 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc", "getrecomendedsubscriptionsforuser", &getrecomendedsubscriptionsforuser, {"address", "count"},                                                                  false},
 
     // Pocketnet transactions
-    {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"}, false},
+    {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"},                                                      false},
+
+    {"pocketnetrpc", "debug",                    &debug,                    {},                                                                                                      false},
 
 // TODO (brangr): new types
 //        {"pocketnetrpc", "setshare",                          &SetShare,                          {"hexstring", "message"},         false},
