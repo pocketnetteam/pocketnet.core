@@ -181,7 +181,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + request.params[0].get_str());
         auto address = request.params[0].get_str();
 
-        return request.DbConnection()->WebRepoInst->GetUserState(address);
+        return request.DbConnection()->WebRepoInst->GetAccountState(address);
     }
 
 }
