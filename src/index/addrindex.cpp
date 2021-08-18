@@ -1734,13 +1734,13 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
         oitm.pushKV("referrer", item["referrer"].As<string>());
         oitm.pushKV("name", item["name"].As<string>());
         oitm.pushKV("userType", item["gender"].As<int>());
-        oitm.pushKV("userId", item["id"].As<int>());
 
-        //if (chainActive.Height() < Params().GetConsensus().nHeight_version_1_0_0) {
-            std::string itm_hash_ref;
-            g_pocketdb->GetHashItem(item, table, false, itm_hash_ref);
-            oitm.pushKV("data_hash_without_ref", itm_hash_ref);
-        //}
+        std::string itm_hash_ref;
+        g_pocketdb->GetHashItem(item, table, false, itm_hash_ref);
+        oitm.pushKV("data_hash_without_ref", itm_hash_ref);
+
+        item["id"] = 0;
+        oitm.pushKV("size", (int)(item.GetJSON().ToString().size()));
     }
 
     if (table == "Comment") {
