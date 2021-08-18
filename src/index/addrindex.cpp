@@ -265,7 +265,7 @@ bool AddrIndex::indexCommentRating(const CTransactionRef& tx,
                 std::vector<std::string> likers;
                 userLikers.insert(std::make_pair(comment_address, likers));
             }
-            
+
             if (std::find(userLikers[comment_address].begin(), userLikers[comment_address].end(), score_address) == userLikers[comment_address].end())
                 userLikers[comment_address].push_back(score_address);
         }
@@ -302,6 +302,7 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
             return false;
         }
 
+        std::vector<int> likersForWrite;
         for (auto& liker : ul.second) {
             // get id for liker address
             auto[likerId, likerRegBlock] = g_pocketdb->GetUserData(liker);
@@ -311,17 +312,28 @@ bool AddrIndex::computeUsersRatings(CBlockIndex* pindex, std::map<std::string, i
             }
 
             // Check likers exists for this user
-            if (!g_pocketdb->ExistsUserLiker(userId, likerId, pindex->nHeight)) {
-                reindexer::Item _itm_rating_new = g_pocketdb->DB()->NewItem("Ratings");
-                _itm_rating_new["type"] = RatingType::RatingUserLikers;
-                _itm_rating_new["block"] = pindex->nHeight;
-                _itm_rating_new["key"] = userId;
-                _itm_rating_new["value"] = likerId;
+            if (!g_pocketdb->ExistsUserLiker(userId, likerId)) {
+                LogPrintf("--- LIKERS H:%d U:%d L:%d\n", pindex->nHeight, userId, likerId);
+                
+                if (pindex->nHeight < Params().GetConsensus().checkpoint_fix_save_likers)
+                    likersForWrite.clear();
 
-                if (!g_pocketdb->UpsertWithCommit("Ratings", _itm_rating_new).ok()) {
-                    LogPrintf("Error save user likers ratings %d - %d\n", userId, likerId);
-                    return false;
-                }
+                likersForWrite.emplace_back(likerId);
+            }
+        }
+
+        // Write liker in DB
+        for (auto& likerId : likersForWrite)
+        {
+            reindexer::Item _itm_rating_new = g_pocketdb->DB()->NewItem("Ratings");
+            _itm_rating_new["type"] = RatingType::RatingUserLikers;
+            _itm_rating_new["block"] = pindex->nHeight;
+            _itm_rating_new["key"] = userId;
+            _itm_rating_new["value"] = likerId;
+
+            if (!g_pocketdb->UpsertWithCommit("Ratings", _itm_rating_new).ok()) {
+                LogPrintf("Error save user likers ratings %d - %d\n", userId, likerId);
+                return false;
             }
         }
     }
@@ -571,13 +583,13 @@ bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, 
     // New subscribe or unsubscribe
     if (table == "Subscribes") {
         if (!g_pocketdb->UpsertWithCommit("Subscribes", item).ok()) return false;
-        if (!g_pocketdb->UpdateSubscribesView(item["address"].As<string>(), item["address_to"].As<string>()).ok()) return false;
+        if (!g_pocketdb->UpdateSubscribesView(item["address"].As<string>(), item["address_to"].As<string>(), height).ok()) return false;
     }
 
     // New blocking or unblocking
     if (table == "Blocking") {
         if (!g_pocketdb->UpsertWithCommit("Blocking", item).ok()) return false;
-        if (!g_pocketdb->UpdateBlockingView(item["address"].As<string>(), item["address_to"].As<string>()).ok()) return false;
+        if (!g_pocketdb->UpdateBlockingView(item["address"].As<string>(), item["address_to"].As<string>(), height).ok()) return false;
     }
 
     // New Comment
@@ -729,10 +741,11 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
             std::string _subs_txid = _subs_itm["txid"].As<string>();
             std::string _subs_address = _subs_itm["address"].As<string>();
             std::string _subs_address_to = _subs_itm["address_to"].As<string>();
+            int _height_txid = _subs_itm["block"].As<int>();
 
             if (back_to_mempool && !insert_to_mempool(_subs_itm, "Subscribes")) return false;
             if (!g_pocketdb->DeleteWithCommit(reindexer::Query("Subscribes").Where("txid", CondEq, _subs_txid)).ok()) return false;
-            if (!g_pocketdb->UpdateSubscribesView(_subs_address, _subs_address_to).ok()) return false;
+            if (!g_pocketdb->UpdateSubscribesView(_subs_address, _subs_address_to, _height_txid).ok()) return false;
         }
     }
 
@@ -745,10 +758,11 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
             std::string _bl_txid = _bl_itm["txid"].As<string>();
             std::string _bl_address = _bl_itm["address"].As<string>();
             std::string _bl_address_to = _bl_itm["address_to"].As<string>();
+            int _height_txid = _bl_itm["block"].As<int>();
 
             if (back_to_mempool && !insert_to_mempool(_bl_itm, "Blocking")) return false;
             if (!g_pocketdb->DeleteWithCommit(reindexer::Query("Blocking").Where("txid", CondEq, _bl_txid)).ok()) return false;
-            if (!g_pocketdb->UpdateBlockingView(_bl_address, _bl_address_to).ok()) return false;
+            if (!g_pocketdb->UpdateBlockingView(_bl_address, _bl_address_to, _height_txid).ok()) return false;
         }
     }
     

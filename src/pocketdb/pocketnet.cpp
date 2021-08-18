@@ -121,7 +121,8 @@ bool ConvertOPToTableName(std::string op, std::string &ri_table)
 // i.e. 213 = 21.3
 // i.e. 45  = 4.5
 static std::map<Limit, std::map<int, int64_t>> Limits;
-void FillLimits(const CChainParams &params)
+
+void FillLimitsMain(const CChainParams &params)
 {
     // Forks
     int64_t fork_20190830 = 292800;
@@ -156,6 +157,11 @@ void FillLimits(const CChainParams &params)
     std::map<int, int64_t> _threshold_balance;
     _threshold_balance.insert({0, 50 * COIN});
     Limits.insert(std::make_pair(Limit::threshold_balance, _threshold_balance));
+    
+    // threshold_balance_pro
+    std::map<int, int64_t> _threshold_balance_pro;
+    _threshold_balance_pro.insert({0, 250 * COIN});
+    Limits.insert(std::make_pair(Limit::threshold_balance_pro, _threshold_balance_pro));
 
     // threshold_likers_count
     std::map<int, int64_t> _threshold_likers_count;
@@ -166,6 +172,7 @@ void FillLimits(const CChainParams &params)
     // trial_post_limit
     std::map<int, int64_t> _trial_post_limit;
     _trial_post_limit.insert({0, 15});
+    _trial_post_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 5});
     Limits.insert(std::make_pair(Limit::trial_post_limit, _trial_post_limit));
 
     // trial_post_edit_limit
@@ -173,10 +180,22 @@ void FillLimits(const CChainParams &params)
     _trial_post_edit_limit.insert({0, 5});
     Limits.insert(std::make_pair(Limit::trial_post_edit_limit, _trial_post_edit_limit));
 
+    // trial_video_limit
+    std::map<int, int64_t> _trial_video_limit;
+    _trial_video_limit.insert({0, 15});
+    _trial_video_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 5});
+    Limits.insert(std::make_pair(Limit::trial_video_limit, _trial_video_limit));
+
+    // trial_video_edit_limit
+    std::map<int, int64_t> _trial_video_edit_limit;
+    _trial_video_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::trial_video_edit_limit, _trial_video_edit_limit));
+
     // trial_score_limit
     std::map<int, int64_t> _trial_score_limit;
     _trial_score_limit.insert({0, 45});
     _trial_score_limit.insert({175600, 100});
+    _trial_score_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 15});
     Limits.insert(std::make_pair(Limit::trial_score_limit, _trial_score_limit));
 
     // trial_complain_limit
@@ -194,6 +213,16 @@ void FillLimits(const CChainParams &params)
     _full_post_edit_limit.insert({0, 5});
     Limits.insert(std::make_pair(Limit::full_post_edit_limit, _full_post_edit_limit));
 
+    // full_video_limit
+    std::map<int, int64_t> _full_video_limit;
+    _full_video_limit.insert({0, 30});
+    Limits.insert(std::make_pair(Limit::full_video_limit, _full_video_limit));
+
+    // full_video_edit_limit
+    std::map<int, int64_t> _full_video_edit_limit;
+    _full_video_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::full_video_edit_limit, _full_video_edit_limit));
+
     // full_score_limit
     std::map<int, int64_t> _full_score_limit;
     _full_score_limit.insert({0, 90});
@@ -204,6 +233,12 @@ void FillLimits(const CChainParams &params)
     std::map<int, int64_t> _full_complain_limit;
     _full_complain_limit.insert({0, 12});
     Limits.insert(std::make_pair(Limit::full_complain_limit, _full_complain_limit));
+
+    // pro_video_limit
+    std::map<int, int64_t> _pro_video_limit;
+    _pro_video_limit.insert({0, 0});
+    _pro_video_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 100});
+    Limits.insert(std::make_pair(Limit::pro_video_limit, _pro_video_limit));
 
     // change_info_timeout
     std::map<int, int64_t> _change_info_timeout;
@@ -216,6 +251,11 @@ void FillLimits(const CChainParams &params)
     _edit_post_timeout.insert({0, 86400}); // seconds
     _edit_post_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 1440}); // blocks
     Limits.insert(std::make_pair(Limit::edit_post_timeout, _edit_post_timeout));
+
+    // edit_video_timeout
+    std::map<int, int64_t> _edit_video_timeout;
+    _edit_video_timeout.insert({0, 1440});
+    Limits.insert(std::make_pair(Limit::edit_video_timeout, _edit_video_timeout));
 
     // max_user_size
     std::map<int, int64_t> _max_user_size;
@@ -304,6 +344,216 @@ void FillLimits(const CChainParams &params)
     Limits.insert(std::make_pair(Limit::lottery_referral_depth, _lottery_referral_depth));
 
 };
+void FillLimitsTest(const CChainParams &params)
+{
+    // threshold_reputation
+    std::map<int, int64_t> _threshold_reputation;
+    _threshold_reputation.insert({0, 100});
+    Limits.insert(std::make_pair(Limit::threshold_reputation, _threshold_reputation));
+
+    // threshold_reputation_score
+    std::map<int, int64_t> _threshold_reputation_score;
+    _threshold_reputation_score.insert({0, 0});
+    _threshold_reputation_score.insert({100000, 100});
+    Limits.insert(std::make_pair(Limit::threshold_reputation_score, _threshold_reputation_score));
+
+    // threshold_reputation_complains
+    std::map<int, int64_t> _threshold_reputation_complains;
+    _threshold_reputation_complains.insert({0, 100});
+    Limits.insert(std::make_pair(Limit::threshold_reputation_complains, _threshold_reputation_complains));
+
+    // threshold_reputation_blocking
+    std::map<int, int64_t> _threshold_reputation_blocking;
+    _threshold_reputation_blocking.insert({0, 100});
+    Limits.insert(std::make_pair(Limit::threshold_reputation_blocking, _threshold_reputation_blocking));
+
+    // threshold_balance
+    std::map<int, int64_t> _threshold_balance;
+    _threshold_balance.insert({0, 5 * COIN});
+    Limits.insert(std::make_pair(Limit::threshold_balance, _threshold_balance));
+    
+    // threshold_balance_pro
+    std::map<int, int64_t> _threshold_balance_pro;
+    _threshold_balance_pro.insert({0, 25 * COIN});
+    Limits.insert(std::make_pair(Limit::threshold_balance_pro, _threshold_balance_pro));
+
+    // threshold_likers_count
+    std::map<int, int64_t> _threshold_likers_count;
+    _threshold_likers_count.insert({0, 0});
+    _threshold_likers_count.insert({100000, 10});
+    Limits.insert(std::make_pair(Limit::threshold_likers_count, _threshold_likers_count));
+
+    // trial_post_limit
+    std::map<int, int64_t> _trial_post_limit;
+    _trial_post_limit.insert({0, 15});
+    Limits.insert(std::make_pair(Limit::trial_post_limit, _trial_post_limit));
+
+    // trial_post_edit_limit
+    std::map<int, int64_t> _trial_post_edit_limit;
+    _trial_post_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::trial_post_edit_limit, _trial_post_edit_limit));
+
+    // trial_video_limit
+    std::map<int, int64_t> _trial_video_limit;
+    _trial_video_limit.insert({0, 15});
+    Limits.insert(std::make_pair(Limit::trial_video_limit, _trial_video_limit));
+
+    // trial_video_edit_limit
+    std::map<int, int64_t> _trial_video_edit_limit;
+    _trial_video_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::trial_video_edit_limit, _trial_video_edit_limit));
+
+    // trial_score_limit
+    std::map<int, int64_t> _trial_score_limit;
+    _trial_score_limit.insert({0, 100});
+    Limits.insert(std::make_pair(Limit::trial_score_limit, _trial_score_limit));
+
+    // trial_complain_limit
+    std::map<int, int64_t> _trial_complain_limit;
+    _trial_complain_limit.insert({0, 6});
+    Limits.insert(std::make_pair(Limit::trial_complain_limit, _trial_complain_limit));
+
+    // full_post_limit
+    std::map<int, int64_t> _full_post_limit;
+    _full_post_limit.insert({0, 30});
+    Limits.insert(std::make_pair(Limit::full_post_limit, _full_post_limit));
+
+    // full_post_edit_limit
+    std::map<int, int64_t> _full_post_edit_limit;
+    _full_post_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::full_post_edit_limit, _full_post_edit_limit));
+
+    // full_video_limit
+    std::map<int, int64_t> _full_video_limit;
+    _full_video_limit.insert({0, 30});
+    Limits.insert(std::make_pair(Limit::full_video_limit, _full_video_limit));
+
+    // full_video_edit_limit
+    std::map<int, int64_t> _full_video_edit_limit;
+    _full_video_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::full_video_edit_limit, _full_video_edit_limit));
+
+    // full_score_limit
+    std::map<int, int64_t> _full_score_limit;
+    _full_score_limit.insert({0, 200});
+    Limits.insert(std::make_pair(Limit::full_score_limit, _full_score_limit));
+
+    // full_complain_limit
+    std::map<int, int64_t> _full_complain_limit;
+    _full_complain_limit.insert({0, 12});
+    Limits.insert(std::make_pair(Limit::full_complain_limit, _full_complain_limit));
+
+    // pro_video_limit
+    std::map<int, int64_t> _pro_video_limit;
+    _pro_video_limit.insert({0, 0});
+    _pro_video_limit.insert({Params().GetConsensus().checkpoint_split_content_video, 100});
+    Limits.insert(std::make_pair(Limit::pro_video_limit, _pro_video_limit));
+
+    // change_info_timeout
+    std::map<int, int64_t> _change_info_timeout;
+    _change_info_timeout.insert({0, 30}); // blocks
+    Limits.insert(std::make_pair(Limit::change_info_timeout, _change_info_timeout));
+
+    // edit_post_timeout
+    std::map<int, int64_t> _edit_post_timeout;
+    _edit_post_timeout.insert({0, 1440}); // blocks
+    Limits.insert(std::make_pair(Limit::edit_post_timeout, _edit_post_timeout));
+
+    // edit_video_timeout
+    std::map<int, int64_t> _edit_video_timeout;
+    _edit_video_timeout.insert({0, 1440});
+    Limits.insert(std::make_pair(Limit::edit_video_timeout, _edit_video_timeout));
+
+    // max_user_size
+    std::map<int, int64_t> _max_user_size;
+    _max_user_size.insert({0, 2000});
+    Limits.insert(std::make_pair(Limit::max_user_size, _max_user_size)); // 2Kb
+
+    // max_post_size
+    std::map<int, int64_t> _max_post_size;
+    _max_post_size.insert({0, 60000});
+    Limits.insert(std::make_pair(Limit::max_post_size, _max_post_size)); // 60Kb
+
+    // bad_reputation
+    std::map<int, int64_t> _bad_reputation;
+    _bad_reputation.insert({0, -50});
+    Limits.insert(std::make_pair(Limit::bad_reputation, _bad_reputation));
+
+    // scores_one_to_one
+    std::map<int, int64_t> _scores_one_to_one;
+    _scores_one_to_one.insert({0, 2});
+    Limits.insert(std::make_pair(Limit::scores_one_to_one, _scores_one_to_one));
+
+    // scores_one_to_one_over_comment
+    std::map<int, int64_t> _scores_one_to_one_over_comment;
+    _scores_one_to_one_over_comment.insert({0, 20});
+    Limits.insert(std::make_pair(Limit::scores_one_to_one_over_comment, _scores_one_to_one_over_comment));
+
+    // scores_one_to_one time
+    std::map<int, int64_t> _scores_one_to_one_depth;
+    _scores_one_to_one_depth.insert({0, 2 * 24 * 3600});
+    Limits.insert(std::make_pair(Limit::scores_one_to_one_depth, _scores_one_to_one_depth));
+
+    // trial_comment_limit
+    std::map<int, int64_t> _trial_comment_limit;
+    _trial_comment_limit.insert({0, 150});
+    Limits.insert(std::make_pair(Limit::trial_comment_limit, _trial_comment_limit));
+
+    // trial_comment_edit_limit
+    std::map<int, int64_t> _trial_comment_edit_limit;
+    _trial_comment_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::trial_comment_edit_limit, _trial_comment_edit_limit));
+
+    // trial_comment_score_limit
+    std::map<int, int64_t> _trial_comment_score_limit;
+    _trial_comment_score_limit.insert({0, 300});
+    Limits.insert(std::make_pair(Limit::trial_comment_score_limit, _trial_comment_score_limit));
+
+    // full_comment_limit
+    std::map<int, int64_t> _full_comment_limit;
+    _full_comment_limit.insert({0, 300});
+    Limits.insert(std::make_pair(Limit::full_comment_limit, _full_comment_limit));
+
+    // full_comment_edit_limit
+    std::map<int, int64_t> _full_comment_edit_limit;
+    _full_comment_edit_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::full_comment_edit_limit, _full_comment_edit_limit));
+
+    // full_comment_score_limit
+    std::map<int, int64_t> _full_comment_score_limit;
+    _full_comment_score_limit.insert({0, 600});
+    Limits.insert(std::make_pair(Limit::full_comment_score_limit, _full_comment_score_limit));
+
+    // comment_size_limit
+    std::map<int, int64_t> _comment_size_limit;
+    _comment_size_limit.insert({0, 2000});
+    Limits.insert(std::make_pair(Limit::comment_size_limit, _comment_size_limit));
+
+    // edit_comment_timeout
+    std::map<int, int64_t> _edit_comment_timeout;
+    _edit_comment_timeout.insert({0, 1440}); // blocks
+    Limits.insert(std::make_pair(Limit::edit_comment_timeout, _edit_comment_timeout));
+
+    // scores_depth_modify_reputation
+    std::map<int, int64_t> _scores_depth_modify_reputation;
+    _scores_depth_modify_reputation.insert({0, 30 * 24 * 3600});
+    Limits.insert(std::make_pair(Limit::scores_depth_modify_reputation, _scores_depth_modify_reputation));
+
+    // lottery_referral_depth
+    std::map<int, int64_t> _lottery_referral_depth;
+    _lottery_referral_depth.insert({0, 30 * 24 * 3600});
+    Limits.insert(std::make_pair(Limit::lottery_referral_depth, _lottery_referral_depth));
+
+};
+
+void FillLimits(const CChainParams &params)
+{
+    if (params.NetworkIDString() == CBaseChainParams::MAIN)
+        FillLimitsMain(params);
+
+    if (params.NetworkIDString() == CBaseChainParams::TESTNET)
+        FillLimitsTest(params);
+}
 
 // Get actual limit for current height
 int64_t GetActualLimit(Limit type, int height)
@@ -631,13 +881,39 @@ std::string getcontenttype(int type)
 }
 int getcontenttype(std::string type)
 {
-    if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return ContentType::ContentPost;
-    else if (type == "video" || type == OR_VIDEO) return ContentType::ContentVideo;
-    else if (type == "verification" || type == OR_VERIFICATION) return ContentType::ContentVerification;
-    else if (type == "serverPing" || type == OR_SERVER_PING) return ContentType::ContentServerPing;
-    else if (type == "poll" || type == OR_POLL) return ContentType::ContentPoll;
-    else if (type == "translate" || type == OR_TRANSLATE) return ContentType::ContentTranslate;
-    else return ContentType::ContentNotSupported;
+    if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return (int)ContentType::ContentPost;
+    else if (type == "video" || type == OR_VIDEO) return (int)ContentType::ContentVideo;
+    else if (type == "verification" || type == OR_VERIFICATION) return (int)ContentType::ContentVerification;
+    else if (type == "serverPing" || type == OR_SERVER_PING) return (int)ContentType::ContentServerPing;
+    else if (type == "poll" || type == OR_POLL) return (int)ContentType::ContentPoll;
+    else if (type == "translate" || type == OR_TRANSLATE) return (int)ContentType::ContentTranslate;
+    else return (int)ContentType::ContentNotSupported;
+}
+
+int64_t getdonationamount(std::string txid)
+{
+    int64_t amount = 0;
+    CTransactionRef tx;
+    uint256 hash_block;
+    uint256 hash_tx;
+    hash_tx.SetHex(txid);
+    if(g_txindex->FindTx(hash_tx, hash_block, tx)){
+        RTransaction rtx(tx);
+        std::string address_source = "";
+        if (GetInputAddress(tx->vin[0].prevout.hash, tx->vin[0].prevout.n, address_source)) {
+            for (const auto& item : rtx->vout) {
+                CTxDestination destAddress;
+                if (ExtractDestination(item.scriptPubKey, destAddress)) {
+                    std::string encoded_address = EncodeDestination(destAddress);
+                    if (address_source != encoded_address) {
+                        amount += item.nValue;
+                    }
+                }
+            }
+        }
+    }
+
+    return amount;
 }
 
 /*

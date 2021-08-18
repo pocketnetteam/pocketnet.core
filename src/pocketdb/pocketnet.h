@@ -19,14 +19,19 @@ enum Limit {
     threshold_likers_count,
     trial_post_limit,
     trial_post_edit_limit,
+    trial_video_limit,
+    trial_video_edit_limit,
     trial_score_limit,
     trial_complain_limit,
     full_post_limit,
     full_post_edit_limit,
+    full_video_limit,
+    full_video_edit_limit,
     full_score_limit,
     full_complain_limit,
     change_info_timeout,
     edit_post_timeout,
+    edit_video_timeout,
     max_user_size,
     max_post_size,
     bad_reputation,
@@ -43,6 +48,9 @@ enum Limit {
     edit_comment_timeout,
     scores_depth_modify_reputation,
     lottery_referral_depth,
+
+    threshold_balance_pro,
+    pro_video_limit,
 };
 
 /*enum PostRanks {LAST5, LAST5R, BOOST, UREP, UREPR, DREP, PREP, PREPR, DPOST, POSTRF};
@@ -128,6 +136,7 @@ bool IsPocketnetTransaction(const CTransaction& tx);
 
 std::string getcontenttype(int type);
 int getcontenttype(std::string type);
+int64_t getdonationamount(std::string txid);
 //void FindHierarchicalTxIds(int height);
 
 #endif // POCKETNET_H

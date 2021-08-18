@@ -113,62 +113,83 @@ void Staker::worker(
             throw std::runtime_error("No coinbase script available (staking requires a wallet)");
 
         while (running) {
-            auto wallet = GetWallet(walletName);
 
-            if (!wallet) {
-                running = false;
-                continue;
-            }
+            try
+            {
 
-            while (wallet->IsLocked()) {
-                nLastCoinStakeSearchInterval = 0;
-                MilliSleep(1000);
-            }
+                auto wallet = GetWallet(walletName);
 
-            if (chainparams.GetConsensus().fPosRequiresPeers) {
-                do {
-                    bool fvNodesEmpty;
-                    {
-                        fvNodesEmpty = !g_connman || g_connman->GetNodeCount(
-                            CConnman::CONNECTIONS_ALL
-                        ) == 0;
-                    }
-                    if (!fvNodesEmpty && !IsInitialBlockDownload())
-                        break;
+                if (!wallet)
+                {
+                    running = false;
+                    continue;
+                }
+
+                while (wallet->IsLocked())
+                {
+                    nLastCoinStakeSearchInterval = 0;
                     MilliSleep(1000);
-                } while (true);
+                }
+
+                if (chainparams.GetConsensus().fPosRequiresPeers)
+                {
+                    do
+                    {
+                        bool fvNodesEmpty;
+                        {
+                            fvNodesEmpty = !g_connman || g_connman->GetNodeCount(
+                                CConnman::CONNECTIONS_ALL
+                            ) == 0;
+                        }
+                        if (!fvNodesEmpty && !IsInitialBlockDownload())
+                            break;
+                        MilliSleep(1000);
+                    } while (true);
+                }
+
+                while (!isStaking)
+                {
+                    MilliSleep(1000);
+                }
+
+                while (
+                    chainparams.GetConsensus().nPosFirstBlock > chainActive.Tip()->nHeight
+                    )
+                {
+                    MilliSleep(30000);
+                }
+
+                uint64_t nFees = 0;
+                auto assembler = BlockAssembler(chainparams);
+                auto blocktemplate = assembler.CreateNewBlock(
+                    coinbaseScript->reserveScript, true, true, &nFees
+                );
+
+                // Write ReindexerDB current state to coinbase transaction
+                if (chainActive.Tip()->nHeight >= Params().GetConsensus().nHeight_version_1_0_0)
+                {
+                    g_addrindex->WriteRHash(blocktemplate->block, chainActive.Tip());
+                }
+
+                std::shared_ptr<CBlock> block = std::make_shared<CBlock>(blocktemplate->block);
+
+                if (signBlock(block, wallet, nFees))
+                {
+                    CheckStake(block, wallet, chainparams);
+                    MilliSleep(500);
+                }
+                else
+                {
+                    MilliSleep(minerSleep);
+                }
+
+            }
+            catch (const std::runtime_error &e)
+            {
+                LogPrintf("Pocketcoin Staker runtime error: %s\n", e.what());
+                MilliSleep(5000);
             }
 
-            while (!isStaking) {
-                MilliSleep(1000);
-            }
-
-            while (
-                chainparams.GetConsensus().nPosFirstBlock > chainActive.Tip()->nHeight
-                ) {
-                MilliSleep(30000);
-            }
-
-            uint64_t nFees = 0;
-            auto assembler = BlockAssembler(chainparams);
-            auto blocktemplate = assembler.CreateNewBlock(
-                coinbaseScript->reserveScript, true, true, &nFees
-            );
-
-            // Write ReindexerDB current state to coinbase transaction
-            if (chainActive.Tip()->nHeight >= Params().GetConsensus().nHeight_version_1_0_0) {
-                g_addrindex->WriteRHash(blocktemplate->block, chainActive.Tip());
-            }
-            
-            std::shared_ptr<CBlock> block = std::make_shared<CBlock>(blocktemplate->block);
-
-            if (signBlock(block, wallet, nFees)) {
-                CheckStake(block, wallet, chainparams);
-                MilliSleep(500);
-            }
-            else {
-                MilliSleep(minerSleep);
-            }
         }
     }
     catch (const boost::thread_interrupted&)
@@ -178,7 +199,7 @@ void Staker::worker(
     }
     catch (const std::runtime_error &e)
     {
-        LogPrintf("Pocketcoin Staker runtime error: %s\n", e.what());
+        LogPrintf("Pocketcoin Staker runtime error: %s - Shutdown staker\n", e.what());
         return;
     }
 }

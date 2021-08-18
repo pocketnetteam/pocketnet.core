@@ -124,13 +124,16 @@ public:
         consensus.lottery_referral_limitation = 1035000;
         consensus.checkpoint_0_19_3 = 1124000; // ~ 20210408
         consensus.checkpoint_0_19_6 = 1180000; // ~ 20210517
-        //consensus.checkpoint_non_unique_account_name = 2000000; // ~
+        consensus.checkpoint_non_unique_account_name = 6000000; // ~
+        consensus.checkpoint_split_content_video = 1324655; // ~
+        consensus.checkpoint_disable_low_score_trial = 1324655; // ~
+        consensus.checkpoint_fix_save_likers = 1324655; // ~
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000027240944d0d13a869c"); // 1233867
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000029c05bcbab1d79b2a3"); // 1310253
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0xa16e475cda9aebc2cc7c48ac1c0f68b70b2b6702cf9bf22416ac6a1e7645f3e1"); // 1233867
+        consensus.defaultAssumeValid = uint256S("0x3734d5b5a326d1a12ea10d838268f378c531d1772c0796414682538ffa6de970"); // 1310253
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -202,15 +205,15 @@ public:
         consensus.BIP65Height = 0; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 0; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
         consensus.powLimit = ArithToUint256(~arith_uint256(0) >> 16);
-        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 1 * 60;
+        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60;
+        consensus.nPowTargetSpacing = 1 * 30;
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 95;
         consensus.nMinerConfirmationWindow = 100;
         consensus.nPosFirstBlock = 1020;
         consensus.fPosRequiresPeers = false;
-        consensus.nStakeMinAge = 60 * 60;
+        consensus.nStakeMinAge = 30 * 60;
         consensus.nPosTargetSpacing = consensus.nPowTargetSpacing;
         consensus.nPosTargetTimespan = 7500;
 
@@ -236,10 +239,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
-        consensus.nHeight_version_1_0_0_pre = 100000;
-        consensus.sVersion_1_0_0_pre_checkpoint = "128abcf7e0371db3ad595702b456a701539ba5977459fac0cd720dc7b84f09a8";
-        consensus.nHeight_version_1_0_0 = 108300;
-        consensus.nHeight_fix_ratings = 151600;
+        consensus.nHeight_version_1_0_0_pre = 0;
+        consensus.sVersion_1_0_0_pre_checkpoint = "00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f";
+        consensus.nHeight_version_1_0_0 = 0;
+        consensus.nHeight_fix_ratings = 0;
 
         consensus.score_blocking_on = 0;
         consensus.score_blocking_off = 0;
@@ -248,13 +251,16 @@ public:
         consensus.lottery_referral_limitation = 0;
         consensus.checkpoint_0_19_3 = 0;
         consensus.checkpoint_0_19_6 = 1;
-        //consensus.checkpoint_non_unique_account_name = 0;
+        consensus.checkpoint_non_unique_account_name = 0;
+        consensus.checkpoint_split_content_video = 65000;
+        consensus.checkpoint_disable_low_score_trial = 65000; // ~
+        consensus.checkpoint_fix_save_likers = 75000; // ~
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00");
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100001"); // 0
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8"); //534292
+        consensus.defaultAssumeValid = uint256S("0x00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f"); // 0
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -266,7 +272,7 @@ public:
         pchMessageStart[2] = 0xd7;
         pchMessageStart[3] = 0xaf;
 
-        nDefaultPort = 11010;
+        nDefaultPort = 36060;
         nPruneAfterHeight = 100000;
 
         genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
@@ -280,13 +286,15 @@ public:
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 55);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 80);
-        base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 33);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 65); //T
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 78); //Y
+        base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 30);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x1e, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x1e, 0x88, 0xAD, 0xE4};
 
         bech32_hrp = "bc";
+
+        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -348,7 +356,7 @@ public:
         pchMessageStart[1] = 0xbf;
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
-        nDefaultPort = 36060;
+        nDefaultPort = 11010;
         nPruneAfterHeight = 1000;
 
         genesis = CreateGenesisBlock(1548092268, 11314, 0x1f00ffff, 1, 50 * COIN);

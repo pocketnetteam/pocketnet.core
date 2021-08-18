@@ -155,7 +155,7 @@ bool parsePocketcoinURI(const QUrl &uri, SendCoinsRecipient *out)
         {
             if(!i->second.isEmpty())
             {
-                if(!PocketcoinUnits::parse(PocketcoinUnits::POC, i->second, &rv.amount))
+                if(!PocketcoinUnits::parse(PocketcoinUnits::PKOIN, i->second, &rv.amount))
                 {
                     return false;
                 }
@@ -186,7 +186,7 @@ QString formatPocketcoinURI(const SendCoinsRecipient &info)
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(PocketcoinUnits::format(PocketcoinUnits::POC, info.amount, false, PocketcoinUnits::separatorNever));
+        ret += QString("?amount=%1").arg(PocketcoinUnits::format(PocketcoinUnits::PKOIN, info.amount, false, PocketcoinUnits::separatorNever));
         paramCount++;
     }
 

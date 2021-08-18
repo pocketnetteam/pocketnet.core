@@ -25,13 +25,26 @@
 
 4.  Example of node configuration (pocketcoin.conf):
     ```
+    # Accept command line and JSON-RPC commands
     server=1
+    
+    # Accept connections from outside (default: 1 if no -proxy or -connect)
     listen=1
-    wsuse=1
+    
+    # The service port of the node for the implementation of the blockchain network
     port=37070
-    rpcport=38081
+    
+    # Private API port - node management
+    rpcport=37071
+    
+    # Public API port - implements the interface for accessing social network data
+    publicrpcport=38081
+    
+    # WebSocket service port - implements the notification mechanism
+    wsuse=1
     wsport=8087
     
+    # Settings for the number of RPC command processing threads and message queue size
     rpcthreads=1
     rpcworkqueue=1    
     rpcpostthreads=3
@@ -41,7 +54,7 @@
     
     # ! These opens access to the node management interface from external network
     # ! These settings allow you to connect to your node and fully manage it. Be careful.
-    rpcallowip=0.0.0.0/0
+    # rpcallowip=127.0.0.0    
     
     # Do not enter your username and password here if you are not sure that you need it.
     # The node generates a random password at startup.

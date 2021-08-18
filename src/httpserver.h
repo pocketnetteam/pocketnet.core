@@ -8,6 +8,15 @@
 #include <string>
 #include <stdint.h>
 #include <functional>
+#include <future>
+#include <rpc/protocol.h> // For HTTP status codes
+#include <event2/thread.h>
+#include <event2/buffer.h>
+#include <event2/bufferevent.h>
+#include <event2/util.h>
+#include <event2/keyvalq_struct.h>
+
+#include <support/events.h>
 
 static const int DEFAULT_HTTP_THREADS=4;
 static const int DEFAULT_HTTP_POST_THREADS=4;
@@ -18,9 +27,11 @@ static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE=16;
 static const int DEFAULT_HTTP_SERVER_TIMEOUT=30;
 
 struct evhttp_request;
-struct event_base;
 class CService;
 class HTTPRequest;
+template<typename WorkItem> class WorkQueue;
+
+struct HTTPPathHandler;
 
 /** Initialize HTTP server.
  * Call this before RegisterHTTPHandler or EventBase().
@@ -42,13 +53,6 @@ bool UpdateHTTPServerLogging(bool enable);
 
 /** Handler for requests to a certain HTTP path */
 typedef std::function<bool(HTTPRequest* req, const std::string &)> HTTPRequestHandler;
-/** Register handler for prefix.
- * If multiple handlers match a prefix, the first-registered one will
- * be invoked.
- */
-void RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler);
-/** Unregister handler for prefix */
-void UnregisterHTTPHandler(const std::string &prefix, bool exactMatch);
 
 /** Return evhttp event base. This can be used by submodules to
  * queue timers or custom events.
@@ -152,6 +156,44 @@ private:
     struct event* ev;
 };
 
+class HTTPSocket
+{
+private:
+    struct evhttp                      *m_http;
+    struct evhttp                      *m_eventHTTP;
+    std::vector<evhttp_bound_socket *> m_boundSockets;
+    std::vector<std::thread>           m_thread_http_workers; 
+
+public:
+    HTTPSocket(struct event_base *base, int timeout, int queueDepth);
+    ~HTTPSocket();
+
+    /** Work queue for handling longer requests off the event loop thread */
+    WorkQueue<HTTPClosure> *m_workQueue;
+    std::vector<HTTPPathHandler> m_pathHandlers;
+
+    /** Start worker threads to listen on bound http sockets */
+    void StartHTTPSocket(int threadCount);
+    /** Stop worker threads on all bound http sockets */
+    void StopHTTPSocket();
+    /** Acquire a http socket handle for a provided IP address and port number */
+    void BindAddress(std::string ipAddr, int port);
+    /** Get number of bound IP sockets */
+    int  GetAddressCount();
+
+    void InterruptHTTPSocket();
+    /** Register handler for prefix.
+     * If multiple handlers match a prefix, the first-registered one will
+     * be invoked.
+     */
+    void RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler);
+    /** Unregister handler for prefix */
+    void UnregisterHTTPHandler(const std::string &prefix, bool exactMatch);
+};
+
 std::string urlDecode(const std::string &urlEncoded);
+
+extern HTTPSocket *g_socket;
+extern HTTPSocket *g_pubSocket;
 
 #endif // POCKETCOIN_HTTPSERVER_H

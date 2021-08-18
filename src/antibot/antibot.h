@@ -20,10 +20,14 @@ struct UserStateItem {
     int reputation;
     int64_t balance;
     bool trial;
+    std::string mode;
     int64_t likers;
 
     int post_unspent;
     int post_spent;
+
+    int video_unspent;
+    int video_spent;
 
     int score_unspent;
     int score_spent;
@@ -54,9 +58,13 @@ struct UserStateItem {
         result.pushKV("reputation", reputation / 10.0);
         result.pushKV("balance", balance);
         result.pushKV("trial", trial);
+        result.pushKV("mode", mode);
         result.pushKV("likers", likers);
+
         result.pushKV("post_unspent", post_unspent);
         result.pushKV("post_spent", post_spent);
+        result.pushKV("video_unspent", video_unspent);
+        result.pushKV("video_spent", video_spent);
         result.pushKV("score_unspent", score_unspent);
         result.pushKV("score_spent", score_spent);
         result.pushKV("complain_unspent", complain_unspent);
@@ -80,12 +88,15 @@ enum CHECKTYPE {
     Complain,
     Comment,
     CommentEdit,
-    CommentScore
+    CommentScore,
+    CheckType_ContentVideo,
+    CheckType_ContentVideoEdit
 };
 //-----------------------------------------------------
 enum ABMODE {
-    Trial,
-    Full
+    ABMODE_Trial,
+    ABMODE_Full,
+    ABMODE_Pro
 };
 //-----------------------------------------------------
 enum ANTIBOTRESULT {
@@ -177,8 +188,11 @@ private:
     bool check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result);
 
     // Check new post and edited post from address
-    bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
-    bool check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, bool splitContent, int height, ANTIBOTRESULT& result);
+    bool check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, bool splitContent, int height, ANTIBOTRESULT& result);
+
+    bool check_video(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    bool check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
     // Check new score to post from address
     bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);

@@ -14,6 +14,7 @@
 #include <uint256.h>
 #include <univalue.h>
 #include <utilstrencodings.h>
+#include "chainparams.h"
 //-----------------------------------------------------
 using namespace reindexer;
 //-----------------------------------------------------
@@ -92,9 +93,9 @@ public:
     // Get last item and write to UsersView
     Error UpdateUsersView(std::string address, int height);
     // Get last item and write to SubscribesView
-    Error UpdateSubscribesView(std::string address, std::string address_to);
+    Error UpdateSubscribesView(std::string address, std::string address_to, int height);
     // Get last item and write to BlockingView
-    Error UpdateBlockingView(std::string address, std::string address_to);
+    Error UpdateBlockingView(std::string address, std::string address_to, int height);
 
     // Return hash by values for compare with OP_RETURN
     bool GetHashItem(Item& item, std::string table, bool with_referrer, std::string& out_hash);
@@ -105,7 +106,7 @@ public:
     bool UpdateUserReputation(std::string address, int height);
     int GetUserReputation(std::string _address, int height);
     int GetUserLikersCount(int userId, int height);
-    bool ExistsUserLiker(int userId, int likerId, int height);
+    bool ExistsUserLiker(int userId, int likerId);
 
     // Post
     bool UpdatePostRating(std::string posttxid, int sum, int cnt, int& rep);

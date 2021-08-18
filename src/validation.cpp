@@ -937,7 +937,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
         // Remove conflicting transactions from the mempool
         for (CTxMemPool::txiter it : allConflicting) {
-            LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s POC additional fees, %d delta bytes\n",
+            LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s PKOIN additional fees, %d delta bytes\n",
                 it->GetTx().GetHash().ToString(),
                 hash.ToString(),
                 FormatMoney(nModifiedFees - nConflictingFees),
@@ -2724,6 +2724,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
         std::string txid = tx->GetHash().GetHex();
         std::string optype = "";
 
+        int64_t donationamount = 0;
+        std::string address_source = "";
+        GetInputAddress(tx->vin[0].prevout.hash, tx->vin[0].prevout.n, address_source);
+
         // Get all addresses from tx outs and check OP_RETURN
         for (int i = 0; i < tx->vout.size(); i++) {
             const CTxOut& txout = tx->vout[i];
@@ -2790,6 +2794,9 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                 std::string encoded_address = EncodeDestination(destAddress);
                 if (addrs.find(encoded_address) == addrs.end())
                     addrs.emplace(encoded_address, std::make_pair(i, (int64_t)txout.nValue));
+                if (address_source != encoded_address && optype == "comment") {
+                    donationamount += txout.nValue;
+                }
             }
         }
 
@@ -2801,6 +2808,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
             };
 
             if (optype != "") cTrFields.emplace("type", optype);
+            if (optype == "comment" && addr.second.second > 0) cTrFields.emplace("donation", "true");
             PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
             // Event for new PocketNET transaction
@@ -2949,6 +2957,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                             if (errP.ok() && queryResP.Count() > 0) {
                                 reindexer::Item itmP(queryResP[0].GetItem());
 
+                                if(itmP["address"].As<string>() == addr.first) {
+                                    continue;
+                                }
+
                                 custom_fields cFields{
                                     {"mesType", optype},
                                     {"addrFrom", addr.first},
@@ -2958,6 +2970,13 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                                     {"answerid", itmS["answerid"].As<string>()},
                                     {"reason", "post"},
                                 };
+                                if (optype == "comment"){
+                                    //int64_t donation = getdonationamount(txid);
+                                    if (donationamount > 0) {
+                                        cFields.emplace("donation", "true");
+                                        cFields.emplace("amount", i64tostr(donationamount));
+                                    }
+                                }
 
                                 PrepareWSMessage(messages, "event", itmP["address"].As<string>(), itmS["otxid"].As<string>(), txtime, cFields);
                             }
