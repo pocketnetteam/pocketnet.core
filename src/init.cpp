@@ -872,6 +872,18 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             }
         }
 
+        LogPrintf("Started rollback SQLite DB to height %d...\n", chainActive.Height());
+        if (PocketDb::ChainRepoInst.Rollback(chainActive.Height()))
+        {
+            LogPrintf("Rollback SQLite DB to height %d completed\n", chainActive.Height());
+        }
+        else
+        {
+            LogPrintf("Error\n");
+            StartShutdown();
+            return;
+        }
+
         // scan for better chains in the block chain database, that are not yet connected in the active best chain
         CValidationState state;
         if (!ActivateBestChain(state, chainparams))

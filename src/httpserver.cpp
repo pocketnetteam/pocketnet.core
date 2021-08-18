@@ -387,7 +387,7 @@ static bool HTTPBindAddresses()
         for (const std::string &strRPCBind : gArgs.GetArgs("-rpcbind"))
         {
             std::string host;
-            int port;
+            int port = securePort;
             SplitHostPort(strRPCBind, port, host);
             g_socket->BindAddress(host, port);
         }
@@ -399,10 +399,14 @@ static bool HTTPBindAddresses()
     }
 
     // Public sockets always bind to any IPs
-    g_pubSocket->BindAddress("::", publicPort);
-    g_pubSocket->BindAddress("0.0.0.0", publicPort);
-    g_staticSocket->BindAddress("::", staticPort);
-    g_staticSocket->BindAddress("0.0.0.0", staticPort);
+    // TODO (team): add parameter web={0|1} for enable|disable web features
+    if (true)
+    {
+        g_pubSocket->BindAddress("::", publicPort);
+        g_pubSocket->BindAddress("0.0.0.0", publicPort);
+        g_staticSocket->BindAddress("::", staticPort);
+        g_staticSocket->BindAddress("0.0.0.0", staticPort);
+    }
 
     return (g_pubSocket->GetAddressCount());
 }
