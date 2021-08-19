@@ -58,7 +58,6 @@ namespace PocketDb
             char* errMsg = nullptr;
             size_t pos;
             std::string token;
-            int i = 0;
 
             while ((pos = sql.find(';')) != std::string::npos)
             {

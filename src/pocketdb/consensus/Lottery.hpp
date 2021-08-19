@@ -102,8 +102,10 @@ namespace PocketConsensus
 
                 auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
                 if (!scoreData)
-                    throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n",
-                        __func__, tx->GetHash().GetHex()));
+                {
+                    LogPrintf("%s: Failed get score data for tx: %s\n", __func__, tx->GetHash().GetHex());
+                    continue;
+                }
 
                 if (!reputationConsensus->AllowModifyReputation(
                     scoreData,
@@ -337,7 +339,7 @@ namespace PocketConsensus
     class LotteryConsensusFactory
     {
     private:
-        const vector<tuple<int, int, function<LotteryConsensus*(int height)>>> m_rules =
+        const vector<ConsensusCheckpoint<LotteryConsensus>> m_rules =
         {
             {1180000,  0, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
             {1124000, -1, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
@@ -348,22 +350,14 @@ namespace PocketConsensus
     public:
         shared_ptr<LotteryConsensus> Instance(int height)
         {
-            auto[main, test, func] = *--upper_bound(m_rules.begin(), m_rules.end(), height,
-                [](int value, const tuple<int, int, string>& itm)
+            const auto& it = *--upper_bound(m_rules.begin(), m_rules.end(), height,
+                [](int target, const ConsensusCheckpoint<LotteryConsensus>& itm)
                 {
-                    const auto&[m,t,f] = itm;
-
-                    if (Params().NetworkIDString() == CBaseChainParams::MAIN)
-                        return value < m;
-
-                    if (Params().NetworkIDString() == CBaseChainParams::TESTNET)
-                        return value < t;
-
-                    throw runtime_error("Failed detect consensus for " + Params().NetworkIDString() + " network id");
+                    return target < itm.Height(Params().NetworkIDString());
                 }
             );
-            
-            return shared_ptr<LotteryConsensus>(func(height));
+
+            return shared_ptr<LotteryConsensus>(it.m_func(height));
         }
     };
 }

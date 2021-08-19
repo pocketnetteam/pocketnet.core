@@ -873,7 +873,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         }
 
         LogPrintf("Started rollback SQLite DB to height %d...\n", chainActive.Height());
-        if (PocketDb::ChainRepoInst.Rollback(chainActive.Height()))
+        if (PocketDb::ChainRepoInst.Rollback(chainActive.Height() + 1))
         {
             LogPrintf("Rollback SQLite DB to height %d completed\n", chainActive.Height());
         }

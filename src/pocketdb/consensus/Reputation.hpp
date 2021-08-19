@@ -328,7 +328,7 @@ namespace PocketConsensus
     class ReputationConsensusFactory
     {
     protected:
-        const vector<tuple<int, int, function<ReputationConsensus*(int height)>>> m_rules =
+        const vector<ConsensusCheckpoint<ReputationConsensus>> m_rules =
         {
             {1324655,  0, [](int height) { return new ReputationConsensus_checkpoint_1324655(height); }},
             {1124000, -1, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
@@ -342,22 +342,14 @@ namespace PocketConsensus
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
         {
-            auto[main, test, func] = *--upper_bound(m_rules.begin(), m_rules.end(), height,
-                [](int value, const tuple<int, int, string>& itm)
+            const auto& it = *--std::upper_bound(m_rules.begin(), m_rules.end(), height,
+                [](int target, const ConsensusCheckpoint<ReputationConsensus>& itm)
                 {
-                    const auto&[m,t,f] = itm;
-
-                    if (Params().NetworkIDString() == CBaseChainParams::MAIN)
-                        return value < m;
-
-                    if (Params().NetworkIDString() == CBaseChainParams::TESTNET)
-                        return value < t;
-
-                    throw runtime_error("Failed detect consensus for " + Params().NetworkIDString() + " network id");
+                    return target < itm.Height(Params().NetworkIDString());
                 }
             );
-            
-            return shared_ptr<ReputationConsensus>(func(height));
+
+            return shared_ptr<ReputationConsensus>(it.m_func(height));
         }
     };
 }

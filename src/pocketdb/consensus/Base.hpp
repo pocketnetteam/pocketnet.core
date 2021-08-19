@@ -98,6 +98,25 @@ namespace PocketConsensus
     private:
 
     };
+
+    template<class T>
+    struct ConsensusCheckpoint
+    {
+        int m_main_height;
+        int m_test_height;
+        function<T*(int height)> m_func;
+
+        int Height(const string& networkId) const
+        {
+            if (networkId == CBaseChainParams::MAIN)
+                return m_main_height;
+
+            if (networkId == CBaseChainParams::TESTNET)
+                return m_test_height;
+
+            return m_main_height;
+        }
+    };
 }
 
 #endif // POCKETCONSENSUS_BASE_HPP
