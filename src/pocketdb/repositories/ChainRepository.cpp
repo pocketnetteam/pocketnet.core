@@ -57,9 +57,6 @@ namespace PocketDb
 
     bool ChainRepository::Rollback(int height)
     {
-        if (height == 0)
-            return ClearDatabase();
-
         try
         {
             // Update transactions

@@ -1,5 +1,5 @@
 
-#include "consensus.h"
+#include "SocialConsensus.h"
 
 namespace PocketConsensus
 {
@@ -17,6 +17,4 @@ namespace PocketConsensus
     SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;
     UserConsensusFactory UserConsensusFactoryInst;
     VideoConsensusFactory VideoConsensusFactoryInst;
-    LotteryConsensusFactory LotteryConsensusFactoryInst;
-    ReputationConsensusFactory ReputationConsensusFactoryInst;
 }; // namespace PocketConsensus

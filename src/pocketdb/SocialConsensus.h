@@ -1,5 +1,5 @@
-#ifndef SRC_CONSENSUS_H
-#define SRC_CONSENSUS_H
+#ifndef SRC_SOCIAL_CONSENSUS_H
+#define SRC_SOCIAL_CONSENSUS_H
 
 #include "pocketdb/consensus/social/Blocking.hpp"
 #include "pocketdb/consensus/social/BlockingCancel.hpp"
@@ -15,8 +15,6 @@
 #include "pocketdb/consensus/social/SubscribePrivate.hpp"
 #include "pocketdb/consensus/social/User.hpp"
 #include "pocketdb/consensus/social/Video.hpp"
-#include "pocketdb/consensus/Reputation.hpp"
-#include "pocketdb/consensus/Lottery.hpp"
 
 namespace PocketConsensus
 {
@@ -34,9 +32,7 @@ namespace PocketConsensus
     extern SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;
     extern UserConsensusFactory UserConsensusFactoryInst;
     extern VideoConsensusFactory VideoConsensusFactoryInst;
-    extern LotteryConsensusFactory LotteryConsensusFactoryInst;
-    extern ReputationConsensusFactory ReputationConsensusFactoryInst;
 }; // namespace PocketConsensus
 
 
-#endif //SRC_CONSENSUS_H
+#endif //SRC_SOCIAL_CONSENSUS_H

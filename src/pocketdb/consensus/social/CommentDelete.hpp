@@ -24,7 +24,7 @@ namespace PocketConsensus
 
     protected:
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
 
@@ -96,7 +96,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
 
@@ -108,7 +108,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        vector <string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
             return {*ptx->GetAddress()};
@@ -123,14 +123,12 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class CommentDeleteConsensusFactory : public SocialConsensusFactory
     {
-    public:
-        CommentDeleteConsensusFactory() : SocialConsensusFactory()
-        {
-            m_rules =
-            {
-                {0, 0, [](int height) { return new CommentDeleteConsensus(height); }},
-            };
-        }
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0, 0, [](int height) { return make_shared<CommentDeleteConsensus>(height); }},
+        };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     };
 }
 

@@ -101,7 +101,7 @@ namespace PocketConsensus
         // ------------------------------------------------------------------------------------------------------------
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
-                                                         const PocketBlock& block) override
+            const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<Post>(tx);
 
@@ -159,8 +159,8 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Post>& tx, int count)
         {
-            ReputationConsensusFactory reputationConsensusFactoryInst;
-            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetLimit(mode);
 
@@ -181,7 +181,7 @@ namespace PocketConsensus
         // ------------------------------------------------------------------------------------------------------------
 
         virtual tuple<bool, SocialConsensusResult> ValidateEditLimit(const shared_ptr<Post>& tx,
-                                                                     const PocketBlock& block)
+            const PocketBlock& block)
         {
             // Double edit in block not allowed
             for (auto& blockTx : block)
@@ -213,9 +213,8 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const shared_ptr<Post>& tx)
         {
             int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetAddress(), *tx->GetRootTxHash());
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
 
-            ReputationConsensusFactory reputationConsensusFactoryInst;
-            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetEditLimit(mode);
 
@@ -315,17 +314,15 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class PostConsensusFactory : public SocialConsensusFactory
     {
-    public:
-        PostConsensusFactory() : SocialConsensusFactory()
-        {
-            m_rules =
-            {
-                {1324655,  0, [](int height) { return new PostConsensus_checkpoint_1324655(height); }},
-                {1180000, -1, [](int height) { return new PostConsensus_checkpoint_1180000(height); }},
-                {1124000, -1, [](int height) { return new PostConsensus_checkpoint_1124000(height); }},
-                {0,       -1, [](int height) { return new PostConsensus(height); }},
-            };
-        }
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0,       -1, [](int height) { return make_shared<PostConsensus>(height); }},
+            {1124000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1124000>(height); }},
+            {1180000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1180000>(height); }},
+            {1324655, 0,  [](int height) { return make_shared<PostConsensus_checkpoint_1324655>(height); }},
+        };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     };
 } // namespace PocketConsensus
 

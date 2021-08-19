@@ -112,14 +112,12 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class SubscribePrivateConsensusFactory : public SocialConsensusFactory
     {
-    public:
-        SubscribePrivateConsensusFactory() : SocialConsensusFactory()
-        {
-            m_rules =
-            {
-                {0, 0, [](int height) { return new SubscribePrivateConsensus(height); }},
-            };
-        }
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0, 0, [](int height) { return make_shared<SubscribePrivateConsensus>(height); }},
+        };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     };
 }
 

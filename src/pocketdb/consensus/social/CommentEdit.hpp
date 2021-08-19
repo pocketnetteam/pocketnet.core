@@ -143,9 +143,8 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const shared_ptr<Comment>& tx)
         {
             int count = ConsensusRepoInst.CountChainCommentEdit(*tx->GetString1(), *tx->GetRootTxHash());
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
 
-            ReputationConsensusFactory reputationConsensusFactoryInst;
-            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetEditLimit(mode);
 
@@ -212,15 +211,13 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class CommentEditConsensusFactory : public SocialConsensusFactory
     {
-    public:
-        CommentEditConsensusFactory() : SocialConsensusFactory()
-        {
-            m_rules =
-            {
-                {1180000,  0, [](int height) { return new CommentEditConsensus_checkpoint_1180000(height); }},
-                {0,       -1, [](int height) { return new CommentEditConsensus(height); }},
-            };
-        }
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0,       -1, [](int height) { return make_shared<CommentEditConsensus>(height); }},
+            {1180000, 0,  [](int height) { return make_shared<CommentEditConsensus_checkpoint_1180000>(height); }},
+        };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     };
 }
 

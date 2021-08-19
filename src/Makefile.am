@@ -92,7 +92,8 @@ endif
 # PocketDB
 POCKETDB_H = \
     pocketdb/pocketnet.h \
-    pocketdb/consensus.h \
+    pocketdb/ReputationConsensus.h \
+    pocketdb/SocialConsensus.h \
     pocketdb/migrations/main.h \
     pocketdb/SQLiteDatabase.h \
     pocketdb/SQLiteConnection.h \
@@ -168,7 +169,8 @@ POCKETDB_CPP = \
     pocketdb/repositories/ConsensusRepository.cpp \
     pocketdb/repositories/ChainRepository.cpp \
     pocketdb/pocketnet.cpp \
-    pocketdb/consensus.cpp \
+    pocketdb/ReputationConsensus.cpp \
+    pocketdb/SocialConsensus.cpp \
     pocketdb/web/PocketContentRpc.cpp \
     pocketdb/web/PocketCommentsRpc.cpp \
     pocketdb/web/PocketSystemRpc.cpp \

@@ -44,17 +44,17 @@ namespace PocketConsensus
         virtual int64_t GetLimit(AccountMode mode)
         {
             return mode == AccountMode_Pro
-                ? GetProLimit()
-                : mode == AccountMode_Full
-                    ? GetFullLimit()
-                    : GetTrialLimit();
+                   ? GetProLimit()
+                   : mode == AccountMode_Full
+                     ? GetFullLimit()
+                     : GetTrialLimit();
         }
 
         virtual int64_t GetEditLimit(AccountMode mode)
         {
             return mode >= AccountMode_Full
-                ? GetFullEditLimit()
-                : GetTrialEditLimit();
+                   ? GetFullEditLimit()
+                   : GetTrialEditLimit();
         }
 
         // ------------------------------------------------------------------------------------------------------------
@@ -152,8 +152,7 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Video>& tx, int count)
         {
-            ReputationConsensusFactory reputationConsensusFactoryInst;
-            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
 
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetLimit(mode);
@@ -193,9 +192,7 @@ namespace PocketConsensus
 
             // Check edit one itm limit
             int count = ConsensusRepoInst.CountChainVideoEdit(*tx->GetAddress(), *tx->GetRootTxHash());
-
-            ReputationConsensusFactory reputationConsensusFactoryInst;
-            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
 
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetEditLimit(mode);
@@ -266,15 +263,13 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class VideoConsensusFactory : public SocialConsensusFactory
     {
-    public:
-        VideoConsensusFactory() : SocialConsensusFactory()
-        {
-            m_rules =
-            {
-                {1324655,  0, [](int height) { return new VideoConsensus_checkpoint_1324655(height); }},
-                {0,       -1, [](int height) { return new VideoConsensus(height); }},
-            };
-        }
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0,       -1, [](int height) { return make_shared<VideoConsensus>(height); }},
+            {1324655, 0,  [](int height) { return make_shared<VideoConsensus_checkpoint_1324655>(height); }},
+        };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     };
 }
 

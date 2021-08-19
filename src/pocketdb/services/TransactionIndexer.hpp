@@ -11,7 +11,7 @@
 #include "chain.h"
 #include "primitives/block.h"
 
-#include "pocketdb/consensus.h"
+#include "pocketdb/ReputationConsensus.h"
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/pocketnet.h"
 

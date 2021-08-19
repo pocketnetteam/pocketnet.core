@@ -29,7 +29,7 @@ namespace PocketConsensus
         virtual int64_t GetChangeInfoDepth() { return 3600; }
 
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<User>(tx);
 
@@ -44,7 +44,7 @@ namespace PocketConsensus
             return ValidateModelEdit(ptx);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateModelEdit(const shared_ptr <User>& ptx)
+        virtual tuple<bool, SocialConsensusResult> ValidateModelEdit(const shared_ptr<User>& ptx)
         {
             // First user account transaction allowed without next checks
             auto[prevOk, prevTx] = ConsensusRepoInst.GetLastAccount(*ptx->GetAddress());
@@ -62,7 +62,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx, 
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx,
             const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<User>(tx);
@@ -89,7 +89,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<User>(tx);
 
@@ -99,7 +99,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr <Transaction>& tx) override
+        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
         {
             auto ptx = static_pointer_cast<User>(tx);
 
@@ -122,7 +122,7 @@ namespace PocketConsensus
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
                 if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
                     LogPrintf("$$$ SocialConsensusResult_NicknameLong - %s\n", *ptx->GetHash());
-                    //return {false, SocialConsensusResult_NicknameLong};
+                //return {false, SocialConsensusResult_NicknameLong};
             }
 
             // Trim spaces
@@ -131,7 +131,7 @@ namespace PocketConsensus
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
                 if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_Failed))
                     LogPrintf("$$$ SPACES CHECKPOINTS - %s\n", *ptx->GetHash());
-                    //return {false, SocialConsensusResult_Failed};
+                //return {false, SocialConsensusResult_Failed};
             }
 
             return Success;
@@ -201,15 +201,13 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class UserConsensusFactory : public SocialConsensusFactory
     {
-    public:
-        UserConsensusFactory() : SocialConsensusFactory()
-        {
-            m_rules =
-            {
-                {1180000,  0, [](int height) { return new UserConsensus_checkpoint_1180000(height); }},
-                {0,       -1, [](int height) { return new UserConsensus(height); }},
-            };
-        }
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0,       -1, [](int height) { return make_shared<UserConsensus>(height); }},
+            {1180000, 0,  [](int height) { return make_shared<UserConsensus_checkpoint_1180000>(height); }},
+        };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     };
 
 } // namespace PocketConsensus

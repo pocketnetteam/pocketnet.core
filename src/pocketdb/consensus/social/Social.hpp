@@ -166,23 +166,14 @@ namespace PocketConsensus
         }
     };
 
-    class SocialConsensusFactory
+    class SocialConsensusFactory : public BaseConsensusFactory
     {
-    protected:
-        vector<ConsensusCheckpoint<SocialConsensus>> m_rules = {};
     public:
-        SocialConsensusFactory() = default;
-
         shared_ptr<SocialConsensus> Instance(int height)
         {
-            const auto& it = *--std::upper_bound(m_rules.begin(), m_rules.end(), height,
-                [](int target, const ConsensusCheckpoint<SocialConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkIDString());
-                }
+            return static_pointer_cast<SocialConsensus>(
+                BaseConsensusFactory::m_instance(height)
             );
-
-            return shared_ptr<SocialConsensus>(it.m_func(height));
         }
     };
 }

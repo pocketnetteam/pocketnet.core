@@ -99,12 +99,11 @@ namespace PocketConsensus
 
     };
 
-    template<class T>
     struct ConsensusCheckpoint
     {
         int m_main_height;
         int m_test_height;
-        function<T*(int height)> m_func;
+        function<shared_ptr<BaseConsensus>(int height)> m_func;
 
         int Height(const string& networkId) const
         {
@@ -115,6 +114,22 @@ namespace PocketConsensus
                 return m_test_height;
 
             return m_main_height;
+        }
+    };
+
+    class BaseConsensusFactory
+    {
+    protected:
+        virtual const vector<ConsensusCheckpoint>& m_rules() = 0;
+        virtual shared_ptr<BaseConsensus> m_instance(int height)
+        {
+            int m_height = (height > 0 ? height : 0);
+            return (--upper_bound(m_rules().begin(), m_rules().end(), m_height,
+                [&](int target, const ConsensusCheckpoint& itm)
+                {
+                    return target < itm.Height(Params().NetworkIDString());
+                }
+            ))->m_func(height);
         }
     };
 }

@@ -325,31 +325,27 @@ namespace PocketConsensus
     *  Factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class ReputationConsensusFactory
+    class ReputationConsensusFactory : public BaseConsensusFactory
     {
-    protected:
-        const vector<ConsensusCheckpoint<ReputationConsensus>> m_rules =
-        {
-            {1324655,  0, [](int height) { return new ReputationConsensus_checkpoint_1324655(height); }},
-            {1124000, -1, [](int height) { return new ReputationConsensus_checkpoint_1124000(height); }},
-            {322700,  -1, [](int height) { return new ReputationConsensus_checkpoint_322700(height); }},
-            {292800,  -1, [](int height) { return new ReputationConsensus_checkpoint_292800(height); }},
-            {225000,  -1, [](int height) { return new ReputationConsensus_checkpoint_225000(height); }},
-            {151600,  -1, [](int height) { return new ReputationConsensus_checkpoint_151600(height); }},
-            {108300,  -1, [](int height) { return new ReputationConsensus_checkpoint_108300(height); }},
-            {0,       -1, [](int height) { return new ReputationConsensus(height); }},
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0,       -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
+            {108300,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_108300>(height); }},
+            {151600,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
+            {225000,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_225000>(height); }},
+            {292800,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_292800>(height); }},
+            {322700,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_322700>(height); }},
+            {1124000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1124000>(height); }},
+            {1324655,  0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
         };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
         {
-            const auto& it = *--std::upper_bound(m_rules.begin(), m_rules.end(), height,
-                [](int target, const ConsensusCheckpoint<ReputationConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkIDString());
-                }
+            return static_pointer_cast<ReputationConsensus>(
+                BaseConsensusFactory::m_instance(height)
             );
-
-            return shared_ptr<ReputationConsensus>(it.m_func(height));
         }
     };
 }

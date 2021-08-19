@@ -9,7 +9,7 @@
 
 #include "pocketdb/consensus/social/Social.hpp"
 #include "pocketdb/models/dto/ScoreComment.hpp"
-#include "pocketdb/consensus/Reputation.hpp"
+#include "pocketdb/ReputationConsensus.h"
 
 namespace PocketConsensus
 {
@@ -79,7 +79,7 @@ namespace PocketConsensus
         }
 
         tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx,
-                                                         const PocketBlock& block) override
+            const PocketBlock& block) override
         {
             auto ptx = static_pointer_cast<ScoreComment>(tx);
 
@@ -129,8 +129,7 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreComment>& tx, int count)
         {
-            ReputationConsensusFactory reputationConsensusFactoryInst;
-            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
 
             auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
             auto limit = GetScoresLimit(accountMode);
@@ -142,7 +141,7 @@ namespace PocketConsensus
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateBlocking(const string& commentAddress,
-                                                                    const shared_ptr<ScoreComment>& tx)
+            const shared_ptr<ScoreComment>& tx)
         {
             return Success;
         }
@@ -282,18 +281,16 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class ScoreCommentConsensusFactory : public SocialConsensusFactory
     {
-    public:
-        ScoreCommentConsensusFactory() : SocialConsensusFactory()
-        {
-            m_rules =
-            {
-                {1180000,  0, [](int height) { return new ScoreCommentConsensus_checkpoint_1180000(height); }},
-                {1124000, -1, [](int height) { return new ScoreCommentConsensus_checkpoint_1124000(height); }},
-                {514184,  -1, [](int height) { return new ScoreCommentConsensus_checkpoint_514184(height); }},
-                {430000,  -1, [](int height) { return new ScoreCommentConsensus_checkpoint_430000(height); }},
-                {0,       -1, [](int height) { return new ScoreCommentConsensus(height); }},
-            };
-        }
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0,       -1, [](int height) { return make_shared<ScoreCommentConsensus>(height); }},
+            {430000,  -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_430000>(height); }},
+            {514184,  -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_514184>(height); }},
+            {1124000, -1, [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_1124000>(height); }},
+            {1180000, 0,  [](int height) { return make_shared<ScoreCommentConsensus_checkpoint_1180000>(height); }},
+        };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     };
 }
 

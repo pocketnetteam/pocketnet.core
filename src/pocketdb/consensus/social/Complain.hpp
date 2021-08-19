@@ -118,8 +118,8 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Complain>& tx, int count)
         {
-            ReputationConsensusFactory reputationConsensusFactoryInst;
-            auto reputationConsensus = reputationConsensusFactoryInst.Instance(Height);
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
             auto limit = GetComplainsLimit(mode);
 
@@ -217,17 +217,15 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class ComplainConsensusFactory : public SocialConsensusFactory
     {
-    public:
-        ComplainConsensusFactory() : SocialConsensusFactory()
-        {
-            m_rules =
-            {
-                {1180000,  0, [](int height) { return new ComplainConsensus_checkpoint_1180000(height); }},
-                {1124000, -1, [](int height) { return new ComplainConsensus_checkpoint_1124000(height); }},
-                {292800,  -1, [](int height) { return new ComplainConsensus_checkpoint_292800(height); }},
-                {0,       -1, [](int height) { return new ComplainConsensus(height); }},
-            };
-        }
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0,       -1, [](int height) { return make_shared<ComplainConsensus>(height); }},
+            {292800,  -1, [](int height) { return make_shared<ComplainConsensus_checkpoint_292800>(height); }},
+            {1124000, -1, [](int height) { return make_shared<ComplainConsensus_checkpoint_1124000>(height); }},
+            {1180000, 0,  [](int height) { return make_shared<ComplainConsensus_checkpoint_1180000>(height); }},
+        };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     };
 }
 

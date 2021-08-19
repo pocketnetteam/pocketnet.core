@@ -9,11 +9,13 @@
 #include <streams.h>
 #include <key_io.h>
 
-#include "pocketdb/consensus.h"
 #include "pocketdb/consensus/Lottery.hpp"
 #include "pocketdb/helpers/TransactionHelper.hpp"
 
 using namespace PocketHelpers;
+using namespace PocketConsensus;
+
+static LotteryConsensusFactory lotteryConsensusFactory;
 
 static const int STAKE_TIMESTAMP_MASK = 15;
 

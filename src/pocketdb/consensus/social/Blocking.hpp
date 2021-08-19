@@ -100,14 +100,12 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class BlockingConsensusFactory : public SocialConsensusFactory
     {
-    public:
-        BlockingConsensusFactory() : SocialConsensusFactory()
-        {
-            m_rules =
-            {
-                {0, 0, [](int height) { return new BlockingConsensus(height); }},
-            };
-        }
+    private:
+        const vector<ConsensusCheckpoint> _rules = {
+            {0, 0, [](int height) { return make_shared<BlockingConsensus>(height); }},
+        };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     };
 }
 

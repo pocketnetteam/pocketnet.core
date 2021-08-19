@@ -9,9 +9,8 @@
 
 #include "streams.h"
 #include <boost/algorithm/string.hpp>
-
+#include "pocketdb/ReputationConsensus.h"
 #include "pocketdb/consensus/Base.hpp"
-#include "pocketdb/consensus/Reputation.hpp"
 #include "pocketdb/helpers/TransactionHelper.hpp"
 
 namespace PocketConsensus
@@ -46,7 +45,7 @@ namespace PocketConsensus
                 CDataStream ss(hashProofOfStakeSource);
                 ss << it.first;
                 arith_uint256 hashSortRating = UintToArith256(Hash(ss.begin(), ss.end())) / it.second;
-                candidatesSorted.push_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
+                candidatesSorted.emplace_back(std::make_pair(it.first, std::make_pair(it.second, hashSortRating)));
             }
 
             if (!candidatesSorted.empty())
@@ -74,9 +73,10 @@ namespace PocketConsensus
 
         // Get all lottery winner
         virtual LotteryWinners& Winners(const CBlock& block,
-                                        CDataStream& hashProofOfStakeSource,
-                                        shared_ptr <ReputationConsensus>& reputationConsensus)
+            CDataStream& hashProofOfStakeSource)
         {
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+
             map<string, int> postCandidates;
             map<string, string> postReferrersCandidates;
 
@@ -336,28 +336,24 @@ namespace PocketConsensus
     *  Lottery factory for select actual rules version
     *
     *******************************************************************************************************************/
-    class LotteryConsensusFactory
+    class LotteryConsensusFactory : public BaseConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint<LotteryConsensus>> m_rules =
-        {
-            {1180000,  0, [](int height) { return new LotteryConsensus_checkpoint_1180000(height); }},
-            {1124000, -1, [](int height) { return new LotteryConsensus_checkpoint_1124000(height); }},
-            {1035000, -1, [](int height) { return new LotteryConsensus_checkpoint_1035000(height); }},
-            {514185,  -1, [](int height) { return new LotteryConsensus_checkpoint_514185(height); }},
-            {0,       -1, [](int height) { return new LotteryConsensus(height); }},
+        const vector<ConsensusCheckpoint> _rules = {
+            {0,       -1, [](int height) { return make_shared<LotteryConsensus>(height); }},
+            {514185,  -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_514185>(height); }},
+            {1035000, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1035000>(height); }},
+            {1124000, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1124000>(height); }},
+            {1180000, 0,  [](int height) { return make_shared<LotteryConsensus_checkpoint_1180000>(height); }},
         };
+    protected:
+        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
     public:
         shared_ptr<LotteryConsensus> Instance(int height)
         {
-            const auto& it = *--upper_bound(m_rules.begin(), m_rules.end(), height,
-                [](int target, const ConsensusCheckpoint<LotteryConsensus>& itm)
-                {
-                    return target < itm.Height(Params().NetworkIDString());
-                }
+            return static_pointer_cast<LotteryConsensus>(
+                BaseConsensusFactory::m_instance(height)
             );
-
-            return shared_ptr<LotteryConsensus>(it.m_func(height));
         }
     };
 }
