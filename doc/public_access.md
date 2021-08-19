@@ -13,9 +13,10 @@
     > Search query: "How to get a public IP address"
 
 2.  Depending on your network and hardware configuration, you may also need to open additional ports.:
-    37070 - to accept connections from other network nodes
-    38081 - to accept HTTP POST requests along the path *.*.*.*:38081/public
-    8087  - for the ability to establish a WebSocket connection to a node to support notifications
+    - 37070 - to accept connections from other network nodes
+    - 37071 - to manage node
+    - 38081 - to accept HTTP POST requests along the path *.*.*.*:38081/public
+    - 8087  - for the ability to establish a WebSocket connection to a node to support notifications
     Opening ports may require additional work in the settings of the router, operating system, or hosting control panels.
     > Search query: "How to open a port windows" or "How to open a port linux" or "How to open a port <your_router_model>"
 
