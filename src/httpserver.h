@@ -6,7 +6,7 @@
 #define POCKETCOIN_HTTPSERVER_H
 
 #include <string>
-#include <stdint.h>
+#include <cstdint>
 #include <functional>
 #include <future>
 #include <rpc/protocol.h> // For HTTP status codes
@@ -15,17 +15,14 @@
 #include <event2/bufferevent.h>
 #include <event2/util.h>
 #include <event2/keyvalq_struct.h>
-
 #include <support/events.h>
-
+#include "rpc/server.h"
 #include "pocketdb/SQLiteConnection.h"
 
 static const int DEFAULT_HTTP_THREADS=4;
-static const int DEFAULT_HTTP_POST_THREADS=4;
 static const int DEFAULT_HTTP_PUBLIC_THREADS=4;
 static const int DEFAULT_HTTP_STATIC_THREADS=4;
 static const int DEFAULT_HTTP_WORKQUEUE=16;
-static const int DEFAULT_HTTP_POST_WORKQUEUE=16;
 static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE=16;
 static const int DEFAULT_HTTP_STATIC_WORKQUEUE=16;
 static const int DEFAULT_HTTP_SERVER_TIMEOUT=30;
@@ -153,7 +150,7 @@ public:
      * deleteWhenTriggered deletes this event object after the event is triggered (and the handler called)
      * handler is the handler to call when the event is triggered.
      */
-    HTTPEvent(struct event_base* base, bool deleteWhenTriggered, const std::function<void()>& handler);
+    HTTPEvent(struct event_base* base, bool deleteWhenTriggered, std::function<void()>  handler);
     ~HTTPEvent();
 
     /** Trigger the event. If tv is 0, trigger it immediately. Otherwise trigger it after
@@ -167,19 +164,58 @@ private:
     struct event* ev;
 };
 
+/** Simple one-shot callback timer to be used by the RPC mechanism to e.g.
+ * re-lock the wallet.
+ */
+class HTTPRPCTimer : public RPCTimerBase
+{
+public:
+    HTTPRPCTimer(struct event_base* eventBase, std::function<void()>& func, int64_t millis) : ev(eventBase, false, func)
+    {
+        struct timeval tv;
+        tv.tv_sec = millis / 1000;
+        tv.tv_usec = (millis % 1000) * 1000;
+        ev.trigger(&tv);
+    }
+
+private:
+    HTTPEvent ev;
+};
+
+class HTTPRPCTimerInterface : public RPCTimerInterface
+{
+public:
+    explicit HTTPRPCTimerInterface(struct event_base* _base) : base(_base)
+    {
+    }
+    const char* Name() override
+    {
+        return "HTTP";
+    }
+    RPCTimerBase* NewTimer(std::function<void()>& func, int64_t millis) override
+    {
+        return new HTTPRPCTimer(base, func, millis);
+    }
+
+private:
+    struct event_base* base;
+};
+
 class HTTPSocket
 {
 private:
     struct evhttp                      *m_http;
     struct evhttp                      *m_eventHTTP;
     std::vector<evhttp_bound_socket *> m_boundSockets;
-    std::vector<std::thread>           m_thread_http_workers; 
+    std::vector<std::thread>           m_thread_http_workers;
+    bool m_is_public;
 
 public:
     HTTPSocket(struct event_base *base, int timeout, int queueDepth);
     ~HTTPSocket();
 
     /** Work queue for handling longer requests off the event loop thread */
+    CRPCTable m_table_rpc;
     WorkQueue<HTTPClosure> *m_workQueue;
     std::vector<HTTPPathHandler> m_pathHandlers;
 
@@ -200,6 +236,8 @@ public:
     void RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler);
     /** Unregister handler for prefix */
     void UnregisterHTTPHandler(const std::string &prefix, bool exactMatch);
+
+    bool HTTPReq(HTTPRequest* req);
 };
 
 std::string urlDecode(const std::string &urlEncoded);

@@ -9,14 +9,11 @@
 #include <amount.h>
 #include <rpc/protocol.h>
 #include <uint256.h>
-
 #include <list>
 #include <map>
 #include <stdint.h>
 #include <string>
-
 #include <univalue.h>
-
 #include "pocketdb/SQLiteConnection.h"
 
 static const unsigned int DEFAULT_RPC_SERIALIZE_VERSION = 1;
@@ -190,8 +187,6 @@ public:
 
 bool IsDeprecatedRPCEnabled(const std::string& method);
 
-extern CRPCTable tableRPC;
-
 /**
  * Utilities: convert hex-encoded Values
  * (throws error if not hex).
@@ -208,7 +203,7 @@ extern std::string HelpExampleRpc(const std::string& methodname, const std::stri
 void StartRPC();
 void InterruptRPC();
 void StopRPC();
-std::string JSONRPCExecBatch(const JSONRPCRequest& jreq, const UniValue& vReq);
+std::string JSONRPCExecBatch(const JSONRPCRequest& jreq, const UniValue& vReq, const CRPCTable& tableRPC);
 
 // Retrieves any serialization flags requested in command line argument
 int RPCSerializationFlags();

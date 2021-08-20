@@ -81,8 +81,8 @@ namespace PocketWeb::PocketWebRpc
         oblock.pushKV("ntx", (int)pindex->nTx);
         entry.pushKV("lastblock", oblock);
 
+        UniValue proxies(UniValue::VARR);
         if (!WSConnections.empty()) {
-            UniValue proxies(UniValue::VARR);
             for (auto& it : WSConnections) {
                 if (it.second.Service) {
                     UniValue proxy(UniValue::VOBJ);
@@ -93,8 +93,22 @@ namespace PocketWeb::PocketWebRpc
                     proxies.push_back(proxy);
                 }
             }
-            entry.pushKV("proxies", proxies);
         }
+        entry.pushKV("proxies", proxies);
+
+        // Ports information
+        int64_t nodePort = gArgs.GetArg("-port", Params().GetDefaultPort());
+        int64_t publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
+        int64_t staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
+        int64_t wssPort = gArgs.GetArg("-wsport", 8087);
+
+        UniValue ports(UniValue::VOBJ);
+        ports.pushKV("node", nodePort);
+        ports.pushKV("api", publicPort);
+        ports.pushKV("wss", wssPort);
+        ports.pushKV("http", staticPort);
+        ports.pushKV("https", staticPort);
+        entry.pushKV("ports", ports);
 
         return entry;
     }

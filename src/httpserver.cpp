@@ -5,37 +5,26 @@
 #include <httpserver.h>
 
 #include <chainparamsbase.h>
-#include <compat.h>
 #include <util.h>
 #include <utilstrencodings.h>
 #include <netbase.h>
 #include <sync.h>
 #include <ui_interface.h>
-
 #include <memory>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
 #include <deque>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <signal.h>
 #include <future>
-
 #include <event2/thread.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <event2/util.h>
 #include <event2/keyvalq_struct.h>
-
 #include <support/events.h>
 #include "init.h"
+#include <rpc/register.h>
 
 #ifdef EVENT__HAVE_NETINET_IN_H
-
 #include <netinet/in.h>
-
 #ifdef _XOPEN_SOURCE_EXTENDED
 #include <arpa/inet.h>
 #endif
@@ -260,7 +249,7 @@ static std::string sendrawtransaction("sendrawtransaction");
 /** HTTP request callback */
 static void http_request_cb(struct evhttp_request *req, void *arg)
 {
-    HTTPSocket *httpSock = (HTTPSocket*) arg;
+    auto *httpSock = (HTTPSocket*) arg;
     // Disable reading to work around a libevent bug, fixed in 2.2.0.
     if (event_get_version_number() >= 0x02010600 && event_get_version_number() < 0x02020001)
     {
@@ -307,8 +296,8 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     // Find registered handler for prefix
     std::string strURI = hreq->GetURI();
     std::string path;
-    std::vector<HTTPPathHandler>::const_iterator i = httpSock->m_pathHandlers.begin();
-    std::vector<HTTPPathHandler>::const_iterator iend = httpSock->m_pathHandlers.end();
+    auto i = httpSock->m_pathHandlers.begin();
+    auto iend = httpSock->m_pathHandlers.end();
 
     for (; i != iend; ++i)
     {
@@ -431,6 +420,25 @@ static void libevent_log_cb(int severity, const char *msg)
         LogPrint(BCLog::LIBEVENT, "libevent: %s\n", msg);
 }
 
+using namespace std::chrono;
+
+static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const UniValue& id)
+{
+    // Send error reply from json-rpc error object
+    int nStatus = HTTP_INTERNAL_SERVER_ERROR;
+    int code = find_value(objError, "code").get_int();
+
+    if (code == RPC_INVALID_REQUEST)
+        nStatus = HTTP_BAD_REQUEST;
+    else if (code == RPC_METHOD_NOT_FOUND)
+        nStatus = HTTP_NOT_FOUND;
+
+    std::string strReply = JSONRPCReply(NullUniValue, objError, id);
+
+    req->WriteHeader("Content-Type", "application/json");
+    req->WriteReply(nStatus, strReply);
+}
+
 bool InitHTTPServer()
 {
     if (!InitHTTPAllowList())
@@ -454,15 +462,28 @@ bool InitHTTPServer()
     
     int timeout = gArgs.GetArg("-rpcservertimeout", DEFAULT_HTTP_SERVER_TIMEOUT);
     int workQueueMainDepth = std::max((long) gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
-    int workQueuePostDepth = std::max((long) gArgs.GetArg("-rpcpostworkqueue", DEFAULT_HTTP_POST_WORKQUEUE), 1L);
     int workQueuePublicDepth = std::max((long) gArgs.GetArg("-rpcpublicworkqueue", DEFAULT_HTTP_PUBLIC_WORKQUEUE), 1L);
     int workQueueStaticDepth = std::max((long) gArgs.GetArg("-rpcstaticworkqueue", DEFAULT_HTTP_STATIC_WORKQUEUE), 1L);
 
     raii_event_base base_ctr = obtain_event_base();
     eventBase = base_ctr.get();
 
+    // General private socket
     g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth);
+    RegisterBlockchainRPCCommands(g_socket->m_table_rpc);
+    RegisterNetRPCCommands(g_socket->m_table_rpc);
+    RegisterMiscRPCCommands(g_socket->m_table_rpc);
+    RegisterMiningRPCCommands(g_socket->m_table_rpc);
+    RegisterRawTransactionRPCCommands(g_socket->m_table_rpc);
+#if ENABLE_ZMQ
+    RegisterZMQRPCCommands(g_socket->m_table_rpc);
+#endif
+
+    // Additional pocketnet seocket
     g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth);
+    RegisterPocketnetWebRPCCommands(g_pubSocket->m_table_rpc);
+
+    // Additional pocketnet static files socket
     g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth);
  
     if (!HTTPBindAddresses())
@@ -499,7 +520,6 @@ void StartHTTPServer()
 {
     LogPrint(BCLog::HTTP, "Starting HTTP server\n");
     int rpcMainThreads = std::max((long) gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
-    int rpcPostThreads = std::max((long) gArgs.GetArg("-rpcpostthreads", DEFAULT_HTTP_POST_THREADS), 1L);
     int rpcPublicThreads = std::max((long) gArgs.GetArg("-rpcpublicthreads", DEFAULT_HTTP_PUBLIC_THREADS), 1L);
     int rpcStaticThreads = std::max((long) gArgs.GetArg("-rpcstaticthreads", DEFAULT_HTTP_STATIC_THREADS), 1L);
 
@@ -511,9 +531,8 @@ void StartHTTPServer()
     g_socket->StartHTTPSocket(rpcMainThreads, false);
 
     // The same worker threads will service POST and PUBLIC RPC requests
-    int pubThreads = rpcPostThreads + rpcPublicThreads;
-    LogPrintf("HTTP: starting %d Public worker threads\n", pubThreads);
-    g_pubSocket->StartHTTPSocket(pubThreads, true);
+    LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
+    g_pubSocket->StartHTTPSocket(rpcPublicThreads, true);
 
     g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
 }
@@ -588,9 +607,8 @@ static void httpevent_callback_fn(evutil_socket_t, short, void *data)
         delete self;
 }
 
-HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth): m_http(nullptr),
-                                                                              m_eventHTTP(nullptr),
-                                                                              m_workQueue(nullptr)
+HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth):
+    m_http(nullptr), m_eventHTTP(nullptr), m_workQueue(nullptr)
 {
     /* Create a new evhttp object to handle requests. */
     raii_evhttp http_ctr = obtain_evhttp(base);
@@ -671,12 +689,12 @@ void HTTPSocket::InterruptHTTPSocket()
 void HTTPSocket::BindAddress(std::string ipAddr, int port)
 { 
     LogPrint(BCLog::HTTP, "Binding RPC on address %s port %i\n", ipAddr, port);
-    evhttp_bound_socket *bind_handle = evhttp_bind_socket_with_handle(m_eventHTTP,
-        ipAddr.empty() ? nullptr : ipAddr.c_str(), port);
+    evhttp_bound_socket *bind_handle = evhttp_bind_socket_with_handle(m_eventHTTP, ipAddr.empty() ? nullptr : ipAddr.c_str(), port);
     if (bind_handle)
     {
         m_boundSockets.push_back(bind_handle);
-    } else
+    }
+    else
     {
         LogPrint(BCLog::HTTP,"Binding RPC on address %s port %i failed.\n", ipAddr, port);
     }
@@ -684,19 +702,19 @@ void HTTPSocket::BindAddress(std::string ipAddr, int port)
 
 int HTTPSocket::GetAddressCount()
 {
-    return m_boundSockets.size();
+    return (int)m_boundSockets.size();
 }
 
 void HTTPSocket::RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler)
 {
     LogPrint(BCLog::HTTP, "Registering HTTP handler for %s (exactmatch %d)\n", prefix, exactMatch);
-    m_pathHandlers.push_back(HTTPPathHandler(prefix, exactMatch, handler));
+    m_pathHandlers.emplace_back(prefix, exactMatch, handler);
 }
 
 void HTTPSocket::UnregisterHTTPHandler(const std::string &prefix, bool exactMatch)
 {
-    std::vector<HTTPPathHandler>::iterator i = m_pathHandlers.begin();
-    std::vector<HTTPPathHandler>::iterator iend = m_pathHandlers.end();
+    auto i = m_pathHandlers.begin();
+    auto iend = m_pathHandlers.end();
     for (; i != iend; ++i)
         if (i->prefix == prefix && i->exactMatch == exactMatch)
             break;
@@ -707,8 +725,62 @@ void HTTPSocket::UnregisterHTTPHandler(const std::string &prefix, bool exactMatc
     }
 }
 
-HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, const std::function<void()> &_handler) :
-    deleteWhenTriggered(_deleteWhenTriggered), handler(_handler)
+bool HTTPSocket::HTTPReq(HTTPRequest* req)
+{
+    // JSONRPC handles only POST
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        LogPrint(BCLog::RPC, "WARNING: Request not POST\n");
+        req->WriteReply(HTTP_BAD_METHOD, "JSONRPC server handles only POST requests");
+        return false;
+    }
+
+    JSONRPCRequest jreq;
+    try {
+        UniValue valRequest;
+
+        if (!valRequest.read(req->ReadBody()))
+            throw JSONRPCError(RPC_PARSE_ERROR, "Parse error");
+
+        // Set the URI
+        jreq.URI = req->GetURI();
+        std::string strReply;
+
+        // singleton request
+        if (valRequest.isObject())
+        {
+            jreq.parse(valRequest);
+            jreq.SetDbConnection(req->DbConnection());
+
+            UniValue result = m_table_rpc.execute(jreq);
+
+            // Send reply
+            strReply = JSONRPCReply(result, NullUniValue, jreq.id);
+
+            // array of requests
+        } else {
+            if (valRequest.isArray()) {
+                strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), m_table_rpc);
+            } else {
+                throw JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
+            }
+        }
+
+        req->WriteHeader("Content-Type", "application/json");
+        req->WriteReply(HTTP_OK, strReply);
+    } catch (const UniValue& objError) {
+        LogPrint(BCLog::RPC, "Exception %s\n", objError.write());
+        JSONErrorReply(req, objError, jreq.id);
+        return false;
+    } catch (const std::exception& e) {
+        LogPrint(BCLog::RPC, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
+        JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
+        return false;
+    }
+    return true;
+}
+
+HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, std::function<void()> _handler) :
+    deleteWhenTriggered(_deleteWhenTriggered), handler(std::move(_handler))
 {
     ev = event_new(base, -1, 0, httpevent_callback_fn, this);
     assert(ev);

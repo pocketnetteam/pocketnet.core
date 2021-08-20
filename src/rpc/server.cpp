@@ -160,7 +160,7 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
     std::vector<std::pair<std::string, const CRPCCommand*> > vCommands;
 
     for (const auto& entry : mapCommands)
-        vCommands.push_back(make_pair(entry.second->category + entry.first, entry.second));
+        vCommands.emplace_back(entry.second->category + entry.first, entry.second);
     sort(vCommands.begin(), vCommands.end());
 
     JSONRPCRequest jreq(helpreq);
@@ -171,9 +171,11 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
     {
         const CRPCCommand *pcmd = command.second;
         std::string strMethod = pcmd->name;
-        if ((strCommand != "" || pcmd->category == "hidden") && strMethod != strCommand)
+        if ((!strCommand.empty() || pcmd->category == "hidden") && strMethod != strCommand)
             continue;
+
         jreq.strMethod = strMethod;
+
         try
         {
             rpcfn_type pfn = pcmd->actor;
@@ -184,7 +186,7 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
         {
             // Help text is returned in an exception
             std::string strHelp = std::string(e.what());
-            if (strCommand == "")
+            if (strCommand.empty())
             {
                 if (strHelp.find('\n') != std::string::npos)
                     strHelp = strHelp.substr(0, strHelp.find('\n'));
@@ -200,60 +202,33 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
             strRet += strHelp + "\n";
         }
     }
-    if (strRet == "")
+
+    if (strRet.empty())
         strRet = strprintf("help: unknown command: %s\n", strCommand);
+
     strRet = strRet.substr(0,strRet.size()-1);
     return strRet;
 }
+// TODO (brangr): implement help
+// UniValue help(const JSONRPCRequest& jsonRequest)
+// {
+//     if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
+//         throw std::runtime_error(
+//             "help ( \"command\" )\n"
+//             "\nList all commands, or get help for a specified command.\n"
+//             "\nArguments:\n"
+//             "1. \"command\"     (string, optional) The command to get help on\n"
+//             "\nResult:\n"
+//             "\"text\"     (string) The help text\n"
+//         );
+//
+//     std::string strCommand;
+//     if (!jsonRequest.params.empty())
+//         strCommand = jsonRequest.params[0].get_str();
+//
+//     return tableRPC.help(strCommand, jsonRequest);
+// }
 
-UniValue help(const JSONRPCRequest& jsonRequest)
-{
-    if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
-        throw std::runtime_error(
-            "help ( \"command\" )\n"
-            "\nList all commands, or get help for a specified command.\n"
-            "\nArguments:\n"
-            "1. \"command\"     (string, optional) The command to get help on\n"
-            "\nResult:\n"
-            "\"text\"     (string) The help text\n"
-        );
-
-    std::string strCommand;
-    if (jsonRequest.params.size() > 0)
-        strCommand = jsonRequest.params[0].get_str();
-
-    return tableRPC.help(strCommand, jsonRequest);
-}
-
-
-UniValue stop(const JSONRPCRequest& jsonRequest)
-{
-    // Accept the deprecated and ignored 'detach' boolean argument
-    if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
-        throw std::runtime_error(
-            "stop\n"
-            "\nStop Pocketcoin server.");
-    // Event loop will exit after current HTTP requests have been handled, so
-    // this reply will get back to the client.
-    StartShutdown();
-    return "Pocketcoin server stopping";
-}
-
-static UniValue uptime(const JSONRPCRequest& jsonRequest)
-{
-    if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
-        throw std::runtime_error(
-                "uptime\n"
-                        "\nReturns the total uptime of the server.\n"
-                        "\nResult:\n"
-                        "ttt        (numeric) The number of seconds that the server has been running\n"
-                        "\nExamples:\n"
-                + HelpExampleCli("uptime", "")
-                + HelpExampleRpc("uptime", "")
-        );
-
-    return GetTime() - GetStartupTime();
-}
 
 // clang-format off
 /**
@@ -262,28 +237,26 @@ static UniValue uptime(const JSONRPCRequest& jsonRequest)
 static const CRPCCommand vRPCCommands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    /* Overall control/query calls */
-    { "control",            "help",                   &help,                   {"command"}  },
-    { "control",            "stop",                   &stop,                   {}  },
-    { "control",            "uptime",                 &uptime,                 {}  },
+  //   { "control",            "help",                   &help,                   {"command"}  },
+
+
 };
 // clang-format on
 
 CRPCTable::CRPCTable()
 {
-    unsigned int vcidx;
-    for (vcidx = 0; vcidx < (sizeof(vRPCCommands) / sizeof(vRPCCommands[0])); vcidx++)
-    {
-        const CRPCCommand *pcmd;
-
-        pcmd = &vRPCCommands[vcidx];
-        mapCommands[pcmd->name] = pcmd;
-    }
+    // TODO (brangr): implement help 2
+    // unsigned int vcidx;
+    // for (vcidx = 0; vcidx < (sizeof(vRPCCommands) / sizeof(vRPCCommands[0])); vcidx++)
+    // {
+    //     //const CRPCCommand pcmd = {"control", "help", help, {"command"}};
+    //     mapCommands[pcmd.name] = &pcmd;
+    // }
 }
 
 const CRPCCommand *CRPCTable::operator[](const std::string &name) const
 {
-    std::map<std::string, const CRPCCommand*>::const_iterator it = mapCommands.find(name);
+    auto it = mapCommands.find(name);
     if (it == mapCommands.end())
         return nullptr;
     return (*it).second;
@@ -403,7 +376,7 @@ bool IsDeprecatedRPCEnabled(const std::string& method)
     return find(enabled_methods.begin(), enabled_methods.end(), method) != enabled_methods.end();
 }
 
-static UniValue JSONRPCExecOne(JSONRPCRequest jreq, const UniValue& req)
+static UniValue JSONRPCExecOne(JSONRPCRequest jreq, const UniValue& req, const CRPCTable& tableRPC)
 {
     UniValue rpc_result(UniValue::VOBJ);
 
@@ -426,11 +399,11 @@ static UniValue JSONRPCExecOne(JSONRPCRequest jreq, const UniValue& req)
     return rpc_result;
 }
 
-std::string JSONRPCExecBatch(const JSONRPCRequest& jreq, const UniValue& vReq)
+std::string JSONRPCExecBatch(const JSONRPCRequest& jreq, const UniValue& vReq, const CRPCTable& tableRPC)
 {
     UniValue ret(UniValue::VARR);
     for (unsigned int reqIdx = 0; reqIdx < vReq.size(); reqIdx++)
-        ret.push_back(JSONRPCExecOne(jreq, vReq[reqIdx]));
+        ret.push_back(JSONRPCExecOne(jreq, vReq[reqIdx], tableRPC));
 
     return ret.write() + "\n";
 }
@@ -496,11 +469,13 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
     }
 
     // Find method
-    const CRPCCommand *pcmd = tableRPC[request.strMethod];
-    if (!pcmd)
+    auto it = mapCommands.find(request.strMethod);
+    if (it == mapCommands.end())
         throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
 
+    const CRPCCommand *pcmd =  (*it).second;
     g_rpcSignals.PreCommand(*pcmd);
+
     try
     {
         // Execute, convert arguments to array if necessary

@@ -466,16 +466,48 @@ static UniValue getcoininfo(const JSONRPCRequest& request)
     return entry;
 }
 
+UniValue stop(const JSONRPCRequest& jsonRequest)
+{
+    // Accept the deprecated and ignored 'detach' boolean argument
+    if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
+        throw std::runtime_error(
+            "stop\n"
+            "\nStop Pocketcoin server.");
+    // Event loop will exit after current HTTP requests have been handled, so
+    // this reply will get back to the client.
+    StartShutdown();
+    return "Pocketcoin server stopping";
+}
+
+static UniValue uptime(const JSONRPCRequest& jsonRequest)
+{
+    if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
+        throw std::runtime_error(
+            "uptime\n"
+            "\nReturns the total uptime of the server.\n"
+            "\nResult:\n"
+            "ttt        (numeric) The number of seconds that the server has been running\n"
+            "\nExamples:\n"
+            + HelpExampleCli("uptime", "")
+            + HelpExampleRpc("uptime", "")
+        );
+
+    return GetTime() - GetStartupTime();
+}
+
+
 // clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    { "control",            "getmemoryinfo",          &getmemoryinfo,          {"mode"} },
+    { "control",            "stop",                   &stop,                   {}},
+    { "control",            "getmemoryinfo",          &getmemoryinfo,          {"mode"}},
     { "control",            "logging",                &logging,                {"include", "exclude"}},
-    { "util",               "validateaddress",        &validateaddress,        {"address"} },
-    { "util",               "createmultisig",         &createmultisig,         {"nrequired","keys"} },
-    { "util",               "verifymessage",          &verifymessage,          {"address","signature","message"} },
-    { "util",               "signmessagewithprivkey", &signmessagewithprivkey, {"privkey","message"} },
+    { "control",            "uptime",                 &uptime,                 {}},
+    { "util",               "validateaddress",        &validateaddress,        {"address"}},
+    { "util",               "createmultisig",         &createmultisig,         {"nrequired","keys"}},
+    { "util",               "verifymessage",          &verifymessage,          {"address","signature","message"}},
+    { "util",               "signmessagewithprivkey", &signmessagewithprivkey, {"privkey","message"}},
     { "util",               "getcoininfo",            &getcoininfo,            {"height"}},
 
     /* Not shown in help */

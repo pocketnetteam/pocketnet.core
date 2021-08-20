@@ -159,7 +159,7 @@ namespace PocketWeb
         {
             if (!stopRecurse)
             {
-                if (_path.find("/explorer") == 0)
+                if (_path.find("explorer") == 0)
                     return GetFile("/explorer/index.html", true);
 
                 return GetFile("/index.html", true);

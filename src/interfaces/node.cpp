@@ -12,6 +12,7 @@
 #include <interfaces/handler.h>
 #include <interfaces/wallet.h>
 #include <net.h>
+#include <httpserver.h>
 #include <net_processing.h>
 #include <netaddress.h>
 #include <netbase.h>
@@ -208,9 +209,9 @@ class NodeImpl : public Node
         req.params = params;
         req.strMethod = command;
         req.URI = uri;
-        return ::tableRPC.execute(req);
+        return g_socket->m_table_rpc.execute(req);
     }
-    std::vector<std::string> listRpcCommands() override { return ::tableRPC.listCommands(); }
+    std::vector<std::string> listRpcCommands() override { return g_socket->m_table_rpc.listCommands(); }
     void rpcSetTimerInterfaceIfUnset(RPCTimerInterface* iface) override { RPCSetTimerInterfaceIfUnset(iface); }
     void rpcUnsetTimerInterface(RPCTimerInterface* iface) override { RPCUnsetTimerInterface(iface); }
     bool getUnspentOutput(const COutPoint& output, Coin& coin) override

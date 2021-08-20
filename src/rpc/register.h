@@ -22,14 +22,4 @@ void RegisterRawTransactionRPCCommands(CRPCTable &tableRPC);
 
 void RegisterPocketnetWebRPCCommands(CRPCTable &tableRPC);
 
-static inline void RegisterAllCoreRPCCommands(CRPCTable &t)
-{
-    RegisterBlockchainRPCCommands(t);
-    RegisterNetRPCCommands(t);
-    RegisterMiscRPCCommands(t);
-    RegisterMiningRPCCommands(t);
-    RegisterRawTransactionRPCCommands(t);
-    RegisterPocketnetWebRPCCommands(t);
-}
-
 #endif // POCKETCOIN_RPC_REGISTER_H

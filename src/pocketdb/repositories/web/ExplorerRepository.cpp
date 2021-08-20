@@ -69,7 +69,7 @@ namespace PocketDb {
                     strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')),
                     t.Type,
                     count(*)
-                from Transactions t indexed by Transactions_Time_Type
+                from Transactions t indexed by Transactions_Time_Type_Height
                 where   t.Time >= ?
                     and t.Time < ?
                 group by strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')), t.Type
@@ -79,10 +79,10 @@ namespace PocketDb {
                 select 'users',
                     q.Time,
                     q.Type,
-                    (select count(*) from Transactions t indexed by Transactions_Type_Time where t.Type = q.Type and strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')) <= q.Time)
+                    (select count(*) from Transactions t indexed by Transactions_Type_Time_Height where t.Type = q.Type and strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')) <= q.Time)
                 from (
                     select strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch'))Time, t.Type, count(*)Cnt
-                    from Transactions t indexed by Transactions_Type_Time
+                    from Transactions t indexed by Transactions_Type_Time_Height
                     where   t.Type in (100, 101, 102)
                         and t.Time < ?
                     group by strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')), t.Type
