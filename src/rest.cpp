@@ -959,17 +959,17 @@ static const struct
     {"/rest/gettopaddresses",    rest_topaddresses},
     {"/rest/blockhash",          rest_blockhash},
 
-    // Register web content route
-    {"/",                        get_static_web},
-
     // Debug
     {"/rest/pindexblock",        debug_index_block},
 };
 
 void StartREST()
 {
-    for (unsigned int i = 0; i < ARRAYLEN(uri_prefixes); i++)
-        g_socket->RegisterHTTPHandler(uri_prefixes[i].prefix, false, uri_prefixes[i].handler);
+    for (auto uri_prefixe : uri_prefixes)
+        g_socket->RegisterHTTPHandler(uri_prefixe.prefix, false, uri_prefixe.handler);
+
+    // Register web content route
+    g_staticSocket->RegisterHTTPHandler("/", false, get_static_web);
 }
 
 void InterruptREST()
@@ -978,6 +978,8 @@ void InterruptREST()
 
 void StopREST()
 {
-    for (unsigned int i = 0; i < ARRAYLEN(uri_prefixes); i++)
-        g_socket->UnregisterHTTPHandler(uri_prefixes[i].prefix, false);
+    for (auto uri_prefixe : uri_prefixes)
+        g_socket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
+
+    g_staticSocket->UnregisterHTTPHandler("/", false);
 }

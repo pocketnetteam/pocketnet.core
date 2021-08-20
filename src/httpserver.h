@@ -206,5 +206,6 @@ std::string urlDecode(const std::string &urlEncoded);
 
 extern HTTPSocket *g_socket;
 extern HTTPSocket *g_pubSocket;
+extern HTTPSocket *g_staticSocket;
 
 #endif // POCKETCOIN_HTTPSERVER_H
