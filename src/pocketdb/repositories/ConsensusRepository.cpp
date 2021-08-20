@@ -416,6 +416,32 @@ namespace PocketDb
         return result;
     }
 
+    int ConsensusRepository::GetAccountRegistrationHeight(int addressId)
+    {
+        int result = 0;
+
+        string sql = R"sql(
+            select min(Height)
+            from Transactions
+            where Type in (100, 101, 102)
+            and Id = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, addressId);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     // Selects for get models data
     shared_ptr<ScoreDataDto> ConsensusRepository::GetScoreData(const string& txHash)
     {

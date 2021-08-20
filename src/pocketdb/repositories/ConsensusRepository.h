@@ -47,6 +47,7 @@ namespace PocketDb
         int64_t GetUserBalance(const string& address);
         int GetUserReputation(const string& addressId);
         int GetUserReputation(int addressId);
+        int GetAccountRegistrationHeight(int addressId);
 
         shared_ptr<ScoreDataDto> GetScoreData(const string& txHash);
         shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);

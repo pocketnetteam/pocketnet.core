@@ -14,15 +14,13 @@ namespace PocketConsensus
 {
     using namespace std;
 
-    /*******************************************************************************************************************
-    *
-    *  Reputation consensus base class
-    *
-    *******************************************************************************************************************/
+    /******************************************************************************************************************/
+    /*                                Consensus checkpoint at 0 block                                           */
+    /******************************************************************************************************************/
     class ReputationConsensus : public BaseConsensus
     {
     protected:
-        virtual int64_t GetThresholdLikersCount() { return 0; }
+        virtual int64_t ThresholdLikersCount() { return 0; }
         virtual int64_t GetMinBalanceFull() { return 50 * COIN; }
         virtual int64_t GetMinBalancePro() { return 250 * COIN; }
         virtual int64_t GetMinReputationFull() { return 500; }
@@ -33,16 +31,20 @@ namespace PocketConsensus
         virtual int64_t GetScoresToPostModifyReputationDepth() { return 336 * 24 * 3600; }
 
 
+        virtual int64_t GetMinLikers(int addressId)
+        {
+            return ThresholdLikersCount();
+        }
+
         virtual bool AllowModifyReputation(int addressId)
         {
             // Ignore scores from users with rating < Antibot::Limit::threshold_reputation_score
             auto minUserReputation = GetThresholdReputationScore();
-            auto minLikersCount = GetThresholdLikersCount();
-
             auto userReputation = PocketDb::ConsensusRepoInst.GetUserReputation(addressId);
             if (userReputation < minUserReputation)
                 return false;
 
+            auto minLikersCount = GetMinLikers(addressId);
             auto userLikers = PocketDb::ConsensusRepoInst.GetUserLikersCount(addressId);
             if (userLikers < minLikersCount)
                 return false;
@@ -191,11 +193,9 @@ namespace PocketConsensus
         }
     };
 
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 108300 block
-    *
-    *******************************************************************************************************************/
+    /******************************************************************************************************************/
+    /*                                Consensus checkpoint at 108300 block                                           */
+    /******************************************************************************************************************/
     class ReputationConsensus_checkpoint_108300 : public ReputationConsensus
     {
     protected:
@@ -204,11 +204,9 @@ namespace PocketConsensus
         ReputationConsensus_checkpoint_108300(int height) : ReputationConsensus(height) {}
     };
 
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 151600 block
-    *
-    *******************************************************************************************************************/
+    /******************************************************************************************************************/
+    /*                                Consensus checkpoint at 151600 block                                           */
+    /******************************************************************************************************************/
     class ReputationConsensus_checkpoint_151600 : public ReputationConsensus_checkpoint_108300
     {
     protected:
@@ -221,11 +219,9 @@ namespace PocketConsensus
         ReputationConsensus_checkpoint_151600(int height) : ReputationConsensus_checkpoint_108300(height) {}
     };
 
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 225000 block
-    *
-    *******************************************************************************************************************/
+    /******************************************************************************************************************/
+    /*                                Consensus checkpoint at 225000 block                                           */
+    /******************************************************************************************************************/
     class ReputationConsensus_checkpoint_225000 : public ReputationConsensus_checkpoint_151600
     {
     protected:
@@ -235,11 +231,9 @@ namespace PocketConsensus
         ReputationConsensus_checkpoint_225000(int height) : ReputationConsensus_checkpoint_151600(height) {}
     };
 
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 292800 block
-    *
-    *******************************************************************************************************************/
+    /******************************************************************************************************************/
+    /*                                Consensus checkpoint at 292800 block                                           */
+    /******************************************************************************************************************/
     class ReputationConsensus_checkpoint_292800 : public ReputationConsensus_checkpoint_225000
     {
     protected:
@@ -250,11 +244,9 @@ namespace PocketConsensus
         ReputationConsensus_checkpoint_292800(int height) : ReputationConsensus_checkpoint_225000(height) {}
     };
 
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 322700 block
-    *
-    *******************************************************************************************************************/
+    /******************************************************************************************************************/
+    /*                                Consensus checkpoint at 322700 block                                           */
+    /******************************************************************************************************************/
     class ReputationConsensus_checkpoint_322700 : public ReputationConsensus_checkpoint_292800
     {
     protected:
@@ -264,30 +256,47 @@ namespace PocketConsensus
         ReputationConsensus_checkpoint_322700(int height) : ReputationConsensus_checkpoint_292800(height) {}
     };
 
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 1124000 block
-    *
-    *******************************************************************************************************************/
+    /******************************************************************************************************************/
+    /*                                Consensus checkpoint at 1124000 block                                           */
+    /******************************************************************************************************************/
     class ReputationConsensus_checkpoint_1124000 : public ReputationConsensus_checkpoint_322700
     {
     protected:
-        int64_t GetThresholdLikersCount() override { return 100; }
+        int64_t ThresholdLikersCount() override { return 100; }
     public:
         ReputationConsensus_checkpoint_1124000(int height) : ReputationConsensus_checkpoint_322700(height) {}
     };
 
-    // TODO (brangr): implement after relase 0.19.11
-    /*******************************************************************************************************************
-    *
-    *  Consensus checkpoint at 1324655 block
-    *
-    *******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_1324655 : public ReputationConsensus_checkpoint_1124000
+    /******************************************************************************************************************/
+    /*                                Consensus checkpoint at 1180000 block                                           */
+    /******************************************************************************************************************/
+    class ReputationConsensus_checkpoint_1180000 : public ReputationConsensus_checkpoint_1124000
+    {
+    protected:
+        virtual int LowThresholdLikersDepth() { return 250'000; }
+        virtual int LowThresholdLikersCount() { return 30; }
+
+        int64_t GetMinLikers(int addressId) override
+        {
+            auto minLikersCount = ThresholdLikersCount();
+            auto accountRegistrationHeight = PocketDb::ConsensusRepoInst.GetAccountRegistrationHeight(addressId);
+            if (Height - accountRegistrationHeight > LowThresholdLikersDepth())
+                minLikersCount = LowThresholdLikersCount();
+
+            return minLikersCount;
+        }
+    public:
+        ReputationConsensus_checkpoint_1180000(int height) : ReputationConsensus_checkpoint_1124000(height) {}
+    };
+
+    /******************************************************************************************************************/
+    /*                                Consensus checkpoint at 1324655 block                                           */
+    /******************************************************************************************************************/
+    class ReputationConsensus_checkpoint_1324655 : public ReputationConsensus_checkpoint_1180000
     {
     protected:
     public:
-        ReputationConsensus_checkpoint_1324655(int height) : ReputationConsensus_checkpoint_1124000(height) {}
+        ReputationConsensus_checkpoint_1324655(int height) : ReputationConsensus_checkpoint_1180000(height) {}
 
         void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers) override
         {
@@ -336,6 +345,7 @@ namespace PocketConsensus
             {292800,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_292800>(height); }},
             {322700,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_322700>(height); }},
             {1124000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1124000>(height); }},
+            {1180000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
             {1324655,  0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
         };
     protected:
