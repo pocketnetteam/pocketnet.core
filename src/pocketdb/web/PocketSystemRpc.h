@@ -6,19 +6,18 @@
 #define SRC_POCKETSYSTEMRPC_H
 
 #include "rpc/server.h"
-#include "rpc/rawtransaction.h"
+#include "validation.h"
+#include "clientversion.h"
+#include "net_processing.h"
+#include "pos.h"
 
-namespace PocketWeb
+namespace PocketWeb::PocketWebRpc
 {
-    class PocketSystemRpc
-    {
-    public:
-        UniValue GetTime(const JSONRPCRequest& request);
-        // TODO (brangr): implement getpeerinfo
-        // TODO (brangr): implement getnodeinfo
-        // TODO (brangr): implement getrawtransaction ?
-        // TODO (brangr): implement sendrawtransaction ?
-    };
+    UniValue GetTime(const JSONRPCRequest& request);
+    UniValue GetPeerInfo(const JSONRPCRequest& request);
+    UniValue GetNodeInfo(const JSONRPCRequest& request);
+    // TODO (brangr): implement getrawtransaction ?
+    // TODO (brangr): implement sendrawtransaction ?
 }
 
 #endif //SRC_POCKETSYSTEMRPC_H

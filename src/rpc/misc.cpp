@@ -5,16 +5,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chain.h>
-#include <clientversion.h>
-#include <core_io.h>
 #include <crypto/ripemd160.h>
 #include <httpserver.h>
 #include <key_io.h>
-#include <net.h>
 #include <netbase.h>
 #include <outputtype.h>
-#include <pos.h>
-#include <rpc/blockchain.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <timedata.h>
@@ -22,10 +17,7 @@
 #include <utilstrencodings.h>
 #include <validation.h>
 #include <warnings.h>
-
-#include <stdint.h>
-
-// #include "pocketdb/pocketdb.h"
+#include <cstdint>
 
 #ifdef HAVE_MALLOC_INFO
 #include <malloc.h>
@@ -474,43 +466,6 @@ static UniValue getcoininfo(const JSONRPCRequest& request)
     return entry;
 }
 
-static UniValue getnodeinfo(const JSONRPCRequest& request)
-{
-    UniValue entry(UniValue::VOBJ);
-    entry.pushKV("version", FormatVersion(CLIENT_VERSION));
-    entry.pushKV("time", GetAdjustedTime());
-    entry.pushKV("chain", Params().NetworkIDString());
-    entry.pushKV("proxy", true);
-
-    uint64_t nNetworkWeight = GetPoSKernelPS();
-    entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
-
-    CBlockIndex* pindex = chainActive.Tip();
-    UniValue oblock(UniValue::VOBJ);
-    oblock.pushKV("height", pindex->nHeight);
-    oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
-    oblock.pushKV("time", (int64_t)pindex->nTime);
-    oblock.pushKV("ntx", (int)pindex->nTx);
-    entry.pushKV("lastblock", oblock);
-
-    if (!WSConnections.empty()) {
-        UniValue proxies(UniValue::VARR);
-        for (auto& it : WSConnections) {
-            if (it.second.Service) {
-                UniValue proxy(UniValue::VOBJ);
-                proxy.pushKV("address", it.second.Address);
-                proxy.pushKV("ip", it.second.Ip);
-                proxy.pushKV("port", it.second.MainPort);
-                proxy.pushKV("portWss", it.second.WssPort);
-                proxies.push_back(proxy);
-            }
-        }
-        entry.pushKV("proxies", proxies);
-    }
-
-    return entry;
-}
-
 // clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
@@ -527,9 +482,6 @@ static const CRPCCommand commands[] =
     { "hidden",             "setmocktime",            &setmocktime,            {"timestamp"}},
     { "hidden",             "echo",                   &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "echojson",               &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
-
-    // TODO (brangr): move to web/PocketSystemRpc
-    { "util",               "getnodeinfo",            &getnodeinfo,            {}},
 };
 // clang-format on
 

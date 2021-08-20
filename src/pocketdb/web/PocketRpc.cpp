@@ -52,12 +52,12 @@ static const CRPCCommand commands[] =
     { "explorer",       "searchbyhash",                     &SearchByHash,                  {"value"}},
     { "explorer",       "gettransactions",                  &GetTransactions,               {"transactions"}},
     { "explorer",       "getaddresstransactions",           &GetAddressTransactions,        {"address"}},
-    { "explorer",       "getblocktransactions",             &GetBlockTransactions,          {"blockHash"}}
+    { "explorer",       "getblocktransactions",             &GetBlockTransactions,          {"blockHash"}},
 
     // System
+    { "system",         "getpeerinfo",                      &GetPeerInfo,                   {}},
+    { "system",         "getnodeinfo",                      &GetNodeInfo,                   {}},
     // TODO (team): implement
-    // { "system",         "getpeerinfo",                      &GetPeerInfo,                   {}},
-    // { "system",         "getnodeinfo",                      &GetNodeInfo,                   {}},
     // { "system",         "getrawtransaction",                &GetRawTransaction,             {"txid", "verbose", "blockhash"}},
     // { "system",         "sendrawtransactionwithmessage",    &SetTransaction,                {"hexstring", "message", "type"}},
 };

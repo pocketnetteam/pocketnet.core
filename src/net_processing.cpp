@@ -391,7 +391,7 @@ static std::map<NodeId, CNodeState> mapNodeState GUARDED_BY(cs_main);
 
 static CNodeState* State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
-    std::map<NodeId, CNodeState>::iterator it = mapNodeState.find(pnode);
+    auto it = mapNodeState.find(pnode);
     if (it == mapNodeState.end())
         return nullptr;
     return &it->second;
