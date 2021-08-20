@@ -4045,8 +4045,7 @@ void CChainState::ReceivedBlockTransactions(const CBlock& block, CBlockIndex* pi
     }
 }
 
-static bool
-FindBlockPos(CDiskBlockPos& pos, unsigned int nAddSize, unsigned int nHeight, uint64_t nTime, bool fKnown = false)
+static bool FindBlockPos(CDiskBlockPos& pos, unsigned int nAddSize, unsigned int nHeight, uint64_t nTime, bool fKnown = false)
 {
     LOCK(cs_LastBlockFile);
 
@@ -4099,8 +4098,7 @@ FindBlockPos(CDiskBlockPos& pos, unsigned int nAddSize, unsigned int nHeight, ui
                 FILE* file = OpenBlockFile(pos);
                 if (file)
                 {
-                    LogPrintf("Pre-allocating up to position 0x%x in blk%05u.dat\n", nNewChunks * BLOCKFILE_CHUNK_SIZE,
-                        pos.nFile);
+                    LogPrint(BCLog::DB, "Pre-allocating up to position 0x%x in blk%05u.dat\n", nNewChunks * BLOCKFILE_CHUNK_SIZE, pos.nFile);
                     AllocateFileRange(file, pos.nPos, nNewChunks * BLOCKFILE_CHUNK_SIZE - pos.nPos);
                     fclose(file);
                 }
@@ -4136,7 +4134,7 @@ static bool FindUndoPos(CValidationState& state, int nFile, CDiskBlockPos& pos, 
             FILE* file = OpenUndoFile(pos);
             if (file)
             {
-                LogPrintf("Pre-allocating up to position 0x%x in rev%05u.dat\n", nNewChunks * UNDOFILE_CHUNK_SIZE,
+                LogPrint(BCLog::DB, "Pre-allocating up to position 0x%x in rev%05u.dat\n", nNewChunks * UNDOFILE_CHUNK_SIZE,
                     pos.nFile);
                 AllocateFileRange(file, pos.nPos, nNewChunks * UNDOFILE_CHUNK_SIZE - pos.nPos);
                 fclose(file);
