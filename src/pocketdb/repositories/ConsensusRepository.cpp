@@ -658,14 +658,14 @@ namespace PocketDb
             from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
             join Transactions s indexed by Transactions_Type_String1_String2_Height
                 on  s.String2 = c.String2
-                and s.Type = ?
+                and s.Type in (300)
                 and s.String1 = ?
                 and s.Height <= ?
                 and s.Time < ?
                 and s.Time >= ?
                 and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
                 and s.Hash != ?
-            where c.Type = ?
+            where c.Type in (200, 201)
               and c.String1 = ?
               and c.Last = 1
         )sql";
@@ -675,14 +675,12 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, scoreData->ScoreType);
-            TryBindStatementText(stmt, 2, scoreData->ScoreAddressHash);
-            TryBindStatementInt(stmt, 3, height);
-            TryBindStatementInt64(stmt, 4, tx->nTime);
-            TryBindStatementInt64(stmt, 5, (int64_t) tx->nTime - scoresOneToOneDepth);
-            TryBindStatementText(stmt, 6, scoreData->ScoreTxHash);
-            TryBindStatementInt(stmt, 7, scoreData->ContentType);
-            TryBindStatementText(stmt, 8, scoreData->ContentAddressHash);
+            TryBindStatementText(stmt, 1, scoreData->ScoreAddressHash);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt64(stmt, 3, tx->nTime);
+            TryBindStatementInt64(stmt, 4, (int64_t) tx->nTime - scoresOneToOneDepth);
+            TryBindStatementText(stmt, 5, scoreData->ScoreTxHash);
+            TryBindStatementText(stmt, 6, scoreData->ContentAddressHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -696,7 +694,7 @@ namespace PocketDb
 
     int ConsensusRepository::GetScoreCommentCount(
         int height,
-        const string& scoreAddress, const string& commentAddress,
+        const shared_ptr<ScoreDataDto>& scoreData,
         const CTransactionRef& tx,
         const std::vector<int>& values,
         int64_t scoresOneToOneDepth)
@@ -712,12 +710,13 @@ namespace PocketDb
             from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
             join Transactions s indexed by Transactions_Type_String1_String2_Height
                 on  s.String2 = c.String2
-                and s.Type = 301
+                and s.Type in (301)
                 and s.String1 = ?
                 and s.Height <= ?
                 and s.Time < ?
                 and s.Time >= ?
                 and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+                and s.Hash != ?
             where c.Type in (204, 205, 206)
               and c.String1 = ?
               and c.Last = 1
@@ -728,11 +727,12 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, scoreAddress);
+            TryBindStatementText(stmt, 1, scoreData->ScoreAddressHash);
             TryBindStatementInt(stmt, 2, height);
             TryBindStatementInt64(stmt, 3, tx->nTime);
             TryBindStatementInt64(stmt, 4, (int64_t) tx->nTime - scoresOneToOneDepth);
-            TryBindStatementText(stmt, 5, commentAddress);
+            TryBindStatementText(stmt, 5, scoreData->ScoreTxHash);
+            TryBindStatementText(stmt, 6, scoreData->ContentAddressHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

@@ -64,7 +64,7 @@ namespace PocketDb
 
         int GetScoreCommentCount(
             int height,
-            const string& scoreAddress, const string& commentAddress,
+            const shared_ptr<ScoreDataDto>& scoreData,
             const CTransactionRef& tx,
             const std::vector<int>& values,
             int64_t scoresOneToOneDepth);
