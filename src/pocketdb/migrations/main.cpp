@@ -289,6 +289,7 @@ namespace PocketDb
             create index if not exists Transactions_Last_Id_Height on Transactions (Last, Id, Height);
             create index if not exists Transactions_Time_Type_Height on Transactions (Time, Type, Height);
             create index if not exists Transactions_Type_Time_Height on Transactions (Type, Time, Height);
+            create index if not exists Transactions_BlockHash on Transactions (BlockHash);
 
             create index if not exists TxOutputs_TxHeight on TxOutputs (TxHeight);
             create index if not exists TxOutputs_SpentHeight on TxOutputs (SpentHeight);
