@@ -293,7 +293,7 @@ namespace PocketDb {
                     select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
                     from (
                         select t.Hash, t.Type, t.Height, t.BlockNum, t.BlockHash, t.Time
-                        from Transactions t
+                        from Transactions t indexed by Transactions_BlockHash
                         where t.BlockHash = ?
                     ) txs
                 ) ptxs
