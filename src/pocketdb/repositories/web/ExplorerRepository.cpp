@@ -208,12 +208,7 @@ namespace PocketDb {
             string sql = R"sql(
                 select SpentTxHash, TxHash, Number, AddressHash, Value
                 from TxOutputs
-                where 1=1
-            )sql";
-
-            sql += " and SpentTxHash in ( ";
-            sql += join(vector<string>(txs.size(), "?"), ",");
-            sql += " ) ";
+                where SpentTxHash in ( )sql" + join(vector<string>(txs.size(), "?"), ",") + R"sql( ) )sql";
 
             TryTransactionStep(__func__, [&]()
             {
@@ -221,10 +216,7 @@ namespace PocketDb {
 
                 size_t i = 1;
                 for (auto& tx : txs)
-                {
-                    TryBindStatementText(stmt, i, tx.first);
-                    i += 1;
-                }
+                    TryBindStatementText(stmt, i++, tx.first);
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
