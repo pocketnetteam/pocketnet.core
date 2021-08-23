@@ -16,8 +16,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetTime(const JSONRPCRequest& request);
     UniValue GetPeerInfo(const JSONRPCRequest& request);
     UniValue GetNodeInfo(const JSONRPCRequest& request);
-    // TODO (brangr): implement getrawtransaction ?
-    // TODO (brangr): implement sendrawtransaction ?
+    UniValue AddTransaction(const JSONRPCRequest& request);
 }
 
 #endif //SRC_POCKETSYSTEMRPC_H

@@ -181,19 +181,31 @@ namespace PocketHelpers
         }
     }
 
-    static bool IsPocketSupportedTransaction(const CTransactionRef& tx)
+    static bool IsPocketSupportedTransaction(const CTransactionRef& tx, PocketTxType& txType)
     {
-        auto txType = ParseType(tx);
+        txType = ParseType(tx);
         return txType != NOT_SUPPORTED;
     }
 
-    static bool IsPocketTransaction(const CTransactionRef& tx)
+    static bool IsPocketSupportedTransaction(const CTransactionRef& tx)
     {
-        auto txType = ParseType(tx);
+        PocketTxType txType = NOT_SUPPORTED;
+        return IsPocketSupportedTransaction(tx, txType);
+    }
+
+    static bool IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType)
+    {
+        txType = ParseType(tx);
         return txType != NOT_SUPPORTED &&
                txType != TX_COINBASE &&
                txType != TX_COINSTAKE &&
                txType != TX_DEFAULT;
+    }
+
+    static bool IsPocketTransaction(const CTransactionRef& tx)
+    {
+        PocketTxType txType = NOT_SUPPORTED;
+        return IsPocketTransaction(tx, txType);
     }
 
     static bool IsPocketTransaction(const CTransaction& tx)
@@ -237,102 +249,67 @@ namespace PocketHelpers
         return make_tuple(finalCheck, scoreData);
     }
 
-    static shared_ptr<Transaction> CreateInstance(const CTransactionRef& tx, PocketTxType txType,
-        std::string& txHash, uint32_t nTime, std::string& opReturn)
+    static shared_ptr<Transaction> CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime)
     {
         shared_ptr<Transaction> ptx = nullptr;
         switch (txType)
         {
             case TX_COINBASE:
-                ptx = make_shared<Coinbase>(txHash, nTime, opReturn);
+                ptx = make_shared<Coinbase>(txHash, nTime);
                 break;
             case TX_COINSTAKE:
-                ptx = make_shared<Coinstake>(txHash, nTime, opReturn);
+                ptx = make_shared<Coinstake>(txHash, nTime);
                 break;
             case TX_DEFAULT:
-                ptx = make_shared<Default>(txHash, nTime, opReturn);
+                ptx = make_shared<Default>(txHash, nTime);
                 break;
             case ACCOUNT_USER:
-                ptx = make_shared<User>(txHash, nTime, opReturn);
+                ptx = make_shared<User>(txHash, nTime);
                 break;
             case CONTENT_POST:
-                ptx = make_shared<Post>(txHash, nTime, opReturn);
+                ptx = make_shared<Post>(txHash, nTime);
                 break;
             case CONTENT_VIDEO:
-                ptx = make_shared<Video>(txHash, nTime, opReturn);
+                ptx = make_shared<Video>(txHash, nTime);
                 break;
             case CONTENT_COMMENT:
-                ptx = make_shared<Comment>(txHash, nTime, opReturn);
+                ptx = make_shared<Comment>(txHash, nTime);
                 break;
             case CONTENT_COMMENT_EDIT:
-                ptx = make_shared<CommentEdit>(txHash, nTime, opReturn);
+                ptx = make_shared<CommentEdit>(txHash, nTime);
                 break;
             case CONTENT_COMMENT_DELETE:
-                ptx = make_shared<CommentDelete>(txHash, nTime, opReturn);
+                ptx = make_shared<CommentDelete>(txHash, nTime);
                 break;
             case ACTION_SCORE_CONTENT:
-            {
-                auto scorePtx = make_shared<ScoreContent>(txHash, nTime, opReturn);
-
-                if (tx)
-                {
-                    if (auto[ok, scoredata] = ParseScore(tx); ok)
-                    {
-                        scorePtx->SetOPRAddress(scoredata->ContentAddressHash);
-                        scorePtx->SetOPRValue(scoredata->ScoreValue);
-                    }
-                }
-
-                ptx = static_pointer_cast<Transaction>(scorePtx);
-
+                ptx = make_shared<ScoreContent>(txHash, nTime);
                 break;
-            }
             case ACTION_SCORE_COMMENT:
-            {
-                auto scorePtx = make_shared<ScoreComment>(txHash, nTime, opReturn);
-
-                if (tx)
-                {
-                    if (auto[ok, scoredata] = ParseScore(tx); ok)
-                    {
-                        scorePtx->SetOPRAddress(scoredata->ContentAddressHash);
-                        scorePtx->SetOPRValue(scoredata->ScoreValue);
-                    }
-                }
-
-                ptx = static_pointer_cast<Transaction>(scorePtx);
-
+                ptx = make_shared<ScoreComment>(txHash, nTime);
                 break;
-            }
             case ACTION_SUBSCRIBE:
-                ptx = make_shared<Subscribe>(txHash, nTime, opReturn);
+                ptx = make_shared<Subscribe>(txHash, nTime);
                 break;
             case ACTION_SUBSCRIBE_PRIVATE:
-                ptx = make_shared<SubscribePrivate>(txHash, nTime, opReturn);
+                ptx = make_shared<SubscribePrivate>(txHash, nTime);
                 break;
             case ACTION_SUBSCRIBE_CANCEL:
-                ptx = make_shared<SubscribeCancel>(txHash, nTime, opReturn);
+                ptx = make_shared<SubscribeCancel>(txHash, nTime);
                 break;
             case ACTION_BLOCKING:
-                ptx = make_shared<Blocking>(txHash, nTime, opReturn);
+                ptx = make_shared<Blocking>(txHash, nTime);
                 break;
             case ACTION_BLOCKING_CANCEL:
-                ptx = make_shared<BlockingCancel>(txHash, nTime, opReturn);
+                ptx = make_shared<BlockingCancel>(txHash, nTime);
                 break;
             case ACTION_COMPLAIN:
-                ptx = make_shared<Complain>(txHash, nTime, opReturn);
+                ptx = make_shared<Complain>(txHash, nTime);
                 break;
             default:
                 return nullptr;
         }
 
         return ptx;
-    }
-
-    static shared_ptr<Transaction> CreateInstance(PocketTxType txType,
-        std::string& txHash, uint32_t nTime, std::string& opReturn)
-    {
-        return CreateInstance(nullptr, txType, txHash, nTime, opReturn);
     }
 }
 

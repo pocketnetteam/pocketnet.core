@@ -15,7 +15,7 @@ namespace PocketTx
     {
     public:
 
-        User(string& hash, int64_t time, string& opReturn) : Transaction(hash, time, opReturn)
+        User(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACCOUNT_USER);
         }
@@ -48,6 +48,22 @@ namespace PocketTx
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrerAddress(val);
+        }
+
+        void DeserializeRpc(const UniValue& src) override
+        {
+            if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
+            if (auto[ok, val] = TryGetStr(src, "r"); ok) SetReferrerAddress(val);
+
+            GeneratePayload();
+            if (auto[ok, val] = TryGetStr(src, "l"); ok) m_payload->SetString1(val);
+            else m_payload->SetString1("en");
+            if (auto[ok, val] = TryGetStr(src, "n"); ok) m_payload->SetString2(val);
+            if (auto[ok, val] = TryGetStr(src, "i"); ok) m_payload->SetString3(val);
+            if (auto[ok, val] = TryGetStr(src, "a"); ok) m_payload->SetString4(val);
+            if (auto[ok, val] = TryGetStr(src, "s"); ok) m_payload->SetString5(val);
+            if (auto[ok, val] = TryGetStr(src, "k"); ok) m_payload->SetString6(val);
+            if (auto[ok, val] = TryGetStr(src, "b"); ok) m_payload->SetString7(val);
         }
 
         shared_ptr <string> GetAddress() const { return m_string1; }

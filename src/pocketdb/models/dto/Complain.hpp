@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Complain(string& hash, int64_t time, string& opReturn) : Transaction(hash, time, opReturn)
+        Complain(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_COMPLAIN);
         }
@@ -38,6 +38,13 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetInt64(src, "reason"); ok) SetReason(val);
             if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxHash(val);
+        }
+        
+        void DeserializeRpc(const UniValue& src) override
+        {
+            if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
+            if (auto[ok, val] = TryGetStr(src, "share"); ok) SetPostTxHash(val);
+            if (auto[ok, val] = TryGetInt64(src, "reason"); ok) SetReason(val);
         }
 
         shared_ptr<string> GetAddress() const { return m_string1; }

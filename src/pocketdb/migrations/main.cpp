@@ -77,13 +77,12 @@ namespace PocketDb
                 -- AccountUser.Lang
                 -- ContentPost.Lang
                 -- ContentVideo.Lang
-                -- Comment.Lang
+                -- Comment.Message
                 String1 text   null,
 
                 -- AccountUser.Name
                 -- ContentPost.Caption
                 -- ContentVideo.Caption
-                -- Comment.Message
                 String2 text   null,
 
                 -- AccountUser.Avatar

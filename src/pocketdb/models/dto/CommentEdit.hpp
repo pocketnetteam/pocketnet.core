@@ -17,7 +17,7 @@ namespace PocketTx
     {
     public:
 
-        CommentEdit(string& hash, int64_t time, string& opReturn) : Comment(hash, time, opReturn)
+        CommentEdit(string& hash, int64_t time) : Comment(hash, time)
         {
             SetType(PocketTxType::CONTENT_COMMENT_EDIT);
         }

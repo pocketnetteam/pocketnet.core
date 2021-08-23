@@ -11,7 +11,7 @@ namespace PocketTx
     {
     public:
 
-        ScoreComment(string& hash, int64_t time, string& opReturn) : Transaction(hash, time, opReturn)
+        ScoreComment(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_SCORE_COMMENT);
         }
@@ -31,6 +31,13 @@ namespace PocketTx
         {
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
+            if (auto[ok, val] = TryGetStr(src, "commentid"); ok) SetCommentTxHash(val);
+            if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
+        }
+        
+        void DeserializeRpc(const UniValue& src) override
+        {
+            if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "commentid"); ok) SetCommentTxHash(val);
             if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
         }

@@ -17,9 +17,15 @@ namespace PocketTx
     {
     public:
 
-        CommentDelete(string& hash, int64_t time, string& opReturn) : Comment(hash, time, opReturn)
+        CommentDelete(string& hash, int64_t time) : Comment(hash, time)
         {
             SetType(PocketTxType::CONTENT_COMMENT_DELETE);
+        }
+
+        void DeserializeRpc(const UniValue& src) override
+        {
+            Comment::DeserializeRpc(rpc);
+            ClearPayload();
         }
 
     protected:

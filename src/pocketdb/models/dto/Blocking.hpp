@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -16,7 +14,7 @@ namespace PocketTx
     {
     public:
 
-        Blocking(string& hash, int64_t time, string& opReturn) : Transaction(hash, time, opReturn)
+        Blocking(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_BLOCKING);
         }
@@ -37,6 +35,12 @@ namespace PocketTx
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "address_to"); ok) SetAddressTo(val);
+        }
+
+        void DeserializeRpc(const UniValue& src) override
+        {
+            if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
+            if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddressTo(val);
         }
 
         shared_ptr<string> GetAddress() const { return m_string1; }

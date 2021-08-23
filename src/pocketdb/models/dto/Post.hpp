@@ -11,7 +11,7 @@ namespace PocketTx
     {
     public:
 
-        Post(string& hash, int64_t time, string& opReturn) : Transaction(hash, time, opReturn)
+        Post(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::CONTENT_POST);
         }
@@ -73,6 +73,47 @@ namespace PocketTx
             if (auto[ok, valTxIdEdit] = TryGetStr(src, "txidEdit"); ok)
                 if (auto[ok, valTxId] = TryGetStr(src, "txid"); ok)
                     SetRootTxHash(valTxId);
+        }
+
+        void DeserializeRpc(const UniValue& src) override
+        {
+            if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
+            if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
+            if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
+
+            SetRootTxHash(*GetHash());
+            if (auto[ok, val] = TryGetStr(src, "id"); ok)
+                SetRootTxHash(val);
+
+            GeneratePayload();
+
+            if (auto[ok, val] = TryGetStr(src, "l"); ok && val.length() == 2) m_payload->SetString1(val);
+            else m_payload->SetString1("en");
+
+            if (auto[ok, val] = TryGetStr(src, "c"); ok) m_payload->SetString2(val);
+            if (auto[ok, val] = TryGetStr(src, "m"); ok) m_payload->SetString3(val);
+            if (auto[ok, val] = TryGetStr(src, "u"); ok) m_payload->SetString7(val);
+            if (auto[ok, val] = TryGetStr(src, "s"); ok) m_payload->SetString6(val);
+
+            // TODO (brangr): implement
+            if (auto[ok, val] = TryGetStr(src, "tags"); ok) m_payload->SetString4(val);
+            vector<string> _tags;
+            if (request.params[1].exists("t")) {
+                UniValue tags = request.params[1]["t"].get_array();
+                for (unsigned int idx = 0; idx < tags.size(); idx++) {
+                    _tags.push_back(tags[idx].get_str());
+                }
+            }
+
+            // TODO (brangr): implement
+            if (auto[ok, val] = TryGetStr(src, "images"); ok) m_payload->SetString5(val);
+            vector<string> _images;
+            if (request.params[1].exists("i")) {
+                UniValue images = request.params[1]["i"].get_array();
+                for (unsigned int idx = 0; idx < images.size(); idx++) {
+                    _images.push_back(images[idx].get_str());
+                }
+            }
         }
 
         shared_ptr<string> GetAddress() const { return m_string1; }

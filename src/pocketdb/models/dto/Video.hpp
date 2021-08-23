@@ -5,17 +5,18 @@
 
 namespace PocketTx
 {
+    using namespace std;
 
     class Video : public Post
     {
     public:
 
-        Video(string& hash, int64_t time, string& opReturn) : Post(hash, time, opReturn)
+        Video(string& hash, int64_t time) : Post(hash, time)
         {
             SetType(PocketTxType::CONTENT_VIDEO);
         }
 
-        shared_ptr <UniValue> Serialize() const override
+        shared_ptr<UniValue> Serialize() const override
         {
             auto result = Post::Serialize();
 

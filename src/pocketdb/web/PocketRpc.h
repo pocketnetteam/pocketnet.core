@@ -13,6 +13,7 @@
 #include "pocketdb/web/PocketScoresRpc.h"
 #include "pocketdb/web/PocketSystemRpc.h"
 #include "pocketdb/web/PocketAccountRpc.h"
+#include "pocketdb/web/PocketTransactionRpc.h"
 
 using namespace PocketWeb::PocketWebRpc;
 

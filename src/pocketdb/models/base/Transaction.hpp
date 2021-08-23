@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -25,11 +23,10 @@ namespace PocketTx
     {
     public:
 
-        Transaction(string& hash, int64_t time, string& opReturn) : Base()
+        Transaction(string& hash, int64_t time) : Base()
         {
             SetHash(hash);
             SetTime(time);
-            SetOpReturnTx(opReturn);
         }
 
         virtual shared_ptr<UniValue> Serialize() const
@@ -43,9 +40,16 @@ namespace PocketTx
             return result;
         }
 
-        virtual void Deserialize(const UniValue& src)
+        virtual void Deserialize(const UniValue& src) {}
+
+        virtual void DeserializeRpc(const UniValue& src) {}
+        
+        virtual void DeserializePayload(const UniValue& src)
         {
+            GeneratePayload();
         }
+
+        virtual void BuildHash() = 0;
 
         shared_ptr<string> GetHash() const { return m_hash; }
         void SetHash(string value) { m_hash = make_shared<string>(value); }
@@ -88,49 +92,40 @@ namespace PocketTx
         void SetPayload(Payload value) { m_payload = make_shared<Payload>(value); }
         bool HasPayload() const { return m_payload != nullptr; };
 
-        virtual void DeserializePayload(const UniValue& src)
-        {
-            m_payload = make_shared<Payload>();
-            m_payload->SetTxHash(*GetHash());
-        }
-
-        shared_ptr<string> GetOpReturnTx() const { return m_opreturn_tx; }
-        void SetOpReturnTx(string value) { m_opreturn_tx = make_shared<string>(value); }
-
-        shared_ptr<string> GetOpReturnPayload() const { return m_opreturn_payload; }
-
-        virtual void BuildHash() = 0;
-
     protected:
-        shared_ptr<string> m_opreturn_tx = nullptr;
-        shared_ptr<string> m_opreturn_payload = nullptr;
-
         shared_ptr<PocketTxType> m_type = nullptr;
         shared_ptr<string> m_hash = nullptr;
         shared_ptr<int64_t> m_time = nullptr;
         shared_ptr<int64_t> m_id = nullptr;
         shared_ptr<bool> m_last = nullptr;
-
         shared_ptr<string> m_string1 = nullptr;
         shared_ptr<string> m_string2 = nullptr;
         shared_ptr<string> m_string3 = nullptr;
         shared_ptr<string> m_string4 = nullptr;
         shared_ptr<string> m_string5 = nullptr;
-
         shared_ptr<int64_t> m_int1 = nullptr;
-
         shared_ptr<Payload> m_payload = nullptr;
-
         vector<shared_ptr<TransactionOutput>> m_outputs;
 
-        void GenerateHash(string& data)
+        const string GenerateHash(const string& data) const
         {
             unsigned char hash[32] = {};
             CSHA256().Write((const unsigned char*) data.data(), data.size()).Finalize(hash);
             CSHA256().Write(hash, 32).Finalize(hash);
             std::vector<unsigned char> vec(hash, hash + sizeof(hash));
 
-            m_opreturn_payload = make_shared<string>(HexStr(vec));
+            return HexStr(vec);
+        }
+
+        void GeneratePayload()
+        {
+            m_payload = make_shared<Payload>();
+            m_payload->SetTxHash(*GetHash());
+        }
+
+        void ClearPayload()
+        {
+            m_payload->reset();
         }
 
     };

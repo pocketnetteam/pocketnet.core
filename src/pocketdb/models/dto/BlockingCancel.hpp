@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        BlockingCancel(string& hash, int64_t time, string& opReturn) : Blocking(hash, time, opReturn)
+        BlockingCancel(string& hash, int64_t time) : Blocking(hash, time)
         {
             SetType(PocketTxType::ACTION_BLOCKING_CANCEL);
         }

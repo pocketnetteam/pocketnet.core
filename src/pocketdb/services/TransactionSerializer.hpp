@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -44,8 +42,6 @@ namespace PocketServices
 
         static tuple<bool, PocketBlock> DeserializeBlock(CDataStream& stream, CBlock& block)
         {
-            LogPrint(BCLog::SYNC, "+++ DeserializeBlock: %s\n", block.GetHash().GetHex());
-
             // Get Serialized data from stream
             auto pocketData = parseStream(stream);
 
@@ -54,16 +50,27 @@ namespace PocketServices
 
         static tuple<bool, PocketBlock> DeserializeBlock(CBlock& block)
         {
-            LogPrint(BCLog::SYNC, "+++ DeserializeBlock: %s\n", block.GetHash().GetHex());
-
             UniValue pocketData(UniValue::VOBJ);
             return deserializeBlock(pocketData, block);
         }
 
-        static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(CDataStream& stream, const CTransactionRef& tx)
+        static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(const CTransactionRef& tx, CDataStream& stream)
         {
-            LogPrint(BCLog::SYNC, "+++ DeserializeTransaction: %s\n", tx->GetHash().GetHex());
+            // Get Serialized data from stream
+            auto pocketData = parseStream(stream);
+            
+            // Build transaction instance
+            return deserializeTransaction(pocketData, tx);
+        }
 
+        static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(const CTransactionRef& tx, const UniValue& pocketData)
+        {
+            auto ptx = buildInstanceRpc(tx, pocketData);
+            return {ptx != nullptr, ptx};
+        }
+
+        static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(const CTransactionRef& tx, CDataStream& stream)
+        {
             // Get Serialized data from stream
             auto pocketData = parseStream(stream);
             
@@ -101,16 +108,11 @@ namespace PocketServices
         {
             auto txHash = tx->GetHash().GetHex();
 
-            vector<string> vasm;
-            string opReturn;
-            PocketTxType txType = PocketHelpers::ParseType(tx, vasm);
-            if (vasm.size() >= 3)
-                opReturn = vasm[2];
-
-            if (txType == PocketTxType::NOT_SUPPORTED)
+            PocketTxType txType;
+            if (!PocketHelpers::IsPocketSupportedTransaction(tx, txType))
                 return nullptr;
 
-            shared_ptr<Transaction> ptx = PocketHelpers::CreateInstance(tx, txType, txHash, tx->nTime, opReturn);
+            shared_ptr<Transaction> ptx = PocketHelpers::CreateInstance(txType, txHash, tx->nTime);
             if (!ptx)
                 return nullptr;
 
@@ -119,7 +121,7 @@ namespace PocketServices
                 return nullptr;
 
             // Deserialize payload if exists
-            if (ptx && src.exists("d"))
+            if (src.exists("d"))
             {
                 UniValue txDataSrc(UniValue::VOBJ);
                 auto txDataBase64 = src["d"].get_str();
@@ -135,12 +137,28 @@ namespace PocketServices
 
                 ptx->Deserialize(txDataSrc);
                 ptx->DeserializePayload(txDataSrc);
-                ptx->BuildHash();
             }
 
-            LogPrint(BCLog::SYNC, " ++ BuildInstance: %s (type: %d) (payload: %b)\n", txHash, txType,
-                ptx->HasPayload());
+            return ptx;
+        }
 
+        static shared_ptr<Transaction> buildInstanceRpc(const CTransactionRef& tx, const UniValue& src)
+        {
+            auto txHash = tx->GetHash().GetHex();
+
+            PocketTxType txType;
+            if (!PocketHelpers::IsPocketSupportedTransaction(tx, txType))
+                return nullptr;
+
+            shared_ptr<Transaction> ptx = PocketHelpers::CreateInstance(txType, txHash, tx->nTime);
+            if (!ptx)
+                return nullptr;
+
+            // Build outputs & inputs
+            if (!buildOutputs(tx, ptx))
+                return nullptr;
+          
+            ptx->DeserializeRpc(src);
             return ptx;
         }
 

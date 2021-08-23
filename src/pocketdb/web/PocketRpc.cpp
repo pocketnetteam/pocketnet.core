@@ -2,7 +2,7 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "PocketRpc.h"
+#include "pocketdb/web/PocketRpc.h"
 
 UniValue debug(const JSONRPCRequest& request)
 {
@@ -57,9 +57,11 @@ static const CRPCCommand commands[] =
     // System
     { "system",         "getpeerinfo",                      &GetPeerInfo,                   {}},
     { "system",         "getnodeinfo",                      &GetNodeInfo,                   {}},
+
+    { "transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                {"hexstring", "message", "type"}},
+    { "transaction",    "addtransaction",                   &AddTransaction,                {"hexstring", "message", "type"}},
     // TODO (team): implement
-    // { "system",         "getrawtransaction",                &GetRawTransaction,             {"txid", "verbose", "blockhash"}},
-    // { "system",         "sendrawtransactionwithmessage",    &SetTransaction,                {"hexstring", "message", "type"}},
+    // { "transaction",    "getrawtransaction",                &GetRawTransaction,             {"txid", "verbose", "blockhash"}},
 };
 // @formatter:on
 

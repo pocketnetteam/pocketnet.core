@@ -638,7 +638,7 @@ UniValue SetCommentEdit(const JSONRPCRequest& request, RTransaction& tx) {
     FillComment(request, tx, valid);
     tx.pTransaction["msg"] = request.params[1]["msg"].get_str();
 
-    return PostPocketTransaction(tx, "CommentDelete");
+    return PostPocketTransaction(tx, "CommentEdit");
 }
 
 UniValue SetCommentDelete(const JSONRPCRequest& request, RTransaction& tx) {

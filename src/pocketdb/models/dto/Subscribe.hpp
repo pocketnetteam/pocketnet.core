@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Subscribe(string& hash, int64_t time, string& opReturn) : Transaction(hash, time, opReturn)
+        Subscribe(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_SUBSCRIBE);
         }
@@ -38,6 +38,12 @@ namespace PocketTx
             Transaction::Deserialize(src);
             if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
             if (auto[ok, val] = TryGetStr(src, "address_to"); ok) SetAddressTo(val);
+        }
+        
+        void DeserializeRpc(const UniValue& src) override
+        {
+            if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
+            if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddressTo(val);
         }
 
         shared_ptr <string> GetAddress() const { return m_string1; }

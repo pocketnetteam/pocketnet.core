@@ -17,7 +17,7 @@ namespace PocketTx
     {
     public:
 
-        Comment(string& hash, int64_t time, string& opReturn) : Transaction(hash, time, opReturn)
+        Comment(string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::CONTENT_COMMENT);
         }
@@ -54,6 +54,21 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "otxid"); ok)
                 SetRootTxHash(val);
         }
+        
+        void DeserializeRpc(const UniValue& src) override
+        {
+            if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
+            if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
+            if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxHash(val);
+            if (auto[ok, val] = TryGetStr(src, "answerid"); ok) SetAnswerTxHash(val);
+
+            SetRootTxHash(*GetHash());
+            if (auto[ok, val] = TryGetStr(src, "id"); ok)
+                SetRootTxHash(val);
+
+            GeneratePayload();
+            if (auto[ok, val] = TryGetStr(src, "msg"); ok) SetPayloadMsg(val);
+        }
 
         shared_ptr <string> GetAddress() const { return m_string1; }
         void SetAddress(string value) { m_string1 = make_shared<string>(value); }
@@ -71,18 +86,16 @@ namespace PocketTx
         void SetAnswerTxHash(string value) { m_string5 = make_shared<string>(value); }
 
         // Payload getters
-        shared_ptr <string> GetPayloadMsg() const { return Transaction::GetPayload()->GetString2(); }
-
+        shared_ptr <string> GetPayloadMsg() const { return Transaction::GetPayload()->GetString1(); }
+        void SetPayloadMsg(string value) { Transaction::GetPayload()->SetString1(value); }
+        
     protected:
 
         void DeserializePayload(const UniValue& src) override
         {
             Transaction::DeserializePayload(src);
 
-            if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
-            else m_payload->SetString1("en");
-
-            if (auto[ok, val] = TryGetStr(src, "msg"); ok) m_payload->SetString2(val);
+            if (auto[ok, val] = TryGetStr(src, "msg"); ok) SetPayloadMsg(val);
         }
 
         void BuildHash() override
@@ -90,7 +103,7 @@ namespace PocketTx
             std::string data;
 
             data += GetPostTxHash() ? *GetPostTxHash() : "";
-            data += m_payload->GetString2() ? *m_payload->GetString2() : "";
+            data += m_payload->GetString1() ? *m_payload->GetString1() : "";
             data += GetParentTxHash() ? *GetParentTxHash() : "";
             data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
 
