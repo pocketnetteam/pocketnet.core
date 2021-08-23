@@ -1136,13 +1136,6 @@ bool AppInitParameterInteraction()
 {
     const CChainParams& chainparams = Params();
     // ********************************************************* Step 2: parameter interactions
-
-
-    // ********************************************************* Step 2.1: Create and fill limits valus
-    FillLimits(chainparams);
-    FillCheckpointsBlocks(chainparams);
-    FillCheckpointsTransactions(chainparams);
-
     // also see: InitParameterInteraction()
 
     if (!fs::is_directory(GetBlocksDir(false)))
