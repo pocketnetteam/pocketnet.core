@@ -4008,6 +4008,7 @@ UniValue searchlinks(const JSONRPCRequest& request)
 
     query = reindexer::Query("Posts");
     query = query.Where("block", CondLe, nHeight);
+    query = query.Where("time", CondLe, GetAdjustedTime());
     if (!contentTypes.empty()) {
         query = query.Where("type", CondSet, contentTypes);
     }
@@ -4031,36 +4032,115 @@ UniValue searchlinks(const JSONRPCRequest& request)
     result.pushKV("contentsTotal", queryResults.totalCount);
     return result;
 }
-//----------------------------------------------------------
-UniValue debug(const JSONRPCRequest& request)
+
+UniValue getcontentsstatistic(const JSONRPCRequest& request)
 {
-    UniValue result(UniValue::VOBJ);
+    if (request.fHelp)
+        throw std::runtime_error(
+                "searchlinks ...\n"
+                "\nGet contents statistic.\n");
 
-    std::string txid = "";
+    std::string address;
+    std::vector<std::string> addresses;
     if (request.params.size() > 0) {
-        txid = request.params[0].get_str();
-    }
-
-    UniValue varr(UniValue::VARR);
-
-    if(!txid.empty()){
-        int64_t amount = getdonationamount(txid);
-        if (amount > 0){
-            result.pushKV("txid_donation", amount);
+        if (request.params[0].isStr()) {
+            address = request.params[0].get_str();
+            CTxDestination dest = DecodeDestination(address);
+            if (!IsValidDestination(dest)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+            }
+            addresses.emplace_back(address);
+        } else if (request.params[0].isArray()) {
+            UniValue addrs = request.params[0].get_array();
+            if (addrs.size() > 100) {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array");
+            }
+            if(addrs.size() > 0) {
+                for (unsigned int idx = 0; idx < addrs.size(); idx++) {
+                    address = addrs[idx].get_str();
+                    CTxDestination dest = DecodeDestination(address);
+                    if (!IsValidDestination(dest)) {
+                        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+                    }
+                    addresses.emplace_back(address);
+                }
+            }
         }
     }
 
+    std::vector<int> contentTypes;
+    UniValue uvContentTypes(UniValue::VARR);
     if (request.params.size() > 1) {
-        if(request.params[1].get_str()=="1") {
-            //chainActive.ch
-        }
-        else if (request.params[1].get_str()=="ver"){
-            result.pushKV("ver", "debug1");
+        if (request.params[1].isNum()) {
+            contentTypes.push_back(request.params[1].get_int());
+            uvContentTypes.push_back(request.params[1].get_int());
+        } else if (request.params[1].isStr()) {
+            if (getcontenttype(request.params[1].get_str()) >= 0) {
+                contentTypes.push_back(getcontenttype(request.params[1].get_str()));
+                uvContentTypes.push_back(request.params[1].get_str());
+            }
+        } else if (request.params[1].isArray()) {
+            UniValue cntntTps = request.params[1].get_array();
+            if (cntntTps.size() > 10) {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array content types");
+            }
+            if(cntntTps.size() > 0) {
+                uvContentTypes = cntntTps;
+                for (unsigned int idx = 0; idx < cntntTps.size(); idx++) {
+                    if (cntntTps[idx].isNum()) {
+                        contentTypes.push_back(cntntTps[idx].get_int());
+                    } else if (cntntTps[idx].isStr()) {
+                        if (getcontenttype(cntntTps[idx].get_str()) >= 0) {
+                            contentTypes.push_back(getcontenttype(cntntTps[idx].get_str()));
+                        }
+                    }
+                }
+            }
         }
     }
 
+    reindexer::Error err;
+    reindexer::Query queryPosts;
+    reindexer::Query queryScores;
+    reindexer::QueryResults queryResults;
+    reindexer::AggregationResult aggregationResult;
+
+    int nHeight = chainActive.Height();
+
+    /*queryPosts = reindexer::Query("Posts");
+    queryPosts = queryPosts.Where("time", CondLe, GetAdjustedTime());
+    queryPosts = queryPosts.Where("block", CondLe, nHeight);
+    queryPosts = queryPosts.Where("address", CondSet, addresses);
+    if (!contentTypes.empty()) {
+        queryPosts = queryPosts.Where("type", CondSet, contentTypes);
+    }
+    //queryPosts = queryPosts.InnerJoin("txid", "posttxid", CondEq, queryScores);
+    //queryPosts = queryPosts.Distinct()
+    //queryPosts = queryScores.Aggregate("address", );
+
+    std::vector<std::string> posttxid;
+    queryScores = reindexer::Query("Scores");
+    queryScores = queryPosts.Where("time", CondLe, GetAdjustedTime());
+    queryScores = queryPosts.Where("block", CondLe, nHeight);
+    queryScores = queryScores.Where("posttxid", CondSet, posttxid);
+
+    //err = g_pocketdb->SelectAggr(queryPosts, queryResults);
+    err = g_pocketdb->DB()->Select(queryPosts, queryResults);
+
+    if (err.ok()) {
+        std::string author = "";
+        for (auto& item : queryResults) {
+            Item _itm = item.GetItem();
+        }
+//        for (const auto &item : aggregationResult.facets) {
+//            //item.
+//        }
+    }*/
+
+    UniValue result(UniValue::VOBJ);
     return result;
 }
+//----------------------------------------------------------
 
 static const CRPCCommand commands[] =
 {
@@ -4098,14 +4178,13 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                                   false},
     {"pocketnetrpc", "gethistoricalstrip",                &gethistoricalstrip,                {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},
     {"pocketnetrpc", "gethierarchicalstrip",              &gethierarchicalstrip,              {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},
+    {"pocketnetrpc", "getcontentsstatistic",              &getcontentsstatistic,              {"addresses", "contenttypes"},                                                         false},
 
     {"pocketnetrpc", "getusercontents",                   &getusercontents,                   {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"},          false},
     {"pocketnetrpc", "getrecomendedsubscriptionsforuser", &getrecomendedsubscriptionsforuser, {"address", "count"},                                                                  false},
 
     // Pocketnet transactions
     {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"},                                                      false},
-
-    {"pocketnetrpc", "debug",                    &debug,                    {},                                                                                                      false},
 
 // TODO (brangr): new types
 //        {"pocketnetrpc", "setshare",                          &SetShare,                          {"hexstring", "message"},         false},
