@@ -100,11 +100,8 @@ namespace PocketDb
         int CountChainScoreContentHeight(const string& address, int height);
 
         int CountMempoolUser(const string& address);
-        int CountChainUserTime(const string& address, int64_t time);
-        int CountChainUserHeight(const string& address, int height);
 
         int CountMempoolVideo(const string& address);
-        int CountChainVideoTime(const string& address, int64_t time);
         int CountChainVideoHeight(const string& address, int height);
 
 

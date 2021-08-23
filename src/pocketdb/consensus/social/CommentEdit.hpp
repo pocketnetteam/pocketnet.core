@@ -107,7 +107,7 @@ namespace PocketConsensus
     protected:
         virtual int64_t GetEditWindow() { return 86400; }
         virtual size_t GetCommentMessageMaxSize() { return 2000; }
-        virtual int64_t GetEditLimit() { return 5; }
+        virtual int64_t GetEditLimit() { return 4; }
 
 
         ConsensusValidateResult ValidateBlock(const CommentEditRef& tx, const PocketBlockRef& block) override
