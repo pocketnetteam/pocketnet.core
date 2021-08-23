@@ -115,7 +115,7 @@ POCKETDB_H = \
     pocketdb/repositories/web/ExplorerRepository.h \
     pocketdb/consensus/Social.hpp \
     pocketdb/consensus/Lottery.hpp \
-    pocketdb/consensus/social/Helper.hpp \
+    pocketdb/consensus/Helper.hpp \
     pocketdb/consensus/social/Blocking.hpp \
     pocketdb/consensus/social/BlockingCancel.hpp \
     pocketdb/consensus/social/Comment.hpp \

@@ -29,7 +29,7 @@
 #include <univalue.h>
 #include <memory>
 
-#include "pocketdb/consensus/social/Helper.hpp"
+#include "pocketdb/consensus/Helper.hpp"
 #include "pocketdb/services/Accessor.hpp"
 
 #if defined(NDEBUG)

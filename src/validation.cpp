@@ -42,9 +42,7 @@
 
 #include "pocketdb/services/TransactionIndexer.hpp"
 #include "pocketdb/services/Accessor.hpp"
-#include "pocketdb/consensus/social/Helper.hpp"
-
-using namespace PocketHelpers;
+#include "pocketdb/consensus/Helper.hpp"
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 std::map<std::string, WSUser> WSConnections;
@@ -186,7 +184,7 @@ public:
     // Block (dis)connection on a given view:
     DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
 
-    bool ConnectBlock(const CBlock& block, const PocketHelpers::PocketBlock& pocketBlock,
+    bool ConnectBlock(const CBlock& block, const PocketBlockRef& pocketBlock,
         CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view,
         const CChainParams& chainparams,
         bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
@@ -2081,7 +2079,7 @@ static int64_t nBlocksTotal = 0;
 /** Apply the effects of this block (with given index) on the UTXO set represented by coins.
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
  *  can fail if those validity checks fail (among other reasons). */
-bool CChainState::ConnectBlock(const CBlock& block, const PocketHelpers::PocketBlock& pocketBlock,
+bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocketBlock,
     CValidationState& state, CBlockIndex* pindex, CCoinsViewCache& view,
     const CChainParams& chainparams,
     bool fJustCheck)
@@ -2981,7 +2979,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     const CBlock& blockConnecting = *pthisBlock;
 
     // Read transactions payload from db
-    std::shared_ptr<PocketBlock> pocketBlock = nullptr;
+    PocketBlockRef pocketBlock = nullptr;
     if (!pocketBlockPart)
         PocketServices::GetBlock(blockConnecting, pocketBlock);
     else
@@ -2993,8 +2991,6 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
         return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
     }
 
-    const PocketHelpers::PocketBlock& pocketBlockConnecting = *pocketBlock;
-
     // Apply the block atomically to the chain state.
     int64_t nTime2 = GetTimeMicros();
     nTimeReadFromDisk += nTime2 - nTime1;
@@ -3004,7 +3000,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 
     {
         CCoinsViewCache view(pcoinsTip.get());
-        bool rv = ConnectBlock(blockConnecting, pocketBlockConnecting, state, pindexNew, view, chainparams);
+        bool rv = ConnectBlock(blockConnecting, pocketBlock, state, pindexNew, view, chainparams);
         GetMainSignals().BlockChecked(blockConnecting, state);
 
         if (!rv)
@@ -4900,7 +4896,7 @@ bool ProcessNewBlock(CValidationState& state,
         // It is necessary to check that block and pocket Black contain an equal number of transactions
         // Also check pocket block with general pocketnet consensus rules
         if (ret)
-            ret = PocketConsensus::SocialConsensusHelper::Check(*pblock, *pocketBlock);
+            ret = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock);
 
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;
@@ -4966,7 +4962,7 @@ bool ProcessNewBlock(CValidationState& state,
 }
 
 bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
-    const CBlock& block, const PocketHelpers::PocketBlock& pocketBlock,
+    const CBlock& block, const PocketBlockRef& pocketBlock,
     CBlockIndex* pindexPrev, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     AssertLockHeld(cs_main);
@@ -5525,7 +5521,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
                 return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight,
                     pindex->GetBlockHash().ToString());
 
-            std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock;
+            PocketBlockRef pocketBlock;
             if (!PocketServices::GetBlock(block, pocketBlock))
             {
                 LogPrintf("\nWarning: found lost payload data (block: %s) - continue work from this height: %d\n",
@@ -5534,7 +5530,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
                     pindex->GetBlockHash().ToString());
             }
 
-            if (!g_chainstate.ConnectBlock(block, *pocketBlock, state, pindex, coins, chainparams))
+            if (!g_chainstate.ConnectBlock(block, pocketBlock, state, pindex, coins, chainparams))
                 return error("VerifyDB(): *** found unconnectable block at %d, hash=%s (%s)", pindex->nHeight,
                     pindex->GetBlockHash().ToString(), FormatStateMessage(state));
         }

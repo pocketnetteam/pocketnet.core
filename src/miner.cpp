@@ -196,7 +196,8 @@ BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessT
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
-    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, *pocketBlock, pindexPrev, false, false))
+    auto pocketBlockRef = shared_ptr<PocketBlock>(pocketBlock);
+    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, pocketBlockRef, pindexPrev, false, false))
     {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
@@ -240,7 +241,8 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
         return false;
 
     // Check consensus
-    auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, *pocketBlock, chainActive.Height() + 1);
+    auto pocketBlockRef = shared_ptr<PocketBlock>(pocketBlock);
+    auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlockRef, chainActive.Height() + 1);
     if (!ok)
     {
         LogPrintf("Warning: build block skip transaction %s with result %d\n",

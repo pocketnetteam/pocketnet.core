@@ -7,44 +7,57 @@
 #ifndef POCKETCONSENSUS_BLOCKINGCANCEL_HPP
 #define POCKETCONSENSUS_BLOCKINGCANCEL_HPP
 
-#include "pocketdb/consensus/social/Social.hpp"
+#include "pocketdb/consensus/Social.hpp"
 #include "pocketdb/models/dto/BlockingCancel.hpp"
 
 namespace PocketConsensus
 {
+    typedef shared_ptr<BlockingCancel> BlockingCancelRef;
     /*******************************************************************************************************************
-    *
     *  BlockingCancel consensus base class
-    *
     *******************************************************************************************************************/
-    class BlockingCancelConsensus : public SocialConsensus
+    class BlockingCancelConsensus : public SocialConsensus<BlockingCancelRef>
     {
     public:
         BlockingCancelConsensus(int height) : SocialConsensus(height) {}
 
-    protected:
-
-        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
+        ConsensusValidateResult Validate(const BlockingCancelRef& ptx, const PocketBlockRef& block) override
         {
-            auto ptx = static_pointer_cast<BlockingCancel>(tx);
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+                return {false, baseValidateCode};
 
-            auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                *ptx->GetAddress(),
-                *ptx->GetAddressTo());
-
-            if (!existsBlocking || blockingType != ACTION_BLOCKING)
+            if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
+                    *ptx->GetAddress(),
+                    *ptx->GetAddressTo()
+                ); !existsBlocking || blockingType != ACTION_BLOCKING)
                 return {false, SocialConsensusResult_InvalidBlocking};
 
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult>
-        ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
+        ConsensusValidateResult Check(const BlockingCancelRef& ptx) override
         {
-            auto ptx = static_pointer_cast<BlockingCancel>(tx);
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(ptx); !baseCheck)
+                return {false, baseCheckCode};
 
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+
+            // Blocking self
+            if (*ptx->GetAddress() == *ptx->GetAddressTo())
+                return {false, SocialConsensusResult_SelfBlocking};
+
+            return Success;
+        }
+
+    protected:
+
+        ConsensusValidateResult ValidateBlock(const BlockingCancelRef& ptx, const PocketBlockRef& block) override
+        {
             // Only one transaction (address -> addressTo) allowed in block
-            for (auto& blockTx : block)
+            for (auto& blockTx : *block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACTION_BLOCKING, ACTION_BLOCKING_CANCEL}))
                     continue;
@@ -60,34 +73,16 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
+        ConsensusValidateResult ValidateMempool(const BlockingCancelRef& ptx) override
         {
-            auto ptx = static_pointer_cast<BlockingCancel>(tx);
-
             if (ConsensusRepoInst.CountMempoolBlocking(*ptx->GetAddress(), *ptx->GetAddressTo()) > 0)
                 return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
+        vector<string> GetAddressesForCheckRegistration(const BlockingCancelRef& ptx) override
         {
-            auto ptx = static_pointer_cast<BlockingCancel>(tx);
-
-            // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
-
-            // Blocking self
-            if (*ptx->GetAddress() == *ptx->GetAddressTo())
-                return {false, SocialConsensusResult_SelfBlocking};
-
-            return Success;
-        }
-
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
-        {
-            auto ptx = static_pointer_cast<BlockingCancel>(tx);
             return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
     };

@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -8,41 +6,51 @@
 #define POCKETCONSENSUS_SCORECONTENT_HPP
 
 #include "pocketdb/ReputationConsensus.h"
-#include "pocketdb/consensus/social/Social.hpp"
+#include "pocketdb/consensus/Social.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/dto/ScoreContent.hpp"
 
 namespace PocketConsensus
 {
-    using namespace std;
+    typedef shared_ptr<ScoreContent> ScoreContentRef;
 
     /*******************************************************************************************************************
-    *
     *  ScorePost consensus base class
-    *
     *******************************************************************************************************************/
-    class ScoreContentConsensus : public SocialConsensus
+    class ScoreContentConsensus : public SocialConsensus<ScoreContentRef>
     {
     public:
         ScoreContentConsensus(int height) : SocialConsensus(height) {}
 
-    protected:
-        virtual int64_t GetLimitWindow() { return 86400; }
-        virtual int64_t GetFullLimit() { return 90; }
-        virtual int64_t GetTrialLimit() { return 45; }
-
-        virtual int64_t GetScoresLimit(AccountMode mode)
+        ConsensusValidateResult Validate(const ScoreContentRef& ptx, const PocketBlockRef& block) override
         {
-            return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit();
-        }
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+                
+            // Check already scored content
+            if (PocketDb::ConsensusRepoInst.ExistsScore(
+                *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, false))
+                return {false, SocialConsensusResult_DoubleScore};
 
-        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
-        {
-            auto ptx = static_pointer_cast<ScoreContent>(tx);
-
-            // Content should be exists
+            // Content should be exists in chain
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash());
-            if (!lastContentOk)
+            if (!lastContentOk && block)
+            {
+                // ... or in block
+                for (auto& blockTx : *block)
+                {
+                    if (!IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO}))
+                        continue;
+
+                    if (*blockTx->GetString2() == *ptx->GetContentTxHash())
+                    {
+                        lastContent = blockTx;
+                        break;
+                    }
+                }
+            }
+            if (!lastContent)
                 return {false, SocialConsensusResult_NotFound};
 
             // Check score to self
@@ -54,108 +62,11 @@ namespace PocketConsensus
             if (auto[ok, result] = ValidateBlocking(*lastContent->GetString1(), ptx); !ok)
                 return {false, result};
 
-            // Check already scored content
-            if (PocketDb::ConsensusRepoInst.ExistsScore(
-                *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, false))
-                return {false, SocialConsensusResult_DoubleScore};
-
             return Success;
         }
 
-        virtual bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx)
+        ConsensusValidateResult Check(const ScoreContentRef& ptx) override
         {
-            return *blockPtx->GetTime() <= *ptx->GetTime();
-        }
-
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
-        {
-            auto ptx = static_pointer_cast<ScoreContent>(tx);
-
-            // Get count from chain
-            int count = GetChainCount(ptx);
-
-            // Get count from block
-            for (auto& blockTx : block)
-            {
-                if (!IsIn(*blockTx->GetType(), {ACTION_SCORE_CONTENT}))
-                    continue;
-
-                if (*blockTx->GetHash() == *ptx->GetHash())
-                    continue;
-
-                auto blockPtx = static_pointer_cast<ScoreContent>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                {
-                    if (CheckBlockLimitTime(tx, blockTx))
-                        count += 1;
-
-                    if (*blockPtx->GetHash() == *ptx->GetContentTxHash())
-                        return {false, SocialConsensusResult_DoubleScore};
-                }
-            }
-
-            // Check count
-            return ValidateLimit(ptx, count);
-        }
-
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
-        {
-            auto ptx = static_pointer_cast<ScoreContent>(tx);
-
-            // Check already scored content
-            if (PocketDb::ConsensusRepoInst.ExistsScore(
-                *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, true))
-                return {false, SocialConsensusResult_DoubleScore};
-
-            // Get count from chain
-            int count = GetChainCount(ptx);
-
-            // Get count from mempool
-            count += ConsensusRepoInst.CountMempoolScoreContent(*ptx->GetAddress());
-
-            // Check count
-            return ValidateLimit(ptx, count);
-        }
-
-        virtual bool ValidateLowReputation(const shared_ptr<ScoreContent>& tx, AccountMode mode)
-        {
-            return true;
-        }
-
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<ScoreContent>& tx, int count)
-        {
-            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-
-            auto accountMode = reputationConsensus->GetAccountMode(*tx->GetAddress());
-            auto limit = GetScoresLimit(accountMode);
-
-            if (count >= limit)
-                return {false, SocialConsensusResult_ScoreLimit};
-
-            if (!ValidateLowReputation(tx, accountMode))
-                return {false, SocialConsensusResult_LowReputation};
-
-            return Success;
-        }
-
-        virtual tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
-            const shared_ptr<ScoreContent>& tx)
-        {
-            return Success;
-        }
-
-        virtual int GetChainCount(const shared_ptr<ScoreContent>& ptx)
-        {
-            return ConsensusRepoInst.CountChainScoreContentTime(
-                *ptx->GetAddress(),
-                *ptx->GetTime() - GetLimitWindow()
-            );
-        }
-
-        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
-        {
-            auto ptx = static_pointer_cast<ScoreContent>(tx);
-
             // Check required fields
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
@@ -179,26 +90,113 @@ namespace PocketConsensus
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+    protected:
+        virtual int64_t GetLimitWindow() { return 86400; }
+        virtual int64_t GetFullLimit() { return 90; }
+        virtual int64_t GetTrialLimit() { return 45; }
+        virtual int64_t GetScoresLimit(AccountMode mode) { return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit(); }
+
+        virtual bool CheckBlockLimitTime(const ScoreContentRef& ptx, const PTransactionRef& blockTx)
         {
-            auto ptx = static_pointer_cast<ScoreContent>(tx);
+            return *blockTx->GetTime() <= *ptx->GetTime();
+        }
+
+        ConsensusValidateResult ValidateBlock(const ScoreContentRef& ptx, const PocketBlockRef& block) override
+        {
+            // Get count from chain
+            int count = GetChainCount(ptx);
+
+            // Get count from block
+            for (auto& blockTx : *block)
+            {
+                if (!IsIn(*blockTx->GetType(), {ACTION_SCORE_CONTENT}))
+                    continue;
+
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                if (*ptx->GetAddress() == *blockTx->GetString1())
+                {
+                    if (CheckBlockLimitTime(ptx, blockTx))
+                        count += 1;
+
+                    if (*blockTx->GetHash() == *ptx->GetContentTxHash())
+                        return {false, SocialConsensusResult_DoubleScore};
+                }
+            }
+
+            // Check count
+            return ValidateLimit(ptx, count);
+        }
+
+        ConsensusValidateResult ValidateMempool(const ScoreContentRef& ptx) override
+        {
+            // Check already scored content
+            if (PocketDb::ConsensusRepoInst.ExistsScore(
+                *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, true))
+                return {false, SocialConsensusResult_DoubleScore};
+
+            // Get count from chain
+            int count = GetChainCount(ptx);
+
+            // Get count from mempool
+            count += ConsensusRepoInst.CountMempoolScoreContent(*ptx->GetAddress());
+
+            // Check count
+            return ValidateLimit(ptx, count);
+        }
+
+        virtual bool ValidateLowReputation(const ScoreContentRef& ptx, AccountMode mode)
+        {
+            return true;
+        }
+
+        virtual ConsensusValidateResult ValidateLimit(const ScoreContentRef& ptx, int count)
+        {
+            auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
+
+            auto accountMode = reputationConsensus->GetAccountMode(*ptx->GetAddress());
+            auto limit = GetScoresLimit(accountMode);
+
+            if (count >= limit)
+                return {false, SocialConsensusResult_ScoreLimit};
+
+            if (!ValidateLowReputation(ptx, accountMode))
+                return {false, SocialConsensusResult_LowReputation};
+
+            return Success;
+        }
+
+        virtual ConsensusValidateResult ValidateBlocking(const string& contentAddress, const ScoreContentRef& ptx)
+        {
+            return Success;
+        }
+
+        virtual int GetChainCount(const ScoreContentRef& ptx)
+        {
+            return ConsensusRepoInst.CountChainScoreContentTime(
+                *ptx->GetAddress(),
+                *ptx->GetTime() - GetLimitWindow()
+            );
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const ScoreContentRef& ptx) override
+        {
             return {*ptx->GetAddress()};
         }
 
     };
 
     /*******************************************************************************************************************
-    *
     *  Consensus checkpoint at 175600 block
-    *
     *******************************************************************************************************************/
     class ScoreContentConsensus_checkpoint_175600 : public ScoreContentConsensus
     {
+    public:
+        ScoreContentConsensus_checkpoint_175600(int height) : ScoreContentConsensus(height) {}
     protected:
         int64_t GetFullLimit() override { return 200; }
         int64_t GetTrialLimit() override { return 100; }
-    public:
-        ScoreContentConsensus_checkpoint_175600(int height) : ScoreContentConsensus(height) {}
     };
 
     /*******************************************************************************************************************
@@ -208,13 +206,14 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class ScoreContentConsensus_checkpoint_430000 : public ScoreContentConsensus_checkpoint_175600
     {
+    public:
+        ScoreContentConsensus_checkpoint_430000(int height) : ScoreContentConsensus_checkpoint_175600(height) {}
     protected:
-        tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress,
-            const shared_ptr<ScoreContent>& tx) override
+        ConsensusValidateResult ValidateBlocking(const string& contentAddress, const ScoreContentRef& ptx) override
         {
             auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                 contentAddress,
-                *tx->GetAddress()
+                *ptx->GetAddress()
             );
 
             if (existsBlocking && blockingType == ACTION_BLOCKING)
@@ -222,46 +221,38 @@ namespace PocketConsensus
 
             return Success;
         }
-    public:
-        ScoreContentConsensus_checkpoint_430000(int height) : ScoreContentConsensus_checkpoint_175600(height) {}
     };
 
     /*******************************************************************************************************************
-    *
     *  Consensus checkpoint at 514184 block
-    *
     *******************************************************************************************************************/
     class ScoreContentConsensus_checkpoint_514184 : public ScoreContentConsensus_checkpoint_430000
     {
+    public:
+        ScoreContentConsensus_checkpoint_514184(int height) : ScoreContentConsensus_checkpoint_430000(height) {}
     protected:
-        tuple<bool, SocialConsensusResult> ValidateBlocking(const string& contentAddress, const shared_ptr<ScoreContent>& tx) override
+        ConsensusValidateResult ValidateBlocking(const string& contentAddress, const ScoreContentRef& ptx) override
         {
             return Success;
         }
-    public:
-        ScoreContentConsensus_checkpoint_514184(int height) : ScoreContentConsensus_checkpoint_430000(height) {}
     };
 
     /*******************************************************************************************************************
-    *
     *  Start checkpoint at 1124000 block
-    *
     *******************************************************************************************************************/
     class ScoreContentConsensus_checkpoint_1124000 : public ScoreContentConsensus_checkpoint_514184
     {
     public:
         ScoreContentConsensus_checkpoint_1124000(int height) : ScoreContentConsensus_checkpoint_514184(height) {}
     protected:
-        bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
+        bool CheckBlockLimitTime(const ScoreContentRef& ptx, const PTransactionRef& blockPtx) override
         {
             return true;
         }
     };
 
     /*******************************************************************************************************************
-    *
     *  Start checkpoint at 1180000 block
-    *
     *******************************************************************************************************************/
     class ScoreContentConsensus_checkpoint_1180000 : public ScoreContentConsensus_checkpoint_1124000
     {
@@ -269,7 +260,7 @@ namespace PocketConsensus
         ScoreContentConsensus_checkpoint_1180000(int height) : ScoreContentConsensus_checkpoint_1124000(height) {}
     protected:
         int64_t GetLimitWindow() override { return 1440; }
-        int GetChainCount(const shared_ptr<ScoreContent>& ptx) override
+        int GetChainCount(const ScoreContentRef& ptx) override
         {
             return ConsensusRepoInst.CountChainScoreContentHeight(
                 *ptx->GetAddress(),
@@ -279,9 +270,7 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *
     *  Start checkpoint at 1324655 block
-    *
     *******************************************************************************************************************/
     class ScoreContentConsensus_checkpoint_1324655 : public ScoreContentConsensus_checkpoint_1180000
     {
@@ -289,16 +278,14 @@ namespace PocketConsensus
         ScoreContentConsensus_checkpoint_1324655(int height) : ScoreContentConsensus_checkpoint_1180000(height) {}
     protected:
         int64_t GetTrialLimit() override { return 15; }
-        bool ValidateLowReputation(const shared_ptr<ScoreContent>& tx, AccountMode mode) override
+        bool ValidateLowReputation(const ScoreContentRef& ptx, AccountMode mode) override
         {
-            return (mode != AccountMode_Trial || (*tx->GetValue() == 1 || *tx->GetValue() == 2));
+            return (mode != AccountMode_Trial || (*ptx->GetValue() == 1 || *ptx->GetValue() == 2));
         }
     };
 
     /*******************************************************************************************************************
-    *
     *  Factory for select actual rules version
-    *
     *******************************************************************************************************************/
     class ScoreContentConsensusFactory : public SocialConsensusFactory
     {

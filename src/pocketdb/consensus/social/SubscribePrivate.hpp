@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -7,30 +5,28 @@
 #ifndef POCKETCONSENSUS_SUBSCRIBEPRIVATE_HPP
 #define POCKETCONSENSUS_SUBSCRIBEPRIVATE_HPP
 
-#include "pocketdb/consensus/social/Social.hpp"
+#include "pocketdb/consensus/Social.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/dto/SubscribePrivate.hpp"
 
 namespace PocketConsensus
 {
-    using namespace std;
+    typedef shared_ptr<SubscribePrivate> SubscribePrivateRef;
 
     /*******************************************************************************************************************
-    *
     *  SubscribePrivate consensus base class
-    *
     *******************************************************************************************************************/
-    class SubscribePrivateConsensus : public SocialConsensus
+    class SubscribePrivateConsensus : public SocialConsensus<SubscribePrivateRef>
     {
     public:
         SubscribePrivateConsensus(int height) : SocialConsensus(height) {}
 
-    protected:
-
-        tuple<bool, SocialConsensusResult> ValidateModel(const PTransactionRef& tx) override
+        ConsensusValidateResult Validate(const SubscribePrivateRef& ptx, const PocketBlockRef& block) override
         {
-            auto ptx = static_pointer_cast<SubscribePrivate>(tx);
-
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+                
             // Check double subscribe
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
                 *ptx->GetAddress(),
@@ -47,46 +43,8 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
+        ConsensusValidateResult Check(const SubscribePrivateRef& ptx) override
         {
-            auto ptx = static_pointer_cast<SubscribePrivate>(tx);
-
-            // Only one transaction (address -> addressTo) allowed in block
-            for (auto& blockTx : block)
-            {
-                if (!IsIn(*blockTx->GetType(), {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE, ACTION_SUBSCRIBE_CANCEL}))
-                    continue;
-
-                if (*blockTx->GetHash() == *ptx->GetHash())
-                    continue;
-
-                auto blockPtx = static_pointer_cast<SubscribePrivate>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
-                    return {false, SocialConsensusResult_DoubleSubscribe};
-            }
-
-            return Success;
-        }
-
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
-        {
-            auto ptx = static_pointer_cast<SubscribePrivate>(tx);
-
-            int mempoolCount = ConsensusRepoInst.CountMempoolSubscribe(
-                *ptx->GetAddress(),
-                *ptx->GetAddressTo()
-            );
-
-            if (mempoolCount > 0)
-                return {false, SocialConsensusResult_ManyTransactions};
-
-            return Success;
-        }
-
-        tuple<bool, SocialConsensusResult> CheckModel(const PTransactionRef& tx) override
-        {
-            auto ptx = static_pointer_cast<SubscribePrivate>(tx);
-
             // Check required fields
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
@@ -98,17 +56,47 @@ namespace PocketConsensus
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+    protected:
+
+        ConsensusValidateResult ValidateBlock(const SubscribePrivateRef& ptx, const PocketBlockRef& block) override
         {
-            auto ptx = static_pointer_cast<SubscribePrivate>(tx);
+            // Only one transaction (address -> addressTo) allowed in block
+            for (auto& blockTx : *block)
+            {
+                if (!IsIn(*blockTx->GetType(), {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE, ACTION_SUBSCRIBE_CANCEL}))
+                    continue;
+
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                if (*ptx->GetAddress() == *blockTx->GetString1() && *ptx->GetAddressTo() == *blockTx->GetString2())
+                    return {false, SocialConsensusResult_DoubleSubscribe};
+            }
+
+            return Success;
+        }
+
+        ConsensusValidateResult ValidateMempool(const SubscribePrivateRef& ptx) override
+        {
+            int mempoolCount = ConsensusRepoInst.CountMempoolSubscribe(
+                *ptx->GetAddress(),
+                *ptx->GetAddressTo()
+            );
+
+            if (mempoolCount > 0)
+                return {false, SocialConsensusResult_ManyTransactions};
+
+            return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const SubscribePrivateRef& ptx) override
+        {
             return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
     };
 
     /*******************************************************************************************************************
-    *
     *  Factory for select actual rules version
-    *
     *******************************************************************************************************************/
     class SubscribePrivateConsensusFactory : public SocialConsensusFactory
     {

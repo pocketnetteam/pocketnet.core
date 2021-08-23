@@ -23,7 +23,7 @@
 #include <univalue.h>
 
 #include "pocketdb/services/TransactionIndexer.hpp"
-#include "pocketdb/consensus/social/Helper.hpp"
+#include "pocketdb/consensus/Helper.hpp"
 #include "pocketdb/services/Accessor.hpp"
 #include "pocketdb/web/PocketFrontend.h"
 
@@ -891,7 +891,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
                 }
             }
 
-            if (!PocketConsensus::SocialConsensusHelper::Validate(*pocketBlock, pblockindex->nHeight))
+            if (!PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pblockindex->nHeight))
             {
                 LogPrintf("failed at %d heaihgt\n", pblockindex->nHeight);
                 // return RESTERR(req, HTTP_BAD_REQUEST, "Validate failed");

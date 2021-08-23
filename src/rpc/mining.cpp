@@ -418,8 +418,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             if (block.hashPrevBlock != pindexPrev->GetBlockHash())
                 return "inconclusive-not-best-prevblk";
             CValidationState state;
-            PocketHelpers::PocketBlock pocketBlock;
-            TestBlockValidity(state, Params(), block, pocketBlock, pindexPrev, false, true);
+            TestBlockValidity(state, Params(), block, nullptr, pindexPrev, false, true);
             return BIP22ValidationResult(state);
         }
 

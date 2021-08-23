@@ -37,6 +37,7 @@
 
 #include "websocket/ws.h"
 #include "pocketdb/helpers/TransactionHelper.hpp"
+using namespace PocketHelpers;
 
 extern std::map<std::string, WSUser> WSConnections;
 
@@ -452,7 +453,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
 /** Check a block is completely valid from start to finish (only works on top of our current best block) */
 bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
-    const CBlock& block, const PocketHelpers::PocketBlock& pocketBlock,
+    const CBlock& block, const PocketBlockRef& pocketBlock,
     CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 bool CheckBlockSignature(const CBlock& block);

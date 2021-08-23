@@ -11,21 +11,6 @@
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/ReputationConsensus.h"
 #include "pocketdb/SocialConsensus.h"
-// #include "pocketdb/consensus/social/Social.hpp"
-// #include "pocketdb/consensus/social/User.hpp"
-// #include "pocketdb/consensus/social/Video.hpp"
-// #include "pocketdb/consensus/social/Blocking.hpp"
-// #include "pocketdb/consensus/social/BlockingCancel.hpp"
-// #include "pocketdb/consensus/social/Comment.hpp"
-// #include "pocketdb/consensus/social/CommentEdit.hpp"
-// #include "pocketdb/consensus/social/CommentDelete.hpp"
-// #include "pocketdb/consensus/social/Complain.hpp"
-// #include "pocketdb/consensus/social/Post.hpp"
-// #include "pocketdb/consensus/social/ScoreComment.hpp"
-// #include "pocketdb/consensus/social/ScoreContent.hpp"
-// #include "pocketdb/consensus/social/Subscribe.hpp"
-// #include "pocketdb/consensus/social/SubscribeCancel.hpp"
-// #include "pocketdb/consensus/social/SubscribePrivate.hpp"
 
 namespace PocketConsensus
 {
@@ -38,30 +23,29 @@ namespace PocketConsensus
     {
     public:
 
-        static bool Validate(const PocketBlock& block, int height)
+        static bool Validate(const PocketBlockRef& block, int height)
         {
-            for (const auto& tx : block)
+            for (const auto& tx : *block)
             {
-                if (auto[ok, result] = Validate(tx, block, true, height); !ok)
+                if (auto[ok, result] = Validate(tx, block, height); !ok)
                     return false;
             }
 
             return true;
         }
 
-        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, int height)
+        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, int height)
         {
-            PocketBlock block;
-            return Validate(tx, block, false, height);
+            return Validate(tx, nullptr, height);
         }
 
-        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, PocketBlock& block, int height)
+        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, PocketBlockRef& block, int height)
         {
-            return Validate(tx, block, true, height);
+            return Validate(tx, block, height);
         }
 
         // Проверяет блок транзакций без привязки к цепи
-        static bool Check(const CBlock& block, const PocketBlock& pBlock)
+        static bool Check(const CBlock& block, const PocketBlockRef& pBlock)
         {
             auto coinstakeBlock = find_if(block.vtx.begin(), block.vtx.end(), [&](CTransactionRef const& tx)
             {
@@ -79,9 +63,8 @@ namespace PocketConsensus
 
                 // Maybe payload not exists?
                 auto txHash = tx->GetHash().GetHex();
-                auto it = find_if(pBlock.begin(), pBlock.end(),
-                    [&](PTransactionRef const& ptx) { return *ptx == txHash; });
-                if (it == pBlock.end())
+                auto it = find_if(pBlock->begin(), pBlock->end(), [&](PTransactionRef const& ptx) { return *ptx == txHash; });
+                if (it == pBlock->end())
                     return false;
 
                 // Check founded payload
@@ -93,14 +76,14 @@ namespace PocketConsensus
         }
 
         // Проверяет транзакцию без привязки к цепи
-        static tuple<bool, SocialConsensusResult> Check(const shared_ptr<Transaction>& tx)
+        static tuple<bool, SocialConsensusResult> Check(const PTransactionRef& tx)
         {
             return ValidateCheck(tx);
         }
 
     protected:
 
-        static tuple<bool, SocialConsensusResult> Validate(const shared_ptr<Transaction>& tx, const PocketBlock& block, bool inBlock, int height)
+        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, const PocketBlockRef& block, int height)
         {
             auto txType = *tx->GetType();
 
@@ -116,27 +99,13 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_Unknown};
             }
 
-            if (inBlock)
+            if (auto[ok, result] = consensus->Validate(tx, block); !ok)
             {
-                if (auto[ok, result] = consensus->Validate(tx, block); !ok)
-                {
-                    LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
-                              "for transaction %s with block at height %d\n",
-                        (int) txType, (int) result, *tx->GetHash(), height);
+                LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
+                            "for transaction %s with block at height %d\n",
+                    (int) txType, (int) result, *tx->GetHash(), height);
 
-                    return {false, result};
-                }
-            }
-            else
-            {
-                if (auto[ok, result] = consensus->Validate(tx); !ok)
-                {
-                    LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
-                              "for transaction %s without block at height %d\n",
-                        (int) txType, (int) result, *tx->GetHash(), height);
-
-                    return {false, result};
-                }
+                return {false, result};
             }
 
             return {true, SocialConsensusResult_Success};
@@ -182,7 +151,7 @@ namespace PocketConsensus
             }
         }
 
-        static shared_ptr<SocialConsensus> GetConsensus(PocketTxType txType, int height = 0)
+        static shared_ptr<SocialConsensus<PTransactionRef>> GetConsensus(PocketTxType txType, int height = 0)
         {
             switch (txType)
             {

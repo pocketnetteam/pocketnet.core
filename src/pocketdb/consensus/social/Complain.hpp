@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -8,43 +6,27 @@
 #define POCKETCONSENSUS_COMPLAIN_HPP
 
 #include "pocketdb/consensus/Reputation.hpp"
-#include "pocketdb/consensus/social/Social.hpp"
+#include "pocketdb/consensus/Social.hpp"
 #include "pocketdb/models/dto/Complain.hpp"
 
 namespace PocketConsensus
 {
-    using namespace std;
+    typedef shared_ptr<Complain> ComplainRef;
 
     /*******************************************************************************************************************
-    *
     *  Complain consensus base class
-    *
     *******************************************************************************************************************/
-    class ComplainConsensus : public SocialConsensus
+    class ComplainConsensus : public SocialConsensus<ComplainRef>
     {
     public:
         ComplainConsensus(int height) : SocialConsensus(height) {}
 
-    protected:
-
-        virtual int64_t GetLimitWindow() { return 86400; }
-
-        virtual int64_t GetFullAccountComplainsLimit() { return 12; }
-
-        virtual int64_t GetTrialAccountComplainsLimit() { return 6; }
-
-        virtual int64_t GetThresholdReputation() { return 500; }
-
-        virtual int64_t GetComplainsLimit(AccountMode mode)
+        ConsensusValidateResult Validate(const ComplainRef& ptx, const PocketBlockRef& block) override
         {
-            return mode >= AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
-        }
-
-
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
-        {
-            auto ptx = static_pointer_cast<Complain>(tx);
-
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+                
             // Author or post must be exists
             auto postAddress = PocketDb::ConsensusRepoInst.GetContentAddress(*ptx->GetPostTxHash());
             if (postAddress == nullptr)
@@ -60,22 +42,30 @@ namespace PocketConsensus
 
             return Success;
         }
-
-        virtual bool CheckBlockLimitTime(const shared_ptr<Complain>& ptx, const shared_ptr<Complain>& blockPtx)
+        
+        ConsensusValidateResult Check(const ComplainRef& ptx) override
         {
-            return *blockPtx->GetTime() <= *ptx->GetTime();
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetReason())) return {false, SocialConsensusResult_Failed};
+
+            return Success;
         }
 
-        tuple<bool, SocialConsensusResult>
-        ValidateLimit(const shared_ptr<Transaction>& tx, const PocketBlock& block) override
-        {
-            auto ptx = static_pointer_cast<Complain>(tx);
+    protected:
+        virtual int64_t GetLimitWindow() { return 86400; }
+        virtual int64_t GetFullAccountComplainsLimit() { return 12; }
+        virtual int64_t GetTrialAccountComplainsLimit() { return 6; }
+        virtual int64_t GetThresholdReputation() { return 500; }
+        virtual int64_t GetComplainsLimit(AccountMode mode) { return mode >= AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit(); }
 
-            // from chain
+
+        ConsensusValidateResult ValidateBlock(const ComplainRef& ptx, const PocketBlockRef& block) override
+        {
             int count = GetChainCount(ptx);
 
-            // from block
-            for (auto& blockTx : block)
+            for (auto& blockTx : *block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACTION_COMPLAIN}))
                     continue;
@@ -94,8 +84,7 @@ namespace PocketConsensus
                     {
                         PocketHelpers::SocialCheckpoints socialCheckpoints;
                         if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleComplain))
-                            //return {false, SocialConsensusResult_DoubleComplain};
-                            LogPrintf("--- %s %d SocialConsensusResult_DoubleComplain\n", *ptx->GetTypeInt(), *ptx->GetHash());
+                            return {false, SocialConsensusResult_DoubleComplain};
                     }
                 }
             }
@@ -103,20 +92,14 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
+        ConsensusValidateResult ValidateMempool(const ComplainRef& ptx) override
         {
-            auto ptx = static_pointer_cast<Complain>(tx);
-
-            // from chain
             int count = GetChainCount(ptx);
-
-            // from mempool
             count += ConsensusRepoInst.CountMempoolComplain(*ptx->GetAddress());
-
             return ValidateLimit(ptx, count);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Complain>& tx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const ComplainRef& tx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
 
@@ -133,7 +116,12 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual int GetChainCount(const shared_ptr<Complain>& ptx)
+        virtual bool CheckBlockLimitTime(const ComplainRef& ptx, const ComplainRef& blockPtx)
+        {
+            return *blockPtx->GetTime() <= *ptx->GetTime();
+        }
+
+        virtual int GetChainCount(const ComplainRef& ptx)
         {
             return ConsensusRepoInst.CountChainComplainTime(
                 *ptx->GetAddress(),
@@ -141,29 +129,14 @@ namespace PocketConsensus
             );
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
+        vector<string> GetAddressesForCheckRegistration(const ComplainRef& ptx) override
         {
-            auto ptx = static_pointer_cast<Complain>(tx);
-
-            // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetReason())) return {false, SocialConsensusResult_Failed};
-
-            return Success;
-        }
-
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
-        {
-            auto ptx = static_pointer_cast<Complain>(tx);
             return {*ptx->GetAddress()};
         }
     };
 
     /*******************************************************************************************************************
-    *
     *  Start checkpoint at 292800 block
-    *
     *******************************************************************************************************************/
     class ComplainConsensus_checkpoint_292800 : public ComplainConsensus
     {
@@ -174,25 +147,21 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *
     *  Start checkpoint at 1124000 block
-    *
     *******************************************************************************************************************/
     class ComplainConsensus_checkpoint_1124000 : public ComplainConsensus_checkpoint_292800
     {
     public:
         ComplainConsensus_checkpoint_1124000(int height) : ComplainConsensus_checkpoint_292800(height) {}
     protected:
-        bool CheckBlockLimitTime(const shared_ptr<Complain>& ptx, const shared_ptr<Complain>& blockPtx) override
+        bool CheckBlockLimitTime(const ComplainRef& ptx, const ComplainRef& blockPtx) override
         {
             return true;
         }
     };
 
     /*******************************************************************************************************************
-    *
     *  Start checkpoint at 1180000 block
-    *
     *******************************************************************************************************************/
     class ComplainConsensus_checkpoint_1180000 : public ComplainConsensus_checkpoint_1124000
     {
@@ -200,7 +169,7 @@ namespace PocketConsensus
         ComplainConsensus_checkpoint_1180000(int height) : ComplainConsensus_checkpoint_1124000(height) {}
     protected:
         int64_t GetLimitWindow() override { return 1440; }
-        int GetChainCount(const shared_ptr<Complain>& ptx) override
+        int GetChainCount(const ComplainRef& ptx) override
         {
             return ConsensusRepoInst.CountChainComplainHeight(
                 *ptx->GetAddress(),
@@ -211,9 +180,7 @@ namespace PocketConsensus
 
 
     /*******************************************************************************************************************
-    *
     *  Factory for select actual rules version
-    *
     *******************************************************************************************************************/
     class ComplainConsensusFactory : public SocialConsensusFactory
     {

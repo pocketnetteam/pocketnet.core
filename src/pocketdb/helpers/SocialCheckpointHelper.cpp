@@ -12,12 +12,10 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("30064229865e5f18d51725e3c3339facae0bfecd35b0e5a92e9dc1a168748439", tuple(ACCOUNT_USER, SocialConsensusResult_ChangeInfoLimit));
     _checkpoints.emplace("45ad6c18c67717ab02c658e5153cbc97e3e7be9ed964739bb3a6181f89973b52", tuple(ACCOUNT_USER, SocialConsensusResult_ChangeInfoLimit));
     _checkpoints.emplace("d2787346ff8c37e3a3cc428689b757b3550b6ea608b15cddd5554d1e9dac2531", tuple(ACCOUNT_USER, SocialConsensusResult_ChangeInfoLimit));
-
     _checkpoints.emplace("f7b3a4a6c9c216f72e82cefcc11da9a747cc4980a690efa0d51b6a28d134d46f", tuple(ACCOUNT_USER, SocialConsensusResult_Failed));
     _checkpoints.emplace("f7b3a4a6c9c216f72e82cefcc11da9a747cc4980a690efa0d51b6a28d134d46f", tuple(ACCOUNT_USER, SocialConsensusResult_Failed));
     _checkpoints.emplace("d53997af512427f4cef0a709fde76e28478f225d0219e2c29c31947efbce7f5b", tuple(ACCOUNT_USER, SocialConsensusResult_Failed));
     _checkpoints.emplace("3efb8d2195dc8e180110cadd8b31025c1246d7b18ac0e78ec035151a363a6e4f", tuple(ACCOUNT_USER, SocialConsensusResult_Failed));
-
     _checkpoints.emplace("2da9324dc57c9af92fa4b5ee1f7f0ecace0407e30db65fb13d9faecc43e46938", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("4cf6e53c78f0738a20266562c76b12e12951b87cc0571b280be118843bd30066", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("dedcb086b48c09d4f0083a64859ad1aa2f4d1dc91fcb3d34b5136b50cd09a127", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
@@ -29,13 +27,13 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("16b4413b9e9f7b6751535536d2d4f79320e676c3dce6a51d2a025d5afd914777", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("b7ca6990b7a194b00dbdef427e4e5066493d495a04b08d7215c7535ab70ba5e6", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
     _checkpoints.emplace("9229b3c2d002cbf4bd9fc79037cba61067ab3a2ae1e423bce194fc14738d9a98", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
-
     _checkpoints.emplace("45ad6c18c67717ab02c658e5153cbc97e3e7be9ed964739bb3a6181f89973b52", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
     _checkpoints.emplace("caba0de8cff0173c3777896a79bfdf4d7227b8dcfb9f10df249601e6c148c436", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
     _checkpoints.emplace("aba1c17900f74fb09ce09316ede13927c292172fe6aceabf0ef3638309f715b7", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
     _checkpoints.emplace("b11aaacd180160aba063337c6e2b8feed33bcc37cbf9ef9f054f47ac534579a8", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
     _checkpoints.emplace("5645011f36792de285fba0b588c0c77c3186bece5b7421749b6efb122c230a8b", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
     _checkpoints.emplace("777e9f4c4622865590ec5a092cbef0a1878cd8a102d59579e3c48f2a716fe827", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameDouble));
+    
     
     _checkpoints.emplace("34d3db603ac0ba65960a3ef2508967ab4a9fc5e55a3c637af7aa50580a0f32dd", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("812fca4ea40a58ff99fcd96fefd307f33c4daef4bc13918e7a82a5b92720c2f6", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
@@ -64,9 +62,14 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("d7c5b2bbf4e0bd39bdc54e773ac0c731f155c957c15790b838372dffb2494bfd", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("0a24721f17f400959eda79d2ca9b6e4edd47ecce9267e908649dd3ceb7b497c5", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("7321445c16fe641c56606d377a29a24d117f2849197bd7bd32054e906401fb8e", tuple(ACTION_SUBSCRIBE, SocialConsensusResult_DoubleSubscribe));
-    
     _checkpoints.emplace("08aa6a715e644abfe47f9623bdc4a568b6edb0432e1bf5b59a2cee7565c81226", tuple(ACTION_SUBSCRIBE_CANCEL, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("87e63741701602706bee96257259054030b8f91c4fcab849aa1aac33cab5d692", tuple(ACTION_SUBSCRIBE_CANCEL, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("a9f3b05d3398dd9eef945522e1fdc22cb4638b0fc3c55846bb0ba8a8ecdee21e", tuple(ACTION_SUBSCRIBE_CANCEL, SocialConsensusResult_InvalideSubscribe));
+    _checkpoints.emplace("4cd085384b2a752accf8a5cb260e2e6e6d31f76aea449202c4c9e2e1a502a1b1", tuple(ACTION_SUBSCRIBE_CANCEL, SocialConsensusResult_InvalideSubscribe));
+
+    _checkpoints.emplace("7c9f36e79de86e22ad86230596cb32cf3b8be14d7ac8046e7ec56af85fce9734", tuple(ACTION_BLOCKING, SocialConsensusResult_DoubleBlocking));
+    _checkpoints.emplace("2e746fd6d1eb858e0dd610f0a3ffe5b2a83f45c6cda26d35805626ca72aa4416", tuple(ACTION_BLOCKING, SocialConsensusResult_DoubleBlocking));
+    _checkpoints.emplace("71569365b642d18a9f771f06dcb7832fbf0b2cd4d07eebcb2d40a7ea4f5c13db", tuple(ACTION_BLOCKING_CANCEL, SocialConsensusResult_InvalidBlocking));
 
     _checkpoints.emplace("aedcd75c2ebae534537f6064ea43d7abb75230eed5db108229465ae8bd268142", tuple(ACTION_COMPLAIN, SocialConsensusResult_DoubleComplain));
     _checkpoints.emplace("fc0fa992b8c3c87107da9db7843beaafd255b682cd0466402d37a2a0631fc464", tuple(ACTION_COMPLAIN, SocialConsensusResult_DoubleComplain));

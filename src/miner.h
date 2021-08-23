@@ -16,7 +16,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 
 #include "pocketdb/helpers/TransactionHelper.hpp"
-#include "pocketdb/consensus/social/Helper.hpp"
+#include "pocketdb/consensus/Helper.hpp"
 
 using namespace PocketHelpers;
 

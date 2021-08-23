@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -7,32 +5,28 @@
 #ifndef POCKETCONSENSUS_USER_HPP
 #define POCKETCONSENSUS_USER_HPP
 
-#include "pocketdb/consensus/social/Social.hpp"
+#include "pocketdb/consensus/Social.hpp"
 #include "pocketdb/models/base/Transaction.hpp"
 #include "pocketdb/models/dto/User.hpp"
 
 namespace PocketConsensus
 {
+    typedef shared_ptr<User> UserRef;
+
     /*******************************************************************************************************************
-    *
     *  User consensus base class
-    *
     *******************************************************************************************************************/
-    class UserConsensus : public SocialConsensus
+    class UserConsensus : public SocialConsensus<UserRef>
     {
     public:
         UserConsensus(int height) : SocialConsensus(height) {}
 
-
-    protected:
-
-        virtual int64_t GetChangeInfoDepth() { return 3600; }
-
-
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
+        ConsensusValidateResult Validate(const UserRef& ptx, const PocketBlockRef& block) override
         {
-            auto ptx = static_pointer_cast<User>(tx);
-
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+                
             // TODO (brangr) (v0.21.0): unique names disabled in future
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
             {
@@ -41,68 +35,11 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_NicknameDouble};
             }
 
-            return ValidateModelEdit(ptx);
+            return ValidateEdit(ptx);
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateModelEdit(const shared_ptr<User>& ptx)
+        ConsensusValidateResult Check(const UserRef& ptx) override
         {
-            // First user account transaction allowed without next checks
-            auto[prevOk, prevTx] = ConsensusRepoInst.GetLastAccount(*ptx->GetAddress());
-            if (!prevOk)
-                return Success;
-
-            // We allow edit profile only with delay
-            if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetChangeInfoDepth())
-                return {false, SocialConsensusResult_ChangeInfoLimit};
-
-            // For edit user profile referrer not allowed
-            if (ptx->GetReferrerAddress() != nullptr)
-                return {false, SocialConsensusResult_ReferrerAfterRegistration};
-
-            return Success;
-        }
-
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx,
-            const PocketBlock& block) override
-        {
-            auto ptx = static_pointer_cast<User>(tx);
-
-            // Only one transaction allowed in block
-            for (auto& blockTx : block)
-            {
-                if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
-                    continue;
-
-                if (*blockTx->GetHash() == *ptx->GetHash())
-                    continue;
-
-                auto blockPtx = static_pointer_cast<User>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                {
-                    PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoLimit))
-                        //return {false, SocialConsensusResult_ChangeInfoLimit};
-                        LogPrintf("--- %s %d SocialConsensusResult_ChangeInfoLimit\n", *ptx->GetTypeInt(), *ptx->GetHash());
-                }
-            }
-
-            return Success;
-        }
-
-        tuple<bool, SocialConsensusResult> ValidateLimit(const shared_ptr<Transaction>& tx) override
-        {
-            auto ptx = static_pointer_cast<User>(tx);
-
-            if (ConsensusRepoInst.CountMempoolUser(*ptx->GetAddress()) > 0)
-                return {false, SocialConsensusResult_ChangeInfoLimit};
-
-            return Success;
-        }
-
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
-        {
-            auto ptx = static_pointer_cast<User>(tx);
-
             // Check required fields
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
 
@@ -137,7 +74,60 @@ namespace PocketConsensus
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+
+    protected:
+        virtual int64_t GetChangeInfoDepth() { return 3600; }
+
+
+        virtual ConsensusValidateResult ValidateEdit(const UserRef& ptx)
+        {
+            // First user account transaction allowed without next checks
+            auto[prevOk, prevTx] = ConsensusRepoInst.GetLastAccount(*ptx->GetAddress());
+            if (!prevOk)
+                return Success;
+
+            // We allow edit profile only with delay
+            if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetChangeInfoDepth())
+                return {false, SocialConsensusResult_ChangeInfoLimit};
+
+            // For edit user profile referrer not allowed
+            if (ptx->GetReferrerAddress() != nullptr)
+                return {false, SocialConsensusResult_ReferrerAfterRegistration};
+
+            return Success;
+        }
+
+        ConsensusValidateResult ValidateBlock(const UserRef& ptx, const PocketBlockRef& block) override
+        {
+            // Only one transaction allowed in block
+            for (auto& blockTx : *block)
+            {
+                if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                    continue;
+
+                if (*blockTx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                if (*ptx->GetAddress() == *blockTx->GetString1())
+                {
+                    PocketHelpers::SocialCheckpoints socialCheckpoints;
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoLimit))
+                        return {false, SocialConsensusResult_ChangeInfoLimit};
+                }
+            }
+
+            return Success;
+        }
+
+        ConsensusValidateResult ValidateMempool(const UserRef& ptx) override
+        {
+            if (ConsensusRepoInst.CountMempoolUser(*ptx->GetAddress()) > 0)
+                return {false, SocialConsensusResult_ChangeInfoLimit};
+
+            return Success;
+        }
+
+        vector<string> GetAddressesForCheckRegistration(const UserRef& ptx) override
         {
             return {};
         }
@@ -150,11 +140,11 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class UserConsensus_checkpoint_1180000 : public UserConsensus
     {
+    public:
+        UserConsensus_checkpoint_1180000(int height) : UserConsensus(height) {}
     protected:
-
         int64_t GetChangeInfoDepth() override { return 60; }
-
-        tuple<bool, SocialConsensusResult> ValidateModelEdit(const std::shared_ptr<User>& ptx) override
+        ConsensusValidateResult ValidateEdit(const UserRef& ptx) override
         {
             // First user account transaction allowed without next checks
             auto[ok, prevTxHeight] = ConsensusRepoInst.GetLastAccountHeight(*ptx->GetAddress());
@@ -170,34 +160,25 @@ namespace PocketConsensus
 
             return Success;
         }
-
-    public:
-        UserConsensus_checkpoint_1180000(int height) : UserConsensus(height) {}
     };
 
     /*******************************************************************************************************************
-    *
     *  Start checkpoint at ?? block
-    *
     *******************************************************************************************************************/
     class UserConsensus_checkpoint_ : public UserConsensus_checkpoint_1180000
     {
+    public:
+        UserConsensus_checkpoint_(int height) : UserConsensus_checkpoint_1180000(height) {}
     protected:
-
         // TODO (brangr) (v0.21.0): Starting from this block, we disable the uniqueness of Name
-        virtual tuple<bool, SocialConsensusResult> CheckDoubleName(const std::shared_ptr<User>& tx)
+        virtual ConsensusValidateResult CheckDoubleName(const UserRef& ptx)
         {
             return make_tuple(true, SocialConsensusResult_Success);
         }
-
-    public:
-        UserConsensus_checkpoint_(int height) : UserConsensus_checkpoint_1180000(height) {}
     };
 
     /*******************************************************************************************************************
-    *
     *  Factory for select actual rules version
-    *
     *******************************************************************************************************************/
     class UserConsensusFactory : public SocialConsensusFactory
     {

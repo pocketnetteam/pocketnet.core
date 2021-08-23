@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -7,27 +5,27 @@
 #ifndef POCKETCONSENSUS_COMMENT_DELETE_HPP
 #define POCKETCONSENSUS_COMMENT_DELETE_HPP
 
-#include "pocketdb/consensus/social/Social.hpp"
+#include "pocketdb/consensus/Social.hpp"
 #include "pocketdb/models/dto/CommentDelete.hpp"
 
 namespace PocketConsensus
 {
+    typedef shared_ptr<CommentDelete> CommentDeleteRef;
+
     /*******************************************************************************************************************
-    *
     *  CommentDelete consensus base class
-    *
     *******************************************************************************************************************/
-    class CommentDeleteConsensus : public SocialConsensus
+    class CommentDeleteConsensus : public SocialConsensus<CommentDeleteRef>
     {
     public:
         CommentDeleteConsensus(int height) : SocialConsensus(height) {}
 
-    protected:
-
-        tuple<bool, SocialConsensusResult> ValidateModel(const shared_ptr<Transaction>& tx) override
+        ConsensusValidateResult Validate(const CommentDeleteRef& ptx, const PocketBlockRef& block) override
         {
-            auto ptx = static_pointer_cast<CommentDelete>(tx);
-
+            // Base validation with calling block or mempool check
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+                return {false, baseValidateCode};
+                
             // Actual comment not deleted
             if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
                 !ok || *actuallTx->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
@@ -68,10 +66,25 @@ namespace PocketConsensus
 
             return Success;
         }
-
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx, const PocketBlock& block) override
+        
+        ConsensusValidateResult Check(const CommentDeleteRef& ptx) override
         {
-            for (auto& blockTx : block)
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(ptx); !baseCheck)
+                return {false, baseCheckCode};
+
+            // Check required fields
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
+            if (ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+
+            return Success;
+        }
+
+    protected:
+
+        ConsensusValidateResult ValidateBlock(const CommentDeleteRef& tx, const PocketBlockRef& block) override
+        {
+            for (auto& blockTx : *block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
                     continue;
@@ -87,7 +100,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> ValidateLimit(const PTransactionRef& tx) override
+        ConsensusValidateResult ValidateMempool(const CommentDeleteRef& tx) override
         {
             // GetString2() = RootTxHash
             if (ConsensusRepoInst.CountMempoolCommentEdit(*tx->GetString1(), *tx->GetString2()) > 0)
@@ -96,19 +109,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        tuple<bool, SocialConsensusResult> CheckModel(const shared_ptr<Transaction>& tx) override
-        {
-            auto ptx = static_pointer_cast<CommentDelete>(tx);
-
-            // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
-            if (ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
-
-            return Success;
-        }
-
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) override
+        vector<string> GetAddressesForCheckRegistration(const CommentDeleteRef& tx) override
         {
             auto ptx = static_pointer_cast<CommentDelete>(tx);
             return {*ptx->GetAddress()};
@@ -117,9 +118,7 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *
     *  Factory for select actual rules version
-    *
     *******************************************************************************************************************/
     class CommentDeleteConsensusFactory : public SocialConsensusFactory
     {
