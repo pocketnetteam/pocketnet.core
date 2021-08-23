@@ -127,7 +127,7 @@ namespace PocketConsensus
             auto limit = GetLimit(mode);
 
             if (m_count >= limit)
-                return {false, SocialConsensusResult_ContentLimit};
+                return {false, SocialConsensusResult_CommentLimit};
 
             return Success;
         }

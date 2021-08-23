@@ -31,7 +31,7 @@ namespace PocketConsensus
             // Actual comment not deleted
             if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
                 !ok || *actuallTx->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
-                return {false, SocialConsensusResult_NotFound};
+                return {false, SocialConsensusResult_CommentDeletedEdit};
 
             // Original comment exists
             auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
