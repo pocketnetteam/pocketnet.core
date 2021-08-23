@@ -49,7 +49,7 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw std::runtime_error(
-                "getlastblocks ( count, verbosity )\n"
+                "getlastblocks ( count, last_height, verbosity )\n"
                 "\nGet N last blocks.\n"
                 "\nArguments:\n"
                 "1. \"count\"         (int, optional) Count of blocks. Maximum 100 blocks.\n"
