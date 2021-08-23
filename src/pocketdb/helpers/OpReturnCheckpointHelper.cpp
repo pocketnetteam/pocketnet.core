@@ -8,4 +8,5 @@ using namespace PocketHelpers;
 
 OpReturnCheckpoints::OpReturnCheckpoints()
 {
+    // TODO (brangr): checkpoints
 }

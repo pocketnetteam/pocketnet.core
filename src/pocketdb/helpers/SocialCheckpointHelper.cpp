@@ -13,7 +13,6 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("45ad6c18c67717ab02c658e5153cbc97e3e7be9ed964739bb3a6181f89973b52", tuple(ACCOUNT_USER, SocialConsensusResult_ChangeInfoLimit));
     _checkpoints.emplace("d2787346ff8c37e3a3cc428689b757b3550b6ea608b15cddd5554d1e9dac2531", tuple(ACCOUNT_USER, SocialConsensusResult_ChangeInfoLimit));
     _checkpoints.emplace("f7b3a4a6c9c216f72e82cefcc11da9a747cc4980a690efa0d51b6a28d134d46f", tuple(ACCOUNT_USER, SocialConsensusResult_Failed));
-    _checkpoints.emplace("f7b3a4a6c9c216f72e82cefcc11da9a747cc4980a690efa0d51b6a28d134d46f", tuple(ACCOUNT_USER, SocialConsensusResult_Failed));
     _checkpoints.emplace("d53997af512427f4cef0a709fde76e28478f225d0219e2c29c31947efbce7f5b", tuple(ACCOUNT_USER, SocialConsensusResult_Failed));
     _checkpoints.emplace("3efb8d2195dc8e180110cadd8b31025c1246d7b18ac0e78ec035151a363a6e4f", tuple(ACCOUNT_USER, SocialConsensusResult_Failed));
     _checkpoints.emplace("2da9324dc57c9af92fa4b5ee1f7f0ecace0407e30db65fb13d9faecc43e46938", tuple(ACCOUNT_USER, SocialConsensusResult_NicknameLong));
