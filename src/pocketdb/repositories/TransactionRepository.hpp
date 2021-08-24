@@ -173,8 +173,6 @@ namespace PocketDb
 
                 TryStepStatement(stmt);
             }
-
-            LogPrint(BCLog::SYNC, "  - Insert Outputs %s : %d\n", *ptx->GetHash(), (int) ptx->Outputs().size());
         }
 
         void InsertTransactionPayload(shared_ptr<Transaction> ptx)
@@ -238,8 +236,6 @@ namespace PocketDb
             TryBindStatementText(stmt, 10, ptx->GetHash());
 
             TryStepStatement(stmt);
-
-            LogPrint(BCLog::SYNC, "  - Insert Model body %s : %d\n", *ptx->GetHash(), *ptx->GetType());
         }
 
     protected:
