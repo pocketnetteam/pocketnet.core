@@ -142,7 +142,7 @@ namespace PocketDb
 
     private:
 
-        void InsertTransactionOutputs(shared_ptr<Transaction> ptx)
+        void InsertTransactionOutputs(const PTransactionRef& ptx)
         {
             for (const auto& output : ptx->Outputs())
             {
@@ -175,7 +175,7 @@ namespace PocketDb
             }
         }
 
-        void InsertTransactionPayload(shared_ptr<Transaction> ptx)
+        void InsertTransactionPayload(const PTransactionRef& ptx)
         {
             auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Payload (
@@ -205,7 +205,7 @@ namespace PocketDb
             TryStepStatement(stmt);
         }
 
-        void InsertTransactionModel(shared_ptr<Transaction> ptx)
+        void InsertTransactionModel(const PTransactionRef& ptx)
         {
             auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Transactions (
