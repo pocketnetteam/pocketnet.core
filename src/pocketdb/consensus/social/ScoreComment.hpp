@@ -11,29 +11,29 @@
 
 namespace PocketConsensus
 {
-    typedef shared_ptr<ScoreComment> ScoreCommentRef;
-
     /*******************************************************************************************************************
     *  ScoreComment consensus base class
     *******************************************************************************************************************/
-    class ScoreCommentConsensus : public SocialConsensus<ScoreCommentRef>
+    class ScoreCommentConsensus : public SocialConsensus
     {
     public:
         ScoreCommentConsensus(int height) : SocialConsensus(height) {}
 
-        ConsensusValidateResult Validate(const ScoreCommentRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
+            auto _ptx = static_pointer_cast<ScoreComment>(ptx);
+
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
-                *ptx->GetAddress(), *ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, false))
+                *_ptx->GetAddress(), *_ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, false))
                 return {false, SocialConsensusResult_DoubleCommentScore};
 
             // Comment should be exists
-            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetCommentTxHash());
+            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*_ptx->GetCommentTxHash());
             if (!lastContentOk && block)
             {
                 // ... or in block
@@ -42,7 +42,7 @@ namespace PocketConsensus
                     if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
                         continue;
 
-                    if (*blockTx->GetString2() == *ptx->GetCommentTxHash())
+                    if (*blockTx->GetString2() == *_ptx->GetCommentTxHash())
                     {
                         lastContent = blockTx;
                         break;
@@ -56,43 +56,45 @@ namespace PocketConsensus
             if (*lastContent->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NotFound))
+                if (!socialCheckpoints.IsCheckpoint(*_ptx->GetHash(), *_ptx->GetType(), SocialConsensusResult_NotFound))
                     return {false, SocialConsensusResult_NotFound};
             }
 
             // Check score to self
-            if (*ptx->GetAddress() == *lastContent->GetString1())
+            if (*_ptx->GetAddress() == *lastContent->GetString1())
                 return {false, SocialConsensusResult_SelfCommentScore};
 
             // Check Blocking
-            if (auto[ok, result] = ValidateBlocking(*lastContent->GetString1(), ptx); !ok)
+            if (auto[ok, result] = ValidateBlocking(*lastContent->GetString1(), _ptx); !ok)
                 return {false, result};
 
             return Success;
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const ScoreCommentRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx) override
         {
+            auto _ptx = static_pointer_cast<ScoreComment>(ptx);
+
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetCommentTxHash())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetValue())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(_ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(_ptx->GetCommentTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(_ptx->GetValue())) return {false, SocialConsensusResult_Failed};
 
-            auto value = *ptx->GetValue();
+            auto value = *_ptx->GetValue();
             if (value != 1 && value != -1)
                 return {false, SocialConsensusResult_Failed};
 
             // TODO (brangr): DEBUG!
             // по сути нужно пробрасывать хэш из транзакции всегда
             // Check OP_RETURN with Payload
-            //if (IsEmpty(ptx->GetOPRAddress()) || *ptx->GetOPRAddress() != *ptx->GetAddress())
-            //    LogPrintf("000 CHECKPOINT 11 %s\n", *ptx->GetHash());
+            //if (IsEmpty(_ptx->GetOPRAddress()) || *_ptx->GetOPRAddress() != *_ptx->GetAddress())
+            //    LogPrintf("000 CHECKPOINT 11 %s\n", *_ptx->GetHash());
             //  return {false, SocialConsensusResult_OpReturnFailed};
-            //if (IsEmpty(ptx->GetOPRValue()) || *ptx->GetOPRValue() != *ptx->GetValue())
-            //    LogPrintf("000 CHECKPOINT 22 %s\n", *ptx->GetHash());
+            //if (IsEmpty(_ptx->GetOPRValue()) || *_ptx->GetOPRValue() != *_ptx->GetValue())
+            //    LogPrintf("000 CHECKPOINT 22 %s\n", *_ptx->GetHash());
             //  return {false, SocialConsensusResult_OpReturnFailed};
 
             return Success;
@@ -102,15 +104,20 @@ namespace PocketConsensus
         virtual int64_t GetLimitWindow() { return 86400; }
         virtual int64_t GetFullAccountScoresLimit() { return 600; }
         virtual int64_t GetTrialAccountScoresLimit() { return 300; }
-        virtual int64_t GetScoresLimit(AccountMode mode) { return mode >= AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit(); }
+        virtual int64_t GetScoresLimit(AccountMode mode)
+        {
+            return mode >= AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
+        }
 
-        virtual bool CheckBlockLimitTime(const ScoreCommentRef& ptx, const PTransactionRef& blockTx)
+        virtual bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockTx)
         {
             return *blockTx->GetTime() <= *ptx->GetTime();
         }
 
-        ConsensusValidateResult ValidateBlock(const ScoreCommentRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
+            auto _ptx = static_pointer_cast<ScoreComment>(ptx);
+
             // Get count from chain
             int count = GetChainCount(ptx);
 
@@ -123,12 +130,12 @@ namespace PocketConsensus
                 if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                if (*ptx->GetAddress() == *blockTx->GetString1())
+                if (*_ptx->GetAddress() == *blockTx->GetString1())
                 {
-                    if (CheckBlockLimitTime(ptx, blockTx))
+                    if (CheckBlockLimitTime(_ptx, blockTx))
                         count += 1;
 
-                    if (*blockTx->GetHash() == *ptx->GetCommentTxHash())
+                    if (*blockTx->GetHash() == *_ptx->GetCommentTxHash())
                         return {false, SocialConsensusResult_DoubleCommentScore};
                 }
             }
@@ -136,48 +143,55 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        ConsensusValidateResult ValidateMempool(const ScoreCommentRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
         {
+            auto _ptx = static_pointer_cast<ScoreComment>(ptx);
+
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
-                *ptx->GetAddress(), *ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, true))
+                *_ptx->GetAddress(), *_ptx->GetCommentTxHash(), ACTION_SCORE_COMMENT, true))
                 return {false, SocialConsensusResult_DoubleCommentScore};
 
             // Check count from chain
-            int count = GetChainCount(ptx);
+            int count = GetChainCount(_ptx);
 
             // and from mempool
-            count += ConsensusRepoInst.CountMempoolScoreComment(*ptx->GetAddress());
+            count += ConsensusRepoInst.CountMempoolScoreComment(*_ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const ScoreCommentRef& ptx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const PTransactionRef& ptx, int count)
         {
+            auto _ptx = static_pointer_cast<ScoreComment>(ptx);
+
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto accountMode = reputationConsensus->GetAccountMode(*ptx->GetAddress());
+            auto accountMode = reputationConsensus->GetAccountMode(*_ptx->GetAddress());
             if (count >= GetScoresLimit(accountMode))
                 return {false, SocialConsensusResult_CommentScoreLimit};
 
             return Success;
         }
 
-        virtual ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& tx)
+        virtual ConsensusValidateResult ValidateBlocking(const string& commentAddress, const PTransactionRef& tx)
         {
             return Success;
         }
 
-        virtual int GetChainCount(const ScoreCommentRef& ptx)
+        virtual int GetChainCount(const PTransactionRef& ptx)
         {
+            auto _ptx = static_pointer_cast<ScoreComment>(ptx);
+
             return ConsensusRepoInst.CountChainScoreCommentTime(
-                *ptx->GetAddress(),
-                *ptx->GetTime() - GetLimitWindow()
+                *_ptx->GetAddress(),
+                *_ptx->GetTime() - GetLimitWindow()
             );
         }
 
-        vector<string> GetAddressesForCheckRegistration(const ScoreCommentRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            auto _ptx = static_pointer_cast<ScoreComment>(ptx);
+            return {*_ptx->GetAddress()};
         }
     };
 
@@ -189,11 +203,13 @@ namespace PocketConsensus
     public:
         ScoreCommentConsensus_checkpoint_430000(int height) : ScoreCommentConsensus(height) {}
     protected:
-        ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& ptx) override
+        ConsensusValidateResult ValidateBlocking(const string& commentAddress, const PTransactionRef& ptx) override
         {
+            auto _ptx = static_pointer_cast<ScoreComment>(ptx);
+
             auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                 commentAddress,
-                *ptx->GetAddress()
+                *_ptx->GetAddress()
             );
 
             if (existsBlocking && blockingType == ACTION_BLOCKING)
@@ -211,7 +227,7 @@ namespace PocketConsensus
     public:
         ScoreCommentConsensus_checkpoint_514184(int height) : ScoreCommentConsensus_checkpoint_430000(height) {}
     protected:
-        ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& ptx) override
+        ConsensusValidateResult ValidateBlocking(const string& commentAddress, const PTransactionRef& ptx) override
         {
             return Success;
         }
@@ -225,7 +241,7 @@ namespace PocketConsensus
     public:
         ScoreCommentConsensus_checkpoint_1124000(int height) : ScoreCommentConsensus_checkpoint_514184(height) {}
     protected:
-        bool CheckBlockLimitTime(const ScoreCommentRef& ptx, const PTransactionRef& blockPtx) override
+        bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
         {
             return true;
         }
@@ -240,10 +256,12 @@ namespace PocketConsensus
         ScoreCommentConsensus_checkpoint_1180000(int height) : ScoreCommentConsensus_checkpoint_1124000(height) {}
     protected:
         int64_t GetLimitWindow() override { return 1440; }
-        int GetChainCount(const ScoreCommentRef& ptx) override
+        int GetChainCount(const PTransactionRef& ptx) override
         {
+            auto _ptx = static_pointer_cast<ScoreComment>(ptx);
+
             return ConsensusRepoInst.CountChainScoreCommentHeight(
-                *ptx->GetAddress(),
+                *_ptx->GetAddress(),
                 Height - (int) GetLimitWindow()
             );
         }

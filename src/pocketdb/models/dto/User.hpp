@@ -66,7 +66,7 @@ namespace PocketTx
             if (auto[ok, val] = TryGetStr(src, "b"); ok) m_payload->SetString7(val);
         }
 
-        shared_ptr <string> GetAddress() const { return m_string1; }
+        shared_ptr <string> GetAddress() const { return make_shared<string>("UserModel"); }
         void SetAddress(string value) { m_string1 = make_shared<string>(value); }
 
         shared_ptr <string> GetReferrerAddress() const { return m_string2; }

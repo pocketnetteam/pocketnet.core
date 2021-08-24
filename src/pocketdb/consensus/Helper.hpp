@@ -83,9 +83,9 @@ namespace PocketConsensus
 
     protected:
 
-        static tuple<bool, SocialConsensusResult> validate(const PTransactionRef& tx, const PocketBlockRef& block, int height)
+        static tuple<bool, SocialConsensusResult> validate(const PTransactionRef& ptx, const PocketBlockRef& block, int height)
         {
-            auto txType = *tx->GetType();
+            auto txType = *ptx->GetType();
 
             if (!isConsensusable(txType))
                 return {true, SocialConsensusResult_Success};
@@ -94,16 +94,15 @@ namespace PocketConsensus
             if (!consensus)
             {
                 LogPrintf("Warning: SocialConsensus type %d not found for transaction %s\n",
-                    (int) txType, *tx->GetHash());
+                    (int) txType, *ptx->GetHash());
 
                 return {false, SocialConsensusResult_Unknown};
             }
 
-            if (auto[ok, result] = consensus->Validate(tx, block); !ok)
+            if (auto[ok, result] = consensus->Validate(ptx, block); !ok)
             {
-                LogPrintf("Warning: SocialConsensus %d validate failed with result %d "
-                            "for transaction %s with block at height %d\n",
-                    (int) txType, (int) result, *tx->GetHash(), height);
+                LogPrintf("Warning: SocialConsensus %d validate failed with result %d for transaction %s with block at height %d\n",
+                    (int)txType, (int)result, *ptx->GetHash(), height);
 
                 return {false, result};
             }
@@ -151,7 +150,7 @@ namespace PocketConsensus
             }
         }
 
-        static shared_ptr<SocialConsensus<PTransactionRef>> getConsensus(PocketTxType txType, int height = 0)
+        static shared_ptr<SocialConsensus> getConsensus(PocketTxType txType, int height = 0)
         {
             switch (txType)
             {

@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -22,54 +20,47 @@ namespace PocketConsensus
 
     using std::static_pointer_cast;
     using PocketTx::PocketTxType;
-
     typedef tuple<bool, SocialConsensusResult> ConsensusValidateResult;
 
-    template<class T>
     class SocialConsensus : public BaseConsensus
     {
     public:
         SocialConsensus(int height) : BaseConsensus(height) {}
 
         // Validate transaction in block for miner & network full block sync
-        virtual ConsensusValidateResult Validate(const T& tx, const PocketBlockRef& block)
+        virtual ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block)
         {
             // Account must be registered
+            vector<string> addresses = GetAddressesForCheckRegistration(ptx);
+            if (!addresses.empty())
             {
-                vector<string> addresses = GetAddressesForCheckRegistration(tx);
-
-                if (!addresses.empty())
+                // First check block - maybe user registration this?
+                if (block)
                 {
-                    // First check block - maybe user registration this?
-                    if (block)
+                    for (auto& blockTx : *block)
                     {
-                        for (auto& blockTx : *block)
-                        {
-                            if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
-                                continue;
+                        if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                            continue;
 
-                            auto blockAddress = *blockTx->GetString1();
-                            if (find(addresses.begin(), addresses.end(), blockAddress) != addresses.end())
-                                addresses.erase(remove(addresses.begin(), addresses.end(), blockAddress), addresses.end());
-                        }
+                        auto blockAddress = *blockTx->GetString1();
+                        if (find(addresses.begin(), addresses.end(), blockAddress) != addresses.end())
+                            addresses.erase(remove(addresses.begin(), addresses.end(), blockAddress), addresses.end());
                     }
-
-                    if (!addresses.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, false))
-                        return {false, SocialConsensusResult_NotRegistered};
                 }
+
+                if (!addresses.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, false))
+                    return {false, SocialConsensusResult_NotRegistered};
             }
 
-            if (block)
-                return ValidateBlock(tx, block);
-            else
-                return ValidateMempool(tx);
+            return ValidateLimits(ptx, block);
         }
 
         // Generic transactions validating
-        virtual ConsensusValidateResult Check(const CTransactionRef& tx, const T& ptx)
+        virtual ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx)
         {
-            if (AlreadyExists(ptx))
-               return {true, SocialConsensusResult_AlreadyExists};
+            // TODO (brangr): DEBUG!
+            // if (AlreadyExists(ptx))
+            //    return {true, SocialConsensusResult_AlreadyExists};
 
             if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
                 return {false, result};
@@ -80,12 +71,20 @@ namespace PocketConsensus
     protected:
         ConsensusValidateResult Success{true, SocialConsensusResult_Success};
 
-        virtual ConsensusValidateResult ValidateBlock(const T& tx, const PocketBlockRef& block) = 0;
+        virtual ConsensusValidateResult ValidateLimits(const PTransactionRef& ptx, const PocketBlockRef& block)
+        {
+            if (block)
+                return ValidateBlock(ptx, block);
+            else
+                return ValidateMempool(ptx);
+        }
 
-        virtual ConsensusValidateResult ValidateMempool(const T& tx) = 0;
+        virtual ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) = 0;
+
+        virtual ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) = 0;
 
         // Generic check consistence Transaction and Payload
-        virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const T& ptx)
+        virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const PTransactionRef& ptx)
         {
             // TODO (brangr): implement check opreturn hash
             // if (IsEmpty(tx->GetOpReturnPayload()))
@@ -106,13 +105,13 @@ namespace PocketConsensus
         }
 
         // If transaction already in DB - skip next checks
-        virtual bool AlreadyExists(const T& ptx)
+        virtual bool AlreadyExists(const PTransactionRef& ptx)
         {
             return TransRepoInst.ExistsByHash(*ptx->GetHash());
         }
 
         // Get addresses from transaction for check registration
-        virtual vector<string> GetAddressesForCheckRegistration(const T& tx) = 0;
+        virtual vector<string> GetAddressesForCheckRegistration(const PTransactionRef& tx) = 0;
 
 
         // Check empty pointer
@@ -137,9 +136,9 @@ namespace PocketConsensus
     class SocialConsensusFactory : public BaseConsensusFactory
     {
     public:
-        shared_ptr<SocialConsensus<PTransactionRef>> Instance(int height)
+        shared_ptr<SocialConsensus> Instance(int height)
         {
-            return static_pointer_cast<SocialConsensus<PTransactionRef>>(
+            return static_pointer_cast<SocialConsensus>(
                 BaseConsensusFactory::m_instance(height)
             );
         }

@@ -11,38 +11,40 @@
 
 namespace PocketConsensus
 {
-    typedef shared_ptr<Video> VideoRef;
-
     /*******************************************************************************************************************
     *  Video consensus base class
     *******************************************************************************************************************/
-    class VideoConsensus : public SocialConsensus<VideoRef>
+    class VideoConsensus : public SocialConsensus
     {
     public:
         VideoConsensus(int height) : SocialConsensus(height) {}
 
-        ConsensusValidateResult Validate(const VideoRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(_ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
-            if (ptx->IsEdit())
+            if (_ptx->IsEdit())
                 return ValidateEdit(ptx);
 
             return Success;
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const VideoRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, _ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(_ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
 
             // Repost not allowed
-            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
+            if (!IsEmpty(_ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
 
             return Success;
         }
@@ -63,23 +65,25 @@ namespace PocketConsensus
                      : GetTrialLimit();
         }
 
-        virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
+        virtual ConsensusValidateResult ValidateEdit(const PTransactionRef& ptx)
         {
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
             // First get original post transaction
-            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
+            auto originalTx = PocketDb::TransRepoInst.GetByHash(*_ptx->GetRootTxHash());
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
             // Change type not allowed
-            if (*originalTx->GetType() != *ptx->GetType())
+            if (*originalTx->GetType() != *_ptx->GetType())
                 return {false, SocialConsensusResult_NotAllowed};
 
             // You are author? Really?
-            if (*ptx->GetAddress() != *originalTx->GetString1())
+            if (*_ptx->GetAddress() != *originalTx->GetString1())
                 return {false, SocialConsensusResult_ContentEditUnauthorized};
 
             // Original post edit only 24 hours
-            if (!AllowEditWindow(ptx, originalTx))
+            if (!AllowEditWindow(_ptx, originalTx))
                 return {false, SocialConsensusResult_ContentEditLimit};
 
             return make_tuple(true, SocialConsensusResult_Success);
@@ -87,17 +91,19 @@ namespace PocketConsensus
 
         // ------------------------------------------------------------------------------------------------------------
 
-        ConsensusValidateResult ValidateBlock(const VideoRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
             // Edit
-            if (ptx->IsEdit())
-                return ValidateEditBlock(ptx, block);
+            if (_ptx->IsEdit())
+                return ValidateEditBlock(_ptx, block);
 
             // ---------------------------------------------------------
             // New
 
             // Get count from chain
-            int count = GetChainCount(ptx);
+            int count = GetChainCount(_ptx);
 
             // Get count from block
             for (auto& blockTx : *block)
@@ -105,39 +111,43 @@ namespace PocketConsensus
                 if (!IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
                     continue;
 
-                if (*blockTx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *_ptx->GetHash())
                     continue;
 
-                if (*ptx->GetAddress() == *blockTx->GetString1())
+                if (*_ptx->GetAddress() == *blockTx->GetString1())
                     count += 1;
             }
 
-            return ValidateLimit(ptx, count);
+            return ValidateLimit(_ptx, count);
         }
 
-        ConsensusValidateResult ValidateMempool(const VideoRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
         {
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
             // Edit
-            if (ptx->IsEdit())
-                return ValidateEditMempool(ptx);
+            if (_ptx->IsEdit())
+                return ValidateEditMempool(_ptx);
 
             // ---------------------------------------------------------
             // New
 
             // Get count from chain
-            int count = GetChainCount(ptx);
+            int count = GetChainCount(_ptx);
 
             // and from mempool
-            count += ConsensusRepoInst.CountMempoolVideo(*ptx->GetAddress());
+            count += ConsensusRepoInst.CountMempoolVideo(*_ptx->GetAddress());
 
-            return ValidateLimit(ptx, count);
+            return ValidateLimit(_ptx, count);
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const VideoRef& tx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const PTransactionRef& ptx, int count)
         {
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
 
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*_ptx->GetAddress());
             auto limit = GetLimit(mode);
 
             if (count >= limit)
@@ -146,53 +156,61 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual int GetChainCount(const VideoRef& ptx)
+        virtual int GetChainCount(const PTransactionRef& ptx)
         {
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
             return ConsensusRepoInst.CountChainVideoHeight(
-                *ptx->GetAddress(),
+                *_ptx->GetAddress(),
                 Height - GetLimitWindow()
             );
         }
 
 
-        virtual ConsensusValidateResult ValidateEditBlock(const VideoRef& ptx, const PocketBlockRef& block)
+        virtual ConsensusValidateResult ValidateEditBlock(const PTransactionRef& ptx, const PocketBlockRef& block)
         {
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
             // Double edit in block not allowed
             for (auto& blockTx : *block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
                     continue;
 
-                if (*blockTx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *_ptx->GetHash())
                     continue;
 
-                if (*ptx->GetRootTxHash() == *blockTx->GetString2())
+                if (*_ptx->GetRootTxHash() == *blockTx->GetString2())
                     return {false, SocialConsensusResult_DoubleContentEdit};
             }
 
             // Check edit limit
-            return ValidateEditOneLimit(ptx);
+            return ValidateEditOneLimit(_ptx);
         }
 
-        virtual ConsensusValidateResult ValidateEditMempool(const VideoRef& ptx)
+        virtual ConsensusValidateResult ValidateEditMempool(const PTransactionRef& ptx)
         {
-            if (ConsensusRepoInst.CountMempoolVideoEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
+            if (ConsensusRepoInst.CountMempoolVideoEdit(*_ptx->GetAddress(), *_ptx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
 
-        virtual ConsensusValidateResult ValidateEditOneLimit(const VideoRef& ptx)
+        virtual ConsensusValidateResult ValidateEditOneLimit(const PTransactionRef& ptx)
         {
-            int count = ConsensusRepoInst.CountChainVideoEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
+            auto _ptx = static_pointer_cast<Video>(ptx);
+
+            int count = ConsensusRepoInst.CountChainVideoEdit(*_ptx->GetAddress(), *_ptx->GetRootTxHash());
             if (count >= GetEditLimit())
                 return {false, SocialConsensusResult_ContentEditLimit};
 
             return Success;
         }
 
-        virtual bool AllowEditWindow(const VideoRef& ptx, const PTransactionRef& originalTx)
+        virtual bool AllowEditWindow(const PTransactionRef& ptx, const PTransactionRef& originalTx)
         {
             auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
             if (!ok)
@@ -201,9 +219,10 @@ namespace PocketConsensus
             return (Height - originalTxHeight) <= GetEditWindow();
         }
 
-        vector<string> GetAddressesForCheckRegistration(const VideoRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            auto _ptx = static_pointer_cast<Video>(ptx);
+            return {*_ptx->GetAddress()};
         }
 
     };

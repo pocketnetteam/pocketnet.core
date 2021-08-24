@@ -30,7 +30,6 @@ namespace PocketConsensus
         virtual int64_t GetScoresOneToOneDepth() { return 336 * 24 * 3600; }
         virtual int64_t GetScoresToPostModifyReputationDepth() { return 336 * 24 * 3600; }
 
-
         virtual int64_t GetMinLikers(int addressId)
         {
             return ThresholdLikersCount();

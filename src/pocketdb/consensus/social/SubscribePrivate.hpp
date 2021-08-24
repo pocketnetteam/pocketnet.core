@@ -11,48 +11,50 @@
 
 namespace PocketConsensus
 {
-    typedef shared_ptr<SubscribePrivate> SubscribePrivateRef;
-
     /*******************************************************************************************************************
     *  SubscribePrivate consensus base class
     *******************************************************************************************************************/
-    class SubscribePrivateConsensus : public SocialConsensus<SubscribePrivateRef>
+    class SubscribePrivateConsensus : public SocialConsensus
     {
     public:
         SubscribePrivateConsensus(int height) : SocialConsensus(height) {}
 
-        ConsensusValidateResult Validate(const SubscribePrivateRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
+            auto _ptx = static_pointer_cast<SubscribePrivate>(ptx);
+
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
-                
+
             // Check double subscribe
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
-                *ptx->GetAddress(),
-                *ptx->GetAddressTo());
+                *_ptx->GetAddress(),
+                *_ptx->GetAddressTo());
 
             if (subscribeExists && subscribeType == ACTION_SUBSCRIBE_PRIVATE)
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
+                if (!socialCheckpoints.IsCheckpoint(*_ptx->GetHash(), *_ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
                     return {false, SocialConsensusResult_DoubleSubscribe};
             }
 
             return Success;
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const SubscribePrivateRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx) override
         {
+            auto _ptx = static_pointer_cast<SubscribePrivate>(ptx);
+
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(_ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(_ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
 
             // Blocking self
-            if (*ptx->GetAddress() == *ptx->GetAddressTo())
+            if (*_ptx->GetAddress() == *_ptx->GetAddressTo())
                 return {false, SocialConsensusResult_SelfSubscribe};
 
             return Success;
@@ -60,29 +62,33 @@ namespace PocketConsensus
 
     protected:
 
-        ConsensusValidateResult ValidateBlock(const SubscribePrivateRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
+            auto _ptx = static_pointer_cast<SubscribePrivate>(ptx);
+
             // Only one transaction (address -> addressTo) allowed in block
             for (auto& blockTx : *block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE, ACTION_SUBSCRIBE_CANCEL}))
                     continue;
 
-                if (*blockTx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *_ptx->GetHash())
                     continue;
 
-                if (*ptx->GetAddress() == *blockTx->GetString1() && *ptx->GetAddressTo() == *blockTx->GetString2())
+                if (*_ptx->GetAddress() == *blockTx->GetString1() && *_ptx->GetAddressTo() == *blockTx->GetString2())
                     return {false, SocialConsensusResult_DoubleSubscribe};
             }
 
             return Success;
         }
 
-        ConsensusValidateResult ValidateMempool(const SubscribePrivateRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
         {
+            auto _ptx = static_pointer_cast<SubscribePrivate>(ptx);
+
             int mempoolCount = ConsensusRepoInst.CountMempoolSubscribe(
-                *ptx->GetAddress(),
-                *ptx->GetAddressTo()
+                *_ptx->GetAddress(),
+                *_ptx->GetAddressTo()
             );
 
             if (mempoolCount > 0)
@@ -91,9 +97,10 @@ namespace PocketConsensus
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const SubscribePrivateRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& ptx) override
         {
-            return {*ptx->GetAddress(), *ptx->GetAddressTo()};
+            auto _ptx = static_pointer_cast<SubscribePrivate>(ptx);
+            return {*_ptx->GetAddress(), *_ptx->GetAddressTo()};
         }
     };
 

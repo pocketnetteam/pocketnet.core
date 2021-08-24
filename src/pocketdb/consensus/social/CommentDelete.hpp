@@ -10,36 +10,36 @@
 
 namespace PocketConsensus
 {
-    typedef shared_ptr<CommentDelete> CommentDeleteRef;
-
     /*******************************************************************************************************************
     *  CommentDelete consensus base class
     *******************************************************************************************************************/
-    class CommentDeleteConsensus : public SocialConsensus<CommentDeleteRef>
+    class CommentDeleteConsensus : public SocialConsensus
     {
     public:
         CommentDeleteConsensus(int height) : SocialConsensus(height) {}
 
-        ConsensusValidateResult Validate(const CommentDeleteRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
+            auto _ptx = static_pointer_cast<CommentDelete>(ptx);
+
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
                 
             // Actual comment not deleted
-            if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
+            if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*_ptx->GetRootTxHash());
                 !ok || *actuallTx->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
                 return {false, SocialConsensusResult_NotFound};
 
             // Original comment exists
-            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
+            auto originalTx = PocketDb::TransRepoInst.GetByHash(*_ptx->GetRootTxHash());
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
             // Parent comment
             {
                 // GetString4() = ParentTxHash
-                auto currParentTxHash = IsEmpty(ptx->GetParentTxHash()) ? "" : *ptx->GetParentTxHash();
+                auto currParentTxHash = IsEmpty(_ptx->GetParentTxHash()) ? "" : *_ptx->GetParentTxHash();
                 auto origParentTxHash = IsEmpty(originalTx->GetString4()) ? "" : *originalTx->GetString4();
 
                 if (currParentTxHash != origParentTxHash)
@@ -53,7 +53,7 @@ namespace PocketConsensus
             // Answer comment
             {
                 // GetString5() = AnswerTxHash
-                auto currAnswerTxHash = IsEmpty(ptx->GetAnswerTxHash()) ? "" : *ptx->GetAnswerTxHash();
+                auto currAnswerTxHash = IsEmpty(_ptx->GetAnswerTxHash()) ? "" : *_ptx->GetAnswerTxHash();
                 auto origAnswerTxHash = IsEmpty(originalTx->GetString5()) ? "" : *originalTx->GetString5();
 
                 if (currAnswerTxHash != origAnswerTxHash)
@@ -67,14 +67,16 @@ namespace PocketConsensus
             return Success;
         }
         
-        ConsensusValidateResult Check(const CTransactionRef& tx, const CommentDeleteRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx) override
         {
+            auto _ptx = static_pointer_cast<CommentDelete>(ptx);
+
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(_ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(_ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
             if (ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
 
             return Success;
@@ -82,39 +84,37 @@ namespace PocketConsensus
 
     protected:
 
-        ConsensusValidateResult ValidateBlock(const CommentDeleteRef& tx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
             for (auto& blockTx : *block)
             {
                 if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
                     continue;
 
-                if (*blockTx->GetHash() == *tx->GetHash())
+                if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
                 // GetString2() = RootTxHash
-                if (*tx->GetString2() == *blockTx->GetString2())
+                if (*ptx->GetString2() == *blockTx->GetString2())
                     return {false, SocialConsensusResult_DoubleCommentDelete};
             }
 
             return Success;
         }
 
-        ConsensusValidateResult ValidateMempool(const CommentDeleteRef& tx) override
+        ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
         {
             // GetString2() = RootTxHash
-            if (ConsensusRepoInst.CountMempoolCommentEdit(*tx->GetString1(), *tx->GetString2()) > 0)
+            if (ConsensusRepoInst.CountMempoolCommentEdit(*ptx->GetString1(), *ptx->GetString2()) > 0)
                 return {false, SocialConsensusResult_DoubleCommentDelete};
 
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const CommentDeleteRef& tx) override
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& ptx) override
         {
-            auto ptx = static_pointer_cast<CommentDelete>(tx);
-            return {*ptx->GetAddress()};
+            return {*ptx->GetString1()};
         }
-
     };
 
     /*******************************************************************************************************************

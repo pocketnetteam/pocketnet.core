@@ -26,7 +26,7 @@ namespace PocketServices
     using std::find;
 
 
-    static bool GetBlock(const CBlock& block, PocketBlockRef& pocketBlock, bool onlyPocket = false)
+    static inline bool GetBlock(const CBlock& block, PocketBlockRef& pocketBlock, bool onlyPocket = false)
     {
         try
         {
@@ -55,7 +55,7 @@ namespace PocketServices
         }
     }
 
-    static bool GetBlock(const CBlock& block, string& data)
+    static inline bool GetBlock(const CBlock& block, string& data)
     {
         PocketBlockRef pocketBlock;
         if (!GetBlock(block, pocketBlock, true))
@@ -68,18 +68,18 @@ namespace PocketServices
         return true;
     }
 
-    static bool GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
+    static inline bool GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
     {
         pocketTx = PocketDb::TransRepoInst.GetByHash(tx.GetHash().GetHex(), true);
         return pocketTx != nullptr;
     }
 
-    static bool ExistsTransaction(const CTransaction& tx)
+    static inline bool ExistsTransaction(const CTransaction& tx)
     {
         return PocketDb::TransRepoInst.ExistsByHash(tx.GetHash().GetHex());
     }
 
-    static bool GetTransaction(const CTransaction& tx, string& data)
+    static inline bool GetTransaction(const CTransaction& tx, string& data)
     {
         PTransactionRef pocketTx;
         if (GetTransaction(tx, pocketTx) && pocketTx)

@@ -11,37 +11,35 @@
 
 namespace PocketConsensus
 {
-    typedef shared_ptr<Post> PostRef;
-
     /*******************************************************************************************************************
-    *
     *  Post consensus base class
-    *
     *******************************************************************************************************************/
-    class PostConsensus : public SocialConsensus<PostRef>
+    class PostConsensus : public SocialConsensus
     {
     public:
         PostConsensus(int height) : SocialConsensus(height) {}
 
-        ConsensusValidateResult Validate(const PostRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
+            auto _ptx = static_pointer_cast<Post>(ptx);
+
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
-            if (ptx->IsEdit())
+            if (_ptx->IsEdit())
                 return ValidateEdit(ptx);
 
             return Success;
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const PostRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetString1())) return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
@@ -55,36 +53,37 @@ namespace PocketConsensus
         virtual int64_t GetLimit(AccountMode mode) { return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit(); }
 
 
-        virtual ConsensusValidateResult ValidateEdit(const PostRef& ptx)
+        virtual ConsensusValidateResult ValidateEdit(const PTransactionRef& ptx)
         {
+            auto _ptx = static_pointer_cast<Post>(ptx);
+
             // First get original post transaction
-            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
+            auto originalTx = PocketDb::TransRepoInst.GetByHash(*_ptx->GetRootTxHash());
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
             // Change type not allowed
-            if (*originalTx->GetType() != *ptx->GetType())
+            if (*originalTx->GetType() != *_ptx->GetType())
                 return {false, SocialConsensusResult_NotAllowed};
 
-            // Cast tx to Post for next checks
-            auto originalPostTx = static_pointer_cast<Post>(originalTx);
-
             // You are author? Really?
-            if (*ptx->GetAddress() != *originalPostTx->GetAddress())
+            if (*_ptx->GetAddress() != *originalTx->GetString1())
                 return {false, SocialConsensusResult_ContentEditUnauthorized};
 
             // Original post edit only 24 hours
-            if (!AllowEditWindow(ptx, originalPostTx))
+            if (!AllowEditWindow(ptx, originalTx))
                 return {false, SocialConsensusResult_ContentEditLimit};
-                
+
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
 
-        ConsensusValidateResult ValidateBlock(const PostRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) override
         {
+            auto _ptx = static_pointer_cast<Post>(ptx);
+
             // Edit posts
-            if (ptx->IsEdit())
+            if (_ptx->IsEdit())
                 return ValidateEditBlock(ptx, block);
 
             // ---------------------------------------------------------
@@ -102,10 +101,9 @@ namespace PocketConsensus
                 if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                auto blockPtx = static_pointer_cast<Post>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                if (*ptx->GetString1() == *blockTx->GetString1())
                 {
-                    if (AllowBlockLimitTime(ptx, blockPtx))
+                    if (AllowBlockLimitTime(ptx, blockTx))
                         count += 1;
                 }
             }
@@ -113,10 +111,12 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        ConsensusValidateResult ValidateMempool(const PostRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
         {
+            auto _ptx = static_pointer_cast<Post>(ptx);
+
             // Edit posts
-            if (ptx->IsEdit())
+            if (_ptx->IsEdit())
                 return ValidateEditMempool(ptx);
 
             // ---------------------------------------------------------
@@ -126,40 +126,40 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
 
             // Get count from mempool
-            count += ConsensusRepoInst.CountMempoolPost(*ptx->GetAddress());
+            count += ConsensusRepoInst.CountMempoolPost(*_ptx->GetAddress());
 
             return ValidateLimit(ptx, count);
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const PostRef& tx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const PTransactionRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetString1());
             if (count >= GetLimit(mode))
                 return {false, SocialConsensusResult_ContentLimit};
 
             return Success;
         }
-        
-        virtual bool AllowBlockLimitTime(const PostRef& ptx, const PostRef& blockPtx)
+
+        virtual bool AllowBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
 
-        virtual bool AllowEditWindow(const PostRef& ptx, const PostRef& originalTx)
+        virtual bool AllowEditWindow(const PTransactionRef& ptx, const PTransactionRef& originalTx)
         {
             return (*ptx->GetTime() - *originalTx->GetTime()) <= GetEditWindow();
         }
 
-        virtual int GetChainCount(const PostRef& ptx)
+        virtual int GetChainCount(const PTransactionRef& ptx)
         {
             return ConsensusRepoInst.CountChainPostTime(
-                *ptx->GetAddress(),
+                *ptx->GetString1(),
                 *ptx->GetTime() - GetLimitWindow()
             );
         }
 
-        virtual ConsensusValidateResult ValidateEditBlock(const PostRef& ptx, const PocketBlockRef& block)
+        virtual ConsensusValidateResult ValidateEditBlock(const PTransactionRef& ptx, const PocketBlockRef& block)
         {
             // Double edit in block not allowed
             for (auto& blockTx : *block)
@@ -170,37 +170,35 @@ namespace PocketConsensus
                 if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                auto blockPtx = static_pointer_cast<Post>(blockTx);
-                if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
+                if (*ptx->GetString2() == *blockTx->GetString2())
                     return {false, SocialConsensusResult_DoubleContentEdit};
             }
-            
+
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
 
-        virtual ConsensusValidateResult ValidateEditMempool(const PostRef& tx)
+        virtual ConsensusValidateResult ValidateEditMempool(const PTransactionRef& ptx)
         {
-            if (ConsensusRepoInst.CountMempoolPostEdit(*tx->GetAddress(), *tx->GetRootTxHash()) > 0)
+            if (ConsensusRepoInst.CountMempoolPostEdit(*ptx->GetString1(), *ptx->GetString2()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
 
             // Check edit limit
-            return ValidateEditOneLimit(tx);
+            return ValidateEditOneLimit(ptx);
         }
 
-        virtual ConsensusValidateResult ValidateEditOneLimit(const PostRef& tx)
+        virtual ConsensusValidateResult ValidateEditOneLimit(const PTransactionRef& ptx)
         {
-            int count = ConsensusRepoInst.CountChainPostEdit(*tx->GetAddress(), *tx->GetRootTxHash());
+            int count = ConsensusRepoInst.CountChainPostEdit(*ptx->GetString1(), *ptx->GetString2());
             if (count >= GetEditLimit())
                 return {false, SocialConsensusResult_ContentEditLimit};
 
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PostRef& tx) override
+        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& ptx) override
         {
-            auto ptx = static_pointer_cast<Post>(tx);
-            return {*ptx->GetAddress()};
+            return {*ptx->GetString1()};
         }
     };
 
@@ -214,7 +212,7 @@ namespace PocketConsensus
     public:
         PostConsensus_checkpoint_1124000(int height) : PostConsensus(height) {}
     protected:
-        bool AllowBlockLimitTime(const PostRef& ptx, const PostRef& blockPtx) override
+        bool AllowBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
         {
             return true;
         }
@@ -232,14 +230,11 @@ namespace PocketConsensus
     protected:
         int64_t GetEditWindow() override { return 1440; }
         int64_t GetLimitWindow() override { return 1440; }
-        int GetChainCount(const shared_ptr<Post>& ptx) override
+        int GetChainCount(const PTransactionRef& ptx) override
         {
-            return ConsensusRepoInst.CountChainPostHeight(
-                *ptx->GetAddress(),
-                Height - (int) GetLimitWindow()
-            );
+            return ConsensusRepoInst.CountChainPostHeight(*ptx->GetString1(), Height - (int) GetLimitWindow());
         }
-        bool AllowEditWindow(const PostRef& ptx, const PostRef& originalTx) override
+        bool AllowEditWindow(const PTransactionRef& ptx, const PTransactionRef& originalTx) override
         {
             auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
             if (!ok)
@@ -250,9 +245,7 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *
     *  Start checkpoint at 1324655 block
-    *
     *******************************************************************************************************************/
     class PostConsensus_checkpoint_1324655 : public PostConsensus_checkpoint_1180000
     {
@@ -263,9 +256,7 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *
     *  Factory for select actual rules version
-    *
     *******************************************************************************************************************/
     class PostConsensusFactory : public SocialConsensusFactory
     {
