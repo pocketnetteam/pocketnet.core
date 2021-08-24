@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Complain(string& hash, int64_t time) : Transaction(hash, time)
+        Complain(const string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_COMPLAIN);
         }

@@ -2365,12 +2365,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         std::list<CTransactionRef> lRemovedTxn;
 
         // Deserialize pocket part if exists
-        auto[deserializeOk, pocketTx] = PocketServices::TransactionSerializer::DeserializeTransaction(vRecv, ptx);
+        auto[deserializeOk, pocketTx] = PocketServices::TransactionSerializer::DeserializeTransaction(ptx, vRecv);
         if (!deserializeOk)
             state.Invalid(false, 0, "Deserialize");
 
         // Antibot checked transaction with pocketnet consensus rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(pocketTx); !ok)
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(txRef, pocketTx); !ok)
         {
             LogPrintf("WARNING! Received transaction check failed (SocialConsensusHelper::Check) %s\n",
                 *pocketTx->GetHash());

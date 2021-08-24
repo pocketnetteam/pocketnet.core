@@ -244,8 +244,7 @@ namespace PocketDb
 
     protected:
 
-        tuple<bool, shared_ptr<Transaction>> CreateTransactionFromListRow(const shared_ptr<sqlite3_stmt*>& stmt,
-            bool includedPayload)
+        tuple<bool, PTransactionRef> CreateTransactionFromListRow(const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
         {
             auto[ok0, txType] = TryGetColumnInt(*stmt, 0);
             auto[ok1, txHash] = TryGetColumnString(*stmt, 1);
@@ -254,8 +253,7 @@ namespace PocketDb
             if (!ok0 || !ok1 || !ok2)
                 return make_tuple(false, nullptr);
 
-            string emptyOpReturn;
-            auto ptx = PocketHelpers::CreateInstance(static_cast<PocketTxType>(txType), txHash, nTime, emptyOpReturn);
+            auto ptx = PocketHelpers::CreateInstance(static_cast<PocketTxType>(txType), txHash, nTime);
             if (ptx == nullptr)
                 return make_tuple(false, nullptr);
 

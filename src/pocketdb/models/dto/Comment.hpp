@@ -17,7 +17,7 @@ namespace PocketTx
     {
     public:
 
-        Comment(string& hash, int64_t time) : Transaction(hash, time)
+        Comment(const string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::CONTENT_COMMENT);
         }

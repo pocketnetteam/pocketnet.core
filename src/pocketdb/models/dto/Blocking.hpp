@@ -14,7 +14,7 @@ namespace PocketTx
     {
     public:
 
-        Blocking(string& hash, int64_t time) : Transaction(hash, time)
+        Blocking(const string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_BLOCKING);
         }

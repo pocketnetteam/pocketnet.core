@@ -10,16 +10,16 @@
 
 namespace PocketConsensus
 {
-    typedef shared_ptr<Blocking> BlockingDef;
+    typedef shared_ptr<Blocking> BlockingRef;
     /*******************************************************************************************************************
     *  Blocking consensus base class
     *******************************************************************************************************************/
-    class BlockingConsensus : public SocialConsensus<BlockingDef>
+    class BlockingConsensus : public SocialConsensus<BlockingRef>
     {
     public:
         BlockingConsensus(int height) : SocialConsensus(height) {}
 
-        ConsensusValidateResult Validate(const BlockingDef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const BlockingRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
@@ -35,9 +35,9 @@ namespace PocketConsensus
             return Success;
         }
 
-        ConsensusValidateResult Check(const BlockingDef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const BlockingRef& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(ptx); !baseCheck)
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
@@ -53,7 +53,7 @@ namespace PocketConsensus
 
     protected:
 
-        ConsensusValidateResult ValidateBlock(const BlockingDef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const BlockingRef& ptx, const PocketBlockRef& block) override
         {
             for (auto& blockTx : *block)
             {
@@ -71,7 +71,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        ConsensusValidateResult ValidateMempool(const BlockingDef& ptx) override
+        ConsensusValidateResult ValidateMempool(const BlockingRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolBlocking(*ptx->GetAddress(), *ptx->GetAddressTo()) > 0)
                 return {false, SocialConsensusResult_ManyTransactions};
@@ -79,7 +79,7 @@ namespace PocketConsensus
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const BlockingDef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const BlockingRef& ptx) override
         {
             return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }

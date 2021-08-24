@@ -66,13 +66,12 @@ namespace PocketConsensus
         }
 
         // Generic transactions validating
-        virtual ConsensusValidateResult Check(const T& tx)
+        virtual ConsensusValidateResult Check(const CTransactionRef& tx, const T& ptx)
         {
-            // TODO (brangr): commented for debug
-            //if (AlreadyExists(tx))
-            //    return {true, SocialConsensusResult_AlreadyExists};
+            if (AlreadyExists(ptx))
+               return {true, SocialConsensusResult_AlreadyExists};
 
-            if (auto[ok, result] = CheckOpReturnHash(tx); !ok)
+            if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
                 return {false, result};
 
             return Success;
@@ -86,29 +85,30 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateMempool(const T& tx) = 0;
 
         // Generic check consistence Transaction and Payload
-        virtual ConsensusValidateResult CheckOpReturnHash(const T& tx)
+        virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const T& ptx)
         {
-            if (IsEmpty(tx->GetOpReturnPayload()))
-                return {false, SocialConsensusResult_PayloadORNotFound};
-
-            if (IsEmpty(tx->GetOpReturnTx()))
-                return {false, SocialConsensusResult_TxORNotFound};
-
-            if (*tx->GetOpReturnTx() != *tx->GetOpReturnPayload())
-            {
-                // TODO (brangr): DEBUG!!
-//                PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
-//                if (!opReturnCheckpoints.IsCheckpoint(*tx->GetHash(), *tx->GetOpReturnPayload()))
-//                    return {false, SocialConsensusResult_FailedOpReturn};
-            }
+            // TODO (brangr): implement check opreturn hash
+            // if (IsEmpty(tx->GetOpReturnPayload()))
+            //     return {false, SocialConsensusResult_PayloadORNotFound};
+            //
+            // if (IsEmpty(tx->GetOpReturnTx()))
+            //     return {false, SocialConsensusResult_TxORNotFound};
+            //
+            // if (*tx->GetOpReturnTx() != *tx->GetOpReturnPayload())
+            // {
+            //     // TODO (brangr): DEBUG!!
+            //    PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
+            //    if (!opReturnCheckpoints.IsCheckpoint(*tx->GetHash(), *tx->GetOpReturnPayload()))
+            //        return {false, SocialConsensusResult_FailedOpReturn};
+            // }
 
             return Success;
         }
 
         // If transaction already in DB - skip next checks
-        virtual bool AlreadyExists(const T& tx)
+        virtual bool AlreadyExists(const T& ptx)
         {
-            return TransRepoInst.ExistsByHash(*tx->GetHash());
+            return TransRepoInst.ExistsByHash(*ptx->GetHash());
         }
 
         // Get addresses from transaction for check registration

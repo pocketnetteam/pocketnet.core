@@ -36,9 +36,9 @@ namespace PocketConsensus
             return Success;
         }
 
-        ConsensusValidateResult Check(const BlockingCancelRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const BlockingCancelRef& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(ptx); !baseCheck)
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields

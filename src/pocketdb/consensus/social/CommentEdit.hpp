@@ -85,9 +85,9 @@ namespace PocketConsensus
             return ValidateEditOneLimit(ptx);
         }
 
-        ConsensusValidateResult Check(const CommentEditRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const CommentEditRef& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(ptx); !baseCheck)
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields

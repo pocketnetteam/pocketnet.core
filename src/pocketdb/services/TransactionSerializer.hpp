@@ -54,22 +54,13 @@ namespace PocketServices
             return deserializeBlock(pocketData, block);
         }
 
-        static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(const CTransactionRef& tx, CDataStream& stream)
-        {
-            // Get Serialized data from stream
-            auto pocketData = parseStream(stream);
-            
-            // Build transaction instance
-            return deserializeTransaction(pocketData, tx);
-        }
-
-        static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(const CTransactionRef& tx, const UniValue& pocketData)
+        static tuple<bool, PTransactionRef> DeserializeTransaction(const CTransactionRef& tx, const UniValue& pocketData)
         {
             auto ptx = buildInstanceRpc(tx, pocketData);
             return {ptx != nullptr, ptx};
         }
 
-        static tuple<bool, shared_ptr<Transaction>> DeserializeTransaction(const CTransactionRef& tx, CDataStream& stream)
+        static tuple<bool, PTransactionRef> DeserializeTransaction(const CTransactionRef& tx, CDataStream& stream)
         {
             // Get Serialized data from stream
             auto pocketData = parseStream(stream);

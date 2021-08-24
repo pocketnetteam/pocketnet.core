@@ -16,7 +16,7 @@ namespace PocketTx
     {
     public:
 
-        Coinbase(string& hash, int64_t time) : Transaction(hash, time)
+        Coinbase(const string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::TX_COINBASE);
         }

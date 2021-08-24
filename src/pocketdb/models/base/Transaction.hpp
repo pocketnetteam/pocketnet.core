@@ -23,7 +23,7 @@ namespace PocketTx
     {
     public:
 
-        Transaction(string& hash, int64_t time) : Base()
+        Transaction(const string& hash, int64_t time) : Base()
         {
             SetHash(hash);
             SetTime(time);
@@ -107,7 +107,7 @@ namespace PocketTx
         shared_ptr<Payload> m_payload = nullptr;
         vector<shared_ptr<TransactionOutput>> m_outputs;
 
-        const string GenerateHash(const string& data) const
+        string GenerateHash(const string& data) const
         {
             unsigned char hash[32] = {};
             CSHA256().Write((const unsigned char*) data.data(), data.size()).Finalize(hash);
@@ -125,7 +125,7 @@ namespace PocketTx
 
         void ClearPayload()
         {
-            m_payload->reset();
+            m_payload = nullptr;
         }
 
     };

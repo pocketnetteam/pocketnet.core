@@ -17,7 +17,7 @@ namespace PocketTx
     {
     public:
 
-        ScoreContent(string& hash, int64_t time) : Transaction(hash, time)
+        ScoreContent(const string& hash, int64_t time) : Transaction(hash, time)
         {
             SetType(PocketTxType::ACTION_SCORE_CONTENT);
         }

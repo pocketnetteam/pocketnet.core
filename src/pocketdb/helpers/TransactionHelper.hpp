@@ -249,9 +249,9 @@ namespace PocketHelpers
         return make_tuple(finalCheck, scoreData);
     }
 
-    static shared_ptr<Transaction> CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime)
+    static PTransactionRef CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime)
     {
-        shared_ptr<Transaction> ptx = nullptr;
+        PTransactionRef ptx = nullptr;
         switch (txType)
         {
             case TX_COINBASE:

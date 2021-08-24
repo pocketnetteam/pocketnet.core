@@ -36,15 +36,17 @@ namespace PocketConsensus
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
                 if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
-                    //return {false, SocialConsensusResult_DoubleSubscribe};
-                    LogPrintf("--- %s %d SocialConsensusResult_DoubleSubscribe\n", *ptx->GetTypeInt(), *ptx->GetHash());
+                    return {false, SocialConsensusResult_DoubleSubscribe};
             }
 
             return Success;
         }
 
-        ConsensusValidateResult Check(const SubscribePrivateRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const SubscribePrivateRef& ptx) override
         {
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
             // Check required fields
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};

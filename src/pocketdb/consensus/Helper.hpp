@@ -27,7 +27,7 @@ namespace PocketConsensus
         {
             for (const auto& tx : *block)
             {
-                if (auto[ok, result] = Validate(tx, block, height); !ok)
+                if (auto[ok, result] = validate(tx, block, height); !ok)
                     return false;
             }
 
@@ -36,12 +36,12 @@ namespace PocketConsensus
 
         static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, int height)
         {
-            return Validate(tx, nullptr, height);
+            return validate(tx, nullptr, height);
         }
 
         static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, PocketBlockRef& block, int height)
         {
-            return Validate(tx, block, height);
+            return validate(tx, block, height);
         }
 
         // Проверяет блок транзакций без привязки к цепи
@@ -68,7 +68,7 @@ namespace PocketConsensus
                     return false;
 
                 // Check founded payload
-                if (auto[ok, result] = ValidateCheck(*it); !ok)
+                if (auto[ok, result] = check(tx, *it); !ok)
                     return false;
             }
 
@@ -76,21 +76,21 @@ namespace PocketConsensus
         }
 
         // Проверяет транзакцию без привязки к цепи
-        static tuple<bool, SocialConsensusResult> Check(const PTransactionRef& tx)
+        static tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PTransactionRef& ptx)
         {
-            return ValidateCheck(tx);
+            return check(tx, ptx);
         }
 
     protected:
 
-        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, const PocketBlockRef& block, int height)
+        static tuple<bool, SocialConsensusResult> validate(const PTransactionRef& tx, const PocketBlockRef& block, int height)
         {
             auto txType = *tx->GetType();
 
-            if (!IsConsensusable(txType))
+            if (!isConsensusable(txType))
                 return {true, SocialConsensusResult_Success};
 
-            auto consensus = GetConsensus(txType, height);
+            auto consensus = getConsensus(txType, height);
             if (!consensus)
             {
                 LogPrintf("Warning: SocialConsensus type %d not found for transaction %s\n",
@@ -111,26 +111,26 @@ namespace PocketConsensus
             return {true, SocialConsensusResult_Success};
         }
 
-        static tuple<bool, SocialConsensusResult> ValidateCheck(const shared_ptr<Transaction>& tx)
+        static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx)
         {
-            auto txType = *tx->GetType();
+            auto txType = *ptx->GetType();
 
-            if (!IsConsensusable(txType))
+            if (!isConsensusable(txType))
                 return {true, SocialConsensusResult_Success};
 
-            auto consensus = GetConsensus(txType);
+            auto consensus = getConsensus(txType);
             if (!consensus)
             {
                 LogPrintf("Warning: SocialConsensus type %d not found for transaction %s\n",
-                    (int) txType, *tx->GetHash());
+                    (int) txType, *ptx->GetHash());
 
                 return {false, SocialConsensusResult_Unknown};
             }
 
-            if (auto[ok, result] = consensus->Check(tx); !ok)
+            if (auto[ok, result] = consensus->Check(tx, ptx); !ok)
             {
                 LogPrintf("Warning: SocialConsensus %d check failed with result %d for transaction %s\n",
-                    (int) txType, (int) result, *tx->GetHash());
+                    (int) txType, (int) result, *ptx->GetHash());
 
                 return {false, result};
             }
@@ -138,7 +138,7 @@ namespace PocketConsensus
             return {true, SocialConsensusResult_Success};
         }
 
-        static bool IsConsensusable(PocketTxType txType)
+        static bool isConsensusable(PocketTxType txType)
         {
             switch (txType)
             {
@@ -151,7 +151,7 @@ namespace PocketConsensus
             }
         }
 
-        static shared_ptr<SocialConsensus<PTransactionRef>> GetConsensus(PocketTxType txType, int height = 0)
+        static shared_ptr<SocialConsensus<PTransactionRef>> getConsensus(PocketTxType txType, int height = 0)
         {
             switch (txType)
             {
@@ -184,14 +184,8 @@ namespace PocketConsensus
                 case ACTION_COMPLAIN:
                     return PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
                 case ACCOUNT_VIDEO_SERVER:
-                    // TODO (brangr): future realize types
-                    break;
                 case ACCOUNT_MESSAGE_SERVER:
-                    // TODO (brangr): future realize types
-                    break;
                 case CONTENT_TRANSLATE:
-                    // TODO (brangr): future realize types
-                    break;
                 case CONTENT_SERVERPING:
                     // TODO (brangr): future realize types
                     break;

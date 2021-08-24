@@ -58,9 +58,9 @@ namespace PocketConsensus
             return Success;
         }
 
-        ConsensusValidateResult Check(const CommentRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const CommentRef& ptx) override
         {
-            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(ptx); !baseCheck)
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
@@ -77,8 +77,6 @@ namespace PocketConsensus
         }
 
     protected:
-        int m_count = 0;
-
         virtual int64_t GetLimitWindow() { return 86400; }
         virtual int64_t GetFullLimit() { return 300; }
         virtual int64_t GetTrialLimit() { return 150; }
@@ -106,27 +104,25 @@ namespace PocketConsensus
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
                     if (CheckBlockLimitTime(ptx, blockTx))
-                        m_count += 1;
+                        count += 1;
                 }
             }
 
-            return ValidateLimit(ptx);
+            return ValidateLimit(ptx, count);
         }
 
         ConsensusValidateResult ValidateMempool(const CommentRef& ptx) override
         {
             int count = GetChainCount(ptx);
             count += ConsensusRepoInst.CountMempoolComment(*ptx->GetAddress());
-            return ValidateLimit(ptx);
+            return ValidateLimit(ptx, count);
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const CommentRef& ptx)
+        virtual ConsensusValidateResult ValidateLimit(const CommentRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetAddress());
-            auto limit = GetLimit(mode);
-
-            if (m_count >= limit)
+            if (count >= GetLimit(mode))
                 return {false, SocialConsensusResult_CommentLimit};
 
             return Success;

@@ -41,8 +41,11 @@ namespace PocketConsensus
             return Success;
         }
 
-        ConsensusValidateResult Check(const SubscribeRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const SubscribeRef& ptx) override
         {
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
             // Check required fields
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};

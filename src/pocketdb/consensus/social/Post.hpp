@@ -35,8 +35,11 @@ namespace PocketConsensus
             return Success;
         }
 
-        ConsensusValidateResult Check(const PostRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const PostRef& ptx) override
         {
+            if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
+                return {false, baseCheckCode};
+
             // Check required fields
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
 
@@ -131,11 +134,8 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateLimit(const PostRef& tx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*tx->GetAddress());
-            auto limit = GetLimit(mode);
-
-            if (count >= limit)
+            if (count >= GetLimit(mode))
                 return {false, SocialConsensusResult_ContentLimit};
 
             return Success;
@@ -213,9 +213,7 @@ namespace PocketConsensus
     {
     public:
         PostConsensus_checkpoint_1124000(int height) : PostConsensus(height) {}
-
     protected:
-
         bool AllowBlockLimitTime(const PostRef& ptx, const PostRef& blockPtx) override
         {
             return true;
@@ -231,14 +229,9 @@ namespace PocketConsensus
     {
     public:
         PostConsensus_checkpoint_1180000(int height) : PostConsensus_checkpoint_1124000(height) {}
-
     protected:
-
         int64_t GetEditWindow() override { return 1440; }
-
         int64_t GetLimitWindow() override { return 1440; }
-
-
         int GetChainCount(const shared_ptr<Post>& ptx) override
         {
             return ConsensusRepoInst.CountChainPostHeight(
@@ -246,7 +239,6 @@ namespace PocketConsensus
                 Height - (int) GetLimitWindow()
             );
         }
-
         bool AllowEditWindow(const PostRef& ptx, const PostRef& originalTx) override
         {
             auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
