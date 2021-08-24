@@ -27,7 +27,7 @@ namespace PocketConsensus
         {
             for (const auto& tx : *block)
             {
-                if (auto[ok, result] = validate(tx, block, height); !ok)
+                if (auto[ok, result] = validateTest(tx, block, height); !ok)
                     return false;
             }
 
@@ -193,6 +193,69 @@ namespace PocketConsensus
             }
 
             return nullptr;
+        }
+
+        static tuple<bool, SocialConsensusResult> validateTest(const PTransactionRef& ptx, const PocketBlockRef& block, int height)
+        {
+            auto txType = *ptx->GetType();
+
+            if (!isConsensusable(txType))
+                return {true, SocialConsensusResult_Success};
+
+            tuple<bool, SocialConsensusResult> result;
+            switch (txType)
+            {
+                // case ACCOUNT_USER:
+                //     return PocketConsensus::UserConsensusFactoryInst.Instance(height);
+                case CONTENT_POST:
+                {
+                    auto _ptx = static_pointer_cast<Post>(ptx);
+                    result = PocketConsensus::PostConsensusFactoryInstTest.Instance(height)->Validate(_ptx, block);
+                    break;
+                }
+                    // case CONTENT_VIDEO:
+                    //     return PocketConsensus::VideoConsensusFactoryInst.Instance(height);
+                    // case CONTENT_COMMENT:
+                    //     return PocketConsensus::CommentConsensusFactoryInst.Instance(height);
+                    // case CONTENT_COMMENT_EDIT:
+                    //     return PocketConsensus::CommentEditConsensusFactoryInst.Instance(height);
+                    // case CONTENT_COMMENT_DELETE:
+                    //     return PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
+                    // case ACTION_SCORE_CONTENT:
+                    //     return PocketConsensus::ScoreContentConsensusFactoryInst.Instance(height);
+                    // case ACTION_SCORE_COMMENT:
+                    //     return PocketConsensus::ScoreCommentConsensusFactoryInst.Instance(height);
+                    // case ACTION_SUBSCRIBE:
+                    //     return PocketConsensus::SubscribeConsensusFactoryInst.Instance(height);
+                    // case ACTION_SUBSCRIBE_PRIVATE:
+                    //     return PocketConsensus::SubscribePrivateConsensusFactoryInst.Instance(height);
+                    // case ACTION_SUBSCRIBE_CANCEL:
+                    //     return PocketConsensus::SubscribeCancelConsensusFactoryInst.Instance(height);
+                    // case ACTION_BLOCKING:
+                    //     return PocketConsensus::BlockingConsensusFactoryInst.Instance(height);
+                    // case ACTION_BLOCKING_CANCEL:
+                    //     return PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height);
+                    // case ACTION_COMPLAIN:
+                    //     return PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
+                    // case ACCOUNT_VIDEO_SERVER:
+                    // case ACCOUNT_MESSAGE_SERVER:
+                    // case CONTENT_TRANSLATE:
+                    // case CONTENT_SERVERPING:
+                    //     // TODO (brangr): future realize types
+                    //     break;
+                default:
+                    break;
+            }
+
+            if (auto[ok, code] = result; !ok)
+            {
+                LogPrintf("Warning: SocialConsensus %d validate failed with result %d for transaction %s with block at height %d\n",
+                    (int)txType, (int)code, *ptx->GetHash(), height);
+
+                return {false, code};
+            }
+
+            return {true, SocialConsensusResult_Success};
         }
 
     };

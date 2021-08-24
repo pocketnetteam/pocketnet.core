@@ -143,6 +143,157 @@ namespace PocketConsensus
             );
         }
     };
+
+
+    template<class T>
+    class SocialConsensusTest : public BaseConsensus
+    {
+    public:
+        SocialConsensusTest(int height) : BaseConsensus(height) {}
+
+        // Validate transaction in block for miner & network full block sync
+        virtual ConsensusValidateResult Validate(const T& ptx, const PocketBlockRef& block)
+        {
+            // Account must be registered
+            vector<string> addresses = GetAddressesForCheckRegistration(ptx);
+            if (!addresses.empty())
+            {
+                // First check block - maybe user registration this?
+                if (block)
+                {
+                    for (auto& blockTx : *block)
+                    {
+                        if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                            continue;
+
+                        auto blockAddress = *blockTx->GetString1();
+                        if (find(addresses.begin(), addresses.end(), blockAddress) != addresses.end())
+                            addresses.erase(remove(addresses.begin(), addresses.end(), blockAddress), addresses.end());
+                    }
+                }
+
+                if (!addresses.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, false))
+                    return {false, SocialConsensusResult_NotRegistered};
+            }
+
+            return ValidateLimits(ptx, block);
+        }
+
+        // Generic transactions validating
+        virtual ConsensusValidateResult Check(const CTransactionRef& tx, const T& ptx)
+        {
+            // TODO (brangr): DEBUG!
+            // if (AlreadyExists(ptx))
+            //    return {true, SocialConsensusResult_AlreadyExists};
+
+            if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
+                return {false, result};
+
+            return Success;
+        }
+
+    protected:
+        ConsensusValidateResult Success{true, SocialConsensusResult_Success};
+
+        virtual ConsensusValidateResult ValidateLimits(const T& ptx, const PocketBlockRef& block)
+        {
+            if (block)
+                return ValidateBlock(ptx, block);
+            else
+                return ValidateMempool(ptx);
+        }
+
+        virtual ConsensusValidateResult ValidateBlock(const T& ptx, const PocketBlockRef& block) = 0;
+
+        virtual ConsensusValidateResult ValidateMempool(const T& ptx) = 0;
+
+        // Generic check consistence Transaction and Payload
+        virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const T& ptx)
+        {
+            // TODO (brangr): implement check opreturn hash
+            // if (IsEmpty(tx->GetOpReturnPayload()))
+            //     return {false, SocialConsensusResult_PayloadORNotFound};
+            //
+            // if (IsEmpty(tx->GetOpReturnTx()))
+            //     return {false, SocialConsensusResult_TxORNotFound};
+            //
+            // if (*tx->GetOpReturnTx() != *tx->GetOpReturnPayload())
+            // {
+            //     // TODO (brangr): DEBUG!!
+            //    PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
+            //    if (!opReturnCheckpoints.IsCheckpoint(*tx->GetHash(), *tx->GetOpReturnPayload()))
+            //        return {false, SocialConsensusResult_FailedOpReturn};
+            // }
+
+            return Success;
+        }
+
+        // If transaction already in DB - skip next checks
+        virtual bool AlreadyExists(const T& ptx)
+        {
+            return TransRepoInst.ExistsByHash(*ptx->GetHash());
+        }
+
+        // Get addresses from transaction for check registration
+        virtual vector<string> GetAddressesForCheckRegistration(const T& tx) = 0;
+
+
+        // Check empty pointer
+        bool IsEmpty(const shared_ptr<string>& ptr) const { return !ptr || (*ptr).empty(); }
+
+        bool IsEmpty(const shared_ptr<int>& ptr) const { return !ptr; }
+
+        bool IsEmpty(const shared_ptr<int64_t>& ptr) const { return !ptr; }
+
+        // Helpers
+        bool IsIn(PocketTxType txType, const vector<PocketTxType>& inTypes)
+        {
+            for (auto inType : inTypes)
+                if (inType == txType)
+                    return true;
+
+            return false;
+        }
+    };
+
+
+
+    template<class T>
+    struct ConsensusCheckpointTest
+    {
+        int m_main_height;
+        int m_test_height;
+        function<shared_ptr<T>(int height)> m_func;
+
+        int Height(const string& networkId) const
+        {
+            if (networkId == CBaseChainParams::MAIN)
+                return m_main_height;
+
+            if (networkId == CBaseChainParams::TESTNET)
+                return m_test_height;
+
+            return m_main_height;
+        }
+    };
+
+    template<class T>
+    class ConsensusFactoryTest
+    {
+    protected:
+        virtual vector<ConsensusCheckpointTest<T>> m_rules() = 0;
+    public:
+        virtual shared_ptr<T> Instance(int height)
+        {
+            int m_height = (height > 0 ? height : 0);
+            return (--upper_bound(m_rules().begin(), m_rules().end(), m_height,
+                [&](int target, const ConsensusCheckpointTest<T>& itm)
+                {
+                    return target < itm.Height(Params().NetworkIDString());
+                }
+            ))->m_func(height);
+        }
+    };
 }
 
 #endif // POCKETCONSENSUS_SOCIAL_BASE_HPP

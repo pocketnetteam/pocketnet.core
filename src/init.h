@@ -10,6 +10,7 @@
 #include <string>
 #include <util.h>
 
+#include "pocketdb/services/Accessor.hpp"
 #include "statistic.hpp"
 extern Statistic::RequestStatEngine gStatEngineInstance;
 

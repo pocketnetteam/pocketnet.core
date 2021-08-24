@@ -32,6 +32,8 @@ namespace PocketConsensus
     extern SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;
     extern UserConsensusFactory UserConsensusFactoryInst;
     extern VideoConsensusFactory VideoConsensusFactoryInst;
+
+    extern PostConsensusFactoryTest PostConsensusFactoryInstTest;
 }; // namespace PocketConsensus
 
 
