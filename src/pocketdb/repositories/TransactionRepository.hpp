@@ -203,8 +203,6 @@ namespace PocketDb
             TryBindStatementText(stmt, 9, ptx->GetHash());
 
             TryStepStatement(stmt);
-
-            LogPrint(BCLog::SYNC, "  - Insert Payload %s\n", *ptx->GetHash());
         }
 
         void InsertTransactionModel(shared_ptr<Transaction> ptx)
