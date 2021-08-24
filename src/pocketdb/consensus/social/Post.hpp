@@ -90,7 +90,7 @@ namespace PocketConsensus
             // New posts
 
             // Get count from chain
-            int count = GetChainCount(ptx);
+            int count = GetChainCount(_ptx);
 
             // Get count from block
             for (auto& blockTx : *block)
@@ -98,17 +98,17 @@ namespace PocketConsensus
                 if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
                     continue;
 
-                if (*blockTx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *_ptx->GetHash())
                     continue;
 
-                if (*ptx->GetString1() == *blockTx->GetString1())
+                if (*_ptx->GetString1() == *blockTx->GetString1())
                 {
-                    if (AllowBlockLimitTime(ptx, blockTx))
+                    if (AllowBlockLimitTime(_ptx, blockTx))
                         count += 1;
                 }
             }
 
-            return ValidateLimit(ptx, count);
+            return ValidateLimit(_ptx, count);
         }
 
         ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
