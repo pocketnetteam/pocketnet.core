@@ -1638,7 +1638,6 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
 
                 if (valid)
                 {
-                    CBlockIndex* pblockindex = mapBlockIndex[hashBlock];
                     if (txPrev->nTime > tx.nTime)
                     {
                         return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
@@ -2464,7 +2463,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Checks PoS logic
-    if (pindex->nHeight == Params().GetConsensus().nHeight_version_1_0_0_pre)
+    if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
     {
         if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
         {
@@ -2472,7 +2471,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         }
     }
 
-    if (pindex->nHeight > Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
+    if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
     {
         int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
         if (nStakeReward > nCalculatedStakeReward)

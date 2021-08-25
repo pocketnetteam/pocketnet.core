@@ -6,11 +6,26 @@
 
 namespace PocketConsensus
 {
+    PostConsensusFactory SocialConsensusHelper::m_postFactory;
+    UserConsensusFactory SocialConsensusHelper::m_userFactory;
+    VideoConsensusFactory SocialConsensusHelper::m_videoFactory;
+    CommentConsensusFactory SocialConsensusHelper::m_commentFactory;
+    CommentEditConsensusFactory SocialConsensusHelper::m_commentEditFactory;
+    CommentDeleteConsensusFactory SocialConsensusHelper::m_commentDeleteFactory;
+    ScoreContentConsensusFactory SocialConsensusHelper::m_scoreContentFactory;
+    ScoreCommentConsensusFactory SocialConsensusHelper::m_scoreCommentFactory;
+    SubscribeConsensusFactory SocialConsensusHelper::m_subscribeFactory;
+    SubscribePrivateConsensusFactory SocialConsensusHelper::m_subscribePrivateFactory;
+    SubscribeCancelConsensusFactory SocialConsensusHelper::m_subscribeCancelFactory;
+    BlockingConsensusFactory SocialConsensusHelper::m_blockingFactory;
+    BlockingCancelConsensusFactory SocialConsensusHelper::m_blockingCancelFactory;
+    ComplainConsensusFactory SocialConsensusHelper::m_complainFactory;
+
     bool SocialConsensusHelper::Validate(const PocketBlockRef& block, int height)
     {
         for (const auto& ptx : *block)
         {
-            if (auto[ok, result] = validateT(ptx, block, height); !ok)
+            if (auto[ok, result] = validate(ptx, block, height); !ok)
                 return false;
         }
 
@@ -64,55 +79,72 @@ namespace PocketConsensus
         return check(tx, ptx);
     }
 
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::validate(const PTransactionRef& ptx, const PocketBlockRef& block, int height)
-    {
-        auto txType = *ptx->GetType();
-
-        if (!isConsensusable(txType))
-            return {true, SocialConsensusResult_Success};
-
-        auto consensus = getConsensus(txType, height);
-        if (!consensus)
-        {
-            LogPrintf("Warning: SocialConsensus type %d not found for transaction %s\n",
-                (int) txType, *ptx->GetHash());
-
-            return {false, SocialConsensusResult_Unknown};
-        }
-
-        if (auto[ok, result] = consensus->Validate(ptx, block); !ok)
-        {
-            LogPrintf("Warning: SocialConsensus %d validate failed with result %d for transaction %s with block at height %d\n",
-                (int) txType, (int) result, *ptx->GetHash(), height);
-
-            return {false, result};
-        }
-
-        return {true, SocialConsensusResult_Success};
-    }
-
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::check(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
-        auto txType = *ptx->GetType();
-
-        if (!isConsensusable(txType))
+        if (!isConsensusable(*ptx->GetType()))
             return {true, SocialConsensusResult_Success};
 
-        auto consensus = getConsensus(txType);
-        if (!consensus)
+        tuple<bool, SocialConsensusResult> result;
+        switch (*ptx->GetType())
         {
-            LogPrintf("Warning: SocialConsensus type %d not found for transaction %s\n",
-                (int) txType, *ptx->GetHash());
-
-            return {false, SocialConsensusResult_Unknown};
+            case ACCOUNT_USER:
+                result = m_userFactory.Instance(0)->Check(tx, static_pointer_cast<User>(ptx));
+                break;
+            case CONTENT_POST:
+                result = m_postFactory.Instance(0)->Check(tx, static_pointer_cast<Post>(ptx));
+                break;
+            case CONTENT_VIDEO:
+                result = m_videoFactory.Instance(0)->Check(tx, static_pointer_cast<Video>(ptx));
+                break;
+            case CONTENT_COMMENT:
+                result = m_commentFactory.Instance(0)->Check(tx, static_pointer_cast<Comment>(ptx));
+                break;
+            case CONTENT_COMMENT_EDIT:
+                result = m_commentEditFactory.Instance(0)->Check(tx, static_pointer_cast<CommentEdit>(ptx));
+                break;
+            case CONTENT_COMMENT_DELETE:
+                result = m_commentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<CommentDelete>(ptx));
+                break;
+            case ACTION_SCORE_CONTENT:
+                result = m_scoreContentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreContent>(ptx));
+                break;
+            case ACTION_SCORE_COMMENT:
+                result = m_scoreCommentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreComment>(ptx));
+                break;
+            case ACTION_SUBSCRIBE:
+                result = m_subscribeFactory.Instance(0)->Check(tx, static_pointer_cast<Subscribe>(ptx));
+                break;
+            case ACTION_SUBSCRIBE_PRIVATE:
+                result = m_subscribePrivateFactory.Instance(0)->Check(tx, static_pointer_cast<SubscribePrivate>(ptx));
+                break;
+            case ACTION_SUBSCRIBE_CANCEL:
+                result = m_subscribeCancelFactory.Instance(0)->Check(tx, static_pointer_cast<SubscribeCancel>(ptx));
+                break;
+            case ACTION_BLOCKING:
+                result = m_blockingFactory.Instance(0)->Check(tx, static_pointer_cast<Blocking>(ptx));
+                break;
+            case ACTION_BLOCKING_CANCEL:
+                result = m_blockingCancelFactory.Instance(0)->Check(tx, static_pointer_cast<BlockingCancel>(ptx));
+                break;
+            case ACTION_COMPLAIN:
+                result = m_complainFactory.Instance(0)->Check(tx, static_pointer_cast<Complain>(ptx));
+                break;
+            case ACCOUNT_VIDEO_SERVER:
+            case ACCOUNT_MESSAGE_SERVER:
+            case CONTENT_TRANSLATE:
+            case CONTENT_SERVERPING:
+                // TODO (brangr): future realize types
+                break;
+            default:
+                break;
         }
 
-        if (auto[ok, result] = consensus->Check(tx, ptx); !ok)
+        if (auto[ok, code] = result; !ok)
         {
             LogPrintf("Warning: SocialConsensus %d check failed with result %d for transaction %s\n",
-                (int) txType, (int) result, *ptx->GetHash());
+                *ptx->GetTypeInt(), (int) code, *ptx->GetHash());
 
-            return {false, result};
+            return {false, code};
         }
 
         return {true, SocialConsensusResult_Success};
@@ -131,88 +163,56 @@ namespace PocketConsensus
         }
     }
 
-    shared_ptr<SocialConsensus> SocialConsensusHelper::getConsensus(PocketTxType txType, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::validate(const PTransactionRef& ptx, const PocketBlockRef& block, int height)
     {
-        switch (txType)
-        {
-            case ACCOUNT_USER:
-                return PocketConsensus::UserConsensusFactoryInst.Instance(height);
-            case CONTENT_POST:
-                return PocketConsensus::PostConsensusFactoryInst.Instance(height);
-            case CONTENT_VIDEO:
-                return PocketConsensus::VideoConsensusFactoryInst.Instance(height);
-            case CONTENT_COMMENT:
-                return PocketConsensus::CommentConsensusFactoryInst.Instance(height);
-            case CONTENT_COMMENT_EDIT:
-                return PocketConsensus::CommentEditConsensusFactoryInst.Instance(height);
-            case CONTENT_COMMENT_DELETE:
-                return PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
-            case ACTION_SCORE_CONTENT:
-                return PocketConsensus::ScoreContentConsensusFactoryInst.Instance(height);
-            case ACTION_SCORE_COMMENT:
-                return PocketConsensus::ScoreCommentConsensusFactoryInst.Instance(height);
-            case ACTION_SUBSCRIBE:
-                return PocketConsensus::SubscribeConsensusFactoryInst.Instance(height);
-            case ACTION_SUBSCRIBE_PRIVATE:
-                return PocketConsensus::SubscribePrivateConsensusFactoryInst.Instance(height);
-            case ACTION_SUBSCRIBE_CANCEL:
-                return PocketConsensus::SubscribeCancelConsensusFactoryInst.Instance(height);
-            case ACTION_BLOCKING:
-                return PocketConsensus::BlockingConsensusFactoryInst.Instance(height);
-            case ACTION_BLOCKING_CANCEL:
-                return PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height);
-            case ACTION_COMPLAIN:
-                return PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
-            case ACCOUNT_VIDEO_SERVER:
-            case ACCOUNT_MESSAGE_SERVER:
-            case CONTENT_TRANSLATE:
-            case CONTENT_SERVERPING:
-                // TODO (brangr): future realize types
-                break;
-            default:
-                break;
-        }
+        if (!isConsensusable(*ptx->GetType()))
+            return {true, SocialConsensusResult_Success};
 
-        return nullptr;
-    }
-
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::validateT(const PTransactionRef& ptx, const PocketBlockRef& block, int height)
-    {
         tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
-            // case ACCOUNT_USER:
-            //     return PocketConsensus::UserConsensusFactoryInst.Instance(height);
+            case ACCOUNT_USER:
+                result = m_userFactory.Instance(height)->Validate(static_pointer_cast<User>(ptx), block);
+                break;
             case CONTENT_POST:
-            {
-                PostConsensusFactoryT factory;
-                auto consensus = factory.Instance(height);
-                result = consensus->Validate(static_pointer_cast<Post>(ptx), block);
-            }
-            // case CONTENT_VIDEO:
-            //     return PocketConsensus::VideoConsensusFactoryInst.Instance(height);
-            // case CONTENT_COMMENT:
-            //     return PocketConsensus::CommentConsensusFactoryInst.Instance(height);
-            // case CONTENT_COMMENT_EDIT:
-            //     return PocketConsensus::CommentEditConsensusFactoryInst.Instance(height);
-            // case CONTENT_COMMENT_DELETE:
-            //     return PocketConsensus::CommentDeleteConsensusFactoryInst.Instance(height);
-            // case ACTION_SCORE_CONTENT:
-            //     return PocketConsensus::ScoreContentConsensusFactoryInst.Instance(height);
-            // case ACTION_SCORE_COMMENT:
-            //     return PocketConsensus::ScoreCommentConsensusFactoryInst.Instance(height);
-            // case ACTION_SUBSCRIBE:
-            //     return PocketConsensus::SubscribeConsensusFactoryInst.Instance(height);
-            // case ACTION_SUBSCRIBE_PRIVATE:
-            //     return PocketConsensus::SubscribePrivateConsensusFactoryInst.Instance(height);
-            // case ACTION_SUBSCRIBE_CANCEL:
-            //     return PocketConsensus::SubscribeCancelConsensusFactoryInst.Instance(height);
-            // case ACTION_BLOCKING:
-            //     return PocketConsensus::BlockingConsensusFactoryInst.Instance(height);
-            // case ACTION_BLOCKING_CANCEL:
-            //     return PocketConsensus::BlockingCancelConsensusFactoryInst.Instance(height);
-            // case ACTION_COMPLAIN:
-            //     return PocketConsensus::ComplainConsensusFactoryInst.Instance(height);
+                result = m_postFactory.Instance(height)->Validate(static_pointer_cast<Post>(ptx), block);
+                break;
+            case CONTENT_VIDEO:
+                result = m_videoFactory.Instance(height)->Validate(static_pointer_cast<Video>(ptx), block);
+                break;
+            case CONTENT_COMMENT:
+                result = m_commentFactory.Instance(height)->Validate(static_pointer_cast<Comment>(ptx), block);
+                break;
+            case CONTENT_COMMENT_EDIT:
+                result = m_commentEditFactory.Instance(height)->Validate(static_pointer_cast<CommentEdit>(ptx), block);
+                break;
+            case CONTENT_COMMENT_DELETE:
+                result = m_commentDeleteFactory.Instance(height)->Validate(static_pointer_cast<CommentDelete>(ptx), block);
+                break;
+            case ACTION_SCORE_CONTENT:
+                result = m_scoreContentFactory.Instance(height)->Validate(static_pointer_cast<ScoreContent>(ptx), block);
+                break;
+            case ACTION_SCORE_COMMENT:
+                result = m_scoreCommentFactory.Instance(height)->Validate(static_pointer_cast<ScoreComment>(ptx), block);
+                break;
+            case ACTION_SUBSCRIBE:
+                result = m_subscribeFactory.Instance(height)->Validate(static_pointer_cast<Subscribe>(ptx), block);
+                break;
+            case ACTION_SUBSCRIBE_PRIVATE:
+                result = m_subscribePrivateFactory.Instance(height)->Validate(static_pointer_cast<SubscribePrivate>(ptx), block);
+                break;
+            case ACTION_SUBSCRIBE_CANCEL:
+                result = m_subscribeCancelFactory.Instance(height)->Validate(static_pointer_cast<SubscribeCancel>(ptx), block);
+                break;
+            case ACTION_BLOCKING:
+                result = m_blockingFactory.Instance(height)->Validate(static_pointer_cast<Blocking>(ptx), block);
+                break;
+            case ACTION_BLOCKING_CANCEL:
+                result = m_blockingCancelFactory.Instance(height)->Validate(static_pointer_cast<BlockingCancel>(ptx), block);
+                break;
+            case ACTION_COMPLAIN:
+                result = m_complainFactory.Instance(height)->Validate(static_pointer_cast<Complain>(ptx), block);
+                break;
             case ACCOUNT_VIDEO_SERVER:
             case ACCOUNT_MESSAGE_SERVER:
             case CONTENT_TRANSLATE:

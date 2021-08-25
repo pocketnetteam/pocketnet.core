@@ -11,73 +11,71 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+    typedef shared_ptr<Subscribe> SubscribeRef;
+
     /*******************************************************************************************************************
     *  Subscribe consensus base class
     *******************************************************************************************************************/
-    class SubscribeConsensus : public SocialConsensus
+    class SubscribeConsensus : public SocialConsensus<Subscribe>
     {
     public:
-        SubscribeConsensus(int height) : SocialConsensus(height) {}
+        SubscribeConsensus(int height) : SocialConsensus<Subscribe>(height) {}
 
-        ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const SubscribeRef& ptx, const PocketBlockRef& block) override
         {
-            auto _ptx = static_pointer_cast<Subscribe>(ptx);
-
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             auto[subscribeExists, subscribeType] = PocketDb::ConsensusRepoInst.GetLastSubscribeType(
-                *_ptx->GetAddress(),
-                *_ptx->GetAddressTo());
+                *ptx->GetAddress(),
+                *ptx->GetAddressTo());
 
             if (subscribeExists && subscribeType == ACTION_SUBSCRIBE)
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*_ptx->GetHash(), *_ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
                     return {false, SocialConsensusResult_DoubleSubscribe};
             }
 
             return Success;
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const SubscribeRef& ptx) override
         {
-            auto _ptx = static_pointer_cast<Subscribe>(ptx);
-
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(_ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(_ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
 
             // Blocking self
-            if (*_ptx->GetAddress() == *_ptx->GetAddressTo())
+            if (*ptx->GetAddress() == *ptx->GetAddressTo())
                 return {false, SocialConsensusResult_SelfSubscribe};
 
             return Success;
         }
 
     protected:
-
-        ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const SubscribeRef& ptx, const PocketBlockRef& block) override
         {
-            auto _ptx = static_pointer_cast<Subscribe>(ptx);
-
             // Only one transaction (address -> addressTo) allowed in block
             for (auto& blockTx : *block)
             {
                 if (!IsIn(*blockTx->GetType(), {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE, ACTION_SUBSCRIBE_CANCEL}))
                     continue;
 
-                if (*blockTx->GetHash() == *_ptx->GetHash())
+                auto blockPtx = static_pointer_cast<Subscribe>(blockTx);
+
+                if (*blockPtx->GetHash() == *ptx->GetHash())
                     continue;
 
-                if (*_ptx->GetAddress() == *blockTx->GetString1() && *_ptx->GetAddressTo() == *blockTx->GetString2())
+                if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
                 {
                     PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*_ptx->GetHash(), *_ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
                         return {false, SocialConsensusResult_DoubleSubscribe};
                 }
             }
@@ -85,13 +83,11 @@ namespace PocketConsensus
             return Success;
         }
 
-        ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const SubscribeRef& ptx) override
         {
-            auto _ptx = static_pointer_cast<Subscribe>(ptx);
-
             int mempoolCount = ConsensusRepoInst.CountMempoolSubscribe(
-                *_ptx->GetAddress(),
-                *_ptx->GetAddressTo()
+                *ptx->GetAddress(),
+                *ptx->GetAddressTo()
             );
 
             if (mempoolCount > 0)
@@ -100,24 +96,32 @@ namespace PocketConsensus
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const SubscribeRef& ptx) override
         {
-            auto _ptx = static_pointer_cast<Subscribe>(ptx);
-            return {*_ptx->GetAddress(), *_ptx->GetAddressTo()};
+            return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
     };
 
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class SubscribeConsensusFactory : public SocialConsensusFactory
+    class SubscribeConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint> _rules = {
-            {0, 0, [](int height) { return make_shared<SubscribeConsensus>(height); }},
+        const vector<ConsensusCheckpoint < SubscribeConsensus>> m_rules = {
+            { 0, 0, [](int height) { return make_shared<SubscribeConsensus>(height); }},
         };
-    protected:
-        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
+    public:
+        shared_ptr<SubscribeConsensus> Instance(int height)
+        {
+            int m_height = (height > 0 ? height : 0);
+            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
+                [&](int target, const ConsensusCheckpoint<SubscribeConsensus>& itm)
+                {
+                    return target < itm.Height(Params().NetworkIDString());
+                }
+            ))->m_func(height);
+        }
     };
 }
 

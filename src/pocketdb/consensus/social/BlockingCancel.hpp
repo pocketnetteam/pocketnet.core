@@ -1,5 +1,3 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
@@ -12,44 +10,43 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+    typedef shared_ptr<BlockingCancel> BlockingCancelRef;
+
     /*******************************************************************************************************************
     *  BlockingCancel consensus base class
     *******************************************************************************************************************/
-    class BlockingCancelConsensus : public SocialConsensus
+    class BlockingCancelConsensus : public SocialConsensus<BlockingCancel>
     {
     public:
-        BlockingCancelConsensus(int height) : SocialConsensus(height) {}
+        BlockingCancelConsensus(int height) : SocialConsensus<BlockingCancel>(height) {}
 
-        ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const BlockingCancelRef& ptx, const PocketBlockRef& block) override
         {
-            auto _ptx = static_pointer_cast<BlockingCancel>(ptx);
-
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                    *_ptx->GetAddress(),
-                    *_ptx->GetAddressTo()
+                    *ptx->GetAddress(),
+                    *ptx->GetAddressTo()
                 ); !existsBlocking || blockingType != ACTION_BLOCKING)
                 return {false, SocialConsensusResult_InvalidBlocking};
 
             return Success;
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const BlockingCancelRef& ptx) override
         {
-            auto _ptx = static_pointer_cast<BlockingCancel>(ptx);
-
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(_ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(_ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddressTo())) return {false, SocialConsensusResult_Failed};
 
             // Blocking self
-            if (*_ptx->GetAddress() == *_ptx->GetAddressTo())
+            if (*ptx->GetAddress() == *ptx->GetAddressTo())
                 return {false, SocialConsensusResult_SelfBlocking};
 
             return Success;
@@ -57,9 +54,8 @@ namespace PocketConsensus
 
     protected:
 
-        ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const BlockingCancelRef& ptx, const PocketBlockRef& block) override
         {
-            auto _ptx = static_pointer_cast<BlockingCancel>(ptx);
 
             // Only one transaction (address -> addressTo) allowed in block
             for (auto& blockTx : *block)
@@ -71,46 +67,46 @@ namespace PocketConsensus
                     continue;
 
                 auto blockPtx = static_pointer_cast<BlockingCancel>(blockTx);
-                if (*_ptx->GetAddress() == *blockPtx->GetAddress() && *_ptx->GetAddressTo() == *blockPtx->GetAddressTo())
+                if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
                     return {false, SocialConsensusResult_ManyTransactions};
             }
 
             return Success;
         }
 
-        ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const BlockingCancelRef& ptx) override
         {
-            auto _ptx = static_pointer_cast<BlockingCancel>(ptx);
-            if (ConsensusRepoInst.CountMempoolBlocking(*_ptx->GetAddress(), *_ptx->GetAddressTo()) > 0)
+            if (ConsensusRepoInst.CountMempoolBlocking(*ptx->GetAddress(), *ptx->GetAddressTo()) > 0)
                 return {false, SocialConsensusResult_ManyTransactions};
 
             return Success;
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const BlockingCancelRef& ptx) override
         {
-            auto _ptx = static_pointer_cast<BlockingCancel>(ptx);
-            return {*_ptx->GetAddress(), *_ptx->GetAddressTo()};
+            return {*ptx->GetAddress(), *ptx->GetAddressTo()};
         }
     };
 
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class BlockingCancelConsensusFactory : public BaseConsensusFactory
+    class BlockingCancelConsensusFactory
     {
-    private:
-        const vector<ConsensusCheckpoint> _rules = {
-            {0, 0, [](int height) { return make_shared<BlockingCancelConsensus>(height); }},
-        };
     protected:
-        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
+        const vector<ConsensusCheckpoint < BlockingCancelConsensus>> m_rules = {
+            { 0, 0, [](int height) { return make_shared<BlockingCancelConsensus>(height); }},
+        };
     public:
         shared_ptr<BlockingCancelConsensus> Instance(int height)
         {
-            return static_pointer_cast<BlockingCancelConsensus>(
-                BaseConsensusFactory::m_instance(height)
-            );
+            int m_height = (height > 0 ? height : 0);
+            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
+                [&](int target, const ConsensusCheckpoint<BlockingCancelConsensus>& itm)
+                {
+                    return target < itm.Height(Params().NetworkIDString());
+                }
+            ))->m_func(height);
         }
     };
 }

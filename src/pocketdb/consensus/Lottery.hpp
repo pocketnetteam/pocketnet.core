@@ -311,7 +311,7 @@ namespace PocketConsensus
     class LotteryConsensusFactory : public BaseConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint> _rules = {
+        const vector<BaseConsensusCheckpoint> _rules = {
             {0,       -1, [](int height) { return make_shared<LotteryConsensus>(height); }},
             {514185,  -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_514185>(height); }},
             {1035000, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1035000>(height); }},
@@ -319,7 +319,7 @@ namespace PocketConsensus
             {1180000, 0,  [](int height) { return make_shared<LotteryConsensus_checkpoint_1180000>(height); }},
         };
     protected:
-        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
+        const vector<BaseConsensusCheckpoint>& m_rules() override { return _rules; }
     public:
         shared_ptr<LotteryConsensus> Instance(int height)
         {

@@ -327,7 +327,7 @@ namespace PocketConsensus
     class ReputationConsensusFactory : public BaseConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint> _rules = {
+        const vector<BaseConsensusCheckpoint> _rules = {
             {0,       -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
             {108300,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_108300>(height); }},
             {151600,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
@@ -339,7 +339,7 @@ namespace PocketConsensus
             {1324655,  0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
         };
     protected:
-        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
+        const vector<BaseConsensusCheckpoint>& m_rules() override { return _rules; }
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
         {

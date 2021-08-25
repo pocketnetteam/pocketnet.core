@@ -11,49 +11,48 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+    typedef shared_ptr<Complain> ComplainRef;
+
     /*******************************************************************************************************************
     *  Complain consensus base class
     *******************************************************************************************************************/
-    class ComplainConsensus : public SocialConsensus
+    class ComplainConsensus : public SocialConsensus<Complain>
     {
     public:
-        ComplainConsensus(int height) : SocialConsensus(height) {}
+        ComplainConsensus(int height) : SocialConsensus<Complain>(height) {}
 
-        ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const ComplainRef& ptx, const PocketBlockRef& block) override
         {
-            auto _ptx = static_pointer_cast<Complain>(ptx);
-
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
-                
+
             // Author or post must be exists
-            auto postAddress = PocketDb::ConsensusRepoInst.GetContentAddress(*_ptx->GetPostTxHash());
+            auto postAddress = PocketDb::ConsensusRepoInst.GetContentAddress(*ptx->GetPostTxHash());
             if (postAddress == nullptr)
                 return {false, SocialConsensusResult_NotFound};
 
             // Complain to self
-            if (*postAddress == *_ptx->GetAddress())
+            if (*postAddress == *ptx->GetAddress())
                 return {false, SocialConsensusResult_SelfComplain};
 
             // Check double complain
-            if (PocketDb::ConsensusRepoInst.ExistsComplain(*_ptx->GetHash(), *_ptx->GetPostTxHash(), *_ptx->GetAddress()))
+            if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetHash(), *ptx->GetPostTxHash(), *ptx->GetAddress()))
                 return {false, SocialConsensusResult_DoubleComplain};
 
             return Success;
         }
-        
-        ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx) override
-        {
-            auto _ptx = static_pointer_cast<Complain>(ptx);
 
+        ConsensusValidateResult Check(const CTransactionRef& tx, const ComplainRef& ptx) override
+        {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(_ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(_ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(_ptx->GetReason())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetReason())) return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
@@ -63,14 +62,14 @@ namespace PocketConsensus
         virtual int64_t GetFullAccountComplainsLimit() { return 12; }
         virtual int64_t GetTrialAccountComplainsLimit() { return 6; }
         virtual int64_t GetThresholdReputation() { return 500; }
-        virtual int64_t GetComplainsLimit(AccountMode mode) {
+        virtual int64_t GetComplainsLimit(AccountMode mode)
+        {
             return mode >= AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
         }
 
 
-        ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const ComplainRef& ptx, const PocketBlockRef& block) override
         {
-            auto _ptx = static_pointer_cast<Complain>(ptx);
             int count = GetChainCount(ptx);
 
             for (auto& blockTx : *block)
@@ -78,20 +77,20 @@ namespace PocketConsensus
                 if (!IsIn(*blockTx->GetType(), {ACTION_COMPLAIN}))
                     continue;
 
-                if (*blockTx->GetHash() == *_ptx->GetHash())
+                if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
                 auto blockPtx = static_pointer_cast<Complain>(blockTx);
-                if (*_ptx->GetAddress() == *blockPtx->GetAddress())
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
-                    if (CheckBlockLimitTime(_ptx, blockPtx))
+                    if (CheckBlockLimitTime(ptx, blockPtx))
                         count += 1;
 
                     // Maybe in block
-                    if (*_ptx->GetPostTxHash() == *blockPtx->GetPostTxHash())
+                    if (*ptx->GetPostTxHash() == *blockPtx->GetPostTxHash())
                     {
                         PocketHelpers::SocialCheckpoints socialCheckpoints;
-                        if (!socialCheckpoints.IsCheckpoint(*_ptx->GetHash(), *_ptx->GetType(), SocialConsensusResult_DoubleComplain))
+                        if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleComplain))
                             return {false, SocialConsensusResult_DoubleComplain};
                     }
                 }
@@ -100,21 +99,17 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const ComplainRef& ptx) override
         {
-            auto _ptx = static_pointer_cast<Complain>(ptx);
-
-            int count = GetChainCount(_ptx);
-            count += ConsensusRepoInst.CountMempoolComplain(*_ptx->GetAddress());
+            int count = GetChainCount(ptx);
+            count += ConsensusRepoInst.CountMempoolComplain(*ptx->GetAddress());
             return ValidateLimit(ptx, count);
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const PTransactionRef& ptx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const ComplainRef& ptx, int count)
         {
-            auto _ptx = static_pointer_cast<Complain>(ptx);
-
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*_ptx->GetAddress());
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetAddress());
             if (count >= GetComplainsLimit(mode))
                 return {false, SocialConsensusResult_ComplainLimit};
 
@@ -125,25 +120,22 @@ namespace PocketConsensus
             return Success;
         }
 
-        virtual bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx)
+        virtual bool CheckBlockLimitTime(const ComplainRef& ptx, const ComplainRef& blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
 
-        virtual int GetChainCount(const PTransactionRef& ptx)
+        virtual int GetChainCount(const ComplainRef& ptx)
         {
-            auto _ptx = static_pointer_cast<Complain>(ptx);
-
             return ConsensusRepoInst.CountChainComplainTime(
-                *_ptx->GetAddress(),
-                *_ptx->GetTime() - GetLimitWindow()
+                *ptx->GetAddress(),
+                *ptx->GetTime() - GetLimitWindow()
             );
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const ComplainRef& ptx) override
         {
-            auto _ptx = static_pointer_cast<Complain>(ptx);
-            return {*ptx->GetString1()};
+            return {*ptx->GetAddress()};
         }
     };
 
@@ -166,7 +158,7 @@ namespace PocketConsensus
     public:
         ComplainConsensus_checkpoint_1124000(int height) : ComplainConsensus_checkpoint_292800(height) {}
     protected:
-        bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
+        bool CheckBlockLimitTime(const ComplainRef& ptx, const ComplainRef& blockPtx) override
         {
             return true;
         }
@@ -181,9 +173,9 @@ namespace PocketConsensus
         ComplainConsensus_checkpoint_1180000(int height) : ComplainConsensus_checkpoint_1124000(height) {}
     protected:
         int64_t GetLimitWindow() override { return 1440; }
-        int GetChainCount(const PTransactionRef& ptx) override
+        int GetChainCount(const ComplainRef& ptx) override
         {
-            return ConsensusRepoInst.CountChainComplainHeight(*ptx->GetString1(), Height - (int) GetLimitWindow());
+            return ConsensusRepoInst.CountChainComplainHeight(*ptx->GetAddress(), Height - (int) GetLimitWindow());
         }
     };
 
@@ -191,17 +183,26 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class ComplainConsensusFactory : public SocialConsensusFactory
+    class ComplainConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint> _rules = {
-            {0,       -1, [](int height) { return make_shared<ComplainConsensus>(height); }},
-            {292800,  -1, [](int height) { return make_shared<ComplainConsensus_checkpoint_292800>(height); }},
-            {1124000, -1, [](int height) { return make_shared<ComplainConsensus_checkpoint_1124000>(height); }},
-            {1180000, 0,  [](int height) { return make_shared<ComplainConsensus_checkpoint_1180000>(height); }},
+        const vector<ConsensusCheckpoint < ComplainConsensus>> m_rules = {
+            { 0, -1, [](int height) { return make_shared<ComplainConsensus>(height); }},
+            { 292800, -1, [](int height) { return make_shared<ComplainConsensus_checkpoint_292800>(height); }},
+            { 1124000, -1, [](int height) { return make_shared<ComplainConsensus_checkpoint_1124000>(height); }},
+            { 1180000, 0, [](int height) { return make_shared<ComplainConsensus_checkpoint_1180000>(height); }},
         };
-    protected:
-        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
+    public:
+        shared_ptr<ComplainConsensus> Instance(int height)
+        {
+            int m_height = (height > 0 ? height : 0);
+            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
+                [&](int target, const ConsensusCheckpoint<ComplainConsensus>& itm)
+                {
+                    return target < itm.Height(Params().NetworkIDString());
+                }
+            ))->m_func(height);
+        }
     };
 }
 

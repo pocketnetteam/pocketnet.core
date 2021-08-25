@@ -8,9 +8,21 @@
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/models/base/Transaction.h"
 #include "pocketdb/ReputationConsensus.h"
-#include "pocketdb/SocialConsensus.h"
 
-#include "pocketdb/consensus/social/PostT.h"
+#include "pocketdb/consensus/social/Blocking.hpp"
+#include "pocketdb/consensus/social/BlockingCancel.hpp"
+#include "pocketdb/consensus/social/Comment.hpp"
+#include "pocketdb/consensus/social/CommentEdit.hpp"
+#include "pocketdb/consensus/social/CommentDelete.hpp"
+#include "pocketdb/consensus/social/Complain.hpp"
+#include "pocketdb/consensus/social/Post.hpp"
+#include "pocketdb/consensus/social/ScoreComment.hpp"
+#include "pocketdb/consensus/social/ScoreContent.hpp"
+#include "pocketdb/consensus/social/Subscribe.hpp"
+#include "pocketdb/consensus/social/SubscribeCancel.hpp"
+#include "pocketdb/consensus/social/SubscribePrivate.hpp"
+#include "pocketdb/consensus/social/User.hpp"
+#include "pocketdb/consensus/social/Video.hpp"
 
 namespace PocketConsensus
 {
@@ -33,8 +45,21 @@ namespace PocketConsensus
         static tuple<bool, SocialConsensusResult> validate(const PTransactionRef& ptx, const PocketBlockRef& block, int height);
         static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx);
         static bool isConsensusable(PocketTxType txType);
-        static shared_ptr<SocialConsensus> getConsensus(PocketTxType txType, int height = 0);
-        static tuple<bool, SocialConsensusResult> validateT(const PTransactionRef& ptx, const PocketBlockRef& block, int height);
+    private:
+        static PostConsensusFactory m_postFactory;
+        static UserConsensusFactory m_userFactory;
+        static VideoConsensusFactory m_videoFactory;
+        static CommentConsensusFactory m_commentFactory;
+        static CommentEditConsensusFactory m_commentEditFactory;
+        static CommentDeleteConsensusFactory m_commentDeleteFactory;
+        static ScoreContentConsensusFactory m_scoreContentFactory;
+        static ScoreCommentConsensusFactory m_scoreCommentFactory;
+        static SubscribeConsensusFactory m_subscribeFactory;
+        static SubscribePrivateConsensusFactory m_subscribePrivateFactory;
+        static SubscribeCancelConsensusFactory m_subscribeCancelFactory;
+        static BlockingConsensusFactory m_blockingFactory;
+        static BlockingCancelConsensusFactory m_blockingCancelFactory;
+        static ComplainConsensusFactory m_complainFactory;
     };
 }
 

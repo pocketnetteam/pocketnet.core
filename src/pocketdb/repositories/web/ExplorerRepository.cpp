@@ -142,10 +142,10 @@ namespace PocketDb {
                 auto [ok1, sAmount] = TryGetColumnInt64(*stmt, 1);
 
                 if (ok0 && ok1)
-                    if (sUnspent == 1)
-                        unspent = sAmount;
-                    else
-                        spent = sAmount;
+                {
+                    if (sUnspent == 1) unspent = sAmount;
+                    else spent = sAmount;
+                }
             }
 
             FinalizeSqlStatement(*stmt);

@@ -12,67 +12,61 @@
 
 namespace PocketConsensus
 {
+    using namespace std;
+    typedef shared_ptr<Comment> CommentRef;
+
     /*******************************************************************************************************************
     *  Comment consensus base class
     *******************************************************************************************************************/
-    class CommentConsensus : public SocialConsensus
+    class CommentConsensus : public SocialConsensus<Comment>
     {
     public:
-        CommentConsensus(int height) : SocialConsensus(height) {}
-        
-        ConsensusValidateResult Validate(const PTransactionRef& ptx, const PocketBlockRef& block) override
-        {
-            auto _ptx = static_pointer_cast<Comment>(ptx);
+        CommentConsensus(int height) : SocialConsensus<Comment>(height) {}
 
+        ConsensusValidateResult Validate(const CommentRef& ptx, const PocketBlockRef& block) override
+        {
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
-                
+
             // Parent comment
-            if (!IsEmpty(_ptx->GetParentTxHash()))
-            {
-                auto parentTx = PocketDb::TransRepoInst.GetByHash(*_ptx->GetParentTxHash());
-                if (!parentTx)
+            if (!IsEmpty(ptx->GetParentTxHash()))
+                if (!PocketDb::TransRepoInst.ExistsByHash(*ptx->GetParentTxHash()))
                     return {false, SocialConsensusResult_InvalidParentComment};
-            }
 
             // Answer comment
-            if (!IsEmpty(_ptx->GetAnswerTxHash()))
-            {
-                auto answerTx = PocketDb::TransRepoInst.GetByHash(*_ptx->GetAnswerTxHash());
-                if (!answerTx)
+            if (!IsEmpty(ptx->GetAnswerTxHash()))
+                if (!PocketDb::TransRepoInst.ExistsByHash(*ptx->GetAnswerTxHash()))
                     return {false, SocialConsensusResult_InvalidAnswerComment};
-            }
 
             // Check exists content transaction
-            auto contentTx = PocketDb::TransRepoInst.GetByHash(*_ptx->GetPostTxHash());
+            auto contentTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetPostTxHash());
             if (!contentTx)
                 return {false, SocialConsensusResult_NotFound};
+            auto contentPtx = static_pointer_cast<Comment>(contentTx);
 
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                    *contentTx->GetString1(), *_ptx->GetAddress() // GetString1() returned author content
+                    *contentPtx->GetAddress(), *ptx->GetAddress()
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
                 return {false, SocialConsensusResult_Blocking};
 
             return Success;
         }
 
-        ConsensusValidateResult Check(const CTransactionRef& tx, const PTransactionRef& ptx) override
+        ConsensusValidateResult Check(const CTransactionRef& tx, const CommentRef& ptx) override
         {
-            auto _ptx = static_pointer_cast<Comment>(ptx);
-
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(_ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(_ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPostTxHash())) return {false, SocialConsensusResult_Failed};
 
             // Maximum for message data
-            if (!_ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(_ptx->GetPayloadMsg())) return {false, SocialConsensusResult_Failed};
-            if (HtmlUtils::UrlDecode(*_ptx->GetPayloadMsg()).length() > GetCommentMessageMaxSize())
+            if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetPayloadMsg())) return {false, SocialConsensusResult_Failed};
+            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > GetCommentMessageMaxSize())
                 return {false, SocialConsensusResult_Size};
 
             return Success;
@@ -86,12 +80,12 @@ namespace PocketConsensus
         virtual int64_t GetLimit(AccountMode mode) { return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit(); }
 
 
-        virtual bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx)
+        virtual bool CheckBlockLimitTime(const CommentRef& ptx, const CommentRef& blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
 
-        ConsensusValidateResult ValidateBlock(const PTransactionRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult ValidateBlock(const CommentRef& ptx, const PocketBlockRef& block) override
         {
             int count = GetChainCount(ptx);
             for (auto& blockTx : *block)
@@ -99,12 +93,14 @@ namespace PocketConsensus
                 if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT}))
                     continue;
 
-                if (*blockTx->GetHash() == *ptx->GetHash())
+                auto blockPtx = static_pointer_cast<Comment>(blockTx);
+
+                if (*blockPtx->GetHash() == *ptx->GetHash())
                     continue;
 
-                if (*ptx->GetString1() == *blockTx->GetString1())
+                if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
-                    if (CheckBlockLimitTime(ptx, blockTx))
+                    if (CheckBlockLimitTime(ptx, blockPtx))
                         count += 1;
                 }
             }
@@ -112,34 +108,34 @@ namespace PocketConsensus
             return ValidateLimit(ptx, count);
         }
 
-        ConsensusValidateResult ValidateMempool(const PTransactionRef& ptx) override
+        ConsensusValidateResult ValidateMempool(const CommentRef& ptx) override
         {
             int count = GetChainCount(ptx);
-            count += ConsensusRepoInst.CountMempoolComment(*ptx->GetString1());
+            count += ConsensusRepoInst.CountMempoolComment(*ptx->GetAddress());
             return ValidateLimit(ptx, count);
         }
 
-        virtual ConsensusValidateResult ValidateLimit(const PTransactionRef& ptx, int count)
+        virtual ConsensusValidateResult ValidateLimit(const CommentRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetString1());
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetAddress());
             if (count >= GetLimit(mode))
                 return {false, SocialConsensusResult_CommentLimit};
 
             return Success;
         }
 
-        virtual int GetChainCount(const PTransactionRef& ptx)
+        virtual int GetChainCount(const CommentRef& ptx)
         {
             return ConsensusRepoInst.CountChainCommentTime(
-                *ptx->GetString1(),
+                *ptx->GetAddress(),
                 *ptx->GetTime() - GetLimitWindow()
             );
         }
 
-        vector<string> GetAddressesForCheckRegistration(const PTransactionRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const CommentRef& ptx) override
         {
-            return {*ptx->GetString1()};
+            return {*ptx->GetAddress()};
         }
 
     };
@@ -152,7 +148,7 @@ namespace PocketConsensus
     public:
         CommentConsensus_checkpoint_1124000(int height) : CommentConsensus(height) {}
     protected:
-        bool CheckBlockLimitTime(const PTransactionRef& ptx, const PTransactionRef& blockPtx) override
+        bool CheckBlockLimitTime(const CommentRef& ptx, const CommentRef& blockPtx) override
         {
             return true;
         }
@@ -167,25 +163,34 @@ namespace PocketConsensus
         CommentConsensus_checkpoint_1180000(int height) : CommentConsensus_checkpoint_1124000(height) {}
     protected:
         int64_t GetLimitWindow() override { return 1440; }
-        int GetChainCount(const PTransactionRef& ptx) override
+        int GetChainCount(const CommentRef& ptx) override
         {
-            return ConsensusRepoInst.CountChainCommentHeight(*ptx->GetString1(), Height - (int) GetLimitWindow());
+            return ConsensusRepoInst.CountChainCommentHeight(*ptx->GetAddress(), Height - (int) GetLimitWindow());
         }
     };
 
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class CommentConsensusFactory : public SocialConsensusFactory
+    class CommentConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint> _rules = {
-            {0,       -1, [](int height) { return make_shared<CommentConsensus>(height); }},
-            {1124000, -1, [](int height) { return make_shared<CommentConsensus_checkpoint_1124000>(height); }},
-            {1180000,  0, [](int height) { return make_shared<CommentConsensus_checkpoint_1180000>(height); }},
+        const vector<ConsensusCheckpoint < CommentConsensus>> m_rules = {
+            { 0, -1, [](int height) { return make_shared<CommentConsensus>(height); }},
+            { 1124000, -1, [](int height) { return make_shared<CommentConsensus_checkpoint_1124000>(height); }},
+            { 1180000, 0, [](int height) { return make_shared<CommentConsensus_checkpoint_1180000>(height); }},
         };
-    protected:
-        const vector<ConsensusCheckpoint>& m_rules() override { return _rules; }
+    public:
+        shared_ptr<CommentConsensus> Instance(int height)
+        {
+            int m_height = (height > 0 ? height : 0);
+            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
+                [&](int target, const ConsensusCheckpoint<CommentConsensus>& itm)
+                {
+                    return target < itm.Height(Params().NetworkIDString());
+                }
+            ))->m_func(height);
+        }
     };
 }
 

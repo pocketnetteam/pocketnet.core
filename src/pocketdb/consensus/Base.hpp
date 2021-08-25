@@ -97,7 +97,7 @@ namespace PocketConsensus
 
     };
 
-    struct ConsensusCheckpoint
+    struct BaseConsensusCheckpoint
     {
         int m_main_height;
         int m_test_height;
@@ -118,12 +118,12 @@ namespace PocketConsensus
     class BaseConsensusFactory
     {
     protected:
-        virtual const vector<ConsensusCheckpoint>& m_rules() = 0;
+        virtual const vector<BaseConsensusCheckpoint>& m_rules() = 0;
         virtual shared_ptr<BaseConsensus> m_instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules().begin(), m_rules().end(), m_height,
-                [&](int target, const ConsensusCheckpoint& itm)
+                [&](int target, const BaseConsensusCheckpoint& itm)
                 {
                     return target < itm.Height(Params().NetworkIDString());
                 }

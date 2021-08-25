@@ -93,7 +93,6 @@ endif
 POCKETDB_H = \
     pocketdb/pocketnet.h \
     pocketdb/ReputationConsensus.h \
-    pocketdb/SocialConsensus.h \
     pocketdb/SQLiteDatabase.h \
     pocketdb/SQLiteConnection.h \
     \
@@ -119,10 +118,11 @@ POCKETDB_H = \
     pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
     \
-    pocketdb/consensus/Social.h \
-    pocketdb/consensus/SocialT.h \
-    pocketdb/consensus/Lottery.hpp \
+    pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Helper.h \
+    pocketdb/consensus/Social.h \
+    pocketdb/consensus/Lottery.hpp \
+    pocketdb/consensus/Reputation.hpp \
     \
     pocketdb/consensus/social/Blocking.hpp \
     pocketdb/consensus/social/BlockingCancel.hpp \
@@ -130,8 +130,7 @@ POCKETDB_H = \
     pocketdb/consensus/social/CommentEdit.hpp \
     pocketdb/consensus/social/CommentDelete.hpp \
     pocketdb/consensus/social/Complain.hpp \
-    pocketdb/consensus/social/Post.h \
-    pocketdb/consensus/social/PostT.h \
+    pocketdb/consensus/social/Post.hpp \
     pocketdb/consensus/social/Video.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
     pocketdb/consensus/social/ScoreContent.hpp \
@@ -177,7 +176,6 @@ POCKETDB_CPP = \
     pocketdb/SQLiteConnection.cpp \
     pocketdb/pocketnet.cpp \
     pocketdb/ReputationConsensus.cpp \
-    pocketdb/SocialConsensus.cpp \
     \
     pocketdb/migrations/main.cpp \
     \
@@ -187,9 +185,6 @@ POCKETDB_CPP = \
     pocketdb/repositories/ChainRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
-    pocketdb/consensus/Social.cpp \
-    pocketdb/consensus/social/Post.cpp \
-    pocketdb/consensus/social/PostT.cpp \
     \
     pocketdb/models/base/Base.cpp \
     pocketdb/models/base/Payload.cpp \
