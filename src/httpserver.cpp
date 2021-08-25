@@ -22,6 +22,7 @@
 #include <support/events.h>
 #include "init.h"
 #include <rpc/register.h>
+#include <walletinitinterface.h>
 
 #ifdef EVENT__HAVE_NETINET_IN_H
 #include <netinet/in.h>
@@ -475,6 +476,7 @@ bool InitHTTPServer()
     RegisterMiscRPCCommands(g_socket->m_table_rpc);
     RegisterMiningRPCCommands(g_socket->m_table_rpc);
     RegisterRawTransactionRPCCommands(g_socket->m_table_rpc);
+    g_wallet_init_interface.RegisterRPC(g_socket->m_table_rpc);
 #if ENABLE_ZMQ
     RegisterZMQRPCCommands(g_socket->m_table_rpc);
 #endif
