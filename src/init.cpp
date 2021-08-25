@@ -2119,31 +2119,6 @@ bool AppInitMain()
     if (gArgs.GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION))
         StartTorControl();
 
-    // -----------------------------------------
-
-    {
-        CBlockIndex* pblockindex = chainActive[35212];
-        if (!pblockindex)
-            return 1;
-
-        CBlock block;
-        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-            return 1;
-
-        std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
-        if (!PocketServices::GetBlock(block, pocketBlock, false) || !pocketBlock)
-            return 1;
-
-        PocketServices::TransactionIndexer::Rollback(pblockindex->nHeight);
-
-        if (!PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pblockindex->nHeight))
-            return 1;
-
-        PocketServices::TransactionIndexer::Index(block, pblockindex->nHeight);
-    }
-
-    // -----------------------------------------
-
     Discover();
 
     // Map ports with UPnP
