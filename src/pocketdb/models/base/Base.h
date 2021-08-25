@@ -5,6 +5,7 @@
 #ifndef POCKETTX_BASE_H
 #define POCKETTX_BASE_H
 
+#include <memory>
 #include "pocketdb/models/base/PocketTypes.h"
 #include <univalue/include/univalue.h>
 

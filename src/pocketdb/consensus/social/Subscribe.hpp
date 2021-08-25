@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/base/Transaction.h"
-#include "pocketdb/models/dto/Subscribe.hpp"
+#include "pocketdb/models/dto/Subscribe.h"
 
 namespace PocketConsensus
 {

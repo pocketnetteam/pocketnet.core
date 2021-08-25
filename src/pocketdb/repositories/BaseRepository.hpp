@@ -178,6 +178,8 @@ namespace PocketDb
         {
         }
 
+        virtual ~BaseRepository() = default;
+
         virtual void Init() = 0;
         virtual void Destroy() = 0;
     };

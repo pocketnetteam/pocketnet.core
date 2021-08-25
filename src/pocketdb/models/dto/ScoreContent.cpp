@@ -1,0 +1,60 @@
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
+#include "pocketdb/models/dto/ScoreContent.h"
+
+namespace PocketTx
+{
+    ScoreContent::ScoreContent(const string& hash, int64_t time) : Transaction(hash, time)
+    {
+        SetType(PocketTxType::ACTION_SCORE_CONTENT);
+    }
+
+    shared_ptr <UniValue> ScoreContent::Serialize() const
+    {
+        auto result = Transaction::Serialize();
+
+        result->pushKV("address", GetAddress() ? *GetAddress() : "");
+        result->pushKV("posttxid", GetContentTxHash() ? *GetContentTxHash() : "");
+        result->pushKV("value", GetValue() ? *GetValue() : 0);
+
+        return result;
+    }
+
+    void ScoreContent::Deserialize(const UniValue& src)
+    {
+        Transaction::Deserialize(src);
+        if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
+        if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetContentTxHash(val);
+        if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
+    }
+
+    void ScoreContent::DeserializeRpc(const UniValue& src)
+    {
+        if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
+        if (auto[ok, val] = TryGetStr(src, "share"); ok) SetContentTxHash(val);
+        if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
+    }
+
+    shared_ptr <string> ScoreContent::GetAddress() const { return m_string1; }
+    void ScoreContent::SetAddress(string value) { m_string1 = make_shared<string>(value); }
+
+    shared_ptr <string> ScoreContent::GetContentTxHash() const { return m_string2; }
+    void ScoreContent::SetContentTxHash(string value) { m_string2 = make_shared<string>(value); }
+
+    shared_ptr <int64_t> ScoreContent::GetValue() const { return m_int1; }
+    void ScoreContent::SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+
+    void ScoreContent::DeserializePayload(const UniValue& src)
+    {
+    }
+
+    void ScoreContent::BuildHash()
+    {
+        std::string data;
+        data += GetContentTxHash() ? *GetContentTxHash() : "";
+        data += GetValue() ? std::to_string(*GetValue()) : "";
+        Transaction::GenerateHash(data);
+    }
+} // namespace PocketTx

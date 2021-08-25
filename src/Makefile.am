@@ -138,7 +138,6 @@ POCKETDB_H = \
     pocketdb/consensus/social/SubscribeCancel.hpp \
     pocketdb/consensus/social/SubscribePrivate.hpp \
     pocketdb/consensus/social/User.hpp \
-    pocketdb/consensus/social/Video.hpp \
     \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/TransactionIndexer.hpp \
@@ -153,22 +152,23 @@ POCKETDB_H = \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/ReturnDtoModels.h \
     \
-    pocketdb/models/dto/Default.hpp \
-    pocketdb/models/dto/Coinbase.hpp \
-    pocketdb/models/dto/Coinstake.hpp \
+    pocketdb/models/dto/Default.h \
+    pocketdb/models/dto/Coinbase.h \
+    pocketdb/models/dto/Coinstake.h \
     pocketdb/models/dto/Post.h \
     pocketdb/models/dto/User.h \
-    pocketdb/models/dto/ScoreContent.hpp \
-    pocketdb/models/dto/ScoreComment.hpp \
-    pocketdb/models/dto/Blocking.hpp \
-    pocketdb/models/dto/BlockingCancel.hpp \
-    pocketdb/models/dto/Comment.hpp \
-    pocketdb/models/dto/CommentEdit.hpp \
-    pocketdb/models/dto/CommentDelete.hpp \
-    pocketdb/models/dto/Subscribe.hpp \
-    pocketdb/models/dto/SubscribePrivate.hpp \
-    pocketdb/models/dto/SubscribeCancel.hpp \
-    pocketdb/models/dto/Complain.hpp
+    pocketdb/models/dto/ScoreContent.h \
+    pocketdb/models/dto/ScoreComment.h \
+    pocketdb/models/dto/Blocking.h \
+    pocketdb/models/dto/BlockingCancel.h \
+    pocketdb/models/dto/Comment.h \
+    pocketdb/models/dto/CommentEdit.h \
+    pocketdb/models/dto/CommentDelete.h \
+    pocketdb/models/dto/Subscribe.h \
+    pocketdb/models/dto/SubscribePrivate.h \
+    pocketdb/models/dto/SubscribeCancel.h \
+    pocketdb/models/dto/Complain.h \
+    pocketdb/models/dto/Video.h
 
 # PocketDb CPP
 POCKETDB_CPP = \
@@ -178,6 +178,10 @@ POCKETDB_CPP = \
     pocketdb/ReputationConsensus.cpp \
     \
     pocketdb/migrations/main.cpp \
+    \
+    pocketdb/helpers/LotteryCheckpointHelper.cpp \
+    pocketdb/helpers/SocialCheckpointHelper.cpp \
+    pocketdb/helpers/OpReturnCheckpointHelper.cpp \
     \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
@@ -193,9 +197,6 @@ POCKETDB_CPP = \
     pocketdb/models/base/Rating.cpp \
     pocketdb/models/base/Payload.cpp \
     \
-    pocketdb/models/dto/Post.cpp \
-    pocketdb/models/dto/User.cpp \
-    \
     pocketdb/web/PocketContentRpc.cpp \
     pocketdb/web/PocketCommentsRpc.cpp \
     pocketdb/web/PocketSystemRpc.cpp \
@@ -206,9 +207,23 @@ POCKETDB_CPP = \
     pocketdb/web/PocketTransactionRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
     \
-    pocketdb/helpers/LotteryCheckpointHelper.cpp \
-    pocketdb/helpers/SocialCheckpointHelper.cpp \
-    pocketdb/helpers/OpReturnCheckpointHelper.cpp
+    pocketdb/models/dto/Default.cpp \
+    pocketdb/models/dto/Coinbase.cpp \
+    pocketdb/models/dto/Coinstake.cpp \
+    pocketdb/models/dto/Post.cpp \
+    pocketdb/models/dto/User.cpp \
+    pocketdb/models/dto/ScoreContent.cpp \
+    pocketdb/models/dto/ScoreComment.cpp \
+    pocketdb/models/dto/Blocking.cpp \
+    pocketdb/models/dto/BlockingCancel.cpp \
+    pocketdb/models/dto/Comment.cpp \
+    pocketdb/models/dto/CommentEdit.cpp \
+    pocketdb/models/dto/CommentDelete.cpp \
+    pocketdb/models/dto/Subscribe.cpp \
+    pocketdb/models/dto/SubscribePrivate.cpp \
+    pocketdb/models/dto/SubscribeCancel.cpp \
+    pocketdb/models/dto/Complain.cpp \
+    pocketdb/models/dto/Video.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \

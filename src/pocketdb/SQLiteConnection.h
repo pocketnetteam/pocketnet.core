@@ -26,7 +26,7 @@ namespace PocketDb
     public:
 
         SQLiteConnection();
-        ~SQLiteConnection();
+        virtual ~SQLiteConnection();
 
         WebRepositoryRef WebRepoInst;
         ExplorerRepositoryRef ExplorerRepoInst;

@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Reputation.hpp"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Complain.hpp"
+#include "pocketdb/models/dto/Complain.h"
 
 namespace PocketConsensus
 {
