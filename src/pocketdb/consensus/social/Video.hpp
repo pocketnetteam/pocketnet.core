@@ -111,12 +111,16 @@ namespace PocketConsensus
                     continue;
 
                 auto blockPtx = static_pointer_cast<Video>(blockTx);
-
-                if (*blockPtx->GetHash() == *ptx->GetHash())
-                    continue;
-
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
+                {
+                    if (blockPtx->IsEdit())
+                        continue;
+
+                    if (*blockPtx->GetHash() == *ptx->GetHash())
+                        continue;
+                
                     count += 1;
+                }
             }
 
             return ValidateLimit(ptx, count);

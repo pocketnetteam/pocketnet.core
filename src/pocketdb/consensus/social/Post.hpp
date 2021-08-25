@@ -98,11 +98,14 @@ namespace PocketConsensus
 
                 const auto blockPtx = static_pointer_cast<Post>(blockTx);
 
-                if (*blockPtx->GetHash() == *ptx->GetHash())
-                   continue;
-
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
+                    if (blockPtx->IsEdit())
+                        continue;
+
+                    if (*blockPtx->GetHash() == *ptx->GetHash())
+                        continue;
+                
                     if (AllowBlockLimitTime(ptx, blockPtx))
                         count += 1;
                 }
