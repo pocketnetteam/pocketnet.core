@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_COMPLAIN_HPP
 
 #include "pocketdb/consensus/Reputation.hpp"
-#include "pocketdb/consensus/Social.hpp"
+#include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/Complain.hpp"
 
 namespace PocketConsensus

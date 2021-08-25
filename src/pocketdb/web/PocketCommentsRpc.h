@@ -6,10 +6,8 @@
 #define SRC_POCKETCOMMENTSRPC_H
 
 #include "rpc/server.h"
-#include "rpc/rawtransaction.h"
-#include <pos.h>
-#include <validation.h>
-#include <logging.h>
+#include "logging.h"
+#include "validation.h"
 
 namespace PocketWeb::PocketWebRpc
 {

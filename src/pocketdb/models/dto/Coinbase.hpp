@@ -7,7 +7,7 @@
 #ifndef POCKETTX_COINBASE_HPP
 #define POCKETTX_COINBASE_HPP
 
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/base/Transaction.h"
 
 namespace PocketTx
 {

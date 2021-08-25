@@ -7,7 +7,7 @@
 #ifndef POCKETTX_DEFAULT_HPP
 #define POCKETTX_DEFAULT_HPP
 
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/base/Transaction.h"
 
 namespace PocketTx
 {

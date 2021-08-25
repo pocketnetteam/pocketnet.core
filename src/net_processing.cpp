@@ -29,7 +29,7 @@
 #include <univalue.h>
 #include <memory>
 
-#include "pocketdb/consensus/Helper.hpp"
+#include "pocketdb/consensus/Helper.h"
 #include "pocketdb/services/Accessor.hpp"
 
 #if defined(NDEBUG)
@@ -1292,7 +1292,6 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
                 assert(!"cannot load block payload from sqlite db");
             }
 
-            int h = pindex->nHeight;
             connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::BLOCK, MakeSpan(block_data), pocketBlockData));
             // Don't set pblock as we've sent the block
         }

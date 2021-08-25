@@ -23,7 +23,7 @@
 #include <univalue.h>
 
 #include "pocketdb/services/TransactionIndexer.hpp"
-#include "pocketdb/consensus/Helper.hpp"
+#include "pocketdb/consensus/Helper.h"
 #include "pocketdb/services/Accessor.hpp"
 #include "pocketdb/web/PocketFrontend.h"
 

@@ -7,7 +7,7 @@
 #include "pocketdb/consensus/social/CommentEdit.hpp"
 #include "pocketdb/consensus/social/CommentDelete.hpp"
 #include "pocketdb/consensus/social/Complain.hpp"
-#include "pocketdb/consensus/social/Post.hpp"
+#include "pocketdb/consensus/social/Post.h"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
 #include "pocketdb/consensus/social/ScoreContent.hpp"
 #include "pocketdb/consensus/social/Subscribe.hpp"
@@ -32,8 +32,6 @@ namespace PocketConsensus
     extern SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;
     extern UserConsensusFactory UserConsensusFactoryInst;
     extern VideoConsensusFactory VideoConsensusFactoryInst;
-
-    extern PostConsensusFactoryTest PostConsensusFactoryInstTest;
 }; // namespace PocketConsensus
 
 

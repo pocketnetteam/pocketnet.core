@@ -5,9 +5,9 @@
 #ifndef POCKETCONSENSUS_USER_HPP
 #define POCKETCONSENSUS_USER_HPP
 
-#include "pocketdb/consensus/Social.hpp"
-#include "pocketdb/models/base/Transaction.hpp"
-#include "pocketdb/models/dto/User.hpp"
+#include "pocketdb/consensus/Social.h"
+#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/dto/User.h"
 
 namespace PocketConsensus
 {

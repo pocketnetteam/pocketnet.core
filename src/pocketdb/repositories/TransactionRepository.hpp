@@ -12,11 +12,11 @@
 
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/BaseRepository.hpp"
-#include "pocketdb/models/base/Transaction.hpp"
-#include "pocketdb/models/base/TransactionOutput.hpp"
-#include "pocketdb/models/base/Rating.hpp"
-#include "pocketdb/models/base/ReturnDtoModels.hpp"
-#include "pocketdb/models/dto/User.hpp"
+#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/base/TransactionOutput.h"
+#include "pocketdb/models/base/Rating.h"
+#include "pocketdb/models/base/ReturnDtoModels.h"
+#include "pocketdb/models/dto/User.h"
 #include "pocketdb/models/dto/ScoreContent.hpp"
 #include "pocketdb/models/dto/ScoreComment.hpp"
 

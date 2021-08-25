@@ -5,7 +5,7 @@
 #ifndef POCKETCONSENSUS_COMMENT_DELETE_HPP
 #define POCKETCONSENSUS_COMMENT_DELETE_HPP
 
-#include "pocketdb/consensus/Social.hpp"
+#include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/CommentDelete.hpp"
 
 namespace PocketConsensus

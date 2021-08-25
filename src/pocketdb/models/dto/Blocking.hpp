@@ -5,7 +5,7 @@
 #ifndef POCKETTX_BLOCKING_HPP
 #define POCKETTX_BLOCKING_HPP
 
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/base/Transaction.h"
 
 namespace PocketTx
 {

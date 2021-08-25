@@ -7,13 +7,13 @@
 
 #include "pocketdb/helpers/TransactionHelper.hpp"
 
-#include "pocketdb/models/base/Transaction.hpp"
-#include "pocketdb/models/base/TransactionOutput.hpp"
+#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/base/TransactionOutput.h"
 #include "pocketdb/models/dto/Coinbase.hpp"
 #include "pocketdb/models/dto/Coinstake.hpp"
 #include "pocketdb/models/dto/Default.hpp"
-#include "pocketdb/models/dto/User.hpp"
-#include "pocketdb/models/dto/Post.hpp"
+#include "pocketdb/models/dto/User.h"
+#include "pocketdb/models/dto/Post.h"
 #include "pocketdb/models/dto/Video.hpp"
 #include "pocketdb/models/dto/Blocking.hpp"
 #include "pocketdb/models/dto/BlockingCancel.hpp"

@@ -440,7 +440,6 @@ static UniValue getcoininfo(const JSONRPCRequest& request)
     int first75 = 3750000;
     int halvblocks = 2'100'000;
     double emission = 0;
-    int i = 0;
     int nratio = height / halvblocks;
     double mult;
 
@@ -508,6 +507,7 @@ static const CRPCCommand commands[] =
     { "util",               "createmultisig",         &createmultisig,         {"nrequired","keys"}},
     { "util",               "verifymessage",          &verifymessage,          {"address","signature","message"}},
     { "util",               "signmessagewithprivkey", &signmessagewithprivkey, {"privkey","message"}},
+    // TODO (brangr): move to system RPC
     { "util",               "getcoininfo",            &getcoininfo,            {"height"}},
 
     /* Not shown in help */

@@ -8,7 +8,7 @@
 #define POCKETCONSENSUS_REPUTATION_HPP
 
 #include "pocketdb/consensus/Base.hpp"
-#include "pocketdb/consensus/Social.hpp"
+#include "pocketdb/consensus/Social.h"
 
 namespace PocketConsensus
 {

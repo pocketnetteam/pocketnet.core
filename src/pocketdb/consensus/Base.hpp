@@ -2,13 +2,13 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_BASE_HPP
-#define POCKETCONSENSUS_BASE_HPP
+#ifndef POCKETCONSENSUS_BASE_H
+#define POCKETCONSENSUS_BASE_H
 
 #include "univalue/include/univalue.h"
 
 #include "pocketdb/pocketnet.h"
-#include "pocketdb/models/base/Base.hpp"
+#include "pocketdb/models/base/Base.h"
 
 namespace PocketConsensus
 {
@@ -132,4 +132,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_BASE_HPP
+#endif // POCKETCONSENSUS_BASE_H

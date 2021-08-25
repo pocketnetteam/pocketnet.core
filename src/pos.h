@@ -29,7 +29,7 @@ double GetPoWMHashPS();
 
 double GetPoSKernelPS();
 
-static bool GetLastStakeModifier(const CBlockIndex* pindex, uint64_t& nStakeModifier, int64_t& nModifierTime);
+inline static bool GetLastStakeModifier(const CBlockIndex* pindex, uint64_t& nStakeModifier, int64_t& nModifierTime);
 
 arith_uint256 GetProofOfStakeLimit(int nHeight);
 
@@ -39,11 +39,11 @@ inline unsigned int GetTargetSpacing(int nHeight) {
   return 150;
 }
 
-static int64_t GetStakeModifierSelectionIntervalSection(int nSection);
+inline static int64_t GetStakeModifierSelectionIntervalSection(int nSection);
 
-static int64_t GetStakeModifierSelectionInterval();
+inline static int64_t GetStakeModifierSelectionInterval();
 
-static bool SelectBlockFromCandidates(std::vector<std::pair<int64_t, uint256> >& vSortedByTimestamp, std::map<uint256, const CBlockIndex*>& mapSelectedBlocks,
+inline static bool SelectBlockFromCandidates(std::vector<std::pair<int64_t, uint256> >& vSortedByTimestamp, std::map<uint256, const CBlockIndex*>& mapSelectedBlocks,
     int64_t nSelectionIntervalStop, uint64_t nStakeModifierPrev, const CBlockIndex** pindexSelected);
 
 int64_t GetProofOfStakeReward(int nHeight, int64_t nFees, const Consensus::Params & consensusParams);

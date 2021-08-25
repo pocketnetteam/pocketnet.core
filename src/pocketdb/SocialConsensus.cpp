@@ -17,6 +17,4 @@ namespace PocketConsensus
     SubscribePrivateConsensusFactory SubscribePrivateConsensusFactoryInst;
     UserConsensusFactory UserConsensusFactoryInst;
     VideoConsensusFactory VideoConsensusFactoryInst;
-
-    PostConsensusFactoryTest PostConsensusFactoryInstTest;
 }; // namespace PocketConsensus

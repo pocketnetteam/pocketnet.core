@@ -1,7 +1,7 @@
 #ifndef POCKETTX_VIDEO_HPP
 #define POCKETTX_VIDEO_HPP
 
-#include "pocketdb/models/dto/Post.hpp"
+#include "pocketdb/models/dto/Post.h"
 
 namespace PocketTx
 {

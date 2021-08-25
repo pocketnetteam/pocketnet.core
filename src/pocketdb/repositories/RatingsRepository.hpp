@@ -10,8 +10,8 @@
 #include <util.h>
 
 #include "pocketdb/repositories/BaseRepository.hpp"
-#include "pocketdb/models/base/Rating.hpp"
-#include "pocketdb/models/base/ReturnDtoModels.hpp"
+#include "pocketdb/models/base/Rating.h"
+#include "pocketdb/models/base/ReturnDtoModels.h"
 
 namespace PocketDb
 {

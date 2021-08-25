@@ -9,9 +9,9 @@
 
 #include "pocketdb/helpers/TransactionHelper.hpp"
 #include "pocketdb/repositories/BaseRepository.hpp"
-#include "pocketdb/models/base/Rating.hpp"
-#include "pocketdb/models/base/PocketTypes.hpp"
-#include "pocketdb/models/base/ReturnDtoModels.hpp"
+#include "pocketdb/models/base/Rating.h"
+#include "pocketdb/models/base/PocketTypes.h"
+#include "pocketdb/models/base/ReturnDtoModels.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>

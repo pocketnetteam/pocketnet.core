@@ -2,7 +2,7 @@
 #ifndef POCKETTX_SCORECOMMENT_HPP
 #define POCKETTX_SCORECOMMENT_HPP
 
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/base/Transaction.h"
 
 namespace PocketTx
 {

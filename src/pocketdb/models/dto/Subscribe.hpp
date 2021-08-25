@@ -7,7 +7,7 @@
 #ifndef POCKETTX_SUBSCRIBE_HPP
 #define POCKETTX_SUBSCRIBE_HPP
 
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/base/Transaction.h"
 
 namespace PocketTx
 {

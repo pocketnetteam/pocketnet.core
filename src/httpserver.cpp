@@ -612,18 +612,18 @@ HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth):
 {
     /* Create a new evhttp object to handle requests. */
     raii_evhttp http_ctr = obtain_evhttp(base);
-    struct evhttp *http = http_ctr.get();
-    if (!http)
+    m_http = http_ctr.get();
+    if (!m_http)
     {
         LogPrintf("couldn't create evhttp. Exiting.\n");
         return;
     }
 
-    evhttp_set_timeout(http, gArgs.GetArg("-rpcservertimeout", DEFAULT_HTTP_SERVER_TIMEOUT));
-    evhttp_set_max_headers_size(http, MAX_HEADERS_SIZE);
-    evhttp_set_max_body_size(http, MAX_SIZE);
-    evhttp_set_gencb(http, http_request_cb, (void*) this);
-    evhttp_set_allowed_methods(http,
+    evhttp_set_timeout(m_http, gArgs.GetArg("-rpcservertimeout", DEFAULT_HTTP_SERVER_TIMEOUT));
+    evhttp_set_max_headers_size(m_http, MAX_HEADERS_SIZE);
+    evhttp_set_max_body_size(m_http, MAX_SIZE);
+    evhttp_set_gencb(m_http, http_request_cb, (void*) this);
+    evhttp_set_allowed_methods(m_http,
         evhttp_cmd_type::EVHTTP_REQ_GET |
         evhttp_cmd_type::EVHTTP_REQ_POST |
         evhttp_cmd_type::EVHTTP_REQ_HEAD |

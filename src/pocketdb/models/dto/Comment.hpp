@@ -8,7 +8,7 @@
 #ifndef POCKETTX_COMMENT_HPP
 #define POCKETTX_COMMENT_HPP
 
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/base/Transaction.h"
 
 namespace PocketTx
 {

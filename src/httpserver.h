@@ -208,7 +208,6 @@ private:
     struct evhttp                      *m_eventHTTP;
     std::vector<evhttp_bound_socket *> m_boundSockets;
     std::vector<std::thread>           m_thread_http_workers;
-    bool m_is_public;
 
 public:
     HTTPSocket(struct event_base *base, int timeout, int queueDepth);

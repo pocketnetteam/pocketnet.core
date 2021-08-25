@@ -42,7 +42,7 @@
 
 #include "pocketdb/services/TransactionIndexer.hpp"
 #include "pocketdb/services/Accessor.hpp"
-#include "pocketdb/consensus/Helper.hpp"
+#include "pocketdb/consensus/Helper.h"
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 std::map<std::string, WSUser> WSConnections;

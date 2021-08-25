@@ -5,8 +5,8 @@
 #ifndef POCKETCONSENSUS_SUBSCRIBECANCEL_HPP
 #define POCKETCONSENSUS_SUBSCRIBECANCEL_HPP
 
-#include "pocketdb/consensus/Social.hpp"
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/consensus/Social.h"
+#include "pocketdb/models/base/Transaction.h"
 #include "pocketdb/models/dto/SubscribeCancel.hpp"
 
 namespace PocketConsensus

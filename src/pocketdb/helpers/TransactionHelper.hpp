@@ -14,14 +14,14 @@
 
 #include "primitives/transaction.h"
 
-#include "pocketdb/models/base/ReturnDtoModels.hpp"
-#include "pocketdb/models/base/PocketTypes.hpp"
+#include "pocketdb/models/base/ReturnDtoModels.h"
+#include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/models/dto/Blocking.hpp"
 #include "pocketdb/models/dto/BlockingCancel.hpp"
 #include "pocketdb/models/dto/Coinbase.hpp"
 #include "pocketdb/models/dto/Coinstake.hpp"
 #include "pocketdb/models/dto/Default.hpp"
-#include "pocketdb/models/dto/Post.hpp"
+#include "pocketdb/models/dto/Post.h"
 #include "pocketdb/models/dto/Video.hpp"
 #include "pocketdb/models/dto/Comment.hpp"
 #include "pocketdb/models/dto/CommentEdit.hpp"
@@ -30,7 +30,7 @@
 #include "pocketdb/models/dto/SubscribeCancel.hpp"
 #include "pocketdb/models/dto/SubscribePrivate.hpp"
 #include "pocketdb/models/dto/Complain.hpp"
-#include "pocketdb/models/dto/User.hpp"
+#include "pocketdb/models/dto/User.h"
 #include "pocketdb/models/dto/ScoreContent.hpp"
 #include "pocketdb/models/dto/ScoreComment.hpp"
 
@@ -44,13 +44,13 @@ namespace PocketHelpers
     typedef vector<PTransactionRef> PocketBlock;
     typedef shared_ptr<PocketBlock> PocketBlockRef;
 
-    static txnouttype ScriptType(const CScript& scriptPubKey)
+    static inline txnouttype ScriptType(const CScript& scriptPubKey)
     {
         std::vector<std::vector<unsigned char>> vSolutions;
         return Solver(scriptPubKey, vSolutions);
     }
 
-    static std::string ExtractDestination(const CScript& scriptPubKey)
+    static inline std::string ExtractDestination(const CScript& scriptPubKey)
     {
         CTxDestination destAddress;
         if (ExtractDestination(scriptPubKey, destAddress))
@@ -59,7 +59,7 @@ namespace PocketHelpers
         return "";
     }
 
-    static tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx)
+    static inline tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx)
     {
         if (tx->vout.size() < 2)
             return make_tuple(false, "");
@@ -68,7 +68,7 @@ namespace PocketHelpers
         return make_tuple(!address.empty(), address);
     }
 
-    static PocketTxType ConvertOpReturnToType(const string& op)
+    static inline PocketTxType ConvertOpReturnToType(const string& op)
     {
         if (op == OR_POST || op == OR_POSTEDIT)
             return PocketTxType::CONTENT_POST;
@@ -108,7 +108,7 @@ namespace PocketHelpers
         return PocketTxType::TX_DEFAULT;
     }
 
-    static string ParseAsmType(const CTransactionRef& tx, vector<string>& vasm)
+    static inline string ParseAsmType(const CTransactionRef& tx, vector<string>& vasm)
     {
         if (tx->vout.empty())
             return "";
@@ -125,7 +125,7 @@ namespace PocketHelpers
         return "";
     }
 
-    static PocketTxType ParseType(const CTransactionRef& tx, vector<string>& vasm)
+    static inline PocketTxType ParseType(const CTransactionRef& tx, vector<string>& vasm)
     {
         if (tx->IsCoinBase())
         {
@@ -144,13 +144,13 @@ namespace PocketHelpers
         return ConvertOpReturnToType(ParseAsmType(tx, vasm));
     }
 
-    static PocketTxType ParseType(const CTransactionRef& tx)
+    static inline PocketTxType ParseType(const CTransactionRef& tx)
     {
         vector<string> vasm;
         return ParseType(tx, vasm);
     }
 
-    static string ConvertToReindexerTable(const Transaction& transaction)
+    static inline string ConvertToReindexerTable(const Transaction& transaction)
     {
         switch (*transaction.GetType())
         {
@@ -181,19 +181,19 @@ namespace PocketHelpers
         }
     }
 
-    static bool IsPocketSupportedTransaction(const CTransactionRef& tx, PocketTxType& txType)
+    static inline bool IsPocketSupportedTransaction(const CTransactionRef& tx, PocketTxType& txType)
     {
         txType = ParseType(tx);
         return txType != NOT_SUPPORTED;
     }
 
-    static bool IsPocketSupportedTransaction(const CTransactionRef& tx)
+    static inline bool IsPocketSupportedTransaction(const CTransactionRef& tx)
     {
         PocketTxType txType = NOT_SUPPORTED;
         return IsPocketSupportedTransaction(tx, txType);
     }
 
-    static bool IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType)
+    static inline bool IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType)
     {
         txType = ParseType(tx);
         return txType != NOT_SUPPORTED &&
@@ -202,19 +202,19 @@ namespace PocketHelpers
                txType != TX_DEFAULT;
     }
 
-    static bool IsPocketTransaction(const CTransactionRef& tx)
+    static inline bool IsPocketTransaction(const CTransactionRef& tx)
     {
         PocketTxType txType = NOT_SUPPORTED;
         return IsPocketTransaction(tx, txType);
     }
 
-    static bool IsPocketTransaction(const CTransaction& tx)
+    static inline bool IsPocketTransaction(const CTransaction& tx)
     {
         auto txRef = MakeTransactionRef(tx);
         return IsPocketTransaction(txRef);
     }
 
-    static tuple<bool, shared_ptr<ScoreDataDto>> ParseScore(const CTransactionRef& tx)
+    static inline tuple<bool, shared_ptr<ScoreDataDto>> ParseScore(const CTransactionRef& tx)
     {
         shared_ptr<ScoreDataDto> scoreData = make_shared<ScoreDataDto>();
 
@@ -249,7 +249,7 @@ namespace PocketHelpers
         return make_tuple(finalCheck, scoreData);
     }
 
-    static PTransactionRef CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime)
+    static inline PTransactionRef CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime)
     {
         PTransactionRef ptx = nullptr;
         switch (txType)

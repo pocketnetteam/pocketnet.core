@@ -6,8 +6,8 @@
 #define POCKETCONSENSUS_SCORECONTENT_HPP
 
 #include "pocketdb/ReputationConsensus.h"
-#include "pocketdb/consensus/Social.hpp"
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/consensus/Social.h"
+#include "pocketdb/models/base/Transaction.h"
 #include "pocketdb/models/dto/ScoreContent.hpp"
 
 namespace PocketConsensus

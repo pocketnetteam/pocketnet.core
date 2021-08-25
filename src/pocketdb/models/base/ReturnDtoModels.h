@@ -1,14 +1,12 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_RETURN_DTO_HPP
-#define POCKETTX_RETURN_DTO_HPP
+#ifndef POCKETTX_RETURN_DTO_H
+#define POCKETTX_RETURN_DTO_H
 
 #include <univalue/include/univalue.h>
-#include "pocketdb/models/base/PocketTypes.hpp"
+#include "pocketdb/models/base/PocketTypes.h"
 
 namespace PocketTx
 {
@@ -18,7 +16,7 @@ namespace PocketTx
     class BaseReturnDto
     {
     public:
-        virtual ~BaseReturnDto() {}
+        virtual ~BaseReturnDto() = default;
         virtual shared_ptr<UniValue> Serialize()
         {
             UniValue ret(UniValue::VOBJ);
@@ -108,4 +106,4 @@ namespace PocketTx
 
 } // namespace PocketTx
 
-#endif //POCKETTX_RETURN_DTO_HPP
+#endif //POCKETTX_RETURN_DTO_H

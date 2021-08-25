@@ -8,7 +8,7 @@
 #ifndef SRC_SCORECONTENT_HPP
 #define SRC_SCORECONTENT_HPP
 
-#include "pocketdb/models/base/Transaction.hpp"
+#include "pocketdb/models/base/Transaction.h"
 
 namespace PocketTx
 {

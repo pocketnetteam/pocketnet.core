@@ -94,11 +94,14 @@ POCKETDB_H = \
     pocketdb/pocketnet.h \
     pocketdb/ReputationConsensus.h \
     pocketdb/SocialConsensus.h \
-    pocketdb/migrations/main.h \
     pocketdb/SQLiteDatabase.h \
     pocketdb/SQLiteConnection.h \
+    \
+    pocketdb/migrations/main.h \
+    \
     pocketdb/helpers/TransactionHelper.hpp \
     pocketdb/helpers/CheckpointHelper.h \
+    \
     pocketdb/web/PocketContentRpc.h \
     pocketdb/web/PocketCommentsRpc.h \
     pocketdb/web/PocketSystemRpc.h \
@@ -108,22 +111,27 @@ POCKETDB_H = \
     pocketdb/web/PocketExplorerRpc.h \
     pocketdb/web/PocketTransactionRpc.h \
     pocketdb/web/PocketRpc.h \
+    \
     pocketdb/repositories/BaseRepository.hpp \
     pocketdb/repositories/TransactionRepository.hpp \
     pocketdb/repositories/ChainRepository.h \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
-    pocketdb/consensus/Social.hpp \
+    \
+    pocketdb/consensus/Social.h \
+    pocketdb/consensus/SocialT.h \
     pocketdb/consensus/Lottery.hpp \
-    pocketdb/consensus/Helper.hpp \
+    pocketdb/consensus/Helper.h \
+    \
     pocketdb/consensus/social/Blocking.hpp \
     pocketdb/consensus/social/BlockingCancel.hpp \
     pocketdb/consensus/social/Comment.hpp \
     pocketdb/consensus/social/CommentEdit.hpp \
     pocketdb/consensus/social/CommentDelete.hpp \
     pocketdb/consensus/social/Complain.hpp \
-    pocketdb/consensus/social/Post.hpp \
+    pocketdb/consensus/social/Post.h \
+    pocketdb/consensus/social/PostT.h \
     pocketdb/consensus/social/Video.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
     pocketdb/consensus/social/ScoreContent.hpp \
@@ -132,22 +140,25 @@ POCKETDB_H = \
     pocketdb/consensus/social/SubscribePrivate.hpp \
     pocketdb/consensus/social/User.hpp \
     pocketdb/consensus/social/Video.hpp \
+    \
     pocketdb/services/TransactionSerializer.hpp \
     pocketdb/services/TransactionIndexer.hpp \
     pocketdb/services/Accessor.hpp \
-    pocketdb/models/base/PocketTypes.hpp \
-    pocketdb/models/base/Base.hpp \
-    pocketdb/models/base/Payload.hpp \
-    pocketdb/models/base/Transaction.hpp \
-    pocketdb/models/base/TransactionOutput.hpp \
-    pocketdb/models/base/Rating.hpp \
-    pocketdb/models/base/Payload.hpp \
-    pocketdb/models/base/ReturnDtoModels.hpp \
+    \
+    pocketdb/models/base/PocketTypes.h \
+    pocketdb/models/base/Base.h \
+    pocketdb/models/base/Payload.h \
+    pocketdb/models/base/Transaction.h \
+    pocketdb/models/base/TransactionOutput.h \
+    pocketdb/models/base/Rating.h \
+    pocketdb/models/base/Payload.h \
+    pocketdb/models/base/ReturnDtoModels.h \
+    \
     pocketdb/models/dto/Default.hpp \
     pocketdb/models/dto/Coinbase.hpp \
     pocketdb/models/dto/Coinstake.hpp \
-    pocketdb/models/dto/Post.hpp \
-    pocketdb/models/dto/User.hpp \
+    pocketdb/models/dto/Post.h \
+    pocketdb/models/dto/User.h \
     pocketdb/models/dto/ScoreContent.hpp \
     pocketdb/models/dto/ScoreComment.hpp \
     pocketdb/models/dto/Blocking.hpp \
@@ -162,16 +173,34 @@ POCKETDB_H = \
 
 # PocketDb CPP
 POCKETDB_CPP = \
-    pocketdb/migrations/main.cpp \
     pocketdb/SQLiteDatabase.cpp \
     pocketdb/SQLiteConnection.cpp \
+    pocketdb/pocketnet.cpp \
+    pocketdb/ReputationConsensus.cpp \
+    pocketdb/SocialConsensus.cpp \
+    \
+    pocketdb/migrations/main.cpp \
+    \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
     pocketdb/repositories/ConsensusRepository.cpp \
     pocketdb/repositories/ChainRepository.cpp \
-    pocketdb/pocketnet.cpp \
-    pocketdb/ReputationConsensus.cpp \
-    pocketdb/SocialConsensus.cpp \
+    \
+    pocketdb/consensus/Helper.cpp \
+    pocketdb/consensus/Social.cpp \
+    pocketdb/consensus/social/Post.cpp \
+    pocketdb/consensus/social/PostT.cpp \
+    \
+    pocketdb/models/base/Base.cpp \
+    pocketdb/models/base/Payload.cpp \
+    pocketdb/models/base/Transaction.cpp \
+    pocketdb/models/base/TransactionOutput.cpp \
+    pocketdb/models/base/Rating.cpp \
+    pocketdb/models/base/Payload.cpp \
+    \
+    pocketdb/models/dto/Post.cpp \
+    pocketdb/models/dto/User.cpp \
+    \
     pocketdb/web/PocketContentRpc.cpp \
     pocketdb/web/PocketCommentsRpc.cpp \
     pocketdb/web/PocketSystemRpc.cpp \
@@ -181,6 +210,7 @@ POCKETDB_CPP = \
     pocketdb/web/PocketExplorerRpc.cpp \
     pocketdb/web/PocketTransactionRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
+    \
     pocketdb/helpers/LotteryCheckpointHelper.cpp \
     pocketdb/helpers/SocialCheckpointHelper.cpp \
     pocketdb/helpers/OpReturnCheckpointHelper.cpp
