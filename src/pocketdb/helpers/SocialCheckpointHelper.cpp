@@ -153,4 +153,33 @@ SocialCheckpoints::SocialCheckpoints()
 
     _checkpoints.emplace("5dbb6b1d74de979dad1ae56c8bd368ce0309611bd508cf111119dcbb92582f9d", tuple(ACTION_SCORE_COMMENT, SocialConsensusResult_NotFound));
     
+    _checkpoints.emplace(("496c190dd819ddf44b13372f6b6ff1453576432e49f94194b1ce0c2417a872c8", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("b764cd5fd330df2fb5300563cdb6066d36f5b254fd109ffc89ddac7d12ed5177", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("fbff57f2d478e438bca26dcafb4b7df59db4cf187f76560b69e652f3ec4015ca", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("9b0d134a145a6bd7afb71d97f59a375e4d3882d31321631414d1feb917b6c2f6", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("3c9158264b260fc809ea8c7e809850ab93e8a0080bbc28fb92d0f21f460b25ef", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("ea8d404aecfad0a6c6e8194b87c4031b2706a6f7dba703f86b3ccaedb7ef57a9", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("ca2f7d7420c6378361de9ea32bdf92c82f6d5d13a4ef8622a8de295b58a7cfe9", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("82af891725c9de26fd2f9f348785b3f563f4a91ae0fc685bf5b03c4a7ea941d3", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("54860e7493eb3f6fd39c36554594c4f54c2a455a2439b4e09f20eec874c8a531", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("64bc84f08cdbb6c6fb70a7411e586d3d97c3552110089d9cd22046958d3973b8", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("01a4bb67489d74125cc9b37c3300498f185351dc666866006674849b4a804888", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("6d468678e9361c3657b2a71e385a24be172e7fcf045b78b30273f9bd9982d77e", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("d67f4a9becadd96c7860a41946727dbd49b6a17c8e341ac27c4e3382a9b5a676", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("b9dde16e8582c08bb5db4e288c000f318f9dcf1736b1de574b1116454ba17655", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("94d2dd14f55eac05be78e0f282d528de99744ed09a173b611075c7f2cf265077", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("3332531136a84d5c85340d95e1959e6ffc84be8a923c5e536f33a2c0ca854493", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("45654958a3fb6c7cdbf3b4b746d58a02f16d4f7ae738cc6355bfbf41a610aa4e", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("b6354e421bd1f12f0b8ef321bea2a549fd53f2185d2d389a36500541a34f2572", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("4313c1b7d07f82883d5d59c406dff0a35b9c8206aaa0641e76d940cdc06e0672", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("34053ebb4bfdbcd72b5c70d5b2b99c02663a039c8bd4ed77889277adcd4405f6", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("6541be6bd2a0211f7233a5b7a354b5a36ac0c0af51da106b77fa917197a45d3d", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("60d09522e200ae48119fa89af38fb1921be7cc5458dd13a7c36dfcb0f9008873", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("eacfe0c37830c0fafe015f923ee1263bac1cc49f055b8b6be116131996b6d771", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("d61470a073ecec3f6c7ddabccd21c629809b28372a6b24f38702e237cd69f221", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("e3a3aedce222d6982ad1562439240828ef2cbad02c8bc72c69d1044e4518e8d2", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("98b1f8aae6800fa7c897ed17278b2b950960af9b72b7aa98fdc335a46f7eda7d", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("9ec07ff6b6ce5f16ed5d0f98d01eef86c5c95e976c3299ea463fbbd5244612e5", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+    _checkpoints.emplace(("aa0d158ef6f646e7c4fe88e23b1d0d25f8d7a5d29f7a102d523e12f4c029c324", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+
 }
