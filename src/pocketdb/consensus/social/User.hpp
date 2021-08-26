@@ -49,7 +49,6 @@ namespace PocketConsensus
             // Check payload
             if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetPayloadName())) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPayloadAvatar())) return {false, SocialConsensusResult_Failed};
 
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
