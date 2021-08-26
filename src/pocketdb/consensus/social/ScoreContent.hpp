@@ -288,7 +288,7 @@ namespace PocketConsensus
         int64_t GetTrialLimit() override { return 15; }
         bool ValidateLowReputation(const ScoreContentRef& ptx, AccountMode mode) override
         {
-            return (mode != AccountMode_Trial || (*ptx->GetValue() == 1 || *ptx->GetValue() == 2));
+            return mode != AccountMode_Trial || *ptx->GetValue() > 2;
         }
     };
 
