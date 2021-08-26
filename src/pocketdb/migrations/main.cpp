@@ -108,7 +108,10 @@ namespace PocketDb
                 -- AccountUser.Donations JSON
                 -- ContentPost.Url
                 -- ContentVideo.Url
-                String7 text   null
+                String7 text   null,
+
+                -- Comment.Donate
+                Int1    int    null
             );
         )sql");
 
