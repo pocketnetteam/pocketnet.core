@@ -15,7 +15,6 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <utilstrencodings.h>
-
 #include "pocketdb/helpers/TransactionHelper.h"
 
 UniValue ValueFromAmount(const CAmount& amount)

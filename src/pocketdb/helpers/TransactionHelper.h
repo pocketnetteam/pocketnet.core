@@ -46,33 +46,19 @@ namespace PocketHelpers
     {
     public:
         static txnouttype ScriptType(const CScript& scriptPubKey);
-
         static std::string ExtractDestination(const CScript& scriptPubKey);
-
         static tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx);
-
         static PocketTxType ConvertOpReturnToType(const string& op);
-
         static string ParseAsmType(const CTransactionRef& tx, vector<string>& vasm);
-
         static PocketTxType ParseType(const CTransactionRef& tx, vector<string>& vasm);
-
         static PocketTxType ParseType(const CTransactionRef& tx);
-
         static string ConvertToReindexerTable(const Transaction& transaction);
-
         static bool IsPocketSupportedTransaction(const CTransactionRef& tx, PocketTxType& txType);
-
         static bool IsPocketSupportedTransaction(const CTransactionRef& tx);
-
         static bool IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType);
-
         static bool IsPocketTransaction(const CTransactionRef& tx);
-
         static bool IsPocketTransaction(const CTransaction& tx);
-
         static tuple<bool, shared_ptr<ScoreDataDto>> ParseScore(const CTransactionRef& tx);
-
         static PTransactionRef CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime);
     };
 }

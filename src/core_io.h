@@ -6,7 +6,6 @@
 #define POCKETCOIN_CORE_IO_H
 
 #include <amount.h>
-
 #include <string>
 #include <vector>
 
