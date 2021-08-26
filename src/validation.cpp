@@ -1126,7 +1126,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
 /** (try to) add transaction to memory pool with a specified acceptance time **/
 static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state,
-    const CTransactionRef& tx, std::shared_ptr<Transaction> pocketTx,
+    const CTransactionRef& tx, std::shared_ptr<Transaction>& pocketTx,
     bool* pfMissingInputs, int64_t nAcceptTime,
     std::list<CTransactionRef>* plTxnReplaced, bool bypass_limits,
     const CAmount nAbsurdFee, bool test_accept) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
@@ -2146,7 +2146,13 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     if (block.GetHash() == chainparams.GetConsensus().hashGenesisBlock)
     {
         if (!fJustCheck)
+        {
             view.SetBestBlock(pindex->GetBlockHash());
+
+            // Also indexing pocketdb
+            PocketServices::TransactionIndexer::Index(block, pindex->nHeight);
+        }
+
         return true;
     }
 
@@ -5061,7 +5067,7 @@ static void FindFilesToPruneManual(std::set<int>& setFilesToPrune, int nManualPr
 {
     assert(fPruneMode && nManualPruneHeight > 0);
 
-    LOCK2(cs_main, cs_LastBlockFile)
+    LOCK2(cs_main, cs_LastBlockFile);
     if (chainActive.Tip() == nullptr)
         return;
 
@@ -5108,7 +5114,7 @@ void PruneBlockFilesManual(int nManualPruneHeight)
  */
 static void FindFilesToPrune(std::set<int>& setFilesToPrune, uint64_t nPruneAfterHeight)
 {
-    LOCK2(cs_main, cs_LastBlockFile)
+    LOCK2(cs_main, cs_LastBlockFile);
     if (chainActive.Tip() == nullptr || nPruneTarget == 0)
     {
         return;
