@@ -1,65 +1,27 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETHELPERS_TRANSACTIONHELPER_HPP
-#define POCKETHELPERS_TRANSACTIONHELPER_HPP
-
-#include <string>
-#include <key_io.h>
-#include <boost/algorithm/string.hpp>
-#include <numeric>
-
-#include "primitives/transaction.h"
-
-#include "pocketdb/models/base/ReturnDtoModels.h"
-#include "pocketdb/models/base/PocketTypes.h"
-#include "pocketdb/models/dto/Blocking.h"
-#include "pocketdb/models/dto/BlockingCancel.h"
-#include "pocketdb/models/dto/Coinbase.h"
-#include "pocketdb/models/dto/Coinstake.h"
-#include "pocketdb/models/dto/Default.h"
-#include "pocketdb/models/dto/Post.h"
-#include "pocketdb/models/dto/Video.h"
-#include "pocketdb/models/dto/Comment.h"
-#include "pocketdb/models/dto/CommentEdit.h"
-#include "pocketdb/models/dto/CommentDelete.h"
-#include "pocketdb/models/dto/Subscribe.h"
-#include "pocketdb/models/dto/SubscribeCancel.h"
-#include "pocketdb/models/dto/SubscribePrivate.h"
-#include "pocketdb/models/dto/Complain.h"
-#include "pocketdb/models/dto/User.h"
-#include "pocketdb/models/dto/ScoreContent.h"
-#include "pocketdb/models/dto/ScoreComment.h"
+#include "pocketdb/helpers/TransactionHelper.h"
 
 namespace PocketHelpers
 {
-    using namespace std;
-    using namespace PocketTx;
-
-    // Accumulate transactions in block
-    typedef shared_ptr<PocketTx::Transaction> PTransactionRef;
-    typedef vector<PTransactionRef> PocketBlock;
-    typedef shared_ptr<PocketBlock> PocketBlockRef;
-
-    static inline txnouttype ScriptType(const CScript& scriptPubKey)
+    txnouttype TransactionHelper::ScriptType(const CScript& scriptPubKey)
     {
         std::vector<std::vector<unsigned char>> vSolutions;
         return Solver(scriptPubKey, vSolutions);
     }
 
-    static inline std::string ExtractDestination(const CScript& scriptPubKey)
+    std::string TransactionHelper::ExtractDestination(const CScript& scriptPubKey)
     {
         CTxDestination destAddress;
-        if (ExtractDestination(scriptPubKey, destAddress))
+        if (::ExtractDestination(scriptPubKey, destAddress))
             return EncodeDestination(destAddress);
 
         return "";
     }
 
-    static inline tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx)
+    tuple<bool, string> TransactionHelper::GetPocketAuthorAddress(const CTransactionRef& tx)
     {
         if (tx->vout.size() < 2)
             return make_tuple(false, "");
@@ -68,7 +30,7 @@ namespace PocketHelpers
         return make_tuple(!address.empty(), address);
     }
 
-    static inline PocketTxType ConvertOpReturnToType(const string& op)
+    PocketTxType TransactionHelper::ConvertOpReturnToType(const string& op)
     {
         if (op == OR_POST || op == OR_POSTEDIT)
             return PocketTxType::CONTENT_POST;
@@ -108,7 +70,7 @@ namespace PocketHelpers
         return PocketTxType::TX_DEFAULT;
     }
 
-    static inline string ParseAsmType(const CTransactionRef& tx, vector<string>& vasm)
+    string TransactionHelper::ParseAsmType(const CTransactionRef& tx, vector<string>& vasm)
     {
         if (tx->vout.empty())
             return "";
@@ -125,7 +87,7 @@ namespace PocketHelpers
         return "";
     }
 
-    static inline PocketTxType ParseType(const CTransactionRef& tx, vector<string>& vasm)
+    PocketTxType TransactionHelper::ParseType(const CTransactionRef& tx, vector<string>& vasm)
     {
         if (tx->IsCoinBase())
         {
@@ -144,13 +106,13 @@ namespace PocketHelpers
         return ConvertOpReturnToType(ParseAsmType(tx, vasm));
     }
 
-    static inline PocketTxType ParseType(const CTransactionRef& tx)
+    PocketTxType TransactionHelper::ParseType(const CTransactionRef& tx)
     {
         vector<string> vasm;
         return ParseType(tx, vasm);
     }
 
-    static inline string ConvertToReindexerTable(const Transaction& transaction)
+    string TransactionHelper::ConvertToReindexerTable(const Transaction& transaction)
     {
         switch (*transaction.GetType())
         {
@@ -181,19 +143,19 @@ namespace PocketHelpers
         }
     }
 
-    static inline bool IsPocketSupportedTransaction(const CTransactionRef& tx, PocketTxType& txType)
+    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx, PocketTxType& txType)
     {
         txType = ParseType(tx);
         return txType != NOT_SUPPORTED;
     }
 
-    static inline bool IsPocketSupportedTransaction(const CTransactionRef& tx)
+    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx)
     {
         PocketTxType txType = NOT_SUPPORTED;
         return IsPocketSupportedTransaction(tx, txType);
     }
 
-    static inline bool IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType)
+    bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType)
     {
         txType = ParseType(tx);
         return txType != NOT_SUPPORTED &&
@@ -202,24 +164,24 @@ namespace PocketHelpers
                txType != TX_DEFAULT;
     }
 
-    static inline bool IsPocketTransaction(const CTransactionRef& tx)
+    bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx)
     {
         PocketTxType txType = NOT_SUPPORTED;
         return IsPocketTransaction(tx, txType);
     }
 
-    static inline bool IsPocketTransaction(const CTransaction& tx)
+    bool TransactionHelper::IsPocketTransaction(const CTransaction& tx)
     {
         auto txRef = MakeTransactionRef(tx);
         return IsPocketTransaction(txRef);
     }
 
-    static inline tuple<bool, shared_ptr<ScoreDataDto>> ParseScore(const CTransactionRef& tx)
+    tuple<bool, shared_ptr<ScoreDataDto>> TransactionHelper::ParseScore(const CTransactionRef& tx)
     {
         shared_ptr<ScoreDataDto> scoreData = make_shared<ScoreDataDto>();
 
         vector<string> vasm;
-        scoreData->ScoreType = PocketHelpers::ParseType(tx, vasm);
+        scoreData->ScoreType = ParseType(tx, vasm);
 
         if (scoreData->ScoreType != PocketTxType::ACTION_SCORE_CONTENT &&
             scoreData->ScoreType != PocketTxType::ACTION_SCORE_COMMENT)
@@ -234,7 +196,7 @@ namespace PocketHelpers
 
             if (_data.size() >= 2)
             {
-                if (auto[ok, addr] = PocketHelpers::GetPocketAuthorAddress(tx); ok)
+                if (auto[ok, addr] = GetPocketAuthorAddress(tx); ok)
                     scoreData->ScoreAddressHash = addr;
 
                 scoreData->ContentAddressHash = _data[0];
@@ -249,7 +211,7 @@ namespace PocketHelpers
         return make_tuple(finalCheck, scoreData);
     }
 
-    static inline PTransactionRef CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime)
+    PTransactionRef TransactionHelper::CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime)
     {
         PTransactionRef ptx = nullptr;
         switch (txType)
@@ -312,5 +274,3 @@ namespace PocketHelpers
         return ptx;
     }
 }
-
-#endif // POCKETHELPERS_TRANSACTIONHELPER_HPP

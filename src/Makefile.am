@@ -98,7 +98,7 @@ POCKETDB_H = \
     \
     pocketdb/migrations/main.h \
     \
-    pocketdb/helpers/TransactionHelper.hpp \
+    pocketdb/helpers/TransactionHelper.h \
     pocketdb/helpers/CheckpointHelper.h \
     \
     pocketdb/web/PocketContentRpc.h \
@@ -117,6 +117,10 @@ POCKETDB_H = \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
+    \
+    pocketdb/services/TransactionSerializer.h \
+    pocketdb/services/TransactionIndexer.h \
+    pocketdb/services/Accessor.h \
     \
     pocketdb/consensus/Base.hpp \
     pocketdb/consensus/Helper.h \
@@ -138,10 +142,6 @@ POCKETDB_H = \
     pocketdb/consensus/social/SubscribeCancel.hpp \
     pocketdb/consensus/social/SubscribePrivate.hpp \
     pocketdb/consensus/social/User.hpp \
-    \
-    pocketdb/services/TransactionSerializer.hpp \
-    pocketdb/services/TransactionIndexer.hpp \
-    pocketdb/services/Accessor.hpp \
     \
     pocketdb/models/base/PocketTypes.h \
     pocketdb/models/base/Base.h \
@@ -179,9 +179,14 @@ POCKETDB_CPP = \
     \
     pocketdb/migrations/main.cpp \
     \
+    pocketdb/helpers/TransactionHelper.cpp \
     pocketdb/helpers/LotteryCheckpointHelper.cpp \
     pocketdb/helpers/SocialCheckpointHelper.cpp \
     pocketdb/helpers/OpReturnCheckpointHelper.cpp \
+    \
+    pocketdb/services/TransactionSerializer.cpp \
+    pocketdb/services/TransactionIndexer.cpp \
+    pocketdb/services/Accessor.cpp \
     \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \

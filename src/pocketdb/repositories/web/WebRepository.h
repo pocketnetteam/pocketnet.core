@@ -5,7 +5,7 @@
 #ifndef POCKETDB_WEBREPOSITORY_H
 #define POCKETDB_WEBREPOSITORY_H
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/repositories/BaseRepository.hpp"
 
 #include <boost/algorithm/string/join.hpp>

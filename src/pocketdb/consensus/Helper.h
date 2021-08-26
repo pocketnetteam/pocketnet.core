@@ -5,7 +5,7 @@
 #ifndef POCKETCONSENSUS_HELPER_H
 #define POCKETCONSENSUS_HELPER_H
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/models/base/Transaction.h"
 #include "pocketdb/ReputationConsensus.h"
 

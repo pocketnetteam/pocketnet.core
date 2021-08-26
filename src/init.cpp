@@ -52,7 +52,7 @@
 
 #include <websocket/ws.h>
 #include "pocketdb/pocketnet.h"
-#include "pocketdb/services/TransactionIndexer.hpp"
+#include "pocketdb/services/TransactionIndexer.h"
 
 #ifndef WIN32
 

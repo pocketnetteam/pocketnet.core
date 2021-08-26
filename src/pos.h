@@ -10,7 +10,7 @@
 #include <key_io.h>
 
 #include "pocketdb/consensus/Lottery.hpp"
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 
 using namespace PocketHelpers;
 using namespace PocketConsensus;

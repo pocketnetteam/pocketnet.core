@@ -12,7 +12,7 @@
 #include <functional>
 #include <memory>
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 using namespace PocketHelpers;
 
 extern CCriticalSection cs_main;

@@ -30,7 +30,7 @@
 #include <memory>
 
 #include "pocketdb/consensus/Helper.h"
-#include "pocketdb/services/Accessor.hpp"
+#include "pocketdb/services/Accessor.h"
 
 #if defined(NDEBUG)
 #error "Pocketcoin cannot be compiled without assertions."
@@ -1008,7 +1008,7 @@ void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std:
     if (pocketBlock)
         pocketBlockData = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock)->write();
 
-    if (pocketBlockData.empty() && !PocketServices::GetBlock(*pblock, pocketBlockData))
+    if (pocketBlockData.empty() && !PocketServices::Accessor::GetBlock(*pblock, pocketBlockData))
     {
         LogPrintf("Error: Failed get block payload from sqlite db %s\n", pblock->GetHash().GetHex());
         return;
@@ -1288,7 +1288,7 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
             }
 
             std::string pocketBlockData;
-            if (!PocketServices::GetBlock(block, pocketBlockData)) {
+            if (!PocketServices::Accessor::GetBlock(block, pocketBlockData)) {
                 assert(!"cannot load block payload from sqlite db");
             }
 
@@ -1307,7 +1307,7 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
         if (pblock)
         {
             std::string pocketBlockData;
-            if (!PocketServices::GetBlock(*pblock, pocketBlockData))
+            if (!PocketServices::Accessor::GetBlock(*pblock, pocketBlockData))
                 assert(!"cannot load block payload from sqlite db");
 
             if (inv.type == MSG_FILTERED_BLOCK) {
@@ -1399,7 +1399,7 @@ void static ProcessGetData(CNode* pfrom, const CChainParams& chainparams, CConnm
             if (mi != mapRelay.end()) {
                 // Join PocketNet data from PocketDB to transaction stream
                 std::string txPayloadData;
-                if (PocketServices::GetTransaction(*mi->second, txPayloadData)) {
+                if (PocketServices::Accessor::GetTransaction(*mi->second, txPayloadData)) {
                     connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second, txPayloadData));
                     push = true;
                 }
@@ -1410,7 +1410,7 @@ void static ProcessGetData(CNode* pfrom, const CChainParams& chainparams, CConnm
                 if (txinfo.tx && txinfo.nTime <= pfrom->timeLastMempoolReq) {
                     // Join PocketNet data from PocketDB to transaction stream
                     std::string txPayloadData;
-                    if (PocketServices::GetTransaction(*txinfo.tx, txPayloadData)) {
+                    if (PocketServices::Accessor::GetTransaction(*txinfo.tx, txPayloadData)) {
                         connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *txinfo.tx, "POCKET_DB_DATA"));
                         push = true;
                     }
@@ -1467,7 +1467,7 @@ inline void static SendBlockTransactions(const CBlock& block, const BlockTransac
     }
 
     std::string pocketBlockData;
-    if (!PocketServices::GetBlock(block, pocketBlockData))
+    if (!PocketServices::Accessor::GetBlock(block, pocketBlockData))
     {
         LogPrintf("Error get block data for %s from sqlite db\n", block.GetHash().GetHex());
         return;
@@ -2750,7 +2750,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             }
 
             // Deserialize pocket part if exists
-            auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+            auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(*pblock, vRecv);
             auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
 
             // Setting fForceProcessing to true means that we bypass some of
@@ -2841,7 +2841,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         } // Don't hold cs_main when we call into ProcessNewBlock
 
         if (fBlockRead) {
-            auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+            auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(*pblock, vRecv);
             auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
 
             bool fNewBlock = false;
@@ -2909,7 +2909,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         // Deserialize pocket part if exists
-        auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(vRecv, *pblock);
+        auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(*pblock, vRecv);
         auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
 
         bool fNewBlock = false;
@@ -3774,7 +3774,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                     }
 
                     // PocketNET transactions are minimal fee in 1 satoshi
-                    if (PocketHelpers::IsPocketTransaction(txinfo.tx))
+                    if (PocketHelpers::TransactionHelper::IsPocketTransaction(txinfo.tx))
                     {
                         if (txinfo.feeRate.GetFeePerK() < DEFAULT_MIN_POCKETNET_TX_FEE)
                             continue;

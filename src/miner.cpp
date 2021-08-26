@@ -26,6 +26,7 @@
 #include <validationinterface.h>
 
 #include <algorithm>
+#include <memory>
 #include <queue>
 #include <utility>
 
@@ -100,19 +101,19 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate>
-BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, bool fProofOfStake, uint64_t* pFees)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx,
+    bool fProofOfStake, uint64_t* pFees)
 {
     int64_t nTimeStart = GetTimeMicros();
 
     resetBlock();
-    pblocktemplate.reset(new CBlockTemplate());
+    pblocktemplate = std::make_unique<CBlockTemplate>();
 
-    if (!pblocktemplate.get())
+    if (!pblocktemplate)
         return nullptr;
 
     pblock = &pblocktemplate->block; // pointer for convenience
-    pocketBlock = &pblocktemplate->pocketBlock; // Clear pocketnet social pointer
+    pocketBlock = make_shared<PocketBlock>(pblocktemplate->pocketBlock);
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.emplace_back();
@@ -129,13 +130,12 @@ BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessT
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
     if (chainparams.MineBlocksOnDemand())
-        pblock->nVersion = gArgs.GetArg("-blockversion", pblock->nVersion);
+        pblock->nVersion = (int) gArgs.GetArg("-blockversion", pblock->nVersion);
 
     pblock->nTime = GetAdjustedTime();
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
 
-    nLockTimeCutoff = (STANDARD_LOCKTIME_VERIFY_FLAGS & LOCKTIME_MEDIAN_TIME_PAST) ? nMedianTimePast
-                                                                                   : pblock->GetBlockTime();
+    nLockTimeCutoff = (STANDARD_LOCKTIME_VERIFY_FLAGS & LOCKTIME_MEDIAN_TIME_PAST) ? nMedianTimePast : pblock->GetBlockTime();
 
     // Decide whether to include witness transactions
     // This is only needed in case the witness softfork activation is reverted
@@ -148,6 +148,8 @@ BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessT
     // transaction (which in most cases can be a no-op).
     fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus()) && fMineWitnessTx;
 
+    // Select and test transactions for new block
+    // Also build pocketBlock
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
@@ -196,8 +198,7 @@ BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessT
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
-    auto pocketBlockRef = shared_ptr<PocketBlock>(pocketBlock);
-    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, pocketBlockRef, pindexPrev, false, false))
+    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, pocketBlock, pindexPrev, false, false))
     {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
@@ -238,21 +239,21 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
 
     // Payload should be in operative table Transactions
     if (!ptx)
+    {
+        LogPrintf("Warning: build block skip transaction %s with result 'NOT FOUND'\n", tx->GetHash().GetHex());
         return false;
+    }
 
     // Check consensus
-    auto pocketBlockRef = shared_ptr<PocketBlock>(pocketBlock);
-    auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlockRef, chainActive.Height() + 1);
+    auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlock, chainActive.Height() + 1);
     if (!ok)
     {
-        LogPrintf("Warning: build block skip transaction %s with result %d\n",
-            tx->GetHash().GetHex(), (int)result);
+        LogPrintf("Warning: build block skip transaction %s with result %d\n", tx->GetHash().GetHex(), (int) result);
         return false;
     }
 
     // Al is good - save for descendants
     pocketBlock->push_back(ptx);
-
     return true;
 }
 
@@ -454,7 +455,7 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
             packageSigOpsCost = modit->nSigOpCostWithAncestors;
         }
 
-        CAmount minFee = PocketHelpers::IsPocketTransaction(iter->GetSharedTx()) ?
+        CAmount minFee = PocketHelpers::TransactionHelper::IsPocketTransaction(iter->GetSharedTx()) ?
                          DEFAULT_MIN_POCKETNET_TX_FEE :
                          blockMinFeeRate.GetFee(packageSize);
 

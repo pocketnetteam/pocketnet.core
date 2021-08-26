@@ -11,7 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include "pocketdb/ReputationConsensus.h"
 #include "pocketdb/consensus/Base.hpp"
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 
 namespace PocketConsensus
 {
@@ -83,7 +83,7 @@ namespace PocketConsensus
                 // Get destination address and score value
                 // In lottery allowed only likes to posts and comments
                 // Also in lottery allowed only positive scores
-                auto[parseScoreOk, scoreTxData] = PocketHelpers::ParseScore(tx);
+                auto[parseScoreOk, scoreTxData] = PocketHelpers::TransactionHelper::ParseScore(tx);
                 if (!parseScoreOk)
                     continue;
 

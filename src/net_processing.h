@@ -12,8 +12,8 @@
 #include "pocketdb/pocketnet.h"
 #include <utilstrencodings.h>
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
-#include "pocketdb/services/TransactionSerializer.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
+#include "pocketdb/services/TransactionSerializer.h"
 
 using namespace PocketHelpers;
 

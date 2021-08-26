@@ -18,7 +18,7 @@
 #include <utilmoneystr.h>
 #include <utiltime.h>
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 
 CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
                                  int64_t _nTime, unsigned int _entryHeight,
@@ -1002,7 +1002,7 @@ bool CCoinsViewMemPool::GetCoin(const COutPoint& outpoint, Coin& coin) const
     {
         if (outpoint.n < ptx->vout.size())
         {
-            coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, false, false, PocketHelpers::IsPocketTransaction(ptx));
+            coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, false, false, PocketHelpers::TransactionHelper::IsPocketTransaction(ptx));
             return true;
         }
         else

@@ -6,7 +6,7 @@
 #define SRC_POCKETTRANSACTIONRPC_H
 
 #include "rpc/server.h"
-#include "pocketdb/services/TransactionSerializer.hpp"
+#include "pocketdb/services/TransactionSerializer.h"
 
 namespace PocketWeb::PocketWebRpc
 {

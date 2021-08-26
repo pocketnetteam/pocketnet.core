@@ -1,4 +1,3 @@
-// Copyright (c) 2018 The Pocketcoin developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,6 +10,8 @@
 #include <wallet/wallet.h>
 #include <script/sign.h>
 #include <consensus/merkle.h>
+
+#include "pocketdb/services/TransactionSerializer.h"
 
 Staker* Staker::getInstance()
 {
@@ -172,11 +173,15 @@ void Staker::worker(
                 coinbaseScript->reserveScript, true, true, &nFees
             );
 
-            std::shared_ptr<CBlock> block = std::make_shared<CBlock>(blocktemplate->block);
+            auto block = std::make_shared<CBlock>(blocktemplate->block);
             auto pocketBlock = std::make_shared<PocketBlock>(blocktemplate->pocketBlock);
 
             if (signBlock(block, wallet, nFees))
             {
+                // Extend pocketBlock with coinStake transaction
+                if (auto[ok, ptx] = PocketServices::TransactionSerializer::DeserializeTransaction(block->vtx[1]); ok)
+                    pocketBlock->emplace_back(ptx);
+
                 CheckStake(block, pocketBlock, wallet, chainparams);
                 MilliSleep(500);
             }
@@ -198,9 +203,7 @@ void Staker::worker(
     }
 }
 
-bool Staker::signBlock(
-    std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> wallet, int64_t nFees
-)
+bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> wallet, int64_t nFees)
 {
 #ifdef ENABLE_WALLET
     std::vector<CTransactionRef> vtx = block->vtx;

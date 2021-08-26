@@ -53,7 +53,7 @@ namespace PocketConsensus
         for (const auto& tx : block.vtx)
         {
             // NOT_SUPPORTED transactions not checked
-            auto txType = PocketHelpers::ParseType(tx);
+            auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
             if (txType == PocketTxType::NOT_SUPPORTED)
                 continue;
             if (coinstakeBlock && txType == PocketTxType::TX_COINBASE)
@@ -81,6 +81,9 @@ namespace PocketConsensus
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::check(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
+        // TODO (brangr): implement base check for base transactions
+        // check outputs maybe?
+
         if (!isConsensusable(*ptx->GetType()))
             return {true, SocialConsensusResult_Success};
 

@@ -16,7 +16,7 @@
 #include <utilmoneystr.h>
 #include <utilstrencodings.h>
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 
 UniValue ValueFromAmount(const CAmount& amount)
 {
@@ -190,7 +190,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
     entry.pushKV("locktime", (int64_t)tx.nLockTime);
 	entry.pushKV("coinbase", tx.IsCoinBase());
 	entry.pushKV("coinstake", tx.IsCoinStake());
-    entry.pushKV("pockettx", PocketHelpers::IsPocketTransaction(tx));
+    entry.pushKV("pockettx", PocketHelpers::TransactionHelper::IsPocketTransaction(tx));
 
     UniValue vin(UniValue::VARR);
     for (unsigned int i = 0; i < tx.vin.size(); i++) {

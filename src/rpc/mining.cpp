@@ -19,16 +19,15 @@
 #include <rpc/mining.h>
 #include <rpc/server.h>
 #include <shutdown.h>
-#include <txmempool.h>
 #include <util.h>
 #include <utilstrencodings.h>
 #include <validation.h>
 #include <validationinterface.h>
 #include <warnings.h>
-
 #include <consensus/merkle.h>
 #include <memory>
-#include <stdint.h>
+
+#include "pocketdb/services/TransactionSerializer.h"
 
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
@@ -121,7 +120,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
     UniValue blockHashes(UniValue::VARR);
     while (nHeight < nHeightEnd && !ShutdownRequested()) {
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
-        if (!pblocktemplate.get())
+        if (!pblocktemplate)
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
 
         std::string src_data;
@@ -142,9 +141,14 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             continue;
         }
 
-        std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
+        auto shared_pblock = std::make_shared<const CBlock>(*pblock);
+
+        // Extend pocketblock with coinbase transaction
+        auto pocketBlock = std::make_shared<PocketBlock>(pblocktemplate->pocketBlock);
+        if (auto[ok, ptx] = PocketServices::TransactionSerializer::DeserializeTransaction(pblock->vtx[0]); ok)
+            pocketBlock->emplace_back(ptx);
+
         CValidationState state;
-        auto pocketBlock = std::make_shared<PocketBlock>();
         if (!ProcessNewBlock(state, Params(), shared_pblock, pocketBlock, true, /* fReceived */ false, nullptr))
             throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
         ++nHeight;

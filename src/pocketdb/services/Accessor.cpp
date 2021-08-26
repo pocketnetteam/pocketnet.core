@@ -1,42 +1,22 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETDSERVICESTACCESSORHPP
-#define POCKETDSERVICESTACCESSORHPP
-
-#include "primitives/transaction.h"
-#include "primitives/block.h"
-
-#include "pocketdb/pocketnet.h"
-#include "pocketdb/services/TransactionSerializer.hpp"
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/services/Accessor.h"
 
 namespace PocketServices
 {
-    using namespace PocketTx;
-    using namespace PocketDb;
-    using namespace PocketHelpers;
-
-    using std::make_tuple;
-    using std::tuple;
-    using std::vector;
-    using std::find;
-
-
-    static inline bool GetBlock(const CBlock& block, PocketBlockRef& pocketBlock, bool onlyPocket = false)
+    bool Accessor::GetBlock(const CBlock& block, PocketBlockRef& pocketBlock, bool onlyPocket)
     {
         try
         {
             std::vector<std::string> txs;
             for (const auto& tx : block.vtx)
             {
-                if (!IsPocketSupportedTransaction(tx))
+                if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
                     continue;
 
-                if (onlyPocket && !IsPocketTransaction(tx))
+                if (onlyPocket && !PocketHelpers::TransactionHelper::IsPocketTransaction(tx))
                     continue;
 
                 txs.push_back(tx->GetHash().GetHex());
@@ -55,7 +35,7 @@ namespace PocketServices
         }
     }
 
-    static inline bool GetBlock(const CBlock& block, string& data)
+    bool Accessor::GetBlock(const CBlock& block, string& data)
     {
         PocketBlockRef pocketBlock;
         if (!GetBlock(block, pocketBlock, true))
@@ -68,18 +48,18 @@ namespace PocketServices
         return true;
     }
 
-    static inline bool GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
+    bool Accessor::GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
     {
         pocketTx = PocketDb::TransRepoInst.GetByHash(tx.GetHash().GetHex(), true);
         return pocketTx != nullptr;
     }
 
-    static inline bool ExistsTransaction(const CTransaction& tx)
+    bool Accessor::ExistsTransaction(const CTransaction& tx)
     {
         return PocketDb::TransRepoInst.ExistsByHash(tx.GetHash().GetHex());
     }
 
-    static inline bool GetTransaction(const CTransaction& tx, string& data)
+    bool Accessor::GetTransaction(const CTransaction& tx, string& data)
     {
         PTransactionRef pocketTx;
         if (GetTransaction(tx, pocketTx) && pocketTx)
@@ -91,7 +71,4 @@ namespace PocketServices
         return false;
     }
 
-
 } // namespace PocketServices
-
-#endif // POCKETSERVICES_ACCESSOR_HPP

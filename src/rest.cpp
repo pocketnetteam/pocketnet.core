@@ -22,9 +22,9 @@
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
 
-#include "pocketdb/services/TransactionIndexer.hpp"
+#include "pocketdb/services/TransactionIndexer.h"
 #include "pocketdb/consensus/Helper.h"
-#include "pocketdb/services/Accessor.hpp"
+#include "pocketdb/services/Accessor.h"
 #include "pocketdb/web/PocketFrontend.h"
 
 static const size_t MAX_GETUTXOS_OUTPOINTS = 15; //allow a max of 15 outpoints to be queried at once
@@ -870,7 +870,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
         try
         {
             std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
-            if (!PocketServices::GetBlock(block, pocketBlock, false) || !pocketBlock)
+            if (!PocketServices::Accessor::GetBlock(block, pocketBlock, false) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
             PocketServices::TransactionIndexer::Rollback(pblockindex->nHeight);

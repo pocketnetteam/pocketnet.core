@@ -40,8 +40,8 @@
 #include <boost/thread.hpp>
 #include <univalue.h>
 
-#include "pocketdb/services/TransactionIndexer.hpp"
-#include "pocketdb/services/Accessor.hpp"
+#include "pocketdb/services/TransactionIndexer.h"
+#include "pocketdb/services/Accessor.h"
 #include "pocketdb/consensus/Helper.h"
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
@@ -835,7 +835,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // For PocketNET transaction allow minimal fee
         if (!bypass_limits)
         {
-            if (PocketHelpers::IsPocketTransaction(ptx))
+            if (PocketHelpers::TransactionHelper::IsPocketTransaction(ptx))
             {
                 if (nModifiedFees < DEFAULT_MIN_POCKETNET_TX_FEE)
                 {
@@ -1089,7 +1089,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // At this point, we believe that all the checks have been carried 
         // out and we can safely save the transaction to the database for 
         // subsequent verification of the consensus and inclusion in the block.
-        if (!pocketTx && !PocketServices::ExistsTransaction(tx))
+        if (!pocketTx && !PocketServices::Accessor::ExistsTransaction(tx))
             return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
                 
         try
@@ -1523,7 +1523,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo& txund
     }
 
     // add outputs
-    AddCoins(inputs, tx, nHeight, false, PocketHelpers::IsPocketTransaction(tx));
+    AddCoins(inputs, tx, nHeight, false, PocketHelpers::TransactionHelper::IsPocketTransaction(tx));
 }
 
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
@@ -2515,6 +2515,11 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         nTimeVerify * MILLI / nBlocksTotal);
 
     // -----------------------------------------------------------------------------------------------------------------
+    // Finalize connect
+    if (fJustCheck)
+        return true;
+
+    // -----------------------------------------------------------------------------------------------------------------
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
     try
     {
@@ -2533,10 +2538,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         nTimeVerify * MILLI / nBlocksTotal);
 
     // -----------------------------------------------------------------------------------------------------------------
-    // Finalize connect
-    if (fJustCheck)
-        return true;
-
     if (!WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
         return false;
 
@@ -2980,7 +2981,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     // Read transactions payload from db
     PocketBlockRef pocketBlock = nullptr;
     if (!pocketBlockPart)
-        PocketServices::GetBlock(blockConnecting, pocketBlock);
+        PocketServices::Accessor::GetBlock(blockConnecting, pocketBlock);
     else
         pocketBlock = pocketBlockPart;
 
@@ -4147,10 +4148,10 @@ CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Conse
     bool fCheckPOW = true)
 {
     // Check proof of work matches claimed amount
-    CBlockIndex pblock = CBlockIndex(block);
-    if (pblock.IsProofOfWork() && mapBlockIndex.size() <= consensusParams.nPosFirstBlock)
+    auto pblock = CBlockIndex(block);
+    if (pblock.IsProofOfWork() && mapBlockIndex.size() <= (size_t)consensusParams.nPosFirstBlock)
     {
-        if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams, mapBlockIndex.size()))
+        if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams, (int)mapBlockIndex.size()))
         {
             return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
         }
@@ -4309,7 +4310,7 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
     std::vector<CTxOut> blockOuts;
     for (const auto& out : block.vtx[1]->vout)
     {
-        auto outType = PocketHelpers::ScriptType(out.scriptPubKey);
+        auto outType = PocketHelpers::TransactionHelper::ScriptType(out.scriptPubKey);
         if (outType == TX_PUBKEYHASH)
             blockOuts.push_back(out);
     }
@@ -4715,7 +4716,7 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
     const CChainParams& chainparams, const CBlockIndex** ppindex, CBlockHeader* first_invalid,
     const CBlockIndex** ppindexFirst)
 {
-    bool is_first = true;
+    // bool is_first = true;
     if (first_invalid != nullptr) first_invalid->SetNull();
     {
         LOCK(cs_main);
@@ -5521,7 +5522,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
                     pindex->GetBlockHash().ToString());
 
             PocketBlockRef pocketBlock;
-            if (!PocketServices::GetBlock(block, pocketBlock))
+            if (!PocketServices::Accessor::GetBlock(block, pocketBlock))
             {
                 LogPrintf("\nWarning: found lost payload data (block: %s) - continue work from this height: %d\n",
                     block.GetHash().GetHex(), pindex->nHeight);
@@ -5562,7 +5563,7 @@ bool CChainState::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& i
             }
         }
         // Pass check = true as every addition may be an overwrite.
-        AddCoins(inputs, *tx, pindex->nHeight, true, PocketHelpers::IsPocketTransaction(tx));
+        AddCoins(inputs, *tx, pindex->nHeight, true, PocketHelpers::TransactionHelper::IsPocketTransaction(tx));
     }
     return true;
 }
@@ -6349,7 +6350,7 @@ bool LoadMempool()
             if (nTime + nExpiryTimeout > nNow)
             {
                 std::shared_ptr<Transaction> pocketTx;
-                if (!PocketServices::GetTransaction(*tx, pocketTx))
+                if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx))
                     state.Invalid(false, 0, "not found in sqlite db");
 
                 if (state.IsValid())

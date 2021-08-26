@@ -7,7 +7,7 @@
 #ifndef POCKETDB_CHAINREPOSITORY_H
 #define POCKETDB_CHAINREPOSITORY_H
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Rating.h"
 #include "pocketdb/models/base/PocketTypes.h"

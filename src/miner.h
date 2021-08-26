@@ -15,7 +15,7 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/consensus/Helper.h"
 
 using namespace PocketHelpers;
@@ -137,7 +137,7 @@ private:
     CBlock* pblock;
 
     // Pocketnet social payload block
-    PocketBlock* pocketBlock;
+    PocketBlockRef pocketBlock;
 
     // Configuration parameters for the block size
     bool fIncludeWitness;

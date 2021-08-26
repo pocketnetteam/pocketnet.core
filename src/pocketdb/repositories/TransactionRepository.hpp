@@ -10,7 +10,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
-#include "pocketdb/helpers/TransactionHelper.hpp"
+#include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/repositories/BaseRepository.hpp"
 #include "pocketdb/models/base/Transaction.h"
 #include "pocketdb/models/base/TransactionOutput.h"
@@ -247,7 +247,7 @@ namespace PocketDb
             if (!ok0 || !ok1 || !ok2)
                 return make_tuple(false, nullptr);
 
-            auto ptx = PocketHelpers::CreateInstance(static_cast<PocketTxType>(txType), txHash, nTime);
+            auto ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<PocketTxType>(txType), txHash, nTime);
             if (ptx == nullptr)
                 return make_tuple(false, nullptr);
 

@@ -112,39 +112,4 @@ namespace PocketWeb::PocketWebRpc
 
         return entry;
     }
-
-    UniValue AddTransaction(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "addtransaction\n"
-                "\nAdd new pocketnet transaction.\n"
-            );
-
-        RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ, UniValue::VSTR});
-
-        CMutableTransaction mTx;
-        if (!DecodeHexTx(mTx, request.params[0].get_str()))
-            throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
-
-        const auto tx = MakeTransactionRef(std::move(mTx));
-        PocketTxType txType;
-        if (!PocketHelpers::IsPocketTransaction(tx, txType))
-            throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Bad pocketnet transaction type");
-
-        string address;
-        // TODO (brangr): get address from TxOuputs by TxHash and Number
-        // if (!GetInputAddress(tx->vin[0].prevout.hash, tx->vin[0].prevout.n, address)) {
-        //     throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid address");
-        // }
-
-        auto ptx = PocketHelpers::CreateInstance(txType, tx->GetHash().GetHex(), tx->nTime);
-
-        // TODO (brangr): implement deserialize pocket transaction
-        // TODO (brangr): implement check & validate with consensus
-        // TODO (brangr): implement insert into mempool
-        
-        return *ptx->GetHash();
-    }
-
 }
