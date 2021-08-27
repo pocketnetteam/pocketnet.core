@@ -31,7 +31,11 @@ namespace PocketConsensus
                     *ptx->GetAddress(),
                     *ptx->GetAddressTo()
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
-                return {false, SocialConsensusResult_DoubleBlocking};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleBlocking))
+                    return {false, SocialConsensusResult_DoubleBlocking};
+            }
 
             return Success;
         }

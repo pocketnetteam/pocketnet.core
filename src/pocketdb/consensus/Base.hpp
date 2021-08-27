@@ -79,12 +79,11 @@ namespace PocketConsensus
     {
         ConsensusLimit_threshold_reputation,
         ConsensusLimit_threshold_reputation_score,
-        ConsensusLimit_threshold_reputation_complains,
-        ConsensusLimit_threshold_reputation_blocking,
         ConsensusLimit_threshold_balance,
         ConsensusLimit_threshold_balance_pro,
         ConsensusLimit_threshold_likers_count,
         ConsensusLimit_threshold_low_likers_count,
+        ConsensusLimit_threshold_low_likers_depth,
         ConsensusLimit_depth,
 
         ConsensusLimit_trial_post,
@@ -112,11 +111,9 @@ namespace PocketConsensus
         ConsensusLimit_edit_comment_depth,
         ConsensusLimit_edit_user_depth,
 
-        ConsensusLimit_complain_depth,
         ConsensusLimit_max_user_size,
         ConsensusLimit_max_post_size,
         ConsensusLimit_max_comment_size,
-        ConsensusLimit_bad_reputation,
         ConsensusLimit_scores_one_to_one,
         ConsensusLimit_scores_one_to_one_over_comment,
         ConsensusLimit_scores_one_to_one_depth,
@@ -125,8 +122,9 @@ namespace PocketConsensus
     };
 
     /*********************************************************************************************/
+    // @formatter:off
     // Consensus limits
-    
+
     // Reputation - double value in integer
     // i.e. 213 = 21.3
     // i.e. 45  = 4.5
@@ -140,14 +138,14 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        { 0, 500 },
-                        { 292800, 1000 }
+                        {0,       500},
+                        {292800,  1000}
                     }
                 },
                 {
                     NetworkTest,
                     {
-                        { 0 , 100 }
+                        {0, 100}
                     }
                 }
             }
@@ -159,9 +157,9 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, -10000},
-                        {108300, 500},
-                        {292800, 1000}
+                        {0,       -10000},
+                        {108300,  500},
+                        {292800,  1000}
                     }
                 },
                 {
@@ -173,44 +171,6 @@ namespace PocketConsensus
                 }
             }
         },
-        // ConsensusLimit_threshold_reputation_complains
-        {
-            ConsensusLimit_threshold_reputation_complains,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 500},
-                        {292800, 1000}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 100}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_threshold_reputation_blocking
-        {
-            ConsensusLimit_threshold_reputation_blocking,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 500},
-                        {292800, 1000}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 100}
-                    }
-                }
-            }
-        },
         // ConsensusLimit_threshold_balance
         {
             ConsensusLimit_threshold_balance,
@@ -218,7 +178,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 50 * COIN}
+                        {0,       50 * COIN}
                     }
                 },
                 {
@@ -236,7 +196,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 250 * COIN}
+                        {0,       250 * COIN}
                     }
                 },
                 {
@@ -254,7 +214,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 0},
+                        {0,       0},
                         {1124000, 100}
                     }
                 },
@@ -274,7 +234,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 30}
+                        {0,       30}
                     }
                 },
                 {
@@ -310,7 +270,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 86400},
+                        {0,       86400},
                         {1180000, 1440}
                     }
                 },
@@ -322,7 +282,7 @@ namespace PocketConsensus
                 }
             }
         },
-        
+
         // ConsensusLimit_trial_post
         {
             ConsensusLimit_trial_post,
@@ -330,7 +290,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 15},
+                        {0,       15},
                         {1324655, 5}
                     }
                 },
@@ -349,7 +309,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 15},
+                        {0,       15},
                         {1324655, 5}
                     }
                 },
@@ -368,8 +328,8 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 45},
-                        {175600, 100},
+                        {0,       45},
+                        {175600,  100},
                         {1324655, 15}
                     }
                 },
@@ -388,7 +348,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 6}
+                        {0,       6}
                     }
                 },
                 {
@@ -406,31 +366,13 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 30}
+                        {0,       30}
                     }
                 },
                 {
                     NetworkTest,
                     {
                         {0, 30}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_post_edit
-        {
-            ConsensusLimit_full_post_edit,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 5}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 5}
                     }
                 }
             }
@@ -442,31 +384,13 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 30}
+                        {0,       30}
                     }
                 },
                 {
                     NetworkTest,
                     {
                         {0, 30}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_video_edit
-        {
-            ConsensusLimit_full_video_edit,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 5}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 5}
                     }
                 }
             }
@@ -478,8 +402,8 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 90},
-                        {175600, 200}
+                        {0,       90},
+                        {175600,  200}
                     }
                 },
                 {
@@ -497,7 +421,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 12}
+                        {0,       12}
                     }
                 },
                 {
@@ -515,7 +439,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 0},
+                        {0,       0},
                         {1324655, 100}
                     }
                 },
@@ -523,12 +447,12 @@ namespace PocketConsensus
                     NetworkTest,
                     {
                         {0, 0},
-                        {65000, 100}
+                        {65000,  100}
                     }
                 }
             }
         },
-        
+
         // ConsensusLimit_post_edit_count
         {
             ConsensusLimit_post_edit_count,
@@ -536,7 +460,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 5}
+                        {0,       5}
                     }
                 },
                 {
@@ -554,7 +478,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 5}
+                        {0,       5}
                     }
                 },
                 {
@@ -572,7 +496,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 4}
+                        {0,       4}
                     }
                 },
                 {
@@ -583,7 +507,7 @@ namespace PocketConsensus
                 }
             }
         },
-        
+
         // ConsensusLimit_edit_user_depth
         {
             ConsensusLimit_edit_user_depth,
@@ -591,8 +515,8 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 3600},
-                        { 1180000, 60}
+                        {0,       3600},
+                        {1180000, 60}
                     }
                 },
                 {
@@ -610,7 +534,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 86400},
+                        {0,       86400},
                         {1180000, 1440}
                     }
                 },
@@ -629,7 +553,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 1440}
+                        {0,       1440}
                     }
                 },
                 {
@@ -647,7 +571,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 86400},
+                        {0,       86400},
                         {1180000, 1440}
                     }
                 },
@@ -659,7 +583,7 @@ namespace PocketConsensus
                 }
             }
         },
-        
+
         // ConsensusLimit_max_user_size
         {
             ConsensusLimit_max_user_size,
@@ -667,7 +591,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 2000}
+                        {0,       2000}
                     }
                 },
                 {
@@ -685,31 +609,13 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 60000}
+                        {0,       60000}
                     }
                 },
                 {
                     NetworkTest,
                     {
                         {0, 60000}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_bad_reputation
-        {
-            ConsensusLimit_bad_reputation,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, -500}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, -50}
                     }
                 }
             }
@@ -721,8 +627,8 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 99999},
-                        {225000, 2}
+                        {0,       99999},
+                        {225000,  2}
                     }
                 },
                 {
@@ -740,7 +646,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 20}
+                        {0,       20}
                     }
                 },
                 {
@@ -758,9 +664,9 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 336 * 24 * 3600},
-                        {225000, 1 * 24 * 3600},
-                        {292800, 7 * 24 * 3600},
+                        {0,       336 * 24 * 3600},
+                        {225000,  1 * 24 * 3600},
+                        {292800,  7 * 24 * 3600},
                         {322700, 2 * 24 * 3600}
                     }
                 },
@@ -779,7 +685,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 150}
+                        {0,       150}
                     }
                 },
                 {
@@ -797,7 +703,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 300}
+                        {0,       300}
                     }
                 },
                 {
@@ -815,31 +721,13 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 300}
+                        {0,       300}
                     }
                 },
                 {
                     NetworkTest,
                     {
                         {0, 300}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_comment_edit
-        {
-            ConsensusLimit_full_comment_edit,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 5}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 5}
                     }
                 }
             }
@@ -851,7 +739,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 600}
+                        {0,       600}
                     }
                 },
                 {
@@ -869,7 +757,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 2000}
+                        {0,       2000}
                     }
                 },
                 {
@@ -887,8 +775,8 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 336 * 24 * 3600},
-                        {322700, 30 * 24 * 3600}
+                        {0,       336 * 24 * 3600},
+                        {322700,  30 * 24 * 3600}
                     }
                 },
                 {
@@ -907,7 +795,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 30 * 24 * 3600}
+                        {0,       30 * 24 * 3600}
                     }
                 },
                 {
@@ -919,10 +807,8 @@ namespace PocketConsensus
             }
         },
     };
-    
-    // Get actual consensus limit for current height
-    
 
+    // @formatter:on
     /*********************************************************************************************/
 
     class BaseConsensus

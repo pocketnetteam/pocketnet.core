@@ -71,7 +71,11 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress() && *ptx->GetAddressTo() == *blockPtx->GetAddressTo())
-                    return {false, SocialConsensusResult_DoubleSubscribe};
+                {
+                    PocketHelpers::SocialCheckpoints socialCheckpoints;
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleSubscribe))
+                        return {false, SocialConsensusResult_DoubleSubscribe};
+                }
             }
 
             return Success;
