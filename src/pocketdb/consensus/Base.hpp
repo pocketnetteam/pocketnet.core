@@ -81,9 +81,12 @@ namespace PocketConsensus
     {
     public:
 
-        BaseConsensus() = default;
+        BaseConsensus()
+        {
+            NetworkId = Params().NetworkIDString();
+        }
 
-        BaseConsensus(int height)
+        BaseConsensus(int height) : BaseConsensus()
         {
             Height = height;
         }
@@ -92,6 +95,21 @@ namespace PocketConsensus
 
     protected:
         int Height = 0;
+        string NetworkId;
+
+        int64_t Limitor(const tuple<int64_t, int64_t>& values)
+        {
+            auto[main, test] = values;
+
+            if (NetworkId == CBaseChainParams::MAIN)
+                return main;
+
+            if (NetworkId == CBaseChainParams::TESTNET)
+                return test;
+
+            return main;
+
+        }
 
     private:
 

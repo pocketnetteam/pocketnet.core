@@ -32,7 +32,7 @@ namespace PocketConsensus
     {
     protected:
         LotteryWinners _winners;
-        virtual int MaxWinnersCount() const { return 25; }
+        virtual int64_t MaxWinnersCount() { return Limitor({25, 25}); }
 
         void SortWinners(map<string, int>& candidates, CDataStream& hashProofOfStakeSource, vector<string>& winners)
         {
@@ -59,9 +59,7 @@ namespace PocketConsensus
                     winners.push_back(it.first);
             }
         }
-
         virtual void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map<string, string>& refs) {}
-
         virtual void ExtendReferrers() {}
 
     public:
@@ -147,13 +145,11 @@ namespace PocketConsensus
 
             return _winners;
         }
-
         virtual CAmount RatingReward(CAmount nCredit, opcodetype code)
         {
             if (code == OP_WINNER_COMMENT) return nCredit * 0.5 / 10;
             return nCredit * 0.5;
         }
-
         virtual void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) {}
     };
 
@@ -176,12 +172,10 @@ namespace PocketConsensus
         }
     public:
         LotteryConsensus_checkpoint_514185(int height) : LotteryConsensus(height) {}
-
         void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) override
         {
             winner_types.push_back(type);
         }
-
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
         {
             // Referrer program 5 - 100%; 2.0 - nodes; 3.0 - all for lottery;
@@ -202,8 +196,12 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class LotteryConsensus_checkpoint_1035000 : public LotteryConsensus_checkpoint_514185
     {
+    public:
+        LotteryConsensus_checkpoint_1035000(int height) : LotteryConsensus_checkpoint_514185(height) {}
+
     protected:
-        virtual int GetLotteryReferralDepth() { return 30 * 24 * 3600; }
+        virtual int GetLotteryReferralDepth() { return Limitor({30, 30}) * 24 * 3600; }
+
         void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
             map<string, string>& refs) override
         {
@@ -215,8 +213,6 @@ namespace PocketConsensus
 
             refs.emplace(contentAddress, *referrer);
         }
-    public:
-        LotteryConsensus_checkpoint_1035000(int height) : LotteryConsensus_checkpoint_514185(height) {}
     };
 
     /*******************************************************************************************************************
@@ -224,7 +220,6 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class LotteryConsensus_checkpoint_1124000 : public LotteryConsensus_checkpoint_1035000
     {
-    protected:
     public:
         LotteryConsensus_checkpoint_1124000(int height) : LotteryConsensus_checkpoint_1035000(height) {}
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
@@ -244,7 +239,6 @@ namespace PocketConsensus
     *******************************************************************************************************************/
     class LotteryConsensus_checkpoint_1180000 : public LotteryConsensus_checkpoint_1124000
     {
-    protected:
     public:
         LotteryConsensus_checkpoint_1180000(int height) : LotteryConsensus_checkpoint_1124000(height) {}
         CAmount RatingReward(CAmount nCredit, opcodetype code) override
@@ -265,8 +259,11 @@ namespace PocketConsensus
     // TODO (brangr) (v0.21.0): change GetLotteryReferralDepth Time to Height
     class LotteryConsensus_checkpoint_ : public LotteryConsensus_checkpoint_1180000
     {
+    public:
+        LotteryConsensus_checkpoint_(int height) : LotteryConsensus_checkpoint_1180000(height) {}
     protected:
-        int GetLotteryReferralDepth() override { return -1; }
+        int GetLotteryReferralDepth() override { return Limitor({-1, -1}); }
+
         void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map<string, string>& refs) override
         {
             // This logic replaced with ExtendReferrers()
@@ -301,8 +298,6 @@ namespace PocketConsensus
                         commentRefs.push_back(it.second);
             }
         }
-    public:
-        LotteryConsensus_checkpoint_(int height) : LotteryConsensus_checkpoint_1180000(height) {}
     };
 
     /*******************************************************************************************************************
