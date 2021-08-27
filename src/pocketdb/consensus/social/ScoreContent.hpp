@@ -275,12 +275,12 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < ScoreContentConsensus>> m_rules = {
-            { 0, -1, [](int height) { return make_shared<ScoreContentConsensus>(height); }},
-            { 430000, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_430000>(height); }},
-            { 514184, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_514184>(height); }},
-            { 1124000, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1124000>(height); }},
-            { 1180000, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1180000>(height); }},
-            { 1324655, 0, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1324655>(height); }},
+            { 0,          -1, [](int height) { return make_shared<ScoreContentConsensus>(height); }},
+            { 430000,     -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_430000>(height); }},
+            { 514184,     -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_514184>(height); }},
+            { 1124000,    -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1124000>(height); }},
+            { 1180000,     0, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1180000>(height); }},
+            { 1324655, 65000, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1324655>(height); }},
         };
     public:
         shared_ptr<ScoreContentConsensus> Instance(int height)

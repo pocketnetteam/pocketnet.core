@@ -9,19 +9,17 @@
 #include "rpc/rawtransaction.h"
 
 namespace PocketWeb::PocketWebRpc
-    {
-        using std::string;
-        using std::vector;
-        using std::map;
+{
+    using namespace std;
 
-        UniValue GetReputations(const JSONRPCRequest& request);
-        UniValue GetUserProfile(const JSONRPCRequest& request);
-        UniValue GetUserAddress(const JSONRPCRequest& request);
-        UniValue GetAddressRegistration(const JSONRPCRequest& request);
-        UniValue GetUserState(const JSONRPCRequest& request);
-        map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses,
-            bool shortForm = true, int option = 0);
-    }
+    UniValue GetReputations(const JSONRPCRequest& request);
+    UniValue GetUserProfile(const JSONRPCRequest& request);
+    UniValue GetUserAddress(const JSONRPCRequest& request);
+    UniValue GetAddressRegistration(const JSONRPCRequest& request);
+    UniValue GetUserState(const JSONRPCRequest& request);
+    map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses,
+        bool shortForm = true, int option = 0);
+}
 
 
 #endif //SRC_POCKETACCOUNTRPC_H

@@ -155,7 +155,7 @@ namespace PocketConsensus
 
             return ConsensusRepoInst.CountChainVideoHeight(
                 *ptx->GetAddress(),
-                Height - GetConsensusLimit(ConsensusLimit_depth)
+                Height - (int)GetConsensusLimit(ConsensusLimit_depth)
             );
         }
         virtual ConsensusValidateResult ValidateEditBlock(const VideoRef& ptx, const PocketBlockRef& block)
