@@ -279,7 +279,7 @@ namespace PocketConsensus
                 if (find(winners.begin(), winners.end(), addr) == winners.end())
                     winners.push_back(addr);
 
-            auto referrers = PocketDb::ConsensusRepoInst.GetReferrers(winners, Height - GetLotteryReferralDepth());
+            auto referrers = PocketDb::ConsensusRepoInst.GetReferrers(winners, Height - GetConsensusLimit(ConsensusLimit_lottery_referral_depth));
             if (referrers->empty()) return;
 
             for (const auto& it : *referrers)

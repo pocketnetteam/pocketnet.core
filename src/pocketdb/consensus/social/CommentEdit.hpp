@@ -99,7 +99,7 @@ namespace PocketConsensus
             // Maximum for message data
             if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetPayloadMsg())) return {false, SocialConsensusResult_Failed};
-            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > GetConsensusLimit(ConsensusLimit_max_comment_size))
+            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > (size_t)GetConsensusLimit(ConsensusLimit_max_comment_size))
                 return {false, SocialConsensusResult_Size};
 
             return Success;
