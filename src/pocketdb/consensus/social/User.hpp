@@ -73,8 +73,6 @@ namespace PocketConsensus
         }
 
     protected:
-        virtual int64_t GetChangeInfoDepth() { return Limitor({3600, 3600}); }
-
         ConsensusValidateResult ValidateBlock(const UserRef& ptx, const PocketBlockRef& block) override
         {
 
@@ -120,7 +118,7 @@ namespace PocketConsensus
                 return Success;
 
             // We allow edit profile only with delay
-            if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetChangeInfoDepth())
+            if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_user_depth))
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
             // For edit user profile referrer not allowed
@@ -139,8 +137,6 @@ namespace PocketConsensus
     public:
         UserConsensus_checkpoint_1180000(int height) : UserConsensus(height) {}
     protected:
-        int64_t GetChangeInfoDepth() override { return Limitor({60, 60}); }
-
         ConsensusValidateResult ValidateEdit(const UserRef& ptx) override
         {
 
@@ -149,7 +145,7 @@ namespace PocketConsensus
             if (!ok) return Success;
 
             // We allow edit profile only with delay
-            if ((Height - prevTxHeight) <= GetChangeInfoDepth())
+            if ((Height - prevTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_user_depth))
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
             // For edit user profile referrer not allowed

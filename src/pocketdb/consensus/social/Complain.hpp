@@ -56,11 +56,6 @@ namespace PocketConsensus
         }
 
     protected:
-        virtual int64_t GetLimitWindow() { return Limitor({86400, 86400}); }
-        virtual int64_t GetFullAccountComplainsLimit() { return Limitor({12, 12}); }
-        virtual int64_t GetTrialAccountComplainsLimit() { return Limitor({6, 6}); }
-        virtual int64_t GetThresholdReputation() { return Limitor({500, 500}); }
-
         ConsensusValidateResult ValidateBlock(const ComplainRef& ptx, const PocketBlockRef& block) override
         {
             int count = GetChainCount(ptx);
@@ -104,7 +99,9 @@ namespace PocketConsensus
 
         virtual int64_t GetComplainsLimit(AccountMode mode)
         {
-            return mode >= AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
+            return mode >= AccountMode_Full ? 
+            GetConsensusLimit(ConsensusLimit_full_complain) : 
+            GetConsensusLimit(ConsensusLimit_trial_complain);
         }
         virtual ConsensusValidateResult ValidateLimit(const ComplainRef& ptx, int count)
         {
@@ -113,7 +110,7 @@ namespace PocketConsensus
             if (count >= GetComplainsLimit(mode))
                 return {false, SocialConsensusResult_ComplainLimit};
 
-            auto minimumReputation = GetThresholdReputation();
+            auto minimumReputation = GetConsensusLimit(ConsensusLimit_threshold_reputation);
             if (reputation < minimumReputation)
                 return {false, SocialConsensusResult_LowReputation};
 
@@ -127,29 +124,18 @@ namespace PocketConsensus
         {
             return ConsensusRepoInst.CountChainComplainTime(
                 *ptx->GetAddress(),
-                *ptx->GetTime() - GetLimitWindow()
+                *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
             );
         }
     };
 
     /*******************************************************************************************************************
-    *  Start checkpoint at 292800 block
-    *******************************************************************************************************************/
-    class ComplainConsensus_checkpoint_292800 : public ComplainConsensus
-    {
-    public:
-        ComplainConsensus_checkpoint_292800(int height) : ComplainConsensus(height) {}
-    protected:
-        int64_t GetThresholdReputation() override { return Limitor({1000, 1000}); }
-    };
-
-    /*******************************************************************************************************************
     *  Start checkpoint at 1124000 block
     *******************************************************************************************************************/
-    class ComplainConsensus_checkpoint_1124000 : public ComplainConsensus_checkpoint_292800
+    class ComplainConsensus_checkpoint_1124000 : public ComplainConsensus
     {
     public:
-        ComplainConsensus_checkpoint_1124000(int height) : ComplainConsensus_checkpoint_292800(height) {}
+        ComplainConsensus_checkpoint_1124000(int height) : ComplainConsensus(height) {}
     protected:
         bool CheckBlockLimitTime(const ComplainRef& ptx, const ComplainRef& blockPtx) override
         {
@@ -165,11 +151,9 @@ namespace PocketConsensus
     public:
         ComplainConsensus_checkpoint_1180000(int height) : ComplainConsensus_checkpoint_1124000(height) {}
     protected:
-        int64_t GetLimitWindow() override { return Limitor({1440, 1440}); }
-
         int GetChainCount(const ComplainRef& ptx) override
         {
-            return ConsensusRepoInst.CountChainComplainHeight(*ptx->GetAddress(), Height - (int) GetLimitWindow());
+            return ConsensusRepoInst.CountChainComplainHeight(*ptx->GetAddress(), Height - (int) GetConsensusLimit(ConsensusLimit_depth));
         }
     };
 
@@ -182,7 +166,6 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint < ComplainConsensus>> m_rules = {
             { 0, -1, [](int height) { return make_shared<ComplainConsensus>(height); }},
-            { 292800, -1, [](int height) { return make_shared<ComplainConsensus_checkpoint_292800>(height); }},
             { 1124000, -1, [](int height) { return make_shared<ComplainConsensus_checkpoint_1124000>(height); }},
             { 1180000, 0, [](int height) { return make_shared<ComplainConsensus_checkpoint_1180000>(height); }},
         };

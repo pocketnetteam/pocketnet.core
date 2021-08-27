@@ -96,14 +96,6 @@ namespace PocketConsensus
         }
 
     protected:
-        virtual int64_t GetLimitWindow() { return Limitor({86400, 86400}); }
-        virtual int64_t GetFullLimit()
-        {
-            return Limitor({90, 90}
-            0;
-        }
-        virtual int64_t GetTrialLimit() { return Limitor({45, 45}); }
-
         ConsensusValidateResult ValidateBlock(const ScoreContentRef& ptx, const PocketBlockRef& block) override
         {
 
@@ -158,7 +150,7 @@ namespace PocketConsensus
 
         virtual int64_t GetScoresLimit(AccountMode mode)
         {
-            return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit();
+            return mode >= AccountMode_Full ? GetConsensusLimit(ConsensusLimit_full_score) : GetConsensusLimit(ConsensusLimit_trial_score);
         }
         virtual bool CheckBlockLimitTime(const ScoreContentRef& ptx, const ScoreContentRef& blockTx)
         {
@@ -188,21 +180,9 @@ namespace PocketConsensus
         {
             return ConsensusRepoInst.CountChainScoreContentTime(
                 *ptx->GetAddress(),
-                *ptx->GetTime() - GetLimitWindow()
+                *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
             );
         }
-    };
-
-    /*******************************************************************************************************************
-    *  Consensus checkpoint at 175600 block
-    *******************************************************************************************************************/
-    class ScoreContentConsensus_checkpoint_175600 : public ScoreContentConsensus
-    {
-    public:
-        ScoreContentConsensus_checkpoint_175600(int height) : ScoreContentConsensus(height) {}
-    protected:
-        int64_t GetFullLimit() override { return Limitor({200, 200}); }
-        int64_t GetTrialLimit() override { return Limitor({100, 100}); }
     };
 
     /*******************************************************************************************************************
@@ -210,10 +190,10 @@ namespace PocketConsensus
     *  Consensus checkpoint at 430000 block
     *
     *******************************************************************************************************************/
-    class ScoreContentConsensus_checkpoint_430000 : public ScoreContentConsensus_checkpoint_175600
+    class ScoreContentConsensus_checkpoint_430000 : public ScoreContentConsensus
     {
     public:
-        ScoreContentConsensus_checkpoint_430000(int height) : ScoreContentConsensus_checkpoint_175600(height) {}
+        ScoreContentConsensus_checkpoint_430000(int height) : ScoreContentConsensus(height) {}
     protected:
         ConsensusValidateResult ValidateBlocking(const string& contentAddress, const ScoreContentRef& ptx) override
         {
@@ -265,13 +245,11 @@ namespace PocketConsensus
     public:
         ScoreContentConsensus_checkpoint_1180000(int height) : ScoreContentConsensus_checkpoint_1124000(height) {}
     protected:
-        int64_t GetLimitWindow() override { return Limitor({1440, 1440}); }
-
         int GetChainCount(const ScoreContentRef& ptx) override
         {
             return ConsensusRepoInst.CountChainScoreContentHeight(
                 *ptx->GetAddress(),
-                Height - (int) GetLimitWindow()
+                Height - (int) GetConsensusLimit(ConsensusLimit_depth)
             );
         }
     };
@@ -284,8 +262,6 @@ namespace PocketConsensus
     public:
         ScoreContentConsensus_checkpoint_1324655(int height) : ScoreContentConsensus_checkpoint_1180000(height) {}
     protected:
-        int64_t GetTrialLimit() override { return Limitor({15, 15}); }
-
         bool ValidateLowReputation(const ScoreContentRef& ptx, AccountMode mode) override
         {
             return mode != AccountMode_Trial || *ptx->GetValue() > 2;
@@ -300,7 +276,6 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint < ScoreContentConsensus>> m_rules = {
             { 0, -1, [](int height) { return make_shared<ScoreContentConsensus>(height); }},
-            { 175600, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_175600>(height); }},
             { 430000, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_430000>(height); }},
             { 514184, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_514184>(height); }},
             { 1124000, -1, [](int height) { return make_shared<ScoreContentConsensus_checkpoint_1124000>(height); }},

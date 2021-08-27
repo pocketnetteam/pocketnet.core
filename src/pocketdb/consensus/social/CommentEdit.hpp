@@ -99,16 +99,13 @@ namespace PocketConsensus
             // Maximum for message data
             if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetPayloadMsg())) return {false, SocialConsensusResult_Failed};
-            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > GetCommentMessageMaxSize())
+            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > GetConsensusLimit(ConsensusLimit_max_comment_size))
                 return {false, SocialConsensusResult_Size};
 
             return Success;
         }
 
     protected:
-        virtual int64_t GetEditWindow() { return Limitor({86400, 86400}); }
-        virtual size_t GetCommentMessageMaxSize() { return Limitor({2000, 2000}); }
-        virtual int64_t GetEditLimit() { return Limitor({4, 4}); }
 
         ConsensusValidateResult ValidateBlock(const CommentEditRef& ptx, const PocketBlockRef& block) override
         {
@@ -142,12 +139,12 @@ namespace PocketConsensus
 
         virtual bool AllowEditWindow(const CommentEditRef& ptx, const CommentEditRef& blockPtx)
         {
-            return (*ptx->GetTime() - *blockPtx->GetTime()) <= GetEditWindow();
+            return (*ptx->GetTime() - *blockPtx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_comment_depth);
         }
         virtual ConsensusValidateResult ValidateEditOneLimit(const CommentEditRef& ptx)
         {
             int count = ConsensusRepoInst.CountChainCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
-            if (count >= GetEditLimit())
+            if (count >= GetConsensusLimit(ConsensusLimit_comment_edit_count))
                 return {false, SocialConsensusResult_CommentEditLimit};
 
             return Success;
@@ -162,13 +159,11 @@ namespace PocketConsensus
     public:
         CommentEditConsensus_checkpoint_1180000(int height) : CommentEditConsensus(height) {}
     protected:
-        int64_t GetEditWindow() override { return Limitor({1440, 1440}); }
-
         bool AllowEditWindow(const CommentEditRef& ptx, const CommentEditRef& originalTx) override
         {
             auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
             if (!ok) return false;
-            return (Height - originalTxHeight) <= GetEditWindow();
+            return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_comment_depth);
         }
     };
 

@@ -46,13 +46,15 @@ namespace PocketConsensus
             return Success;
         }
 
-    protected:
-        virtual int GetLimitWindow() { return Limitor({1440, 1440}); }
-        virtual int64_t GetEditWindow() { return Limitor({1440, 1440}); }
-        virtual int64_t GetProLimit() { return Limitor({100, 100}); }
-        virtual int64_t GetFullLimit() { return Limitor({30, 30}); }
-        virtual int64_t GetTrialLimit() { return Limitor({15, 15}); }
-        virtual int64_t GetEditLimit() { return Limitor({5, 5}); }
+    protected:        
+        virtual int64_t GetLimit(AccountMode mode)
+        {
+            return mode == AccountMode_Pro
+                   ? GetConsensusLimit(ConsensusLimit_pro_video)
+                   : mode == AccountMode_Full
+                     ? GetConsensusLimit(ConsensusLimit_full_video)
+                     : GetConsensusLimit(ConsensusLimit_trial_video);
+        }
 
         ConsensusValidateResult ValidateBlock(const VideoRef& ptx, const PocketBlockRef& block) override
         {
@@ -111,14 +113,6 @@ namespace PocketConsensus
             return {*ptx->GetAddress()};
         }
 
-        virtual int64_t GetLimit(AccountMode mode)
-        {
-            return mode == AccountMode_Pro
-                   ? GetProLimit()
-                   : mode == AccountMode_Full
-                     ? GetFullLimit()
-                     : GetTrialLimit();
-        }
         virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
         {
 
@@ -161,7 +155,7 @@ namespace PocketConsensus
 
             return ConsensusRepoInst.CountChainVideoHeight(
                 *ptx->GetAddress(),
-                Height - GetLimitWindow()
+                Height - GetConsensusLimit(ConsensusLimit_depth)
             );
         }
         virtual ConsensusValidateResult ValidateEditBlock(const VideoRef& ptx, const PocketBlockRef& block)
@@ -198,7 +192,7 @@ namespace PocketConsensus
         {
 
             int count = ConsensusRepoInst.CountChainVideoEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
-            if (count >= GetEditLimit())
+            if (count >= GetConsensusLimit(ConsensusLimit_video_edit_count))
                 return {false, SocialConsensusResult_ContentEditLimit};
 
             return Success;
@@ -209,19 +203,8 @@ namespace PocketConsensus
             if (!ok)
                 return false;
 
-            return (Height - originalTxHeight) <= GetEditWindow();
+            return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_video_depth);
         }
-    };
-
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1324655 block
-    *******************************************************************************************************************/
-    class VideoConsensus_checkpoint_1324655 : public VideoConsensus
-    {
-    public:
-        VideoConsensus_checkpoint_1324655(int height) : VideoConsensus(height) {}
-    protected:
-        int64_t GetTrialLimit() override { return Limitor({5, 5}); }
     };
 
     /*******************************************************************************************************************
@@ -232,7 +215,6 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint < VideoConsensus>> m_rules = {
             { 0, -1, [](int height) { return make_shared<VideoConsensus>(height); }},
-            { 1324655, 0, [](int height) { return make_shared<VideoConsensus_checkpoint_1324655>(height); }},
         };
     public:
         shared_ptr<VideoConsensus> Instance(int height)

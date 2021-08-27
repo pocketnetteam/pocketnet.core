@@ -103,10 +103,6 @@ namespace PocketConsensus
         }
 
     protected:
-        virtual int64_t GetLimitWindow() { return Limitor({86400, 86400}); }
-        virtual int64_t GetFullAccountScoresLimit() { return Limitor({600, 600}); }
-        virtual int64_t GetTrialAccountScoresLimit() { return Limitor({300, 300}); }
-
         ConsensusValidateResult ValidateBlock(const ScoreCommentRef& ptx, const PocketBlockRef& block) override
         {
 
@@ -159,7 +155,7 @@ namespace PocketConsensus
 
         virtual int64_t GetScoresLimit(AccountMode mode)
         {
-            return mode >= AccountMode_Full ? GetFullAccountScoresLimit() : GetTrialAccountScoresLimit();
+            return mode >= AccountMode_Full ? GetConsensusLimit(ConsensusLimit_full_comment_score) : GetConsensusLimit(ConsensusLimit_trial_comment_score);
         }
         virtual bool CheckBlockLimitTime(const ScoreCommentRef& ptx, const ScoreCommentRef& blockTx)
         {
@@ -184,7 +180,7 @@ namespace PocketConsensus
 
             return ConsensusRepoInst.CountChainScoreCommentTime(
                 *ptx->GetAddress(),
-                *ptx->GetTime() - GetLimitWindow()
+                *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
             );
         }
     };
@@ -248,14 +244,12 @@ namespace PocketConsensus
     public:
         ScoreCommentConsensus_checkpoint_1180000(int height) : ScoreCommentConsensus_checkpoint_1124000(height) {}
     protected:
-        int64_t GetLimitWindow() override { return Limitor({1440, 1440}); }
-
         int GetChainCount(const ScoreCommentRef& ptx) override
         {
 
             return ConsensusRepoInst.CountChainScoreCommentHeight(
                 *ptx->GetAddress(),
-                Height - (int) GetLimitWindow()
+                Height - (int) GetConsensusLimit(ConsensusLimit_depth)
             );
         }
     };

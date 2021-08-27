@@ -43,11 +43,10 @@ namespace PocketConsensus
         }
 
     protected:
-        virtual int64_t GetLimitWindow() { return Limitor({86400, 86400}); }
-        virtual int64_t GetEditWindow() { return Limitor({86400, 86400}); }
-        virtual int64_t GetFullLimit() { return Limitor({30, 30}); }
-        virtual int64_t GetTrialLimit() { return Limitor({15, 15}); }
-        virtual int64_t GetEditLimit() { return Limitor({5, 5}); }
+        virtual int64_t GetLimit(AccountMode mode)
+        {
+            return mode >= AccountMode_Full ? GetConsensusLimit(ConsensusLimit_full_post) : GetConsensusLimit(ConsensusLimit_trial_post);
+        }
 
         tuple<bool, SocialConsensusResult> ValidateBlock(const PostRef& ptx, const PocketBlockRef& block) override
         {
@@ -106,10 +105,6 @@ namespace PocketConsensus
             return {*ptx->GetAddress()};
         }
 
-        virtual int64_t GetLimit(AccountMode mode)
-        {
-            return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit();
-        }
         virtual tuple<bool, SocialConsensusResult> ValidateEdit(const PostRef& ptx)
         {
             // First get original post transaction
@@ -153,13 +148,13 @@ namespace PocketConsensus
         }
         virtual bool AllowEditWindow(const PostRef& ptx, const PostRef& originalTx)
         {
-            return (*ptx->GetTime() - *originalTx->GetTime()) <= GetEditWindow();
+            return (*ptx->GetTime() - *originalTx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_post_depth);
         }
         virtual int GetChainCount(const PostRef& ptx)
         {
             return ConsensusRepoInst.CountChainPostTime(
                 *ptx->GetAddress(),
-                *ptx->GetTime() - GetLimitWindow()
+                *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
             );
         }
         virtual tuple<bool, SocialConsensusResult> ValidateEditBlock(const PostRef& ptx, const PocketBlockRef& block)
@@ -193,7 +188,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const PostRef& ptx)
         {
             int count = ConsensusRepoInst.CountChainPostEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
-            if (count >= GetEditLimit())
+            if (count >= GetConsensusLimit(ConsensusLimit_post_edit_count))
                 return {false, SocialConsensusResult_ContentEditLimit};
 
             return Success;
@@ -222,12 +217,9 @@ namespace PocketConsensus
     public:
         PostConsensus_checkpoint_1180000(int height) : PostConsensus_checkpoint_1124000(height) {}
     protected:
-        int64_t GetEditWindow() override { return Limitor({1440, 1440}); }
-        int64_t GetLimitWindow() override { return Limitor({1440, 1440}); }
-
         int GetChainCount(const PostRef& ptx) override
         {
-            return ConsensusRepoInst.CountChainPostHeight(*ptx->GetAddress(), Height - (int) GetLimitWindow());
+            return ConsensusRepoInst.CountChainPostHeight(*ptx->GetAddress(), Height - (int) GetConsensusLimit(ConsensusLimit_depth));
         }
         bool AllowEditWindow(const PostRef& ptx, const PostRef& originalTx) override
         {
@@ -235,19 +227,8 @@ namespace PocketConsensus
             if (!ok)
                 return false;
 
-            return (Height - originalTxHeight) <= GetEditWindow();
+            return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_post_depth);
         }
-    };
-
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1324655 block
-    *******************************************************************************************************************/
-    class PostConsensus_checkpoint_1324655 : public PostConsensus_checkpoint_1180000
-    {
-    public:
-        PostConsensus_checkpoint_1324655(int height) : PostConsensus_checkpoint_1180000(height) {}
-    protected:
-        int64_t GetTrialLimit() override { return Limitor({5, 5}); }
     };
 
     /*******************************************************************************************************************
@@ -260,7 +241,6 @@ namespace PocketConsensus
             { 0, -1, [](int height) { return make_shared<PostConsensus>(height); }},
             { 1124000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1124000>(height); }},
             { 1180000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1180000>(height); }},
-            { 1324655, 0, [](int height) { return make_shared<PostConsensus_checkpoint_1324655>(height); }},
         };
     public:
         shared_ptr<PostConsensus> Instance(int height)

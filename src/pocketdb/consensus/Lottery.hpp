@@ -32,7 +32,7 @@ namespace PocketConsensus
     {
     protected:
         LotteryWinners _winners;
-        virtual int64_t MaxWinnersCount() { return Limitor({25, 25}); }
+        virtual int64_t MaxWinnersCount() { return 25; }
 
         void SortWinners(map<string, int>& candidates, CDataStream& hashProofOfStakeSource, vector<string>& winners)
         {
@@ -200,15 +200,13 @@ namespace PocketConsensus
         LotteryConsensus_checkpoint_1035000(int height) : LotteryConsensus_checkpoint_514185(height) {}
 
     protected:
-        virtual int GetLotteryReferralDepth() { return Limitor({30, 30}) * 24 * 3600; }
-
         void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
             map<string, string>& refs) override
         {
             if (refs.find(contentAddress) != refs.end())
                 return;
 
-            auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress, txTime - GetLotteryReferralDepth());
+            auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress, txTime - GetConsensusLimit(ConsensusLimit_lottery_referral_depth));
             if (!referrer || *referrer == scoreAddress) return;
 
             refs.emplace(contentAddress, *referrer);
@@ -256,14 +254,11 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Lottery checkpoint at _ block
     *******************************************************************************************************************/
-    // TODO (brangr) (v0.21.0): change GetLotteryReferralDepth Time to Height
     class LotteryConsensus_checkpoint_ : public LotteryConsensus_checkpoint_1180000
     {
     public:
         LotteryConsensus_checkpoint_(int height) : LotteryConsensus_checkpoint_1180000(height) {}
     protected:
-        int GetLotteryReferralDepth() override { return Limitor({-1, -1}); }
-
         void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map<string, string>& refs) override
         {
             // This logic replaced with ExtendReferrers()
@@ -303,24 +298,26 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Lottery factory for select actual rules version
     *******************************************************************************************************************/
-    class LotteryConsensusFactory : public BaseConsensusFactory
+    class LotteryConsensusFactory
     {
     private:
-        const vector<BaseConsensusCheckpoint> _rules = {
+        const vector<ConsensusCheckpoint < LotteryConsensus>> m_rules = {
             {0,       -1, [](int height) { return make_shared<LotteryConsensus>(height); }},
             {514185,  -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_514185>(height); }},
             {1035000, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1035000>(height); }},
             {1124000, -1, [](int height) { return make_shared<LotteryConsensus_checkpoint_1124000>(height); }},
             {1180000, 0,  [](int height) { return make_shared<LotteryConsensus_checkpoint_1180000>(height); }},
         };
-    protected:
-        const vector<BaseConsensusCheckpoint>& m_rules() override { return _rules; }
     public:
         shared_ptr<LotteryConsensus> Instance(int height)
         {
-            return static_pointer_cast<LotteryConsensus>(
-                BaseConsensusFactory::m_instance(height)
-            );
+            int m_height = (height > 0 ? height : 0);
+            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
+                [&](int target, const ConsensusCheckpoint<LotteryConsensus>& itm)
+                {
+                    return target < itm.Height(Params().NetworkIDString());
+                }
+            ))->m_func(height);
         }
     };
 }

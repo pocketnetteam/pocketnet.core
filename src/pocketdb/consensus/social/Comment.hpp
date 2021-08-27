@@ -64,18 +64,13 @@ namespace PocketConsensus
             // Maximum for message data
             if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetPayloadMsg())) return {false, SocialConsensusResult_Failed};
-            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > GetCommentMessageMaxSize())
+            if (HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).length() > GetConsensusLimit(ConsensusLimit_max_comment_size))
                 return {false, SocialConsensusResult_Size};
 
             return Success;
         }
 
     protected:
-        virtual int64_t GetLimitWindow() { return Limitor({86400, 86400}); }
-        virtual int64_t GetFullLimit() { return Limitor({300, 300}); }
-        virtual int64_t GetTrialLimit() { return Limitor({150, 150}); }
-        virtual int64_t GetCommentMessageMaxSize() { return Limitor({2000, 2000}); }
-
         ConsensusValidateResult ValidateBlock(const CommentRef& ptx, const PocketBlockRef& block) override
         {
             int count = GetChainCount(ptx);
@@ -109,7 +104,11 @@ namespace PocketConsensus
             return {*ptx->GetAddress()};
         }
 
-        virtual int64_t GetLimit(AccountMode mode) { return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit(); }
+        virtual int64_t GetLimit(AccountMode mode) { 
+            return mode >= AccountMode_Full ? 
+                GetConsensusLimit(ConsensusLimit_full_comment) : 
+                GetConsensusLimit(ConsensusLimit_trial_comment); 
+        }
         virtual bool CheckBlockLimitTime(const CommentRef& ptx, const CommentRef& blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
@@ -127,7 +126,7 @@ namespace PocketConsensus
         {
             return ConsensusRepoInst.CountChainCommentTime(
                 *ptx->GetAddress(),
-                *ptx->GetTime() - GetLimitWindow()
+                *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
             );
         }
     };
@@ -154,11 +153,9 @@ namespace PocketConsensus
     public:
         CommentConsensus_checkpoint_1180000(int height) : CommentConsensus_checkpoint_1124000(height) {}
     protected:
-        int64_t GetLimitWindow() override { return Limitor({1440, 1440}); }
-
         int GetChainCount(const CommentRef& ptx) override
         {
-            return ConsensusRepoInst.CountChainCommentHeight(*ptx->GetAddress(), Height - (int) GetLimitWindow());
+            return ConsensusRepoInst.CountChainCommentHeight(*ptx->GetAddress(), Height - (int) GetConsensusLimit(ConsensusLimit_depth));
         }
     };
 

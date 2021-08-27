@@ -20,24 +20,13 @@ namespace PocketConsensus
     class ReputationConsensus : public BaseConsensus
     {
     protected:
-        virtual int64_t ThresholdLikersCount() { return Limitor({0, 0}); }
-        virtual int64_t GetMinBalanceFull() { return Limitor({50, 50}) * COIN; }
-        virtual int64_t GetMinBalancePro() { return Limitor({250, 250}) * COIN; }
-        virtual int64_t GetMinReputationFull() { return Limitor({500, 500}); }
-        virtual int64_t GetThresholdReputationScore() { return Limitor({-10000, -10000}); }
-        virtual int64_t GetScoresOneToOneOverComment() { return Limitor({20, 20}); }
-        virtual int64_t GetScoresOneToOne() { return Limitor({99999, 99999}); }
-        virtual int64_t GetScoresOneToOneDepth() { return Limitor({336, 336}) * 24 * 3600; }
-        virtual int64_t GetScoresToPostModifyReputationDepth() { return Limitor({336, 336}) * 24 * 3600; }
-
         virtual int64_t GetMinLikers(int addressId)
         {
-            return ThresholdLikersCount();
+            return GetConsensusLimit(ConsensusLimit_threshold_likers_count);
         }
         virtual bool AllowModifyReputation(int addressId)
         {
-            // Ignore scores from users with rating < Antibot::Limit::threshold_reputation_score
-            auto minUserReputation = GetThresholdReputationScore();
+            auto minUserReputation = GetConsensusLimit(ConsensusLimit_threshold_reputation_score);
             auto userReputation = PocketDb::ConsensusRepoInst.GetUserReputation(addressId);
             if (userReputation < minUserReputation)
                 return false;
@@ -66,8 +55,8 @@ namespace PocketConsensus
                 return false;
 
             // Disable reputation increment if from one address to one address > 2 scores over day
-            int64_t _max_scores_one_to_one = GetScoresOneToOne();
-            int64_t _scores_one_to_one_depth = GetScoresOneToOneDepth();
+            int64_t _max_scores_one_to_one = GetConsensusLimit(ConsensusLimit_scores_one_to_one);
+            int64_t _scores_one_to_one_depth = GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth);
 
             std::vector<int> values;
             if (lottery)
@@ -98,8 +87,8 @@ namespace PocketConsensus
                 return false;
 
             // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
-            int64_t _max_scores_one_to_one = GetScoresOneToOneOverComment();
-            int64_t _scores_one_to_one_depth = GetScoresOneToOneDepth();
+            int64_t _max_scores_one_to_one = GetConsensusLimit(ConsensusLimit_scores_one_to_one_over_comment);
+            int64_t _scores_one_to_one_depth = GetConsensusLimit(ConsensusLimit_scores_one_to_one_depth);
 
             std::vector<int> values;
             if (lottery)
@@ -127,7 +116,7 @@ namespace PocketConsensus
             auto reputation = PocketDb::ConsensusRepoInst.GetUserReputation(address);
             auto balance = PocketDb::ConsensusRepoInst.GetUserBalance(address);
 
-            if (reputation >= GetMinReputationFull() || balance >= GetMinBalanceFull())
+            if (reputation >= GetConsensusLimit(ConsensusLimit_threshold_reputation) || balance >= GetConsensusLimit(ConsensusLimit_threshold_balance))
                 return {AccountMode_Full, reputation, balance};
             else
                 return {AccountMode_Trial, reputation, balance};
@@ -151,7 +140,7 @@ namespace PocketConsensus
         virtual bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, PocketTxType contentType)
         {
             if (contentType == PocketTxType::CONTENT_POST)
-                return (scoreTime - contentTime) < GetScoresToPostModifyReputationDepth();
+                return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
 
             return true;
         }
@@ -172,20 +161,9 @@ namespace PocketConsensus
     };
 
     /******************************************************************************************************************
-    * Consensus checkpoint at 108300 block
-    ******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_108300 : public ReputationConsensus
-    {
-    protected:
-        int64_t GetThresholdReputationScore() override { return Limitor({500, 500}); }
-    public:
-        ReputationConsensus_checkpoint_108300(int height) : ReputationConsensus(height) {}
-    };
-
-    /******************************************************************************************************************
     * Consensus checkpoint at 151600 block
     ******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_151600 : public ReputationConsensus_checkpoint_108300
+    class ReputationConsensus_checkpoint_151600 : public ReputationConsensus
     {
     protected:
         tuple<int, string> SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery) override
@@ -193,77 +171,26 @@ namespace PocketConsensus
             return make_tuple(scoreData->ScoreAddressId, scoreData->ScoreAddressHash);
         }
     public:
-        ReputationConsensus_checkpoint_151600(int height) : ReputationConsensus_checkpoint_108300(height) {}
-    };
-
-    /******************************************************************************************************************
-    * Consensus checkpoint at 225000 block
-    ******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_225000 : public ReputationConsensus_checkpoint_151600
-    {
-    protected:
-        int64_t GetScoresOneToOne() override { return Limitor({2, 2}); }
-        int64_t GetScoresOneToOneDepth() override { return Limitor({1, 1}) * 24 * 3600; }
-    public:
-        ReputationConsensus_checkpoint_225000(int height) : ReputationConsensus_checkpoint_151600(height) {}
-    };
-
-    /******************************************************************************************************************
-    * Consensus checkpoint at 292800 block
-    ******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_292800 : public ReputationConsensus_checkpoint_225000
-    {
-    protected:
-        int64_t GetThresholdReputationScore() override { return Limitor({1000, 1000}); }
-        int64_t GetMinReputationFull() override { return Limitor({1000, 1000}); }
-        int64_t GetScoresOneToOneDepth() override { return Limitor({7, 7}) * 24 * 3600; }
-    public:
-        ReputationConsensus_checkpoint_292800(int height) : ReputationConsensus_checkpoint_225000(height) {}
-    };
-
-    /******************************************************************************************************************
-    * Consensus checkpoint at 322700 block
-    ******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_322700 : public ReputationConsensus_checkpoint_292800
-    {
-    protected:
-        int64_t GetScoresOneToOneDepth() override { return Limitor({2, 2}) * 24 * 3600; }
-        int64_t GetScoresToPostModifyReputationDepth() override { return Limitor({30, 30}) * 24 * 3600; }
-    public:
-        ReputationConsensus_checkpoint_322700(int height) : ReputationConsensus_checkpoint_292800(height) {}
-    };
-
-    /******************************************************************************************************************
-    * Consensus checkpoint at 1124000 block
-    ******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_1124000 : public ReputationConsensus_checkpoint_322700
-    {
-    protected:
-        int64_t ThresholdLikersCount() override { return Limitor({100, 100}); }
-    public:
-        ReputationConsensus_checkpoint_1124000(int height) : ReputationConsensus_checkpoint_322700(height) {}
+        ReputationConsensus_checkpoint_151600(int height) : ReputationConsensus(height) {}
     };
 
     /******************************************************************************************************************
     * Consensus checkpoint at 1180000 block
     ******************************************************************************************************************/
-    class ReputationConsensus_checkpoint_1180000 : public ReputationConsensus_checkpoint_1124000
+    class ReputationConsensus_checkpoint_1180000 : public ReputationConsensus_checkpoint_151600
     {
+    public:
+        ReputationConsensus_checkpoint_1180000(int height) : ReputationConsensus_checkpoint_151600(height) {}
     protected:
-        virtual int64_t LowThresholdLikersDepth() { return Limitor({250'000, 250'000}); }
-        virtual int64_t LowThresholdLikersCount() { return Limitor({30, 30}); }
-
         int64_t GetMinLikers(int addressId) override
         {
-            auto minLikersCount = ThresholdLikersCount();
+            auto minLikersCount = GetConsensusLimit(ConsensusLimit_threshold_likers_count);
             auto accountRegistrationHeight = PocketDb::ConsensusRepoInst.GetAccountRegistrationHeight(addressId);
-            if (Height - accountRegistrationHeight > LowThresholdLikersDepth())
-                minLikersCount = LowThresholdLikersCount();
+            if (Height - accountRegistrationHeight > GetConsensusLimit(ConsensusLimit_threshold_low_likers_depth))
+                minLikersCount = GetConsensusLimit(ConsensusLimit_threshold_low_likers_count);
 
             return minLikersCount;
         }
-    public:
-        ReputationConsensus_checkpoint_1180000(int height) : ReputationConsensus_checkpoint_1124000(height) {}
     };
 
     /******************************************************************************************************************
@@ -286,9 +213,9 @@ namespace PocketConsensus
             auto reputation = PocketDb::ConsensusRepoInst.GetUserReputation(address);
             auto balance = PocketDb::ConsensusRepoInst.GetUserBalance(address);
 
-            if (reputation >= GetMinReputationFull() || balance >= GetMinBalanceFull())
+            if (reputation >= GetConsensusLimit(ConsensusLimit_threshold_reputation) || balance >= GetConsensusLimit(ConsensusLimit_threshold_balance))
             {
-                if (balance >= GetMinBalancePro())
+                if (balance >= GetConsensusLimit(ConsensusLimit_threshold_balance_pro))
                 {
                     return {AccountMode_Pro, reputation, balance};
                 }
@@ -307,28 +234,25 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class ReputationConsensusFactory : public BaseConsensusFactory
+    class ReputationConsensusFactory
     {
     private:
-        const vector<BaseConsensusCheckpoint> _rules = {
+        const vector<ConsensusCheckpoint < ReputationConsensus>> m_rules = {
             {0,       -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
-            {108300,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_108300>(height); }},
             {151600,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
-            {225000,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_225000>(height); }},
-            {292800,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_292800>(height); }},
-            {322700,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_322700>(height); }},
-            {1124000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1124000>(height); }},
             {1180000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
             {1324655, 0,  [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
         };
-    protected:
-        const vector<BaseConsensusCheckpoint>& m_rules() override { return _rules; }
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
         {
-            return static_pointer_cast<ReputationConsensus>(
-                BaseConsensusFactory::m_instance(height)
-            );
+            int m_height = (height > 0 ? height : 0);
+            return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
+                [&](int target, const ConsensusCheckpoint<ReputationConsensus>& itm)
+                {
+                    return target < itm.Height(Params().NetworkIDString());
+                }
+            ))->m_func(height);
         }
     };
 }

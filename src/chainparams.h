@@ -37,6 +37,13 @@ struct ChainTxData {
     double dTxRate;   //!< estimated number of transactions per second after that timestamp
 };
 
+enum NetworkId
+{
+    NetworkMain,
+    NetworkTest,
+    NetworkRegTest
+};
+
 /**
  * CChainParams defines various tweakable parameters of a given instance of the
  * Pocketcoin system. There are three: the main network on which people trade goods
@@ -71,6 +78,7 @@ public:
     bool MineBlocksOnDemand() const { return fMineBlocksOnDemand; }
     /** Return the BIP70 network string (main, test or regtest) */
     std::string NetworkIDString() const { return strNetworkID; }
+    NetworkId NetworkID() const { return networkId; }
     /** Return true if the fallback fee is by default enabled for this network */
     bool IsFallbackFeeEnabled() const { return m_fallback_fee_enabled; }
     /** Return the list of hostnames to look up for DNS seeds */
@@ -92,6 +100,7 @@ protected:
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
     std::string bech32_hrp;
     std::string strNetworkID;
+    NetworkId networkId;
     CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;
     bool fDefaultConsistencyChecks;

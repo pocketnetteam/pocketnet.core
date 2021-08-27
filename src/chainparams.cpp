@@ -67,6 +67,7 @@ public:
     CMainParams()
     {
         strNetworkID = "main";
+        networkId = NetworkMain;
         consensus.nSubsidyHalvingInterval = 2100000;
         consensus.BIP16Exception = uint256();
 
@@ -182,6 +183,7 @@ public:
     CTestNetParams()
     {
         strNetworkID = "test";
+        networkId = NetworkTest;
         consensus.nSubsidyHalvingInterval = 2100000;
         consensus.BIP16Exception = uint256(); // uint256S("0x00000000000002dc756eebf4f49723ed8d30cc28a5f108eb94b1ba88ac4f9c22");
 
@@ -294,6 +296,7 @@ public:
     CRegTestParams()
     {
         strNetworkID = "regtest";
+        networkId = NetworkRegTest;
         consensus.nSubsidyHalvingInterval = 150;
         consensus.BIP16Exception = uint256();
         consensus.BIP34Height = 100000000; // BIP34 has not activated on regtest (far in the future so block v1 are not rejected in tests)
