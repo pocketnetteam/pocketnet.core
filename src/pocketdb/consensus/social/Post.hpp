@@ -137,7 +137,11 @@ namespace PocketConsensus
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetAddress());
             if (count >= GetLimit(mode))
-                return {false, SocialConsensusResult_ContentLimit};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ContentLimit))
+                    return {false, SocialConsensusResult_ContentLimit};
+            }
 
             return Success;
         }

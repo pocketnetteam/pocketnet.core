@@ -31,7 +31,11 @@ namespace PocketConsensus
                     *ptx->GetAddress(),
                     *ptx->GetAddressTo()
                 ); !existsBlocking || blockingType != ACTION_BLOCKING)
-                return {false, SocialConsensusResult_InvalidBlocking};
+            {
+                PocketHelpers::SocialCheckpoints socialCheckpoints;
+                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_InvalidBlocking))
+                    return {false, SocialConsensusResult_InvalidBlocking};
+            }
 
             return Success;
         }
