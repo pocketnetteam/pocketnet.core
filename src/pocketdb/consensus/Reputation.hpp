@@ -198,16 +198,9 @@ namespace PocketConsensus
     ******************************************************************************************************************/
     class ReputationConsensus_checkpoint_1324655 : public ReputationConsensus_checkpoint_1180000
     {
-    protected:
     public:
         ReputationConsensus_checkpoint_1324655(int height) : ReputationConsensus_checkpoint_1180000(height) {}
-        void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers) override
-        {
-            for (const auto& account : accountLikersSrc)
-                for (const auto& likerId : account.second)
-                    if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
-                        accountLikers[account.first].emplace_back(likerId);
-        }
+
         tuple<AccountMode, int, int64_t> GetAccountInfo(string& address) override
         {
             auto reputation = PocketDb::ConsensusRepoInst.GetUserReputation(address);
@@ -231,6 +224,23 @@ namespace PocketConsensus
         }
     };
 
+    /******************************************************************************************************************
+    * Consensus checkpoint at 1324655_2 block
+    ******************************************************************************************************************/
+    class ReputationConsensus_checkpoint_1324655_2 : public ReputationConsensus_checkpoint_1324655
+    {
+    public:
+        ReputationConsensus_checkpoint_1324655_2(int height) : ReputationConsensus_checkpoint_1324655(height) {}
+
+        void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers) override
+        {
+            for (const auto& account : accountLikersSrc)
+                for (const auto& likerId : account.second)
+                    if (!PocketDb::RatingsRepoInst.ExistsLiker(account.first, likerId, Height))
+                        accountLikers[account.first].emplace_back(likerId);
+        }
+    };
+
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
@@ -242,6 +252,7 @@ namespace PocketConsensus
             {151600,      -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
             {1180000,      0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
             {1324655,  65000,  [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
+            {1324655,  75000,  [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655_2>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
