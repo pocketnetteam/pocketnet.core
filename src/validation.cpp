@@ -2469,7 +2469,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Checks PoS logic
-    if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
+    if (  pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
     {
         if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
         {

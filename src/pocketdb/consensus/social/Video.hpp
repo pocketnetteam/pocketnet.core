@@ -139,7 +139,6 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidateLimit(const VideoRef& ptx, int count)
         {
-
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
 
             auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetAddress());
