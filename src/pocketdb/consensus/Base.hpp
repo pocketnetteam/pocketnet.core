@@ -196,13 +196,15 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0,       250 * COIN}
+                        {0,     INT64_MAX},
+                        {65000, 250 * COIN}
                     }
                 },
                 {
                     NetworkTest,
                     {
-                        {0, 25 * COIN}
+                        {0,     INT64_MAX},
+                        {65000, 25 * COIN}
                     }
                 }
             }
@@ -221,7 +223,7 @@ namespace PocketConsensus
                 {
                     NetworkTest,
                     {
-                        {0, 0},
+                        {0,      0},
                         {100000, 10}
                     }
                 }
@@ -446,8 +448,7 @@ namespace PocketConsensus
                 {
                     NetworkTest,
                     {
-                        {0, 0},
-                        {65000,  100}
+                        {0,  100}
                     }
                 }
             }

@@ -238,10 +238,10 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < ReputationConsensus>> m_rules = {
-            {0,       -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
-            {151600,  -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
-            {1180000, -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
-            {1324655, 0,  [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
+            {0,           -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
+            {151600,      -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
+            {1180000,      0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
+            {1324655,  75000,  [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)

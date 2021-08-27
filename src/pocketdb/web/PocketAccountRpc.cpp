@@ -7,36 +7,27 @@
 namespace PocketWeb::PocketWebRpc
 {
 
-    std::map<std::string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses,
-        bool shortForm, int option)
+    map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm, int option)
     {
         auto result = dbCon->WebRepoInst->GetUserProfile(addresses, shortForm, option);
 
         if (shortForm)
-        {
             return result;
-        }
 
         auto subscribes = dbCon->WebRepoInst->GetSubscribesAddresses(addresses);
         auto subscribers = dbCon->WebRepoInst->GetSubscribersAddresses(addresses);
         auto blocking = dbCon->WebRepoInst->GetBlockingToAddresses(addresses);
 
-        for (auto i = result.begin(); i != result.end(); ++i)
+        for (auto & i : result)
         {
-            if (subscribes.find(i->first) != subscribes.end())
-            {
-                i->second.pushKV("subscribes", subscribes[i->first]);
-            }
+            if (subscribes.find(i.first) != subscribes.end())
+                i.second.pushKV("subscribes", subscribes[i.first]);
 
-            if (subscribers.find(i->first) != subscribers.end())
-            {
-                i->second.pushKV("subscribers", subscribers[i->first]);
-            }
+            if (subscribers.find(i.first) != subscribers.end())
+                i.second.pushKV("subscribers", subscribers[i.first]);
 
-            if (blocking.find(i->first) != blocking.end())
-            {
-                i->second.pushKV("blocking", blocking[i->first]);
-            }
+            if (blocking.find(i.first) != blocking.end())
+                i.second.pushKV("blocking", blocking[i.first]);
         }
 
         return result;
@@ -51,14 +42,14 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetUserProfile(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getuserprofile \"address\" ( shortForm )\n"
                 "\nReturn Pocketnet user profile.\n");
 
         if (request.params.size() < 1)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
 
-        std::vector<string> addresses;
+        vector<string> addresses;
         if (request.params[0].isStr())
             addresses.push_back(request.params[0].get_str());
         else if (request.params[0].isArray())
@@ -74,18 +65,14 @@ namespace PocketWeb::PocketWebRpc
 
         // Short profile form is: address, b, i, name
         bool shortForm = false;
-        if (request.params.size() >= 2)
-        {
+        if (request.params.size() > 1)
             shortForm = request.params[1].get_str() == "1";
-        }
 
         UniValue aResult(UniValue::VARR);
 
-        std::map<std::string, UniValue> profiles = GetUsersProfiles(request.DbConnection(), addresses, shortForm);
+        map<string, UniValue> profiles = GetUsersProfiles(request.DbConnection(), addresses, shortForm);
         for (auto& p : profiles)
-        {
             aResult.push_back(p.second);
-        }
 
         return aResult;
     }
@@ -93,13 +80,13 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetUserAddress(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getuseraddress \"user_name\" ( count )\n"
                 "\nGet list addresses of user.\n");
 
         // TODO (team): check argument exists for 0 item in params
 
-        std::string userName;
+        string userName;
         if (!request.params[0].isNull())
         {
             RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
@@ -115,7 +102,7 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
         {
-            throw std::runtime_error(
+            throw runtime_error(
                 "getaddressregistration [\"addresses\",...]\n"
                 "\nReturns array of registration dates.\n"
                 "\nArguments:\n"
@@ -137,7 +124,7 @@ namespace PocketWeb::PocketWebRpc
 
         // TODO (team): check argument exists for 0 item in params
 
-        std::vector<std::string> addresses;
+        vector<string> addresses;
         if (!request.params[0].isNull())
         {
             RPCTypeCheckArgument(request.params[0], UniValue::VARR);
@@ -149,10 +136,10 @@ namespace PocketWeb::PocketWebRpc
 
                 if (!IsValidDestination(dest))
                 {
-                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + input.get_str());
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
                 }
 
-                if (std::find(addresses.begin(), addresses.end(), input.get_str()) == addresses.end())
+                if (find(addresses.begin(), addresses.end(), input.get_str()) == addresses.end())
                 {
                     addresses.push_back(input.get_str());
                 }
@@ -167,18 +154,18 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetUserState(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getuserstate \"address\"\n"
                 "\nReturns account limits and rating information\n"
             );
 
         if (request.params.empty())
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid or empty Pocketcoin address"));
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty Pocketcoin address"));
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
         CTxDestination dest = DecodeDestination(request.params[0].get_str());
         if (!IsValidDestination(dest))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + request.params[0].get_str());
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + request.params[0].get_str());
         auto address = request.params[0].get_str();
 
         return request.DbConnection()->WebRepoInst->GetAccountState(address);
