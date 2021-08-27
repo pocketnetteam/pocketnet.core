@@ -20,7 +20,6 @@ namespace PocketConsensus
     {
     public:
         BlockingCancelConsensus(int height) : SocialConsensus<BlockingCancel>(height) {}
-
         ConsensusValidateResult Validate(const BlockingCancelRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -39,7 +38,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         ConsensusValidateResult Check(const CTransactionRef& tx, const BlockingCancelRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -57,7 +55,6 @@ namespace PocketConsensus
         }
 
     protected:
-
         ConsensusValidateResult ValidateBlock(const BlockingCancelRef& ptx, const PocketBlockRef& block) override
         {
 
@@ -77,7 +74,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         ConsensusValidateResult ValidateMempool(const BlockingCancelRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolBlocking(*ptx->GetAddress(), *ptx->GetAddressTo()) > 0)
@@ -85,7 +81,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         vector<string> GetAddressesForCheckRegistration(const BlockingCancelRef& ptx) override
         {
             return {*ptx->GetAddress(), *ptx->GetAddressTo()};

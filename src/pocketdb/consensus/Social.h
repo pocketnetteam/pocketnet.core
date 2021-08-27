@@ -27,7 +27,10 @@ namespace PocketConsensus
     class SocialConsensus : public BaseConsensus
     {
     public:
-        SocialConsensus(int height) : BaseConsensus(height) {}
+        SocialConsensus(int height) : BaseConsensus(height)
+        {
+            networkId = Params().NetworkIDString();
+        }
 
         // Validate transaction in block for miner & network full block sync
         virtual ConsensusValidateResult Validate(const shared_ptr<T>& ptx, const PocketBlockRef& block)
@@ -72,6 +75,21 @@ namespace PocketConsensus
 
     protected:
         ConsensusValidateResult Success{true, SocialConsensusResult_Success};
+        string networkId;
+
+        int64_t Limitor(const tuple<int64_t, int64_t>& values)
+        {
+            auto[main, test] = values;
+
+            if (networkId == CBaseChainParams::MAIN)
+                return main;
+
+            if (networkId == CBaseChainParams::TESTNET)
+                return test;
+
+            return main;
+
+        }
 
         virtual ConsensusValidateResult ValidateLimits(const shared_ptr<T>& ptx, const PocketBlockRef& block)
         {

@@ -21,7 +21,6 @@ namespace PocketConsensus
     {
     public:
         ComplainConsensus(int height) : SocialConsensus<Complain>(height) {}
-
         ConsensusValidateResult Validate(const ComplainRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -43,7 +42,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         ConsensusValidateResult Check(const CTransactionRef& tx, const ComplainRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -58,15 +56,10 @@ namespace PocketConsensus
         }
 
     protected:
-        virtual int64_t GetLimitWindow() { return 86400; }
-        virtual int64_t GetFullAccountComplainsLimit() { return 12; }
-        virtual int64_t GetTrialAccountComplainsLimit() { return 6; }
-        virtual int64_t GetThresholdReputation() { return 500; }
-        virtual int64_t GetComplainsLimit(AccountMode mode)
-        {
-            return mode >= AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
-        }
-
+        virtual int64_t GetLimitWindow() { return Limitor({86400, 86400}); }
+        virtual int64_t GetFullAccountComplainsLimit() { return Limitor({12, 12}); }
+        virtual int64_t GetTrialAccountComplainsLimit() { return Limitor({6, 6}); }
+        virtual int64_t GetThresholdReputation() { return Limitor({500, 500}); }
 
         ConsensusValidateResult ValidateBlock(const ComplainRef& ptx, const PocketBlockRef& block) override
         {
@@ -98,14 +91,21 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
-
         ConsensusValidateResult ValidateMempool(const ComplainRef& ptx) override
         {
             int count = GetChainCount(ptx);
             count += ConsensusRepoInst.CountMempoolComplain(*ptx->GetAddress());
             return ValidateLimit(ptx, count);
         }
+        vector<string> GetAddressesForCheckRegistration(const ComplainRef& ptx) override
+        {
+            return {*ptx->GetAddress()};
+        }
 
+        virtual int64_t GetComplainsLimit(AccountMode mode)
+        {
+            return mode >= AccountMode_Full ? GetFullAccountComplainsLimit() : GetTrialAccountComplainsLimit();
+        }
         virtual ConsensusValidateResult ValidateLimit(const ComplainRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
@@ -119,23 +119,16 @@ namespace PocketConsensus
 
             return Success;
         }
-
         virtual bool CheckBlockLimitTime(const ComplainRef& ptx, const ComplainRef& blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
-
         virtual int GetChainCount(const ComplainRef& ptx)
         {
             return ConsensusRepoInst.CountChainComplainTime(
                 *ptx->GetAddress(),
                 *ptx->GetTime() - GetLimitWindow()
             );
-        }
-
-        vector<string> GetAddressesForCheckRegistration(const ComplainRef& ptx) override
-        {
-            return {*ptx->GetAddress()};
         }
     };
 
@@ -147,7 +140,7 @@ namespace PocketConsensus
     public:
         ComplainConsensus_checkpoint_292800(int height) : ComplainConsensus(height) {}
     protected:
-        int64_t GetThresholdReputation() override { return 1000; }
+        int64_t GetThresholdReputation() override { return Limitor({1000, 1000}); }
     };
 
     /*******************************************************************************************************************
@@ -172,7 +165,8 @@ namespace PocketConsensus
     public:
         ComplainConsensus_checkpoint_1180000(int height) : ComplainConsensus_checkpoint_1124000(height) {}
     protected:
-        int64_t GetLimitWindow() override { return 1440; }
+        int64_t GetLimitWindow() override { return Limitor({1440, 1440}); }
+
         int GetChainCount(const ComplainRef& ptx) override
         {
             return ConsensusRepoInst.CountChainComplainHeight(*ptx->GetAddress(), Height - (int) GetLimitWindow());

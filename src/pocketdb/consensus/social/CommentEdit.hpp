@@ -22,7 +22,6 @@ namespace PocketConsensus
     {
     public:
         CommentEditConsensus(int height) : SocialConsensus<CommentEdit>(height) {}
-
         ConsensusValidateResult Validate(const CommentEditRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -87,7 +86,6 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-
         ConsensusValidateResult Check(const CTransactionRef& tx, const CommentEditRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -108,10 +106,9 @@ namespace PocketConsensus
         }
 
     protected:
-        virtual int64_t GetEditWindow() { return 86400; }
-        virtual size_t GetCommentMessageMaxSize() { return 2000; }
-        virtual int64_t GetEditLimit() { return 4; }
-
+        virtual int64_t GetEditWindow() { return Limitor({86400, 86400}); }
+        virtual size_t GetCommentMessageMaxSize() { return Limitor({2000, 2000}); }
+        virtual int64_t GetEditLimit() { return Limitor({4, 4}); }
 
         ConsensusValidateResult ValidateBlock(const CommentEditRef& ptx, const PocketBlockRef& block) override
         {
@@ -131,7 +128,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         ConsensusValidateResult ValidateMempool(const CommentEditRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
@@ -139,12 +135,15 @@ namespace PocketConsensus
 
             return Success;
         }
+        vector<string> GetAddressesForCheckRegistration(const CommentEditRef& ptx) override
+        {
+            return {*ptx->GetAddress()};
+        }
 
         virtual bool AllowEditWindow(const CommentEditRef& ptx, const CommentEditRef& blockPtx)
         {
             return (*ptx->GetTime() - *blockPtx->GetTime()) <= GetEditWindow();
         }
-
         virtual ConsensusValidateResult ValidateEditOneLimit(const CommentEditRef& ptx)
         {
             int count = ConsensusRepoInst.CountChainCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
@@ -153,12 +152,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
-        vector<string> GetAddressesForCheckRegistration(const CommentEditRef& ptx) override
-        {
-            return {*ptx->GetAddress()};
-        }
-
     };
 
     /*******************************************************************************************************************
@@ -168,10 +161,8 @@ namespace PocketConsensus
     {
     public:
         CommentEditConsensus_checkpoint_1180000(int height) : CommentEditConsensus(height) {}
-
     protected:
-
-        int64_t GetEditWindow() override { return 1440; }
+        int64_t GetEditWindow() override { return Limitor({1440, 1440}); }
 
         bool AllowEditWindow(const CommentEditRef& ptx, const CommentEditRef& originalTx) override
         {

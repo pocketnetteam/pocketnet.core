@@ -21,7 +21,6 @@ namespace PocketConsensus
     {
     public:
         VideoConsensus(int height) : SocialConsensus<Video>(height) {}
-
         ConsensusValidateResult Validate(const VideoRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -33,7 +32,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         ConsensusValidateResult Check(const CTransactionRef& tx, const VideoRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -49,47 +47,12 @@ namespace PocketConsensus
         }
 
     protected:
-        virtual int GetLimitWindow() { return 1440; }
-        virtual int64_t GetEditWindow() { return 1440; }
-        virtual int64_t GetProLimit() { return 100; }
-        virtual int64_t GetFullLimit() { return 30; }
-        virtual int64_t GetTrialLimit() { return 15; }
-        virtual int64_t GetEditLimit() { return 5; }
-        virtual int64_t GetLimit(AccountMode mode)
-        {
-            return mode == AccountMode_Pro
-                   ? GetProLimit()
-                   : mode == AccountMode_Full
-                     ? GetFullLimit()
-                     : GetTrialLimit();
-        }
-
-        virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
-        {
-
-            // First get original post transaction
-            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
-            if (!originalTx)
-                return {false, SocialConsensusResult_NotFound};
-
-            auto originalPtx = static_pointer_cast<Video>(originalTx);
-
-            // Change type not allowed
-            if (*originalPtx->GetType() != *ptx->GetType())
-                return {false, SocialConsensusResult_NotAllowed};
-
-            // You are author? Really?
-            if (*ptx->GetAddress() != *originalPtx->GetAddress())
-                return {false, SocialConsensusResult_ContentEditUnauthorized};
-
-            // Original post edit only 24 hours
-            if (!AllowEditWindow(ptx, originalPtx))
-                return {false, SocialConsensusResult_ContentEditLimit};
-
-            return make_tuple(true, SocialConsensusResult_Success);
-        }
-
-        // ------------------------------------------------------------------------------------------------------------
+        virtual int GetLimitWindow() { return Limitor({1440, 1440}); }
+        virtual int64_t GetEditWindow() { return Limitor({1440, 1440}); }
+        virtual int64_t GetProLimit() { return Limitor({100, 100}); }
+        virtual int64_t GetFullLimit() { return Limitor({30, 30}); }
+        virtual int64_t GetTrialLimit() { return Limitor({15, 15}); }
+        virtual int64_t GetEditLimit() { return Limitor({5, 5}); }
 
         ConsensusValidateResult ValidateBlock(const VideoRef& ptx, const PocketBlockRef& block) override
         {
@@ -118,14 +81,13 @@ namespace PocketConsensus
 
                     if (*blockPtx->GetHash() == *ptx->GetHash())
                         continue;
-                
+
                     count += 1;
                 }
             }
 
             return ValidateLimit(ptx, count);
         }
-
         ConsensusValidateResult ValidateMempool(const VideoRef& ptx) override
         {
 
@@ -144,7 +106,43 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
+        vector<string> GetAddressesForCheckRegistration(const VideoRef& ptx) override
+        {
+            return {*ptx->GetAddress()};
+        }
 
+        virtual int64_t GetLimit(AccountMode mode)
+        {
+            return mode == AccountMode_Pro
+                   ? GetProLimit()
+                   : mode == AccountMode_Full
+                     ? GetFullLimit()
+                     : GetTrialLimit();
+        }
+        virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
+        {
+
+            // First get original post transaction
+            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
+            if (!originalTx)
+                return {false, SocialConsensusResult_NotFound};
+
+            auto originalPtx = static_pointer_cast<Video>(originalTx);
+
+            // Change type not allowed
+            if (*originalPtx->GetType() != *ptx->GetType())
+                return {false, SocialConsensusResult_NotAllowed};
+
+            // You are author? Really?
+            if (*ptx->GetAddress() != *originalPtx->GetAddress())
+                return {false, SocialConsensusResult_ContentEditUnauthorized};
+
+            // Original post edit only 24 hours
+            if (!AllowEditWindow(ptx, originalPtx))
+                return {false, SocialConsensusResult_ContentEditLimit};
+
+            return make_tuple(true, SocialConsensusResult_Success);
+        }
         virtual ConsensusValidateResult ValidateLimit(const VideoRef& ptx, int count)
         {
 
@@ -158,7 +156,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         virtual int GetChainCount(const VideoRef& ptx)
         {
 
@@ -167,8 +164,6 @@ namespace PocketConsensus
                 Height - GetLimitWindow()
             );
         }
-
-
         virtual ConsensusValidateResult ValidateEditBlock(const VideoRef& ptx, const PocketBlockRef& block)
         {
 
@@ -190,7 +185,6 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-
         virtual ConsensusValidateResult ValidateEditMempool(const VideoRef& ptx)
         {
 
@@ -200,7 +194,6 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-
         virtual ConsensusValidateResult ValidateEditOneLimit(const VideoRef& ptx)
         {
 
@@ -210,7 +203,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         virtual bool AllowEditWindow(const VideoRef& ptx, const VideoRef& originalTx)
         {
             auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
@@ -219,12 +211,6 @@ namespace PocketConsensus
 
             return (Height - originalTxHeight) <= GetEditWindow();
         }
-
-        vector<string> GetAddressesForCheckRegistration(const VideoRef& ptx) override
-        {
-            return {*ptx->GetAddress()};
-        }
-
     };
 
     /*******************************************************************************************************************
@@ -235,7 +221,7 @@ namespace PocketConsensus
     public:
         VideoConsensus_checkpoint_1324655(int height) : VideoConsensus(height) {}
     protected:
-        int64_t GetTrialLimit() override { return 5; }
+        int64_t GetTrialLimit() override { return Limitor({5, 5}); }
     };
 
     /*******************************************************************************************************************

@@ -20,7 +20,6 @@ namespace PocketConsensus
     {
     public:
         CommentDeleteConsensus(int height) : SocialConsensus<CommentDelete>(height) {}
-
         ConsensusValidateResult Validate(const CommentDeleteRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -69,7 +68,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         ConsensusValidateResult Check(const CTransactionRef& tx, const CommentDeleteRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -84,7 +82,6 @@ namespace PocketConsensus
         }
 
     protected:
-
         ConsensusValidateResult ValidateBlock(const CommentDeleteRef& ptx, const PocketBlockRef& block) override
         {
             for (auto& blockTx : *block)
@@ -103,7 +100,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         ConsensusValidateResult ValidateMempool(const CommentDeleteRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
@@ -111,7 +107,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         vector<string> GetAddressesForCheckRegistration(const CommentDeleteRef& ptx) override
         {
             return {*ptx->GetString1()};

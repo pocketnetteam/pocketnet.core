@@ -20,7 +20,6 @@ namespace PocketConsensus
     {
     public:
         UserConsensus(int height) : SocialConsensus<User>(height) {}
-
         ConsensusValidateResult Validate(const UserRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -37,7 +36,6 @@ namespace PocketConsensus
 
             return ValidateEdit(ptx);
         }
-
         ConsensusValidateResult Check(const CTransactionRef& tx, const UserRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
@@ -74,29 +72,8 @@ namespace PocketConsensus
             return Success;
         }
 
-
     protected:
-        virtual int64_t GetChangeInfoDepth() { return 3600; }
-
-
-        virtual ConsensusValidateResult ValidateEdit(const UserRef& ptx)
-        {
-
-            // First user account transaction allowed without next checks
-            auto[prevOk, prevTx] = ConsensusRepoInst.GetLastAccount(*ptx->GetAddress());
-            if (!prevOk)
-                return Success;
-
-            // We allow edit profile only with delay
-            if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetChangeInfoDepth())
-                return {false, SocialConsensusResult_ChangeInfoLimit};
-
-            // For edit user profile referrer not allowed
-            if (ptx->GetReferrerAddress() != nullptr)
-                return {false, SocialConsensusResult_ReferrerAfterRegistration};
-
-            return Success;
-        }
+        virtual int64_t GetChangeInfoDepth() { return Limitor({3600, 3600}); }
 
         ConsensusValidateResult ValidateBlock(const UserRef& ptx, const PocketBlockRef& block) override
         {
@@ -122,7 +99,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         ConsensusValidateResult ValidateMempool(const UserRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolUser(*ptx->GetAddress()) > 0)
@@ -130,10 +106,28 @@ namespace PocketConsensus
 
             return Success;
         }
-
         vector<string> GetAddressesForCheckRegistration(const UserRef& ptx) override
         {
             return {};
+        }
+
+        virtual ConsensusValidateResult ValidateEdit(const UserRef& ptx)
+        {
+
+            // First user account transaction allowed without next checks
+            auto[prevOk, prevTx] = ConsensusRepoInst.GetLastAccount(*ptx->GetAddress());
+            if (!prevOk)
+                return Success;
+
+            // We allow edit profile only with delay
+            if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetChangeInfoDepth())
+                return {false, SocialConsensusResult_ChangeInfoLimit};
+
+            // For edit user profile referrer not allowed
+            if (ptx->GetReferrerAddress() != nullptr)
+                return {false, SocialConsensusResult_ReferrerAfterRegistration};
+
+            return Success;
         }
     };
 
@@ -145,7 +139,8 @@ namespace PocketConsensus
     public:
         UserConsensus_checkpoint_1180000(int height) : UserConsensus(height) {}
     protected:
-        int64_t GetChangeInfoDepth() override { return 60; }
+        int64_t GetChangeInfoDepth() override { return Limitor({60, 60}); }
+
         ConsensusValidateResult ValidateEdit(const UserRef& ptx) override
         {
 

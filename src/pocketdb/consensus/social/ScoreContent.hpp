@@ -21,7 +21,6 @@ namespace PocketConsensus
     {
     public:
         ScoreContentConsensus(int height) : SocialConsensus<ScoreContent>(height) {}
-
         ConsensusValidateResult Validate(const ScoreContentRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -67,7 +66,6 @@ namespace PocketConsensus
 
             return Success;
         }
-
         ConsensusValidateResult Check(const CTransactionRef& tx, const ScoreContentRef& ptx) override
         {
 
@@ -98,15 +96,13 @@ namespace PocketConsensus
         }
 
     protected:
-        virtual int64_t GetLimitWindow() { return 86400; }
-        virtual int64_t GetFullLimit() { return 90; }
-        virtual int64_t GetTrialLimit() { return 45; }
-        virtual int64_t GetScoresLimit(AccountMode mode) { return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit(); }
-
-        virtual bool CheckBlockLimitTime(const ScoreContentRef& ptx, const ScoreContentRef& blockTx)
+        virtual int64_t GetLimitWindow() { return Limitor({86400, 86400}); }
+        virtual int64_t GetFullLimit()
         {
-            return *blockTx->GetTime() <= *ptx->GetTime();
+            return Limitor({90, 90}
+            0;
         }
+        virtual int64_t GetTrialLimit() { return Limitor({45, 45}); }
 
         ConsensusValidateResult ValidateBlock(const ScoreContentRef& ptx, const PocketBlockRef& block) override
         {
@@ -138,7 +134,6 @@ namespace PocketConsensus
             // Check count
             return ValidateLimit(ptx, count);
         }
-
         ConsensusValidateResult ValidateMempool(const ScoreContentRef& ptx) override
         {
 
@@ -156,12 +151,23 @@ namespace PocketConsensus
             // Check count
             return ValidateLimit(ptx, count);
         }
+        vector<string> GetAddressesForCheckRegistration(const ScoreContentRef& ptx) override
+        {
+            return {*ptx->GetAddress()};
+        }
 
+        virtual int64_t GetScoresLimit(AccountMode mode)
+        {
+            return mode >= AccountMode_Full ? GetFullLimit() : GetTrialLimit();
+        }
+        virtual bool CheckBlockLimitTime(const ScoreContentRef& ptx, const ScoreContentRef& blockTx)
+        {
+            return *blockTx->GetTime() <= *ptx->GetTime();
+        }
         virtual bool ValidateLowReputation(const ScoreContentRef& ptx, AccountMode mode)
         {
             return true;
         }
-
         virtual ConsensusValidateResult ValidateLimit(const ScoreContentRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
@@ -174,12 +180,10 @@ namespace PocketConsensus
 
             return Success;
         }
-
         virtual ConsensusValidateResult ValidateBlocking(const string& contentAddress, const ScoreContentRef& ptx)
         {
             return Success;
         }
-
         virtual int GetChainCount(const ScoreContentRef& ptx)
         {
             return ConsensusRepoInst.CountChainScoreContentTime(
@@ -187,12 +191,6 @@ namespace PocketConsensus
                 *ptx->GetTime() - GetLimitWindow()
             );
         }
-
-        vector<string> GetAddressesForCheckRegistration(const ScoreContentRef& ptx) override
-        {
-            return {*ptx->GetAddress()};
-        }
-
     };
 
     /*******************************************************************************************************************
@@ -203,8 +201,8 @@ namespace PocketConsensus
     public:
         ScoreContentConsensus_checkpoint_175600(int height) : ScoreContentConsensus(height) {}
     protected:
-        int64_t GetFullLimit() override { return 200; }
-        int64_t GetTrialLimit() override { return 100; }
+        int64_t GetFullLimit() override { return Limitor({200, 200}); }
+        int64_t GetTrialLimit() override { return Limitor({100, 100}); }
     };
 
     /*******************************************************************************************************************
@@ -267,7 +265,8 @@ namespace PocketConsensus
     public:
         ScoreContentConsensus_checkpoint_1180000(int height) : ScoreContentConsensus_checkpoint_1124000(height) {}
     protected:
-        int64_t GetLimitWindow() override { return 1440; }
+        int64_t GetLimitWindow() override { return Limitor({1440, 1440}); }
+
         int GetChainCount(const ScoreContentRef& ptx) override
         {
             return ConsensusRepoInst.CountChainScoreContentHeight(
@@ -285,7 +284,8 @@ namespace PocketConsensus
     public:
         ScoreContentConsensus_checkpoint_1324655(int height) : ScoreContentConsensus_checkpoint_1180000(height) {}
     protected:
-        int64_t GetTrialLimit() override { return 15; }
+        int64_t GetTrialLimit() override { return Limitor({15, 15}); }
+
         bool ValidateLowReputation(const ScoreContentRef& ptx, AccountMode mode) override
         {
             return mode != AccountMode_Trial || *ptx->GetValue() > 2;
