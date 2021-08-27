@@ -70,7 +70,6 @@
 
 #if ENABLE_ZMQ
 #include <zmq/zmqnotificationinterface.h>
-#include <zmq/zmqrpc.h>
 #endif
 
 bool fFeeEstimatesInitialized = false;
