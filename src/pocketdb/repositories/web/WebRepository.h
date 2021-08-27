@@ -24,25 +24,6 @@ using namespace PocketHelpers;
 class WebRepository : public BaseRepository
 {
 public:
-    class param
-    {
-    private:
-        std::optional<int> i;
-        std::optional<std::string> s;
-        std::optional<std::vector<int>> vi;
-        std::optional<std::vector<std::string>> vs;
-    public:
-        param();
-        param(int _i);
-        param(std::string _s);
-        param(std::vector<int> _vi);
-        param(std::vector<std::string> _vs);
-
-        int get_int();
-        std::string get_str();
-        std::vector<int> get_vint();
-        std::vector<std::string> get_vstring();
-    };
     explicit WebRepository(SQLiteDatabase& db) : BaseRepository(db) {}
 
     void Init() override;
@@ -62,8 +43,9 @@ public:
     map<string, UniValue> GetSubscribersAddresses(vector<string>& addresses);
     map<string, UniValue> GetBlockingToAddresses(vector<string>& addresses);
     map<string, UniValue> GetContentsData(vector<string>& txids);
-    map<string, UniValue> GetContents(std::map<std::string, param>& conditions, std::optional<int> &counttotal);
-    map<string, UniValue> GetContents(std::map<std::string, param>& conditions);
+    //map<string, UniValue> GetContents(std::map<std::string, param>& conditions, std::optional<int> &counttotal);
+    //map<string, UniValue> GetContents(std::map<std::string, param>& conditions);
+    map<string, UniValue> GetContents(int nHeight, std::string start_txid, int countOut, std::string lang, std::vector<string> tags, std::vector<int> contentTypes, std::vector<string> txidsExcluded, std::vector<string> adrsExcluded, std::vector<string> tagsExcluded, std::string address);
 
 private:
     UniValue ParseCommentRow(sqlite3_stmt* stmt);

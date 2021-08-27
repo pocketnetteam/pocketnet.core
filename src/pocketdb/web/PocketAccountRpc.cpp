@@ -63,6 +63,9 @@ namespace PocketWeb::PocketWebRpc
         else
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
 
+        if (addresses.size() < 1)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+
         // Short profile form is: address, b, i, name
         bool shortForm = false;
         if (request.params.size() > 1)

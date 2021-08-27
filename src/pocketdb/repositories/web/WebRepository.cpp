@@ -4,21 +4,9 @@
 
 #include "WebRepository.h"
 
-PocketDb::WebRepository::param::param() { i.reset(); s.reset(); vi.reset(); vs.reset(); }
-PocketDb::WebRepository::param::param(int _i) { i = _i; s.reset(); vi.reset(); vs.reset(); }
-PocketDb::WebRepository::param::param(std::string _s) { s = _s; i.reset(); vi.reset(); vs.reset(); }
-PocketDb::WebRepository::param::param(std::vector<int> _vi) { vi = _vi; i.reset(); s.reset(); vs.reset(); }
-PocketDb::WebRepository::param::param(std::vector<std::string> _vs) { vs = _vs; i.reset(); s.reset(); vi.reset(); }
-
-int PocketDb::WebRepository::param::get_int() { return i.value_or(0); }
-std::string PocketDb::WebRepository::param::get_str() { return s.value_or(""); }
-std::vector<int> PocketDb::WebRepository::param::get_vint() { return vi.value_or(std::vector<int>()); }
-std::vector<std::string> PocketDb::WebRepository::param::get_vstring() { return vs.value_or(std::vector<std::string>()); }
-
 void PocketDb::WebRepository::Init() {}
 
 void PocketDb::WebRepository::Destroy() {}
-
 
 UniValue PocketDb::WebRepository::GetUserAddress(std::string& name)
 {
@@ -812,6 +800,116 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetUserProfile(std::vec
     return result;
 }
 
+std::map<std::string, UniValue> PocketDb::WebRepository::GetContents(int nHeight, std::string start_txid, int countOut, std::string lang, std::vector<string> tags, std::vector<int> contentTypes, std::vector<string> txidsExcluded, std::vector<string> adrsExcluded, std::vector<string> tagsExcluded, std::string address)
+{
+    string sql = R"sql(
+        SELECT t.String2 as RootTxHash,
+               case when t.Hash != t.String2 then 'true' else '' end edit,
+               t.String3 as RelayTxHash,
+               t.String1 as AddressHash,
+               t.Time,
+               p.String1 as Lang,
+               t.Type,
+               p.String2 as Caption,
+               p.String3 as Message,
+               p.String7 as Url,
+               p.String4 as Tags,
+               p.String5 as Images,
+               p.String6 as Settings
+        FROM Transactions t indexed by Transactions_Height_Time
+            JOIN Payload p on t.Hash = p.TxHash
+        where t.Id > ifnull((select max(t0.Id) from Transactions t0 indexed by Transactions_Type_Last_String2_Height where t0.Type in (200, 201) and t0.String2 = ? and t0.Last = 1),0)
+          and t.Last = 1
+          and t.Height <= ?
+          and t.Time <= ?
+          and t.String3 is null
+          and p.String1 = ?
+          and t.Type in (200, 201)
+        order by t.Height desc, t.Time desc
+        limit ?
+    )sql";
+
+    std::map<std::string, UniValue> result{};
+
+    TryTransactionStep(__func__, [&]() {
+        auto stmt = SetupSqlStatement(sql);
+
+        TryBindStatementText(stmt, 1, start_txid);
+        TryBindStatementInt(stmt, 2, nHeight);
+        TryBindStatementInt64(stmt, 3, GetAdjustedTime());
+        TryBindStatementText(stmt, 4, lang);
+        TryBindStatementInt(stmt, 5, countOut);
+
+        while (sqlite3_step(*stmt) == SQLITE_ROW)
+        {
+            UniValue record(UniValue::VOBJ);
+
+            auto [ok, txid] = TryGetColumnString(*stmt, 0);
+            record.pushKV("txid", txid);
+
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("edit", valueStr);
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("repost", valueStr);
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("address", valueStr);
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", valueStr);
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", valueStr); // lang
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", valueStr);
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", valueStr); // caption
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", valueStr); // message
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", valueStr); // url
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 10); ok) {
+                UniValue t(UniValue::VARR);
+                record.pushKV("t", t);
+            }
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 11); ok) {
+                UniValue t(UniValue::VARR);
+                record.pushKV("i", t);
+            }
+            if (auto [ok, valueStr] = TryGetColumnString(*stmt, 12); ok) record.pushKV("settings", valueStr);
+            //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
+            //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
+            //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
+            //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
+            //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("lastComment", valueStr);
+            //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("reposted", valueStr);
+            //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("userprofile", valueStr);
+
+            //          record.pushKV("address", address);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("id", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("i", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("b", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("r", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 11); ok) record.pushKV("rc", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 12); ok) record.pushKV("postcnt", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", valueStr);
+            //
+            ////          if (option == 1)
+            ////          {
+            ////              if (auto [ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("a", valueStr);
+            ////          }
+            ////
+            ////          if (shortForm)
+            ////          {
+            ////              result.insert_or_assign(address, record);
+            ////              continue;
+            ////          }
+            //
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("l", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("s", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("update", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 10); ok) record.pushKV("k", valueStr);
+            //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 14); ok) record.pushKV("regdate", valueStr);
+
+            result.insert_or_assign(txid, record);
+        }
+
+        FinalizeSqlStatement(*stmt);
+    });
+
+    return result;
+}
+
+/*
 std::map<std::string, UniValue> PocketDb::WebRepository::GetContentsData(std::vector<std::string>& txids)
 {
     string sql = R"sql(
@@ -1032,4 +1130,4 @@ std::map<std::string, UniValue> PocketDb::WebRepository::GetContents(std::map<st
 std::map<std::string, UniValue> PocketDb::WebRepository::GetContents(std::map<std::string, param>& conditions)
 {
     //return this->GetContents(conditions, &std::nullopt);
-}
+}*/

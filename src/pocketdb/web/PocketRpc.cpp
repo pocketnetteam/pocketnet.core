@@ -11,7 +11,28 @@ UniValue debug(const JSONRPCRequest& request)
             "debug\n"
             "\n.\n");
 
-    return GetContentsData(request);
+    return UniValue();// GetContentsData(request);
+}
+
+UniValue getrawtransactionwithmessagebyid(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getrawtransactionwithmessagebyid\n"
+            "\nReturn Pocketnet posts.\n");
+
+    return UniValue();// GetContentsData(request);
+}
+
+UniValue gettemplate(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getrawtransactionwithmessagebyid\n"
+            "\nReturn Pocketnet posts.\n");
+
+    UniValue aResult(UniValue::VARR);
+    return aResult;
 }
 
 // @formatter:off
@@ -19,8 +40,28 @@ static const CRPCCommand commands[] =
 {
     {"debug", "debugweb", &debug, {}},
 
+    // Old methods
+    {"artifacts", "getrawtransactionwithmessagebyid", &getrawtransactionwithmessagebyid,  {"ids"}},
+    {"artifacts", "getrawtransactionwithmessage",     &gettemplate,                       {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
+    {"artifacts", "getmissedinfo",                    &gettemplate,                       {"address", "blocknumber"}},
+    {"artifacts", "txunspent",                        &gettemplate,                       {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
+    {"artifacts", "gettime",                          &gettemplate,                       {}},
+    {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
+    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
+    {"artifacts", "search",                           &gettemplate,                       {"search_string", "type", "count"}},
+    {"artifacts", "searchlinks",                      &gettemplate,                       {"search_request", "contenttypes", "height", "count"}},
+    {"artifacts", "gethotposts",                      &gettemplate,                       {"count", "depth", "height", "lang", "contenttypes"}},
+    {"artifacts", "getcontents",                      &gettemplate,                       {"address"}},
+    {"artifacts", "gettags",                          &gettemplate,                       {"address", "count"}},
+    {"artifacts", "getaddressscores",                 &gettemplate,                       {"address", "txs"}},
+    {"artifacts", "getpostscores",                    &gettemplate,                       {"txs", "address"}},
+    {"artifacts", "getpagescores",                    &gettemplate,                       {"txs", "address", "cmntids"}},
+    {"artifacts", "getaddressid",                     &gettemplate,                       {"address"}},
+    {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
+    {"artifacts", "getrecomendedsubscriptionsforuser",&gettemplate,                       {"address", "count"}},
+
     // Contents
-    { "contents",       "getcontentsdata",                  &GetContentsData,               {"ids"}},
+    //{ "contents",       "getcontentsdata",                  &GetContentsData,               {"ids"}},
     { "contents",       "gethistoricalstrip",               &GetHistoricalStrip,            {"endTime", "depth"}},
     { "contents",       "gethierarchicalstrip",             &GetHierarchicalStrip,          {"endTime", "depth"}},
 

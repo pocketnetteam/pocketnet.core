@@ -301,6 +301,9 @@ namespace PocketDb
             create index if not exists Ratings_Height on Ratings (Height);
 
             create index if not exists Payload_String2 on Payload (String2);
+
+            -----------------------------------WEB-----------------------------------
+            create index if not exists Transactions_Height_Time on Transactions (Height, Time);
         )sql";
     }
 }
