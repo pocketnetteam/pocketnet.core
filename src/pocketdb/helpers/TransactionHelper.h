@@ -55,6 +55,7 @@ namespace PocketHelpers
         static string ConvertToReindexerTable(const Transaction& transaction);
         static bool IsPocketSupportedTransaction(const CTransactionRef& tx, PocketTxType& txType);
         static bool IsPocketSupportedTransaction(const CTransactionRef& tx);
+        static bool IsPocketTransaction(PocketTxType& txType);
         static bool IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType);
         static bool IsPocketTransaction(const CTransactionRef& tx);
         static bool IsPocketTransaction(const CTransaction& tx);

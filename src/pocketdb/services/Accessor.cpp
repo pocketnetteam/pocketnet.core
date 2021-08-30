@@ -54,21 +54,18 @@ namespace PocketServices
         return pocketTx != nullptr;
     }
 
-    bool Accessor::ExistsTransaction(const CTransaction& tx)
-    {
-        return PocketDb::TransRepoInst.ExistsByHash(tx.GetHash().GetHex());
-    }
-
     bool Accessor::GetTransaction(const CTransaction& tx, string& data)
     {
         PTransactionRef pocketTx;
-        if (GetTransaction(tx, pocketTx) && pocketTx)
-        {
+        if (GetTransaction(tx, pocketTx) && pocketTx && PocketHelpers::TransactionHelper::IsPocketTransaction(*pocketTx->GetType()))
             data = PocketServices::TransactionSerializer::SerializeTransaction(*pocketTx)->write();
-            return true;
-        }
 
-        return false;
+        return true;
+    }
+
+    bool Accessor::ExistsTransaction(const CTransaction& tx)
+    {
+        return PocketDb::TransRepoInst.ExistsByHash(tx.GetHash().GetHex());
     }
 
 } // namespace PocketServices

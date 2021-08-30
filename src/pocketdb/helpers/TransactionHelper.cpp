@@ -155,13 +155,18 @@ namespace PocketHelpers
         return IsPocketSupportedTransaction(tx, txType);
     }
 
-    bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType)
+    bool TransactionHelper::IsPocketTransaction(PocketTxType& txType)
     {
-        txType = ParseType(tx);
         return txType != NOT_SUPPORTED &&
                txType != TX_COINBASE &&
                txType != TX_COINSTAKE &&
                txType != TX_DEFAULT;
+    }
+
+    bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType)
+    {
+        txType = ParseType(tx);
+        return IsPocketTransaction(txType);
     }
 
     bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx)
