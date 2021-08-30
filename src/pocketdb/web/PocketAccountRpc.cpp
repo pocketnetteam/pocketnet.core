@@ -214,22 +214,22 @@ namespace PocketWeb::PocketWebRpc
         }
 
         if (!result["post_spent"].isNull())
-            result.pushKV("post_unspent", result["post_spent"].get_int() - postLimit);
+            result.pushKV("post_unspent", postLimit - result["post_spent"].get_int());
 
         if (!result["video_spent"].isNull())
-            result.pushKV("video_unspent", result["video_spent"].get_int() - videoLimit);
+            result.pushKV("video_unspent", videoLimit - result["video_spent"].get_int());
 
         if (!result["complain_spent"].isNull())
-            result.pushKV("complain_unspent", result["complain_spent"].get_int() - complainLimit);
+            result.pushKV("complain_unspent", complainLimit - result["complain_spent"].get_int());
 
         if (!result["comment_spent"].isNull())
-            result.pushKV("comment_unspent", result["comment_spent"].get_int() - commentLimit);
+            result.pushKV("comment_unspent", commentLimit - result["comment_spent"].get_int());
 
         if (!result["comment_score_spent"].isNull())
-            result.pushKV("comment_score_unspent", result["comment_score_spent"].get_int() - scoreCommentLimit);
+            result.pushKV("comment_score_unspent", scoreCommentLimit - result["comment_score_spent"].get_int());
 
         if (!result["score_spent"].isNull())
-            result.pushKV("score_unspent", result["score_spent"].get_int() - scoreLimit);
+            result.pushKV("score_unspent", scoreLimit - result["score_spent"].get_int());
 
 
         return result;

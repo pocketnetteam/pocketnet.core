@@ -46,8 +46,9 @@ namespace PocketDb
         map<string, UniValue> GetContentsData(vector<string>& txids);
         //map<string, UniValue> GetContents(map<string, param>& conditions, optional<int> &counttotal);
         //map<string, UniValue> GetContents(map<string, param>& conditions);
-        map<string, UniValue> GetContents(int nHeight, string start_txid, int countOut, string lang, vector<string> tags,
-            vector<int> contentTypes, vector<string> txidsExcluded, vector<string> adrsExcluded, vector<string> tagsExcluded, string address);
+        map<string, UniValue> GetContents(int nHeight, const string& start_txid, int countOut, const string& lang,
+            vector<string>& tags, vector<int>& contentTypes, vector<string>& txidsExcluded, vector<string>& adrsExcluded,
+            vector<string>& tagsExcluded, const string& address);
 
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
