@@ -184,19 +184,19 @@ namespace PocketDb
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("user_reg_date", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("reputation", value / 10);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("balance", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("likers", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("user_reg_date", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("reputation", value / 10);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("balance", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("likers", value);
 
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("post_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("video_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("comment_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) result.pushKV("comment_score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 12); ok) result.pushKV("complain_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("post_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("video_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("comment_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) result.pushKV("score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 12); ok) result.pushKV("comment_score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 13); ok) result.pushKV("complain_spent", value);
 
                 // ??
                 // result.pushKV("number_of_blocking", number_of_blocking);
