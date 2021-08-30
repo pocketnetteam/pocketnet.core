@@ -14,13 +14,13 @@ namespace PocketDb
         UniValue result(UniValue::VARR);
 
         string sql = R"sql(
-        SELECT p.String2, u.String1
-        FROM Transactions u
-        JOIN Payload p on u.Hash = p.TxHash
-        WHERE   u.Type in (100, 101, 102)
-            and p.String2 = ?
-        LIMIT 1
-    )sql";
+            SELECT p.String2, u.String1
+            FROM Transactions u
+            JOIN Payload p on u.Hash = p.TxHash
+            WHERE   u.Type in (100, 101, 102)
+                and p.String2 = ?
+            LIMIT 1
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
@@ -47,19 +47,19 @@ namespace PocketDb
     UniValue WebRepository::GetAddressesRegistrationDates(vector<string>& addresses)
     {
         string sql = R"sql(
-        WITH addresses (String1, Height) AS (
-            SELECT u.String1, MIN(u.Height) AS Height
+            WITH addresses (String1, Height) AS (
+                SELECT u.String1, MIN(u.Height) AS Height
+                FROM Transactions u
+                WHERE u.Type in (100, 101, 102)
+                and u.Height is not null
+                and u.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                and u.Last in (0,1)
+                GROUP BY u.String1   
+            )
+            SELECT u.String1, u.Time, u.Hash
             FROM Transactions u
-            WHERE u.Type in (100, 101, 102)
-              and u.Height is not null
-              and u.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-              and u.Last in (0,1)
-            GROUP BY u.String1   
-        )
-        SELECT u.String1, u.Time, u.Hash
-        FROM Transactions u
-        JOIN addresses a ON u.Type in (100, 101, 102) and u.String1 = a.String1 AND u.Height = a.Height
-    )sql";
+            JOIN addresses a ON u.Type in (100, 101, 102) and u.String1 = a.String1 AND u.Height = a.Height
+        )sql";
 
         auto result = UniValue(UniValue::VARR);
 
@@ -214,36 +214,36 @@ namespace PocketDb
         map<string, UniValue> result{};
 
         string sql = R"sql(
-        select
-            u.String1 as Address,
-            p.String2 as Name,
-            u.Id as AccountId,
-            p.String3 as Avatar,
-            p.String7 as Donations,
-            p.String4 as About,
-            u.String2 as Referrer,
-            p.String1 as Lang,
-            p.String5 as Url,
-            u.Time as LastUpdate,
-            p.String6 as Pubkey,
+            select
+                u.String1 as Address,
+                p.String2 as Name,
+                u.Id as AccountId,
+                p.String3 as Avatar,
+                p.String7 as Donations,
+                p.String4 as About,
+                u.String2 as Referrer,
+                p.String1 as Lang,
+                p.String5 as Url,
+                u.Time as LastUpdate,
+                p.String6 as Pubkey,
 
-            (select count(1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
-                where ru.Type in (100,101,102) and ru.Last=1 and ru.Height is not null and ru.String2=u.String1) as ReferrersCount,
+                (select count(1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
+                    where ru.Type in (100,101,102) and ru.Last=1 and ru.Height is not null and ru.String2=u.String1) as ReferrersCount,
 
-            (select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height
-                where po.Type in (200) and po.Last=1 and po.Height is not null and po.String1=u.String1) as PostsCount,
+                (select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height
+                    where po.Type in (200) and po.Last=1 and po.Height is not null and po.String1=u.String1) as PostsCount,
 
-            (select r.Value from Ratings r indexed by Ratings_Height
-                where r.Type=0 and r.Id=u.Id order by r.Height desc limit 1) / 10 as Reputation,
+                (select r.Value from Ratings r indexed by Ratings_Height
+                    where r.Type=0 and r.Id=u.Id order by r.Height desc limit 1) / 10 as Reputation,
 
-            (select reg.Time from Transactions reg indexed by Transactions_Id
-                where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1) as RegistrationDate
+                (select reg.Time from Transactions reg indexed by Transactions_Id
+                    where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1) as RegistrationDate
 
-        from Transactions u indexed by Transactions_Type_Last_String1_Height
-        join Payload p on p.TxHash=u.Hash
-        where u.Type in (100,101,102) and u.Last=1 and u.Height is not null
-          and u.String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
-    )sql";
+            from Transactions u indexed by Transactions_Type_Last_String1_Height
+            join Payload p on p.TxHash=u.Hash
+            where u.Type in (100,101,102) and u.Last=1 and u.Height is not null
+            and u.String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
@@ -387,31 +387,31 @@ namespace PocketDb
     {
         //TODO check Reputation
         auto sql = R"sql(
-        SELECT c.Type,
-           c.Hash,
-           c.RootTxHash,
-           c.PostTxHash,
-           c.AddressHash,
-           r.Time AS RootTime,
-           c.Time,
-           c.Height,
-           pl.String2 AS Msg,
-           c.ParentTxHash,
-           c.AnswerTxHash,
-           (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = 1) as ScoreUp,
-           (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = -1) as ScoreDown,
-           (SELECT r.Value FROM Ratings r WHERE r.Id = c.Id  AND r.Type = 3) as Reputation,
-           IFNULL(SC.Value, 0) AS MyScore,
-           (SELECT COUNT(1) FROM vComments s WHERE s.ParentTxHash = c.RootTxHash AND s.Last = 1) AS ChildrenCount
-        FROM vComments c
-        INNER JOIN vComments r ON c.RootTxHash = r.Hash
-        INNER JOIN Payload pl ON pl.TxHash = c.Hash
-        LEFT JOIN vScoreComments sc ON sc.CommentTxHash = C.RootTxHash AND IFNULL(sc.AddressHash, '') = ?
-        WHERE c.PostTxHash = ?
-            AND IFNULL(c.ParentTxHash, '') = ?
-            AND c.Last = 1
-            AND c.Time < ?
-    )sql";
+            SELECT c.Type,
+            c.Hash,
+            c.RootTxHash,
+            c.PostTxHash,
+            c.AddressHash,
+            r.Time AS RootTime,
+            c.Time,
+            c.Height,
+            pl.String2 AS Msg,
+            c.ParentTxHash,
+            c.AnswerTxHash,
+            (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = 1) as ScoreUp,
+            (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = -1) as ScoreDown,
+            (SELECT r.Value FROM Ratings r WHERE r.Id = c.Id  AND r.Type = 3) as Reputation,
+            IFNULL(SC.Value, 0) AS MyScore,
+            (SELECT COUNT(1) FROM vComments s WHERE s.ParentTxHash = c.RootTxHash AND s.Last = 1) AS ChildrenCount
+            FROM vComments c
+            INNER JOIN vComments r ON c.RootTxHash = r.Hash
+            INNER JOIN Payload pl ON pl.TxHash = c.Hash
+            LEFT JOIN vScoreComments sc ON sc.CommentTxHash = C.RootTxHash AND IFNULL(sc.AddressHash, '') = ?
+            WHERE c.PostTxHash = ?
+                AND IFNULL(c.ParentTxHash, '') = ?
+                AND c.Last = 1
+                AND c.Time < ?
+        )sql";
 
         auto result = UniValue(UniValue::VARR);
 
@@ -451,29 +451,29 @@ namespace PocketDb
 
         //TODO Check reputation
         string sql = R"sql(
-        SELECT c.Type,
-           c.Hash,
-           c.RootTxHash,
-           c.PostTxHash,
-           c.AddressHash,
-           r.Time AS RootTime,
-           c.Time,
-           c.Height,
-           pl.String2 AS Msg,
-           c.ParentTxHash,
-           c.AnswerTxHash,
-           (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = 1) as ScoreUp,
-           (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = -1) as ScoreDown,
-           (SELECT r.Value FROM Ratings r WHERE r.Id = c.Id  AND r.Type = 3) as Reputation,
-           IFNULL(SC.Value, 0) AS MyScore,
-           (SELECT COUNT(1) FROM vComments s WHERE s.ParentTxHash = c.RootTxHash AND s.Last = 1) AS ChildrenCount
-        FROM vComments c
-        INNER JOIN vComments r ON c.RootTxHash = r.Hash
-        INNER JOIN Payload pl ON pl.TxHash = c.Hash
-        LEFT JOIN vScoreComments sc ON sc.CommentTxHash = C.RootTxHash AND IFNULL(sc.AddressHash, '') = ?
-        WHERE c.Time < ?
-            AND c.Last = 1
-    )sql";
+            SELECT c.Type,
+            c.Hash,
+            c.RootTxHash,
+            c.PostTxHash,
+            c.AddressHash,
+            r.Time AS RootTime,
+            c.Time,
+            c.Height,
+            pl.String2 AS Msg,
+            c.ParentTxHash,
+            c.AnswerTxHash,
+            (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = 1) as ScoreUp,
+            (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = -1) as ScoreDown,
+            (SELECT r.Value FROM Ratings r WHERE r.Id = c.Id  AND r.Type = 3) as Reputation,
+            IFNULL(SC.Value, 0) AS MyScore,
+            (SELECT COUNT(1) FROM vComments s WHERE s.ParentTxHash = c.RootTxHash AND s.Last = 1) AS ChildrenCount
+            FROM vComments c
+            INNER JOIN vComments r ON c.RootTxHash = r.Hash
+            INNER JOIN Payload pl ON pl.TxHash = c.Hash
+            LEFT JOIN vScoreComments sc ON sc.CommentTxHash = C.RootTxHash AND IFNULL(sc.AddressHash, '') = ?
+            WHERE c.Time < ?
+                AND c.Last = 1
+        )sql";
 
         sql += "AND c.RootTxHash IN ('";
         sql += commentHashes[0];
@@ -513,32 +513,32 @@ namespace PocketDb
         auto result = UniValue(UniValue::VARR);
 
         string sql = R"sql(
-        select
-            sc.String2, -- post
-            sc.String1, -- address
-            p.String2, -- name
-            p.String3, -- avatar
-            (select r.Value from Ratings r where r.Type=0 and r.Id=u.Id order by Height desc limit 1), -- user reputation
-            sc.Int1, -- score value
-            case
-                when sub.Type is null then null
-                when sub.Type = 303 then 1
-                else 0
-            end -- isPrivate
-        from Transactions sc indexed by Transactions_Type_Last_String1_String2_Height
+            select
+                sc.String2, -- post
+                sc.String1, -- address
+                p.String2, -- name
+                p.String3, -- avatar
+                (select r.Value from Ratings r where r.Type=0 and r.Id=u.Id order by Height desc limit 1), -- user reputation
+                sc.Int1, -- score value
+                case
+                    when sub.Type is null then null
+                    when sub.Type = 303 then 1
+                    else 0
+                end -- isPrivate
+            from Transactions sc indexed by Transactions_Type_Last_String1_String2_Height
 
-        join Transactions u indexed by Transactions_Type_Last_String1_String2_Height
-            on u.Type in (100, 101, 102) and u.Last = 1 and u.String1=sc.String1 and u.Height is not null
+            join Transactions u indexed by Transactions_Type_Last_String1_String2_Height
+                on u.Type in (100, 101, 102) and u.Last = 1 and u.String1=sc.String1 and u.Height is not null
 
-        join Payload p ON p.TxHash=u.Hash
+            join Payload p ON p.TxHash=u.Hash
 
-        left join Transactions sub indexed by Transactions_Type_Last_String1_String2_Height
-            on sub.Type in (302, 303) and sub.Last=1 and sub.Height is not null and sub.String2=sc.String1 AND sub.String1=?
+            left join Transactions sub indexed by Transactions_Type_Last_String1_String2_Height
+                on sub.Type in (302, 303) and sub.Last=1 and sub.Height is not null and sub.String2=sc.String1 AND sub.String1=?
 
-        where sc.Type in (300) and sc.Height is not null
-            and sc.String2 in ()sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql()
-        order by sub.Type is null, sc.Time
-    )sql";
+            where sc.Type in (300) and sc.Height is not null
+                and sc.String2 in ()sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql()
+            order by sub.Type is null, sc.Time
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
@@ -574,18 +574,18 @@ namespace PocketDb
     UniValue WebRepository::GetPageScores(vector<string>& commentHashes, string& addressHash)
     {
         string sql = R"sql(
-        select
-           c.String2 as RootTxHash,
-           (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
-           (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = -1) as ScoreDown,
-           (select r.Value from Ratings r where r.Id=c.Id and r.Type=3 and r.Height=(select max(r1.Height) from Ratings r1 where r1.Id=r.Id and r1.Type=3)) as Reputation,
-           msc.Value AS MyScore
-        from Transactions c
-        left join Transactions msc ON msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1=?
-        where c.Type in (204, 205)
-            and c.Last = 1
-            and c.Time < ?
-    )sql";
+            select
+            c.String2 as RootTxHash,
+            (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
+            (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = -1) as ScoreDown,
+            (select r.Value from Ratings r where r.Id=c.Id and r.Type=3 and r.Height=(select max(r1.Height) from Ratings r1 where r1.Id=r.Id and r1.Type=3)) as Reputation,
+            msc.Value AS MyScore
+            from Transactions c
+            left join Transactions msc ON msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1=?
+            where c.Type in (204, 205)
+                and c.Last = 1
+                and c.Time < ?
+        )sql";
 
         sql += "AND c.RootTxHash IN ('";
         sql += commentHashes[0];
@@ -679,16 +679,16 @@ namespace PocketDb
     map<string, UniValue> WebRepository::GetSubscribesAddresses(vector<string>& addresses)
     {
         string sql = R"sql(
-        select String1 as AddressHash,
-               String2 as AddressToHash,
-               case
-                   when Type = 303 then 1
-                   else 0
-               end as Private
-        from Transactions
-        where Type in (302, 303) and Last = 1
-          and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
-    )sql";
+            select String1 as AddressHash,
+                String2 as AddressToHash,
+                case
+                    when Type = 303 then 1
+                    else 0
+                end as Private
+            from Transactions
+            where Type in (302, 303) and Last = 1
+            and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+        )sql";
 
         auto result = map<string, UniValue>();
         for (const auto& address : addresses)
@@ -722,12 +722,12 @@ namespace PocketDb
     map<string, UniValue> WebRepository::GetSubscribersAddresses(vector<string>& addresses)
     {
         string sql = R"sql(
-        SELECT String2 as AddressToHash,
-               String1 as AddressHash
-        FROM Transactions
-        where Type in (302, 303) and Last = 1
-          and String2 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
-    )sql";
+            SELECT String2 as AddressToHash,
+                String1 as AddressHash
+            FROM Transactions
+            where Type in (302, 303) and Last = 1
+            and String2 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+        )sql";
 
         auto result = map<string, UniValue>();
         for (const auto& address : addresses)
@@ -758,12 +758,12 @@ namespace PocketDb
     map<string, UniValue> WebRepository::GetBlockingToAddresses(vector<string>& addresses)
     {
         string sql = R"sql(
-        SELECT String1 as AddressHash,
-               String2 as AddressToHash
-        FROM Transactions
-        WHERE Type in (305) and Last = 1
-          and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
-    )sql";
+            SELECT String1 as AddressHash,
+                String2 as AddressToHash
+            FROM Transactions
+            WHERE Type in (305) and Last = 1
+            and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+        )sql";
 
         auto result = map<string, UniValue>();
         for (const auto& address : addresses)
@@ -1127,5 +1127,56 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
 {
     //return this->GetContents(conditions, &nullopt);
 }*/
+
+    UniValue WebRepository::GetUnspents(vector<string>& addresses, int height)
+    {
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select
+                o.TxHash,
+                o.Number,
+                o.AddressHash,
+                o.Value,
+                o.ScriptPubKey,
+                t.Type
+            from TxOutputs o
+            join Transactions t on t.Hash=o.TxHash
+            where o.AddressHash in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+                and o.SpentHeight is null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& address : addresses)
+                TryBindStatementText(stmt, i++, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) record.pushKV("vout", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("amount", ValueFromAmount(value));
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("scriptPubKey", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("confirmations", height - value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok)
+                {
+                    record.pushKV("coinbase", value == 2 || value == 3);
+                    record.pushKV("pockettx", value > 3);
+                }
+                
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
 
 }

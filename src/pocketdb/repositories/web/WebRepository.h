@@ -11,6 +11,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 #include <timedata.h>
+#include "core_io.h"
 
 namespace PocketDb
 {
@@ -49,6 +50,8 @@ namespace PocketDb
         map<string, UniValue> GetContents(int nHeight, const string& start_txid, int countOut, const string& lang,
             vector<string>& tags, vector<int>& contentTypes, vector<string>& txidsExcluded, vector<string>& adrsExcluded,
             vector<string>& tagsExcluded, const string& address);
+            
+        UniValue GetUnspents(vector<string>& addresses, int height);
 
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);

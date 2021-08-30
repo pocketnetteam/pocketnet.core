@@ -27,12 +27,16 @@ namespace PocketTx
 
         shared_ptr<int64_t> GetValue() const;
         void SetValue(int64_t value);
+        
+        shared_ptr<string> GetScriptPubKey() const;
+        void SetScriptPubKey(string value);
 
     protected:
         shared_ptr<string> m_txHash = nullptr;
         shared_ptr<int64_t> m_number = nullptr;
         shared_ptr<string> m_addressHash = nullptr;
         shared_ptr<int64_t> m_value = nullptr;
+        shared_ptr<string> m_scriptPubKey = nullptr;
     };
 
 } // namespace PocketTx

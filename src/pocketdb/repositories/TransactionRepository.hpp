@@ -152,8 +152,9 @@ namespace PocketDb
                         TxHash,
                         Number,
                         AddressHash,
-                        Value
-                    ) SELECT ?,?,?,?
+                        Value,
+                        ScriptPubKey
+                    ) SELECT ?,?,?,?,?
                     WHERE NOT EXISTS (
                         select 1
                         from TxOutputs o
@@ -167,9 +168,10 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, 2, output->GetNumber());
                 TryBindStatementText(stmt, 3, output->GetAddressHash());
                 TryBindStatementInt64(stmt, 4, output->GetValue());
-                TryBindStatementText(stmt, 5, ptx->GetHash());
-                TryBindStatementInt64(stmt, 6, output->GetNumber());
-                TryBindStatementText(stmt, 7, output->GetAddressHash());
+                TryBindStatementText(stmt, 5, output->GetScriptPubKey());
+                TryBindStatementText(stmt, 6, ptx->GetHash());
+                TryBindStatementInt64(stmt, 7, output->GetNumber());
+                TryBindStatementText(stmt, 8, output->GetAddressHash());
 
                 TryStepStatement(stmt);
             }

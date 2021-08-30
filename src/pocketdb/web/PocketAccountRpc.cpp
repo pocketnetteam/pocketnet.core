@@ -231,8 +231,106 @@ namespace PocketWeb::PocketWebRpc
         if (!result["score_spent"].isNull())
             result.pushKV("score_unspent", scoreLimit - result["score_spent"].get_int());
 
-
         return result;
+    }
+
+    UniValue GetUnspents(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "txunspent ( minconf maxconf  [\"addresses\",...] [include_unsafe] [query_options])\n"
+                "\nReturns array of unspent transaction outputs\n"
+                "with between minconf and maxconf (inclusive) confirmations.\n"
+                "Optionally filter to only include txouts paid to specified addresses.\n"
+                "\nArguments:\n"
+                "1. \"addresses\"      (string) A json array of pocketcoin addresses to filter\n"
+                "    [\n"
+                "      \"address\"     (string) pocketcoin address\n"
+                "      ,...\n"
+                "    ]\n"
+                "2. minconf          (numeric, optional, default=1) The minimum confirmations to filter\n"
+                "3. maxconf          (numeric, optional, default=9999999) The maximum confirmations to filter\n");
+
+        vector<string> destinations;
+        if (request.params.size() > 0) {
+            RPCTypeCheckArgument(request.params[0], UniValue::VARR);
+            UniValue inputs = request.params[0].get_array();
+            for (unsigned int idx = 0; idx < inputs.size(); idx++) {
+                const UniValue& input = inputs[idx];
+                CTxDestination dest = DecodeDestination(input.get_str());
+
+                if (!IsValidDestination(dest)) {
+                    return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
+                }
+
+                if (find(destinations.begin(), destinations.end(), input.get_str()) == destinations.end()) {
+                    destinations.push_back(input.get_str());
+                }
+            }
+        }
+        if (destinations.empty())
+            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin addresses"));
+
+        // int minConf = 1;
+        // if (request.params.size() > 1) {
+        //     RPCTypeCheckArgument(request.params[1], UniValue::VNUM);
+        //     minConf = request.params[1].get_int();
+        // }
+
+        // int maxConf = 9999999;
+        // if (request.params.size() > 2) {
+        //     RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
+        //     maxConf = request.params[2].get_int();
+        // }
+
+        // TODO: filter by amount
+        // TODO: filter by depth
+        // bool include_unsafe = true;
+        // if (request.params.size() > 3) {
+        //     RPCTypeCheckArgument(request.params[3], UniValue::VBOOL);
+        //     include_unsafe = request.params[3].get_bool();
+        // }
+
+        // CAmount nMinimumAmount = 0;
+        // CAmount nMaximumAmount = MAX_MONEY;
+        // CAmount nMinimumSumAmount = MAX_MONEY;
+        // uint64_t nMaximumCount = UINTMAX_MAX;
+
+        // if (request.params.size() > 4) {
+        //     const UniValue& options = request.params[4].get_obj();
+
+        //     if (options.exists("minimumAmount"))
+        //         nMinimumAmount = AmountFromValue(options["minimumAmount"]);
+
+        //     if (options.exists("maximumAmount"))
+        //         nMaximumAmount = AmountFromValue(options["maximumAmount"]);
+
+        //     if (options.exists("minimumSumAmount"))
+        //         nMinimumSumAmount = AmountFromValue(options["minimumSumAmount"]);
+
+        //     if (options.exists("maximumCount"))
+        //         nMaximumCount = options["maximumCount"].get_int64();
+        // }
+       
+        // Check exists TX in mempool
+        // // T_O_D_O: LOCK(mempool.cs);
+        // for (const auto& e : mempool.mapTx) {
+        //     const CTransaction& tx = e.GetTx();
+        //     for (const CTxIn& txin : tx.vin) {
+        //         AddressUnspentTransactionItem mempoolItm = {"", txin.prevout.hash.ToString(), (int)txin.prevout.n};
+
+        //         if (find_if(
+        //             unspentTransactions.begin(),
+        //             unspentTransactions.end(),
+        //             [&](const AddressUnspentTransactionItem& itm) { return itm == mempoolItm; }) != unspentTransactions.end()) {
+        //             unspentTransactions.erase(
+        //                 remove(unspentTransactions.begin(), unspentTransactions.end(), mempoolItm),
+        //                 unspentTransactions.end());
+        //         }
+        //     }
+        // }
+
+        return request.DbConnection()->WebRepoInst->GetUnspents(destinations, chainActive.Height());
     }
 
 }

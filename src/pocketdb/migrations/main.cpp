@@ -118,13 +118,14 @@ namespace PocketDb
         Tables.emplace_back(R"sql(
             create table if not exists TxOutputs
             (
-                TxHash      text   not null, -- Transactions.Hash
-                TxHeight    int    null,     -- Transactions.Height
-                Number      int    not null, -- Number in tx.vout
-                AddressHash text   not null, -- Address
-                Value       int    not null, -- Amount
-                SpentHeight int    null,     -- Where spent
-                SpentTxHash text   null,     -- Who spent
+                TxHash          text   not null, -- Transactions.Hash
+                TxHeight        int    null,     -- Transactions.Height
+                Number          int    not null, -- Number in tx.vout
+                AddressHash     text   not null, -- Address
+                Value           int    not null, -- Amount
+                ScriptPubKey    text   not null, -- Original script
+                SpentHeight     int    null,     -- Where spent
+                SpentTxHash     text   null,     -- Who spent
                 primary key (TxHash, Number, AddressHash)
             );
         )sql");

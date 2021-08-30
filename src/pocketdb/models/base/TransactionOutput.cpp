@@ -17,5 +17,8 @@ namespace PocketTx
 
     shared_ptr <int64_t> TransactionOutput::GetValue() const { return m_value; }
     void TransactionOutput::SetValue(int64_t value) { m_value = make_shared<int64_t>(value); }
+    
+    shared_ptr <string> TransactionOutput::GetScriptPubKey() const { return m_scriptPubKey; }
+    void TransactionOutput::SetScriptPubKey(string value) { m_scriptPubKey = make_shared<string>(value); }
 
 } // namespace PocketTx

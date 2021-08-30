@@ -142,6 +142,7 @@ namespace PocketServices
                     out->SetNumber((int) i);
                     out->SetAddressHash(EncodeDestination(dest));
                     out->SetValue(txout.nValue);
+                    out->SetScriptPubKey(txout.scriptPubKey.ToString());
 
                     ptx->Outputs().push_back(out);
                 }
