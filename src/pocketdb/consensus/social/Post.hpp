@@ -132,7 +132,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateLimit(const PostRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetAddress());
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
             if (count >= GetLimit(mode))
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;

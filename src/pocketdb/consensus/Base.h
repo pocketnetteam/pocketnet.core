@@ -122,7 +122,6 @@ namespace PocketConsensus
     };
 
     /*********************************************************************************************/
-    // @formatter:off
     // Consensus limits
 
     // Reputation - double value in integer
@@ -130,7 +129,7 @@ namespace PocketConsensus
     // i.e. 45  = 4.5
     typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimits;
 
-    inline static ConsensusLimits m_consensus_limits = {
+    static ConsensusLimits m_consensus_limits = {
         // ConsensusLimit_threshold_reputation
         {
             ConsensusLimit_threshold_reputation,
@@ -196,15 +195,15 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0,     INT64_MAX},
-                        {65000, 250 * COIN}
+                        {0,       INT64_MAX},
+                        {65000,   250 * COIN}
                     }
                 },
                 {
                     NetworkTest,
                     {
-                        {0,     INT64_MAX},
-                        {65000, 25 * COIN}
+                        {0, INT64_MAX},
+                        {65000,  25 * COIN}
                     }
                 }
             }
@@ -223,7 +222,7 @@ namespace PocketConsensus
                 {
                     NetworkTest,
                     {
-                        {0,      0},
+                        {0, 0},
                         {100000, 10}
                     }
                 }
@@ -448,7 +447,7 @@ namespace PocketConsensus
                 {
                     NetworkTest,
                     {
-                        {0,  100}
+                        {0, 100}
                     }
                 }
             }
@@ -809,43 +808,27 @@ namespace PocketConsensus
         },
     };
 
-    // @formatter:on
     /*********************************************************************************************/
-
     class BaseConsensus
     {
     public:
-
-        BaseConsensus()
-        {
-        }
-
-        BaseConsensus(int height) : BaseConsensus()
-        {
-            Height = height;
-        }
-
+        BaseConsensus();
+        explicit BaseConsensus(int height);
         virtual ~BaseConsensus() = default;
-
+        int64_t GetConsensusLimit(ConsensusLimit type) const;
     protected:
         int Height = 0;
-
-        int64_t GetConsensusLimit(ConsensusLimit type)
-        {
-            return (--m_consensus_limits[type][Params().NetworkID()].upper_bound(Height))->second;
-        }
-
-    private:
-
     };
 
-    struct BaseConsensusCheckpoint
+    /*********************************************************************************************/
+    template<class T>
+    struct ConsensusCheckpoint
     {
         int m_main_height;
         int m_test_height;
-        function<shared_ptr<BaseConsensus>(int height)> m_func;
+        function<shared_ptr<T>(int height)> m_func;
 
-        int Height(const string& networkId) const
+        [[nodiscard]] int Height(const string& networkId) const
         {
             if (networkId == CBaseChainParams::MAIN)
                 return m_main_height;
@@ -856,6 +839,8 @@ namespace PocketConsensus
             return m_main_height;
         }
     };
+
+    /*********************************************************************************************/
 }
 
 #endif // POCKETCONSENSUS_BASE_H

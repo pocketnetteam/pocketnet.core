@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/ScoreComment.h"
-#include "pocketdb/ReputationConsensus.h"
+#include "pocketdb/consensus/Reputation.h"
 
 namespace PocketConsensus
 {
@@ -20,7 +20,8 @@ namespace PocketConsensus
     class ScoreCommentConsensus : public SocialConsensus<ScoreComment>
     {
     public:
-        ScoreCommentConsensus(int height) : SocialConsensus<ScoreComment>(height) {}
+        explicit ScoreCommentConsensus(int height) : SocialConsensus<ScoreComment>(height) {}
+
         ConsensusValidateResult Validate(const ScoreCommentRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -165,8 +166,8 @@ namespace PocketConsensus
         {
 
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto accountMode = reputationConsensus->GetAccountMode(*ptx->GetAddress());
-            if (count >= GetScoresLimit(accountMode))
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
+            if (count >= GetScoresLimit(mode))
                 return {false, SocialConsensusResult_CommentScoreLimit};
 
             return Success;
@@ -191,7 +192,7 @@ namespace PocketConsensus
     class ScoreCommentConsensus_checkpoint_430000 : public ScoreCommentConsensus
     {
     public:
-        ScoreCommentConsensus_checkpoint_430000(int height) : ScoreCommentConsensus(height) {}
+        explicit ScoreCommentConsensus_checkpoint_430000(int height) : ScoreCommentConsensus(height) {}
     protected:
         ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& ptx) override
         {
@@ -214,7 +215,7 @@ namespace PocketConsensus
     class ScoreCommentConsensus_checkpoint_514184 : public ScoreCommentConsensus_checkpoint_430000
     {
     public:
-        ScoreCommentConsensus_checkpoint_514184(int height) : ScoreCommentConsensus_checkpoint_430000(height) {}
+        explicit ScoreCommentConsensus_checkpoint_514184(int height) : ScoreCommentConsensus_checkpoint_430000(height) {}
     protected:
         ConsensusValidateResult ValidateBlocking(const string& commentAddress, const ScoreCommentRef& ptx) override
         {
@@ -228,7 +229,7 @@ namespace PocketConsensus
     class ScoreCommentConsensus_checkpoint_1124000 : public ScoreCommentConsensus_checkpoint_514184
     {
     public:
-        ScoreCommentConsensus_checkpoint_1124000(int height) : ScoreCommentConsensus_checkpoint_514184(height) {}
+        explicit ScoreCommentConsensus_checkpoint_1124000(int height) : ScoreCommentConsensus_checkpoint_514184(height) {}
     protected:
         bool CheckBlockLimitTime(const ScoreCommentRef& ptx, const ScoreCommentRef& blockPtx) override
         {
@@ -242,7 +243,7 @@ namespace PocketConsensus
     class ScoreCommentConsensus_checkpoint_1180000 : public ScoreCommentConsensus_checkpoint_1124000
     {
     public:
-        ScoreCommentConsensus_checkpoint_1180000(int height) : ScoreCommentConsensus_checkpoint_1124000(height) {}
+        explicit ScoreCommentConsensus_checkpoint_1180000(int height) : ScoreCommentConsensus_checkpoint_1124000(height) {}
     protected:
         int GetChainCount(const ScoreCommentRef& ptx) override
         {

@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_COMMENT_EDIT_HPP
 
 #include "utils/html.h"
-#include "pocketdb/ReputationConsensus.h"
+#include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/CommentEdit.h"
 

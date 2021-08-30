@@ -7,7 +7,7 @@
 
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/models/base/Transaction.h"
-#include "pocketdb/ReputationConsensus.h"
+#include "pocketdb/consensus/Reputation.h"
 
 #include "pocketdb/consensus/social/Blocking.hpp"
 #include "pocketdb/consensus/social/BlockingCancel.hpp"

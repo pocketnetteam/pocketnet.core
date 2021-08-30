@@ -5,7 +5,7 @@
 #ifndef POCKETCONSENSUS_COMPLAIN_HPP
 #define POCKETCONSENSUS_COMPLAIN_HPP
 
-#include "pocketdb/consensus/Reputation.hpp"
+#include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/Complain.h"
 
@@ -106,7 +106,7 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateLimit(const ComplainRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetAddress());
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
             if (count >= GetComplainsLimit(mode))
                 return {false, SocialConsensusResult_ComplainLimit};
 

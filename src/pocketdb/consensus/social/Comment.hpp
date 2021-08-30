@@ -6,7 +6,7 @@
 #define POCKETCONSENSUS_COMMENT_HPP
 
 #include "utils/html.h"
-#include "pocketdb/ReputationConsensus.h"
+#include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/Comment.h"
 
@@ -116,7 +116,7 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateLimit(const CommentRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetAddress());
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
             if (count >= GetLimit(mode))
                 return {false, SocialConsensusResult_CommentLimit};
 

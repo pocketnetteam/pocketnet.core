@@ -9,7 +9,7 @@
 #include "chain.h"
 #include "primitives/block.h"
 
-#include "pocketdb/ReputationConsensus.h"
+#include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/pocketnet.h"
 

@@ -9,7 +9,7 @@
 #include <streams.h>
 #include <key_io.h>
 
-#include "pocketdb/consensus/Lottery.hpp"
+#include "pocketdb/consensus/Lottery.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 
 using namespace PocketHelpers;

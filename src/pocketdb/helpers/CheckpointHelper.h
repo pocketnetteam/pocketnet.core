@@ -5,7 +5,7 @@
 #ifndef POCKETHELPERS_CHECKPOINTS_HPP
 #define POCKETHELPERS_CHECKPOINTS_HPP
 
-#include "pocketdb/consensus/Base.hpp"
+#include "pocketdb/consensus/Base.h"
 
 namespace PocketHelpers
 {

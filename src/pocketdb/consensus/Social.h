@@ -12,7 +12,7 @@
 
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/models/base/Base.h"
-#include "pocketdb/consensus/Base.hpp"
+#include "pocketdb/consensus/Base.h"
 #include "pocketdb/helpers/CheckpointHelper.h"
 
 namespace PocketConsensus
@@ -139,25 +139,6 @@ namespace PocketConsensus
                     return true;
 
             return false;
-        }
-    };
-
-    template<class T>
-    struct ConsensusCheckpoint
-    {
-        int m_main_height;
-        int m_test_height;
-        function<shared_ptr<T>(int height)> m_func;
-
-        int Height(const string& networkId) const
-        {
-            if (networkId == CBaseChainParams::MAIN)
-                return m_main_height;
-
-            if (networkId == CBaseChainParams::TESTNET)
-                return m_test_height;
-
-            return m_main_height;
         }
     };
 }

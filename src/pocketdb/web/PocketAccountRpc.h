@@ -7,10 +7,12 @@
 
 #include "rpc/server.h"
 #include "rpc/rawtransaction.h"
+#include "pocketdb/consensus/Reputation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
     using namespace std;
+    using namespace PocketConsensus;
 
     UniValue GetReputations(const JSONRPCRequest& request);
     UniValue GetUserProfile(const JSONRPCRequest& request);

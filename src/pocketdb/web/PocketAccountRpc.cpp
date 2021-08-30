@@ -18,7 +18,7 @@ namespace PocketWeb::PocketWebRpc
         auto subscribers = dbCon->WebRepoInst->GetSubscribersAddresses(addresses);
         auto blocking = dbCon->WebRepoInst->GetBlockingToAddresses(addresses);
 
-        for (auto & i : result)
+        for (auto& i : result)
         {
             if (subscribes.find(i.first) != subscribes.end())
                 i.second.pushKV("subscribes", subscribes[i.first]);
@@ -46,8 +46,8 @@ namespace PocketWeb::PocketWebRpc
                 "getuserprofile \"address\" ( shortForm )\n"
                 "\nReturn Pocketnet user profile.\n");
 
-        if (request.params.size() < 1)
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+        if (request.params.empty())
+            return JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
 
         vector<string> addresses;
         if (request.params[0].isStr())
@@ -60,11 +60,9 @@ namespace PocketWeb::PocketWebRpc
                 addresses.push_back(addr[idx].get_str());
             }
         }
-        else
-            throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
 
-        if (addresses.size() < 1)
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+        if (addresses.empty())
+            return JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
 
         // Short profile form is: address, b, i, name
         bool shortForm = false;
@@ -125,7 +123,8 @@ namespace PocketWeb::PocketWebRpc
                 "]");
         }
 
-        // TODO (team): check argument exists for 0 item in params
+        if (request.params.empty())
+            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty arguments"));
 
         vector<string> addresses;
         if (!request.params[0].isNull())
@@ -138,14 +137,10 @@ namespace PocketWeb::PocketWebRpc
                 CTxDestination dest = DecodeDestination(input.get_str());
 
                 if (!IsValidDestination(dest))
-                {
-                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
-                }
+                    return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
 
                 if (find(addresses.begin(), addresses.end(), input.get_str()) == addresses.end())
-                {
                     addresses.push_back(input.get_str());
-                }
             }
         }
 
@@ -163,15 +158,81 @@ namespace PocketWeb::PocketWebRpc
             );
 
         if (request.params.empty())
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty Pocketcoin address"));
+            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty Pocketcoin address"));
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
         CTxDestination dest = DecodeDestination(request.params[0].get_str());
         if (!IsValidDestination(dest))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + request.params[0].get_str());
+            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + request.params[0].get_str());
         auto address = request.params[0].get_str();
 
-        return request.DbConnection()->WebRepoInst->GetAccountState(address);
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+
+        // Read general account info and current state
+        auto result = request.DbConnection()->WebRepoInst->GetAccountState(address, chainActive.Height());
+        if (result["address"].isNull())
+            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Pocketcoin address not found"));
+
+        // Calculate additional fields
+        auto accountMode = reputationConsensus->GetAccountMode(result["reputation"].get_int(), result["balance"].get_int64());
+
+        result.pushKV("mode", accountMode);
+        result.pushKV("trial", accountMode == AccountMode_Trial);
+
+        int64_t postLimit;
+        int64_t videoLimit;
+        int64_t complainLimit;
+        int64_t commentLimit;
+        int64_t scoreCommentLimit;
+        int64_t scoreLimit;
+        switch (accountMode)
+        {
+            case PocketConsensus::AccountMode_Trial:
+                postLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_post);
+                videoLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_video);
+                complainLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_complain);
+                commentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_comment);
+                scoreCommentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_comment_score);
+                scoreLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_score);
+                break;
+            case PocketConsensus::AccountMode_Full:
+                postLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_post);
+                videoLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_video);
+                complainLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_complain);
+                commentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment);
+                scoreCommentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment_score);
+                scoreLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_score);
+                break;
+            case PocketConsensus::AccountMode_Pro:
+                postLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_post);
+                videoLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_pro_video);
+                complainLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_complain);
+                commentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment);
+                scoreCommentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment_score);
+                scoreLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_score);
+                break;
+        }
+
+        if (!result["post_spent"].isNull())
+            result.pushKV("post_unspent", result["post_spent"].get_int() - postLimit);
+
+        if (!result["video_spent"].isNull())
+            result.pushKV("video_unspent", result["video_spent"].get_int() - videoLimit);
+
+        if (!result["complain_spent"].isNull())
+            result.pushKV("complain_unspent", result["complain_spent"].get_int() - complainLimit);
+
+        if (!result["comment_spent"].isNull())
+            result.pushKV("comment_unspent", result["comment_spent"].get_int() - commentLimit);
+
+        if (!result["comment_score_spent"].isNull())
+            result.pushKV("comment_score_unspent", result["comment_score_spent"].get_int() - scoreCommentLimit);
+
+        if (!result["score_spent"].isNull())
+            result.pushKV("score_unspent", result["score_spent"].get_int() - scoreLimit);
+
+
+        return result;
     }
 
 }

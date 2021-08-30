@@ -5,7 +5,7 @@
 #ifndef POCKETCONSENSUS_VIDEO_HPP
 #define POCKETCONSENSUS_VIDEO_HPP
 
-#include "pocketdb/ReputationConsensus.h"
+#include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/Video.h"
 
@@ -140,8 +140,7 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateLimit(const VideoRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-
-            auto[mode, reputation, balance] = reputationConsensus->GetAccountInfo(*ptx->GetAddress());
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
             auto limit = GetLimit(mode);
 
             if (count >= limit)

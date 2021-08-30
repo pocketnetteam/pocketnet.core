@@ -5,7 +5,7 @@
 #ifndef POCKETCONSENSUS_SCORECONTENT_HPP
 #define POCKETCONSENSUS_SCORECONTENT_HPP
 
-#include "pocketdb/ReputationConsensus.h"
+#include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/ScoreContent.h"
 
@@ -163,11 +163,11 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateLimit(const ScoreContentRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
-            auto accountMode = reputationConsensus->GetAccountMode(*ptx->GetAddress());
-            if (count >= GetScoresLimit(accountMode))
+            auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
+            if (count >= GetScoresLimit(mode))
                 return {false, SocialConsensusResult_ScoreLimit};
 
-            if (!ValidateLowReputation(ptx, accountMode))
+            if (!ValidateLowReputation(ptx, mode))
                 return {false, SocialConsensusResult_LowReputation};
 
             return Success;

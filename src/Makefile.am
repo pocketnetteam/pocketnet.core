@@ -92,7 +92,6 @@ endif
 # PocketDB
 POCKETDB_H = \
     pocketdb/pocketnet.h \
-    pocketdb/ReputationConsensus.h \
     pocketdb/SQLiteDatabase.h \
     pocketdb/SQLiteConnection.h \
     \
@@ -122,11 +121,11 @@ POCKETDB_H = \
     pocketdb/services/TransactionIndexer.h \
     pocketdb/services/Accessor.h \
     \
-    pocketdb/consensus/Base.hpp \
+    pocketdb/consensus/Base.h \
     pocketdb/consensus/Helper.h \
     pocketdb/consensus/Social.h \
-    pocketdb/consensus/Lottery.hpp \
-    pocketdb/consensus/Reputation.hpp \
+    pocketdb/consensus/Lottery.h \
+    pocketdb/consensus/Reputation.h \
     \
     pocketdb/consensus/social/Blocking.hpp \
     pocketdb/consensus/social/BlockingCancel.hpp \
@@ -175,7 +174,6 @@ POCKETDB_CPP = \
     pocketdb/SQLiteDatabase.cpp \
     pocketdb/SQLiteConnection.cpp \
     pocketdb/pocketnet.cpp \
-    pocketdb/ReputationConsensus.cpp \
     \
     pocketdb/migrations/main.cpp \
     \
@@ -194,6 +192,9 @@ POCKETDB_CPP = \
     pocketdb/repositories/ChainRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
+    pocketdb/consensus/Base.cpp \
+    pocketdb/consensus/Lottery.cpp \
+    pocketdb/consensus/Reputation.cpp \
     \
     pocketdb/models/base/Base.cpp \
     pocketdb/models/base/Payload.cpp \
