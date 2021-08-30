@@ -129,46 +129,46 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-        select
-            u.String1 as Address,
-            up.String2 as Name,
+            select
+                u.String1 as Address,
+                up.String2 as Name,
 
-            (select reg.Time from Transactions reg indexed by Transactions_Id
-                where reg.Id=u.Id and reg.Height=(select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id=reg.Id)) as RegistrationDate,
+                (select reg.Time from Transactions reg indexed by Transactions_Id
+                    where reg.Id=u.Id and reg.Height=(select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id=reg.Id)) as RegistrationDate,
 
-            ifnull((select r.Value from Ratings r where r.Type=0 and r.Id=u.Id and r.Height=(select max(r1.height) from Ratings r1 where r1.Type=0 and r1.Id=r.Id)),0) as Reputation,
+                ifnull((select r.Value from Ratings r where r.Type=0 and r.Id=u.Id and r.Height=(select max(r1.height) from Ratings r1 where r1.Type=0 and r1.Id=r.Id)),0) as Reputation,
 
-            ifnull((select sum(o.Value) from TxOutputs o indexed by TxOutputs_AddressHash_SpentHeight_TxHeight
-                where o.AddressHash=u.String1 and o.SpentHeight is null),0) as Balance,
+                ifnull((select sum(o.Value) from TxOutputs o indexed by TxOutputs_AddressHash_SpentHeight_TxHeight
+                    where o.AddressHash=u.String1 and o.SpentHeight is null),0) as Balance,
 
-            (select count(1) from Ratings r where r.Type=1 and r.Id=u.Id) as Likers,
+                (select count(1) from Ratings r where r.Type=1 and r.Id=u.Id) as Likers,
 
-            (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
-                where p.Type in (200) and p.Hash=p.String2 and p.String1=u.String1 and p.Height>=?) as PostSpent,
+                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                    where p.Type in (200) and p.Hash=p.String2 and p.String1=u.String1 and p.Height>=?) as PostSpent,
 
-            (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
-                where p.Type in (201) and p.Hash=p.String2 and p.String1=u.String1 and p.Height>=?) as VideoSpent,
+                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                    where p.Type in (201) and p.Hash=p.String2 and p.String1=u.String1 and p.Height>=?) as VideoSpent,
 
-            (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
-                where p.Type in (204) and p.String1=u.String1 and p.Height>=?) as CommentSpent,
+                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                    where p.Type in (204) and p.String1=u.String1 and p.Height>=?) as CommentSpent,
 
-            (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
-                where p.Type in (300) and p.String1=u.String1 and p.Height>=?) as ScoreSpent,
+                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                    where p.Type in (300) and p.String1=u.String1 and p.Height>=?) as ScoreSpent,
 
-            (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
-                where p.Type in (301) and p.String1=u.String1 and p.Height>=?) as ScoreCommentSpent,
+                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                    where p.Type in (301) and p.String1=u.String1 and p.Height>=?) as ScoreCommentSpent,
 
-            (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
-                where p.Type in (307) and p.String1=u.String1 and p.Height>=?) as ComplainSpent
+                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                    where p.Type in (307) and p.String1=u.String1 and p.Height>=?) as ComplainSpent
 
-        from Transactions u indexed by Transactions_Type_Last_String1_Height
-        join Payload up on up.TxHash=u.Hash
+            from Transactions u indexed by Transactions_Type_Last_String1_Height
+            join Payload up on up.TxHash=u.Hash
 
-        where u.Type in (100, 102, 102)
-          and u.Height is not null
-          and u.String1 = ?
-          and u.Last = 1
-    )sql";
+            where u.Type in (100, 102, 102)
+            and u.Height is not null
+            and u.String1 = ?
+            and u.Last = 1
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
@@ -185,18 +185,18 @@ namespace PocketDb
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("user_reg_date", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("reputation", value / 10);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("balance", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("likers", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.pushKV("user_reg_date", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("reputation", value / 10);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("balance", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("likers", value);
 
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("post_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("video_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("comment_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) result.pushKV("score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 12); ok) result.pushKV("comment_score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 13); ok) result.pushKV("complain_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("post_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("video_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("comment_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("comment_score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 11); ok) result.pushKV("complain_spent", value);
 
                 // ??
                 // result.pushKV("number_of_blocking", number_of_blocking);
@@ -299,37 +299,37 @@ namespace PocketDb
     UniValue WebRepository::GetLastComments(int count, int height, string lang)
     {
         auto sql = R"sql(
-        WITH RowIds AS (
-            SELECT MAX(RowId) as RowId
-            FROM Transactions c
-            JOIN Payload pl ON pl.TxHash = c.Hash
-            WHERE c.Type in (204,205)
-                and c.Last=1
-                and c.Height is not null
-                and c.Height <= ?
-                and c.Time < ?
-                and pl.String1 = ?
-            GROUP BY Id
-            )
-        select t.Hash,
-               t.String2 as RootTxHash,
-               t.String3 as PostTxHash,
-               t.String1 as AddressHash,
-               t.Time,
-               t.Height,
-               t.String4 as ParentTxHash,
-               t.String5 as AnswerTxHash,
-               (select count(1) from Transactions sc where sc.Type=301 and sc.Height is not null and sc.String2=t.Hash and sc.Int1=1) as ScoreUp,
-               (select count(1) from Transactions sc where sc.Type=301 and sc.Height is not null and sc.String2=t.Hash and sc.Int1=-1) as ScoreDown,
-               (select r.Value from Ratings r where r.Id=t.Id and r.Type=3 and r.Height=(select max(r1.height) from Ratings r1 where r1.Type=3 and r1.Id=r.Id)) as Reputation,
-               pl.String2 AS Msg
-        from Transactions t
-        join RowIds rid on t.RowId = rid.RowId
-        join Payload pl ON pl.TxHash = t.Hash
-        where t.Type in (204,205) and t.Last=1 and t.height is not null
-        order by Height desc, Time desc
-        limit ?;
-    )sql";
+            WITH RowIds AS (
+                SELECT MAX(c.RowId) as RowId
+                FROM Transactions c
+                JOIN Payload pl ON pl.TxHash = c.Hash
+                WHERE c.Type in (204,205)
+                    and c.Last=1
+                    and c.Height is not null
+                    and c.Height <= ?
+                    and c.Time < ?
+                    and pl.String1 = ?
+                GROUP BY c.Id
+                )
+            select t.Hash,
+                t.String2 as RootTxHash,
+                t.String3 as PostTxHash,
+                t.String1 as AddressHash,
+                t.Time,
+                t.Height,
+                t.String4 as ParentTxHash,
+                t.String5 as AnswerTxHash,
+                (select count(1) from Transactions sc where sc.Type=301 and sc.Height is not null and sc.String2=t.Hash and sc.Int1=1) as ScoreUp,
+                (select count(1) from Transactions sc where sc.Type=301 and sc.Height is not null and sc.String2=t.Hash and sc.Int1=-1) as ScoreDown,
+                (select r.Value from Ratings r where r.Id=t.Id and r.Type=3 and r.Height=(select max(r1.height) from Ratings r1 where r1.Type=3 and r1.Id=r.Id)) as Reputation,
+                pl.String2 AS Msg
+            from Transactions t
+            join RowIds rid on t.RowId = rid.RowId
+            join Payload pl ON pl.TxHash = t.Hash
+            where t.Type in (204,205) and t.Last=1 and t.height is not null
+            order by t.Height desc, t.Time desc
+            limit ?;
+        )sql";
 
         auto result = UniValue(UniValue::VARR);
 
