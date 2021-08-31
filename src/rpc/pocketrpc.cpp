@@ -4141,26 +4141,34 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
 
     err = g_pocketdb->DB()->Select(queryPosts, queryResults);
 
+    std::map<std::string, std::map<std::string, int>> mapStatistic;
     std::map<std::string, std::vector<std::string>> contentLikers;
     if (err.ok()) {
         for (auto& item : queryResults) {
             Item _itm = item.GetItem();
+            std::string author = _itm["address"].As<string>();
+            int scoreSum = _itm["scoreSum"].As<int>();
+            int scoreCnt = _itm["scoreCnt"].As<int>();
             if (item.GetJoined().size() > 0 && item.GetJoined()[0].Count() > 0) {
                 Item _jitm = item.GetJoined()[0][0].GetItem();
-                std::string author = _itm["address"].As<string>();
                 std::string liker = _jitm["address"].As<string>();
                 if (std::find(contentLikers[author].begin(), contentLikers[author].end(), liker) == contentLikers[author].end()) {
                     contentLikers[author].emplace_back(liker);
                 }
             }
+            mapStatistic[author]["scoreSum"] += scoreSum;
+            mapStatistic[author]["scoreCnt"] += scoreCnt;
+            mapStatistic[author]["countLikers"] = (int)contentLikers[author].size();
         }
     }
 
     UniValue aResult(UniValue::VARR);
-    for (const auto &item : contentLikers) {
+    for (const auto &item : mapStatistic) {
         UniValue oEntry(UniValue::VOBJ);
         oEntry.pushKV("address", item.first);
-        oEntry.pushKV("countLikers", std::to_string(item.second.size()));
+        oEntry.pushKV("scoreSum", mapStatistic[item.first]["scoreSum"]);
+        oEntry.pushKV("scoreCnt", mapStatistic[item.first]["scoreCnt"]);
+        oEntry.pushKV("countLikers", mapStatistic[item.first]["countLikers"]);
         aResult.push_back(oEntry);
     }
     return aResult;
