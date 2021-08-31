@@ -4126,7 +4126,7 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
     queryScores = queryScores.Where("time", CondLe, GetAdjustedTime());
     queryScores = queryScores.Where("block", CondLe, nHeight);
     queryScores = queryScores.Where("block", CondGt, nHeight - depth);
-    queryScores = queryScores.Distinct("address");
+    //queryScores = queryScores.Distinct("address");
 
     queryPosts = reindexer::Query("Posts");
     queryPosts = queryPosts.Where("time", CondLe, GetAdjustedTime());
