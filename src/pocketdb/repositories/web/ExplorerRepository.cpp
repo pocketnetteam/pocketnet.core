@@ -192,8 +192,23 @@ namespace PocketDb {
                         // Extend transaction with outputs
                         UniValue txOut(UniValue::VOBJ);
                         if (auto [ok, value] = TryGetColumnInt(*stmt, 6); ok) txOut.pushKV("n", value);
-                        if (auto [ok, value] = TryGetColumnString(*stmt, 7); ok) txOut.pushKV("address", value);
                         if (auto [ok, value] = TryGetColumnInt64(*stmt, 8); ok) txOut.pushKV("value", value);
+
+                        {
+                            UniValue scriptPubKey(UniValue::VOBJ);
+
+                            if (auto [ok, value] = TryGetColumnString(*stmt, 7); ok)
+                            {
+                                UniValue addr(UniValue::VARR);
+                                addr.read(value);
+                                scriptPubKey.pushKV("addresses", addr);
+                            }
+
+                            if (auto [ok, value] = TryGetColumnString(*stmt, 9); ok)
+                                scriptPubKey.pushKV("hex", value);
+
+                            txOut.pushKV("scriptPubKey", scriptPubKey);
+                        }
 
                         get<2>(txs[hash]).push_back(txOut);
                     }
@@ -254,18 +269,21 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select t.Hash, ptxs.RowNum, t.Type, t.Height, t.BlockHash, t.Time, o.Number, o.AddressHash, o.Value
+                select t.Hash, ptxs.RowNum, t.Type, t.Height, t.BlockHash, t.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey
                 from (
                     select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash
                     from (
                         select distinct o.TxHash, o.TxHeight
                         from TxOutputs o
-                        where o.AddressHash = ? and o.SpentHeight is not null and o.TxHeight <= ?
+                        where o.AddressHash = ?
+                          and o.SpentHeight is not null
+                          and o.TxHeight <= ?
                     ) txs
                 ) ptxs
                 join TxOutputs o on o.TxHash = ptxs.TxHash
                 join Transactions t on t.Hash = ptxs.TxHash
                 where RowNum >= ? and RowNum < ?
+                group by t.Hash, o.Number
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -280,7 +298,7 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, o.AddressHash, o.Value
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey
                 from (
                     select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
                     from (
@@ -290,7 +308,8 @@ namespace PocketDb {
                     ) txs
                 ) ptxs
                 join TxOutputs o on o.TxHash = ptxs.Hash
-                where RowNum >= ? and RowNum < ?;
+                where RowNum >= ? and RowNum < ?
+                group by ptxs.Hash, o.Number
             )sql");
 
             TryBindStatementText(stmt, 1, blockHash);
@@ -304,7 +323,7 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, o.AddressHash, o.Value
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey
                 from (
                     select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
                     from (
@@ -317,6 +336,7 @@ namespace PocketDb {
                 ) ptxs
                 join TxOutputs o on o.TxHash = ptxs.Hash
                 where RowNum >= ? and RowNum < ?
+                group by ptxs.Hash, o.Number
             )sql");
 
             size_t i = 1;

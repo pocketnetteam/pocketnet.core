@@ -101,8 +101,7 @@ static const CRPCCommand commands[] =
 
     { "transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                {"hexstring", "message", "type"}},
     { "transaction",    "addtransaction",                   &AddTransaction,                {"hexstring", "message", "type"}},
-    // TODO (team): implement
-    // { "transaction",    "getrawtransaction",                &GetRawTransaction,             {"txid", "verbose", "blockhash"}},
+    { "transaction",    "getrawtransaction",                &GetTransaction,                {"txid"}},
 };
 // @formatter:on
 

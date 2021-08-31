@@ -6,7 +6,6 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-
     UniValue AddTransaction(const JSONRPCRequest& request)
     {
         if (request.fHelp)
@@ -38,6 +37,21 @@ namespace PocketWeb::PocketWebRpc
         // TODO (brangr): implement insert into mempool
         
         return *ptx->GetHash();
+        //throw JSONRPCError(RPC_TRANSACTION_REJECTED, "Not implemented");
+    }
+    
+    UniValue GetTransaction(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getrawtransaction\n"
+                "\nGet transaction data.\n"
+            );
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+        string txid = request.params[0].get_str();
+
+        return request.DbConnection()->ExplorerRepoInst->GetTransactions({ txid }, 1, 2);
     }
 
 }

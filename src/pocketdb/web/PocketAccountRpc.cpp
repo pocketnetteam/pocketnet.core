@@ -47,7 +47,7 @@ namespace PocketWeb::PocketWebRpc
                 "\nReturn Pocketnet user profile.\n");
 
         if (request.params.empty())
-            return JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
 
         vector<string> addresses;
         if (request.params[0].isStr())
@@ -62,7 +62,7 @@ namespace PocketWeb::PocketWebRpc
         }
 
         if (addresses.empty())
-            return JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
 
         // Short profile form is: address, b, i, name
         bool shortForm = false;
@@ -124,7 +124,7 @@ namespace PocketWeb::PocketWebRpc
         }
 
         if (request.params.empty())
-            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty arguments"));
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty arguments"));
 
         vector<string> addresses;
         if (!request.params[0].isNull())
@@ -137,7 +137,7 @@ namespace PocketWeb::PocketWebRpc
                 CTxDestination dest = DecodeDestination(input.get_str());
 
                 if (!IsValidDestination(dest))
-                    return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
 
                 if (find(addresses.begin(), addresses.end(), input.get_str()) == addresses.end())
                     addresses.push_back(input.get_str());
@@ -158,12 +158,12 @@ namespace PocketWeb::PocketWebRpc
             );
 
         if (request.params.empty())
-            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty Pocketcoin address"));
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty Pocketcoin address"));
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
         CTxDestination dest = DecodeDestination(request.params[0].get_str());
         if (!IsValidDestination(dest))
-            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + request.params[0].get_str());
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + request.params[0].get_str());
         auto address = request.params[0].get_str();
 
         auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
@@ -171,7 +171,7 @@ namespace PocketWeb::PocketWebRpc
         // Read general account info and current state
         auto result = request.DbConnection()->WebRepoInst->GetAccountState(address, chainActive.Height());
         if (result["address"].isNull())
-            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Pocketcoin address not found"));
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Pocketcoin address not found"));
 
         // Calculate additional fields
         auto accountMode = reputationConsensus->GetAccountMode(result["reputation"].get_int(), result["balance"].get_int64());
@@ -260,7 +260,7 @@ namespace PocketWeb::PocketWebRpc
                 CTxDestination dest = DecodeDestination(input.get_str());
 
                 if (!IsValidDestination(dest)) {
-                    return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
                 }
 
                 if (find(destinations.begin(), destinations.end(), input.get_str()) == destinations.end()) {
@@ -269,7 +269,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
         if (destinations.empty())
-            return JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin addresses"));
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin addresses"));
 
         // int minConf = 1;
         // if (request.params.size() > 1) {

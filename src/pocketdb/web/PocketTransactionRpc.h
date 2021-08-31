@@ -11,6 +11,7 @@
 namespace PocketWeb::PocketWebRpc
 {
     UniValue AddTransaction(const JSONRPCRequest& request);
+    UniValue GetTransaction(const JSONRPCRequest& request);
 }
 
 #endif //SRC_POCKETTRANSACTIONRPC_H
