@@ -4137,11 +4137,7 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
         queryPosts = queryPosts.Where("type", CondSet, contentTypes);
     }
 
-    std::vector<std::string> posttxid;
-    queryScores = reindexer::Query("Scores");
-    queryScores = queryPosts.Where("time", CondLe, GetAdjustedTime());
-    queryScores = queryPosts.Where("block", CondLe, nHeight);
-    queryScores = queryScores.Where("posttxid", CondSet, posttxid);
+    queryPosts = queryPosts.InnerJoin("txid", "posttxid", CondEq, queryScores);
 
     err = g_pocketdb->DB()->Select(queryPosts, queryResults);
 
@@ -4149,11 +4145,13 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
     if (err.ok()) {
         for (auto& item : queryResults) {
             Item _itm = item.GetItem();
-            Item _jitm = item.GetJoined()[0][0].GetItem();
-            std::string author = _itm["address"].As<string>();
-            std::string liker = _jitm["address"].As<string>();
-            if (std::find(contentLikers[author].begin(), contentLikers[author].end(), liker) == contentLikers[author].end()) {
-                contentLikers[author].emplace_back(liker);
+            if (item.GetJoined().size() > 0 && item.GetJoined()[0].Count() > 0) {
+                Item _jitm = item.GetJoined()[0][0].GetItem();
+                std::string author = _itm["address"].As<string>();
+                std::string liker = _jitm["address"].As<string>();
+                if (std::find(contentLikers[author].begin(), contentLikers[author].end(), liker) == contentLikers[author].end()) {
+                    contentLikers[author].emplace_back(liker);
+                }
             }
         }
     }
@@ -4163,6 +4161,7 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
         UniValue oEntry(UniValue::VOBJ);
         oEntry.pushKV("address", item.first);
         oEntry.pushKV("countLikers", std::to_string(item.second.size()));
+        aResult.push_back(oEntry);
     }
     return aResult;
 }
