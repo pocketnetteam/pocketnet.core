@@ -4037,7 +4037,7 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
 {
     if (request.fHelp)
         throw std::runtime_error(
-                "searchlinks ...\n"
+                "getcontentsstatistic ...\n"
                 "\nGet contents statistic.\n");
 
     std::string address;
@@ -4052,7 +4052,7 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
             addresses.emplace_back(address);
         } else if (request.params[0].isArray()) {
             UniValue addrs = request.params[0].get_array();
-            if (addrs.size() > 100) {
+            if (addrs.size() > 10) {
                 throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array");
             }
             if(addrs.size() > 0) {
@@ -4099,24 +4099,43 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
         }
     }
 
+    int nHeight = chainActive.Height();
+    if (request.params.size() > 2) {
+        if (request.params[2].isNum()) {
+            if (request.params[2].get_int() > 0) {
+                nHeight = request.params[2].get_int();
+            }
+        }
+    }
+
+    int depth = chainActive.Height();
+    if (request.params.size() > 3) {
+        if (request.params[3].isNum()) {
+            if (request.params[3].get_int() > 0) {
+                depth = request.params[3].get_int();
+            }
+        }
+    }
+
     reindexer::Error err;
     reindexer::Query queryPosts;
     reindexer::Query queryScores;
     reindexer::QueryResults queryResults;
-    reindexer::AggregationResult aggregationResult;
 
-    int nHeight = chainActive.Height();
+    queryScores = reindexer::Query("Scores");
+    queryScores = queryScores.Where("time", CondLe, GetAdjustedTime());
+    queryScores = queryScores.Where("block", CondLe, nHeight);
+    queryScores = queryScores.Where("block", CondGt, nHeight - depth);
+    queryScores = queryScores.Distinct("address");
 
-    /*queryPosts = reindexer::Query("Posts");
+    queryPosts = reindexer::Query("Posts");
     queryPosts = queryPosts.Where("time", CondLe, GetAdjustedTime());
     queryPosts = queryPosts.Where("block", CondLe, nHeight);
+    //queryPosts = queryPosts.Where("block", CondGt, nHeight - depth);
     queryPosts = queryPosts.Where("address", CondSet, addresses);
     if (!contentTypes.empty()) {
         queryPosts = queryPosts.Where("type", CondSet, contentTypes);
     }
-    //queryPosts = queryPosts.InnerJoin("txid", "posttxid", CondEq, queryScores);
-    //queryPosts = queryPosts.Distinct()
-    //queryPosts = queryScores.Aggregate("address", );
 
     std::vector<std::string> posttxid;
     queryScores = reindexer::Query("Scores");
@@ -4124,21 +4143,28 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
     queryScores = queryPosts.Where("block", CondLe, nHeight);
     queryScores = queryScores.Where("posttxid", CondSet, posttxid);
 
-    //err = g_pocketdb->SelectAggr(queryPosts, queryResults);
     err = g_pocketdb->DB()->Select(queryPosts, queryResults);
 
+    std::map<std::string, std::vector<std::string>> contentLikers;
     if (err.ok()) {
-        std::string author = "";
         for (auto& item : queryResults) {
             Item _itm = item.GetItem();
+            Item _jitm = item.GetJoined()[0][0].GetItem();
+            std::string author = _itm["address"].As<string>();
+            std::string liker = _jitm["address"].As<string>();
+            if (std::find(contentLikers[author].begin(), contentLikers[author].end(), liker) == contentLikers[author].end()) {
+                contentLikers[author].emplace_back(liker);
+            }
         }
-//        for (const auto &item : aggregationResult.facets) {
-//            //item.
-//        }
-    }*/
+    }
 
-    UniValue result(UniValue::VOBJ);
-    return result;
+    UniValue aResult(UniValue::VARR);
+    for (const auto &item : contentLikers) {
+        UniValue oEntry(UniValue::VOBJ);
+        oEntry.pushKV("address", item.first);
+        oEntry.pushKV("countLikers", std::to_string(item.second.size()));
+    }
+    return aResult;
 }
 //----------------------------------------------------------
 
@@ -4178,7 +4204,7 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                                   false},
     {"pocketnetrpc", "gethistoricalstrip",                &gethistoricalstrip,                {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},
     {"pocketnetrpc", "gethierarchicalstrip",              &gethierarchicalstrip,              {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},
-    {"pocketnetrpc", "getcontentsstatistic",              &getcontentsstatistic,              {"addresses", "contenttypes"},                                                         false},
+    {"pocketnetrpc", "getcontentsstatistic",              &getcontentsstatistic,              {"addresses", "contenttypes", "height", "depth"},                                                         false},
 
     {"pocketnetrpc", "getusercontents",                   &getusercontents,                   {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"},          false},
     {"pocketnetrpc", "getrecomendedsubscriptionsforuser", &getrecomendedsubscriptionsforuser, {"address", "count"},                                                                  false},
