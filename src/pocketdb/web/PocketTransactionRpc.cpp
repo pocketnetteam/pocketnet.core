@@ -32,7 +32,7 @@ namespace PocketWeb::PocketWebRpc
         auto data = request.params[1];
         data.pushKV("txAddress", address);
 
-        auto[ok, ptx] = PocketServices::TransactionSerializer::DeserializeTransaction(tx, data);
+        auto[ok, ptx] = PocketServices::TransactionSerializer::DeserializeTransactionRpc(tx, data);
 
         // TODO (brangr): implement check & validate with consensus
         // TODO (brangr): implement insert into mempool

@@ -870,7 +870,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
         try
         {
             std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
-            if (!PocketServices::Accessor::GetBlock(block, pocketBlock, false) || !pocketBlock)
+            if (!PocketServices::Accessor::GetBlock(block, pocketBlock) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
             PocketServices::TransactionIndexer::Rollback(pblockindex->nHeight);

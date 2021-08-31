@@ -26,7 +26,7 @@ namespace PocketServices
     class Accessor
     {
     public:
-        static bool GetBlock(const CBlock& block, PocketBlockRef& pocketBlock, bool onlyPocket = false);
+        static bool GetBlock(const CBlock& block, PocketBlockRef& pocketBlock);
         static bool GetBlock(const CBlock& block, string& data);
         static bool GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx);
         static bool GetTransaction(const CTransaction& tx, string& data);

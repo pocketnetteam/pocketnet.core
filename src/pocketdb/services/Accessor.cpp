@@ -6,7 +6,7 @@
 
 namespace PocketServices
 {
-    bool Accessor::GetBlock(const CBlock& block, PocketBlockRef& pocketBlock, bool onlyPocket)
+    bool Accessor::GetBlock(const CBlock& block, PocketBlockRef& pocketBlock)
     {
         try
         {
@@ -16,9 +16,6 @@ namespace PocketServices
                 if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
                     continue;
 
-                if (onlyPocket && !PocketHelpers::TransactionHelper::IsPocketTransaction(tx))
-                    continue;
-
                 txs.push_back(tx->GetHash().GetHex());
             }
 
@@ -26,7 +23,7 @@ namespace PocketServices
                 return true;
 
             pocketBlock = PocketDb::TransRepoInst.GetList(txs, true);
-            return pocketBlock->size() == txs.size();
+            return pocketBlock && pocketBlock->size() == txs.size();
         }
         catch (const std::exception& e)
         {
@@ -35,16 +32,17 @@ namespace PocketServices
         }
     }
 
+    // Read block data for send via network
     bool Accessor::GetBlock(const CBlock& block, string& data)
     {
         PocketBlockRef pocketBlock;
-        if (!GetBlock(block, pocketBlock, true))
+        if (!GetBlock(block, pocketBlock))
             return false;
 
-        if (!pocketBlock)
-            return true;
+        auto dataPtr = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock);
+        if (dataPtr)
+            data = dataPtr->write();
 
-        data = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock)->write();
         return true;
     }
 
@@ -54,11 +52,19 @@ namespace PocketServices
         return pocketTx != nullptr;
     }
 
+    // Read transaction data for send via network
     bool Accessor::GetTransaction(const CTransaction& tx, string& data)
     {
+        if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
+            return true;
+
         PTransactionRef pocketTx;
-        if (GetTransaction(tx, pocketTx) && pocketTx && PocketHelpers::TransactionHelper::IsPocketTransaction(*pocketTx->GetType()))
-            data = PocketServices::TransactionSerializer::SerializeTransaction(*pocketTx)->write();
+        if (!GetTransaction(tx, pocketTx) && pocketTx)
+            return false;
+            
+        auto dataPtr = PocketServices::TransactionSerializer::SerializeTransaction(*pocketTx);
+        if (dataPtr)
+            data = dataPtr->write();
 
         return true;
     }

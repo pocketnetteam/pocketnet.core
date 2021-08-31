@@ -42,7 +42,7 @@ namespace PocketServices
         static tuple<bool, PocketBlock> DeserializeBlock(CBlock& block, CDataStream& stream);
         static tuple<bool, PocketBlock> DeserializeBlock(CBlock& block);
 
-        static tuple<bool, PTransactionRef> DeserializeTransaction(const CTransactionRef& tx, const UniValue& pocketData);
+        static tuple<bool, PTransactionRef> DeserializeTransactionRpc(const CTransactionRef& tx, const UniValue& pocketData);
         static tuple<bool, PTransactionRef> DeserializeTransaction(const CTransactionRef& tx, CDataStream& stream);
         static tuple<bool, PTransactionRef> DeserializeTransaction(const CTransactionRef& tx);
 
@@ -54,8 +54,8 @@ namespace PocketServices
         static shared_ptr<Transaction> buildInstanceRpc(const CTransactionRef& tx, const UniValue& src);
         static bool buildOutputs(const CTransactionRef& tx, shared_ptr<Transaction>& ptx);
         static UniValue parseStream(CDataStream& stream);
-        static tuple<bool, PocketBlock> deserializeBlock(UniValue& pocketData, CBlock& block);
-        static tuple<bool, shared_ptr<Transaction>> deserializeTransaction(UniValue& pocketData, const CTransactionRef& tx);
+        static tuple<bool, PocketBlock> deserializeBlock(CBlock& block, UniValue& pocketData);
+        static tuple<bool, shared_ptr<Transaction>> deserializeTransaction(const CTransactionRef& tx, UniValue& pocketData);
     };
 
 }
