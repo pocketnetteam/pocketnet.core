@@ -65,8 +65,62 @@ namespace PocketConsensus
         SocialConsensusResult_AlreadyExists = 45,
         SocialConsensusResult_PayloadORNotFound = 46,
         SocialConsensusResult_TxORNotFound = 47,
-
     };
+
+    static inline string SocialConsensusResultString(SocialConsensusResult code)
+    {
+        switch (code)
+        {
+            case (SocialConsensusResult_Success): return "Success";
+            case (SocialConsensusResult_NotRegistered): return "NotRegistered";
+            case (SocialConsensusResult_ContentLimit): return "ContentLimit";
+            case (SocialConsensusResult_ScoreLimit): return "ScoreLimit";
+            case (SocialConsensusResult_DoubleScore): return "DoubleScore";
+            case (SocialConsensusResult_SelfScore): return "SelfScore";
+            case (SocialConsensusResult_ChangeInfoLimit): return "ChangeInfoLimit";
+            case (SocialConsensusResult_InvalideSubscribe): return "InvalideSubscribe";
+            case (SocialConsensusResult_DoubleSubscribe): return "DoubleSubscribe";
+            case (SocialConsensusResult_SelfSubscribe): return "SelfSubscribe";
+            case (SocialConsensusResult_Unknown): return "Unknown";
+            case (SocialConsensusResult_Failed): return "Failed";
+            case (SocialConsensusResult_NotFound): return "NotFound";
+            case (SocialConsensusResult_DoubleComplain): return "DoubleComplain";
+            case (SocialConsensusResult_SelfComplain): return "SelfComplain";
+            case (SocialConsensusResult_ComplainLimit): return "ComplainLimit";
+            case (SocialConsensusResult_LowReputation): return "LowReputation";
+            case (SocialConsensusResult_ContentSizeLimit): return "ContentSizeLimit";
+            case (SocialConsensusResult_NicknameDouble): return "NicknameDouble";
+            case (SocialConsensusResult_NicknameLong): return "NicknameLong";
+            case (SocialConsensusResult_ReferrerSelf): return "ReferrerSelf";
+            case (SocialConsensusResult_FailedOpReturn): return "FailedOpReturn";
+            case (SocialConsensusResult_InvalidBlocking): return "InvalidBlocking";
+            case (SocialConsensusResult_DoubleBlocking): return "DoubleBlocking";
+            case (SocialConsensusResult_SelfBlocking): return "SelfBlocking";
+            case (SocialConsensusResult_DoubleContentEdit): return "DoubleContentEdit";
+            case (SocialConsensusResult_ContentEditLimit): return "ContentEditLimit";
+            case (SocialConsensusResult_ContentEditUnauthorized): return "ContentEditUnauthorized";
+            case (SocialConsensusResult_ManyTransactions): return "ManyTransactions";
+            case (SocialConsensusResult_CommentLimit): return "CommentLimit";
+            case (SocialConsensusResult_CommentEditLimit): return "CommentEditLimit";
+            case (SocialConsensusResult_CommentScoreLimit): return "CommentScoreLimit";
+            case (SocialConsensusResult_Blocking): return "Blocking";
+            case (SocialConsensusResult_Size): return "Size";
+            case (SocialConsensusResult_InvalidParentComment): return "InvalidParentComment";
+            case (SocialConsensusResult_InvalidAnswerComment): return "InvalidAnswerComment";
+            case (SocialConsensusResult_DoubleCommentEdit): return "DoubleCommentEdit";
+            case (SocialConsensusResult_SelfCommentScore): return "SelfCommentScore";
+            case (SocialConsensusResult_DoubleCommentDelete): return "DoubleCommentDelete";
+            case (SocialConsensusResult_DoubleCommentScore): return "DoubleCommentScore";
+            case (SocialConsensusResult_OpReturnFailed): return "OpReturnFailed";
+            case (SocialConsensusResult_CommentDeletedEdit): return "CommentDeletedEdit";
+            case (SocialConsensusResult_ReferrerAfterRegistration): return "ReferrerAfterRegistration";
+            case (SocialConsensusResult_NotAllowed): return "NotAllowed";
+            case (SocialConsensusResult_AlreadyExists): return "AlreadyExists";
+            case (SocialConsensusResult_PayloadORNotFound): return "PayloadORNotFound";
+            case (SocialConsensusResult_TxORNotFound): return "TxORNotFound";
+            default: return "Unknown";
+        }
+    }
 
     enum AccountMode
     {
@@ -129,7 +183,7 @@ namespace PocketConsensus
     // i.e. 45  = 4.5
     typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimits;
 
-    static ConsensusLimits m_consensus_limits = {
+    static inline ConsensusLimits m_consensus_limits = {
         // ConsensusLimit_threshold_reputation
         {
             ConsensusLimit_threshold_reputation,

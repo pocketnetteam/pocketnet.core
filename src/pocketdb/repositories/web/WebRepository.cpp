@@ -796,31 +796,31 @@ namespace PocketDb
         const string& address)
     {
         string sql = R"sql(
-        SELECT t.String2 as RootTxHash,
-               case when t.Hash != t.String2 then 'true' else '' end edit,
-               t.String3 as RelayTxHash,
-               t.String1 as AddressHash,
-               t.Time,
-               p.String1 as Lang,
-               t.Type,
-               p.String2 as Caption,
-               p.String3 as Message,
-               p.String7 as Url,
-               p.String4 as Tags,
-               p.String5 as Images,
-               p.String6 as Settings
-        FROM Transactions t indexed by Transactions_Height_Time
-        JOIN Payload p on t.Hash = p.TxHash
-        where t.Id > ifnull((select max(t0.Id) from Transactions t0 indexed by Transactions_Type_Last_String2_Height where t0.Type in (200, 201) and t0.String2 = ? and t0.Last = 1),0)
-          and t.Last = 1
-          and t.Height <= ?
-          and t.Time <= ?
-          and t.String3 is null
-          and p.String1 = ?
-          and t.Type in (200, 201)
-        order by t.Height desc, t.Time desc
-        limit ?
-    )sql";
+            SELECT t.String2 as RootTxHash,
+                case when t.Hash != t.String2 then 'true' else '' end edit,
+                t.String3 as RelayTxHash,
+                t.String1 as AddressHash,
+                t.Time,
+                p.String1 as Lang,
+                t.Type,
+                p.String2 as Caption,
+                p.String3 as Message,
+                p.String7 as Url,
+                p.String4 as Tags,
+                p.String5 as Images,
+                p.String6 as Settings
+            FROM Transactions t indexed by Transactions_Height_Time
+            JOIN Payload p on t.Hash = p.TxHash
+            where t.Id > ifnull((select max(t0.Id) from Transactions t0 indexed by Transactions_Type_Last_String2_Height where t0.Type in (200, 201) and t0.String2 = ? and t0.Last = 1),0)
+            and t.Last = 1
+            and t.Height <= ?
+            and t.Time <= ?
+            and t.String3 is null
+            and p.String1 = ?
+            and t.Type in (200, 201)
+            order by t.Height desc, t.Time desc
+            limit ?
+        )sql";
 
         map<string, UniValue> result{};
 
@@ -850,17 +850,28 @@ namespace PocketDb
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", valueStr); // caption
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", valueStr); // message
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", valueStr); // url
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 10); ok)
+                
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok)
                 {
                     UniValue t(UniValue::VARR);
+                    t.read(value);
                     record.pushKV("t", t);
                 }
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 11); ok)
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
                 {
-                    UniValue t(UniValue::VARR);
-                    record.pushKV("i", t);
+                    UniValue i(UniValue::VARR);
+                    i.read(value);
+                    record.pushKV("i", i);
                 }
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 12); ok) record.pushKV("settings", valueStr);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
+                {
+                    UniValue s(UniValue::VOBJ);
+                    s.read(value);
+                    record.pushKV("s", s);
+                }
+                
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
