@@ -33,6 +33,7 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_PUBKEYHASH: return "pubkeyhash";
     case TX_SCRIPTHASH: return "scripthash";
     case TX_MULTISIG: return "multisig";
+    case TX_CLTV: return "cltv";
     case TX_NULL_DATA: return "nulldata";
     case TX_WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
@@ -85,6 +86,31 @@ static bool MatchMultisig(const CScript& script, unsigned int& required, std::ve
     unsigned int keys = CScript::DecodeOP_N(opcode);
     if (pubkeys.size() != keys || keys < required) return false;
     return (it + 1 == script.end());
+}
+
+// TODO(only1question): Sig script for CLTV
+static bool MatchCltv(const CScript& script)
+{
+    /*return script.size() == 93 &&
+    script[0] == OP_DUP &&
+    script[1] == OP_IF &&
+    script[2] == OP_SHA256 &&
+    script[3] == 32 &&
+    script[36] == OP_EQUALVERIFY &&
+    script[37] == OP_DUP &&
+    script[38] == OP_HASH160 &&
+    script[39] == 20 &&
+    script[60] == OP_ELSE &&
+    script[61] == 3 &&
+    script[65] == OP_CHECKLOCKTIMEVERIFY &&
+    script[66] == OP_DROP &&
+    script[67] == OP_DUP &&
+    script[68] == OP_HASH160 &&
+    script[69] == 20 &&
+    script[90] == OP_ENDIF &&
+    script[91] == OP_EQUALVERIFY &&
+    script[92] == OP_CHECKSIG;*/
+    return false;
 }
 
 txnouttype Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned char>>& vSolutionsRet)
@@ -146,6 +172,18 @@ txnouttype Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned 
         vSolutionsRet.insert(vSolutionsRet.end(), keys.begin(), keys.end());
         vSolutionsRet.push_back({static_cast<unsigned char>(keys.size())}); // safe as size is in range 1..16
         return TX_MULTISIG;
+    }
+
+    if (MatchCltv(scriptPubKey))
+    {
+        // TODO(only1question): CLTV
+        /*std::vector<unsigned char> hashBytesReciever(scriptPubKey.begin() + 40, scriptPubKey.begin() + 60);
+        std::vector<unsigned char> hashBytesSender(scriptPubKey.begin() + 70, scriptPubKey.begin() + 90);
+
+        vSolutionsRet.push_back(hashBytesReciever);
+        vSolutionsRet.push_back(hashBytesSender);*/
+
+        return TX_CLTV;
     }
 
     vSolutionsRet.clear();

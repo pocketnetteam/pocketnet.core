@@ -162,6 +162,8 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         break;
     }
+    case TX_CLTV: // TODO(only1question): double check for CLTV
+        return IsMineResult::INVALID;
     }
 
     if (ret == IsMineResult::NO && keystore.HaveWatchOnly(scriptPubKey)) {
