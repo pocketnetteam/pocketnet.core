@@ -4150,10 +4150,12 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
             int scoreSum = _itm["scoreSum"].As<int>();
             int scoreCnt = _itm["scoreCnt"].As<int>();
             if (item.GetJoined().size() > 0 && item.GetJoined()[0].Count() > 0) {
-                Item _jitm = item.GetJoined()[0][0].GetItem();
-                std::string liker = _jitm["address"].As<string>();
-                if (std::find(contentLikers[author].begin(), contentLikers[author].end(), liker) == contentLikers[author].end()) {
-                    contentLikers[author].emplace_back(liker);
+                for (auto &jitem : item.GetJoined()[0]) {
+                    Item _jitm = jitem.GetItem();
+                    std::string liker = _jitm["address"].As<string>();
+                    if (std::find(contentLikers[author].begin(), contentLikers[author].end(), liker) == contentLikers[author].end()) {
+                        contentLikers[author].emplace_back(liker);
+                    }
                 }
             }
             mapStatistic[author]["scoreSum"] += scoreSum;
