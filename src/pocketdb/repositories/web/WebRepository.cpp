@@ -886,15 +886,23 @@ namespace PocketDb
                 auto[ok, txid] = TryGetColumnString(*stmt, 0);
                 record.pushKV("txid", txid);
 
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("edit", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("repost", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("address", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", valueStr); // lang
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", valueStr); // caption
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", valueStr); // message
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", valueStr); // url
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("edit", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("repost", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
+                {
+                    record.pushKV("address", value);
+
+                    // TODO (mavreh): tmp userprofile
+                    UniValue up(UniValue::VOBJ);
+                    up.pushKV("address", value);
+                    record.pushKV("userprofile", up);
+                }
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok)
                 {
