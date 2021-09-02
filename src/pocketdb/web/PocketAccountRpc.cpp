@@ -40,7 +40,8 @@ namespace PocketWeb::PocketWebRpc
                 "getuserprofile \"address\" ( shortForm )\n"
                 "\nReturn Pocketnet user profile.\n");
 
-        RPCTypeCheck(request.params, {UniValue::VSTR});
+        if (request.params.empty())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
 
         vector<string> addresses;
         if (request.params[0].isStr())
