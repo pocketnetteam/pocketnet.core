@@ -750,27 +750,15 @@ static bool rest_topaddresses(HTTPRequest* req, const std::string& strURIPart)
             count = 1000;
     }
 
-    switch (rf)
+    if (rf == RetFormat::JSON)
     {
-        case RetFormat::JSON:
-        {
-            // TODO (brangr): implement
-            // if (auto[ok, val] = PocketDb::TransRepoInst.GetAddressInfo(count); ok)
-            // {
-            //     req->WriteHeader("Content-Type", "application/json");
-            //     req->WriteReply(HTTP_OK, val->Serialize()->write() + "\n");
-            //     return true;
-            // }
-            // else
-            {
-                return RESTERR(req, HTTP_INTERNAL_SERVER_ERROR, "internal error");
-            }
-        }
-        default:
-        {
-            return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
-        }
+        auto result = req->DbConnection()->WebRepoInst->GetAddressInfo(count);
+        req->WriteHeader("Content-Type", "application/json");
+        req->WriteReply(HTTP_OK, result.write() + "\n");
+        return true;
     }
+
+    return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
 }
 
 static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)

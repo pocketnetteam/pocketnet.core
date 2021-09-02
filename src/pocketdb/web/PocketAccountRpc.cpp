@@ -33,12 +33,6 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetReputations(const JSONRPCRequest& request)
-    {
-        // TODO (team): implement
-        return UniValue();
-    }
-
     UniValue GetUserProfile(const JSONRPCRequest& request)
     {
         if (request.fHelp)
@@ -46,8 +40,7 @@ namespace PocketWeb::PocketWebRpc
                 "getuserprofile \"address\" ( shortForm )\n"
                 "\nReturn Pocketnet user profile.\n");
 
-        if (request.params.empty())
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+        RPCTypeCheck(request.params, {UniValue::VSTR});
 
         vector<string> addresses;
         if (request.params[0].isStr())
@@ -85,18 +78,10 @@ namespace PocketWeb::PocketWebRpc
                 "getuseraddress \"user_name\" ( count )\n"
                 "\nGet list addresses of user.\n");
 
-        // TODO (team): check argument exists for 0 item in params
+        RPCTypeCheck(request.params, {UniValue::VSTR});
 
-        string userName;
-        if (!request.params[0].isNull())
-        {
-            RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-            userName = request.params[0].get_str();
-        }
-
-        auto result = request.DbConnection()->WebRepoInst->GetUserAddress(userName);
-
-        return result;
+        string userName = request.params[0].get_str();
+        return request.DbConnection()->WebRepoInst->GetUserAddress(userName);
     }
 
     UniValue GetAddressRegistration(const JSONRPCRequest& request)
@@ -144,9 +129,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto result = request.DbConnection()->WebRepoInst->GetAddressesRegistrationDates(addresses);
-
-        return result;
+        return request.DbConnection()->WebRepoInst->GetAddressesRegistrationDates(addresses);
     }
 
     UniValue GetUserState(const JSONRPCRequest& request)

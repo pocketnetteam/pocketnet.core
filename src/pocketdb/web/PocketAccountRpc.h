@@ -14,7 +14,6 @@ namespace PocketWeb::PocketWebRpc
     using namespace std;
     using namespace PocketConsensus;
 
-    UniValue GetReputations(const JSONRPCRequest& request);
     UniValue GetUserProfile(const JSONRPCRequest& request);
     UniValue GetUserAddress(const JSONRPCRequest& request);
     UniValue GetAddressRegistration(const JSONRPCRequest& request);
