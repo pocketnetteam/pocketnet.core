@@ -44,7 +44,6 @@ static const CRPCCommand commands[] =
     {"artifacts", "getrawtransactionwithmessagebyid", &getrawtransactionwithmessagebyid,  {"ids"}},
     {"artifacts", "getrawtransactionwithmessage",     &gettemplate,                       {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getmissedinfo",                    &gettemplate,                       {"address", "blocknumber"}},
-    {"artifacts", "gettime",                          &gettemplate,                       {}},
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
     {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
     {"artifacts", "search",                           &gettemplate,                       {"search_string", "type", "count"}},
@@ -52,10 +51,6 @@ static const CRPCCommand commands[] =
     {"artifacts", "gethotposts",                      &gettemplate,                       {"count", "depth", "height", "lang", "contenttypes"}},
     {"artifacts", "getcontents",                      &gettemplate,                       {"address"}},
     {"artifacts", "gettags",                          &gettemplate,                       {"address", "count"}},
-    {"artifacts", "getaddressscores",                 &gettemplate,                       {"address", "txs"}},
-    {"artifacts", "getpostscores",                    &gettemplate,                       {"txs", "address"}},
-    {"artifacts", "getpagescores",                    &gettemplate,                       {"txs", "address", "cmntids"}},
-    {"artifacts", "getaddressid",                     &gettemplate,                       {"address"}},
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecomendedsubscriptionsforuser",&gettemplate,                       {"address", "count"}},
 
@@ -67,7 +62,7 @@ static const CRPCCommand commands[] =
     // Comments
     {"comments",        "getcomments",                      &GetComments,                   {"postid", "parentid", "address", "ids"}},
     {"comments",        "getlastcomments",                  &GetLastComments,               {"count", "address"}},
-    // TODO (team): implement
+    // TODO (mavreh): implement
     // GetCommentsByPost
     // GetCommentsByIds
 
@@ -76,9 +71,8 @@ static const CRPCCommand commands[] =
     { "accounts",       "getuseraddress",                   &GetUserAddress,                {"name"}},
     { "accounts",       "getaddressregistration",           &GetAddressRegistration,        {"addresses"}},
     { "accounts",       "getuserstate",                     &GetUserState,                  {"address"}},
-    {"artifacts",       "txunspent",                        &GetUnspents,                   {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
-    // TODO (team): maybe remove
-    // { "accounts",       "getreputations",                &GetReputations,                {}},
+    { "accounts",       "txunspent",                        &GetUnspents,                   {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
+    { "accounts",       "getaddressid",                     &GetAddressId,                  {"address_or_id"}},
 
     // Scores
     {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},
@@ -98,6 +92,7 @@ static const CRPCCommand commands[] =
     // System
     { "system",         "getpeerinfo",                      &GetPeerInfo,                   {}},
     { "system",         "getnodeinfo",                      &GetNodeInfo,                   {}},
+    { "system",         "gettime",                          &GetTime,                       {}},
 
     { "transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                {"hexstring", "message", "type"}},
     { "transaction",    "addtransaction",                   &AddTransaction,                {"hexstring", "message", "type"}},

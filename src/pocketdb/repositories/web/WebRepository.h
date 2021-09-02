@@ -30,26 +30,28 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        UniValue GetUserAddress(string& name);
-        UniValue GetAddressesRegistrationDates(vector<string>& addresses);
+        UniValue GetAddressId(const string& address);
+        UniValue GetAddressId(int64_t id);
+        UniValue GetUserAddress(const string& name);
+        UniValue GetAddressesRegistrationDates(const vector<string>& addresses);
         UniValue GetAddressInfo(int count);
         UniValue GetAccountState(const string& address, int heightWindow);
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
-        UniValue GetCommentsByIds(string& addressHash, vector<string>& commentHashes);
-        UniValue GetLastComments(int count, int height, string lang = "");
-        UniValue GetPostScores(vector<string>& postHashes, string& address);
-        UniValue GetPageScores(vector<string>& commentHashes, string& addressHash);
-        map<string, UniValue> GetUserProfile(vector<string>& addresses, bool shortForm = true, int option = 0);
-        map<string, UniValue> GetSubscribesAddresses(vector<string>& addresses);
-        map<string, UniValue> GetSubscribersAddresses(vector<string>& addresses);
-        map<string, UniValue> GetBlockingToAddresses(vector<string>& addresses);
+        UniValue GetCommentsByIds(const string& addressHash, const vector<string>& commentHashes);
+        UniValue GetLastComments(int count, int height, const string& lang = "");
+        UniValue GetPostScores(const vector<string>& postHashes, const string& address);
+        UniValue GetPageScores(const vector<string>& commentHashes, const string& addressHash);
+        map<string, UniValue> GetUserProfile(const vector<string>& addresses, bool shortForm = true, int option = 0);
+        map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses);
+        map<string, UniValue> GetSubscribersAddresses(const vector<string>& addresses);
+        map<string, UniValue> GetBlockingToAddresses(const vector<string>& addresses);
 
-        map<string, UniValue> GetContentsData(vector<string>& txids);
+        map<string, UniValue> GetContentsData(const vector<string>& txids);
         //map<string, UniValue> GetContents(map<string, param>& conditions, optional<int> &counttotal);
         //map<string, UniValue> GetContents(map<string, param>& conditions);
         map<string, UniValue> GetContents(int nHeight, const string& start_txid, int countOut, const string& lang,
-            vector<string>& tags, vector<int>& contentTypes, vector<string>& txidsExcluded, vector<string>& adrsExcluded,
-            vector<string>& tagsExcluded, const string& address);
+            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
             
         UniValue GetUnspents(vector<string>& addresses, int height);
 

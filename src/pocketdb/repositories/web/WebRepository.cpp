@@ -3,13 +3,76 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "WebRepository.h"
+
 namespace PocketDb
 {
     void WebRepository::Init() {}
 
     void WebRepository::Destroy() {}
 
-    UniValue WebRepository::GetUserAddress(string& name)
+    UniValue WebRepository::GetAddressId(const string& address)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            SELECT String1, Id
+            FROM Transactions
+            WHERE Type in (100, 101, 102)
+              and Height is not null
+              and Last = 1
+              and String1 = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) result.pushKV("id", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue WebRepository::GetAddressId(int64_t id)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            SELECT String1, Id
+            FROM Transactions
+            WHERE Type in (100, 101, 102)
+              and Height is not null
+              and Last = 1
+              and Id = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementInt64(stmt, 1, id);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) result.pushKV("id", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue WebRepository::GetUserAddress(const string& name)
     {
         UniValue result(UniValue::VARR);
 
@@ -44,7 +107,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRepository::GetAddressesRegistrationDates(vector<string>& addresses)
+    UniValue WebRepository::GetAddressesRegistrationDates(const vector<string>& addresses)
     {
         string sql = R"sql(
             WITH addresses (String1, Height) AS (
@@ -206,7 +269,7 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRepository::GetUserProfile(vector<string>& addresses, bool shortForm, int option)
+    map<string, UniValue> WebRepository::GetUserProfile(const vector<string>& addresses, bool shortForm, int option)
     {
         map<string, UniValue> result{};
 
@@ -246,9 +309,8 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            size_t i = 1;
-            for (const auto& address : addresses)
-                TryBindStatementText(stmt, i++, address);
+            for (int i = 0; i < (int) addresses.size(); i++)
+                TryBindStatementText(stmt, i + 1, addresses[i]);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -293,7 +355,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRepository::GetLastComments(int count, int height, string lang)
+    UniValue WebRepository::GetLastComments(int count, int height, const string& lang)
     {
         auto sql = R"sql(
             WITH RowIds AS (
@@ -435,7 +497,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRepository::GetCommentsByIds(string& addressHash, vector<string>& commentHashes)
+    UniValue WebRepository::GetCommentsByIds(const string& addressHash, const vector<string>& commentHashes)
     {
         string sql = R"sql(
             SELECT
@@ -490,7 +552,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRepository::GetPostScores(vector<string>& postHashes, string& addressHash)
+    UniValue WebRepository::GetPostScores(const vector<string>& postHashes, const string& addressHash)
     {
         auto result = UniValue(UniValue::VARR);
 
@@ -553,7 +615,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRepository::GetPageScores(vector<string>& commentHashes, string& addressHash)
+    UniValue WebRepository::GetPageScores(const vector<string>& commentHashes, const string& addressHash)
     {
         string sql = R"sql(
             select
@@ -658,7 +720,7 @@ namespace PocketDb
         return record;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribesAddresses(vector<string>& addresses)
+    map<string, UniValue> WebRepository::GetSubscribesAddresses(const vector<string>& addresses)
     {
         string sql = R"sql(
             select String1 as AddressHash,
@@ -701,7 +763,7 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribersAddresses(vector<string>& addresses)
+    map<string, UniValue> WebRepository::GetSubscribersAddresses(const vector<string>& addresses)
     {
         string sql = R"sql(
             SELECT String2 as AddressToHash,
@@ -737,7 +799,7 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRepository::GetBlockingToAddresses(vector<string>& addresses)
+    map<string, UniValue> WebRepository::GetBlockingToAddresses(const vector<string>& addresses)
     {
         string sql = R"sql(
             SELECT String1 as AddressHash,
@@ -774,8 +836,8 @@ namespace PocketDb
     }
 
     map<string, UniValue> WebRepository::GetContents(int nHeight, const string& start_txid, int countOut, const string& lang,
-        vector<string>& tags, vector<int>& contentTypes, vector<string>& txidsExcluded, vector<string>& adrsExcluded,
-        vector<string>& tagsExcluded, const string& address)
+        const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+        const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
     {
         string sql = R"sql(
             SELECT
@@ -833,7 +895,7 @@ namespace PocketDb
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", valueStr); // caption
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", valueStr); // message
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", valueStr); // url
-                
+
                 if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok)
                 {
                     UniValue t(UniValue::VARR);
@@ -854,7 +916,7 @@ namespace PocketDb
                     s.read(value);
                     record.pushKV("s", s);
                 }
-                
+
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
@@ -1163,7 +1225,7 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
                     record.pushKV("coinbase", value == 2 || value == 3);
                     record.pushKV("pockettx", value > 3);
                 }
-                
+
                 result.push_back(record);
             }
 

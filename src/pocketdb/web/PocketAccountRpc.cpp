@@ -6,6 +6,23 @@
 
 namespace PocketWeb::PocketWebRpc
 {
+    UniValue GetAddressId(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "getaddressid \"address\" or \"id\"\n"
+                "\nGet id and address.\n");
+
+        if (request.params.empty())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
+
+        if (request.params[0].isNum())
+            return request.DbConnection()->WebRepoInst->GetAddressId(request.params[0].get_int64());
+        else if (request.params[0].isStr())
+            return request.DbConnection()->WebRepoInst->GetAddressId(request.params[0].get_str());
+
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
+    }
 
     map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm, int option)
     {
@@ -41,7 +58,7 @@ namespace PocketWeb::PocketWebRpc
                 "\nReturn Pocketnet user profile.\n");
 
         if (request.params.empty())
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
 
         vector<string> addresses;
         if (request.params[0].isStr())
@@ -236,18 +253,22 @@ namespace PocketWeb::PocketWebRpc
                 "3. maxconf          (numeric, optional, default=9999999) The maximum confirmations to filter\n");
 
         vector<string> destinations;
-        if (request.params.size() > 0) {
+        if (request.params.size() > 0)
+        {
             RPCTypeCheckArgument(request.params[0], UniValue::VARR);
             UniValue inputs = request.params[0].get_array();
-            for (unsigned int idx = 0; idx < inputs.size(); idx++) {
+            for (unsigned int idx = 0; idx < inputs.size(); idx++)
+            {
                 const UniValue& input = inputs[idx];
                 CTxDestination dest = DecodeDestination(input.get_str());
 
-                if (!IsValidDestination(dest)) {
+                if (!IsValidDestination(dest))
+                {
                     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + input.get_str());
                 }
 
-                if (find(destinations.begin(), destinations.end(), input.get_str()) == destinations.end()) {
+                if (find(destinations.begin(), destinations.end(), input.get_str()) == destinations.end())
+                {
                     destinations.push_back(input.get_str());
                 }
             }
@@ -295,7 +316,7 @@ namespace PocketWeb::PocketWebRpc
         //     if (options.exists("maximumCount"))
         //         nMaximumCount = options["maximumCount"].get_int64();
         // }
-       
+
         // Check exists TX in mempool
         // // T_O_D_O: LOCK(mempool.cs);
         // for (const auto& e : mempool.mapTx) {
