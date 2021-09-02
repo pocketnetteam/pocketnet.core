@@ -438,40 +438,33 @@ namespace PocketDb
     UniValue WebRepository::GetCommentsByIds(string& addressHash, vector<string>& commentHashes)
     {
         string sql = R"sql(
-            SELECT c.Type,
-            c.Hash,
-            c.RootTxHash,
-            c.PostTxHash,
-            c.AddressHash,
-            r.Time AS RootTime,
-            c.Time,
-            c.Height,
-            pl.String2 AS Msg,
-            c.ParentTxHash,
-            c.AnswerTxHash,
-            (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = 1) as ScoreUp,
-            (SELECT COUNT(1) FROM vScoreComments sc WHERE sc.CommentTxHash = c.Hash  AND sc.Value = -1) as ScoreDown,
-            (SELECT r.Value FROM Ratings r WHERE r.Id = c.Id  AND r.Type = 3) as Reputation,
-            IFNULL(SC.Value, 0) AS MyScore,
-            (SELECT COUNT(1) FROM vComments s WHERE s.ParentTxHash = c.RootTxHash AND s.Last = 1) AS ChildrenCount
-            FROM vComments c
-            INNER JOIN vComments r ON c.RootTxHash = r.Hash
-            INNER JOIN Payload pl ON pl.TxHash = c.Hash
-            LEFT JOIN vScoreComments sc ON sc.CommentTxHash = C.RootTxHash AND IFNULL(sc.AddressHash, '') = ?
-            WHERE c.Time < ?
-                AND c.Last = 1
+            SELECT
+                c.Type,
+                c.Hash,
+                c.String2 as RootTxHash,
+                c.String3 as PostTxHash,
+                c.String1 as AddressHash,
+                r.Time AS RootTime,
+                c.Time,
+                c.Height,
+                pl.String2 AS Msg,
+                c.String4 as ParentTxHash,
+                c.String5 as AnswerTxHash,
+                (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
+                (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
+                (SELECT r.Value FROM Ratings r WHERE r.Id=c.Id AND r.Type=3 and r.Height=(select max(r1.Height) from Ratings r1 where r1.Type=3 and r1.Id=r.Id)) as Reputation,
+                IFNULL(sc.Int1, 0) AS MyScore,
+                (SELECT COUNT(1) FROM Transactions s WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount
+            FROM Transactions c
+            JOIN Transactions r on r.Type in (204,205) and r.Height is not null and r.Hash=c.String2
+            JOIN Payload pl ON pl.TxHash = c.Hash
+            LEFT JOIN Transactions sc on sc.Type in (301) and sc.Height is not null and sc.String2=c.String2 and sc.String1=?
+            WHERE c.Type in (204,205)
+                and c.Height is not null
+                and c.Last = 1
+                and c.Time < ?
+                and c.String2 in ()sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql()
         )sql";
-
-        sql += "AND c.RootTxHash IN ('";
-        sql += commentHashes[0];
-        sql += "'";
-        for (size_t i = 1; i < commentHashes.size(); i++)
-        {
-            sql += ",'";
-            sql += commentHashes[i];
-            sql += "'";
-        }
-        sql += ")";
 
         auto result = UniValue(UniValue::VARR);
 
@@ -482,10 +475,12 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, addressHash);
             TryBindStatementInt64(stmt, 2, GetAdjustedTime());
 
+            for (size_t i = 0; i < commentHashes.size(); i++)
+                TryBindStatementText(stmt, (int) i + 3, commentHashes[i]);
+
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto record = ParseCommentRow(*stmt);
-
                 result.push_back(record);
             }
 
