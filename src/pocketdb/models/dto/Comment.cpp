@@ -50,7 +50,7 @@ namespace PocketTx
             SetRootTxHash(val);
     }
 
-    void Comment::DeserializeRpc(const UniValue& src)
+    void Comment::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
@@ -84,9 +84,9 @@ namespace PocketTx
     shared_ptr <string> Comment::GetPayloadMsg() const { return Transaction::GetPayload()->GetString1(); }
     void Comment::SetPayloadMsg(string value) { Transaction::GetPayload()->SetString1(value); }
 
-    void Comment::DeserializePayload(const UniValue& src)
+    void Comment::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        Transaction::DeserializePayload(src);
+        Transaction::DeserializePayload(src, tx);
 
         if (auto[ok, val] = TryGetStr(src, "msg"); ok) SetPayloadMsg(val);
     }

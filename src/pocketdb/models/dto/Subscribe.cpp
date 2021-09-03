@@ -36,7 +36,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "address_to"); ok) SetAddressTo(val);
     }
 
-    void Subscribe::DeserializeRpc(const UniValue& src)
+    void Subscribe::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddressTo(val);
@@ -48,7 +48,7 @@ namespace PocketTx
     shared_ptr <string> Subscribe::GetAddressTo() const { return m_string2; }
     void Subscribe::SetAddressTo(string value) { m_string2 = make_shared<string>(value); }
 
-    void Subscribe::DeserializePayload(const UniValue& src)
+    void Subscribe::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
     }
 

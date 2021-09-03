@@ -22,7 +22,7 @@ namespace PocketTx
 
     }
 
-    void Coinstake::DeserializePayload(const UniValue& src)
+    void Coinstake::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
 
     }

@@ -17,13 +17,13 @@ namespace PocketTx
         SetType(PocketTxType::CONTENT_COMMENT_DELETE);
     }
 
-    void CommentDelete::DeserializeRpc(const UniValue& src)
+    void CommentDelete::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        Comment::DeserializeRpc(src);
+        Comment::DeserializeRpc(src, tx);
         ClearPayload();
     }
 
-    void CommentDelete::DeserializePayload(const UniValue& src)
+    void CommentDelete::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
 
     }

@@ -72,7 +72,7 @@ namespace PocketTx
                 SetRootTxHash(valTxId);
     }
 
-    void Post::DeserializeRpc(const UniValue& src)
+    void Post::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
@@ -106,9 +106,9 @@ namespace PocketTx
 
     bool Post::IsEdit() const { return *m_string2 != *m_hash; }
 
-    void Post::DeserializePayload(const UniValue& src)
+    void Post::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        Transaction::DeserializePayload(src);
+        Transaction::DeserializePayload(src, tx);
 
         if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
         else m_payload->SetString1("en");

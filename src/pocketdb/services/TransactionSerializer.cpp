@@ -102,7 +102,7 @@ namespace PocketServices
             }
 
             ptx->Deserialize(txDataSrc);
-            ptx->DeserializePayload(txDataSrc);
+            ptx->DeserializePayload(txDataSrc, tx);
         }
 
         return ptx;
@@ -122,7 +122,7 @@ namespace PocketServices
         if (!buildOutputs(tx, ptx))
             return nullptr;
 
-        ptx->DeserializeRpc(src);
+        ptx->DeserializeRpc(src, tx);
         return ptx;
     }
 
