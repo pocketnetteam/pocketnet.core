@@ -14,6 +14,8 @@ namespace PocketTx
     {
     public:
         Coinbase(const string& hash, int64_t time);
+        Coinbase(const std::shared_ptr<const CTransaction>& tx);
+
         void Deserialize(const UniValue& src) override;
     protected:
         void DeserializePayload(const UniValue& src) override;

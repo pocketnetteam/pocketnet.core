@@ -13,6 +13,8 @@ namespace PocketTx
     {
     public:
         SubscribePrivate(const string& hash, int64_t time);
+        SubscribePrivate(const std::shared_ptr<const CTransaction>& tx);
+
         shared_ptr<UniValue> Serialize() const override;
     };
 

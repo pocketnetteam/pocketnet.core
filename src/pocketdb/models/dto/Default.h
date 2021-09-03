@@ -13,6 +13,8 @@ namespace PocketTx
     {
     public:
         Default(const string& hash, int64_t time);
+        Default(const std::shared_ptr<const CTransaction>& tx);
+
         void Deserialize(const UniValue& src) override;
     protected:
         void DeserializePayload(const UniValue& src) override;

@@ -13,6 +13,7 @@ namespace PocketTx
     {
     public:
         Comment(const string& hash, int64_t time);
+        Comment(const std::shared_ptr<const CTransaction>& tx);
 
         shared_ptr <UniValue> Serialize() const override;
 

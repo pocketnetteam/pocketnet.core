@@ -2,6 +2,7 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <primitives/transaction.h>
 #include "pocketdb/models/base/Transaction.h"
 
 namespace PocketTx
@@ -11,6 +12,12 @@ namespace PocketTx
     {
         SetHash(hash);
         SetTime(time);
+    }
+
+    Transaction::Transaction(const std::shared_ptr<const CTransaction>& tx) : Base()
+    {
+        SetHash(tx->GetHash().GetHex());
+        SetTime(tx->nTime);
     }
 
     shared_ptr <UniValue> Transaction::Serialize() const

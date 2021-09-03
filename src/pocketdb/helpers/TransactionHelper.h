@@ -62,6 +62,7 @@ namespace PocketHelpers
         static bool IsPocketTransaction(const CTransaction& tx);
         static tuple<bool, shared_ptr<ScoreDataDto>> ParseScore(const CTransactionRef& tx);
         static PTransactionRef CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime);
+        static PTransactionRef CreateInstance(PocketTxType txType, const CTransactionRef& tx);
     };
 }
 

@@ -222,6 +222,69 @@ namespace PocketHelpers
         return make_tuple(finalCheck, scoreData);
     }
 
+    PTransactionRef TransactionHelper::CreateInstance(PocketTxType txType, const CTransactionRef& tx)
+    {
+        PTransactionRef ptx = nullptr;
+        switch (txType)
+        {
+            case TX_COINBASE:
+                ptx = make_shared<Coinbase>(tx);
+                break;
+            case TX_COINSTAKE:
+                ptx = make_shared<Coinstake>(tx);
+                break;
+            case TX_DEFAULT:
+                ptx = make_shared<Default>(tx);
+                break;
+            case ACCOUNT_USER:
+                ptx = make_shared<User>(tx);
+                break;
+            case CONTENT_POST:
+                ptx = make_shared<Post>(tx);
+                break;
+            case CONTENT_VIDEO:
+                ptx = make_shared<Video>(tx);
+                break;
+            case CONTENT_COMMENT:
+                ptx = make_shared<Comment>(tx);
+                break;
+            case CONTENT_COMMENT_EDIT:
+                ptx = make_shared<CommentEdit>(tx);
+                break;
+            case CONTENT_COMMENT_DELETE:
+                ptx = make_shared<CommentDelete>(tx);
+                break;
+            case ACTION_SCORE_CONTENT:
+                ptx = make_shared<ScoreContent>(tx);
+                break;
+            case ACTION_SCORE_COMMENT:
+                ptx = make_shared<ScoreComment>(tx);
+                break;
+            case ACTION_SUBSCRIBE:
+                ptx = make_shared<Subscribe>(tx);
+                break;
+            case ACTION_SUBSCRIBE_PRIVATE:
+                ptx = make_shared<SubscribePrivate>(tx);
+                break;
+            case ACTION_SUBSCRIBE_CANCEL:
+                ptx = make_shared<SubscribeCancel>(tx);
+                break;
+            case ACTION_BLOCKING:
+                ptx = make_shared<Blocking>(tx);
+                break;
+            case ACTION_BLOCKING_CANCEL:
+                ptx = make_shared<BlockingCancel>(tx);
+                break;
+            case ACTION_COMPLAIN:
+                ptx = make_shared<Complain>(tx);
+                break;
+            default:
+                return nullptr;
+        }
+
+        return ptx;
+    }
+
     PTransactionRef TransactionHelper::CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime)
     {
         PTransactionRef ptx = nullptr;

@@ -13,6 +13,7 @@ namespace PocketTx
     {
     public:
         CommentEdit(const string& hash, int64_t time);
+        CommentEdit(const std::shared_ptr<const CTransaction>& tx);
     };
 } // namespace PocketTx
 

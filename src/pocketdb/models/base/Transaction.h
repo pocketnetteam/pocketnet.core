@@ -23,6 +23,8 @@ namespace PocketTx
     public:
         Transaction(const string& hash, int64_t time);
 
+        explicit Transaction(const std::shared_ptr<const CTransaction>& tx);
+
         virtual shared_ptr<UniValue> Serialize() const;
 
         virtual void Deserialize(const UniValue& src);

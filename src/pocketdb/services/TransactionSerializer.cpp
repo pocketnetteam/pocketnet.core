@@ -74,13 +74,11 @@ namespace PocketServices
 
     shared_ptr <Transaction> TransactionSerializer::buildInstance(const CTransactionRef& tx, const UniValue& src)
     {
-        auto txHash = tx->GetHash().GetHex();
-
         PocketTxType txType;
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
             return nullptr;
 
-        shared_ptr <Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, txHash, tx->nTime);
+        shared_ptr <Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, tx);
         if (!ptx)
             return nullptr;
 
@@ -112,13 +110,11 @@ namespace PocketServices
 
     shared_ptr <Transaction> TransactionSerializer::buildInstanceRpc(const CTransactionRef& tx, const UniValue& src)
     {
-        auto txHash = tx->GetHash().GetHex();
-
         PocketTxType txType;
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
             return nullptr;
 
-        shared_ptr <Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, txHash, tx->nTime);
+        shared_ptr <Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, tx);
         if (!ptx)
             return nullptr;
 

@@ -1,8 +1,14 @@
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/ScoreComment.h"
 
 namespace PocketTx
 {
     ScoreComment::ScoreComment(const string& hash, int64_t time) : Transaction(hash, time)
+    {
+        SetType(PocketTxType::ACTION_SCORE_COMMENT);
+    }
+
+    ScoreComment::ScoreComment(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::ACTION_SCORE_COMMENT);
     }

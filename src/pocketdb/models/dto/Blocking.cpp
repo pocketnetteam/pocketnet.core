@@ -2,12 +2,18 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/Blocking.h"
 
 namespace PocketTx
 {
 
     Blocking::Blocking(const string& hash, int64_t time) : Transaction(hash, time)
+    {
+        SetType(PocketTxType::ACTION_BLOCKING);
+    }
+
+    Blocking::Blocking(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::ACTION_BLOCKING);
     }
@@ -53,5 +59,6 @@ namespace PocketTx
         data += GetAddressTo() ? *GetAddressTo() : "";
         Transaction::GenerateHash(data);
     }
+
 
 } // namespace PocketTx

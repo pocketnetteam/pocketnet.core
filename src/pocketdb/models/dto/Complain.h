@@ -14,6 +14,7 @@ namespace PocketTx
     public:
 
         Complain(const string& hash, int64_t time);
+        Complain(const std::shared_ptr<const CTransaction>& tx);
 
         shared_ptr<UniValue> Serialize() const override;
 

@@ -11,6 +11,7 @@ namespace PocketTx
     public:
 
         ScoreComment(const string& hash, int64_t time);
+        ScoreComment(const std::shared_ptr<const CTransaction>& tx);
 
         shared_ptr<UniValue> Serialize() const override;
 

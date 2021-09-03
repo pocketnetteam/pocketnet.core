@@ -1,8 +1,14 @@
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/Post.h"
 
 namespace PocketTx
 {
     Post::Post(const string& hash, int64_t time) : Transaction(hash, time)
+    {
+        SetType(PocketTxType::CONTENT_POST);
+    }
+
+    Post::Post(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::CONTENT_POST);
     }

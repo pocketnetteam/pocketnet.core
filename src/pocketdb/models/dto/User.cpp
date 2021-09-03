@@ -2,11 +2,17 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/User.h"
 
 namespace PocketTx
 {
     User::User(const string& hash, int64_t time) : Transaction(hash, time)
+    {
+        SetType(PocketTxType::ACCOUNT_USER);
+    }
+
+    User::User(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::ACCOUNT_USER);
     }
