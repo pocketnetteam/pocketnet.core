@@ -41,6 +41,7 @@ enum ContentType {
     ContentServerPing = 3,
     ContentPoll = 4,
     ContentTranslate = 5,
+    ContentDelete = 6
 };
 
 //-----------------------------------------------------
@@ -127,7 +128,6 @@ public:
 
     // Add new Post with move old version to history table
     Error CommitPostItem(Item& itm, int height);
-
     // Restore previous version of Post
     Error RestorePostItem(std::string posttxid, int height);
 

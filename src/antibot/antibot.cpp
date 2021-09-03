@@ -700,6 +700,73 @@ bool AntiBot::check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool ch
     return true;
 }
 
+bool AntiBot::check_content_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+{
+    std::string _address = oitm["address"].get_str();
+    std::string _txid = oitm["txid"].get_str();         // Original content id
+    std::string _txidEdit = oitm["txidEdit"].get_str(); // new content id
+    int _tx_content_type = oitm["contentType"].get_int();
+    int64_t _time = oitm["time"].get_int64();
+
+    if (_txidEdit.empty())
+    {
+        result = ANTIBOTRESULT::Failed;
+        return false;
+    }
+
+    if (!CheckRegistration(oitm, _address, checkMempool, false, height, blockVtx, result))
+        return false;
+
+    // Content exists?
+    reindexer::Item _content_itm;
+    if (!g_pocketdb->SelectOne(Query("Posts")
+        .Where("txid", CondEq, _txid)
+        .Where("block", CondLt, height), _content_itm).ok())
+    {
+        result = ANTIBOTRESULT::NotFound;
+        return false;
+    }
+
+    // Double deleting not allowed
+    if (_content_itm["type"].As<int>() == (int)ContentDelete)
+    {
+        result = ANTIBOTRESULT::ContentDeleteDouble;
+        return false;
+    }
+
+    // You are author? Really?
+    if (_content_itm["address"].As<string>() != _address)
+    {
+        result = ANTIBOTRESULT::ContentDeleteUnauthorized;
+        return false;
+    }
+
+    // Double delete in block denied
+    if (blockVtx.Exists("Posts"))
+    {
+        for (auto& mtx : blockVtx.Data["Posts"])
+        {
+            if (mtx["txid"].get_str() == _txid && mtx["txidEdit"].get_str() != _txidEdit)
+            {
+                result = ANTIBOTRESULT::ContentDeleteDouble;
+                return false;
+            }
+        }
+    }
+
+    // Double delete in mempool denied
+    if (checkMempool)
+    {
+        if (g_pocketdb->Exists(
+            reindexer::Query("Mempool").Where("table", CondEq, "Posts").Where("txid_source", CondEq, _txid)))
+        {
+            result = ANTIBOTRESULT::ContentDeleteDouble;
+            return false;
+        }
+    }
+
+    return true;
+}
 
 bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
@@ -1933,7 +2000,11 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
 
         if (splitContent)
         {
-            if (tx_type == OR_VIDEO)
+            if (tx_type == OR_CONTENT_DELETE)
+            {
+                check_content_delete(oitm, blockVtx, checkMempool, height, resultCode);
+            }
+            else if (tx_type == OR_VIDEO)
             {
                 if (oitm["txidEdit"].get_str() != "")
                     check_video_edit(oitm, blockVtx, checkMempool, height, resultCode);

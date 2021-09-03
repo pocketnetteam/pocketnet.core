@@ -759,28 +759,28 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     tx.Address = address;
     tx.pTransaction = g_pocketdb->DB()->NewItem(tx.pTable);
 
-    std::string mesType = request.params[2].get_str();
-    if (mesType == "share") return SetShare(request, tx);
-    if (mesType == "upvoteShare") return SetUpvoteShare(request, tx);
-    if (mesType == "subscribe") return SetSubscribe(request, tx);
-    if (mesType == "subscribePrivate") return SetSubscribePrivate(request, tx);
-    if (mesType == "unsubscribe") return SetUnsubscribe(request, tx);
-    if (mesType == "userInfo") return SetUserInfo(request, tx);
-    if (mesType == "complainShare") return SetComplainShare(request, tx);
-    if (mesType == "blocking") return SetBlocking(request, tx);
-    if (mesType == "unblocking") return SetUnblocking(request, tx);
-    if (mesType == "comment") return SetComment(request, tx);
-    if (mesType == "commentEdit") return SetCommentEdit(request, tx);
-    if (mesType == "commentDelete") return SetCommentDelete(request, tx);
-    if (mesType == "cScore") return SetCommentScore(request, tx);
-    if (mesType == "video") return SetVideo(request, tx);
+    //std::string mesType = request.params[2].get_str();
+    if (tx.TxType == OR_POST) return SetShare(request, tx);
+    if (tx.TxType == "upvoteShare") return SetUpvoteShare(request, tx);
+    if (tx.TxType == "subscribe") return SetSubscribe(request, tx);
+    if (tx.TxType == "subscribePrivate") return SetSubscribePrivate(request, tx);
+    if (tx.TxType == "unsubscribe") return SetUnsubscribe(request, tx);
+    if (tx.TxType == "userInfo") return SetUserInfo(request, tx);
+    if (tx.TxType == "complainShare") return SetComplainShare(request, tx);
+    if (tx.TxType == "blocking") return SetBlocking(request, tx);
+    if (tx.TxType == "unblocking") return SetUnblocking(request, tx);
+    if (tx.TxType == "comment") return SetComment(request, tx);
+    if (tx.TxType == "commentEdit") return SetCommentEdit(request, tx);
+    if (tx.TxType == "commentDelete") return SetCommentDelete(request, tx);
+    if (tx.TxType == "cScore") return SetCommentScore(request, tx);
+    if (tx.TxType == "video") return SetVideo(request, tx);
 
     // TODO (brangr): only for pre-release tests
     if (Params().NetworkIDString() == CBaseChainParams::TESTNET) {
-        if (mesType == "serverPing") return SetServerPing(request, tx);
-        if (mesType == "translate") return SetTranslate(request, tx);
-        if (mesType == "videoServer") return SetVideoServer(request, tx);
-        if (mesType == "messageServer") return SetMessageServer(request, tx);
+        if (tx.TxType == "serverPing") return SetServerPing(request, tx);
+        if (tx.TxType == "translate") return SetTranslate(request, tx);
+        if (tx.TxType == "videoServer") return SetVideoServer(request, tx);
+        if (tx.TxType == "messageServer") return SetMessageServer(request, tx);
     }
     
     throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");

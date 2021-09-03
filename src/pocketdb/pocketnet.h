@@ -97,6 +97,8 @@ int64_t GetActualLimit(Limit type, int height);
 #define OR_MESSAGE_SERVER "6d657373616765536572766572" // Messaging server registration over User (userType = 2)
 #define OR_SERVER_PING "73657276657250696e67" // Server ping over Posts
 
+#define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
+
 
 // Check transaction type is pocketnet
 bool IsPocketTX(const CTxOut& out);

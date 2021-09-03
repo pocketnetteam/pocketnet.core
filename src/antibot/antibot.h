@@ -144,7 +144,9 @@ enum ANTIBOTRESULT {
     CommentDeletedEdit = 42,
     ReferrerAfterRegistration = 43,
     NotAllowed = 44,
-    ChangeTxType = 45
+    ChangeTxType = 45,
+    ContentDeleteUnauthorized = 46,
+    ContentDeleteDouble = 47,
 };
 //-----------------------------------------------------
 struct BlockVTX {
@@ -193,6 +195,8 @@ private:
 
     bool check_video(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
     bool check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+
+    bool check_content_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
     // Check new score to post from address
     bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);

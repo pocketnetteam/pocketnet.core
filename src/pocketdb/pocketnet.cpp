@@ -69,7 +69,9 @@ bool ConvertOPToTableName(std::string op, std::string &ri_table)
 {
     bool ret = true;
 
-    if (op == OR_POST)
+    if (op == OR_CONTENT_DELETE)
+        ri_table = "Posts";
+    else if (op == OR_POST)
         ri_table = "Posts";
     else if (op == OR_POSTEDIT)
         ri_table = "Posts";
@@ -863,6 +865,8 @@ std::string getcontenttype(int type)
 {
     switch (type)
     {
+        case ContentDelete:
+            return "contentDelete";
         case ContentPost:
             return "share";
         case ContentVideo:
@@ -881,7 +885,8 @@ std::string getcontenttype(int type)
 }
 int getcontenttype(std::string type)
 {
-    if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return (int)ContentType::ContentPost;
+    if (type == "contentDelete" || type == OR_CONTENT_DELETE) return (int)ContentType::ContentDelete;
+    else if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return (int)ContentType::ContentPost;
     else if (type == "video" || type == OR_VIDEO) return (int)ContentType::ContentVideo;
     else if (type == "verification" || type == OR_VERIFICATION) return (int)ContentType::ContentVerification;
     else if (type == "serverPing" || type == OR_SERVER_PING) return (int)ContentType::ContentServerPing;
