@@ -380,7 +380,17 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
         return false;
     }
 
-    // Posts exists?
+    // Posts not deleted?
+    if (g_pocketdb->Exists(Query("Posts")
+       .Where("txid", CondEq, _txid)
+       .Where("type", CondEq, (int)ContentType::ContentDelete)
+       .Where("block", CondLt, height)))
+    {
+        result = ANTIBOTRESULT::NotAllowed;
+        return false;
+    }
+
+    // Get original post
     reindexer::Item _original_post_itm;
     if (!g_pocketdb->SelectOne(Query("Posts")
         .Where("txid", CondEq, _txid)
@@ -596,11 +606,28 @@ bool AntiBot::check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool ch
     int _tx_content_type = oitm["contentType"].get_int();
     int64_t _time = oitm["time"].get_int64();
 
+    // Check repost
+    if (_txidRepost != "")
+    {
+        result = ANTIBOTRESULT::NotAllowed;
+        return false;
+    }
+
     // User registered?
     if (!CheckRegistration(oitm, _address, checkMempool, false, height, blockVtx, result))
         return false;
 
-    // Posts exists?
+    // Video not deleted?
+    if (g_pocketdb->Exists(Query("Posts")
+       .Where("txid", CondEq, _txid)
+       .Where("type", CondEq, (int)ContentType::ContentDelete)
+       .Where("block", CondLt, height)))
+    {
+        result = ANTIBOTRESULT::NotAllowed;
+        return false;
+    }
+
+    // Get original video tx
     reindexer::Item _original_post_itm;
     if (!g_pocketdb->SelectOne(Query("Posts")
         .Where("txid", CondEq, _txid)
@@ -637,13 +664,6 @@ bool AntiBot::check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool ch
     if (depth > GetActualLimit(Limit::edit_video_timeout, height))
     {
         result = ANTIBOTRESULT::PostEditLimit;
-        return false;
-    }
-
-    // Check repost
-    if (_txidRepost != "")
-    {
-        result = ANTIBOTRESULT::NotAllowed;
         return false;
     }
 

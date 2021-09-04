@@ -108,7 +108,10 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addres
     // Get count of posts by addresses
     reindexer::AggregationResult aggRes;
     std::map<std::string, int> _posts_cnt;
-    if (g_pocketdb->SelectAggr(reindexer::Query("Posts").Where("address", CondSet, addresses).Aggregate("address", AggFacet), "address", aggRes).ok()) {
+    if (g_pocketdb->SelectAggr(reindexer::Query("Posts")
+        .Where("address", CondSet, addresses)
+        .Not().Where("type", CondEq, (int)ContentType::ContentDelete)
+        .Aggregate("address", AggFacet), "address", aggRes).ok()) {
         for (const auto& f : aggRes.facets) {
             _posts_cnt.insert_or_assign(f.value, f.count);
         }
@@ -326,7 +329,9 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
         entry.pushKV("lastComment", oCmnt);
     }
 
-    int totalReposted = g_pocketdb->SelectCount(Query("Posts").Where("txidRepost", CondEq, itm["txid"].As<string>()));
+    int totalReposted = g_pocketdb->SelectCount(Query("Posts")
+            .Where("txidRepost", CondEq, itm["txid"].As<string>())
+            .Not().Where("type", CondEq, (int)ContentType::ContentDelete));
     if (totalReposted > 0)
         entry.pushKV("reposted", totalReposted);
 
@@ -1935,6 +1940,7 @@ UniValue search(const JSONRPCRequest& request)
                 .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
                 .Where(search_string.at(0) == '#' ? "tags" : "caption+message", CondEq, search_string.at(0) == '#' ? search_string.substr(1) : "\"" + search_string + "\"")
                 .Where("address", address == "" ? CondGt : CondEq, address)
+                .Not().Where("type", CondEq, (int)ContentType::ContentDelete)
                 .Sort("time", true)
                 .ReqTotal(),
                 resPostsBySearchString)
@@ -1967,7 +1973,7 @@ UniValue search(const JSONRPCRequest& request)
         if (g_pocketdb->Select(
                 reindexer::Query("Posts", resultStart, resulCount)
                 .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
-                .Where("type", CondEq, getcontenttype("video"))
+                .Where("type", CondEq, (int)ContentType::ContentVideo)
                 .Where("url", CondSet, search_vector)
                 .Where("address", address == "" ? CondGt : CondEq, address)
                 .Sort("time", true)
@@ -2160,6 +2166,8 @@ UniValue gethotposts(const JSONRPCRequest& request)
     }
     if (!contentTypes.empty()) {
         query = query.Where("type", CondSet, contentTypes);
+    } else {
+        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
     }
 
     query = query.Sort("reputation", true);
@@ -2267,7 +2275,10 @@ UniValue getcontents(const JSONRPCRequest& request)
     }
 
     reindexer::QueryResults posts;
-    g_pocketdb->Select(reindexer::Query("Posts").Where("address", CondEq, address), posts);
+    g_pocketdb->Select(reindexer::Query("Posts")
+        .Where("address", CondEq, address)
+        .Not().Where("type", CondEq, (int)ContentType::ContentDelete)
+    , posts);
 
     UniValue aResult(UniValue::VARR);
     for (auto& p : posts) {
@@ -2318,7 +2329,13 @@ UniValue gettags(const JSONRPCRequest& request)
 
     std::map<std::string, int> mapTags;
     reindexer::QueryResults posts;
-    g_pocketdb->Select(reindexer::Query("Posts").Where("block", CondGe, from).Where("lang", (lang == "" ? CondGe : CondEq), lang).Where("address", address == "" ? CondGt : CondEq, address), posts);
+    g_pocketdb->Select(reindexer::Query("Posts")
+        .Where("block", CondGe, from)
+        .Where("lang", (lang == "" ? CondGe : CondEq), lang)
+        .Where("address", address == "" ? CondGt : CondEq, address)
+        .Not().Where("type", CondEq, (int)ContentType::ContentDelete)
+    , posts);
+
     for (auto& p : posts) {
         reindexer::Item postItm = p.GetItem();
 
@@ -3284,6 +3301,8 @@ UniValue gethistoricalstrip(const JSONRPCRequest& request)
     }
     if (!contentTypes.empty()) {
         query = query.Where("type", CondSet, contentTypes);
+    } else {
+        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
     }
     if (!txidsExcluded.empty()) {
         query = query.Not().Where("txid", CondSet, txidsExcluded);
@@ -3536,6 +3555,8 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
     }
     if (!contentTypes.empty()) {
         query = query.Where("type", CondSet, contentTypes);
+    } else {
+        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
     }
     if (!txidsExcluded.empty()) {
         query = query.Not().Where("txid", CondSet, txidsExcluded);
@@ -3598,7 +3619,8 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
             queryPrevsPosts = reindexer::Query("Posts", 0, cntPrevPosts)
                                      .Where("address", CondEq, postaddress)
                                      .Where("block", CondLt, postblockOrig)
-                                     .Where("block", CondGe, postblockOrig - durationBlocksForPrevPosts);
+                                     .Where("block", CondGe, postblockOrig - durationBlocksForPrevPosts)
+                                     .Not().Where("type", CondEq, (int)ContentType::ContentDelete);
             err = g_pocketdb->DB()->Select(queryPrevsPosts, queryPrevsPostsResult);
             if (err.ok()) {
                 std::vector<std::string> prevPostsIds;
@@ -4037,6 +4059,8 @@ UniValue searchlinks(const JSONRPCRequest& request)
     query = query.Where("time", CondLe, GetAdjustedTime());
     if (!contentTypes.empty()) {
         query = query.Where("type", CondSet, contentTypes);
+    } else {
+        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
     }
     query = query.Where("url", CondSet, search_vector);
     query = query.Sort("block", true).Sort("time", true);
