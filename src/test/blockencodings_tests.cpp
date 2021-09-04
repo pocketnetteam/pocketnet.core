@@ -23,6 +23,7 @@ BOOST_FIXTURE_TEST_SUITE(blockencodings_tests, RegtestingSetup)
 static CBlock BuildBlockTestCase() {
     CBlock block;
     CMutableTransaction tx;
+
     tx.vin.resize(1);
     tx.vin[0].scriptSig.resize(10);
     tx.vout.resize(1);
@@ -60,10 +61,12 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
 {
     CTxMemPool pool;
     TestMemPoolEntryHelper entry;
+
     CBlock block(BuildBlockTestCase());
 
     LOCK(pool.cs);
     pool.addUnchecked(entry.FromTx(block.vtx[2]));
+
     BOOST_CHECK_EQUAL(pool.mapTx.find(block.vtx[2]->GetHash())->GetSharedTx().use_count(), SHARED_TX_OFFSET + 0);
 
     // Do a simple ShortTxIDs RT

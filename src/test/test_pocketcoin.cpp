@@ -17,6 +17,7 @@
 #include <streams.h>
 #include <ui_interface.h>
 #include <validation.h>
+#include "httpserver.h"
 
 const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
 
@@ -83,7 +84,7 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         // Ideally we'd move all the RPC tests to the functional testing framework
         // instead of unit tests, but for now we need these here.
 
-        RegisterAllCoreRPCCommands(tableRPC);
+        RegisterAllCoreRPCCommands(g_socket->m_table_rpc);
         ClearDatadirCache();
 
         // We have to run a scheduler thread to prevent ActivateBestChain
@@ -167,8 +168,12 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus(), chainActive.Height())) ++block.nNonce;
 
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
-    ProcessNewBlock(chainparams, shared_pblock, true, nullptr);
-
+    CValidationState state;
+    std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
+    auto pocketBlockRef = std::make_shared<PocketBlock>(pblocktemplate->pocketBlock);
+    bool fNewBlock = false;
+ 
+    ProcessNewBlock(state, chainparams, pblock, pocketBlockRef, true, true, &fNewBlock);
     CBlock result = block;
     return result;
 }
