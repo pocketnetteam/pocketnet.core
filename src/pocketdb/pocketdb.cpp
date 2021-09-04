@@ -1160,21 +1160,30 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
     std::string data = "";
     //------------------------
     if (table == "Posts") {
-        // self.url.v + self.caption.v + self.message.v + self.tags.v.join(',') + self.images.v.join(',') + self.txid_edit.v
-        data += item["url"].As<string>();
-        data += item["caption"].As<string>();
-        data += item["message"].As<string>();
 
-        reindexer::VariantArray va_tags = item["tags"];
-        for (size_t i = 0; i < va_tags.size(); ++i)
-            data += (i ? "," : "") + va_tags[i].As<string>();
+        if (item["type"].As<int>() == (int)ContentType::ContentDelete)
+        {
+            data += item["txidEdit"].As<string>();
+            data += item["settings"].As<string>();
+        }
+        else
+        {
+            // self.url.v + self.caption.v + self.message.v + self.tags.v.join(',') + self.images.v.join(',') + self.txid_edit.v
+            data += item["url"].As<string>();
+            data += item["caption"].As<string>();
+            data += item["message"].As<string>();
 
-        reindexer::VariantArray va_images = item["images"];
-        for (size_t i = 0; i < va_images.size(); ++i)
-            data += (i ? "," : "") + va_images[i].As<string>();
+            reindexer::VariantArray va_tags = item["tags"];
+            for (size_t i = 0; i < va_tags.size(); ++i)
+                data += (i ? "," : "") + va_tags[i].As<string>();
 
-        data += item["txidEdit"].As<string>() == "" ? "" : item["txid"].As<string>();
-        data += item["txidRepost"].As<string>();
+            reindexer::VariantArray va_images = item["images"];
+            for (size_t i = 0; i < va_images.size(); ++i)
+                data += (i ? "," : "") + va_images[i].As<string>();
+
+            data += item["txidEdit"].As<string>().empty() ? "" : item["txid"].As<string>();
+            data += item["txidRepost"].As<string>();
+        }
     }
 
     if (table == "Scores") {

@@ -384,7 +384,8 @@ UniValue PostPocketTransaction(RTransaction& tx, std::string txType) {
     return Sendrawtransaction(tx);
 }
 //----------------------------------------------------------
-UniValue setContent(const JSONRPCRequest& request, RTransaction& tx, ContentType contentType, std::string logType) {
+UniValue setContent(const JSONRPCRequest& request, RTransaction& tx, ContentType contentType, std::string logType)
+{
     int64_t txTime = tx->nTime;
 
     tx.pTransaction["type"] = contentType;
@@ -460,6 +461,30 @@ UniValue SetVideo(const JSONRPCRequest& request, RTransaction& tx) {
         throw std::runtime_error("video\n\nCreate new pocketnet video post.\n");
     
     return setContent(request, tx, ContentType::ContentVideo, "Video");
+}
+
+UniValue SetContentDelete(const JSONRPCRequest& request, RTransaction& tx) {
+    if (request.fHelp)
+        throw std::runtime_error("contentdelete\n\nDelete pocketnet content (post, video).\n");
+
+    tx.pTransaction["type"] = (int)ContentType::ContentDelete;
+
+    if (!request.params[1].exists("txidEdit") || request.params[1]["txidEdit"].get_str().empty())
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid txidEdit");
+
+    std::string postlang = "en";
+    // Posts:
+    //   txid - txid of original post transaction
+    //   txidEdit - txid of post transaction
+    tx.pTransaction["txid"] = request.params[1]["txidEdit"].get_str();
+    tx.pTransaction["txidEdit"] = tx->GetHash().GetHex();
+    tx.pTransaction["address"] = tx.Address;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
+
+    if (request.params[1].exists("s"))
+        tx.pTransaction["settings"] = request.params[1]["s"].get_obj().write();
+
+    return PostPocketTransaction(tx, "ContentDelete");
 }
 
 UniValue SetTranslate(const JSONRPCRequest& request, RTransaction& tx) {
@@ -761,26 +786,27 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
 
     //std::string mesType = request.params[2].get_str();
     if (tx.TxType == OR_POST) return SetShare(request, tx);
-    if (tx.TxType == "upvoteShare") return SetUpvoteShare(request, tx);
-    if (tx.TxType == "subscribe") return SetSubscribe(request, tx);
-    if (tx.TxType == "subscribePrivate") return SetSubscribePrivate(request, tx);
-    if (tx.TxType == "unsubscribe") return SetUnsubscribe(request, tx);
-    if (tx.TxType == "userInfo") return SetUserInfo(request, tx);
-    if (tx.TxType == "complainShare") return SetComplainShare(request, tx);
-    if (tx.TxType == "blocking") return SetBlocking(request, tx);
-    if (tx.TxType == "unblocking") return SetUnblocking(request, tx);
-    if (tx.TxType == "comment") return SetComment(request, tx);
-    if (tx.TxType == "commentEdit") return SetCommentEdit(request, tx);
-    if (tx.TxType == "commentDelete") return SetCommentDelete(request, tx);
-    if (tx.TxType == "cScore") return SetCommentScore(request, tx);
-    if (tx.TxType == "video") return SetVideo(request, tx);
+    if (tx.TxType == OR_SCORE) return SetUpvoteShare(request, tx);
+    if (tx.TxType == OR_SUBSCRIBE) return SetSubscribe(request, tx);
+    if (tx.TxType == OR_SUBSCRIBEPRIVATE) return SetSubscribePrivate(request, tx);
+    if (tx.TxType == OR_UNSUBSCRIBE) return SetUnsubscribe(request, tx);
+    if (tx.TxType == OR_USERINFO) return SetUserInfo(request, tx);
+    if (tx.TxType == OR_COMPLAIN) return SetComplainShare(request, tx);
+    if (tx.TxType == OR_BLOCKING) return SetBlocking(request, tx);
+    if (tx.TxType == OR_UNBLOCKING) return SetUnblocking(request, tx);
+    if (tx.TxType == OR_COMMENT) return SetComment(request, tx);
+    if (tx.TxType == OR_COMMENT_EDIT) return SetCommentEdit(request, tx);
+    if (tx.TxType == OR_COMMENT_DELETE) return SetCommentDelete(request, tx);
+    if (tx.TxType == OR_COMMENT_SCORE) return SetCommentScore(request, tx);
+    if (tx.TxType == OR_VIDEO) return SetVideo(request, tx);
 
-    // TODO (brangr): only for pre-release tests
+    // only for pre-release tests
     if (Params().NetworkIDString() == CBaseChainParams::TESTNET) {
-        if (tx.TxType == "serverPing") return SetServerPing(request, tx);
-        if (tx.TxType == "translate") return SetTranslate(request, tx);
-        if (tx.TxType == "videoServer") return SetVideoServer(request, tx);
-        if (tx.TxType == "messageServer") return SetMessageServer(request, tx);
+        if (tx.TxType == OR_SERVER_PING) return SetServerPing(request, tx);
+        if (tx.TxType == OR_TRANSLATE) return SetTranslate(request, tx);
+        if (tx.TxType == OR_VIDEO_SERVER) return SetVideoServer(request, tx);
+        if (tx.TxType == OR_MESSAGE_SERVER) return SetMessageServer(request, tx);
+        if (tx.TxType == OR_CONTENT_DELETE) return SetContentDelete(request, tx);
     }
     
     throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
