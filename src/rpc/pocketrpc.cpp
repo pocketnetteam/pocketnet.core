@@ -2167,7 +2167,7 @@ UniValue gethotposts(const JSONRPCRequest& request)
     if (!contentTypes.empty()) {
         query = query.Where("type", CondSet, contentTypes);
     } else {
-        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
+        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete);
     }
 
     query = query.Sort("reputation", true);
@@ -3302,7 +3302,7 @@ UniValue gethistoricalstrip(const JSONRPCRequest& request)
     if (!contentTypes.empty()) {
         query = query.Where("type", CondSet, contentTypes);
     } else {
-        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
+        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete);
     }
     if (!txidsExcluded.empty()) {
         query = query.Not().Where("txid", CondSet, txidsExcluded);
@@ -3556,7 +3556,7 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
     if (!contentTypes.empty()) {
         query = query.Where("type", CondSet, contentTypes);
     } else {
-        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
+        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete);
     }
     if (!txidsExcluded.empty()) {
         query = query.Not().Where("txid", CondSet, txidsExcluded);
@@ -4060,7 +4060,7 @@ UniValue searchlinks(const JSONRPCRequest& request)
     if (!contentTypes.empty()) {
         query = query.Where("type", CondSet, contentTypes);
     } else {
-        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
+        query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete);
     }
     query = query.Where("url", CondSet, search_vector);
     query = query.Sort("block", true).Sort("time", true);
@@ -4155,9 +4155,10 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
     reindexer::QueryResults queryResults;
     reindexer::AggregationResult aggregationResult;
 
+    /*
     int nHeight = chainActive.Height();
 
-    /*queryPosts = reindexer::Query("Posts");
+    queryPosts = reindexer::Query("Posts");
     queryPosts = queryPosts.Where("time", CondLe, GetAdjustedTime());
     queryPosts = queryPosts.Where("block", CondLe, nHeight);
     queryPosts = queryPosts.Where("address", CondSet, addresses);
