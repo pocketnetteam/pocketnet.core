@@ -51,6 +51,8 @@ enum Limit {
 
     threshold_balance_pro,
     pro_video_limit,
+
+    max_account_settings_size,
 };
 
 /*enum PostRanks {LAST5, LAST5R, BOOST, UREP, UREPR, DREP, PREP, PREPR, DPOST, POSTRF};
@@ -68,7 +70,6 @@ int64_t GetActualLimit(Limit type, int height);
 
 
 // Pocketnet transaction types
-// TODO (brangr): replace with asm bit
 #define OR_SCORE "7570766f74655368617265"
 #define OR_COMPLAIN "636f6d706c61696e5368617265"
 #define OR_POST "7368617265"
@@ -99,6 +100,7 @@ int64_t GetActualLimit(Limit type, int height);
 
 #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
 
+#define OR_ACCOUNT_SETTINGS "616363536574"; // Public account settings
 
 // Check transaction type is pocketnet
 bool IsPocketTX(const CTxOut& out);

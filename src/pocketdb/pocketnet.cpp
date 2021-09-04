@@ -113,6 +113,9 @@ bool ConvertOPToTableName(std::string op, std::string &ri_table)
     else if (op == OR_COMMENT_SCORE)
         ri_table = "CommentScores";
 
+    else if (op == OR_ACCOUNT_SETTINGS)
+        ri_table = "AccountSettings";
+
     else
         ret = false;
 
@@ -345,6 +348,10 @@ void FillLimitsMain(const CChainParams &params)
     _lottery_referral_depth.insert({0, 30 * 24 * 3600});
     Limits.insert(std::make_pair(Limit::lottery_referral_depth, _lottery_referral_depth));
 
+    // max_account_settings_size
+    std::map<int, int64_t> _max_account_settings_size;
+    _max_account_settings_size.insert({0, 2048});
+    Limits.insert(std::make_pair(Limit::max_account_settings_size, _max_user_size)); // 2Kb
 };
 void FillLimitsTest(const CChainParams &params)
 {
@@ -546,6 +553,10 @@ void FillLimitsTest(const CChainParams &params)
     _lottery_referral_depth.insert({0, 30 * 24 * 3600});
     Limits.insert(std::make_pair(Limit::lottery_referral_depth, _lottery_referral_depth));
 
+    // max_account_settings_size
+    std::map<int, int64_t> _max_account_settings_size;
+    _max_account_settings_size.insert({0, 2048});
+    Limits.insert(std::make_pair(Limit::max_account_settings_size, _max_user_size)); // 2Kb
 };
 
 void FillLimits(const CChainParams &params)

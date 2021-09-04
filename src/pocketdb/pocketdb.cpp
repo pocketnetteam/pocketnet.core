@@ -141,6 +141,17 @@ bool PocketDB::InitDB(std::string table)
         db->Commit("Mempool");
     }
 
+    // Account settings
+    if (table == "AccountSettings" || table == "ALL") {
+        db->OpenNamespace("AccountSettings", StorageOpts().Enabled().CreateIfMissing());
+        db->AddIndex("AccountSettings", {"txid", "hash", "string", IndexOpts().PK()});
+        db->AddIndex("AccountSettings", {"block", "tree", "int", IndexOpts()});
+        db->AddIndex("AccountSettings", {"time", "tree", "int64", IndexOpts()});
+        db->AddIndex("AccountSettings", {"address", "hash", "string", IndexOpts()});
+        db->AddIndex("AccountSettings", {"data", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->Commit("AccountSettings");
+    }
+
     // Users
     if (table == "UsersView" || table == "ALL") {
         db->OpenNamespace("UsersView", StorageOpts().Enabled().CreateIfMissing());
@@ -1231,6 +1242,11 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
     if (table == "CommentScores") {
         data += item["commentid"].As<string>();
         data += std::to_string(item["value"].As<int>());
+    }
+
+    if (table == "AccountSettings") {
+        // self.data
+        data += item["data"].As<string>();
     }
     //------------------------
     // Compute hash for serialized item data
