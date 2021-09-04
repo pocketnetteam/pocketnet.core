@@ -482,6 +482,7 @@ std::string JSONPrettyPrint(const UniValue& univalue)
 }
 } // namespace
 
+#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(script_build)
 {
     const KeyData keys;
@@ -958,7 +959,9 @@ BOOST_AUTO_TEST_CASE(script_build)
     fclose(file);
 #endif
 }
+#endif
 
+#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(script_json_test)
 {
     // Read tests from test/data/script_tests.json
@@ -1001,6 +1004,7 @@ BOOST_AUTO_TEST_CASE(script_json_test)
         DoTest(scriptPubKey, scriptSig, witness, scriptflags, strTest, scriptError, nValue);
     }
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(script_PushData)
 {
@@ -1466,6 +1470,7 @@ BOOST_AUTO_TEST_CASE(script_FindAndDelete)
     BOOST_CHECK(s == expect);
 }
 
+#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(script_HasValidOps)
 {
     // Exercise the HasValidOps functionality
@@ -1479,6 +1484,7 @@ BOOST_AUTO_TEST_CASE(script_HasValidOps)
     script = ScriptFromHex("88acc0"); // Script with undefined opcode
     BOOST_CHECK(!script.HasValidOps());
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(script_can_append_self)
 {

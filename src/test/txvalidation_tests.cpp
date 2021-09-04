@@ -41,10 +41,12 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinbase, TestChain100Setup)
     BOOST_CHECK_EQUAL(
             false,
             AcceptToMemoryPool(mempool, state, MakeTransactionRef(coinbaseTx),
+                nullptr /* pocketTx */,
                 nullptr /* pfMissingInputs */,
                 nullptr /* plTxnReplaced */,
                 true /* bypass_limits */,
-                0 /* nAbsurdFee */));
+                0 /* nAbsurdFee */,
+                false /* test_accept */));
 
     // Check that the transaction hasn't been added to mempool.
     BOOST_CHECK_EQUAL(mempool.size(), initialPoolSize);

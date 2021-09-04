@@ -444,6 +444,19 @@ static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const Uni
     req->WriteReply(nStatus, strReply);
 }
 
+void RegisterAllCoreRPCCommands(CRPCTable& table)
+{
+    RegisterBlockchainRPCCommands(table);
+    RegisterNetRPCCommands(table);
+    RegisterMiscRPCCommands(table);
+    RegisterMiningRPCCommands(table);
+    RegisterRawTransactionRPCCommands(table);
+    g_wallet_init_interface.RegisterRPC(table);
+#if ENABLE_ZMQ
+    RegisterZMQRPCCommands(table);
+#endif
+}
+
 bool InitHTTPServer()
 {
     if (!InitHTTPAllowList())
@@ -475,15 +488,7 @@ bool InitHTTPServer()
 
     // General private socket
     g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth);
-    RegisterBlockchainRPCCommands(g_socket->m_table_rpc);
-    RegisterNetRPCCommands(g_socket->m_table_rpc);
-    RegisterMiscRPCCommands(g_socket->m_table_rpc);
-    RegisterMiningRPCCommands(g_socket->m_table_rpc);
-    RegisterRawTransactionRPCCommands(g_socket->m_table_rpc);
-    g_wallet_init_interface.RegisterRPC(g_socket->m_table_rpc);
-#if ENABLE_ZMQ
-    RegisterZMQRPCCommands(g_socket->m_table_rpc);
-#endif
+    RegisterAllCoreRPCCommands(g_socket->m_table_rpc);
 
     // Additional pocketnet seocket
     g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth);
