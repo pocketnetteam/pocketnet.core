@@ -13,7 +13,7 @@ namespace PocketTx
     {
     public:
 
-        User(const string& hash, int64_t time);
+        User();
         User(const std::shared_ptr<const CTransaction>& tx);
 
         shared_ptr<UniValue> Serialize() const override;

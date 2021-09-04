@@ -10,7 +10,7 @@ namespace PocketTx
     class Video : public Post
     {
     public:
-        Video(const string& hash, int64_t time);
+        Video();
         Video(const std::shared_ptr<const CTransaction>& tx);
 
         shared_ptr<UniValue> Serialize() const override;

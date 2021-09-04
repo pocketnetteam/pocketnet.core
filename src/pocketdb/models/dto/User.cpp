@@ -7,7 +7,7 @@
 
 namespace PocketTx
 {
-    User::User(const string& hash, int64_t time) : Transaction(hash, time)
+    User::User() : Transaction()
     {
         SetType(PocketTxType::ACCOUNT_USER);
     }

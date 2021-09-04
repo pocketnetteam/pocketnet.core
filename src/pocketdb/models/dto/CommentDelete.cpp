@@ -7,7 +7,7 @@
 
 namespace PocketTx
 {
-    CommentDelete::CommentDelete(const string& hash, int64_t time) : Comment(hash, time)
+    CommentDelete::CommentDelete() : Comment()
     {
         SetType(PocketTxType::CONTENT_COMMENT_DELETE);
     }

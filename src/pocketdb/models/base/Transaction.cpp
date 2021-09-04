@@ -8,10 +8,8 @@
 namespace PocketTx
 {
 
-    Transaction::Transaction(const string& hash, int64_t time) : Base()
+    Transaction::Transaction() : Base()
     {
-        SetHash(hash);
-        SetTime(time);
     }
 
     Transaction::Transaction(const std::shared_ptr<const CTransaction>& tx) : Base()

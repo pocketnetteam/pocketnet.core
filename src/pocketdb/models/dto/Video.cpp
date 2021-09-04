@@ -3,7 +3,7 @@
 
 namespace PocketTx
 {
-    Video::Video(const string& hash, int64_t time) : Post(hash, time)
+    Video::Video() : Post()
     {
         SetType(PocketTxType::CONTENT_VIDEO);
     }

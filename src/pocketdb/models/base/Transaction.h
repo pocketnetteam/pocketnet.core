@@ -21,7 +21,7 @@ namespace PocketTx
     class Transaction : public Base
     {
     public:
-        Transaction(const string& hash, int64_t time);
+        Transaction();
 
         explicit Transaction(const std::shared_ptr<const CTransaction>& tx);
 

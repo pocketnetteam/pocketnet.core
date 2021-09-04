@@ -13,7 +13,7 @@ namespace PocketTx
     class Blocking : public Transaction
     {
     public:
-        Blocking(const string& hash, int64_t time);
+        Blocking();
         Blocking(const std::shared_ptr<const CTransaction>& tx);
 
         shared_ptr<UniValue> Serialize() const override;

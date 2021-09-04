@@ -7,7 +7,7 @@
 
 namespace PocketTx
 {
-    ScoreContent::ScoreContent(const string& hash, int64_t time) : Transaction(hash, time)
+    ScoreContent::ScoreContent() : Transaction()
     {
         SetType(PocketTxType::ACTION_SCORE_CONTENT);
     }

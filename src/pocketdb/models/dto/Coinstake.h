@@ -12,7 +12,7 @@ namespace PocketTx
     class Coinstake : public Transaction
     {
     public:
-        Coinstake(const string& hash, int64_t time);
+        Coinstake();
         Coinstake(const std::shared_ptr<const CTransaction>& tx);
 
         void Deserialize(const UniValue& src) override;

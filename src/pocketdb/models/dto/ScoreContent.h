@@ -13,7 +13,7 @@ namespace PocketTx
     {
     public:
 
-        ScoreContent(const string& hash, int64_t time);
+        ScoreContent();
         ScoreContent(const std::shared_ptr<const CTransaction>& tx);
 
         shared_ptr<UniValue> Serialize() const override;

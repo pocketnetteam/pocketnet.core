@@ -13,7 +13,7 @@ namespace PocketTx
     class Coinbase : public Transaction
     {
     public:
-        Coinbase(const string& hash, int64_t time);
+        Coinbase();
         Coinbase(const std::shared_ptr<const CTransaction>& tx);
 
         void Deserialize(const UniValue& src) override;

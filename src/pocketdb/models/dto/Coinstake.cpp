@@ -7,7 +7,7 @@
 
 namespace PocketTx
 {
-    Coinstake::Coinstake(const string& hash, int64_t time) : Transaction(hash, time)
+    Coinstake::Coinstake() : Transaction()
     {
         SetType(PocketTxType::TX_COINSTAKE);
     }

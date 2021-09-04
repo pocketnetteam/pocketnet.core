@@ -7,7 +7,7 @@
 
 namespace PocketTx
 {
-    Subscribe::Subscribe(const string& hash, int64_t time) : Transaction(hash, time)
+    Subscribe::Subscribe() : Transaction()
     {
         SetType(PocketTxType::ACTION_SUBSCRIBE);
     }

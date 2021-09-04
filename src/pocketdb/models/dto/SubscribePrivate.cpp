@@ -7,7 +7,7 @@
 
 namespace PocketTx
 {
-    SubscribePrivate::SubscribePrivate(const string& hash, int64_t time) : Subscribe(hash, time)
+    SubscribePrivate::SubscribePrivate() : Subscribe()
     {
         SetType(PocketTxType::ACTION_SUBSCRIBE_PRIVATE);
     }

@@ -7,7 +7,7 @@
 
 namespace PocketTx
 {
-    Default::Default(const string& hash, int64_t time) : Transaction(hash, time)
+    Default::Default() : Transaction()
     {
         SetType(PocketTxType::TX_DEFAULT);
     }

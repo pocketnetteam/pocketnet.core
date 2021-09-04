@@ -7,7 +7,7 @@
 
 namespace PocketTx
 {
-    CommentEdit::CommentEdit(const string& hash, int64_t time) : Comment(hash, time)
+    CommentEdit::CommentEdit() : Comment()
     {
         SetType(PocketTxType::CONTENT_COMMENT_EDIT);
     }

@@ -12,7 +12,7 @@ namespace PocketTx
     class Comment : public Transaction
     {
     public:
-        Comment(const string& hash, int64_t time);
+        Comment();
         Comment(const std::shared_ptr<const CTransaction>& tx);
 
         shared_ptr <UniValue> Serialize() const override;

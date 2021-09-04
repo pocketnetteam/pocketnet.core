@@ -3,7 +3,7 @@
 
 namespace PocketTx
 {
-    Post::Post(const string& hash, int64_t time) : Transaction(hash, time)
+    Post::Post() : Transaction()
     {
         SetType(PocketTxType::CONTENT_POST);
     }
