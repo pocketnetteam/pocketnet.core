@@ -90,7 +90,8 @@ enum CHECKTYPE {
     CommentEdit,
     CommentScore,
     CheckType_ContentVideo,
-    CheckType_ContentVideoEdit
+    CheckType_ContentVideoEdit,
+    CheckType_AccountSettings,
 };
 //-----------------------------------------------------
 enum ABMODE {
@@ -147,6 +148,8 @@ enum ANTIBOTRESULT {
     ChangeTxType = 45,
     ContentDeleteUnauthorized = 46,
     ContentDeleteDouble = 47,
+    AccountSettingsDouble = 48,
+    AccountSettingsLimit = 49,
 };
 //-----------------------------------------------------
 struct BlockVTX {
@@ -182,58 +185,61 @@ struct BlockVTX {
 class AntiBot
 {
 private:
-    void getMode(std::string _address, ABMODE& mode, int& reputation, int64_t& balance, int height);
-    void getMode(std::string _address, ABMODE& mode, int height);
-    int getLimit(CHECKTYPE _type, ABMODE _mode, int height);
+    void getMode(const std::string& _address, ABMODE& mode, int& reputation, int64_t& balance, int height);
+    void getMode(const std::string& _address, ABMODE& mode, int height);
+    int64_t getLimit(CHECKTYPE _type, ABMODE _mode, int height);
 
     // Maximum size for reindexer item with switch for type
-    bool check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result);
+    bool check_item_size(const UniValue& oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result);
+
+    // Check account public settings
+    bool check_account_settings(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
     // Check new post and edited post from address
-    bool check_post(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, bool splitContent, int height, ANTIBOTRESULT& result);
+    bool check_post(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, bool splitContent, int height, ANTIBOTRESULT& result);
     bool check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, bool splitContent, int height, ANTIBOTRESULT& result);
 
-    bool check_video(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    bool check_video(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
     bool check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
-    bool check_content_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
+    bool check_content_delete(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result);
 
     // Check new score to post from address
-    bool check_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_score(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check new complain to post from address
-    bool check_complain(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_complain(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check change profile
-    bool check_changeInfo(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check subscribe/unsubscribe
-    bool check_subscribe(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_subscribe(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check blocking/unblocking
-    bool check_blocking(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_blocking(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check new comment
-    bool check_comment(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
-    bool check_comment_edit(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
-    bool check_comment_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_comment(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_comment_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_comment_delete(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
     // Check new score to comment
-    bool check_comment_score(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
+    bool check_comment_score(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3, bool checkTime_19_6, int height, ANTIBOTRESULT& result);
 
 public:
     explicit AntiBot();
     ~AntiBot();
 
     // Check user is a registration. Need one record in DB Users
-    bool CheckRegistration(UniValue oitm, std::string address, bool checkMempool, bool checkTime_19_3, int height, BlockVTX& blockVtx, ANTIBOTRESULT& result);
+    bool CheckRegistration(const UniValue& oitm, const std::string& address, bool checkMempool, bool checkTime_19_3, int height, BlockVTX& blockVtx, ANTIBOTRESULT& result);
 
     /*
 		Check conditions for new transaction.
 		PocketNET data must be in RIMempool
 	*/
-    void CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& resultCode);
-    void CheckTransactionRIItem(UniValue oitm, int height, ANTIBOTRESULT& resultCode);
+    void CheckTransactionRIItem(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& resultCode);
+    void CheckTransactionRIItem(const UniValue& oitm, int height, ANTIBOTRESULT& resultCode);
     /*
         Check inputs for exists utxo
     */

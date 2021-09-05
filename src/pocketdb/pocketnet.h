@@ -53,6 +53,7 @@ enum Limit {
     pro_video_limit,
 
     max_account_settings_size,
+    account_settings_daily_limit,
 };
 
 /*enum PostRanks {LAST5, LAST5R, BOOST, UREP, UREPR, DREP, PREP, PREPR, DPOST, POSTRF};

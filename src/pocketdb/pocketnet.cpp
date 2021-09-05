@@ -351,7 +351,12 @@ void FillLimitsMain(const CChainParams &params)
     // max_account_settings_size
     std::map<int, int64_t> _max_account_settings_size;
     _max_account_settings_size.insert({0, 2048});
-    Limits.insert(std::make_pair(Limit::max_account_settings_size, _max_user_size)); // 2Kb
+    Limits.insert(std::make_pair(Limit::max_account_settings_size, _max_account_settings_size)); // 2Kb
+
+    // account_settings_daily_limit
+    std::map<int, int64_t> _account_settings_daily_limit;
+    _account_settings_daily_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::account_settings_daily_limit, _account_settings_daily_limit));
 };
 void FillLimitsTest(const CChainParams &params)
 {
@@ -556,7 +561,12 @@ void FillLimitsTest(const CChainParams &params)
     // max_account_settings_size
     std::map<int, int64_t> _max_account_settings_size;
     _max_account_settings_size.insert({0, 2048});
-    Limits.insert(std::make_pair(Limit::max_account_settings_size, _max_user_size)); // 2Kb
+    Limits.insert(std::make_pair(Limit::max_account_settings_size, _max_account_settings_size)); // 2Kb
+
+    // account_settings_daily_limit
+    std::map<int, int64_t> _account_settings_daily_limit;
+    _account_settings_daily_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::account_settings_daily_limit, _account_settings_daily_limit));
 };
 
 void FillLimits(const CChainParams &params)

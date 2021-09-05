@@ -8,20 +8,16 @@
 //-----------------------------------------------------
 std::unique_ptr <AntiBot> g_antibot;
 //-----------------------------------------------------
-AntiBot::AntiBot()
-{
-}
+AntiBot::AntiBot() = default;
 
-AntiBot::~AntiBot()
-{
-}
+AntiBot::~AntiBot() = default;
 
 bool vectorFind(std::vector <std::string>& V, std::string f)
 {
     return std::find(V.begin(), V.end(), f) != V.end();
 }
 
-void AntiBot::getMode(std::string _address, ABMODE& mode, int& reputation, int64_t& balance, int height)
+void AntiBot::getMode(const std::string& _address, ABMODE& mode, int& reputation, int64_t& balance, int height)
 {
     reputation = g_pocketdb->GetUserReputation(_address, height - 1);
     balance = g_pocketdb->GetUserBalance(_address, height);
@@ -40,14 +36,14 @@ void AntiBot::getMode(std::string _address, ABMODE& mode, int& reputation, int64
     }
 }
 
-void AntiBot::getMode(std::string _address, ABMODE& mode, int height)
+void AntiBot::getMode(const std::string& _address, ABMODE& mode, int height)
 {
     int reputation = 0;
     int64_t balance = 0;
     getMode(_address, mode, reputation, balance, height);
 }
 
-int AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height)
+int64_t AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height)
 {
     switch (_type)
     {
@@ -73,6 +69,8 @@ int AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height)
             return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_comment_edit_limit, height) : GetActualLimit(Limit::trial_comment_edit_limit, height);
         case CommentScore:
             return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_comment_score_limit, height) : GetActualLimit(Limit::trial_comment_score_limit, height);
+        case CheckType_AccountSettings:
+            return GetActualLimit(Limit::account_settings_daily_limit, height);
         default:
             return 0;
     }
@@ -80,9 +78,9 @@ int AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height)
 //-----------------------------------------------------
 
 //-----------------------------------------------------
-int getLimitsCount(std::string _table, std::string _address)
+int64_t getLimitsCount(const std::string& _table, const std::string& _address)
 {
-    int count = 0;
+    int64_t count = 0;
 
     auto query = reindexer::Query(_table).Where("address", CondEq, _address).Where("block", CondGe,
         chainActive.Height() - 1440);
@@ -115,9 +113,9 @@ int getLimitsCount(std::string _table, std::string _address)
     return count;
 }
 
-int getContentLimitsCount(ContentType _type, std::string _address)
+int64_t getContentLimitsCount(ContentType _type, const std::string& _address)
 {
-    int count = 0;
+    int64_t count = 0;
 
     auto query = reindexer::Query("Posts")
         .Where("address", CondEq, _address)
@@ -154,8 +152,8 @@ int getContentLimitsCount(ContentType _type, std::string _address)
 //-----------------------------------------------------
 
 //-----------------------------------------------------
-bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMempool, bool checkTime_19_3, int height,
-    BlockVTX& blockVtx, ANTIBOTRESULT& result)
+bool AntiBot::CheckRegistration(const UniValue& oitm, const std::string& address, bool checkMempool, bool checkTime_19_3,
+                                int height, BlockVTX& blockVtx, ANTIBOTRESULT& result)
 {
     std::string txType = oitm["type"].get_str();
     std::string txId = oitm["txid"].get_str();
@@ -220,15 +218,17 @@ bool AntiBot::CheckRegistration(UniValue oitm, std::string address, bool checkMe
     return true;
 }
 
-bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_item_size(const UniValue& oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result)
 {
-    int _limit = oitm["size"].get_int();
+    int64_t _limit = oitm["size"].get_int64();
     std::string table = oitm["table"].get_str();
 
     if (_type == CHECKTYPE::Post) _limit = GetActualLimit(Limit::max_post_size, height);
     if (_type == CHECKTYPE::User) _limit = GetActualLimit(Limit::max_user_size, height);
+    if (_type == CHECKTYPE::CheckType_AccountSettings)
+        _limit = GetActualLimit(Limit::max_account_settings_size, height);
 
-    if (oitm["size"].get_int() > _limit)
+    if (oitm["size"].get_int64() > _limit)
     {
         result = ANTIBOTRESULT::ContentSizeLimit;
         return false;
@@ -239,7 +239,69 @@ bool AntiBot::check_item_size(UniValue oitm, CHECKTYPE _type, int height, ANTIBO
 
 //-----------------------------------------------------
 
-bool AntiBot::check_post(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_account_settings(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height,
+                                     ANTIBOTRESULT& result)
+{
+    std::string _txid = oitm["txid"].get_str();
+    std::string _address = oitm["address"].get_str();
+
+    // Also check mempool
+    if (checkMempool)
+    {
+        reindexer::QueryResults res;
+        if (g_pocketdb->Select(reindexer::Query("Mempool")
+                .Where("table", CondEq, "AccountSettings")
+                .Not().Where("txid", CondEq, _txid), res).ok())
+        {
+            for (auto& m : res)
+            {
+                reindexer::Item mItm = m.GetItem();
+                std::string t_src = DecodeBase64(mItm["data"].As<string>());
+
+                reindexer::Item t_itm = g_pocketdb->DB()->NewItem("AccountSettings");
+                if (t_itm.FromJSON(t_src).ok() && t_itm["address"].As<string>() == _address)
+                {
+                    result = ANTIBOTRESULT::AccountSettingsDouble;
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Check block
+    if (blockVtx.Exists("AccountSettings"))
+    {
+        for (auto& mtx : blockVtx.Data["AccountSettings"])
+        {
+            if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid)
+            {
+                result = ANTIBOTRESULT::AccountSettingsDouble;
+                return false;
+            }
+        }
+    }
+
+    // Get count changes settings in history depth
+    int count = g_pocketdb->SelectCount(
+            Query("AccountSettings")
+                .Where("address", CondEq, _address)
+                .Where("block", CondLt, height)
+                .Where("block", CondGe, height - 1440));
+
+    // Check limit
+    ABMODE mode;
+    getMode(_address, mode, height);
+    int limit = getLimit(CheckType_AccountSettings, mode, height);
+    if (count >= limit)
+    {
+        result = ANTIBOTRESULT::AccountSettingsLimit;
+        return false;
+    }
+
+    return true;
+}
+
+bool AntiBot::check_post(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, bool splitContent, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
@@ -502,7 +564,7 @@ bool AntiBot::check_post_edit(const UniValue& oitm, BlockVTX& blockVtx, bool che
 }
 
 
-bool AntiBot::check_video(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_video(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();
@@ -720,7 +782,7 @@ bool AntiBot::check_video_edit(const UniValue& oitm, BlockVTX& blockVtx, bool ch
     return true;
 }
 
-bool AntiBot::check_content_delete(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
+bool AntiBot::check_content_delete(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
     std::string _txid = oitm["txid"].get_str();         // Original content id
@@ -788,7 +850,7 @@ bool AntiBot::check_content_delete(UniValue oitm, BlockVTX& blockVtx, bool check
     return true;
 }
 
-bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_score(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
@@ -975,7 +1037,7 @@ bool AntiBot::check_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMem
     return true;
 }
 
-bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_complain(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
@@ -1125,7 +1187,7 @@ bool AntiBot::check_complain(const UniValue oitm, BlockVTX& blockVtx, bool check
     return true;
 }
 
-bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
@@ -1213,15 +1275,14 @@ bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool che
     }
 
     // Check double nickname
-    if (height < Params().GetConsensus().checkpoint_non_unique_account_name) {
-        if (g_pocketdb->SelectCount(
-            reindexer::Query("UsersView").Where("name", CondEq, _name).Not().Where("address", CondEq, _address).Where(
-                "block", CondLt, height)) > 0)
+    if (g_pocketdb->SelectCount(reindexer::Query("UsersView")
+        .Where("name", CondEq, _name)
+        .Not().Where("address", CondEq, _address)
+        .Where("block", CondLt, height)) > 0)
         {
             result = ANTIBOTRESULT::NicknameDouble;
             return false;
         }
-    }
 
     // TODO (brangr): block all spaces
     // Check spaces in begin and end
@@ -1234,7 +1295,7 @@ bool AntiBot::check_changeInfo(const UniValue oitm, BlockVTX& blockVtx, bool che
     return true;
 }
 
-bool AntiBot::check_subscribe(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_subscribe(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
@@ -1333,7 +1394,7 @@ bool AntiBot::check_subscribe(const UniValue oitm, BlockVTX& blockVtx, bool chec
     return true;
 }
 
-bool AntiBot::check_blocking(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_blocking(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
@@ -1425,7 +1486,7 @@ bool AntiBot::check_blocking(const UniValue oitm, BlockVTX& blockVtx, bool check
     return true;
 }
 
-bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_comment(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
@@ -1549,7 +1610,7 @@ bool AntiBot::check_comment(const UniValue oitm, BlockVTX& blockVtx, bool checkM
     return true;
 }
 
-bool AntiBot::check_comment_edit(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_comment_edit(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
@@ -1695,7 +1756,7 @@ bool AntiBot::check_comment_edit(const UniValue oitm, BlockVTX& blockVtx, bool c
     return true;
 }
 
-bool AntiBot::check_comment_delete(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_comment_delete(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _address = oitm["address"].get_str();
@@ -1786,7 +1847,7 @@ bool AntiBot::check_comment_delete(const UniValue oitm, BlockVTX& blockVtx, bool
     return true;
 }
 
-bool AntiBot::check_comment_score(const UniValue oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
+bool AntiBot::check_comment_score(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, bool checkTime_19_3,
     bool checkTime_19_6, int height, ANTIBOTRESULT& result)
 {
     std::string _txid = oitm["txid"].get_str();
@@ -1969,13 +2030,13 @@ bool AntiBot::check_comment_score(const UniValue oitm, BlockVTX& blockVtx, bool 
 //-----------------------------------------------------
 
 //-----------------------------------------------------
-void AntiBot::CheckTransactionRIItem(UniValue oitm, int height, ANTIBOTRESULT& resultCode)
+void AntiBot::CheckTransactionRIItem(const UniValue& oitm, int height, ANTIBOTRESULT& resultCode)
 {
     BlockVTX blockVtx;
     CheckTransactionRIItem(oitm, blockVtx, true, height, resultCode);
 }
 
-void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool checkMempool, int height,
+void AntiBot::CheckTransactionRIItem(const UniValue& oitm, BlockVTX& blockVtx, bool checkMempool, int height,
     ANTIBOTRESULT& resultCode)
 {
     resultCode = ANTIBOTRESULT::Success;
@@ -2080,6 +2141,10 @@ void AntiBot::CheckTransactionRIItem(UniValue oitm, BlockVTX& blockVtx, bool che
     else if (table == "CommentScores")
     {
         check_comment_score(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
+    }
+    else if (table == "AccountSettings")
+    {
+        check_account_settings(oitm, blockVtx, checkMempool, height, resultCode);
     }
     else
     {
