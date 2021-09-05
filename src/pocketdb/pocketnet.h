@@ -101,7 +101,7 @@ int64_t GetActualLimit(Limit type, int height);
 
 #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
 
-#define OR_ACCOUNT_SETTINGS "616363536574"; // Public account settings
+#define OR_ACCOUNT_SETTINGS "616363536574" // Public account settings (accSet)
 
 // Check transaction type is pocketnet
 bool IsPocketTX(const CTxOut& out);
@@ -111,7 +111,7 @@ std::string PocketTXType(const CTransactionRef& tx);
 
 
 // Transaction type convert to reindexer table name
-bool ConvertOPToTableName(std::string op, std::string& ri_table);
+bool ConvertOPToTableName(const std::string& op, std::string& ri_table);
 
 
 // Checkpoints for blocks

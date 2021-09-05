@@ -65,7 +65,7 @@ std::string PocketTXType(const CTransactionRef &tx)
 }
 
 // Transaction type convert to reindexer table name
-bool ConvertOPToTableName(std::string op, std::string &ri_table)
+bool ConvertOPToTableName(const std::string& op, std::string &ri_table)
 {
     bool ret = true;
 

@@ -1084,6 +1084,26 @@ UniValue getuserprofile(const JSONRPCRequest& request)
 
     return aResult;
 }
+UniValue getaccountsetting(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+                "getaccountsetting \"address\"\n"
+                "\nReturn public account settings object.\n");
+
+    RPCTypeCheck(request.params, {UniValue::VSTR});
+
+    string address = request.params[0].get_str();
+
+    reindexer::Item itm;
+    auto err = g_pocketdb->SelectOne(reindexer::Query("AccountSettings")
+            .Where("address", CondEq, address).Sort("block", true), itm);
+
+    if (err.ok())
+        return itm["data"].As<string>();
+
+    return "";
+}
 //----------------------------------------------------------
 UniValue getmissedinfo(const JSONRPCRequest& request)
 {
@@ -4200,6 +4220,7 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc", "getrawtransactionwithmessagebyid",  &getrawtransactionwithmessagebyid,  {"txs", "address"},                                                                    false},
     {"pocketnetrpc", "getrawtransactionwithmessagebyid2", &getrawtransactionwithmessagebyid2, {"txs", "address"},                                                                    false},
     {"pocketnetrpc", "getuserprofile",                    &getuserprofile,                    {"addresses", "short"},                                                                false},
+    {"pocketnetrpc", "getaccountsetting",                 &getaccountsetting,                 {"address"},                                                                         false},
     {"pocketnetrpc", "getmissedinfo",                     &getmissedinfo,                     {"address", "blocknumber"},                                                            false},
     {"pocketnetrpc", "getmissedinfo2",                    &getmissedinfo2,                    {"address", "blocknumber"},                                                            false},
     {"pocketnetrpc", "txunspent",                         &txunspent,                         {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"},                false},
