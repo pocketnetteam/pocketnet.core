@@ -891,11 +891,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
                 {
                     record.pushKV("address", value);
-
-                    // TODO (mavreh): tmp userprofile
-                    UniValue up(UniValue::VOBJ);
-                    up.pushKV("address", value);
-                    record.pushKV("userprofile", up);
+                    auto userprofile = GetUserProfile({value});
+                    record.pushKV("userprofile", userprofile[0]);
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
