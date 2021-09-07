@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.14)
 project(univalue)
 
 # TODO validate this works for windows
+# TODO tests
 
 add_library(${PROJECT_NAME} include/univalue.h
                             lib/univalue.cpp
