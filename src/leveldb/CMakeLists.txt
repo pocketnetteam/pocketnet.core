@@ -6,8 +6,6 @@ cmake_minimum_required(VERSION 3.21)
 project(leveldb)
 include(CheckLibraryExists)
 
-include_directories(include/)
-
 add_library(leveldb port/atomic_pointer.h
                     port/port_example.h
                     port/port_posix.h
@@ -110,7 +108,8 @@ else(WIN32)
     target_compile_definitions(leveldb PUBLIC LEVELDB_PLATFORM_POSIX)
 endif(WIN32)
 
-target_include_directories(leveldb PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(leveldb PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(leveldb PUBLIC include/)
 
 # TODO perform any checks probably.
 target_compile_definitions(leveldb PUBLIC LEVELDB_ATOMIC_PRESENT)
@@ -119,6 +118,7 @@ target_compile_definitions(leveldb PUBLIC LEVELDB_ATOMIC_PRESENT)
 add_library(memenv  helpers/memenv/memenv.h
                     helpers/memenv/memenv.cc)
 target_link_libraries(memenv PRIVATE leveldb)
+target_include_directories(memenv PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(leveldb_sse42 port/port_posix_sse.cc)
 check_library_exists(crc32c crc32c_value "" HAVE_CRC32C)
@@ -126,3 +126,4 @@ if(HAVE_CRC32C)
   target_link_libraries(leveldb_sse42 crc32c)
 endif(HAVE_CRC32C)
 target_link_libraries(leveldb_sse42 PRIVATE leveldb)
+target_include_directories(leveldb_sse42 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
