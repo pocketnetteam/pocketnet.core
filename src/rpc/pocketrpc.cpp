@@ -233,6 +233,7 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
     entry.pushKV("txid", itm["txid"].As<string>());
     if (itm["txidEdit"].As<string>() != "") entry.pushKV("edit", "true");
     if (itm["txidRepost"].As<string>() != "") entry.pushKV("repost", itm["txidRepost"].As<string>());
+    if (itm["type"].As<int>() == (int)ContentType::ContentDelete) entry.pushKV("deleted", "true");
     entry.pushKV("address", itm["address"].As<string>());
     entry.pushKV("time", itm["time"].As<string>());
     entry.pushKV("l", itm["lang"].As<string>());
@@ -954,8 +955,7 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
 
     query = query.Not().Where("address", CondSet, addrsblock);
     query = query.Where("time", CondLe, GetAdjustedTime());
-    // TODO (brangr): contentTypes
-    //query = query.Where("type", CondSet, contentTypes);
+    query = query.Not().Where("type", CondEq, (int)ContentType::ContentDelete);
 
     if (resultCount > 0 && resultStart > 0) {
         query = query.Where("time", CondLt, resultStart);
@@ -1143,7 +1143,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
     UniValue a(UniValue::VARR);
 
     reindexer::QueryResults posts;
-    g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber), posts);
+    g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).Not().Where("type", CondEq, (int)ContentType::ContentDelete), posts);
     //std::map<std::string, int> postsCntLang;
     std::map<std::string, std::map<std::string, int>> contentLangCnt;
     for (auto& p : posts) {
@@ -1179,7 +1179,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
 
     std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
     reindexer::QueryResults postspocketnet;
-    g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).Where("address", CondEq, addrespocketnet), postspocketnet);
+    g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).Where("address", CondEq, addrespocketnet).Not().Where("type", CondEq, (int)ContentType::ContentDelete), postspocketnet);
     for (auto it : postspocketnet) {
         reindexer::Item itm(it.GetItem());
         UniValue msg(UniValue::VOBJ);
@@ -1196,7 +1196,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
         reindexer::Item itm(it.GetItem());
 
         reindexer::QueryResults postfromprivate;
-        g_pocketdb->Select(reindexer::Query("Posts", 0, 1).Where("block", CondGt, blockNumber).Where("address", CondEq, itm["address_to"].As<string>()).Sort("time", true).ReqTotal(), postfromprivate);
+        g_pocketdb->Select(reindexer::Query("Posts", 0, 1).Where("block", CondGt, blockNumber).Where("address", CondEq, itm["address_to"].As<string>()).Not().Where("type", CondEq, (int)ContentType::ContentDelete).Sort("time", true).ReqTotal(), postfromprivate);
         if (postfromprivate.totalCount > 0) {
             reindexer::Item itm2(postfromprivate[0].GetItem());
 
@@ -1213,7 +1213,7 @@ UniValue getmissedinfo(const JSONRPCRequest& request)
     }
 
     reindexer::QueryResults reposts;
-    g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).InnerJoin("txidRepost", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, address)), reposts);
+    g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).Not().Where("type", CondEq, (int)ContentType::ContentDelete).InnerJoin("txidRepost", "txid", CondEq, reindexer::Query("Posts").Where("address", CondEq, address)), reposts);
     for (auto it : reposts) {
         reindexer::Item itm(it.GetItem());
         UniValue msg(UniValue::VOBJ);
@@ -2534,8 +2534,9 @@ UniValue getlastcomments(const JSONRPCRequest& request)
         reindexer::Item cmntItm = it.GetItem();
 
         string cmntLang = it.GetJoined()[0][0].GetItem()["lang"].As<string>();
+        bool isContentDeleted = (it.GetJoined()[0][0].GetItem()["type"].As<int>() == (int)ContentType::ContentDelete);
 
-        if(!lang.empty() && cmntLang == lang && cmntItm["msg"].As<string>().length() > 50) {
+        if(!lang.empty() && cmntLang == lang && cmntItm["msg"].As<string>().length() > 50 && !isContentDeleted) {
             UniValue oCmnt(UniValue::VOBJ);
             oCmnt.pushKV("id", cmntItm["otxid"].As<string>());
             oCmnt.pushKV("postid", cmntItm["postid"].As<string>());
@@ -4205,6 +4206,8 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
     queryPosts = queryPosts.Where("address", CondSet, addresses);
     if (!contentTypes.empty()) {
         queryPosts = queryPosts.Where("type", CondSet, contentTypes);
+    } else {
+        queryPosts = queryPosts.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
     }
 
     queryPosts = queryPosts.InnerJoin("txid", "posttxid", CondEq, queryScores);
