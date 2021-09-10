@@ -2363,7 +2363,7 @@ UniValue gettags(const JSONRPCRequest& request)
         reindexer::VariantArray va = postItm["tags"];
         for (unsigned int idx = 0; idx < va.size(); idx++) {
             std::string sTag = lower(va[idx].As<string>());
-            if (std::all_of(sTag.begin(), sTag.end(), [](unsigned char ch) { return ::isdigit(ch) || ::isalpha(ch); })) {
+            if (std::all_of(sTag.begin(), sTag.end(), [](unsigned char ch) { return ::isdigit(ch) || ::isalpha(ch) || ch == '%'; })) {
                 if (mapTags.count(sTag) == 0)
                     mapTags[sTag] = 1;
                 else
