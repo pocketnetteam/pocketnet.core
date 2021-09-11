@@ -155,6 +155,15 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("709715f1420660c7f2c1ac5ccaf9a12712b66aece43b25829fa754e3b204bf57", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("8ab207c295bc13da47da5947b5d93fdfd5a78136841ee44659489af7537c4dd0", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("a29d33b1d912549ea0da8fbe08e7af3a0ab65080cb2afd3050de5ce2b8419e31", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("9c86226e0ca07c2bd021d8754572d5a227560c4858d133262ed834971100cdf5", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("2087ec178c2cb2fe8840b1f3dd2f8dd8300bcb2a17cfde00acf0cb488004a546", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("7a9c4929e1e8a6e9d5d827ff0ba89a80ab3100080126fdca0ff6b93d3429874c", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("4271ba4040dd044160eba4f6fef57f4d5bd0f9614752f3640f3f6d78625b9410", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("f78453ffb67d19bd75f03d880bc3e0812fdddd22f1d7534e5b0d44e5cd954570", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("cb6a33aee2f933e3198ff9edf8c9a4a958f3a0953c6bebfb2b0a42aa5c25e6ec", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("73a20c40d0b318725d88ebc1438e2082db800be34d404a26994c6b54a5714a37", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("897eca2d187863ef126815201b13bd748318126115ed87806995e810252ac59e", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+
 
 
     _checkpoints.emplace("08aa6a715e644abfe47f9623bdc4a568b6edb0432e1bf5b59a2cee7565c81226", tuple(ACTION_SUBSCRIBE_CANCEL, SocialConsensusResult_DoubleSubscribe));
