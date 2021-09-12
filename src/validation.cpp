@@ -1621,24 +1621,16 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
 
                 CTransactionRef txPrev;
                 uint256 hashBlock = uint256();
-                int valid = 1;
-
-                if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
+                if (GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true) && mapBlockIndex.count(hashBlock) > 0)
                 {
-                    valid = 0;
-                }
-
-                if (mapBlockIndex.count(hashBlock) == 0)
-                {
-                    valid = 0;
-                }
-
-                if (valid)
-                {
-                    if (txPrev->nTime > tx.nTime)
+                    if (txPrev->nTime - tx.nTime > 60)
                     {
                         return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
                     }
+                }
+                else
+                {
+                    return state.DoS(100, false, REJECT_INVALID, "tx-input-not-found");
                 }
 
                 // We very carefully only pass in things to CScriptCheck which
