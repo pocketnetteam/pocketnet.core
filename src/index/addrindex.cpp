@@ -1713,12 +1713,19 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std
         int64_t dataSize = item["url"].As<string>().size() +
                         item["caption"].As<string>().size() +
                         item["message"].As<string>().size() +
-                        item["tags"].As<string>().size() +
-                        item["images"].As<string>().size() +
                         item["txidEdit"].As<string>().size() +
                         item["txidRepost"].As<string>().size() +
                         item["settings"].As<string>().size() +
                         item["lang"].As<string>().size();
+
+        reindexer::VariantArray va_tags = item["tags"];
+        for (size_t i = 0; i < va_tags.size(); ++i)
+            dataSize += va_tags[i].As<string>().size();
+
+        reindexer::VariantArray va_images = item["images"];
+        for (size_t i = 0; i < va_images.size(); ++i)
+            dataSize += va_images[i].As<string>().size();
+
         oitm.pushKV("dataSize", dataSize);
     }
 
