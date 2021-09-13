@@ -30,6 +30,7 @@ enum Limit {
     full_score_limit,
     full_complain_limit,
     change_info_timeout,
+    change_info_limit,
     edit_post_timeout,
     edit_video_timeout,
     max_user_size,

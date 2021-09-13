@@ -43,9 +43,9 @@ int64_t AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height)
     switch (_type)
     {
         case Post:
-            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_post_limit, height) : GetActualLimit(Limit::trial_post_limit, height);
+            return (_mode >= ABMODE_Full) ? GetActualLimit(Limit::full_post_limit, height) : GetActualLimit(Limit::trial_post_limit, height);
         case PostEdit:
-            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_post_edit_limit, height) : GetActualLimit(Limit::trial_post_edit_limit, height);
+            return (_mode >= ABMODE_Full) ? GetActualLimit(Limit::full_post_edit_limit, height) : GetActualLimit(Limit::trial_post_edit_limit, height);
         case CheckType_ContentVideo:
             return (_mode == ABMODE_Full)
                 ? GetActualLimit(Limit::full_video_limit, height)
@@ -53,19 +53,21 @@ int64_t AntiBot::getLimit(CHECKTYPE _type, ABMODE _mode, int height)
                     ? GetActualLimit(Limit::pro_video_limit, height)
                     : GetActualLimit(Limit::trial_video_limit, height);
         case CheckType_ContentVideoEdit:
-            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_video_edit_limit, height) : GetActualLimit(Limit::trial_video_edit_limit, height);
+            return (_mode >= ABMODE_Full) ? GetActualLimit(Limit::full_video_edit_limit, height) : GetActualLimit(Limit::trial_video_edit_limit, height);
         case Score:
-            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_score_limit, height) : GetActualLimit(Limit::trial_score_limit, height);
+            return (_mode >= ABMODE_Full) ? GetActualLimit(Limit::full_score_limit, height) : GetActualLimit(Limit::trial_score_limit, height);
         case Complain:
-            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_complain_limit, height) : GetActualLimit(Limit::trial_complain_limit, height);
+            return (_mode >= ABMODE_Full) ? GetActualLimit(Limit::full_complain_limit, height) : GetActualLimit(Limit::trial_complain_limit, height);
         case Comment:
-            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_comment_limit, height) : GetActualLimit(Limit::trial_comment_limit, height);
+            return (_mode >= ABMODE_Full) ? GetActualLimit(Limit::full_comment_limit, height) : GetActualLimit(Limit::trial_comment_limit, height);
         case CommentEdit:
-            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_comment_edit_limit, height) : GetActualLimit(Limit::trial_comment_edit_limit, height);
+            return (_mode >= ABMODE_Full) ? GetActualLimit(Limit::full_comment_edit_limit, height) : GetActualLimit(Limit::trial_comment_edit_limit, height);
         case CommentScore:
-            return (_mode == ABMODE_Full || _mode == ABMODE_Pro) ? GetActualLimit(Limit::full_comment_score_limit, height) : GetActualLimit(Limit::trial_comment_score_limit, height);
+            return (_mode >= ABMODE_Full) ? GetActualLimit(Limit::full_comment_score_limit, height) : GetActualLimit(Limit::trial_comment_score_limit, height);
         case CheckType_AccountSettings:
             return GetActualLimit(Limit::account_settings_daily_limit, height);
+        case User:
+            return GetActualLimit(Limit::change_info_limit, height);
         default:
             return 0;
     }
@@ -1235,11 +1237,16 @@ bool AntiBot::check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool ch
             return false;
         }
 
-        auto depth = checkTime_19_6 ? (_time - userItm["time"].As<int64_t>()) : (height - userItm["block"].As<int>());
-        if (depth <= GetActualLimit(Limit::change_info_timeout, height))
+        if (height <= (int)Params().GetConsensus().checkpoint_fix_size_payload)
         {
-            result = ANTIBOTRESULT::ChangeInfoLimit;
-            return false;
+            auto depth = checkTime_19_6
+                    ? (_time - userItm["time"].As<int64_t>())
+                    : (height - userItm["block"].As<int>());
+
+            if (depth <= GetActualLimit(Limit::change_info_timeout, height)) {
+                result = ANTIBOTRESULT::ChangeInfoLimit;
+                return false;
+            }
         }
     }
 
@@ -1262,7 +1269,7 @@ bool AntiBot::check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool ch
                     {
                         if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time)
                         {
-                            result = ANTIBOTRESULT::ChangeInfoLimit;
+                            result = ANTIBOTRESULT::ChangeInfoDoubleInBlock;
                             return false;
                         }
                     }
@@ -1278,7 +1285,7 @@ bool AntiBot::check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool ch
         {
             if (mtx["address"].get_str() == _address && mtx["txid"].get_str() != _txid)
             {
-                result = ANTIBOTRESULT::ChangeInfoLimit;
+                result = ANTIBOTRESULT::ChangeInfoDoubleInBlock;
                 return false;
             }
         }
@@ -1306,6 +1313,23 @@ bool AntiBot::check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool ch
     {
         result = ANTIBOTRESULT::Failed;
         return false;
+    }
+
+    // Check limit changes for last blocks
+    if (height > (int)Params().GetConsensus().checkpoint_fix_size_payload) {
+        auto query = reindexer::Query("Users")
+                .Where("address", CondEq, _address)
+                .Where("block", CondLt, height)
+                .Where("block", CondGe, height - 1440);
+        int changesCount = g_pocketdb->SelectCount(query);
+
+        ABMODE mode;
+        getMode(_address, mode, height);
+        int limit = getLimit(User, mode, height);
+        if (changesCount >= limit) {
+            result = ANTIBOTRESULT::ChangeInfoLimit;
+            return false;
+        }
     }
 
     return true;

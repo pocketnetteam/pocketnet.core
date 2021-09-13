@@ -251,6 +251,11 @@ void FillLimitsMain(const CChainParams &params)
     _change_info_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 60}); // blocks
     Limits.insert(std::make_pair(Limit::change_info_timeout, _change_info_timeout));
 
+    // change_info_limit
+    std::map<int, int64_t> _change_info_limit;
+    _change_info_limit.insert({0, 10});
+    Limits.insert(std::make_pair(Limit::change_info_limit, _change_info_limit));
+
     // edit_post_timeout
     std::map<int, int64_t> _edit_post_timeout;
     _edit_post_timeout.insert({0, 86400}); // seconds
@@ -272,11 +277,10 @@ void FillLimitsMain(const CChainParams &params)
     _max_post_size.insert({0, 60000});
     Limits.insert(std::make_pair(Limit::max_post_size, _max_post_size)); // 60Kb
 
-    // max_post_size
+    // max_video_size
     std::map<int, int64_t> _max_video_size;
     _max_video_size.insert({0, 60000});
     Limits.insert(std::make_pair(Limit::max_video_size, _max_video_size)); // 60Kb
-
 
     // bad_reputation
     std::map<int, int64_t> _bad_reputation;
@@ -474,6 +478,11 @@ void FillLimitsTest(const CChainParams &params)
     _change_info_timeout.insert({0, 30}); // blocks
     Limits.insert(std::make_pair(Limit::change_info_timeout, _change_info_timeout));
 
+    // change_info_limit
+    std::map<int, int64_t> _change_info_limit;
+    _change_info_limit.insert({0, 10});
+    Limits.insert(std::make_pair(Limit::change_info_limit, _change_info_limit));
+
     // edit_post_timeout
     std::map<int, int64_t> _edit_post_timeout;
     _edit_post_timeout.insert({0, 1440}); // blocks
@@ -493,6 +502,11 @@ void FillLimitsTest(const CChainParams &params)
     std::map<int, int64_t> _max_post_size;
     _max_post_size.insert({0, 60000});
     Limits.insert(std::make_pair(Limit::max_post_size, _max_post_size)); // 60Kb
+
+    // max_video_size
+    std::map<int, int64_t> _max_video_size;
+    _max_video_size.insert({0, 60000});
+    Limits.insert(std::make_pair(Limit::max_video_size, _max_video_size)); // 60Kb
 
     // bad_reputation
     std::map<int, int64_t> _bad_reputation;
