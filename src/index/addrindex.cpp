@@ -68,7 +68,7 @@ bool AddrIndex::insert_to_mempool(reindexer::Item& item, std::string table)
         memItm["txid"] = item["txid"].As<string>();
         memItm["txid_source"] = "";
     }
-    
+
     memItm["data"] = EncodeBase64(item.GetJSON().ToString());
 
     return WriteMemRTransaction(memItm);
@@ -426,11 +426,11 @@ bool AddrIndex::IndexBlock(const CBlock& block, CBlockIndex* pindex)
     // Post ratings map for this block
     // <posttxid, <sum, cnt>>
     std::map<std::string, std::pair<int, int>> postRatings;
-    
+
     // Post reputations map for this block
     // <posttxid, rep>
     std::map<std::string, int> postReputations;
-    
+
     // Comment ratings map for this block
     // <commentid, <up, down>>
     std::map<std::string, std::pair<int, int>> commentRatings;
@@ -763,7 +763,7 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
             if (!g_pocketdb->UpdateBlockingView(_bl_address, _bl_address_to, _height_txid).ok()) return false;
         }
     }
-    
+
     // Rollback CommentScores
     {
         if (back_to_mempool) {
@@ -1262,7 +1262,7 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
 
     if (!g_pocketdb->SelectOne(reindexer::Query("Mempool").Where("txid", CondEq, txid), itm).ok()) {
         mempool1 = false;
-        
+
         Error err;
         if (ri_table == "Posts") {
             err = g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, txid).Where("txidEdit", CondEq, ""), itm);
@@ -1287,7 +1287,7 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
 
                     VariantArray vaTags = hist_item["tags"];
                     itm["tags"] = vaTags;
-                    
+
                     VariantArray vaImages = hist_item["images"];
                     itm["images"] = vaImages;
                 }
@@ -1303,7 +1303,7 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
         } else {
             err = g_pocketdb->SelectOne(reindexer::Query(ri_table).Where("txid", CondEq, txid), itm);
         }
-        
+
         if (!err.ok()) {
             LogPrintf("WARNING! AddrIndex::GetTXRIData: ridata not found %s\n", txid);
             return false;
@@ -1656,7 +1656,7 @@ bool AddrIndex::ComputeRHash(CBlockIndex* pindexPrev, std::string& hash)
     }
 
     hash = ComputeHash(data);
-    
+
     return true;
 }
 
@@ -1708,17 +1708,29 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std
     if (table == "Posts") {
         oitm.pushKV("txidEdit", item["txidEdit"].As<string>());
         oitm.pushKV("txidRepost", item["txidRepost"].As<string>());
+
+        // Calculate size for payload data
+        int64_t dataSize = item["url"].As<string>().size() +
+                        item["caption"].As<string>().size() +
+                        item["message"].As<string>().size() +
+                        item["tags"].As<string>().size() +
+                        item["images"].As<string>().size() +
+                        item["txidEdit"].As<string>().size() +
+                        item["txidRepost"].As<string>().size() +
+                        item["settings"].As<string>().size() +
+                        item["lang"].As<string>().size();
+        oitm.pushKV("dataSize", dataSize);
     }
-    
+
     if (table == "Scores") {
         oitm.pushKV("posttxid", item["posttxid"].As<string>());
         oitm.pushKV("value", item["value"].As<int>());
     }
-    
+
     if (table == "Complains") {
         oitm.pushKV("posttxid", item["posttxid"].As<string>());
     }
-    
+
     if (table == "Subscribes") {
         oitm.pushKV("address_to", item["address_to"].As<string>());
         oitm.pushKV("private", item["private"].As<bool>());
@@ -1729,7 +1741,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std
         oitm.pushKV("address_to", item["address_to"].As<string>());
         oitm.pushKV("unblocking", item["unblocking"].As<bool>());
     }
-    
+
     if (table == "Users") {
         oitm.pushKV("referrer", item["referrer"].As<string>());
         oitm.pushKV("name", item["name"].As<string>());
@@ -1741,6 +1753,17 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std
 
         item["id"] = 0;
         oitm.pushKV("size", (int)(item.GetJSON().ToString().size()));
+
+        // Calculate size for payload data
+        int64_t dataSize = item["name"].As<string>().size() +
+                           item["url"].As<string>().size() +
+                           item["lang"].As<string>().size() +
+                           item["about"].As<string>().size() +
+                           item["avatar"].As<string>().size() +
+                           item["donations"].As<string>().size() +
+                           item["referrer"].As<string>().size() +
+                           item["pubkey"].As<string>().size();
+        oitm.pushKV("dataSize", dataSize);
     }
 
     if (table == "Comment") {
@@ -1749,6 +1772,10 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std
         oitm.pushKV("postid", item["postid"].As<string>());
         oitm.pushKV("parentid", item["parentid"].As<string>());
         oitm.pushKV("answerid", item["answerid"].As<string>());
+
+        int64_t dataSize = UrlDecode(item["msg"].As<string>()).length();
+        oitm.pushKV("size", dataSize);
+        oitm.pushKV("dataSize", dataSize);
     }
 
     if (table == "CommentScores") {
@@ -1757,8 +1784,11 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std
     }
 
     if (table == "AccountSettings") {
-        oitm.pushKV("size", (int64_t)item["data"].As<string>().size());
         oitm.pushKV("data", item["data"].As<string>());
+
+        // Calculate size for payload data
+        int64_t dataSize = item["data"].As<string>().size();
+        oitm.pushKV("dataSize", dataSize);
     }
 
     return oitm;

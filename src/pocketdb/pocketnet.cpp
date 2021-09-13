@@ -272,6 +272,12 @@ void FillLimitsMain(const CChainParams &params)
     _max_post_size.insert({0, 60000});
     Limits.insert(std::make_pair(Limit::max_post_size, _max_post_size)); // 60Kb
 
+    // max_post_size
+    std::map<int, int64_t> _max_video_size;
+    _max_video_size.insert({0, 60000});
+    Limits.insert(std::make_pair(Limit::max_video_size, _max_video_size)); // 60Kb
+
+
     // bad_reputation
     std::map<int, int64_t> _bad_reputation;
     _bad_reputation.insert({0, -500});

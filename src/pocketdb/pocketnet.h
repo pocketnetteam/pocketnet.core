@@ -34,6 +34,7 @@ enum Limit {
     edit_video_timeout,
     max_user_size,
     max_post_size,
+    max_video_size,
     bad_reputation,
     scores_one_to_one,
     scores_one_to_one_over_comment,

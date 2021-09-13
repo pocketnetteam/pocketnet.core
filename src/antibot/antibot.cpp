@@ -12,11 +12,6 @@ AntiBot::AntiBot() = default;
 
 AntiBot::~AntiBot() = default;
 
-bool vectorFind(std::vector <std::string>& V, std::string f)
-{
-    return std::find(V.begin(), V.end(), f) != V.end();
-}
-
 void AntiBot::getMode(const std::string& _address, ABMODE& mode, int& reputation, int64_t& balance, int height)
 {
     reputation = g_pocketdb->GetUserReputation(_address, height - 1);
@@ -220,15 +215,37 @@ bool AntiBot::CheckRegistration(const UniValue& oitm, const std::string& address
 
 bool AntiBot::check_item_size(const UniValue& oitm, CHECKTYPE _type, int height, ANTIBOTRESULT& result)
 {
-    int64_t _limit = oitm["size"].get_int64();
-    std::string table = oitm["table"].get_str();
+    int64_t _limit = 0;
+    switch (_type) {
 
-    if (_type == CHECKTYPE::Post) _limit = GetActualLimit(Limit::max_post_size, height);
-    if (_type == CHECKTYPE::User) _limit = GetActualLimit(Limit::max_user_size, height);
-    if (_type == CHECKTYPE::CheckType_AccountSettings)
-        _limit = GetActualLimit(Limit::max_account_settings_size, height);
+        case User:
+            _limit = GetActualLimit(Limit::max_user_size, height);
+            break;
+        case Post:
+        case PostEdit:
+            _limit = GetActualLimit(Limit::max_post_size, height);
+            break;
+        case CheckType_AccountSettings:
+            _limit = GetActualLimit(Limit::max_account_settings_size, height);
+            break;
+        case Comment:
+        case CommentEdit:
+            _limit = GetActualLimit(Limit::comment_size_limit, height);
+            break;
+        case CheckType_ContentVideo:
+        case CheckType_ContentVideoEdit:
+            _limit = GetActualLimit(Limit::max_video_size, height);
+            break;
+        default:
+            return true;
+    }
 
-    if (oitm["size"].get_int64() > _limit)
+    int64_t _data_size = oitm["size"].get_int64();
+
+    if (height >= (int)Params().GetConsensus().checkpoint_fix_size_payload)
+        _data_size = oitm["dataSize"].get_int64();
+
+    if (_data_size > _limit)
     {
         result = ANTIBOTRESULT::ContentSizeLimit;
         return false;
@@ -1284,7 +1301,6 @@ bool AntiBot::check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool ch
             return false;
         }
 
-    // TODO (brangr): block all spaces
     // Check spaces in begin and end
     if (boost::algorithm::ends_with(_name, "%20") || boost::algorithm::starts_with(_name, "%20"))
     {
@@ -1505,7 +1521,7 @@ bool AntiBot::check_comment(const UniValue& oitm, BlockVTX& blockVtx, bool check
     }
 
     // Size message limit
-    if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit, height))
+    if (_msg == "")
     {
         result = ANTIBOTRESULT::Size;
         return false;
@@ -1630,7 +1646,7 @@ bool AntiBot::check_comment_edit(const UniValue& oitm, BlockVTX& blockVtx, bool 
     }
 
     // Size message limit
-    if (_msg == "" || UrlDecode(_msg).length() > GetActualLimit(Limit::comment_size_limit, height))
+    if (_msg == "")
     {
         result = ANTIBOTRESULT::Size;
         return false;
@@ -2077,8 +2093,6 @@ void AntiBot::CheckTransactionRIItem(const UniValue& oitm, BlockVTX& blockVtx, b
 
     if (table == "Posts")
     {
-        if (!check_item_size(oitm, Post, height, resultCode)) return;
-
         if (splitContent)
         {
             if (tx_type == OR_CONTENT_DELETE)
@@ -2087,13 +2101,19 @@ void AntiBot::CheckTransactionRIItem(const UniValue& oitm, BlockVTX& blockVtx, b
             }
             else if (tx_type == OR_VIDEO)
             {
-                if (oitm["txidEdit"].get_str() != "")
+                if (oitm["txidEdit"].get_str() != "") {
+                    if (!check_item_size(oitm, CheckType_ContentVideoEdit, height, resultCode)) return;
                     check_video_edit(oitm, blockVtx, checkMempool, height, resultCode);
-                else
+                }
+                else {
+                    if (!check_item_size(oitm, CheckType_ContentVideo, height, resultCode)) return;
                     check_video(oitm, blockVtx, checkMempool, height, resultCode);
+                }
             }
             else
             {
+                if (!check_item_size(oitm, Post, height, resultCode)) return;
+
                 if (oitm["txidEdit"].get_str() != "")
                     check_post_edit(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, true, height, resultCode);
                 else
@@ -2102,6 +2122,8 @@ void AntiBot::CheckTransactionRIItem(const UniValue& oitm, BlockVTX& blockVtx, b
         }
         else
         {
+            if (!check_item_size(oitm, Post, height, resultCode)) return;
+
             if (oitm["txidEdit"].get_str() != "")
                 check_post_edit(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, false, height, resultCode);
             else
@@ -2131,10 +2153,14 @@ void AntiBot::CheckTransactionRIItem(const UniValue& oitm, BlockVTX& blockVtx, b
     }
     else if (table == "Comment")
     {
-        if (tx_type == OR_COMMENT)
+        if (tx_type == OR_COMMENT) {
+            if (!check_item_size(oitm, Comment, height, resultCode)) return;
             check_comment(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
-        else if (tx_type == OR_COMMENT_EDIT)
+        }
+        else if (tx_type == OR_COMMENT_EDIT) {
+            if (!check_item_size(oitm, CommentEdit, height, resultCode)) return;
             check_comment_edit(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
+        }
         else if (tx_type == OR_COMMENT_DELETE)
             check_comment_delete(oitm, blockVtx, checkMempool, checkTime_19_3, checkTime_19_6, height, resultCode);
     }
@@ -2144,6 +2170,7 @@ void AntiBot::CheckTransactionRIItem(const UniValue& oitm, BlockVTX& blockVtx, b
     }
     else if (table == "AccountSettings")
     {
+        if (!check_item_size(oitm, CheckType_AccountSettings, height, resultCode)) return;
         check_account_settings(oitm, blockVtx, checkMempool, height, resultCode);
     }
     else

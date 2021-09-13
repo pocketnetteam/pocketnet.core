@@ -124,9 +124,10 @@ public:
         consensus.lottery_referral_limitation = 1035000;
         consensus.checkpoint_0_19_3 = 1124000; // ~ 20210408
         consensus.checkpoint_0_19_6 = 1180000; // ~ 20210517
-        consensus.checkpoint_split_content_video = 1324655; // ~
-        consensus.checkpoint_disable_low_score_trial = 1324655; // ~
-        consensus.checkpoint_fix_save_likers = 1324655; // ~
+        consensus.checkpoint_split_content_video = 1324655; // ~ 20210826
+        consensus.checkpoint_disable_low_score_trial = 1324655; // ~ 20210826
+        consensus.checkpoint_fix_save_likers = 1324655; // ~ 20210826
+        consensus.checkpoint_fix_size_payload = 9999999; // ~
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000029c05bcbab1d79b2a3"); // 1310253
@@ -251,8 +252,9 @@ public:
         consensus.checkpoint_0_19_3 = 0;
         consensus.checkpoint_0_19_6 = 1;
         consensus.checkpoint_split_content_video = 65000;
-        consensus.checkpoint_disable_low_score_trial = 65000; // ~
-        consensus.checkpoint_fix_save_likers = 75000; // ~
+        consensus.checkpoint_disable_low_score_trial = 65000;
+        consensus.checkpoint_fix_save_likers = 75000;
+        consensus.checkpoint_fix_size_payload = 162000;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100001"); // 0
