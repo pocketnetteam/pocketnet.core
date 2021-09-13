@@ -4207,7 +4207,7 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
     if (!contentTypes.empty()) {
         queryPosts = queryPosts.Where("type", CondSet, contentTypes);
     } else {
-        queryPosts = queryPosts.Not().Where("type", CondEq, (int)ContentType::ContentDelete)
+        queryPosts = queryPosts.Not().Where("type", CondEq, (int)ContentType::ContentDelete);
     }
 
     queryPosts = queryPosts.InnerJoin("txid", "posttxid", CondEq, queryScores);
