@@ -2,7 +2,7 @@ include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
-
+include(CheckLinkerFlag)
 
 ### Options
 
@@ -154,7 +154,6 @@ else()
 endif()
 
 # Common checks
-
 set(CMAKE_REQUIRED_FLAGS -msse4.1)
 check_cxx_source_compiles( "#include <stdint.h>
                             #include <immintrin.h>
@@ -192,6 +191,41 @@ if(ENABLE_SHANI)
     add_compile_definitions(ENABLE_SHANI=1)
 endif()
 
+if(ENABLE_GLIBC_BACK_COMPAT)
+    find_library(REQUIRED rt)
+    set(CMAKE_REQUIRED_LIBRARIES rt)
+    check_function_exists(clock_gettime CLOCK_GETTIME_EXISTS)
+    if(NOT CLOCK_GETTIME_EXISTS)
+        message(FATAL_ERROR "librt missing")
+    endif()
+    check_cxx_source_compiles( "#ifdef _FORTIFY_SOURCE
+                                    #undef _FORTIFY_SOURCE
+                                #endif
+                                #define _FORTIFY_SOURCE 2
+                                #include <sys/select.h>
+                                extern \"C\" long unsigned int __fdelt_warn(long unsigned int);
+                                int main() {return 0;}
+                                " FDELT_TYPE)
+    if(FDELT_TYPE)
+        add_compile_definitions(FDELT_TYPE="long unsigned int")
+    else()
+        add_compile_definitions(FDELT_TYPE="long int")
+    endif()
+
+    check_linker_flag(CXX -Wl L_FLAG)
+    if(L_FLAG)
+        list(APPEND COMPAT_LDFLAGS -Wl)
+    endif()
+    check_linker_flag(CXX --wrap=__divmoddi4 WRAP_DIVMODDI4_FLAG)
+    if(WRAP_DIVMODDI4_FLAG)
+        list(APPEND COMPAT_LDFLAGS --wrap=__divmoddi4)
+    endif()
+    check_linker_flag(CXX --wrap=log2f WRAP_LOG2F_FLAG)
+    if(WRAP_LOG2F_FLAG)
+        list(APPEND COMPAT_LDFLAGS --wrap=log2f)
+    endif()
+endif()
+
 
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES_BACKUP})
 set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_BACKUP})
@@ -202,6 +236,7 @@ find_library(REQUIRED event_pthreads)
 find_library(REQUIRED sqlite3)
 find_package(OpenSSL REQUIRED)
 
+list(APPEND CMAKE_REQUIRED_FLAGS ${COMPAT_LDFLAGS})
 
 # Some configuration
 check_function_exists(strnlen HAVE_DECL_STRNLEN)
@@ -357,7 +392,9 @@ add_library(${POCKETCOIN_UTIL}
                 warnings.cpp
             )
 target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto Boost::thread Boost::chrono Boost::filesystem)
-
+if(ENABLE_GLIBC_BACK_COMPAT)
+    target_sources(${POCKETCOIN_UTIL} PRIVATE compat/glibc_compat.cpp)
+endif()
 
 ######## Crypto
 set(POCKETCOIN_CRYPTO pocketcoin_crypto)
