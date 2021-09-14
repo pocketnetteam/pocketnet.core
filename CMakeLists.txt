@@ -11,7 +11,7 @@ set(_COPYRIGHT_HOLDERS "\"The %s developers\"")
 set(_COPYRIGHT_HOLDERS_SUBSTITUTION "\"Pocketnet\"")
 set(_HOMEPAGE "\"https://github.com/pocketnetteam/\"")
 include(init.cmake)
-init("Pocketnet Core" "\"${_CLIENT_VERSION_MAJOR}.${_CLIENT_VERSION_MINOR}.${_CLIENT_VERSION_REVISION}\"" "\"https://github.com/pocketnetteam/pocketnet.core/issues\"" "\"pocketnetcore\"" "\"${_HOMEPAGE}\"")
+init("\"Pocketnet Core\"" "\"${_CLIENT_VERSION_MAJOR}.${_CLIENT_VERSION_MINOR}.${_CLIENT_VERSION_REVISION}\"" "\"https://github.com/pocketnetteam/pocketnet.core/issues\"" "\"pocketnetcore\"" "${_HOMEPAGE}")
 add_compile_definitions(CLIENT_VERSION_MAJOR=${_CLIENT_VERSION_MAJOR}
                         CLIENT_VERSION_MINOR=${_CLIENT_VERSION_MINOR}
                         CLIENT_VERSION_REVISION=${_CLIENT_VERSION_REVISION}
