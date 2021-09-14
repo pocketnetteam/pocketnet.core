@@ -782,14 +782,14 @@ if(NOT DISABLE_WALLET)
                         interfaces/wallet.cpp
                     )
     target_link_libraries(${POCKETCOIN_SERVER} PRIVATE Oracle::BerkeleyDB)
+    add_compile_definitions(ENABLE_WALLET=1)
 endif()
 
+# TODO USE_UPNP
 
 # ZMQ
 if (NOT DISABLE_ZMQ)
     find_library(ZMQ zmq)
-    # TODO allow specify zmq by user
-    # TODO probably rework this with pkgconfig to allow checking minimal version
     if(ZMQ)
         add_compile_definitions(ENABLE_ZMQ)
         set(POCKETCOIN_ZMQ_SOURCES   
@@ -813,7 +813,6 @@ endif()
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
 target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} event event_pthreads memenv)
-add_compile_definitions(ENABLE_WALLET=1)
 
 set(POCKETCOIN_CLI pocketcoin_cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp rpc/client.cpp)
