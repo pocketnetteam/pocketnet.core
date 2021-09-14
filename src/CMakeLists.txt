@@ -1,6 +1,8 @@
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckSymbolExists)
+include(CheckCXXCompilerFlag)
+
 
 ### Options
 
@@ -54,6 +56,9 @@ option(DISABLE_MAN "do not install man pages (default is to install)" OFF)
 if(NOT DISABLE_MAM)
     set(ENABLE_MAN ON)
 endif()
+
+option(WITH_UTILS "build pocketcoin-cli pocketcoin-tx (default=ON)" ON)
+option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
 
 # BerkeleyDB
 if(NOT DISABLE_WALLET)
@@ -124,6 +129,7 @@ set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         return 0;}")
                         
 set(CMAKE_REQUIRED_LIBRARIES_BACKUP ${CMAKE_REQUIRED_LIBRARIES})
+set(CMAKE_REQUIRED_FLAGS_BACKUP ${CMAKE_REQUIRED_FLAGS})
 set(CMAKE_REQUIRED_LIBRARIES Boost::thread Boost::system Boost::chrono)
 check_cxx_source_compiles("${CHECK_BOOST_SLEEP}" HAVE_WORKING_BOOST_SLEEP_FOR )
 if(HAVE_WORKING_BOOST_SLEEP_FOR)
@@ -146,7 +152,49 @@ else()
                 message(FATAL_ERROR "No working boost sleep implementation found.")
         endif()
 endif()
+
+# Common checks
+
+set(CMAKE_REQUIRED_FLAGS -msse4.1)
+check_cxx_source_compiles( "#include <stdint.h>
+                            #include <immintrin.h>
+                            int main() {
+                                __m128i l = _mm_set1_epi32(0);
+                                return _mm_extract_epi32(l, 3);   
+                            }" ENABLE_SSE41)
+if(ENABLE_SSE41)
+    add_compile_definitions(ENABLE_SSE41=1)
+endif()
+
+set(CMAKE_REQUIRED_FLAGS -mavx -mavx2)
+check_cxx_source_compiles( "#include <stdint.h>
+                            #include <immintrin.h>
+                            int main() {
+                                __m256i l = _mm256_set1_epi32(0);
+                                return _mm256_extract_epi32(l, 7);    
+                            }" ENABLE_AVX2)
+if(ENABLE_AVX2)
+message(STATUS GOTCHAAAA)
+
+    add_compile_definitions(ENABLE_AVX2=1)
+endif()
+
+set(CMAKE_REQUIRED_FLAGS -msse4 -msha)
+check_cxx_source_compiles( "#include <stdint.h>
+                            #include <immintrin.h>
+                            int main() {
+                                __m128i i = _mm_set1_epi32(0);
+                                __m128i j = _mm_set1_epi32(1);
+                                __m128i k = _mm_set1_epi32(2);
+                                return _mm_extract_epi32(_mm_sha256rnds2_epu32(i, i, k), 0);    
+                            }" ENABLE_SHANI)
+if(ENABLE_SHANI)
+    add_compile_definitions(ENABLE_SHANI=1)
+endif()
+
+
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES_BACKUP})
+set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_BACKUP})
 
 # Looking for required system libraries
 find_library(REQUIRED event)
