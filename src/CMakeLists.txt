@@ -159,9 +159,6 @@ check_cxx_source_compiles( "#include <stdint.h>
                                 __m128i l = _mm_set1_epi32(0);
                                 return _mm_extract_epi32(l, 3);   
                             }" ENABLE_SSE41)
-if(ENABLE_SSE41)
-    add_compile_definitions(ENABLE_SSE41=1)
-endif()
 
 set(CMAKE_REQUIRED_FLAGS -mavx -mavx2)
 check_cxx_source_compiles( "#include <stdint.h>
@@ -170,11 +167,6 @@ check_cxx_source_compiles( "#include <stdint.h>
                                 __m256i l = _mm256_set1_epi32(0);
                                 return _mm256_extract_epi32(l, 7);    
                             }" ENABLE_AVX2)
-if(ENABLE_AVX2)
-message(STATUS GOTCHAAAA)
-
-    add_compile_definitions(ENABLE_AVX2=1)
-endif()
 
 set(CMAKE_REQUIRED_FLAGS -msse4 -msha)
 check_cxx_source_compiles( "#include <stdint.h>
@@ -185,9 +177,7 @@ check_cxx_source_compiles( "#include <stdint.h>
                                 __m128i k = _mm_set1_epi32(2);
                                 return _mm_extract_epi32(_mm_sha256rnds2_epu32(i, i, k), 0);    
                             }" ENABLE_SHANI)
-if(ENABLE_SHANI)
-    add_compile_definitions(ENABLE_SHANI=1)
-endif()
+
 
 if(ENABLE_GLIBC_BACK_COMPAT)
     find_library(REQUIRED rt)
@@ -478,11 +468,9 @@ add_library(${POCKETCOIN_CRYPTO}
                 crypto/sha256.cpp
                 crypto/chacha20.cpp
                 crypto/aes.h
-                crypto/sha256_sse41.cpp
                 crypto/hmac_sha256.cpp
                 crypto/sha512.h
                 crypto/hmac_sha512.cpp
-                crypto/sha256_shani.cpp
                 crypto/ripemd160.cpp
                 crypto/sha1.h
                 crypto/ripemd160.h
@@ -490,7 +478,6 @@ add_library(${POCKETCOIN_CRYPTO}
                 crypto/chacha20.h
                 crypto/sha512.cpp
                 crypto/sha1.cpp
-                crypto/sha256_avx2.cpp
                 crypto/common.h
                 crypto/hmac_sha256.h
                 crypto/sha256.h
@@ -510,6 +497,19 @@ add_library(${POCKETCOIN_CRYPTO}
                 utilstrencodings.cpp
             )
 target_link_libraries(${POCKETCOIN_CRYPTO} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_SUPPORT} secp256k1)
+if(ENABLE_SSE41)
+    target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_sse41.cpp)
+    target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SSE41)
+endif()
+if(ENABLE_AVX2)
+    target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_avx2.cpp)
+    target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_AVX2)
+endif()
+if(ENABLE_SHANI)
+    target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_shani.cpp)
+    target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SHANI)
+endif()
+
 
 
 # System
