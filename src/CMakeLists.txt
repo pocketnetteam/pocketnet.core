@@ -90,7 +90,7 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # Check endian headers
-include(check_endian.cmake)
+include(CmakeCheckEndian.cmake)
 
 # LevelDB
 # TODO only if EMBEDDED_LVLDB defined
