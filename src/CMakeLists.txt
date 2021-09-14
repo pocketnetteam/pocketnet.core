@@ -288,7 +288,7 @@ endif()
 check_cxx_source_compiles(" #include <stdint.h>
                             #include <type_traits>
                             int main(){
-                                static_assert(std::is_same<int8_t, char>::value, "");
+                                static_assert(std::is_same<int8_t, char>::value, \"\");
                             }" CHAR_EQUALS_INT8)
 if(CHAR_EQUALS_INT8)
     add_compile_definitions(CHAR_EQUALS_INT8=1)
