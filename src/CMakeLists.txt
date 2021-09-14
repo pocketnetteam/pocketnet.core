@@ -212,17 +212,94 @@ if(ENABLE_GLIBC_BACK_COMPAT)
         add_compile_definitions(FDELT_TYPE="long int")
     endif()
 
-    check_linker_flag(CXX -Wl L_FLAG)
-    if(L_FLAG)
-        list(APPEND COMPAT_LDFLAGS -Wl)
-    endif()
-    check_linker_flag(CXX --wrap=__divmoddi4 WRAP_DIVMODDI4_FLAG)
-    if(WRAP_DIVMODDI4_FLAG)
-        list(APPEND COMPAT_LDFLAGS --wrap=__divmoddi4)
-    endif()
-    check_linker_flag(CXX --wrap=log2f WRAP_LOG2F_FLAG)
-    if(WRAP_LOG2F_FLAG)
-        list(APPEND COMPAT_LDFLAGS --wrap=log2f)
+    # check_linker_flag(CXX -Wl L_FLAG)
+    # if(L_FLAG)
+    #     list(APPEND COMPAT_LDFLAGS -Wl)
+    # endif()
+    # check_linker_flag(CXX --wrap=__divmoddi4 WRAP_DIVMODDI4_FLAG)
+    # if(WRAP_DIVMODDI4_FLAG)
+    #     list(APPEND COMPAT_LDFLAGS --wrap=__divmoddi4)
+    # endif()
+    # check_linker_flag(CXX --wrap=log2f WRAP_LOG2F_FLAG)
+    # if(WRAP_LOG2F_FLAG)
+    #     list(APPEND COMPAT_LDFLAGS --wrap=log2f)
+    # endif()
+endif()
+
+check_cxx_source_compiles(" #include <malloc.h>
+                            int main(){
+                                int f = malloc_info(0, NULL);
+                            }" HAVE_MALLOC_INFO)
+if(HAVE_MALLOC_INFO)
+    add_compile_definitions(HAVE_MALLOC_INFO=1)
+endif()
+
+check_cxx_source_compiles(" #include <malloc.h>
+                            int main(){
+                                mallopt(M_ARENA_MAX, 1);
+                            }" HAVE_MALLOPT_ARENA_MAX)
+if(HAVE_MALLOPT_ARENA_MAX)
+    add_compile_definitions(HAVE_MALLOPT_ARENA_MAX=1)
+endif()
+
+check_cxx_source_compiles(" int foo_def( void ) __attribute__((visibility(\"default\")));
+                            int main(){}" HAVE_VISIBILITY_ATTRIBUTE)
+if(HAVE_VISIBILITY_ATTRIBUTE)
+    add_compile_definitions(HAVE_VISIBILITY_ATTRIBUTE=1)
+elseif(ENABLE_REDUCE_EXPORTS)
+    message(FATAL_ERROR "Cannot find a working visibility attribute. Use -DENABLE_REDUCE_EXPORTS=OFF.")
+endif()
+
+check_cxx_source_compiles(" #include <thread>
+                            static thread_local int foo = 0;
+                            static void run_thread() { foo++;}
+                            int main(){
+                                for(int i = 0; i < 10; i++) { std::thread(run_thread).detach();}
+                                return foo;
+                            }" HAVE_THREAD_LOCAL)
+if(HAVE_THREAD_LOCAL)
+    add_compile_definitions(HAVE_THREAD_LOCAL=1)
+endif()
+
+check_cxx_source_compiles(" #include <sys/syscall.h>
+                            #include <linux/random.h>
+                            int main(){
+                                syscall(SYS_getrandom, nullptr, 32, 0);
+                            }" HAVE_SYS_GETRANDOM)
+if(HAVE_SYS_GETRANDOM)
+    add_compile_definitions(HAVE_SYS_GETRANDOM=1)
+endif()
+
+check_cxx_source_compiles(" #include <unistd.h>
+                            int main(){
+                                getentropy(nullptr, 32);
+                            }" HAVE_GETENTROPY)
+if(HAVE_GETENTROPY)
+    add_compile_definitions(HAVE_GETENTROPY=1)
+endif()
+
+check_cxx_source_compiles(" #include <unistd.h>
+                            #include <sys/random.h
+                            int main(){
+                                getentropy(nullptr, 32) ;
+                            }" HAVE_GETENTROPY_RAND)
+if(HAVE_GETENTROPY_RAND)
+    add_compile_definitions(HAVE_GETENTROPY_RAND=1)
+endif()
+
+check_cxx_source_compiles(" #include <stdint.h>
+                            #include <type_traits>
+                            int main(){
+                                static_assert(std::is_same<int8_t, char>::value, "");
+                            }" CHAR_EQUALS_INT8)
+if(CHAR_EQUALS_INT8)
+    add_compile_definitions(CHAR_EQUALS_INT8=1)
+endif()
+
+if(ENABLE_REDUCE_EXPORTS)
+    check_cxx_compiler_flag(-fvisibility=hidden VISIBILITY_HIDDEN)
+    if(NOT VISIBILITY_HIDDEN)
+        message(FATAL_ERROR "Cannot set default symbol visibility. Use -DENABLE_REDUCE_EXPORTS=OFF")
     endif()
 endif()
 
