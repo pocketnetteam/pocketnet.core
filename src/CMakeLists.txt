@@ -123,6 +123,7 @@ set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         
                         return 0;}")
                         
+set(CMAKE_REQUIRED_LIBRARIES_BACKUP ${CMAKE_REQUIRED_LIBRARIES})
 set(CMAKE_REQUIRED_LIBRARIES Boost::thread Boost::system Boost::chrono)
 check_cxx_source_compiles("${CHECK_BOOST_SLEEP}" HAVE_WORKING_BOOST_SLEEP_FOR )
 if(HAVE_WORKING_BOOST_SLEEP_FOR)
@@ -145,6 +146,7 @@ else()
                 message(FATAL_ERROR "No working boost sleep implementation found.")
         endif()
 endif()
+set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES_BACKUP})
 
 # Looking for required system libraries
 find_library(REQUIRED event)
