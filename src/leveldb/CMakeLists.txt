@@ -1,7 +1,7 @@
 # TODO there is an updated version of leveldb that handles cmake out of the box.
 # Bitcoin also had merged this functionality, so consider delete this after bitcoin-part update 
 
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.14)
 
 project(leveldb)
 include(CheckLibraryExists)
