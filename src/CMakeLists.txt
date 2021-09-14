@@ -48,8 +48,6 @@ option(ENABLE_LCOV "enable lcov testing branch coverage (default is OFF)" OFF)
 
 option(ENABLE_GLIBC_BACK_COMPAT "enable backwards compatibility with glibc" OFF)
 
-option(WITH_SYSTEM_UNIVALUE "Build with system UniValue (default is OFF)" OFF)
-
 option(WITH_INCOMPATIBLE_BDB "Allow using a bdb version greater than 4.8" OFF)
 
 option(DISABLE_MAN "do not install man pages (default is to install)" OFF)
