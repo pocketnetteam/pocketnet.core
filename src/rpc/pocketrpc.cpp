@@ -140,6 +140,14 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addres
         size_t _referrals_count = g_pocketdb->SelectCount(reindexer::Query("UsersView").Where("referrer", CondEq, _address));
         entry.pushKV("rc", (int)_referrals_count);
 
+        // Count of subscribers
+        size_t _subscribers_count = g_pocketdb->SelectCount(reindexer::Query("SubscribesView").Where("address_to", CondEq, _address));
+        entry.pushKV("subscribers_count", (int)_subscribers_count);
+
+        // Count of 4-5 star likers
+        int _likers_count = g_pocketdb->GetUserLikersCount(itm["id"].As<int>(), chainActive.Height());
+        entry.pushKV("likers_count", _likers_count);
+
         if (option == 1)
             entry.pushKV("a", itm["about"].As<string>());
 
@@ -179,7 +187,6 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addres
             reindexer::Error errRS = g_pocketdb->DB()->Select(
                 reindexer::Query("SubscribesView")
                     .Where("address_to", CondEq, _address),
-                //.Where("private", CondEq, false),
                 queryResSubscribers);
 
             UniValue arS(UniValue::VARR);
