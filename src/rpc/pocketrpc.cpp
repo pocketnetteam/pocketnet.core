@@ -9,6 +9,7 @@ static std::vector pocketnetDevelopers{
     "PKU652wwKYC52WGBJ8EHkA1Mtud8iHWChC",
     "P9EkPPJPPRYxmK541WJkmH8yBM4GuWDn2m",
     "PQxuDLBaetWEq9Wcx33VjhRfqtof1o8hDz",
+    "PDtuJDVXaq82HH7fafgwBmcoxbqqWdJ9u9",
 };
 
 //repetition in rawtransaction.cpp
