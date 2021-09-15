@@ -61,7 +61,7 @@ option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
 # BerkeleyDB
 if(NOT DISABLE_WALLET)
     set(BerkeleyDB_FIND_REQUIRED ON)
-    include(FindBerkeleyDB.cmake)
+    include(cmake/FindBerkeleyDB.cmake)
     set(BDB_INTERESTED_VERSION "${BerkeleyDB_VERSION_MAJOR}.${BerkeleyDB_VERSION_MINOR}")
     if(BDB_INTERESTED_VERSION VERSION_EQUAL "4.8")
         set(BDB_FOUND ON)
@@ -123,7 +123,7 @@ set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         #else
                                 choke me
                         #endif
-                        
+
                         return 0;}")
                         
 set(CMAKE_REQUIRED_LIBRARIES_BACKUP ${CMAKE_REQUIRED_LIBRARIES})
@@ -131,7 +131,7 @@ set(CMAKE_REQUIRED_FLAGS_BACKUP ${CMAKE_REQUIRED_FLAGS})
 set(CMAKE_REQUIRED_LIBRARIES Boost::thread Boost::system Boost::chrono)
 check_cxx_source_compiles("${CHECK_BOOST_SLEEP}" HAVE_WORKING_BOOST_SLEEP_FOR )
 if(HAVE_WORKING_BOOST_SLEEP_FOR)
-        add_compile_definitions(HAVE_WORKING_BOOST_SLEEP_FOR=1)
+    add_compile_definitions(HAVE_WORKING_BOOST_SLEEP_FOR=1)
 else()
         set(CHECK_BOOST_SLEEP "  #include <boost/version.hpp>
         #include <boost/thread.hpp>
@@ -157,7 +157,7 @@ check_cxx_source_compiles( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m128i l = _mm_set1_epi32(0);
-                                return _mm_extract_epi32(l, 3);   
+                                return _mm_extract_epi32(l, 3);
                             }" ENABLE_SSE41)
 
 set(CMAKE_REQUIRED_FLAGS -mavx -mavx2)
@@ -165,7 +165,7 @@ check_cxx_source_compiles( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m256i l = _mm256_set1_epi32(0);
-                                return _mm256_extract_epi32(l, 7);    
+                                return _mm256_extract_epi32(l, 7);
                             }" ENABLE_AVX2)
 
 set(CMAKE_REQUIRED_FLAGS -msse4 -msha)
@@ -175,7 +175,7 @@ check_cxx_source_compiles( "#include <stdint.h>
                                 __m128i i = _mm_set1_epi32(0);
                                 __m128i j = _mm_set1_epi32(1);
                                 __m128i k = _mm_set1_epi32(2);
-                                return _mm_extract_epi32(_mm_sha256rnds2_epu32(i, i, k), 0);    
+                                return _mm_extract_epi32(_mm_sha256rnds2_epu32(i, i, k), 0);
                             }" ENABLE_SHANI)
 
 
@@ -278,15 +278,21 @@ if(ENABLE_REDUCE_EXPORTS)
     endif()
 endif()
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES_BACKUP})
 set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_BACKUP})
 
 # Looking for required system libraries
-find_library(REQUIRED event)
-find_library(REQUIRED event_pthreads)
-find_library(REQUIRED sqlite3)
+find_package(Event 2.0 REQUIRED)
+
+find_package(SQlite REQUIRED)
+
 find_package(OpenSSL REQUIRED)
+if(WIN32)
+    find_library(WS2_32_LIB ws2_32 REQUIRED)
+    add_compile_definitions(NOMINMAX)
+endif()
 
 list(APPEND CMAKE_REQUIRED_FLAGS ${COMPAT_LDFLAGS})
 
@@ -300,8 +306,8 @@ endif(HAVE_DECL_STRNLEN)
 
 
 # Univalue library
-# TODO do this only if EMBEDDED_UNIVALUE defined (see root configure)
 if(WITH_SYSTEM_UNIVALUE)
+    # TODO write find_package script
     find_library(UNIVALUE univalue)
     if(NOT UNIVALUE)
         message(FATAL_ERROR "System univalue requested but not found")
@@ -340,7 +346,7 @@ add_library(${POCKETCOIN_COMMON}
 # Pocket DB functional library.
 # It is divided to pocketdb-server part and this functional part
 set(POCKETDB pocketdb)
-add_library(${POCKETDB} 
+add_library(${POCKETDB}
                 pocketdb/migrations/main.h
                 pocketdb/models/base/PocketTypes.h
                 pocketdb/models/base/Base.h
@@ -443,14 +449,18 @@ add_library(${POCKETCOIN_UTIL}
                 warnings.h
                 warnings.cpp
             )
-target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto Boost::thread Boost::chrono Boost::filesystem)
+target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto Boost::thread Boost::chrono Boost::filesystem Event::event)
+if(WIN32)
+    target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${WS2_32_LIB})
+endif()
 if(ENABLE_GLIBC_BACK_COMPAT)
     target_sources(${POCKETCOIN_UTIL} PRIVATE compat/glibc_compat.cpp)
 endif()
+target_include_directories(${POCKETCOIN_UTIL} PUBLIC ${Boost_INCLUDE_DIRS})
 
 ######## Crypto
 set(POCKETCOIN_CRYPTO pocketcoin_crypto)
-add_library(${POCKETCOIN_CRYPTO} 
+add_library(${POCKETCOIN_CRYPTO}
                 crypto/sha256_sse4.cpp
                 crypto/sha256.cpp
                 crypto/chacha20.cpp
@@ -486,20 +496,34 @@ add_library(${POCKETCOIN_CRYPTO}
 target_link_libraries(${POCKETCOIN_CRYPTO} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_SUPPORT} secp256k1)
 if(ENABLE_SSE41)
     target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_sse41.cpp)
-    target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SSE41)
-    target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -msse4.1)
+    if(MSVC)
+        #        TODO it seems like windows fails with everything exept sse2 that is enabled by default
+        #        Futhermore there are cmake scripts to find sse4.1 or avx support where they are always hardcoded as false for Windows
+        #        https://github.com/magic-sph/magic/blob/master/cmake/FindSSE.cmake
+        #        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:SSE4.1)
+    else()
+        target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SSE41)
+        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -msse4.1)
+    endif()
 endif()
 if(ENABLE_AVX2)
     target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_avx2.cpp)
-    target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_AVX2)
-    target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -mavx -mavx2)
+    if(MSVC)
+        #        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:AVX /arch:AVX2)
+    else()
+        target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_AVX2)
+        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -mavx -mavx2)
+    endif()
 endif()
 if(ENABLE_SHANI)
     target_sources(${POCKETCOIN_CRYPTO} PRIVATE crypto/sha256_shani.cpp)
-    target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SHANI)
-    target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -msse4 -msha)
+    if(MSVC)
+        #        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE /arch:SSE4 /arch:SHA)
+    else()
+        target_compile_definitions(${POCKETCOIN_CRYPTO} PRIVATE ENABLE_SHANI)
+        target_compile_options(${POCKETCOIN_CRYPTO} PRIVATE -msse4 -msha)
+    endif()
 endif()
-
 
 
 # System
@@ -514,7 +538,7 @@ target_link_libraries(${POCKETCOIN_SYSTEM} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCO
 # Consensus
 # TODO probably completely move this to server
 set(POCKETCOIN_CONSENSUS pocketcoin_consensus)
-add_library(${POCKETCOIN_CONSENSUS} 
+add_library(${POCKETCOIN_CONSENSUS}
                 protocol.h
                 protocol.cpp
                 pubkey.h
@@ -527,15 +551,15 @@ target_link_libraries(${POCKETCOIN_CONSENSUS} PRIVATE ${POCKETCOIN_UTIL} ${POCKE
 
 # Common rpc that used by server and cli
 set(POCKETCOIN_COMMON_RPC pocketcoin_common_rpc)
-add_library(${POCKETCOIN_COMMON_RPC} 
+add_library(${POCKETCOIN_COMMON_RPC}
                 rpc/protocol.h
-                rpc/protocol.cpp)  
-target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO})
+                rpc/protocol.cpp)
+target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL})
 
 
 ########### Server
 set(POCKETCOIN_SERVER pocketcoin_server)
-add_library(${POCKETCOIN_SERVER} 
+add_library(${POCKETCOIN_SERVER}
                 interfaces/node.h
                 interfaces/node.cpp
                 chainparams.h
@@ -592,8 +616,6 @@ add_library(${POCKETCOIN_SERVER}
                 pow.h
                 pow.cpp
                 statistic.hpp
-                staker.h
-                staker.cpp
                 txdb.h
                 txdb.cpp
                 versionbits.h
@@ -741,9 +763,11 @@ add_library(${POCKETCOIN_SERVER}
                 pocketdb/consensus/Lottery.cpp
                 pocketdb/consensus/Reputation.cpp
             )
-target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} leveldb univalue sqlite3)
+target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event leveldb univalue SQlite::sqlite OpenSSL::Crypto Boost::boost)
+target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${SQlite3_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
+
 if(NOT DISABLE_WALLET)
-    target_sources(pocketcoin_server PRIVATE
+    target_sources(${POCKETCOIN_SERVER} PRIVATE
                         wallet/coincontrol.h
                         wallet/coincontrol.cpp
                         wallet/crypter.h
@@ -768,9 +792,13 @@ if(NOT DISABLE_WALLET)
                         wallet/coinselection.cpp
                         interfaces/wallet.h
                         interfaces/wallet.cpp
+                        staker.h
+                        staker.cpp
                     )
     target_link_libraries(${POCKETCOIN_SERVER} PRIVATE Oracle::BerkeleyDB)
     add_compile_definitions(ENABLE_WALLET=1)
+else()
+    target_sources(${POCKETCOIN_SERVER} PRIVATE dummywallet.cpp)
 endif()
 
 # TODO USE_UPNP
@@ -800,11 +828,13 @@ endif()
 
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
-target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} event event_pthreads memenv)
+target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto Event::event SQlite::sqlite univalue memenv)
+target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
 
 set(POCKETCOIN_CLI pocketcoin_cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp rpc/client.cpp)
-target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue event)
+target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event)
+target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
 
 set(POCKETCOIN_TX pocketcoin_tx)
 add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
