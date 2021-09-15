@@ -103,6 +103,8 @@ if(WIN32)
     target_sources(leveldb PRIVATE  util/env_win.cc
                                     port/port_win.cc)
     target_compile_definitions(leveldb PUBLIC LEVELDB_PLATFORM_WINDOWS)
+    find_library(SHLWAPI Shlwapi.lib REQUIRED)
+    target_link_libraries(leveldb PRIVATE ${SHLWAPI})
 else(WIN32)
     target_sources(leveldb PRIVATE port/port_posix.cc)
     target_compile_definitions(leveldb PUBLIC LEVELDB_PLATFORM_POSIX)
