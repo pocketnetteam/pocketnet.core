@@ -240,7 +240,7 @@ static const CRPCCommand vRPCCommands[] =
   //   { "control",            "help",                   &help,                   {"command"}  },
 
 
-};
+0};
 // clang-format on
 
 CRPCTable::CRPCTable()
