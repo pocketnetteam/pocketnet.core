@@ -409,7 +409,6 @@ bool PocketDB::InitDB(std::string table)
     }
 
     // Cumulative ratings table
-    // TODO (brangr): only for for threshold user reputation & must be moved to sql
     // Type for split:
     // ? - user reputation
     // 1 - user scores - for threshold reputation
@@ -1174,7 +1173,7 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
 
         if (item["type"].As<int>() == (int)ContentType::ContentDelete)
         {
-            data += item["txidEdit"].As<string>();
+            data += item["txid"].As<string>();
             data += item["settings"].As<string>();
         }
         else
