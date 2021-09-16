@@ -126,7 +126,9 @@ if (HAVE_BUILTIN)
     add_compile_definitions(HAVE_BUILTIN_EXPECT=1)
 endif()
 
-# TODO precomputations
+add_executable(gen_context src/gen_context.c)
+target_include_directories(gen_context PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+add_custom_target(ecmult_static_context gen_context WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(${PROJECT_NAME} include/secp256k1.h
                             src/scalar.h
@@ -181,3 +183,5 @@ if(ENABLE_MODULE_RECOVERY)
 endif()
 target_include_directories(${PROJECT_NAME} PUBLIC include/)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+add_dependencies(secp256k1 ecmult_static_context)
+add_compile_definitions(USE_ECMULT_STATIC_PRECOMPUTATION)
