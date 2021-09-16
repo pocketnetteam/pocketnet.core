@@ -122,15 +122,14 @@ else()
 endif()
 
 secp_builtin_check()
-if (${HAVE_BUILTIN})
+if (HAVE_BUILTIN)
     add_compile_definitions(HAVE_BUILTIN_EXPECT=1)
 endif()
 
-if(${ENABLE_MODULE_RECOVERY})
-    add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
-endif()
+# TODO precomputations
 
-add_library(${PROJECT_NAME} src/scalar.h
+add_library(${PROJECT_NAME} include/secp256k1.h
+                            src/scalar.h
                             src/scalar_4x64.h
                             src/scalar_8x32.h
                             src/scalar_low.h
@@ -176,5 +175,9 @@ add_library(${PROJECT_NAME} src/scalar.h
                             contrib/lax_der_privatekey_parsing.c
                             src/secp256k1.c
                             )
+if(ENABLE_MODULE_RECOVERY)
+    add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
+    target_sources(${PROJECT_NAME} PRIVATE include/secp256k1_recovery.h src/modules/recovery/main_impl.h src/modules/recovery/tests_impl.h)
+endif()
 target_include_directories(${PROJECT_NAME} PUBLIC include/)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

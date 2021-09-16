@@ -103,7 +103,7 @@ add_subdirectory(leveldb/)
 # secp256k1
 
 # Enabling options for sepc
-set(ENABLE_MODULE_RECOVERY ON)
+set(ENABLE_MODULE_RECOVERY ON CACHE BOOL "" FORCE)
 # Force fpic to ON for sepc (as it has done in autotools)
 set(WITH_PIC_BACKUP ${WITH_PIC})
 set(WITH_PIC ON CACHE BOOL "Enable fPIC" FORCE)
