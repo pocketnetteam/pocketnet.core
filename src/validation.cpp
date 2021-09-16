@@ -1433,24 +1433,16 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
 
                 CTransactionRef txPrev;
                 uint256 hashBlock = uint256();
-                int valid = 1;
-
-                if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true)) {
-                    valid = 0;
-                }
-
-                if (mapBlockIndex.count(hashBlock) == 0) {
-                    valid = 0;
-                }
-
-                if (valid) {
-                    CBlockIndex *pblockindex = mapBlockIndex[hashBlock];
-                    if (txPrev->nTime > tx.nTime) {
+                if (GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
+                {
+                    if (txPrev->nTime > tx.nTime)
+                    {
                         // TODO (brangr): checkpoint add
                         return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
                     }
                 }
-                else {
+                else
+                {
                     return state.DoS(100, false, REJECT_INVALID, "tx-input-not-found");
                 }
 
