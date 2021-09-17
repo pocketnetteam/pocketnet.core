@@ -903,11 +903,13 @@ bool AntiBot::check_score(const UniValue& oitm, BlockVTX& blockVtx, bool checkMe
     // Check score to self
     bool not_found = false;
     std::string _post_address;
+    int postType = -1;
     reindexer::Item postItm;
     if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _post).Where("block", CondLt, height),
         postItm).ok())
     {
         _post_address = postItm["address"].As<string>();
+        postType = postItm["type"].As<int>();
 
         // Score to self post
         if (_post_address == _address)
@@ -929,6 +931,7 @@ bool AntiBot::check_score(const UniValue& oitm, BlockVTX& blockVtx, bool checkMe
                 if (mtx["txid"].get_str() == _post)
                 {
                     _post_address = mtx["address"].get_str();
+                    postType = mtx["type"].get_int();
                     not_found = false;
                     break;
                 }
@@ -940,6 +943,13 @@ bool AntiBot::check_score(const UniValue& oitm, BlockVTX& blockVtx, bool checkMe
             result = ANTIBOTRESULT::NotFound;
             return false;
         }
+    }
+
+    // Comments for deleted posts not allowed
+    if (postType == (int)ContentType::ContentDelete)
+    {
+        result = ANTIBOTRESULT::CommentDeletedContent;
+        return false;
     }
 
     // Blocking
@@ -1070,6 +1080,7 @@ bool AntiBot::check_complain(const UniValue& oitm, BlockVTX& blockVtx, bool chec
     }
 
     // Check score to self
+    int postType = -1;
     bool not_found = false;
     reindexer::Item postItm;
     if (g_pocketdb->SelectOne(
@@ -1079,6 +1090,8 @@ bool AntiBot::check_complain(const UniValue& oitm, BlockVTX& blockVtx, bool chec
             postItm)
         .ok())
     {
+        postType = postItm["type"].As<int>();
+
         // Score to self post
         if (postItm["address"].As<string>() == _address)
         {
@@ -1098,6 +1111,7 @@ bool AntiBot::check_complain(const UniValue& oitm, BlockVTX& blockVtx, bool chec
             {
                 if (mtx["txid"].get_str() == _post)
                 {
+                    postType = mtx["type"].get_int();
                     not_found = false;
                     break;
                 }
@@ -1109,6 +1123,13 @@ bool AntiBot::check_complain(const UniValue& oitm, BlockVTX& blockVtx, bool chec
             result = ANTIBOTRESULT::NotFound;
             return false;
         }
+    }
+
+    // Comments for deleted posts not allowed
+    if (postType == (int)ContentType::ContentDelete)
+    {
+        result = ANTIBOTRESULT::CommentDeletedContent;
+        return false;
     }
 
     // Check double score to post
@@ -1578,6 +1599,13 @@ bool AntiBot::check_comment(const UniValue& oitm, BlockVTX& blockVtx, bool check
         return false;
     }
 
+    // Comments for deleted posts not allowed
+    if (post_itm["type"].As<int>() == (int)ContentType::ContentDelete)
+    {
+        result = ANTIBOTRESULT::CommentDeletedContent;
+        return false;
+    }
+
     // Blocking
     if (g_pocketdb->Exists(
         Query("BlockingView").Where("address", CondEq, post_itm["address"].As<string>()).Where("address_to", CondEq,
@@ -1728,6 +1756,13 @@ bool AntiBot::check_comment_edit(const UniValue& oitm, BlockVTX& blockVtx, bool 
             post_itm).ok())
     {
         result = ANTIBOTRESULT::NotFound;
+        return false;
+    }
+
+    // Comments for deleted posts not allowed
+    if (post_itm["type"].As<int>() == (int)ContentType::ContentDelete)
+    {
+        result = ANTIBOTRESULT::CommentDeletedContent;
         return false;
     }
 

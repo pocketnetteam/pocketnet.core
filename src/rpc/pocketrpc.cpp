@@ -5,15 +5,22 @@
 #include <pos.h>
 #include <validation.h>
 
-static std::vector pocketnetDevelopers{
-    "PKU652wwKYC52WGBJ8EHkA1Mtud8iHWChC",
-    "P9EkPPJPPRYxmK541WJkmH8yBM4GuWDn2m",
-    "PUGBtfmivvcg1afnEt9vqVi3yZ7v6S9BcC",
-    "PDtuJDVXaq82HH7fafgwBmcoxbqqWdJ9u9",
-    "PDCNrwP1i8BJQWh2bctuJyAaXxozgMcRYT",
-    "PD4us1zniwrJv64xhPyhT2mgNrTvPur9YN",
-    "PVJ1rRdS9y9sUpaBJc8quiSTJGrC3xW8EH",
-    "PAF1BvWEH7pA24QbbEvCEasViC2Pw9BVj3",
+static std::map<std::string, std::vector<std::string>> pocketnetDevelopers{
+    {CBaseChainParams::MAIN, {
+        "PKU652wwKYC52WGBJ8EHkA1Mtud8iHWChC",
+        "P9EkPPJPPRYxmK541WJkmH8yBM4GuWDn2m",
+        "PUGBtfmivvcg1afnEt9vqVi3yZ7v6S9BcC",
+        "PDtuJDVXaq82HH7fafgwBmcoxbqqWdJ9u9",
+        "PDCNrwP1i8BJQWh2bctuJyAaXxozgMcRYT",
+        "PD4us1zniwrJv64xhPyhT2mgNrTvPur9YN",
+        "PVJ1rRdS9y9sUpaBJc8quiSTJGrC3xW8EH",
+        "PAF1BvWEH7pA24QbbEvCEasViC2Pw9BVj3",
+    }},
+    {CBaseChainParams::TESTNET, {
+        "TG69Jioc81PiwMAJtRanfZqUmRY4TUG7nt",
+        "TLnfXcFNxxrpEUUzrzZvbW7b9gWFtAcc8x",
+        "TYMo5HRFpc7tqzccaVifx7s2x2ZDqMikCR",
+    }}
 };
 
 //repetition in rawtransaction.cpp
@@ -162,7 +169,8 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addres
             entry.pushKV("a", itm["about"].As<string>());
 
         // Developers
-        if (find(pocketnetDevelopers.begin(), pocketnetDevelopers.end(), _address) != pocketnetDevelopers.end())
+        if (find(pocketnetDevelopers[Params().NetworkIDString()].begin(), pocketnetDevelopers[Params().NetworkIDString()].end(), _address)
+            != pocketnetDevelopers[Params().NetworkIDString()].end())
             entry.pushKV("dev", true);
 
         // In full form add other fields
