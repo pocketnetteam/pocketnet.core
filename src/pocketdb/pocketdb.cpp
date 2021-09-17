@@ -1173,6 +1173,7 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
 
         if (item["type"].As<int>() == (int)ContentType::ContentDelete)
         {
+            // txid (original tx id) + settings (json as string)
             data += item["txid"].As<string>();
             data += item["settings"].As<string>();
         }
@@ -1244,7 +1245,7 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
     }
 
     if (table == "AccountSettings") {
-        // self.data
+        // data
         data += item["data"].As<string>();
     }
     //------------------------

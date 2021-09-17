@@ -700,6 +700,14 @@ void SetUserInfo(const UniValue& payload, RTransaction& tx) {
     setAccount(payload, tx, AccountType::AccountUser);
 }
 
+void SetAccountSetting(const UniValue& payload, RTransaction& tx)
+{
+    if (!payload.exists("d") || !payload["d"].isStr() || payload["d"].get_str().size() == 0)
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameters");
+
+    tx.pTransaction["data"] = payload["d"].get_str();
+}
+
 //----------------------------------------------------------
 void FillPocketTransaction(const UniValue& payload, RTransaction& tx)
 {
@@ -725,6 +733,7 @@ void FillPocketTransaction(const UniValue& payload, RTransaction& tx)
         else if (tx.TxType == OR_VIDEO_SERVER) SetVideoServer(payload, tx);
         else if (tx.TxType == OR_MESSAGE_SERVER) SetMessageServer(payload, tx);
         else if (tx.TxType == OR_CONTENT_DELETE) SetContentDelete(payload, tx);
+        else if (tx.TxType == OR_ACCOUNT_SETTINGS) SetAccountSetting(payload, tx);
         else throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
     }
     else throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
