@@ -755,7 +755,7 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     tx.pTransaction = g_pocketdb->DB()->NewItem(tx.pTable);
 
     FillPocketTransaction(request.params[1], tx);
-    PostPocketTransaction(tx);
+    return PostPocketTransaction(tx);
 }
 
 CMutableTransaction ConstructPocketnetTransaction(const UniValue& inputs_in, const CTxOut& dataOut, const UniValue& outputs_in, const UniValue& locktime, const UniValue& rbf)
