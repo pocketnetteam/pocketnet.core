@@ -152,6 +152,7 @@ enum ANTIBOTRESULT {
     AccountSettingsLimit = 49,
     ChangeInfoDoubleInBlock = 50,
     CommentDeletedContent = 51,
+    RepostDeletedContent = 52,
 };
 //-----------------------------------------------------
 struct BlockVTX {

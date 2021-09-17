@@ -349,6 +349,12 @@ bool AntiBot::check_post(const UniValue& oitm, BlockVTX& blockVtx, bool checkMem
             result = ANTIBOTRESULT::NotAllowed;
             return false;
         }
+
+        if (_repost_post_itm["type"].As<int>() == (int)ContentType::ContentDelete)
+        {
+            result = ANTIBOTRESULT::RepostDeletedContent;
+            return false;
+        }
     }
 
     // Compute count of posts for last 24 hours
