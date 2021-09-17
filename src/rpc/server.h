@@ -8,6 +8,7 @@
 
 #include <amount.h>
 #include <rpc/protocol.h>
+#include <rpc/cache.h>
 #include <uint256.h>
 
 #include <list>
@@ -145,6 +146,7 @@ class CRPCTable
 {
 private:
     std::map<std::string, const CRPCCommand*> mapCommands;
+    RPCCache *cache;
 public:
     CRPCTable();
     const CRPCCommand* operator[](const std::string& name) const;
@@ -156,7 +158,7 @@ public:
      * @returns Result of the call.
      * @throws an exception (UniValue) when an error happens.
      */
-    UniValue execute(const JSONRPCRequest &request) const;
+    UniValue execute(const JSONRPCRequest &request);
 
     /**
     * Returns a list of registered commands
