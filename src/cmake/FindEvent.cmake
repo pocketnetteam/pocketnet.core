@@ -153,6 +153,9 @@ if(Event_FOUND AND Event_LIBRARIES AND NOT TARGET Event::event)
             IMPORTED_LOCATION "${EVENT_LIB}"
             INTERFACE_LINK_LIBRARIES "${Event_LIBRARIES}"
             )
+    if(WIN32)
+        target_link_libraries(Event::event INTERFACE ws2_32 wsock32)
+    endif()
 endif()
 
 include(FindPackageMessage)
