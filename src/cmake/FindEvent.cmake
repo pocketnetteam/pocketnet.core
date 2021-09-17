@@ -154,7 +154,7 @@ if(Event_FOUND AND Event_LIBRARIES AND NOT TARGET Event::event)
             INTERFACE_LINK_LIBRARIES "${Event_LIBRARIES}"
             )
     if(WIN32)
-        target_link_libraries(Event::event INTERFACE ws2_32 wsock32)
+        target_link_libraries(Event::event INTERFACE ws2_32 wsock32 Iphlpapi)
     endif()
 endif()
 

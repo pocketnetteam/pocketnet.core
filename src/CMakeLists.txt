@@ -289,14 +289,6 @@ find_package(Event 2.0 REQUIRED)
 find_package(SQlite REQUIRED)
 
 find_package(OpenSSL REQUIRED)
-if(WIN32)
-    find_library(WS2_32_LIB ws2_32 REQUIRED)
-    find_library(CRYPT32 crypt32 REQUIRED)
-    find_library(IPHLPAPI Iphlpapi REQUIRED)
-    add_compile_definitions(NOMINMAX)
-endif()
-
-list(APPEND CMAKE_REQUIRED_FLAGS ${COMPAT_LDFLAGS})
 
 # Some configuration
 check_function_exists(strnlen HAVE_DECL_STRNLEN)
@@ -453,7 +445,8 @@ add_library(${POCKETCOIN_UTIL}
             )
 target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::filesystem Event::event ${IPHLPAPI})
 if(WIN32)
-    target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${WS2_32_LIB})
+    target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ws2_32 crypt32 wsock32)
+    add_compile_definitions(NOMINMAX)
 endif()
 if(ENABLE_GLIBC_BACK_COMPAT)
     target_sources(${POCKETCOIN_UTIL} PRIVATE compat/glibc_compat.cpp)
