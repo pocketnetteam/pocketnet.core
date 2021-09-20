@@ -2688,6 +2688,19 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     }
     //-----------------------------------------------------
     // Clear pocketnet cache
+    int cleared_count_tx = 0;
+    int64_t cleared_size_tx = 0;
+    for (const auto& tx : blockConnecting.vtx)
+    {
+        auto cache_tx = POCKETNET_DATA.find(tx->GetHash());
+        if (cache_tx != POCKETNET_DATA.end())
+        {
+            cleared_count_tx += 1;
+            cleared_size_tx += cache_tx->first.size() + cache_tx->second.size();
+            POCKETNET_DATA.erase(cache_tx);
+        }
+    }
+
     int cleared_count = 0;
     int64_t cleared_size = 0;
     std::map<uint256, std::string>::iterator iter = POCKETNET_DATA.begin();
@@ -2701,7 +2714,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
         }
 
         CBlockIndex* _cache_index = mapBlockIndex[iter->first];
-        if (chainActive.Contains(_cache_index))
+        if (_cache_index->nHeight < chainActive.Height())
         {
             cleared_count += 1;
             cleared_size += iter->first.size() + iter->second.size();
@@ -2713,8 +2726,8 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
         }
     }
     //-----------------------------------------------------
-    LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH: %s CC: %d (%d)\n",
-        pindexNew->nHeight, pindexNew->GetBlockHash().GetHex(), cleared_count, cleared_size);
+    LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH: %s CCB: %d (%d) CCT: %d (%d)\n",
+        pindexNew->nHeight, pindexNew->GetBlockHash().GetHex(), cleared_count, cleared_size, cleared_count_tx, cleared_size_tx);
     //-----------------------------------------------------
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
     return true;
