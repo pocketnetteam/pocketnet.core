@@ -2687,6 +2687,28 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
         NotifyWSClients(blockConnecting, pindexNew);
     }
     //-----------------------------------------------------
+    // Clear pocketnet cache
+    std::map<uint256, std::string>::iterator iter = POCKETNET_DATA.begin();
+    std::map<uint256, std::string>::iterator endIter = POCKETNET_DATA.end();
+    for(; iter != endIter; )
+    {
+        if (mapBlockIndex.count(iter->first) != 0)
+        {
+            ++iter;
+            continue;
+        }
+
+        CBlockIndex* _cache_index = mapBlockIndex[iter->first];
+        if (chainActive.Contains(_cache_index))
+        {
+            iter = POCKETNET_DATA.erase(iter);
+        }
+        else
+        {
+            ++iter;
+        }
+    }
+    //-----------------------------------------------------
     LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH:%s\n", pindexNew->nHeight, pindexNew->GetBlockHash().GetHex());
     //-----------------------------------------------------
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
