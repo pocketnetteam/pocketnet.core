@@ -705,6 +705,10 @@ void SetAccountSetting(const UniValue& payload, RTransaction& tx)
     if (!payload.exists("d") || !payload["d"].isStr() || payload["d"].get_str().size() == 0)
         throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid parameters");
 
+    tx.pTransaction["txid"] = tx->GetHash().GetHex();
+    tx.pTransaction["block"] = -1;
+    tx.pTransaction["time"] = (int64_t)tx->nTime;
+    tx.pTransaction["address"] = tx.Address;
     tx.pTransaction["data"] = payload["d"].get_str();
 }
 
