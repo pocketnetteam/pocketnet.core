@@ -1431,19 +1431,19 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
 
-                CTransactionRef txPrev;
-                uint256 hashBlock = uint256();
-                if (GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
+                if (!g_addrindex->IsPocketnetTransaction(tx))
                 {
-                    if (txPrev->nTime > tx.nTime)
+                    CTransactionRef txPrev;
+                    uint256 hashBlock = uint256();
+                    if (GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
                     {
-                        // TODO (brangr): checkpoint add
-                        return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
+                        if (txPrev->nTime > tx.nTime)
+                            return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
                     }
-                }
-                else
-                {
-                    return state.DoS(100, false, REJECT_INVALID, "tx-input-not-found");
+                    else
+                    {
+                        return state.DoS(100, false, REJECT_INVALID, "tx-input-not-found");
+                    }
                 }
 
                 // We very carefully only pass in things to CScriptCheck which
