@@ -10,7 +10,7 @@ option(DISABLE_ZMQ "Disable ZMQ notifications (default is OFF)" OFF)
 
 option(WITH_SYSTEM_UNIVALUE "Build with system UniValue (default is OFF)" OFF)
 
-option(ENABLE_ASM "Enable assembly routines (default is NO)" ON)
+option(ENABLE_ASM "Enable assembly routines (default is ON)" ON)
 
 set(BDB_ROOT CACHE STRING "Path to BerkleyDB 4.8")
 
@@ -52,6 +52,7 @@ option(WITH_INCOMPATIBLE_BDB "Allow using a bdb version greater than 4.8" OFF)
 
 option(DISABLE_MAN "do not install man pages (default is to install)" OFF)
 if(NOT DISABLE_MAM)
+#    TODO it doesn't go anywhere
     set(ENABLE_MAN ON)
 endif()
 
@@ -272,6 +273,7 @@ if(CHAR_EQUALS_INT8)
 endif()
 
 if(ENABLE_REDUCE_EXPORTS)
+#    TODO It doesn't go anywhere
     check_cxx_compiler_flag(-fvisibility=hidden VISIBILITY_HIDDEN)
     if(NOT VISIBILITY_HIDDEN)
         message(FATAL_ERROR "Cannot set default symbol visibility. Use -DENABLE_REDUCE_EXPORTS=OFF")
