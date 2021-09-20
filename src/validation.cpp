@@ -2710,8 +2710,6 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     std::map<uint256, std::string>::iterator endIter = POCKETNET_DATA.end();
     for(; iter != endIter; )
     {
-        LogPrintf("--- %s %s\n", iter->first.GetHex(), iter->second);
-
         if (mapBlockIndex.count(iter->first) == 0)
         {
             ++iter;
