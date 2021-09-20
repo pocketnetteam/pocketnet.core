@@ -1431,14 +1431,17 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
 
-                if (!g_addrindex->IsPocketnetTransaction(tx))
+                if (!g_addrindex->IsPocketnetTransaction(tx) || chainActive.Height() < Params().GetConsensus().checkpoint_fix_size_payload)
                 {
                     CTransactionRef txPrev;
                     uint256 hashBlock = uint256();
                     if (GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
                     {
                         if (txPrev->nTime > tx.nTime)
-                            return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
+                        {
+                            if (!IsCheckpointTransaction(tx.GetHash().GetHex()))
+                                return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
+                        }
                     }
                     else
                     {
