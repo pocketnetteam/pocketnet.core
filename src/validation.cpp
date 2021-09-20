@@ -2712,7 +2712,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     {
         LogPrintf("--- %s %s\n", iter->first.GetHex(), iter->second);
 
-        if (mapBlockIndex.count(iter->first) != 0)
+        if (mapBlockIndex.count(iter->first) == 0)
         {
             ++iter;
             continue;
