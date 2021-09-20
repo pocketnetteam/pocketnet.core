@@ -58,6 +58,14 @@ endif()
 
 option(WITH_UTILS "build pocketcoin-cli pocketcoin-tx (default=ON)" ON)
 option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
+option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want to statically link internal libraries. Ignored for non-MSVC build (default=ON)" ON)
+
+if(MSVC AND MSVC_FORCE_STATIC)
+    set(Boost_USE_STATIC_RUNTIME ON)
+    set(Boost_USE_DEBUG_RUNTIME ON)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 
 # BerkeleyDB
 if(NOT DISABLE_WALLET)
@@ -804,6 +812,9 @@ endif()
 if (NOT DISABLE_ZMQ)
     find_package(ZMQ)
     if(ZMQ_FOUND)
+        if(MSVC AND MSVC_FORCE_STATIC)
+            target_compile_definitions(${POCKETCOIN_SERVER} PRIVATE ZMQ_STATIC)
+        endif()
         add_compile_definitions(ENABLE_ZMQ)
         set(POCKETCOIN_ZMQ_SOURCES   
                 zmq/zmqabstractnotifier.h
@@ -817,7 +828,8 @@ if (NOT DISABLE_ZMQ)
                 zmq/zmqrpc.cpp
             )
         target_sources(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_ZMQ_SOURCES})
-        target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${ZMQ})
+        target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ZMQ::zmq)
+        target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${Zmq_INCLUDE_DIRS})
     else()
         message(WARNING "ZMQ not found, disabling")
     endif()
