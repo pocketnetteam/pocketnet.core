@@ -802,8 +802,8 @@ endif()
 
 # ZMQ
 if (NOT DISABLE_ZMQ)
-    find_library(ZMQ zmq)
-    if(ZMQ)
+    find_package(ZMQ)
+    if(ZMQ_FOUND)
         add_compile_definitions(ENABLE_ZMQ)
         set(POCKETCOIN_ZMQ_SOURCES   
                 zmq/zmqabstractnotifier.h
