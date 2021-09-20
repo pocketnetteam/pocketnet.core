@@ -67,6 +67,9 @@ namespace PocketWeb::PocketWebRpc
     //        result.push_back(postscore);
     //    }
     //    return result;
+        throw std::runtime_error(
+                "getaddressscores\n"
+                "Implementation missing.\n");
     }
     //----------------------------------------------------------
     UniValue GetPostScores(const JSONRPCRequest& request)

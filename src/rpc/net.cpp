@@ -15,7 +15,6 @@
 #include <pos.h>
 #include <pow.h>
 #include <rpc/protocol.h>
-#include <staker.h>
 #include <sync.h>
 #include <timedata.h>
 #include <ui_interface.h>
@@ -23,7 +22,10 @@
 #include <utilstrencodings.h>
 #include <version.h>
 #include <warnings.h>
+#ifdef ENABLE_WALLET
+#include <staker.h>
 #include <wallet/wallet.h>
+#endif
 
 #include <univalue.h>
 
@@ -617,6 +619,7 @@ UniValue getstakinginfo(const JSONRPCRequest &request)
             "getstakinginfo\n"
             "Returns an object containing staking-related information.");
 
+#ifdef ENABLE_WALLET
     uint64_t nWeight = 0;
 
     auto wallets = GetWallets();
@@ -647,6 +650,12 @@ UniValue getstakinginfo(const JSONRPCRequest &request)
     obj.pushKV("expectedtime", nExpectedTime);
 
     return obj;
+#else
+    throw std::runtime_error(
+            "getstakinginfo\n"
+            "Wallets are disabled!");
+#endif
+
 }
 
 static UniValue setnetworkactive(const JSONRPCRequest& request)

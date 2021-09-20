@@ -13,8 +13,11 @@
 #include <primitives/block.h>
 #include <utiltime.h>
 #include <validation.h>
+#ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
+#endif
 #include "util.h"
+#include "validationinterface.h"
 
 double GetPosDifficulty(const CBlockIndex *blockindex)
 {
@@ -115,6 +118,7 @@ int64_t GetWeight(int64_t nIntervalBeginning, int64_t nIntervalEnd)
     return nIntervalEnd - nIntervalBeginning - Params().GetConsensus().nStakeMinAge;
 }
 
+#ifdef ENABLE_WALLET
 bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const &chainparams)
 {
     arith_uint256 proofHash = arith_uint256(0), hashTarget = arith_uint256(0);
@@ -157,6 +161,7 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
 
     return true;
 }
+#endif
 
 bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsigned int nBits,
     arith_uint256 &hashProofOfStake, CDataStream &hashProofOfStakeSource, arith_uint256 &targetProofOfStake,
@@ -227,6 +232,7 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     return true;
 }
 
+#ifdef ENABLE_WALLET
 bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout,
     int64_t *pBlockTime, CWallet *wallet, CDataStream &hashProofOfStakeSource)
 {
@@ -266,6 +272,7 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
     return CheckStakeKernelHash(pindexPrev, nBits, *pblockindex, txPrev,
         prevout, nTime, hashProofOfStake, hashProofOfStakeSource, targetProofOfStake);
 }
+#endif
 
 bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockIndex &blockFrom,
     CTransactionRef const &txPrev, COutPoint const &prevout, unsigned int nTimeTx, arith_uint256 &hashProofOfStake,
