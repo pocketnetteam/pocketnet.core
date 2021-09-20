@@ -919,7 +919,7 @@ UniValue generatepocketnettransaction(const JSONRPCRequest& request)
             reindexer::Query("UTXO")
                     .Where("address", CondEq, address)
                     .Where("spent_block", CondEq, 0)
-                    .Sort("block", true)
+                    .Sort("block", false)
             , inp
     );
 
