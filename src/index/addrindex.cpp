@@ -550,6 +550,11 @@ bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, 
         if (!g_pocketdb->UpdateUsersView(_address, height).ok()) return false;
     }
 
+    // Account Settings
+    if (table == "AccountSettings") {
+        if (!g_pocketdb->UpsertWithCommit("AccountSettings", item).ok()) return false;
+    }
+
     // New Post
     if (table == "Posts") {
         // Detect tx type
