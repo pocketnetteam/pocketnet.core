@@ -98,7 +98,6 @@ namespace PocketConsensus
     protected:
         ConsensusValidateResult ValidateBlock(const ScoreContentRef& ptx, const PocketBlockRef& block) override
         {
-
             // Get count from chain
             int count = GetChainCount(ptx);
 
@@ -128,7 +127,6 @@ namespace PocketConsensus
         }
         ConsensusValidateResult ValidateMempool(const ScoreContentRef& ptx) override
         {
-
             // Check already scored content
             if (PocketDb::ConsensusRepoInst.ExistsScore(
                 *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, true))

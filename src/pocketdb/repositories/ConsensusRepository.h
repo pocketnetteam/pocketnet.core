@@ -101,6 +101,9 @@ namespace PocketDb
 
         int CountMempoolUser(const string& address);
 
+        int CountMempoolAccountSetting(const string& address);
+        int CountChainAccountSetting(const string& address, int height);
+
         int CountMempoolVideo(const string& address);
         int CountChainVideoHeight(const string& address, int height);
 
