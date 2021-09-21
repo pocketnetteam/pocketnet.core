@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_ACCOUNT_SETTING_H
-#define POCKETTX_ACCOUNT_SETTING_H
+#ifndef POCKETTX_CONTENT_DELETE_H
+#define POCKETTX_CONTENT_DELETE_H
 
 #include "pocketdb/models/base/Transaction.h"
 
@@ -33,4 +33,4 @@ namespace PocketTx
 
 } // namespace PocketTx
 
-#endif // POCKETTX_ACCOUNT_SETTING_H
+#endif // POCKETTX_CONTENT_DELETE_H
