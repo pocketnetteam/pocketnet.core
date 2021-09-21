@@ -27,8 +27,8 @@ PocketnetCore is distributed in two ways: binary installer and build from source
 
 Minimum system requirements:
 - 4 core CPU
-- 12GB RAM
-- 15GB free disk space
+- 20GB RAM
+- 25GB free disk space
 - 10Mbps internet connection
 
 
@@ -80,9 +80,8 @@ $ pocketcoind --help
 # Initialize blockchain data with database checkpoint
 1. Stop the node.
 2. Download database archive:
-    * With torrent:
         ```
-        magnet:?xt=urn:btih:430a803795d7b5655c0d9cdad7d32725e2998330&dn=pocketnet.checkpoint.1347307.tgz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
+        https://3.pocketnet.app/checkpoint/pocketnet.checkpoint.latest.tgz
         ```
 4. There must be archive tar.gz with 4 directories:
     ```shell
