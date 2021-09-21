@@ -2600,6 +2600,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 		}
 
 		if (pocket_data != "") {
+            LOCK(POCKETNET_DATA_MUTEX);
 			POCKETNET_DATA.emplace(cmpctblock.header.GetHash(), pocket_data);
 		}
 		//------------------------------
@@ -2898,6 +2899,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         if (fBlockRead) {
 			if (pocket_data != "") {
+                LOCK(POCKETNET_DATA_MUTEX);
 				POCKETNET_DATA.emplace(pblock->GetHash(), pocket_data);
 			}
 			//----------------------------------
@@ -2961,6 +2963,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 		//----------------------------
 		// Before `ProcessNewBlock` need pass pocket data
 		if (pocket_data != "") {
+            LOCK(POCKETNET_DATA_MUTEX);
 			POCKETNET_DATA.emplace(pblock->GetHash(), pocket_data);
 		}
 		//----------------------------

@@ -1210,9 +1210,12 @@ bool AddrIndex::GetBlockRIData(CBlock block, std::string& data)
 
     // Maybe reindexer part data received from another node?
     // .. then relay from global POCKETNET_DATA
-    if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
-        data = POCKETNET_DATA[blockhash];
-        return true;
+    {
+        LOCK(POCKETNET_DATA_MUTEX);
+        if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
+            data = POCKETNET_DATA[blockhash];
+            return true;
+        }
     }
 
     // .. or data already in reindexer DB

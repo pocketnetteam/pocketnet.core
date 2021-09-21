@@ -10,6 +10,7 @@
 #endif //HAVE_CONFIG_H
 //-----------------------------------------------------
 std::unique_ptr<PocketDB> g_pocketdb;
+Mutex POCKETNET_DATA_MUTEX;
 std::map<uint256, std::string> POCKETNET_DATA;
 //-----------------------------------------------------
 PocketDB::PocketDB()
