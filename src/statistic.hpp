@@ -12,7 +12,6 @@
 #include <numeric>
 #include <set>
 #include "pocketdb/pocketdb.h"
-#include "rpc/server.h"
 
 namespace Statistic
 {
@@ -21,6 +20,7 @@ namespace Statistic
     using RequestTime = std::chrono::milliseconds;
     using RequestIP = std::string;
     using RequestPayloadSize = std::size_t;
+    using RequestOverCache = bool;
 
     struct RequestSample
     {
@@ -30,6 +30,7 @@ namespace Statistic
         RequestIP SourceIP;
         RequestPayloadSize InputSize;
         RequestPayloadSize OutputSize;
+        RequestOverCache OverCache;
     };
 
     class RequestStatEngine
@@ -54,7 +55,7 @@ namespace Statistic
             return _samples.size();
         }
 
-        std::size_t GetNumSamplesBetween(RequestTime begin, RequestTime end)
+        std::size_t GetNumSamplesBetween(RequestTime begin, RequestTime end, bool cache)
         {
             LOCK(_samplesLock);
             return std::count_if(
@@ -62,21 +63,21 @@ namespace Statistic
                 _samples.end(),
                 [=](const RequestSample& sample)
                 {
-                    return sample.TimestampBegin >= begin && sample.TimestampEnd <= end;
+                    return sample.OverCache == cache && sample.TimestampBegin >= begin && sample.TimestampEnd <= end;
                 });
         }
 
-        std::size_t GetNumSamplesBefore(RequestTime time)
+        std::size_t GetNumSamplesBefore(RequestTime time, bool cache)
         {
-            return GetNumSamplesBetween(RequestTime::min(), time);
+            return GetNumSamplesBetween(RequestTime::min(), time, cache);
         }
 
-        std::size_t GetNumSamplesSince(RequestTime time)
+        std::size_t GetNumSamplesSince(RequestTime time, bool cache)
         {
-            return GetNumSamplesBetween(time, RequestTime::max());
+            return GetNumSamplesBetween(time, RequestTime::max(), cache);
         }
 
-        RequestTime GetAvgRequestTimeSince(RequestTime since)
+        RequestTime GetAvgRequestTimeSince(RequestTime since, bool cache)
         {
             LOCK(_samplesLock);
 
@@ -88,7 +89,7 @@ namespace Statistic
 
             for (auto& sample : _samples)
             {
-                if (sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
+                if (sample.OverCache == cache && sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
                 {
                     sum += sample.TimestampEnd - sample.TimestampBegin;
                     count++;
@@ -116,9 +117,9 @@ namespace Statistic
             return count;
         }
 
-        RequestTime GetAvgRequestTime()
+        RequestTime GetAvgRequestTime(bool cache)
         {
-            return GetAvgRequestTimeSince(RequestTime::min());
+            return GetAvgRequestTimeSince(RequestTime::min(), cache);
         }
 
         std::vector<RequestSample> GetTopHeavyTimeSamplesSince(std::size_t limit, RequestTime since)
@@ -231,13 +232,11 @@ namespace Statistic
             result.pushKV("Sync", sync);
 
             UniValue rpcStat(UniValue::VOBJ);
-            rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since));
-            rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
+            rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since, false));
+            rpcStat.pushKV("RequestsCache", (int) GetNumSamplesSince(since, true));
+            rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since, false).count());
+            rpcStat.pushKV("AvgReqTimeCache", GetAvgRequestTimeSince(since, true).count());
             rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
-
-            auto[rpcCacheCount, rpcCacheSize] = tableRPC.CacheSize();
-            rpcStat.pushKV("CacheCount", rpcCacheCount);
-            rpcStat.pushKV("CacheSize", rpcCacheSize);
 
             if (g_logger->WillLogCategory(BCLog::STATDETAIL))
             {
@@ -246,7 +245,7 @@ namespace Statistic
                 rpcStat.pushKV("TopInputSize", top_in_json);
                 rpcStat.pushKV("TopOutputSize", top_out_json);
             }
-
+            
             result.pushKV("RPC", rpcStat);
 
             return result;

@@ -493,6 +493,8 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request)
 
     g_rpcSignals.PreCommand(*pcmd);
 
+    auto start = gStatEngineInstance.GetCurrentSystemTime();
+
     // See if this request reply is cached 
     UniValue ret = cache->GetRpcCache(request);
     if (ret.isNull()) {
@@ -512,6 +514,22 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request)
             throw JSONRPCError(RPC_MISC_ERROR, e.what());
         }
     }
+
+    auto stop = gStatEngineInstance.GetCurrentSystemTime();
+
+    gStatEngineInstance.AddSample(
+        Statistic::RequestSample{
+            request.strMethod,
+            start,
+            stop,
+            request.peerAddr.substr(0, request.peerAddr.find(':')),
+            request.params.write().size(),
+            ret.write().size()
+        }
+    );
+
+    auto diff = (stop - start);
+    LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", request.strMethod, request.peerAddr.substr(0, request.peerAddr.find(':')), diff.count());
 
     return ret;
 }

@@ -17,6 +17,8 @@
 #include <string>
 
 #include <univalue.h>
+#include "statistic.hpp"
+#include "init.h"
 
 static const unsigned int DEFAULT_RPC_SERIALIZE_VERSION = 1;
 
