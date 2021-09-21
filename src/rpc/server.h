@@ -182,6 +182,8 @@ public:
      * register different names, types, and numbers of parameters.
      */
     bool appendCommand(const std::string& name, const CRPCCommand* pcmd);
+
+    std::tuple<int64_t, int64_t> CacheSize();
 };
 
 bool IsDeprecatedRPCEnabled(const std::string& method);

@@ -527,6 +527,11 @@ std::vector<std::string> CRPCTable::listCommands() const
     return commandList;
 }
 
+std::tuple<int64_t, int64_t> CRPCTable::CacheSize()
+{
+    return cache->Size();
+}
+
 std::string HelpExampleCli(const std::string& methodname, const std::string& args)
 {
     return "> pocketcoin-cli " + methodname + " " + args + "\n";

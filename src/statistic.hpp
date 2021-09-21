@@ -12,6 +12,7 @@
 #include <numeric>
 #include <set>
 #include "pocketdb/pocketdb.h"
+#include "rpc/server.h"
 
 namespace Statistic
 {
@@ -233,6 +234,11 @@ namespace Statistic
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
             rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
+
+            auto[rpcCacheCount, rpcCacheSize] = tableRPC.CacheSize();
+            rpcStat.pushKV("CacheCount", rpcCacheCount);
+            rpcStat.pushKV("CacheSize", rpcCacheSize);
+
             if (g_logger->WillLogCategory(BCLog::STATDETAIL))
             {
                 rpcStat.pushKV("UniqueIps", unique_ips_json);
@@ -240,6 +246,7 @@ namespace Statistic
                 rpcStat.pushKV("TopInputSize", top_in_json);
                 rpcStat.pushKV("TopOutputSize", top_out_json);
             }
+
             result.pushKV("RPC", rpcStat);
 
             return result;

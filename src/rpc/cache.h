@@ -57,6 +57,8 @@ public:
 
     void PutRpcCache(const JSONRPCRequest& req, const UniValue& content);
 
+    std::tuple<int64_t, int64_t> Size();
+
 };
 
 #endif // POCKETCOIN_RPC_CACHE_H

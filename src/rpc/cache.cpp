@@ -75,3 +75,14 @@ void RPCCache::PutRpcCache(const JSONRPCRequest& req, const UniValue& content)
 
     Put(MakeHashKey(req), content);
 }
+
+std::tuple<int64_t, int64_t> RPCCache::Size()
+{
+    LOCK(CacheMutex);
+
+    int64_t size;
+    for (auto& it : m_cache)
+        size += it.first.size() + it.second.size();
+        
+    return { m_cache.size(), size * sizeof(std::string::value_type) };
+}
