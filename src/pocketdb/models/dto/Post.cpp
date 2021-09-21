@@ -89,17 +89,6 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "i"); ok) m_payload->SetString5(val);
     }
 
-    shared_ptr<string> Post::GetAddress() const { return m_string1; }
-    void Post::SetAddress(string value) { m_string1 = make_shared<string>(value); }
-
-    shared_ptr<string> Post::GetRootTxHash() const { return m_string2; }
-    void Post::SetRootTxHash(string value) { m_string2 = make_shared<string>(value); }
-
-    shared_ptr<string> Post::GetRelayTxHash() const { return m_string3; }
-    void Post::SetRelayTxHash(string value) { m_string3 = make_shared<string>(value); }
-
-    bool Post::IsEdit() const { return *m_string2 != *m_hash; }
-
     void Post::DeserializePayload(const UniValue& src)
     {
         Transaction::DeserializePayload(src);
@@ -114,6 +103,18 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "images"); ok) m_payload->SetString5(val);
         if (auto[ok, val] = TryGetStr(src, "settings"); ok) m_payload->SetString6(val);
     }
+    
+
+    shared_ptr<string> Post::GetAddress() const { return m_string1; }
+    void Post::SetAddress(string value) { m_string1 = make_shared<string>(value); }
+
+    shared_ptr<string> Post::GetRootTxHash() const { return m_string2; }
+    void Post::SetRootTxHash(string value) { m_string2 = make_shared<string>(value); }
+
+    shared_ptr<string> Post::GetRelayTxHash() const { return m_string3; }
+    void Post::SetRelayTxHash(string value) { m_string3 = make_shared<string>(value); }
+
+    bool Post::IsEdit() const { return *m_string2 != *m_hash; }
 
     void Post::BuildHash()
     {

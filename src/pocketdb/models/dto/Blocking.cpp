@@ -44,7 +44,6 @@ namespace PocketTx
 
     void Blocking::DeserializePayload(const UniValue& src)
     {
-
     }
 
     void Blocking::BuildHash()
