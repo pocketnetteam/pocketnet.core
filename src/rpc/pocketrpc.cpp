@@ -496,7 +496,6 @@ void SetContentDelete(const UniValue& payload, RTransaction& tx) {
     if (!payload.exists("txidEdit") || payload["txidEdit"].get_str().empty())
         throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid txidEdit");
 
-    std::string postlang = "en";
     // Posts:
     //   txid - txid of original post transaction
     //   txidEdit - txid of post transaction
