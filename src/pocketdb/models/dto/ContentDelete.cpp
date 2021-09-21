@@ -49,9 +49,11 @@ namespace PocketTx
     
     void ContentDelete::DeserializePayload(const UniValue& src)
     {
-        Transaction::DeserializePayload(src);
-
-        if (auto[ok, val] = TryGetStr(src, "settings"); ok) m_payload->SetString1(val);
+        if (auto[ok, val] = TryGetStr(src, "settings"); ok)
+        {
+            Transaction::DeserializePayload(src);
+            m_payload->SetString1(val);
+        }
     }
 
     void ContentDelete::BuildHash()

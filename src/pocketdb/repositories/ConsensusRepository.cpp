@@ -1566,4 +1566,32 @@ namespace PocketDb
         return result;
     }
 
+    int ConsensusRepository::CountMempoolContentDelete(const string& address, const string& rootTxHash)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (207)
+                    and Height is null
+                    and String1 = ?
+                    and String2 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+    
 }

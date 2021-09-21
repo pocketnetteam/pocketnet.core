@@ -107,7 +107,6 @@ namespace PocketDb
         int CountMempoolVideo(const string& address);
         int CountChainVideoHeight(const string& address, int height);
 
-
         int CountMempoolCommentEdit(const string& address, const string& rootTxHash);
         int CountChainCommentEdit(const string& address, const string& rootTxHash);
 
@@ -117,6 +116,7 @@ namespace PocketDb
         int CountMempoolVideoEdit(const string& address, const string& rootTxHash);
         int CountChainVideoEdit(const string& address, const string& rootTxHash);
 
+        int CountMempoolContentDelete(const string& address, const string& rootTxHash);
 
     };
 
