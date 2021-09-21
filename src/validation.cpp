@@ -1619,27 +1619,24 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
 
-                CTransactionRef txPrev;
-                uint256 hashBlock = uint256();
-                int valid = 1;
-
-                if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
-                {
-                    valid = 0;
-                }
-
-                if (mapBlockIndex.count(hashBlock) == 0)
-                {
-                    valid = 0;
-                }
-
-                if (valid)
-                {
-                    if (txPrev->nTime > tx.nTime)
-                    {
-                        return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
-                    }
-                }
+                // TODO (brangr): remove?
+                // CTransactionRef txPrev;
+                // uint256 hashBlock = uint256();
+                // if (GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
+                // {
+                //     auto diff = (int64_t)txPrev->nTime - (int64_t)tx.nTime;
+                //     if (diff > 60)
+                //     {
+                //         LogPrintf("--- %s (%d) - %s (%d) = %d \n",
+                //             txPrev->GetHash().GetHex(), txPrev->nTime,
+                //             tx.GetHash().GetHex(), tx.nTime, diff);
+                //         return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
+                //     }
+                // }
+                // else
+                // {
+                //     return state.DoS(100, false, REJECT_INVALID, "tx-input-not-found");
+                // }
 
                 // We very carefully only pass in things to CScriptCheck which
                 // are clearly committed to by tx' witness hash. This provides
@@ -5532,6 +5529,12 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
                 return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s", pindex->nHeight,
                     pindex->GetBlockHash().ToString());
             }
+
+            if (pindex->nStatus & BLOCK_FAILED_MASK)
+                ResetBlockFailureFlags(pindex);
+
+            if (!PocketServices::TransactionIndexer::Rollback(pindex->nHeight))
+                return error("VerifyDB(): failed rollback sqlite database for %s block", pindex->GetBlockHash().ToString());
 
             if (!g_chainstate.ConnectBlock(block, pocketBlock, state, pindex, coins, chainparams))
                 return error("VerifyDB(): *** found unconnectable block at %d, hash=%s (%s)", pindex->nHeight,

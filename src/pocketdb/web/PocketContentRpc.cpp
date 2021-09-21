@@ -214,6 +214,7 @@ namespace PocketWeb::PocketWebRpc
         UniValue oResult(UniValue::VOBJ);
         UniValue aContents(UniValue::VARR);
 
+        int totalcount = 0;
         map<string, UniValue> contents = request.DbConnection()->WebRepoInst->GetContents(nHeight, start_txid, countOut, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
         for (auto& c : contents) {
             aContents.push_back(c.second);
@@ -221,7 +222,7 @@ namespace PocketWeb::PocketWebRpc
 
         oResult.pushKV("height", nHeight);
         oResult.pushKV("contents", aContents);
-        oResult.pushKV("contentsTotal", "0");
+        oResult.pushKV("contentsTotal", totalcount);
         return oResult;
     }
 

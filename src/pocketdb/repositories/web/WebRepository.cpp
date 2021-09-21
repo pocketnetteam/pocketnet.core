@@ -623,7 +623,7 @@ namespace PocketDb
             (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
             (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = -1) as ScoreDown,
             (select r.Value from Ratings r where r.Id=c.Id and r.Type=3 and r.Height=(select max(r1.Height) from Ratings r1 where r1.Id=r.Id and r1.Type=3)) as Reputation,
-            msc.Value AS MyScore
+            msc.Int1 AS MyScore
             from Transactions c
             left join Transactions msc on msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1=?
             where c.Type in (204, 205)
@@ -891,11 +891,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
                 {
                     record.pushKV("address", value);
-
-                    // TODO (mavreh): tmp userprofile
-                    UniValue up(UniValue::VOBJ);
-                    up.pushKV("address", value);
-                    record.pushKV("userprofile", up);
+                    auto userprofile = GetUserProfile({value});
+                    record.pushKV("userprofile", userprofile[0]);
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang

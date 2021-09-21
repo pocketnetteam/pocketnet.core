@@ -46,7 +46,7 @@ namespace PocketConsensus
 
                         auto blockAddress = *blockTx->GetString1();
                         if (find(addresses.begin(), addresses.end(), blockAddress) != addresses.end())
-                            addresses.erase(remove(addresses.begin(), addresses.end(), blockAddress), addresses.end());
+                            remove(addresses.begin(), addresses.end(), blockAddress);
                     }
                 }
 
