@@ -84,6 +84,9 @@ namespace PocketTx
     shared_ptr <string> Comment::GetPayloadMsg() const { return Transaction::GetPayload()->GetString1(); }
     void Comment::SetPayloadMsg(string value) { Transaction::GetPayload()->SetString1(value); }
 
+    shared_ptr <int> Comment::GetPayloadDonateAmount() const { return Transaction::GetPayload()->GetInt1(); }
+    void Comment::SetPayloadDonateAmount(int value) { Transaction::GetPayload()->SetInt1(value); }
+
     void Comment::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         Transaction::DeserializePayload(src, tx);
