@@ -840,12 +840,15 @@ add_executable(${POCKETCOIND} pocketcoind.cpp)
 target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event ${IPHLPAPI} SQlite::sqlite univalue secp256k1 memenv)
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
 
+add_library(libpocketcoin_cli rpc/client.cpp)
 set(POCKETCOIN_CLI pocketcoin_cli)
-add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp rpc/client.cpp)
-target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event ${IPHLPAPI})
+add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
+target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event ${IPHLPAPI} libpocketcoin_cli)
 target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
 
 set(POCKETCOIN_TX pocketcoin_tx)
 add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
 target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} ${POCKETDB} ${POCKETCOIN_CRYPTO} ${POCKETCOIN_CONSENSUS} univalue SQlite::sqlite)
 target_include_directories(${POCKETCOIN_TX} PRIVATE ${SQlite3_INCLUDE_DIR})
+
+include(QTInclude.cmake)
