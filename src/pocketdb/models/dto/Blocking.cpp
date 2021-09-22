@@ -50,7 +50,6 @@ namespace PocketTx
 
     void Blocking::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-
     }
 
     void Blocking::BuildHash()

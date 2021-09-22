@@ -18,6 +18,7 @@ namespace PocketDb
                 -- AccountUser
                 -- ContentPost
                 -- ContentVideo
+                -- ContentDelete
                 -- Comment
                 -- Blocking
                 -- Subscribe
@@ -32,6 +33,7 @@ namespace PocketDb
                 -- AccountUser.AddressHash
                 -- ContentPost.AddressHash
                 -- ContentVideo.AddressHash
+                -- ContentDelete.AddressHash
                 -- Comment.AddressHash
                 -- ScorePost.AddressHash
                 -- ScoreComment.AddressHash
@@ -43,6 +45,7 @@ namespace PocketDb
                 -- AccountUser.ReferrerAddressHash
                 -- ContentPost.RootTxHash
                 -- ContentVideo.RootTxHash
+                -- ContentDelete.RootTxHash
                 -- Comment.RootTxHash
                 -- ScorePost.PostTxHash
                 -- ScoreComment.CommentTxHash
@@ -77,6 +80,7 @@ namespace PocketDb
                 -- AccountUser.Lang
                 -- ContentPost.Lang
                 -- ContentVideo.Lang
+                -- ContentDelete.Settings
                 -- Comment.Message
                 String1 text   null,
 

@@ -1619,25 +1619,6 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
 
-                // TODO (brangr): remove?
-                // CTransactionRef txPrev;
-                // uint256 hashBlock = uint256();
-                // if (GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
-                // {
-                //     auto diff = (int64_t)txPrev->nTime - (int64_t)tx.nTime;
-                //     if (diff > 60)
-                //     {
-                //         LogPrintf("--- %s (%d) - %s (%d) = %d \n",
-                //             txPrev->GetHash().GetHex(), txPrev->nTime,
-                //             tx.GetHash().GetHex(), tx.nTime, diff);
-                //         return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
-                //     }
-                // }
-                // else
-                // {
-                //     return state.DoS(100, false, REJECT_INVALID, "tx-input-not-found");
-                // }
-
                 // We very carefully only pass in things to CScriptCheck which
                 // are clearly committed to by tx' witness hash. This provides
                 // a sanity check that our caching is not introducing consensus

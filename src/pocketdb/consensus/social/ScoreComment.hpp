@@ -63,7 +63,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_NotFound};
             }
 
-            auto lastContentPtx = static_pointer_cast<ScoreComment>(lastContent);
+            auto lastContentPtx = static_pointer_cast<Comment>(lastContent);
 
             // Check score to self
             if (*ptx->GetAddress() == *lastContentPtx->GetAddress())

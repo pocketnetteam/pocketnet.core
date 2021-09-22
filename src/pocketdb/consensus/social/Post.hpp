@@ -13,6 +13,9 @@ namespace PocketConsensus
     using namespace std;
     typedef shared_ptr<Post> PostRef;
 
+    // TODO (brangr) (v0.21.0): extract base class Content for Post, Video and ContentDelete
+    // Also split Post & Video for extract PostEdit & VideoEdit transactions with base class ContentEdit
+
     /*******************************************************************************************************************
     *  Post consensus base class
     *******************************************************************************************************************/
@@ -25,6 +28,18 @@ namespace PocketConsensus
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
+
+            // Check if this post relay another
+            if (ptx->GetRelayTxHash())
+            {
+                if ((*ptx->GetRelayTxHash()).empty()) return {false, SocialConsensusResult_NotFound};
+                
+                auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRelayTxHash());
+                if (!lastContentOk) return {false, SocialConsensusResult_NotFound};
+                
+                if (*lastContent->GetType() != CONTENT_POST) return {false, SocialConsensusResult_NotAllowed};
+                if (*lastContent->GetType() == CONTENT_DELETE) return {false, SocialConsensusResult_RepostDeletedContent};
+            }
 
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
@@ -107,6 +122,12 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEdit(const PostRef& ptx)
         {
+            if (auto[ok, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash()); ok)
+            {
+                if (*lastContent->GetType() == CONTENT_DELETE)
+                    return {false, SocialConsensusResult_NotAllowed};
+            }
+
             // First get original post transaction
             auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
             if (!originalTx)

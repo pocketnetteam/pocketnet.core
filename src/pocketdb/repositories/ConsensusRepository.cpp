@@ -1288,6 +1288,59 @@ namespace PocketDb
         return result;
     }
 
+    int ConsensusRepository::CountMempoolAccountSetting(const string& address)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions
+                where Type in (103)
+                    and Height is null
+                    and String1 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+    int ConsensusRepository::CountChainAccountSetting(const string& address, int height)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
+                where Type in (103)
+                  and Height is not null
+                  and Height >= ?
+                  and String1 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt64(stmt, 2, height);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     int ConsensusRepository::CountMempoolVideo(const string& address)
     {
         int result = 0;
@@ -1513,4 +1566,32 @@ namespace PocketDb
         return result;
     }
 
+    int ConsensusRepository::CountMempoolContentDelete(const string& address, const string& rootTxHash)
+    {
+        int result = 0;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select count(*)
+                from Transactions indexed by Transactions_Type_String1_String2_Height
+                where Type in (207)
+                    and Height is null
+                    and String1 = ?
+                    and String2 = ?
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementText(stmt, 2, rootTxHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+    
 }

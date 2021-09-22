@@ -28,9 +28,11 @@
 #include "pocketdb/models/dto/SubscribeCancel.h"
 #include "pocketdb/models/dto/SubscribePrivate.h"
 #include "pocketdb/models/dto/Complain.h"
+#include "pocketdb/models/dto/AccountSetting.h"
 #include "pocketdb/models/dto/User.h"
 #include "pocketdb/models/dto/ScoreContent.h"
 #include "pocketdb/models/dto/ScoreComment.h"
+#include "pocketdb/models/dto/ContentDelete.h"
 
 namespace PocketHelpers
 {

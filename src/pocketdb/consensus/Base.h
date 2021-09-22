@@ -62,9 +62,19 @@ namespace PocketConsensus
         SocialConsensusResult_CommentDeletedEdit = 42,
         SocialConsensusResult_ReferrerAfterRegistration = 43,
         SocialConsensusResult_NotAllowed = 44,
-        SocialConsensusResult_AlreadyExists = 45,
-        SocialConsensusResult_PayloadORNotFound = 46,
-        SocialConsensusResult_TxORNotFound = 47,
+        SocialConsensusResult_ChangeTxType = 45,
+        SocialConsensusResult_ContentDeleteUnauthorized = 46,
+        SocialConsensusResult_ContentDeleteDouble = 47,
+        SocialConsensusResult_AccountSettingsDouble = 48,
+        SocialConsensusResult_AccountSettingsLimit = 49,
+        SocialConsensusResult_ChangeInfoDoubleInBlock = 50,
+        SocialConsensusResult_CommentDeletedContent = 51,
+        SocialConsensusResult_RepostDeletedContent = 52,
+        SocialConsensusResult_AlreadyExists = 53,
+        SocialConsensusResult_PayloadORNotFound = 54,
+        SocialConsensusResult_TxORNotFound = 55,
+        SocialConsensusResult_ComplainDeletedContent = 56,
+        SocialConsensusResult_ScoreDeletedContent = 57,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
@@ -115,6 +125,14 @@ namespace PocketConsensus
             case (SocialConsensusResult_CommentDeletedEdit): return "CommentDeletedEdit";
             case (SocialConsensusResult_ReferrerAfterRegistration): return "ReferrerAfterRegistration";
             case (SocialConsensusResult_NotAllowed): return "NotAllowed";
+            case (SocialConsensusResult_ChangeTxType): return "ChangeTxType";
+            case (SocialConsensusResult_ContentDeleteUnauthorized): return "ContentDeleteUnauthorized";
+            case (SocialConsensusResult_ContentDeleteDouble): return "ContentDeleteDouble";
+            case (SocialConsensusResult_AccountSettingsDouble): return "AccountSettingsDouble";
+            case (SocialConsensusResult_AccountSettingsLimit): return "AccountSettingsLimit";
+            case (SocialConsensusResult_ChangeInfoDoubleInBlock): return "ChangeInfoDoubleInBlock";
+            case (SocialConsensusResult_CommentDeletedContent): return "CommentDeletedContent";
+            case (SocialConsensusResult_RepostDeletedContent): return "RepostDeletedContent";
             case (SocialConsensusResult_AlreadyExists): return "AlreadyExists";
             case (SocialConsensusResult_PayloadORNotFound): return "PayloadORNotFound";
             case (SocialConsensusResult_TxORNotFound): return "TxORNotFound";
@@ -173,6 +191,9 @@ namespace PocketConsensus
         ConsensusLimit_scores_one_to_one_depth,
         ConsensusLimit_scores_depth_modify_reputation,
         ConsensusLimit_lottery_referral_depth,
+
+        ConsensusLimit_account_setting_max_size,
+        ConsensusLimit_account_settings_daily_limit,
     };
 
     /*********************************************************************************************/
@@ -849,13 +870,49 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0,       30 * 24 * 3600}
+                        {0, 30 * 24 * 3600}
                     }
                 },
                 {
                     NetworkTest,
                     {
                         {0, 30 * 24 * 3600}
+                    }
+                }
+            }
+        },
+        // ConsensusLimit_account_setting_max_size
+        {
+            ConsensusLimit_account_setting_max_size,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 2048}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 2048}
+                    }
+                }
+            }
+        },
+        // ConsensusLimit_account_settings_daily_limit
+        {
+            ConsensusLimit_account_settings_daily_limit,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 5}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 5}
                     }
                 }
             }
