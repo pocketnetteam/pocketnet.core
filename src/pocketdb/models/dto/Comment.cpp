@@ -2,11 +2,17 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/Comment.h"
 
 namespace PocketTx
 {
-    Comment::Comment(const string& hash, int64_t time) : Transaction(hash, time)
+    Comment::Comment() : Transaction()
+    {
+        SetType(PocketTxType::CONTENT_COMMENT);
+    }
+
+    Comment::Comment(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::CONTENT_COMMENT);
     }
@@ -44,7 +50,7 @@ namespace PocketTx
             SetRootTxHash(val);
     }
 
-    void Comment::DeserializeRpc(const UniValue& src)
+    void Comment::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
@@ -78,9 +84,12 @@ namespace PocketTx
     shared_ptr <string> Comment::GetPayloadMsg() const { return Transaction::GetPayload()->GetString1(); }
     void Comment::SetPayloadMsg(string value) { Transaction::GetPayload()->SetString1(value); }
 
-    void Comment::DeserializePayload(const UniValue& src)
+    shared_ptr <int> Comment::GetPayloadDonateAmount() const { return Transaction::GetPayload()->GetInt1(); }
+    void Comment::SetPayloadDonateAmount(int value) { Transaction::GetPayload()->SetInt1(value); }
+
+    void Comment::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        Transaction::DeserializePayload(src);
+        Transaction::DeserializePayload(src, tx);
 
         if (auto[ok, val] = TryGetStr(src, "msg"); ok) SetPayloadMsg(val);
     }

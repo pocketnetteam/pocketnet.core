@@ -249,7 +249,10 @@ namespace PocketDb
             if (!ok0 || !ok1 || !ok2)
                 return make_tuple(false, nullptr);
 
-            auto ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<PocketTxType>(txType), txHash, nTime);
+            auto ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<PocketTxType>(txType));
+            ptx->SetTime(nTime);
+            ptx->SetHash(txHash);
+
             if (ptx == nullptr)
                 return make_tuple(false, nullptr);
 

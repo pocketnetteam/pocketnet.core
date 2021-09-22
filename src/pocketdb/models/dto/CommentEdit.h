@@ -12,7 +12,8 @@ namespace PocketTx
     class CommentEdit : public Comment
     {
     public:
-        CommentEdit(const string& hash, int64_t time);
+        CommentEdit();
+        CommentEdit(const std::shared_ptr<const CTransaction>& tx);
     };
 } // namespace PocketTx
 

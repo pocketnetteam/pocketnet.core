@@ -35,7 +35,9 @@
 #include <script/sigcache.h>
 #include <script/standard.h>
 #include <shutdown.h>
+#ifdef ENABLE_WALLET
 #include <staker.h>
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <timedata.h>

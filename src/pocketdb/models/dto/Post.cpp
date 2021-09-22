@@ -1,8 +1,14 @@
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/Post.h"
 
 namespace PocketTx
 {
-    Post::Post(const string& hash, int64_t time) : Transaction(hash, time)
+    Post::Post() : Transaction()
+    {
+        SetType(PocketTxType::CONTENT_POST);
+    }
+
+    Post::Post(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::CONTENT_POST);
     }
@@ -66,7 +72,7 @@ namespace PocketTx
                 SetRootTxHash(valTxId);
     }
 
-    void Post::DeserializeRpc(const UniValue& src)
+    void Post::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
@@ -91,7 +97,7 @@ namespace PocketTx
 
     void Post::DeserializePayload(const UniValue& src)
     {
-        Transaction::DeserializePayload(src);
+        Transaction::DeserializePayload(src, tx);
 
         if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
         else m_payload->SetString1("en");

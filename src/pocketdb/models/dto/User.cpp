@@ -2,11 +2,17 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/User.h"
 
 namespace PocketTx
 {
-    User::User(const string& hash, int64_t time) : Transaction(hash, time)
+    User::User() : Transaction()
+    {
+        SetType(PocketTxType::ACCOUNT_USER);
+    }
+
+    User::User(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::ACCOUNT_USER);
     }
@@ -41,7 +47,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrerAddress(val);
     }
 
-    void User::DeserializeRpc(const UniValue& src)
+    void User::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "r"); ok) SetReferrerAddress(val);
@@ -67,9 +73,9 @@ namespace PocketTx
     shared_ptr <string> User::GetPayloadName() const { return Transaction::GetPayload()->GetString2(); }
     shared_ptr <string> User::GetPayloadAvatar() const { return Transaction::GetPayload()->GetString3(); }
 
-    void User::DeserializePayload(const UniValue& src)
+    void User::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        Transaction::DeserializePayload(src);
+        Transaction::DeserializePayload(src, tx);
 
         if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
         if (auto[ok, val] = TryGetStr(src, "name"); ok) m_payload->SetString2(val);

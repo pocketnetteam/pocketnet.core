@@ -32,4 +32,7 @@ namespace PocketTx
     shared_ptr <string> Payload::GetString7() const { return m_string7; }
     void Payload::SetString7(string value) { m_string7 = make_shared<string>(value); }
 
+    shared_ptr <int> Payload::GetInt1() const { return m_int1; }
+    void Payload::SetInt1(int value) { m_int1 = make_shared<int>(value); }
+
 } // namespace PocketTx
