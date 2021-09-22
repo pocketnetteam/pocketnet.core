@@ -495,9 +495,12 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request)
 
     auto start = gStatEngineInstance.GetCurrentSystemTime();
 
-    // See if this request reply is cached 
+    // See if this request reply is cached
+    bool overCache = true;
     UniValue ret = cache->GetRpcCache(request);
     if (ret.isNull()) {
+        overCache = false;
+
         try
         {
             // Execute, convert arguments to array if necessary
@@ -524,7 +527,8 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request)
             stop,
             request.peerAddr.substr(0, request.peerAddr.find(':')),
             request.params.write().size(),
-            ret.write().size()
+            ret.write().size(),
+            overCache
         }
     );
 
