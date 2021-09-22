@@ -1619,23 +1619,6 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
 
-                if (!TransactionHelper::IsPocketTransaction(tx))
-                {
-                    CTransactionRef txPrev;
-                    uint256 hashBlock = uint256();
-                    if (GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
-                    {
-                        if (txPrev->nTime > tx.nTime)
-                        {
-                            return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
-                        }
-                    }
-                    else
-                    {
-                        return state.DoS(100, false, REJECT_INVALID, "tx-input-not-found");
-                    }
-                }
-
                 // We very carefully only pass in things to CScriptCheck which
                 // are clearly committed to by tx' witness hash. This provides
                 // a sanity check that our caching is not introducing consensus

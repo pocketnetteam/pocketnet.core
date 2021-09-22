@@ -115,6 +115,11 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
         {
+            if (auto[ok, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash()); ok)
+            {
+                if (*lastContent->GetType() == CONTENT_DELETE)
+                    return {false, SocialConsensusResult_NotAllowed};
+            }
 
             // First get original post transaction
             auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());

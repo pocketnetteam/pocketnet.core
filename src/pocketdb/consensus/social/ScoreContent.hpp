@@ -54,14 +54,16 @@ namespace PocketConsensus
             if (!lastContent)
                 return {false, SocialConsensusResult_NotFound};
 
-            auto lastContentPtx = static_pointer_cast<ScoreContent>(lastContent);
-
             // Check score to self
-            if (*ptx->GetAddress() == *lastContentPtx->GetAddress())
+            if (*ptx->GetAddress() == *lastContent->GetString1())
                 return {false, SocialConsensusResult_SelfScore};
 
+            // Scores for deleted contents not allowed
+            if (*lastContent->GetType() == PocketTxType::CONTENT_DELETE)
+                return {false, SocialConsensusResult_ScoreDeletedContent};
+
             // Check Blocking
-            if (auto[ok, result] = ValidateBlocking(*lastContentPtx->GetAddress(), ptx); !ok)
+            if (auto[ok, result] = ValidateBlocking(*lastContent->GetString1(), ptx); !ok)
                 return {false, result};
 
             return Success;
