@@ -66,7 +66,6 @@ if(MSVC AND MSVC_FORCE_STATIC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-
 # BerkeleyDB
 if(NOT DISABLE_WALLET)
     set(BerkeleyDB_FIND_REQUIRED ON)
@@ -122,7 +121,7 @@ set(WITH_PIC ${WITH_PIC_BACKUP} CACHE BOOL "Enable fPIC" FORCE)
 
 # Finding boost
 # TODO minimal boost version is increased to 1.66 because websockets (websocket/ws.h) are using lambdas as WriteHandler. This functional was implemented in 1.66.
-find_package(Boost 1.66 REQUIRED COMPONENTS System Thread Chrono filesystem)
+find_package(Boost 1.66 REQUIRED COMPONENTS System Thread Chrono filesystem date_time)
 ######## Boost sleep functions validation
 set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         #include <boost/version.hpp>
@@ -137,7 +136,7 @@ set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         
 set(CMAKE_REQUIRED_LIBRARIES_BACKUP ${CMAKE_REQUIRED_LIBRARIES})
 set(CMAKE_REQUIRED_FLAGS_BACKUP ${CMAKE_REQUIRED_FLAGS})
-set(CMAKE_REQUIRED_LIBRARIES Boost::thread Boost::system Boost::chrono)
+set(CMAKE_REQUIRED_LIBRARIES Boost::thread Boost::system Boost::chrono Boost::date_time)
 check_cxx_source_compiles("${CHECK_BOOST_SLEEP}" HAVE_WORKING_BOOST_SLEEP_FOR )
 if(HAVE_WORKING_BOOST_SLEEP_FOR)
     add_compile_definitions(HAVE_WORKING_BOOST_SLEEP_FOR=1)
@@ -453,7 +452,7 @@ add_library(${POCKETCOIN_UTIL}
                 warnings.h
                 warnings.cpp
             )
-target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::filesystem Event::event ${IPHLPAPI})
+target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::filesystem Boost::date_time Event::event ${IPHLPAPI})
 if(WIN32)
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ws2_32 crypt32 wsock32)
     add_compile_definitions(NOMINMAX)
@@ -768,7 +767,7 @@ add_library(${POCKETCOIN_SERVER}
                 pocketdb/consensus/Lottery.cpp
                 pocketdb/consensus/Reputation.cpp
             )
-target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event ${IPHLPAPI} leveldb univalue SQlite::sqlite OpenSSL::Crypto ${CRYPT32} Boost::boost)
+target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event ${IPHLPAPI} leveldb univalue SQlite::sqlite OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${SQlite3_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 
 if(NOT DISABLE_WALLET)
