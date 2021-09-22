@@ -58,6 +58,14 @@ endif()
 
 option(WITH_UTILS "build pocketcoin-cli pocketcoin-tx (default=ON)" ON)
 option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
+option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want to statically link internal libraries. Ignored for non-MSVC build (default=ON)" ON)
+
+if(MSVC AND MSVC_FORCE_STATIC)
+    set(Boost_USE_STATIC_RUNTIME ON)
+    set(Boost_USE_DEBUG_RUNTIME ON)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 
 # BerkeleyDB
 if(NOT DISABLE_WALLET)
@@ -802,8 +810,11 @@ endif()
 
 # ZMQ
 if (NOT DISABLE_ZMQ)
-    find_library(ZMQ zmq)
-    if(ZMQ)
+    find_package(ZMQ)
+    if(ZMQ_FOUND)
+        if(MSVC AND MSVC_FORCE_STATIC)
+            target_compile_definitions(${POCKETCOIN_SERVER} PRIVATE ZMQ_STATIC)
+        endif()
         add_compile_definitions(ENABLE_ZMQ)
         set(POCKETCOIN_ZMQ_SOURCES   
                 zmq/zmqabstractnotifier.h
@@ -817,7 +828,8 @@ if (NOT DISABLE_ZMQ)
                 zmq/zmqrpc.cpp
             )
         target_sources(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_ZMQ_SOURCES})
-        target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${ZMQ})
+        target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ZMQ::zmq)
+        target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${Zmq_INCLUDE_DIRS})
     else()
         message(WARNING "ZMQ not found, disabling")
     endif()
@@ -828,12 +840,15 @@ add_executable(${POCKETCOIND} pocketcoind.cpp)
 target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event ${IPHLPAPI} SQlite::sqlite univalue secp256k1 memenv)
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
 
+add_library(libpocketcoin_cli rpc/client.cpp)
 set(POCKETCOIN_CLI pocketcoin_cli)
-add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp rpc/client.cpp)
-target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event ${IPHLPAPI})
+add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
+target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event ${IPHLPAPI} libpocketcoin_cli)
 target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
 
 set(POCKETCOIN_TX pocketcoin_tx)
 add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
 target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} ${POCKETDB} ${POCKETCOIN_CRYPTO} ${POCKETCOIN_CONSENSUS} univalue SQlite::sqlite)
 target_include_directories(${POCKETCOIN_TX} PRIVATE ${SQlite3_INCLUDE_DIR})
+
+#include(QTInclude.cmake)

@@ -126,9 +126,13 @@ if (HAVE_BUILTIN)
     add_compile_definitions(HAVE_BUILTIN_EXPECT=1)
 endif()
 
-add_executable(gen_context src/gen_context.c)
-target_include_directories(gen_context PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-add_custom_target(ecmult_static_context gen_context WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+set(_ECMULT_PRECOMPUTATION CACHE BOOL "Caching precomutations" ON)
+if(_ECMULT_PRECOMPUTATION)
+    add_executable(gen_context src/gen_context.c)
+    target_include_directories(gen_context PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    add_custom_target(ecmult_static_context gen_context WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
+
 
 add_library(${PROJECT_NAME} include/secp256k1.h
                             src/scalar.h
@@ -183,5 +187,9 @@ if(ENABLE_MODULE_RECOVERY)
 endif()
 target_include_directories(${PROJECT_NAME} PUBLIC include/)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-add_dependencies(secp256k1 ecmult_static_context)
+if(_ECMULT_PRECOMPUTATION)
+    add_dependencies(secp256k1 ecmult_static_context)
+    # Forcing precomputations to OFF to allow caching it
+    set(_ECMULT_PRECOMPUTATION CACHE BOOL "Caching precomutations" OFF)
+endif()
 target_compile_definitions(secp256k1 PRIVATE USE_ECMULT_STATIC_PRECOMPUTATION)
