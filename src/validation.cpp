@@ -2695,11 +2695,12 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     }
     //-----------------------------------------------------
     // Clear pocketnet cache
+    int cleared_count = 0;
+    int64_t cleared_size = 0;
+    
     {
         LOCK(POCKETNET_DATA_MUTEX);
 
-        int cleared_count = 0;
-        int64_t cleared_size = 0;
         std::map<uint256, std::string>::iterator iter = POCKETNET_DATA.begin();
         std::map<uint256, std::string>::iterator endIter = POCKETNET_DATA.end();
         for(; iter != endIter; )
