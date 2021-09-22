@@ -2,11 +2,17 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/AccountSetting.h"
 
 namespace PocketTx
 {
-    AccountSetting::AccountSetting(const string& hash, int64_t time) : Transaction(hash, time)
+    AccountSetting::AccountSetting() : Transaction()
+    {
+        SetType(PocketTxType::ACCOUNT_SETTING);
+    }
+
+    AccountSetting::AccountSetting(const CTransactionRef& tx) : Transaction(tx)
     {
         SetType(PocketTxType::ACCOUNT_SETTING);
     }
@@ -32,13 +38,13 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
     }
     
-    void AccountSetting::DeserializePayload(const UniValue& src)
+    void AccountSetting::DeserializePayload(const UniValue& src, const CTransactionRef& tx)
     {
-        Transaction::DeserializePayload(src);
+        Transaction::DeserializePayload(src, tx);
         if (auto[ok, val] = TryGetStr(src, "data"); ok) m_payload->SetString1(val);
     }
 
-    void AccountSetting::DeserializeRpc(const UniValue& src)
+    void AccountSetting::DeserializeRpc(const UniValue& src, const CTransactionRef& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
 

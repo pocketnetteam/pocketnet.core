@@ -244,7 +244,7 @@ namespace PocketHelpers
                 ptx = make_shared<Default>(tx);
                 break;
             case ACCOUNT_SETTING:
-                ptx = make_shared<AccountSetting>(txHash, nTime);
+                ptx = make_shared<AccountSetting>(tx);
                 break;
             case ACCOUNT_USER:
                 ptx = make_shared<User>(tx);
@@ -256,7 +256,7 @@ namespace PocketHelpers
                 ptx = make_shared<Video>(tx);
                 break;
             case CONTENT_DELETE:
-                ptx = make_shared<ContentDelete>(txHash, nTime);
+                ptx = make_shared<ContentDelete>(tx);
                 break;
             case CONTENT_COMMENT:
                 ptx = make_shared<Comment>(tx);
