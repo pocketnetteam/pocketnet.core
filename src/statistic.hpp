@@ -225,10 +225,13 @@ namespace Statistic
             result.pushKV("General", chainStat);
 
             UniValue sync(UniValue::VOBJ);
-            sync.pushKV("CacheItems", (int64_t) POCKETNET_DATA.size());
-            int64_t cacheSize = 0;
-            for (auto& it : POCKETNET_DATA) cacheSize += it.first.size() + it.second.size();
-            sync.pushKV("CacheSize", cacheSize);
+            {
+                LOCK(POCKETNET_DATA_MUTEX);
+                sync.pushKV("CacheItems", (int64_t) POCKETNET_DATA.size());
+                int64_t cacheSize = 0;
+                for (auto& it : POCKETNET_DATA) cacheSize += it.first.size() + it.second.size();
+                sync.pushKV("CacheSize", cacheSize);
+            }
             result.pushKV("Sync", sync);
 
             UniValue rpcStat(UniValue::VOBJ);

@@ -954,7 +954,7 @@ bool AntiBot::check_score(const UniValue& oitm, BlockVTX& blockVtx, bool checkMe
     // Comments for deleted posts not allowed
     if (postType == (int)ContentType::ContentDelete)
     {
-        result = ANTIBOTRESULT::CommentDeletedContent;
+        result = ANTIBOTRESULT::ScoreDeletedContent;
         return false;
     }
 
@@ -1134,7 +1134,7 @@ bool AntiBot::check_complain(const UniValue& oitm, BlockVTX& blockVtx, bool chec
     // Comments for deleted posts not allowed
     if (postType == (int)ContentType::ContentDelete)
     {
-        result = ANTIBOTRESULT::CommentDeletedContent;
+        result = ANTIBOTRESULT::ComplainDeletedContent;
         return false;
     }
 
