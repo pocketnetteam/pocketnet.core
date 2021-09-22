@@ -12,13 +12,13 @@ namespace PocketTx
     class ContentDelete : public PocketTx::Transaction
     {
     public:
-
-        ContentDelete(const string& hash, int64_t time);
+        ContentDelete();
+        ContentDelete(const CTransactionRef& tx);
 
         shared_ptr<UniValue> Serialize() const override;
 
         void Deserialize(const UniValue& src) override;
-        void DeserializeRpc(const UniValue& src) override;
+        void DeserializeRpc(const UniValue& src, const CTransactionRef& tx) override;
 
         shared_ptr <string> GetAddress() const;
         void SetAddress(string value);
@@ -27,7 +27,7 @@ namespace PocketTx
         void SetRootTxHash(string value);
 
     protected:
-        void DeserializePayload(const UniValue& src) override;
+        void DeserializePayload(const UniValue& src, const CTransactionRef& tx) override;
         void BuildHash() override;
     }; // class ContentDelete
 

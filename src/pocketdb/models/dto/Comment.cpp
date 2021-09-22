@@ -66,23 +66,23 @@ namespace PocketTx
     }
 
     shared_ptr <string> Comment::GetAddress() const { return m_string1; }
-    void Comment::SetAddress(string value) { m_string1 = make_shared<string>(value); }
+    void Comment::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
     shared_ptr <string> Comment::GetRootTxHash() const { return m_string2; }
-    void Comment::SetRootTxHash(string value) { m_string2 = make_shared<string>(value); }
+    void Comment::SetRootTxHash(const string& value) { m_string2 = make_shared<string>(value); }
 
     shared_ptr <string> Comment::GetPostTxHash() const { return m_string3; }
-    void Comment::SetPostTxHash(string value) { m_string3 = make_shared<string>(value); }
+    void Comment::SetPostTxHash(const string& value) { m_string3 = make_shared<string>(value); }
 
     shared_ptr <string> Comment::GetParentTxHash() const { return m_string4; }
-    void Comment::SetParentTxHash(string value) { m_string4 = make_shared<string>(value); }
+    void Comment::SetParentTxHash(const string& value) { m_string4 = make_shared<string>(value); }
 
     shared_ptr <string> Comment::GetAnswerTxHash() const { return m_string5; }
-    void Comment::SetAnswerTxHash(string value) { m_string5 = make_shared<string>(value); }
+    void Comment::SetAnswerTxHash(const string& value) { m_string5 = make_shared<string>(value); }
 
     // Payload getters
     shared_ptr <string> Comment::GetPayloadMsg() const { return Transaction::GetPayload()->GetString1(); }
-    void Comment::SetPayloadMsg(string value) { Transaction::GetPayload()->SetString1(value); }
+    void Comment::SetPayloadMsg(const string& value) { Transaction::GetPayload()->SetString1(value); }
 
     shared_ptr <int> Comment::GetPayloadDonateAmount() const { return Transaction::GetPayload()->GetInt1(); }
     void Comment::SetPayloadDonateAmount(int value) { Transaction::GetPayload()->SetInt1(value); }

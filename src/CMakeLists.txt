@@ -375,6 +375,8 @@ add_library(${POCKETDB}
                 pocketdb/models/dto/SubscribeCancel.h
                 pocketdb/models/dto/Complain.h
                 pocketdb/models/dto/Video.h
+                pocketdb/models/dto/AccountSetting.h
+                pocketdb/models/dto/ContentDelete.h
                 pocketdb/migrations/main.cpp
                 pocketdb/models/base/Base.cpp
                 pocketdb/models/base/Payload.cpp
@@ -398,6 +400,8 @@ add_library(${POCKETDB}
                 pocketdb/models/dto/SubscribeCancel.cpp
                 pocketdb/models/dto/Complain.cpp
                 pocketdb/models/dto/Video.cpp
+                pocketdb/models/dto/AccountSetting.cpp
+                pocketdb/models/dto/ContentDelete.cpp
             )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
 
@@ -762,6 +766,8 @@ add_library(${POCKETCOIN_SERVER}
                 pocketdb/consensus/social/SubscribeCancel.hpp
                 pocketdb/consensus/social/SubscribePrivate.hpp
                 pocketdb/consensus/social/User.hpp
+                pocketdb/consensus/social/AccountSetting.hpp
+                pocketdb/consensus/social/ContentDelete.hpp
                 pocketdb/consensus/Helper.cpp
                 pocketdb/consensus/Base.cpp
                 pocketdb/consensus/Lottery.cpp

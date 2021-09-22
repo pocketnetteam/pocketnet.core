@@ -1,3 +1,7 @@
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 #include <primitives/transaction.h>
 #include "pocketdb/models/dto/Post.h"
 
@@ -95,7 +99,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "i"); ok) m_payload->SetString5(val);
     }
 
-    void Post::DeserializePayload(const UniValue& src)
+    void Post::DeserializePayload(const UniValue& src, const CTransactionRef& tx)
     {
         Transaction::DeserializePayload(src, tx);
 
@@ -112,13 +116,13 @@ namespace PocketTx
     
 
     shared_ptr<string> Post::GetAddress() const { return m_string1; }
-    void Post::SetAddress(string value) { m_string1 = make_shared<string>(value); }
+    void Post::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
     shared_ptr<string> Post::GetRootTxHash() const { return m_string2; }
-    void Post::SetRootTxHash(string value) { m_string2 = make_shared<string>(value); }
+    void Post::SetRootTxHash(const string& value) { m_string2 = make_shared<string>(value); }
 
     shared_ptr<string> Post::GetRelayTxHash() const { return m_string3; }
-    void Post::SetRelayTxHash(string value) { m_string3 = make_shared<string>(value); }
+    void Post::SetRelayTxHash(const string& value) { m_string3 = make_shared<string>(value); }
 
     bool Post::IsEdit() const { return *m_string2 != *m_hash; }
 
