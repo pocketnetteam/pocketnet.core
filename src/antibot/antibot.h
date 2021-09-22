@@ -153,6 +153,8 @@ enum ANTIBOTRESULT {
     ChangeInfoDoubleInBlock = 50,
     CommentDeletedContent = 51,
     RepostDeletedContent = 52,
+    ComplainDeletedContent = 56,
+    ScoreDeletedContent = 57,
 };
 //-----------------------------------------------------
 struct BlockVTX {
