@@ -2,16 +2,21 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/ContentDelete.h"
 
 namespace PocketTx
 {
-    ContentDelete::ContentDelete(const string& hash, int64_t time) : Transaction(hash, time)
+    ContentDelete::ContentDelete() : Transaction()
     {
         SetType(PocketTxType::CONTENT_DELETE);
     }
 
-    
+    ContentDelete::ContentDelete(const CTransactionRef& tx) : Transaction(tx)
+    {
+        SetType(PocketTxType::CONTENT_DELETE);
+    }
+
     shared_ptr <string> ContentDelete::GetAddress() const { return m_string1; }
     void ContentDelete::SetAddress(string value) { m_string1 = make_shared<string>(value); }
 
@@ -38,7 +43,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
     }
 
-    void ContentDelete::DeserializeRpc(const UniValue& src)
+    void ContentDelete::DeserializeRpc(const UniValue& src, const CTransactionRef& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
@@ -47,11 +52,11 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "s"); ok) m_payload->SetString1(val);
     }
     
-    void ContentDelete::DeserializePayload(const UniValue& src)
+    void ContentDelete::DeserializePayload(const UniValue& src, const CTransactionRef& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "settings"); ok)
         {
-            Transaction::DeserializePayload(src);
+            Transaction::DeserializePayload(src, tx);
             m_payload->SetString1(val);
         }
     }
