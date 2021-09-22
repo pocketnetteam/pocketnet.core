@@ -230,18 +230,6 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
 // }
 
 
-// clang-format off
-/**
- * Call Table
- */
-static const CRPCCommand vRPCCommands[] =
-{ //  category              name                      actor (function)         argNames
-  //  --------------------- ------------------------  -----------------------  ----------
-  //   { "control",            "help",                   &help,                   {"command"}  },
-
-
-};
-// clang-format on
 
 CRPCTable::CRPCTable()
 {
