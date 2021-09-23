@@ -143,8 +143,6 @@ set(POCKETCOIN_QT_H
         guiconstants.h
         guiutil.h
         intro.h
-        macdockiconhandler.h
-        macnotificationhandler.h
         modaloverlay.h
         networkstyle.h
         notificator.h
@@ -180,6 +178,9 @@ set(POCKETCOIN_QT_H
         walletview.h)
 if(WIN32)
     list(APPEND POCKETCOIN_QT_H winshutdownmonitor.h)
+endif()
+if(APPLE)
+    list(APPEND POCKETCOIN_QT_H macdockiconhandler.h macnotificationhandler.h)
 endif()
 
 set(RES_ICONS
