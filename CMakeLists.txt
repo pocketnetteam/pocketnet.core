@@ -10,6 +10,7 @@ set(_COPYRIGHT_YEAR 2021)
 set(_COPYRIGHT_HOLDERS "\"The %s developers\"")
 set(_COPYRIGHT_HOLDERS_SUBSTITUTION "\"Pocketnet\"")
 set(_HOMEPAGE "\"https://github.com/pocketnetteam/\"")
+string(REPLACE "%s" ${_COPYRIGHT_HOLDERS_SUBSTITUTION} _COPYRIGHT_HOLDERS_FINAL ${_COPYRIGHT_HOLDERS_SUBSTITUTION})
 include(init.cmake)
 init("\"Pocketnet Core\"" "\"${_CLIENT_VERSION_MAJOR}.${_CLIENT_VERSION_MINOR}.${_CLIENT_VERSION_REVISION}\"" "\"https://github.com/pocketnetteam/pocketnet.core/issues\"" "\"pocketnetcore\"" "${_HOMEPAGE}")
 add_compile_definitions(CLIENT_VERSION_MAJOR=${_CLIENT_VERSION_MAJOR}
@@ -20,6 +21,7 @@ add_compile_definitions(CLIENT_VERSION_MAJOR=${_CLIENT_VERSION_MAJOR}
                         COPYRIGHT_YEAR=${_COPYRIGHT_YEAR}
                         COPYRIGHT_HOLDERS=${_COPYRIGHT_HOLDERS}
                         COPYRIGHT_HOLDERS_SUBSTITUTION=${_COPYRIGHT_HOLDERS_SUBSTITUTION}
+                        COPYRIGHT_HOLDERS_FINAL=${_COPYRIGHT_HOLDERS_FINAL}
                         HOMEPAGE=${_HOMEPAGE})
 
 # TODO missing bug report url
