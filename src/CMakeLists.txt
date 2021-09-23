@@ -61,6 +61,7 @@ option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
 option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want to statically link internal libraries. Ignored for non-MSVC build (default=ON)" ON)
 
 if(MSVC AND MSVC_FORCE_STATIC)
+    set(Protobuf_USE_STATIC_LIBS ON)
     set(Boost_USE_STATIC_RUNTIME ON)
     set(Boost_USE_DEBUG_RUNTIME ON)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -855,4 +856,4 @@ add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
 target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} ${POCKETDB} ${POCKETCOIN_CRYPTO} ${POCKETCOIN_CONSENSUS} univalue SQlite::sqlite)
 target_include_directories(${POCKETCOIN_TX} PRIVATE ${SQlite3_INCLUDE_DIR})
 
-#include(QTInclude.cmake)
+add_subdirectory(qt/)
