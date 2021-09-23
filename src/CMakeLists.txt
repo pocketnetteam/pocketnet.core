@@ -2,7 +2,7 @@ include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
-include(CheckLinkerFlag)
+include(CheckCXXSourceRuns)
 
 ### Options
 
@@ -163,7 +163,7 @@ endif()
 
 # Common checks
 set(CMAKE_REQUIRED_FLAGS -msse4.1)
-check_cxx_source_compiles( "#include <stdint.h>
+check_cxx_source_runs( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m128i l = _mm_set1_epi32(0);
@@ -171,7 +171,7 @@ check_cxx_source_compiles( "#include <stdint.h>
                             }" ENABLE_SSE41)
 
 set(CMAKE_REQUIRED_FLAGS -mavx -mavx2)
-check_cxx_source_compiles( "#include <stdint.h>
+check_cxx_source_runs( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m256i l = _mm256_set1_epi32(0);
@@ -179,7 +179,7 @@ check_cxx_source_compiles( "#include <stdint.h>
                             }" ENABLE_AVX2)
 
 set(CMAKE_REQUIRED_FLAGS -msse4 -msha)
-check_cxx_source_compiles( "#include <stdint.h>
+check_cxx_source_runs( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m128i i = _mm_set1_epi32(0);
