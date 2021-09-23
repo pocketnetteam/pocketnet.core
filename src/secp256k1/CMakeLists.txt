@@ -126,14 +126,6 @@ if (HAVE_BUILTIN)
     add_compile_definitions(HAVE_BUILTIN_EXPECT=1)
 endif()
 
-set(_ECMULT_PRECOMPUTATION ON CACHE BOOL "Caching precomutations")
-if(_ECMULT_PRECOMPUTATION)
-    add_executable(gen_context src/gen_context.c)
-    target_include_directories(gen_context PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    add_custom_target(ecmult_static_context gen_context WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-endif()
-
-
 add_library(${PROJECT_NAME} include/secp256k1.h
                             src/scalar.h
                             src/scalar_4x64.h
@@ -187,9 +179,12 @@ if(ENABLE_MODULE_RECOVERY)
 endif()
 target_include_directories(${PROJECT_NAME} PUBLIC include/)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-if(_ECMULT_PRECOMPUTATION)
-    add_dependencies(secp256k1 ecmult_static_context)
-    # Forcing precomputations to OFF to allow caching it
-    set(_ECMULT_PRECOMPUTATION OFF CACHE BOOL "Caching precomutations" FORCE)
-endif()
+
+add_executable(gen_context src/gen_context.c)
+target_include_directories(gen_context PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+# TODO there are possible issues here if cross compiling. See https://cmake.org/cmake/help/latest/command/add_custom_command.html
+add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/ecmult_static_context.h COMMAND gen_context WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+add_custom_target(have_ecmult ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/ecmult_static_context.h)
+add_dependencies(secp256k1 have_ecmult)
+
 target_compile_definitions(secp256k1 PRIVATE USE_ECMULT_STATIC_PRECOMPUTATION)
