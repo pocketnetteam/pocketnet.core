@@ -453,7 +453,8 @@ add_library(${POCKETCOIN_UTIL}
                 warnings.h
                 warnings.cpp
             )
-target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::filesystem Event::event ${IPHLPAPI})
+target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Event::event)
+target_link_libraries(${POCKETCOIN_UTIL} PUBLIC Boost::filesystem)
 if(WIN32)
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ws2_32 crypt32 wsock32)
     add_compile_definitions(NOMINMAX)
@@ -768,8 +769,10 @@ add_library(${POCKETCOIN_SERVER}
                 pocketdb/consensus/Lottery.cpp
                 pocketdb/consensus/Reputation.cpp
             )
-target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event ${IPHLPAPI} leveldb univalue SQlite::sqlite OpenSSL::Crypto ${CRYPT32} Boost::boost)
+target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event leveldb OpenSSL::Crypto ${CRYPT32} Boost::boost)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${SQlite3_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
+target_link_libraries(${POCKETCOIN_SERVER} PUBLIC SQlite::sqlite univalue)
+target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${SQlite3_INCLUDE_DIR})
 
 if(NOT DISABLE_WALLET)
     target_sources(${POCKETCOIN_SERVER} PRIVATE
@@ -837,13 +840,14 @@ endif()
 
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
-target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event ${IPHLPAPI} SQlite::sqlite univalue secp256k1 memenv)
+target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event SQlite::sqlite univalue secp256k1 memenv)
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
 
 add_library(libpocketcoin_cli rpc/client.cpp)
+target_link_libraries(libpocketcoin_cli PRIVATE univalue Boost::filesystem)
 set(POCKETCOIN_CLI pocketcoin_cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
-target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event ${IPHLPAPI} libpocketcoin_cli)
+target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli)
 target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
 
 set(POCKETCOIN_TX pocketcoin_tx)
