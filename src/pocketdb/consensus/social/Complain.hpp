@@ -28,13 +28,16 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Author or post must be exists
-            auto postAddress = PocketDb::ConsensusRepoInst.GetContentAddress(*ptx->GetPostTxHash());
-            if (postAddress == nullptr)
+            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetPostTxHash());
+            if (!contentOk)
                 return {false, SocialConsensusResult_NotFound};
 
             // Complain to self
-            if (*postAddress == *ptx->GetAddress())
+            if (*contentTx->GetString1() == *ptx->GetAddress())
                 return {false, SocialConsensusResult_SelfComplain};
+
+            if (*contentTx->GetType() == CONTENT_DELETE)
+                return {false, SocialConsensusResult_ComplainDeletedContent};
 
             // Check double complain
             if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetHash(), *ptx->GetPostTxHash(), *ptx->GetAddress()))

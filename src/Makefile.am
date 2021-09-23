@@ -141,6 +141,8 @@ POCKETDB_H = \
     pocketdb/consensus/social/SubscribeCancel.hpp \
     pocketdb/consensus/social/SubscribePrivate.hpp \
     pocketdb/consensus/social/User.hpp \
+    pocketdb/consensus/social/AccountSetting.hpp \
+    pocketdb/consensus/social/ContentDelete.hpp \
     \
     pocketdb/models/base/PocketTypes.h \
     pocketdb/models/base/Base.h \
@@ -155,6 +157,8 @@ POCKETDB_H = \
     pocketdb/models/dto/Coinbase.h \
     pocketdb/models/dto/Coinstake.h \
     pocketdb/models/dto/Post.h \
+    pocketdb/models/dto/ContentDelete.h \
+    pocketdb/models/dto/AccountSetting.h \
     pocketdb/models/dto/User.h \
     pocketdb/models/dto/ScoreContent.h \
     pocketdb/models/dto/ScoreComment.h \
@@ -217,6 +221,8 @@ POCKETDB_CPP = \
     pocketdb/models/dto/Coinbase.cpp \
     pocketdb/models/dto/Coinstake.cpp \
     pocketdb/models/dto/Post.cpp \
+    pocketdb/models/dto/ContentDelete.cpp \
+    pocketdb/models/dto/AccountSetting.cpp \
     pocketdb/models/dto/User.cpp \
     pocketdb/models/dto/ScoreContent.cpp \
     pocketdb/models/dto/ScoreComment.cpp \

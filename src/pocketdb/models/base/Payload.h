@@ -40,6 +40,9 @@ namespace PocketTx
         shared_ptr<string> GetString7() const;
         void SetString7(string value);
 
+        shared_ptr<int> GetInt1() const;
+        void SetInt1(int value);
+
     protected:
 
         shared_ptr<string> m_txHash = nullptr;
@@ -50,6 +53,7 @@ namespace PocketTx
         shared_ptr<string> m_string5 = nullptr;
         shared_ptr<string> m_string6 = nullptr;
         shared_ptr<string> m_string7 = nullptr;
+        shared_ptr<int> m_int1 = nullptr;
 
     };
 

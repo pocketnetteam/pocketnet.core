@@ -39,14 +39,19 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_InvalidAnswerComment};
 
             // Check exists content transaction
-            auto contentTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetPostTxHash());
-            if (!contentTx)
+            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetPostTxHash());
+            if (!contentOk)
                 return {false, SocialConsensusResult_NotFound};
-            auto contentPtx = static_pointer_cast<Comment>(contentTx);
+
+            if (*contentTx->GetType() == CONTENT_DELETE)
+                return {false, SocialConsensusResult_CommentDeletedContent};
+
+            // TODO (brangr): convert to Content base class
+            //auto contentPtx = static_pointer_cast<Content>(contentTx);
 
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                    *contentPtx->GetAddress(), *ptx->GetAddress()
+                    *contentTx->GetString1(), *ptx->GetAddress()
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
                 return {false, SocialConsensusResult_Blocking};
 

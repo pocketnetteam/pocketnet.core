@@ -28,9 +28,11 @@
 #include "pocketdb/models/dto/SubscribeCancel.h"
 #include "pocketdb/models/dto/SubscribePrivate.h"
 #include "pocketdb/models/dto/Complain.h"
+#include "pocketdb/models/dto/AccountSetting.h"
 #include "pocketdb/models/dto/User.h"
 #include "pocketdb/models/dto/ScoreContent.h"
 #include "pocketdb/models/dto/ScoreComment.h"
+#include "pocketdb/models/dto/ContentDelete.h"
 
 namespace PocketHelpers
 {
@@ -61,7 +63,8 @@ namespace PocketHelpers
         static bool IsPocketTransaction(const CTransactionRef& tx);
         static bool IsPocketTransaction(const CTransaction& tx);
         static tuple<bool, shared_ptr<ScoreDataDto>> ParseScore(const CTransactionRef& tx);
-        static PTransactionRef CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime);
+        static PTransactionRef CreateInstance(PocketTxType txType);
+        static PTransactionRef CreateInstance(PocketTxType txType, const CTransactionRef& tx);
     };
 }
 

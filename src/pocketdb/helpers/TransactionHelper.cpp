@@ -38,6 +38,8 @@ namespace PocketHelpers
             return PocketTxType::CONTENT_VIDEO;
         else if (op == OR_SERVER_PING)
             return PocketTxType::CONTENT_SERVERPING;
+        else if (op == OR_CONTENT_DELETE)
+            return PocketTxType::CONTENT_DELETE;
         else if (op == OR_SCORE)
             return PocketTxType::ACTION_SCORE_CONTENT;
         else if (op == OR_COMPLAIN)
@@ -48,6 +50,8 @@ namespace PocketHelpers
             return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
         else if (op == OR_UNSUBSCRIBE)
             return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
+        else if (op == OR_ACCOUNT_SETTING)
+            return PocketTxType::ACCOUNT_SETTING;
         else if (op == OR_USERINFO)
             return PocketTxType::ACCOUNT_USER;
         else if (op == OR_VIDEO_SERVER)
@@ -116,10 +120,13 @@ namespace PocketHelpers
     {
         switch (*transaction.GetType())
         {
+            case PocketTxType::ACCOUNT_SETTING:
+                return "AccountSettings";
             case PocketTxType::ACCOUNT_USER:
                 return "Users";
             case PocketTxType::CONTENT_POST:
             case PocketTxType::CONTENT_VIDEO:
+            case PocketTxType::CONTENT_DELETE:
                 return "Posts";
             case PocketTxType::CONTENT_COMMENT:
             case PocketTxType::CONTENT_COMMENT_EDIT:
@@ -222,61 +229,130 @@ namespace PocketHelpers
         return make_tuple(finalCheck, scoreData);
     }
 
-    PTransactionRef TransactionHelper::CreateInstance(PocketTxType txType, const std::string& txHash, uint32_t nTime)
+    PTransactionRef TransactionHelper::CreateInstance(PocketTxType txType, const CTransactionRef& tx)
     {
         PTransactionRef ptx = nullptr;
         switch (txType)
         {
             case TX_COINBASE:
-                ptx = make_shared<Coinbase>(txHash, nTime);
+                ptx = make_shared<Coinbase>(tx);
                 break;
             case TX_COINSTAKE:
-                ptx = make_shared<Coinstake>(txHash, nTime);
+                ptx = make_shared<Coinstake>(tx);
                 break;
             case TX_DEFAULT:
-                ptx = make_shared<Default>(txHash, nTime);
+                ptx = make_shared<Default>(tx);
+                break;
+            case ACCOUNT_SETTING:
+                ptx = make_shared<AccountSetting>(tx);
                 break;
             case ACCOUNT_USER:
-                ptx = make_shared<User>(txHash, nTime);
+                ptx = make_shared<User>(tx);
                 break;
             case CONTENT_POST:
-                ptx = make_shared<Post>(txHash, nTime);
+                ptx = make_shared<Post>(tx);
                 break;
             case CONTENT_VIDEO:
-                ptx = make_shared<Video>(txHash, nTime);
+                ptx = make_shared<Video>(tx);
+                break;
+            case CONTENT_DELETE:
+                ptx = make_shared<ContentDelete>(tx);
                 break;
             case CONTENT_COMMENT:
-                ptx = make_shared<Comment>(txHash, nTime);
+                ptx = make_shared<Comment>(tx);
                 break;
             case CONTENT_COMMENT_EDIT:
-                ptx = make_shared<CommentEdit>(txHash, nTime);
+                ptx = make_shared<CommentEdit>(tx);
                 break;
             case CONTENT_COMMENT_DELETE:
-                ptx = make_shared<CommentDelete>(txHash, nTime);
+                ptx = make_shared<CommentDelete>(tx);
                 break;
             case ACTION_SCORE_CONTENT:
-                ptx = make_shared<ScoreContent>(txHash, nTime);
+                ptx = make_shared<ScoreContent>(tx);
                 break;
             case ACTION_SCORE_COMMENT:
-                ptx = make_shared<ScoreComment>(txHash, nTime);
+                ptx = make_shared<ScoreComment>(tx);
                 break;
             case ACTION_SUBSCRIBE:
-                ptx = make_shared<Subscribe>(txHash, nTime);
+                ptx = make_shared<Subscribe>(tx);
                 break;
             case ACTION_SUBSCRIBE_PRIVATE:
-                ptx = make_shared<SubscribePrivate>(txHash, nTime);
+                ptx = make_shared<SubscribePrivate>(tx);
                 break;
             case ACTION_SUBSCRIBE_CANCEL:
-                ptx = make_shared<SubscribeCancel>(txHash, nTime);
+                ptx = make_shared<SubscribeCancel>(tx);
                 break;
             case ACTION_BLOCKING:
-                ptx = make_shared<Blocking>(txHash, nTime);
+                ptx = make_shared<Blocking>(tx);
                 break;
             case ACTION_BLOCKING_CANCEL:
-                ptx = make_shared<BlockingCancel>(txHash, nTime);
+                ptx = make_shared<BlockingCancel>(tx);
                 break;
             case ACTION_COMPLAIN:
-                ptx = make_shared<Complain>(txHash, nTime);
+                ptx = make_shared<Complain>(tx);
+                break;
+            default:
+                return nullptr;
+        }
+
+        return ptx;
+    }
+
+    PTransactionRef TransactionHelper::CreateInstance(PocketTxType txType)
+    {
+        PTransactionRef ptx = nullptr;
+        switch (txType)
+        {
+            case TX_COINBASE:
+                ptx = make_shared<Coinbase>();
+                break;
+            case TX_COINSTAKE:
+                ptx = make_shared<Coinstake>();
+                break;
+            case TX_DEFAULT:
+                ptx = make_shared<Default>();
+                break;
+            case ACCOUNT_USER:
+                ptx = make_shared<User>();
+                break;
+            case CONTENT_POST:
+                ptx = make_shared<Post>();
+                break;
+            case CONTENT_VIDEO:
+                ptx = make_shared<Video>();
+                break;
+            case CONTENT_COMMENT:
+                ptx = make_shared<Comment>();
+                break;
+            case CONTENT_COMMENT_EDIT:
+                ptx = make_shared<CommentEdit>();
+                break;
+            case CONTENT_COMMENT_DELETE:
+                ptx = make_shared<CommentDelete>();
+                break;
+            case ACTION_SCORE_CONTENT:
+                ptx = make_shared<ScoreContent>();
+                break;
+            case ACTION_SCORE_COMMENT:
+                ptx = make_shared<ScoreComment>();
+                break;
+            case ACTION_SUBSCRIBE:
+                ptx = make_shared<Subscribe>();
+                break;
+            case ACTION_SUBSCRIBE_PRIVATE:
+                ptx = make_shared<SubscribePrivate>();
+                break;
+            case ACTION_SUBSCRIBE_CANCEL:
+                ptx = make_shared<SubscribeCancel>();
+                break;
+            case ACTION_BLOCKING:
+                ptx = make_shared<Blocking>();
+                break;
+            case ACTION_BLOCKING_CANCEL:
+                ptx = make_shared<BlockingCancel>();
+                break;
+            case ACTION_COMPLAIN:
+                ptx = make_shared<Complain>();
                 break;
             default:
                 return nullptr;

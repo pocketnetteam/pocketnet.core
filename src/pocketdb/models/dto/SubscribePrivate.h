@@ -12,7 +12,9 @@ namespace PocketTx
     class SubscribePrivate : public Subscribe
     {
     public:
-        SubscribePrivate(const string& hash, int64_t time);
+        SubscribePrivate();
+        SubscribePrivate(const std::shared_ptr<const CTransaction>& tx);
+
         shared_ptr<UniValue> Serialize() const override;
     };
 

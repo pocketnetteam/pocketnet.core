@@ -67,7 +67,6 @@ if(MSVC AND MSVC_FORCE_STATIC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-
 # BerkeleyDB
 if(NOT DISABLE_WALLET)
     set(BerkeleyDB_FIND_REQUIRED ON)
@@ -123,7 +122,7 @@ set(WITH_PIC ${WITH_PIC_BACKUP} CACHE BOOL "Enable fPIC" FORCE)
 
 # Finding boost
 # TODO minimal boost version is increased to 1.66 because websockets (websocket/ws.h) are using lambdas as WriteHandler. This functional was implemented in 1.66.
-find_package(Boost 1.66 REQUIRED COMPONENTS System Thread Chrono filesystem)
+find_package(Boost 1.66 REQUIRED COMPONENTS System Thread Chrono filesystem date_time)
 ######## Boost sleep functions validation
 set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         #include <boost/version.hpp>
@@ -138,7 +137,7 @@ set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         
 set(CMAKE_REQUIRED_LIBRARIES_BACKUP ${CMAKE_REQUIRED_LIBRARIES})
 set(CMAKE_REQUIRED_FLAGS_BACKUP ${CMAKE_REQUIRED_FLAGS})
-set(CMAKE_REQUIRED_LIBRARIES Boost::thread Boost::system Boost::chrono)
+set(CMAKE_REQUIRED_LIBRARIES Boost::thread Boost::system Boost::chrono Boost::date_time)
 check_cxx_source_compiles("${CHECK_BOOST_SLEEP}" HAVE_WORKING_BOOST_SLEEP_FOR )
 if(HAVE_WORKING_BOOST_SLEEP_FOR)
     add_compile_definitions(HAVE_WORKING_BOOST_SLEEP_FOR=1)
@@ -377,6 +376,8 @@ add_library(${POCKETDB}
                 pocketdb/models/dto/SubscribeCancel.h
                 pocketdb/models/dto/Complain.h
                 pocketdb/models/dto/Video.h
+                pocketdb/models/dto/AccountSetting.h
+                pocketdb/models/dto/ContentDelete.h
                 pocketdb/migrations/main.cpp
                 pocketdb/models/base/Base.cpp
                 pocketdb/models/base/Payload.cpp
@@ -400,6 +401,8 @@ add_library(${POCKETDB}
                 pocketdb/models/dto/SubscribeCancel.cpp
                 pocketdb/models/dto/Complain.cpp
                 pocketdb/models/dto/Video.cpp
+                pocketdb/models/dto/AccountSetting.cpp
+                pocketdb/models/dto/ContentDelete.cpp
             )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
 
@@ -454,7 +457,7 @@ add_library(${POCKETCOIN_UTIL}
                 warnings.h
                 warnings.cpp
             )
-target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Event::event)
+target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::date_time Event::event)
 target_link_libraries(${POCKETCOIN_UTIL} PUBLIC Boost::filesystem)
 if(WIN32)
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ws2_32 crypt32 wsock32)
@@ -765,12 +768,14 @@ add_library(${POCKETCOIN_SERVER}
                 pocketdb/consensus/social/SubscribeCancel.hpp
                 pocketdb/consensus/social/SubscribePrivate.hpp
                 pocketdb/consensus/social/User.hpp
+                pocketdb/consensus/social/AccountSetting.hpp
+                pocketdb/consensus/social/ContentDelete.hpp
                 pocketdb/consensus/Helper.cpp
                 pocketdb/consensus/Base.cpp
                 pocketdb/consensus/Lottery.cpp
                 pocketdb/consensus/Reputation.cpp
             )
-target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event leveldb OpenSSL::Crypto ${CRYPT32} Boost::boost)
+target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event leveldb OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${SQlite3_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 target_link_libraries(${POCKETCOIN_SERVER} PUBLIC SQlite::sqlite univalue)
 target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${SQlite3_INCLUDE_DIR})

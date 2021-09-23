@@ -2,11 +2,17 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/Complain.h"
 
 namespace PocketTx
 {
-    Complain::Complain(const string& hash, int64_t time) : Transaction(hash, time)
+    Complain::Complain() : Transaction()
+    {
+        SetType(PocketTxType::ACTION_COMPLAIN);
+    }
+
+    Complain::Complain(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::ACTION_COMPLAIN);
     }
@@ -30,7 +36,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxHash(val);
     }
 
-    void Complain::DeserializeRpc(const UniValue& src)
+    void Complain::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "share"); ok) SetPostTxHash(val);
@@ -46,7 +52,7 @@ namespace PocketTx
     shared_ptr <int64_t> Complain::GetReason() const { return m_int1; }
     void Complain::SetReason(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
-    void Complain::DeserializePayload(const UniValue& src)
+    void Complain::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
     }
 

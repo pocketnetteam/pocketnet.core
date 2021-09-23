@@ -165,7 +165,7 @@ namespace PocketDb
                     (
                         select c.Id
                         from Transactions c indexed by Transactions_Type_Last_String2_Height
-                        where c.Type = Transactions.Type
+                        where c.Type in (Transactions.Type, 207)
                             and c.Last = 1
                             -- String2 = RootTxHash
                             and c.String2 = Transactions.String2

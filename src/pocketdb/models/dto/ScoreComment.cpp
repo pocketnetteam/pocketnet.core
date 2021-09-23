@@ -1,8 +1,18 @@
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/ScoreComment.h"
 
 namespace PocketTx
 {
-    ScoreComment::ScoreComment(const string& hash, int64_t time) : Transaction(hash, time)
+    ScoreComment::ScoreComment() : Transaction()
+    {
+        SetType(PocketTxType::ACTION_SCORE_COMMENT);
+    }
+
+    ScoreComment::ScoreComment(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::ACTION_SCORE_COMMENT);
     }
@@ -26,7 +36,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
     }
 
-    void ScoreComment::DeserializeRpc(const UniValue& src)
+    void ScoreComment::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "commentid"); ok) SetCommentTxHash(val);
@@ -42,7 +52,7 @@ namespace PocketTx
     shared_ptr <int64_t> ScoreComment::GetValue() const { return m_int1; }
     void ScoreComment::SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
-    void ScoreComment::DeserializePayload(const UniValue& src)
+    void ScoreComment::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
     }
 

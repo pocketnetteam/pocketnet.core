@@ -1,8 +1,18 @@
+// Copyright (c) 2018-2021 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
+#include <primitives/transaction.h>
 #include "pocketdb/models/dto/Post.h"
 
 namespace PocketTx
 {
-    Post::Post(const string& hash, int64_t time) : Transaction(hash, time)
+    Post::Post() : Transaction()
+    {
+        SetType(PocketTxType::CONTENT_POST);
+    }
+
+    Post::Post(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
         SetType(PocketTxType::CONTENT_POST);
     }
@@ -66,7 +76,7 @@ namespace PocketTx
                 SetRootTxHash(valTxId);
     }
 
-    void Post::DeserializeRpc(const UniValue& src)
+    void Post::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
         if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
@@ -89,20 +99,9 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "i"); ok) m_payload->SetString5(val);
     }
 
-    shared_ptr<string> Post::GetAddress() const { return m_string1; }
-    void Post::SetAddress(string value) { m_string1 = make_shared<string>(value); }
-
-    shared_ptr<string> Post::GetRootTxHash() const { return m_string2; }
-    void Post::SetRootTxHash(string value) { m_string2 = make_shared<string>(value); }
-
-    shared_ptr<string> Post::GetRelayTxHash() const { return m_string3; }
-    void Post::SetRelayTxHash(string value) { m_string3 = make_shared<string>(value); }
-
-    bool Post::IsEdit() const { return *m_string2 != *m_hash; }
-
-    void Post::DeserializePayload(const UniValue& src)
+    void Post::DeserializePayload(const UniValue& src, const CTransactionRef& tx)
     {
-        Transaction::DeserializePayload(src);
+        Transaction::DeserializePayload(src, tx);
 
         if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
         else m_payload->SetString1("en");
@@ -114,6 +113,18 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "images"); ok) m_payload->SetString5(val);
         if (auto[ok, val] = TryGetStr(src, "settings"); ok) m_payload->SetString6(val);
     }
+    
+
+    shared_ptr<string> Post::GetAddress() const { return m_string1; }
+    void Post::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
+
+    shared_ptr<string> Post::GetRootTxHash() const { return m_string2; }
+    void Post::SetRootTxHash(const string& value) { m_string2 = make_shared<string>(value); }
+
+    shared_ptr<string> Post::GetRelayTxHash() const { return m_string3; }
+    void Post::SetRelayTxHash(const string& value) { m_string3 = make_shared<string>(value); }
+
+    bool Post::IsEdit() const { return *m_string2 != *m_hash; }
 
     void Post::BuildHash()
     {

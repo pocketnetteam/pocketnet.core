@@ -12,10 +12,12 @@ namespace PocketTx
     class CommentDelete : public Comment
     {
     public:
-        CommentDelete(const string& hash, int64_t time);
-        void DeserializeRpc(const UniValue& src) override;
+        CommentDelete();
+        CommentDelete(const std::shared_ptr<const CTransaction>& tx);
+
+        void DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
     protected:
-        void DeserializePayload(const UniValue& src) override;
+        void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
         void BuildHash() override;
     };
 

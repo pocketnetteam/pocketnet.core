@@ -12,7 +12,9 @@ namespace PocketTx
     class SubscribeCancel : public Subscribe
     {
     public:
-        SubscribeCancel(const string& hash, int64_t time);
+        SubscribeCancel();
+        SubscribeCancel(const std::shared_ptr<const CTransaction>& tx);
+
         shared_ptr<UniValue> Serialize() const override;
     };
 
