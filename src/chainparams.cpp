@@ -127,7 +127,7 @@ public:
         consensus.checkpoint_split_content_video = 1324655; // ~ 20210826
         consensus.checkpoint_disable_low_score_trial = 1324655; // ~ 20210826
         consensus.checkpoint_fix_save_likers = 1324655; // ~ 20210826
-        consensus.checkpoint_fix_size_payload = 9999999; // ~
+        consensus.checkpoint_fix_size_payload = 1381841; // ~ 20211011
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000029c05bcbab1d79b2a3"); // 1310253
