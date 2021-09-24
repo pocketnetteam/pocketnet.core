@@ -6,6 +6,8 @@ include(CheckCXXSourceRuns)
 
 ### Options
 
+option(DISABLE_GUI "Disable building qt gui (Default is OFF)" OFF)
+
 option(DISABLE_ZMQ "Disable ZMQ notifications (default is OFF)" OFF)
 
 option(WITH_SYSTEM_UNIVALUE "Build with system UniValue (default is OFF)" OFF)
@@ -861,4 +863,6 @@ add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
 target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} ${POCKETDB} ${POCKETCOIN_CRYPTO} ${POCKETCOIN_CONSENSUS} univalue SQlite::sqlite)
 target_include_directories(${POCKETCOIN_TX} PRIVATE ${SQlite3_INCLUDE_DIR})
 
-add_subdirectory(qt/)
+if(NOT DISABLE_GUI)
+    add_subdirectory(qt/)
+endif()

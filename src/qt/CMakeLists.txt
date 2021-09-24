@@ -1,5 +1,25 @@
 find_package(Protobuf REQUIRED)
-find_package(Qt5 REQUIRED COMPONENTS Widgets LinguistTools Network Core)
+find_package(Qt5 COMPONENTS Widgets LinguistTools Network Core DBus QUIET)
+if(NOT TARGET Qt5::Widgets)
+    message(FATAL_ERROR "Failed to find Widgets for qt5")
+endif()
+if(NOT TARGET Qt5::lrelease)
+    message(FATAL_ERROR "Failed to find LinguistTools for qt5")
+endif()
+if(NOT TARGET Qt5::Network)
+    message(FATAL_ERROR "Failed to find Network for qt5")
+endif()
+if(NOT TARGET Qt5::Core)
+    message(FATAL_ERROR "Failed to find Core for qt5")
+endif()
+
+option(WITHOUT_QR_ENCODE "Disable qt qrencode support. (Default is OFF if libqrencode found)" OFF)
+if (NOT WITHOUT_QR_ENCODE)
+    find_package(QREncode)
+    if (NOT QREncode_FOUND)
+        message(WARNING "QT is going to be built without qrencode support because libqrencode was not found. Use -DWITHOUT_QR_ENCODE=ON to suppress this warning")
+    endif()
+endif()
 
 # This force cmake to automatically generate all moc files. See CMake documentation
 set(CMAKE_AUTOMOC ON)
@@ -369,7 +389,7 @@ add_library(qt_libpocketcoinqt
         ${PROTOBUF_CC}
         ${PROTOBUF_H}
         )
-target_link_libraries(qt_libpocketcoinqt Qt5::Core Qt5::Widgets Qt5::Network Boost::filesystem OpenSSL::Crypto Oracle::BerkeleyDB leveldb ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON})
+target_link_libraries(qt_libpocketcoinqt PRIVATE Qt5::Core Qt5::Widgets Qt5::Network Boost::filesystem OpenSSL::Crypto Oracle::BerkeleyDB leveldb ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON})
 set_target_properties(qt_libpocketcoinqt PROPERTIES PREFIX "") # Remove "lib" prefix because we already have it in library name
 # Specify dependencies that force processing resources, protobuf and ui files before this target
 add_dependencies(qt_libpocketcoinqt resources resources_locale protobuf_generated ui_done)
@@ -378,6 +398,15 @@ target_compile_definitions(qt_libpocketcoinqt PRIVATE HAVE_DECL_BSWAP_16=1 HAVE_
 # Include directory "${CMAKE_CURRENT_BINARY_DIR}/.." because generated files (resources, qm files, processed ui, etc) are
 # located in build tree and are included by other qt files by using "#include <qt/filename>"
 target_include_directories(qt_libpocketcoinqt PRIVATE ${OPENSSL_INCLUDE_DIR} ${Protobuf_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/..)
+if(QREncode_FOUND)
+    target_link_libraries(qt_libpocketcoinqt PRIVATE QREncode::qrencode)
+    target_include_directories(qt_libpocketcoinqt PRIVATE ${QREncode_INCLUDE_DIRS})
+    target_compile_definitions(qt_libpocketcoinqt PRIVATE USE_QRCODE=1)
+endif()
+if(TARGET Qt5::DBus)
+    target_link_libraries(qt_libpocketcoinqt PRIVATE Qt5::DBus)
+    target_compile_definitions(qt_libpocketcoinqt PRIVATE USE_DBUS=1)
+endif()
 
 add_executable(pocketcoin-qt pocketcoin.cpp)
 if(APPLE)
