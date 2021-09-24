@@ -136,7 +136,7 @@ static void RunTest(const TestVector &test) {
         BOOST_CHECK(privCheck == keyNew);
     }
 }
-#ifdef DISABLED_TESTS
+#ifdef DISABLED_TEST
 BOOST_FIXTURE_TEST_SUITE(bip32_tests, BasicTestingSetup)
 
 
