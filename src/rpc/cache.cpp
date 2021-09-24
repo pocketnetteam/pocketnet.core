@@ -80,9 +80,13 @@ std::tuple<int64_t, int64_t> RPCCache::Statistic()
 {
     LOCK(CacheMutex);
 
-    int64_t size;
+    int count = 0;
+    int64_t size = 0;
     for (auto& it : m_cache)
-        size += it.first.size() + it.second.size();
+    {
+        count += 1;
+        size += it.first.size() + it.second.write().size();
+    }
         
-    return { m_cache.size(), size };
+    return { count, size };
 }
