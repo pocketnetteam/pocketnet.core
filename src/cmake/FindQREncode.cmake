@@ -89,7 +89,7 @@ macro(findpackage_qrencode_get_lib _QRENCODE_OUTPUT_VARNAME _TARGET_QRENCODE_LIB
 endmacro()
 
 # Find and set the paths of the specific library to the variable
-findpackage_qrencode_get_lib(QRENCODE_LIB "qrencode")
+findpackage_qrencode_get_lib(QRENCODE_LIB "qrencoded")
 
 # Needed for find_package_handle_standard_args()
 include(FindPackageHandleStandardArgs)
