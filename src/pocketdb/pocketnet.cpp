@@ -830,6 +830,7 @@ void FillCheckpointsTransactions(const CChainParams &params)
     
     // TODO (brangr): remove after release v0.19.14
     CheckpointsTransactions.push_back("d7af84a33485503f2b4b364cce0c7ddbc373d63e4b69c094a77f1a67dfa97b2d");
+    CheckpointsTransactions.push_back("39523e93587efaec2924dce5e5ce8cfd9a4fa4936af05f69a5b1df35532abaa9");
 }
 
 bool IsCheckpointTransaction(std::string hash)
