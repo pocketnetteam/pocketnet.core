@@ -9,6 +9,10 @@ cmake -DCMAKE_CXX_STANRDARD=17 ..
 
 ### Available options:
 
+- DISABLE_GUI
+  - Disable building qt gui (Default is OFF)
+- WITHOUT_QR_ENCODE
+  - Disable qt qrencode support. (Default is OFF if libqrencode found)
 - DISABLE_ZMQ
   - Disable ZMQ notifications (default is OFF).
   - [*NOTE*] - pure find_library is currently used to search for zmq. This means that zmq should be located in *default* libraries paths and include directories should be manually provided by -DCMAKE_CXX_FLAGS=-I\ /path/to/include
@@ -63,6 +67,10 @@ If value is boolean - pass ON or OFF as a value
   - E.x. **vcpkg install libevent:x64-windows-static** and specify **-DEVENT_ROOT=path_to_vcpkg/packages/libevent_x64-windows-static** for correct linking with libevent
   - [*NOTE*] If using non-statically build dependencies - consider copy dll files (*path_to_vcpkg*/packages/*package_name*/bin/) to place where binaries are located (${CMAKE_BINARY_DIR}/src). Also provide *-DMSVC_FORCE_STATIC=OFF* as a cmake option to allow dynamic linking
   - [**IMPORTANT**] Replace libraries in "*path_to_vcpkg*/packages/*package_name*/lib" with those which are located under "debug" folder of package. See boost notes for explaining.
+  - Use CMAKE_PREFIX_PATH to specify path to vcpkg libraries: *vcpkg_root*/installed/x64-windows-static/lib/
+    - Copy files from debug to lib as it was explained above.
+  - Protobuf:
+    - Even if protobuf has been installed via vcpkg, you should create "bin" folder in the root of package (or in the "*vcpkg_root*/installed/x64-windows-static" in you use CMAKE_PREFIX_PATH) and place there all from *protobuf_package*/tools/protobuf for automated finding these executables or manually specify "Protobuf_PROTOC_EXECUTABLE" (see FindProtobuf CMake docs)
 
 - If building dependencies from source - specify MTd (Static debug runtime linker):
   - CMake:
