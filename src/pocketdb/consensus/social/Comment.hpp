@@ -55,6 +55,10 @@ namespace PocketConsensus
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
                 return {false, SocialConsensusResult_Blocking};
 
+            // Check payload size
+            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
+                return {false, code};
+
             return Success;
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const CommentRef& ptx) override
@@ -133,6 +137,15 @@ namespace PocketConsensus
                 *ptx->GetAddress(),
                 *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
             );
+        }
+        virtual ConsensusValidateResult ValidatePayloadSize(const CommentRef& ptx)
+        {
+            size_t dataSize = (ptx->GetPayloadMsg() ? HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).size() : 0);
+
+            if (dataSize > GetConsensusLimit(ConsensusLimit_max_comment_size))
+                return {false, SocialConsensusResult_ContentSizeLimit};
+
+            return Success;
         }
     };
 

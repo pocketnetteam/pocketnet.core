@@ -182,19 +182,22 @@ namespace PocketConsensus
         ConsensusLimit_edit_video_depth,
         ConsensusLimit_edit_comment_depth,
         ConsensusLimit_edit_user_depth,
-        ConsensusLimit_edit_user_limit,
+
+        ConsensusLimit_edit_user_daily_count,
+        ConsensusLimit_account_settings_daily_count,
 
         ConsensusLimit_max_user_size,
         ConsensusLimit_max_post_size,
+        ConsensusLimit_max_video_size,
         ConsensusLimit_max_comment_size,
+        ConsensusLimit_max_account_setting_size,
+
         ConsensusLimit_scores_one_to_one,
         ConsensusLimit_scores_one_to_one_over_comment,
         ConsensusLimit_scores_one_to_one_depth,
+
         ConsensusLimit_scores_depth_modify_reputation,
         ConsensusLimit_lottery_referral_depth,
-
-        ConsensusLimit_account_setting_max_size,
-        ConsensusLimit_account_settings_daily_limit,
     };
 
     /*********************************************************************************************/
@@ -603,9 +606,9 @@ namespace PocketConsensus
                 }
             }
         },
-        // ConsensusLimit_edit_user_limit
+        // ConsensusLimit_edit_user_daily_count
         {
-            ConsensusLimit_edit_user_limit,
+            ConsensusLimit_edit_user_daily_count,
             {
                 {
                     NetworkMain,
@@ -699,6 +702,24 @@ namespace PocketConsensus
         // ConsensusLimit_max_post_size
         {
             ConsensusLimit_max_post_size,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 60000}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 60000}
+                    }
+                }
+            }
+        },
+        // ConsensusLimit_max_video_size
+        {
+            ConsensusLimit_max_video_size,
             {
                 {
                     NetworkMain,
@@ -900,9 +921,9 @@ namespace PocketConsensus
                 }
             }
         },
-        // ConsensusLimit_account_setting_max_size
+        // ConsensusLimit_max_account_setting_size
         {
-            ConsensusLimit_account_setting_max_size,
+            ConsensusLimit_max_account_setting_size,
             {
                 {
                     NetworkMain,
@@ -918,9 +939,9 @@ namespace PocketConsensus
                 }
             }
         },
-        // ConsensusLimit_account_settings_daily_limit
+        // ConsensusLimit_account_settings_daily_count
         {
-            ConsensusLimit_account_settings_daily_limit,
+            ConsensusLimit_account_settings_daily_count,
             {
                 {
                     NetworkMain,

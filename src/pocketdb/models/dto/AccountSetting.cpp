@@ -19,7 +19,9 @@ namespace PocketTx
 
     
     shared_ptr <string> AccountSetting::GetAddress() const { return m_string1; }
-    void AccountSetting::SetAddress(string value) { m_string1 = make_shared<string>(value); }
+    void AccountSetting::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
+
+    shared_ptr <string> AccountSetting::GetPayloadData() const {return GetPayload() ? GetPayload()->GetString1() : nullptr; }
 
 
     shared_ptr <UniValue> AccountSetting::Serialize() const

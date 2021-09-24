@@ -26,6 +26,7 @@ namespace PocketConsensus
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
+            // Duplicate name
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
             {
                 PocketHelpers::SocialCheckpoints socialCheckpoints;
@@ -33,6 +34,10 @@ namespace PocketConsensus
                     SocialConsensusResult_NicknameDouble))
                     return {false, SocialConsensusResult_NicknameDouble};
             }
+
+            // Check payload size
+            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
+                return {false, code};
 
             return ValidateEdit(ptx);
         }
@@ -96,7 +101,7 @@ namespace PocketConsensus
                 }
             }
 
-            if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_limit))
+            if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
             return Success;
@@ -147,6 +152,24 @@ namespace PocketConsensus
         virtual int GetChainCount(const UserRef& ptx)
         {
             return 0;
+        }
+
+        virtual ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx)
+        {
+            size_t dataSize =
+                (ptx->GetPayloadName() ? ptx->GetPayloadName()->size() : 0) +
+                (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
+                (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0) +
+                (ptx->GetPayloadAbout() ? ptx->GetPayloadAbout()->size() : 0) +
+                (ptx->GetPayloadAvatar() ? ptx->GetPayloadAvatar()->size() : 0) +
+                (ptx->GetPayloadDonations() ? ptx->GetPayloadDonations()->size() : 0) +
+                (ptx->GetReferrerAddress() ? ptx->GetReferrerAddress()->size() : 0) +
+                (ptx->GetPayloadPubkey() ? ptx->GetPayloadPubkey()->size() : 0);
+
+            if (dataSize > GetConsensusLimit(ConsensusLimit_max_user_size))
+                return {false, SocialConsensusResult_ContentSizeLimit};
+
+            return Success;
         }
     };
 

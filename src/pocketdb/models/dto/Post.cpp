@@ -126,6 +126,14 @@ namespace PocketTx
 
     bool Post::IsEdit() const { return *m_string2 != *m_hash; }
 
+    shared_ptr<string> Post::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullptr; }
+    shared_ptr<string> Post::GetPayloadCaption() const { return GetPayload() ? GetPayload()->GetString2() : nullptr; }
+    shared_ptr<string> Post::GetPayloadMessage() const { return GetPayload() ? GetPayload()->GetString3() : nullptr; }
+    shared_ptr<string> Post::GetPayloadTags() const { return GetPayload() ? GetPayload()->GetString4() : nullptr; }
+    shared_ptr<string> Post::GetPayloadUrl() const { return GetPayload() ? GetPayload()->GetString7() : nullptr; }
+    shared_ptr<string> Post::GetPayloadImages() const { return GetPayload() ? GetPayload()->GetString5() : nullptr; }
+    shared_ptr<string> Post::GetPayloadSettings() const { return GetPayload() ? GetPayload()->GetString6() : nullptr; }
+
     void Post::BuildHash()
     {
         std::string data;
