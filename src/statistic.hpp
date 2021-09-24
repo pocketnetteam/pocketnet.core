@@ -231,7 +231,7 @@ namespace Statistic
                 sync.pushKV("CacheItems", (int64_t) POCKETNET_DATA.size());
                 int64_t cacheSize = 0;
                 for (auto& it : POCKETNET_DATA) cacheSize += it.first.size() + it.second.size();
-                sync.pushKV("CacheSize", (double)cacheSize / 1024 / 1024);
+                sync.pushKV("CacheSize", ceil(((double)cacheSize / 1024.0 / 1024.0 * 1000.0)) / 1000.0);
             }
             result.pushKV("Sync", sync);
 
@@ -239,7 +239,7 @@ namespace Statistic
 
             auto[cacheCount, cacheSize] = _rpcCache->Statistic();
             rpcStat.pushKV("CacheCount", cacheCount);
-            rpcStat.pushKV("CacheSize", (double)cacheSize / 1024 / 1024);
+            rpcStat.pushKV("CacheSize", ceil(((double)cacheSize / 1024.0 / 1024.0 * 1000.0)) / 1000.0);
 
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since, false));
             rpcStat.pushKV("RequestsCache", (int) GetNumSamplesSince(since, true));
