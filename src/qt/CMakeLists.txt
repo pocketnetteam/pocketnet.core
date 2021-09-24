@@ -389,7 +389,8 @@ add_library(qt_libpocketcoinqt
         ${PROTOBUF_CC}
         ${PROTOBUF_H}
         )
-target_link_libraries(qt_libpocketcoinqt PRIVATE Qt5::Core Qt5::Widgets Qt5::Network Boost::filesystem OpenSSL::Crypto Oracle::BerkeleyDB leveldb ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON})
+target_link_libraries(qt_libpocketcoinqt PRIVATE Boost::filesystem OpenSSL::Crypto Oracle::BerkeleyDB leveldb ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON})
+target_link_libraries(qt_libpocketcoinqt PUBLIC Qt5::Core Qt5::Widgets Qt5::Network)
 set_target_properties(qt_libpocketcoinqt PROPERTIES PREFIX "") # Remove "lib" prefix because we already have it in library name
 # Specify dependencies that force processing resources, protobuf and ui files before this target
 add_dependencies(qt_libpocketcoinqt resources resources_locale protobuf_generated ui_done)
@@ -415,7 +416,7 @@ endif()
 if(WIN32)
     target_sources(pocketcoin-qt PRIVATE ${POCKETCOIN_RC})
 endif()
-target_link_libraries(pocketcoin-qt PRIVATE qt_libpocketcoinqt ${POCKETCOIN_SERVER} leveldb memenv ${Protobuf_LIBRARY_DEBUG} libpocketcoin_cli)
+target_link_libraries(pocketcoin-qt PRIVATE qt_libpocketcoinqt ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} leveldb memenv ${Protobuf_LIBRARY_DEBUG} libpocketcoin_cli)
 target_include_directories(pocketcoin-qt PRIVATE ${Protobuf_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR}/..)
 
 target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_NO_KEYWORDS)
