@@ -31,6 +31,9 @@ To run the pocketcoin-qt tests manually, launch `src/qt/test/test_pocketcoin-qt`
 To add more pocketcoin-qt tests, add them to the `src/qt/test/` directory and
 the `src/qt/test/test_main.cpp` file.
 
+Specific tests may be disabled in code with the DISABLED_TEST preprocessor.  Typically
+these are tests from Bitcoin Core which have not yet been ported to Pocketnet Core. 
+
 ### Running individual tests
 
 test_pocketcoin has some built-in command-line arguments; for
