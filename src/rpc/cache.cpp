@@ -84,5 +84,5 @@ std::tuple<int64_t, int64_t> RPCCache::Statistic()
     for (auto& it : m_cache)
         size += it.first.size() + it.second.size();
         
-    return { m_cache.size(), size * sizeof(std::string::value_type) };
+    return { m_cache.size(), size };
 }
