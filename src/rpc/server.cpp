@@ -549,9 +549,9 @@ std::vector<std::string> CRPCTable::listCommands() const
     return commandList;
 }
 
-std::tuple<int64_t, int64_t> CRPCTable::CacheSize()
+RPCCache* CRPCTable::CacheInstance()
 {
-    return cache->Size();
+    return cache;
 }
 
 std::string HelpExampleCli(const std::string& methodname, const std::string& args)

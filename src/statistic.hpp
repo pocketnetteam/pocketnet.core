@@ -12,11 +12,10 @@
 #include <numeric>
 #include <set>
 #include "pocketdb/pocketdb.h"
-#include "rpc/server.h"
+#include "rpc/cache.h"
 
 namespace Statistic
 {
-
     using RequestKey = std::string;
     using RequestTime = std::chrono::milliseconds;
     using RequestIP = std::string;
@@ -37,9 +36,10 @@ namespace Statistic
     class RequestStatEngine
     {
     public:
-        RequestStatEngine() = default;
-        RequestStatEngine(const RequestStatEngine&) = delete;
-        RequestStatEngine(RequestStatEngine&&) = default;
+        RequestStatEngine(RPCCache* rpcCache)
+        {
+            _rpcCache = rpcCache;
+        }
 
         void AddSample(const RequestSample& sample)
         {
@@ -237,10 +237,10 @@ namespace Statistic
 
             UniValue rpcStat(UniValue::VOBJ);
 
-            auto[cacheCount, cacheSize] = tableRPC.CacheSize();
+            auto[cacheCount, cacheSize] = _rpcCache->Statistic();
             rpcStat.pushKV("CacheCount", cacheCount);
             rpcStat.pushKV("CacheSize", cacheSize);
-            
+
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since, false));
             rpcStat.pushKV("RequestsCache", (int) GetNumSamplesSince(since, true));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since, false).count());
@@ -305,6 +305,7 @@ namespace Statistic
         std::vector<RequestSample> _samples;
         Mutex _samplesLock;
         bool shutdown = false;
+        RPCCache* _rpcCache;
 
         void RemoveSamplesBefore(RequestTime time)
         {

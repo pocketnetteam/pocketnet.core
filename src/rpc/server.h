@@ -185,7 +185,7 @@ public:
      */
     bool appendCommand(const std::string& name, const CRPCCommand* pcmd);
 
-    std::tuple<int64_t, int64_t> CacheSize();
+    RPCCache* CacheInstance();
 };
 
 bool IsDeprecatedRPCEnabled(const std::string& method);
