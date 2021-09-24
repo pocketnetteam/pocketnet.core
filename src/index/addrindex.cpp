@@ -1767,7 +1767,8 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std
         oitm.pushKV("data_hash_without_ref", itm_hash_ref);
 
         item["id"] = 0;
-        oitm.pushKV("size", (int)(item.GetJSON().ToString().size()));
+        item["block"] = 0;
+        oitm.pushKV("size", (int64_t)(item.GetJSON().ToString().size()));
 
         // Calculate size for payload data
         int64_t dataSize = item["name"].As<string>().size() +
