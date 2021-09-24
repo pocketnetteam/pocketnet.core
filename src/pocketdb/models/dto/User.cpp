@@ -64,14 +64,19 @@ namespace PocketTx
     }
 
     shared_ptr <string> User::GetAddress() const { return m_string1; }
-    void User::SetAddress(string value) { m_string1 = make_shared<string>(value); }
+    void User::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
     shared_ptr <string> User::GetReferrerAddress() const { return m_string2; }
-    void User::SetReferrerAddress(std::string value) { m_string2 = make_shared<string>(value); }
+    void User::SetReferrerAddress(const string& value) { m_string2 = make_shared<string>(value); }
 
     // Payload getters
-    shared_ptr <string> User::GetPayloadName() const { return Transaction::GetPayload()->GetString2(); }
-    shared_ptr <string> User::GetPayloadAvatar() const { return Transaction::GetPayload()->GetString3(); }
+    shared_ptr <string> User::GetPayloadName() const { return GetPayload() ? GetPayload()->GetString2() : nullptr; }
+    shared_ptr <string> User::GetPayloadAvatar() const { return GetPayload() ? GetPayload()->GetString3() : nullptr; }
+    shared_ptr <string> User::GetPayloadUrl() const { return GetPayload() ? GetPayload()->GetString5() : nullptr; }
+    shared_ptr <string> User::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullptr; }
+    shared_ptr <string> User::GetPayloadAbout() const { return GetPayload() ? GetPayload()->GetString4() : nullptr; }
+    shared_ptr <string> User::GetPayloadDonations() const { return GetPayload() ? GetPayload()->GetString7() : nullptr; }
+    shared_ptr <string> User::GetPayloadPubkey() const { return GetPayload() ? GetPayload()->GetString6() : nullptr; }
 
     void User::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {

@@ -27,6 +27,10 @@ namespace PocketConsensus
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
+            // Check payload size
+            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
+                return {false, code};
+
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
 
@@ -207,6 +211,38 @@ namespace PocketConsensus
                 return false;
 
             return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_video_depth);
+        }
+        virtual ConsensusValidateResult ValidatePayloadSize(const VideoRef& ptx)
+        {
+            size_t dataSize =
+                (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
+                (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
+                (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
+                (ptx->GetRootTxHash() ? ptx->GetRootTxHash()->size() : 0) +
+                (ptx->GetRelayTxHash() ? ptx->GetRelayTxHash()->size() : 0) +
+                (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
+                (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
+
+            if (!IsEmpty(ptx->GetPayloadTags()))
+            {
+                UniValue tags(UniValue::VARR);
+                tags.read(*ptx->GetPayloadTags());
+                for (size_t i = 0; i < tags.size(); ++i)
+                    dataSize += tags[i].get_str().size();
+            }
+
+            if (!IsEmpty(ptx->GetPayloadImages()))
+            {
+                UniValue images(UniValue::VARR);
+                images.read(*ptx->GetPayloadImages());
+                for (size_t i = 0; i < images.size(); ++i)
+                    dataSize += images[i].get_str().size();
+            }
+
+            if (dataSize > GetConsensusLimit(ConsensusLimit_max_video_size))
+                return {false, SocialConsensusResult_ContentSizeLimit};
+
+            return Success;
         }
     };
 

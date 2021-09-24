@@ -46,7 +46,12 @@ namespace PocketConsensus
 
                         auto blockAddress = *blockTx->GetString1();
                         if (find(addresses.begin(), addresses.end(), blockAddress) != addresses.end())
-                            remove(addresses.begin(), addresses.end(), blockAddress);
+                        {
+                            addresses.erase(
+                                std::remove(addresses.begin(), addresses.end(), blockAddress),
+                                addresses.end()
+                            );
+                        }
                     }
                 }
 

@@ -118,7 +118,7 @@ POCKETDB_H = \
     pocketdb/repositories/web/ExplorerRepository.h \
     \
     pocketdb/services/TransactionSerializer.h \
-    pocketdb/services/TransactionIndexer.h \
+    pocketdb/services/TransactionPostProcessing.h \
     pocketdb/services/Accessor.h \
     \
     pocketdb/consensus/Base.h \
@@ -187,7 +187,7 @@ POCKETDB_CPP = \
     pocketdb/helpers/OpReturnCheckpointHelper.cpp \
     \
     pocketdb/services/TransactionSerializer.cpp \
-    pocketdb/services/TransactionIndexer.cpp \
+    pocketdb/services/TransactionPostProcessing.cpp \
     pocketdb/services/Accessor.cpp \
     \
     pocketdb/repositories/web/WebRepository.cpp \

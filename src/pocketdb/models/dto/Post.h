@@ -33,6 +33,14 @@ namespace PocketTx
 
         bool IsEdit() const;
 
+        shared_ptr<string> GetPayloadLang() const;
+        shared_ptr<string> GetPayloadCaption() const;
+        shared_ptr<string> GetPayloadMessage() const;
+        shared_ptr<string> GetPayloadTags() const;
+        shared_ptr<string> GetPayloadUrl() const;
+        shared_ptr<string> GetPayloadImages() const;
+        shared_ptr<string> GetPayloadSettings() const;
+
     protected:
         void DeserializePayload(const UniValue& src, const CTransactionRef& tx) override;
         void BuildHash() override;

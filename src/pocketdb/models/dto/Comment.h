@@ -40,15 +40,9 @@ namespace PocketTx
         shared_ptr <string> GetPayloadMsg() const;
         void SetPayloadMsg(const string& value);
 
-        shared_ptr <int> GetPayloadDonateAmount() const;
-        void SetPayloadDonateAmount(int value);
-
     protected:
         void DeserializePayload(const UniValue& src, const CTransactionRef& tx) override;
         void BuildHash() override;
-
-    private:
-        int CalculateDonateAmount(const CTransactionRef& tx) const;
     };
 
 } // namespace PocketTx

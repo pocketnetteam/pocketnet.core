@@ -21,7 +21,9 @@ namespace PocketTx
         void DeserializeRpc(const UniValue& src, const CTransactionRef& tx) override;
 
         shared_ptr <string> GetAddress() const;
-        void SetAddress(string value);
+        void SetAddress(const string& value);
+
+        shared_ptr <string> GetPayloadData() const;
 
     protected:
         void DeserializePayload(const UniValue& src, const CTransactionRef& tx) override;

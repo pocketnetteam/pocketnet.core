@@ -312,6 +312,9 @@ namespace PocketHelpers
             case TX_DEFAULT:
                 ptx = make_shared<Default>();
                 break;
+            case ACCOUNT_SETTING:
+                ptx = make_shared<AccountSetting>();
+                break;
             case ACCOUNT_USER:
                 ptx = make_shared<User>();
                 break;
@@ -320,6 +323,9 @@ namespace PocketHelpers
                 break;
             case CONTENT_VIDEO:
                 ptx = make_shared<Video>();
+                break;
+            case CONTENT_DELETE:
+                ptx = make_shared<ContentDelete>();
                 break;
             case CONTENT_COMMENT:
                 ptx = make_shared<Comment>();

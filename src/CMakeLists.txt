@@ -732,10 +732,10 @@ add_library(${POCKETCOIN_SERVER}
                 pocketdb/pocketnet.h
                 pocketdb/pocketnet.cpp
                 pocketdb/services/TransactionSerializer.cpp
-                pocketdb/services/TransactionIndexer.cpp
+                pocketdb/services/TransactionPostProcessing.cpp
                 pocketdb/services/Accessor.cpp
                 pocketdb/services/TransactionSerializer.h
-                pocketdb/services/TransactionIndexer.h
+                pocketdb/services/TransactionPostProcessing.h
                 pocketdb/services/Accessor.h
                 pocketdb/repositories/BaseRepository.hpp
                 pocketdb/repositories/TransactionRepository.hpp
