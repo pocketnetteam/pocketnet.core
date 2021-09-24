@@ -12,6 +12,7 @@
 #include <numeric>
 #include <set>
 #include "pocketdb/pocketdb.h"
+#include "rpc/server.h"
 
 namespace Statistic
 {
@@ -235,6 +236,11 @@ namespace Statistic
             result.pushKV("Sync", sync);
 
             UniValue rpcStat(UniValue::VOBJ);
+
+            auto[cacheCount, cacheSize] = tableRPC.CacheSize();
+            rpcStat.pushKV("CacheCount", cacheCount);
+            rpcStat.pushKV("CacheSize", cacheSize);
+            
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since, false));
             rpcStat.pushKV("RequestsCache", (int) GetNumSamplesSince(since, true));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since, false).count());
