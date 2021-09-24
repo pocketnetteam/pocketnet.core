@@ -115,6 +115,11 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateEdit(const UserRef& ptx)
         {
+            // First user account transaction allowed without next checks
+            if (auto[ok, prevTxHeight] = ConsensusRepoInst.GetLastAccountHeight(*ptx->GetAddress()); !ok)
+                return Success;
+
+            // Check editing limits
             if (auto[ok, code] = ValidateEditLimit(ptx); !ok)
                 return {false, code};
 
