@@ -40,7 +40,7 @@ namespace PocketTx
     {
         Transaction::Deserialize(src);
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
-        if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
+        if (auto[ok, valTxId] = TryGetStr(src, "txid"); ok) SetRootTxHash(valTxId);
     }
 
     void ContentDelete::DeserializeRpc(const UniValue& src, const CTransactionRef& tx)
