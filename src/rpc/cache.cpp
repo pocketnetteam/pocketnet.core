@@ -5,6 +5,14 @@
 #include <rpc/cache.h>
 #include <rpc/server.h>
 
+static const unsigned int MAX_CACHE_SIZE_MB = 64;
+
+RPCCache::RPCCache() 
+{
+    m_blockHeight = chainActive.Height();
+    m_maxCacheSize = gArgs.GetArg("-rpccachesize", MAX_CACHE_SIZE_MB) * 1024 * 1024;
+}
+
 std::string RPCCache::MakeHashKey(const JSONRPCRequest& req)
 {
     std::string hashKey = req.strMethod;
@@ -18,6 +26,7 @@ void RPCCache::Clear()
 {
     LOCK(CacheMutex);
     m_cache.clear();
+    m_cacheSize = 0;
     m_blockHeight = chainActive.Height();
 
     LogPrint(BCLog::RPC, "RPC cache cleared.\n");
@@ -28,12 +37,23 @@ void RPCCache::Put(const std::string& path, const UniValue& content)
     if (chainActive.Height() > m_blockHeight)
         this->Clear();
 
+    int size = path.size() + content.write().size();
+
+    if (m_maxCacheSize < size + m_cacheSize) {
+        LogPrint(BCLog::RPC, "RPC cache over size limit: current = %d, max = %d\n", size + m_cacheSize, m_maxCacheSize);
+        return;
+    }
+
     LOCK(CacheMutex);
     if (m_cache.find(path) == m_cache.end()) {
-        LogPrint(BCLog::RPC, "RPC cache put '%s'\n", path);
+        LogPrint(BCLog::RPC, "RPC cache put '%s', size %d\n", path, size);
+        m_cacheSize += size;
         m_cache.emplace(path, content);
     } else {
         LogPrint(BCLog::RPC, "RPC cache put update '%s'\n", path);
+        // Adjust cache size, remove old element size, add new element size
+        m_cacheSize -= m_cache[path].size();
+        m_cacheSize += content.write().size();
         m_cache[path] = content;
     }
 }
@@ -55,7 +75,7 @@ UniValue RPCCache::Get(const std::string& path)
         return m_cache.at(path);
     }
 
-    /* Return empty UniValue if nothing found in cache. */
+    // Return empty UniValue if nothing found in cache.
     return UniValue();
 }
 
@@ -79,14 +99,6 @@ void RPCCache::PutRpcCache(const JSONRPCRequest& req, const UniValue& content)
 std::tuple<int64_t, int64_t> RPCCache::Statistic()
 {
     LOCK(CacheMutex);
-
-    int count = 0;
-    int64_t size = 0;
-    for (auto& it : m_cache)
-    {
-        count += 1;
-        size += it.first.size() + it.second.write().size();
-    }
-        
-    return { count, size };
+    // Return number of elements in cache and size of cache in bytes
+    return { (int64_t) m_cache.size(), (int64_t) m_cacheSize };
 }
