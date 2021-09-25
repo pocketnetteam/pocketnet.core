@@ -99,7 +99,6 @@ void RPCCache::PutRpcCache(const JSONRPCRequest& req, const UniValue& content)
 std::tuple<int64_t, int64_t> RPCCache::Statistic()
 {
     LOCK(CacheMutex);
-    LogPrint(BCLog::RPC, "RPC cache Statistic num elements = %d, size in bytes = %d", m_cache.size(), m_cacheSize);
-
+    // Return number of elements in cache and size of cache in bytes
     return { (int64_t) m_cache.size(), (int64_t) m_cacheSize };
 }
