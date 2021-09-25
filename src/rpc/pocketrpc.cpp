@@ -728,6 +728,8 @@ void FillPocketTransaction(const UniValue& payload, RTransaction& tx)
     else if (tx.TxType == OR_COMMENT_DELETE) SetCommentDelete(payload, tx);
     else if (tx.TxType == OR_COMMENT_SCORE) SetCommentScore(payload, tx);
     else if (tx.TxType == OR_VIDEO) SetVideo(payload, tx);
+    else if (tx.TxType == OR_CONTENT_DELETE) SetContentDelete(payload, tx);
+    else if (tx.TxType == OR_ACCOUNT_SETTINGS) SetAccountSetting(payload, tx);
 
         // only for pre-release tests
     else if (Params().NetworkIDString() == CBaseChainParams::TESTNET) {
@@ -735,8 +737,6 @@ void FillPocketTransaction(const UniValue& payload, RTransaction& tx)
         else if (tx.TxType == OR_TRANSLATE) SetTranslate(payload, tx);
         else if (tx.TxType == OR_VIDEO_SERVER) SetVideoServer(payload, tx);
         else if (tx.TxType == OR_MESSAGE_SERVER) SetMessageServer(payload, tx);
-        else if (tx.TxType == OR_CONTENT_DELETE) SetContentDelete(payload, tx);
-        else if (tx.TxType == OR_ACCOUNT_SETTINGS) SetAccountSetting(payload, tx);
         else throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
     }
     else throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid transaction type");
