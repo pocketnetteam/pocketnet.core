@@ -17,6 +17,8 @@ private:
     Mutex CacheMutex;
     std::map<std::string, UniValue> m_cache;
     int m_blockHeight;
+    int m_cacheSize;
+    int m_maxCacheSize;
     const std::vector<std::string> supportedMethods = {"getlastcomments",
                                                        "getcomments",
                                                        "gettags",
@@ -42,10 +44,7 @@ private:
     std::string MakeHashKey(const JSONRPCRequest& req);
 
 public:
-    RPCCache() 
-    {
-        m_blockHeight = chainActive.Height();
-    }
+    RPCCache();
 
     void Clear();
 
