@@ -82,11 +82,7 @@ $ pocketcoind --help
 2. Download database archive:
     * With torrent:
         ```
-        magnet:?xt=urn:btih:bb6c23fee3c9fa616c10bcb9af2bca2e8a73e6c6&dn=pocketnet.checkpoint.1314361.tar.gz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
-        ```
-    * With direct link from pocketnet.app host:
-        ```
-        http://pocketnet.app/checkpoints/pocketnet.checkpoint.latest.tar.gz
+        magnet:?xt=urn:btih:430a803795d7b5655c0d9cdad7d32725e2998330&dn=pocketnet.checkpoint.1347307.tgz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
         ```
 4. There must be archive tar.gz with 4 directories:
     ```shell

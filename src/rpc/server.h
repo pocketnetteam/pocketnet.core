@@ -8,6 +8,7 @@
 
 #include <amount.h>
 #include <rpc/protocol.h>
+#include <rpc/cache.h>
 #include <uint256.h>
 
 #include <list>
@@ -16,6 +17,8 @@
 #include <string>
 
 #include <univalue.h>
+#include "statistic.hpp"
+#include "init.h"
 
 static const unsigned int DEFAULT_RPC_SERIALIZE_VERSION = 1;
 
@@ -145,6 +148,7 @@ class CRPCTable
 {
 private:
     std::map<std::string, const CRPCCommand*> mapCommands;
+    RPCCache *cache;
 public:
     CRPCTable();
     const CRPCCommand* operator[](const std::string& name) const;
@@ -156,7 +160,7 @@ public:
      * @returns Result of the call.
      * @throws an exception (UniValue) when an error happens.
      */
-    UniValue execute(const JSONRPCRequest &request) const;
+    UniValue execute(const JSONRPCRequest &request);
 
     /**
     * Returns a list of registered commands
@@ -180,6 +184,8 @@ public:
      * register different names, types, and numbers of parameters.
      */
     bool appendCommand(const std::string& name, const CRPCCommand* pcmd);
+
+    RPCCache* CacheInstance();
 };
 
 bool IsDeprecatedRPCEnabled(const std::string& method);

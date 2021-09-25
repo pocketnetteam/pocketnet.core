@@ -272,6 +272,7 @@ static const CRPCCommand vRPCCommands[] =
 CRPCTable::CRPCTable()
 {
     unsigned int vcidx;
+    cache = new RPCCache();
     for (vcidx = 0; vcidx < (sizeof(vRPCCommands) / sizeof(vRPCCommands[0])); vcidx++)
     {
         const CRPCCommand *pcmd;
@@ -476,7 +477,7 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
     return out;
 }
 
-UniValue CRPCTable::execute(const JSONRPCRequest &request) const
+UniValue CRPCTable::execute(const JSONRPCRequest &request)
 {
     // Return immediately if in warmup
     {
@@ -491,19 +492,50 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
         throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
 
     g_rpcSignals.PreCommand(*pcmd);
-    try
-    {
-        // Execute, convert arguments to array if necessary
-        if (request.params.isObject()) {
-            return pcmd->actor(transformNamedArguments(request, pcmd->argNames));
-        } else {
-            return pcmd->actor(request);
+
+    auto start = gStatEngineInstance.GetCurrentSystemTime();
+
+    // See if this request reply is cached
+    bool overCache = true;
+    UniValue ret = cache->GetRpcCache(request);
+    if (ret.isNull()) {
+        overCache = false;
+
+        try
+        {
+            // Execute, convert arguments to array if necessary
+            if (request.params.isObject()) {
+                ret = pcmd->actor(transformNamedArguments(request, pcmd->argNames));
+            } else {
+                ret = pcmd->actor(request);
+            }
+            // Save return value in cache for later
+            cache->PutRpcCache(request, ret);
+        }
+        catch (const std::exception& e)
+        {
+            throw JSONRPCError(RPC_MISC_ERROR, e.what());
         }
     }
-    catch (const std::exception& e)
-    {
-        throw JSONRPCError(RPC_MISC_ERROR, e.what());
-    }
+
+    auto stop = gStatEngineInstance.GetCurrentSystemTime();
+
+    gStatEngineInstance.AddSample(
+        Statistic::RequestSample{
+            request.strMethod,
+            start,
+            stop,
+            request.peerAddr.substr(0, request.peerAddr.find(':')),
+            request.params.write().size(),
+            ret.write().size(),
+            overCache
+        }
+    );
+
+    auto diff = (stop - start);
+    LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", request.strMethod, request.peerAddr.substr(0, request.peerAddr.find(':')), diff.count());
+
+    return ret;
 }
 
 std::vector<std::string> CRPCTable::listCommands() const
@@ -515,6 +547,11 @@ std::vector<std::string> CRPCTable::listCommands() const
                    std::back_inserter(commandList),
                    boost::bind(&commandMap::value_type::first,_1) );
     return commandList;
+}
+
+RPCCache* CRPCTable::CacheInstance()
+{
+    return cache;
 }
 
 std::string HelpExampleCli(const std::string& methodname, const std::string& args)

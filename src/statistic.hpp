@@ -12,14 +12,15 @@
 #include <numeric>
 #include <set>
 #include "pocketdb/pocketdb.h"
+#include "rpc/cache.h"
 
 namespace Statistic
 {
-
     using RequestKey = std::string;
     using RequestTime = std::chrono::milliseconds;
     using RequestIP = std::string;
     using RequestPayloadSize = std::size_t;
+    using RequestOverCache = bool;
 
     struct RequestSample
     {
@@ -29,14 +30,16 @@ namespace Statistic
         RequestIP SourceIP;
         RequestPayloadSize InputSize;
         RequestPayloadSize OutputSize;
+        RequestOverCache OverCache;
     };
 
     class RequestStatEngine
     {
     public:
-        RequestStatEngine() = default;
-        RequestStatEngine(const RequestStatEngine&) = delete;
-        RequestStatEngine(RequestStatEngine&&) = default;
+        RequestStatEngine(RPCCache* rpcCache)
+        {
+            _rpcCache = rpcCache;
+        }
 
         void AddSample(const RequestSample& sample)
         {
@@ -53,7 +56,7 @@ namespace Statistic
             return _samples.size();
         }
 
-        std::size_t GetNumSamplesBetween(RequestTime begin, RequestTime end)
+        std::size_t GetNumSamplesBetween(RequestTime begin, RequestTime end, bool cache)
         {
             LOCK(_samplesLock);
             return std::count_if(
@@ -61,21 +64,21 @@ namespace Statistic
                 _samples.end(),
                 [=](const RequestSample& sample)
                 {
-                    return sample.TimestampBegin >= begin && sample.TimestampEnd <= end;
+                    return sample.OverCache == cache && sample.TimestampBegin >= begin && sample.TimestampEnd <= end;
                 });
         }
 
-        std::size_t GetNumSamplesBefore(RequestTime time)
+        std::size_t GetNumSamplesBefore(RequestTime time, bool cache)
         {
-            return GetNumSamplesBetween(RequestTime::min(), time);
+            return GetNumSamplesBetween(RequestTime::min(), time, cache);
         }
 
-        std::size_t GetNumSamplesSince(RequestTime time)
+        std::size_t GetNumSamplesSince(RequestTime time, bool cache)
         {
-            return GetNumSamplesBetween(time, RequestTime::max());
+            return GetNumSamplesBetween(time, RequestTime::max(), cache);
         }
 
-        RequestTime GetAvgRequestTimeSince(RequestTime since)
+        RequestTime GetAvgRequestTimeSince(RequestTime since, bool cache)
         {
             LOCK(_samplesLock);
 
@@ -87,7 +90,7 @@ namespace Statistic
 
             for (auto& sample : _samples)
             {
-                if (sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
+                if (sample.OverCache == cache && sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
                 {
                     sum += sample.TimestampEnd - sample.TimestampBegin;
                     count++;
@@ -115,9 +118,9 @@ namespace Statistic
             return count;
         }
 
-        RequestTime GetAvgRequestTime()
+        RequestTime GetAvgRequestTime(bool cache)
         {
-            return GetAvgRequestTimeSince(RequestTime::min());
+            return GetAvgRequestTimeSince(RequestTime::min(), cache);
         }
 
         std::vector<RequestSample> GetTopHeavyTimeSamplesSince(std::size_t limit, RequestTime since)
@@ -228,14 +231,22 @@ namespace Statistic
                 sync.pushKV("CacheItems", (int64_t) POCKETNET_DATA.size());
                 int64_t cacheSize = 0;
                 for (auto& it : POCKETNET_DATA) cacheSize += it.first.size() + it.second.size();
-                sync.pushKV("CacheSize", cacheSize);
+                sync.pushKV("CacheSize", ceil(((double)cacheSize / 1024.0 / 1024.0 * 1000.0)) / 1000.0);
             }
             result.pushKV("Sync", sync);
 
             UniValue rpcStat(UniValue::VOBJ);
-            rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since));
-            rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
+
+            auto[cacheCount, cacheSize] = _rpcCache->Statistic();
+            rpcStat.pushKV("CacheCount", cacheCount);
+            rpcStat.pushKV("CacheSize", ceil(((double)cacheSize / 1024.0 / 1024.0 * 1000.0)) / 1000.0);
+
+            rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since, false));
+            rpcStat.pushKV("RequestsCache", (int) GetNumSamplesSince(since, true));
+            rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since, false).count());
+            rpcStat.pushKV("AvgReqTimeCache", GetAvgRequestTimeSince(since, true).count());
             rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
+
             if (g_logger->WillLogCategory(BCLog::STATDETAIL))
             {
                 rpcStat.pushKV("UniqueIps", unique_ips_json);
@@ -243,6 +254,7 @@ namespace Statistic
                 rpcStat.pushKV("TopInputSize", top_in_json);
                 rpcStat.pushKV("TopOutputSize", top_out_json);
             }
+            
             result.pushKV("RPC", rpcStat);
 
             return result;
@@ -293,6 +305,7 @@ namespace Statistic
         std::vector<RequestSample> _samples;
         Mutex _samplesLock;
         bool shutdown = false;
+        RPCCache* _rpcCache;
 
         void RemoveSamplesBefore(RequestTime time)
         {
