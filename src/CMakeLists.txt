@@ -559,6 +559,8 @@ add_library(${POCKETCOIN_CONSENSUS}
                 key.cpp
             )
 target_link_libraries(${POCKETCOIN_CONSENSUS} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} ${POCKETDB} univalue secp256k1)
+# TODO hadrdcoded because we are always building consensus
+add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 
 
 # Common rpc that used by server and cli
