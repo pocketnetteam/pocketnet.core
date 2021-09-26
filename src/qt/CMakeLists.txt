@@ -1,3 +1,5 @@
+include(CheckCXXSourceCompiles)
+
 find_package(Protobuf REQUIRED)
 find_package(Qt5 COMPONENTS Widgets LinguistTools Network Core DBus QUIET)
 if(NOT TARGET Qt5::Widgets)
@@ -407,6 +409,49 @@ endif()
 if(TARGET Qt5::DBus)
     target_link_libraries(qt_libpocketcoinqt PRIVATE Qt5::DBus)
     target_compile_definitions(qt_libpocketcoinqt PRIVATE USE_DBUS=1)
+endif()
+
+# Checks
+set(CMAKE_REQUIRED_LIBRARIES_BACKUP ${CMAKE_REQUIRED_LIBRARIES})
+set(CMAKE_REQUIRED_LIBRARIES Qt5::Core Qt5::Widgets)
+check_cxx_source_compiles(" #include <QtCore/qconfig.h>
+                            #ifndef QT_VERSION OR QT_VERSION_STR
+                            #  include <QtCore/qglobal.h>
+                            #endif
+                            int main(){
+                            #if !defined(QT_STATIC)
+                                choke
+                            #endif
+                            return 0;
+                            }" _POCKETCOIN_QT_STATIC)
+set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES_BACKUP})
+if(_POCKETCOIN_QT_STATIC)
+    if(NOT TARGET Qt5::QMinimalIntegrationPlugin)
+        message(FATAL_ERROR "Failed to find Qt static module: QMinimalIntegrationPlugin")
+    endif()
+    qt5_import_plugins(qt_libpocketcoinqt INCLUDE Qt5::QMinimalIntegrationPlugin)
+    target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_QPA_PLATFORM_MINIMAL=1)
+    if(WIN32)
+        if(NOT TARGET Qt5::QWindowsIntegrationPlugin)
+            message(FATAL_ERROR "Failed to find Qt static module: QWindowsIntegrationPlugin")
+        endif()
+        qt5_import_plugins(qt_libpocketcoinqt INCLUDE Qt5::QWindowsIntegrationPlugin)
+        target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_QPA_PLATFORM_WINDOWS=1)
+    elseif(APPLE)
+        if(NOT TARGET Qt5::QCocoaIntegrationPlugin)
+            message(FATAL_ERROR "Failed to find Qt static module: QCocoaIntegrationPlugin")
+        endif()
+        qt5_import_plugins(qt_libpocketcoinqt INCLUDE Qt5::QCocoaIntegrationPlugin)
+        target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_QPA_PLATFORM_COCOA=1)
+    else()
+        if(NOT TARGET Qt5::QXcbIntegrationPlugin)
+            message(FATAL_ERROR "Failed to find Qt static module: QXcbIntegrationPlugin")
+        endif()
+        qt5_import_plugins(qt_libpocketcoinqt INCLUDE Qt5::QXcbIntegrationPlugin)
+        target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_QPA_PLATFORM_XCB=1)
+    endif()
+
+    target_compile_definitions(qt_libpocketcoinqt PRIVATE QT_STATICPLUGIN=1)
 endif()
 
 add_executable(pocketcoin-qt pocketcoin.cpp)
