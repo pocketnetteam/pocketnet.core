@@ -1431,22 +1431,17 @@ bool CheckInputs(const CTransaction& tx, CValidationState& state, const CCoinsVi
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
 
-                CTransactionRef txPrev;
-                uint256 hashBlock = uint256();
-                int valid = 1;
-
-                if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true)) {
-                    valid = 0;
-                }
-
-                if (mapBlockIndex.count(hashBlock) == 0) {
-                    valid = 0;
-                }
-
-                if (valid) {
-                    CBlockIndex* pblockindex = mapBlockIndex[hashBlock];
-                    if (txPrev->nTime > tx.nTime) {
-                        return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
+                if (chainActive.Height() < Params().GetConsensus().checkpoint_fix_size_payload)
+                {
+                    CTransactionRef txPrev;
+                    uint256 hashBlock = uint256();
+                    if (GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
+                    {
+                        if (txPrev->nTime > tx.nTime)
+                        {
+                            if (!IsCheckpointTransaction(tx.GetHash().GetHex()))
+                                return state.DoS(100, false, REJECT_INVALID, "tx-timestamp-earlier-as-output");
+                        }
                     }
                 }
 
@@ -2209,13 +2204,21 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
         // Write received PocketNET data to RIDB
         if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
-            std::string _pocket_data = POCKETNET_DATA[blockhash];
+            std::string _pocket_data;
+            {
+                LOCK(POCKETNET_DATA_MUTEX);
+                _pocket_data = POCKETNET_DATA[blockhash];
+            }
+
             if (!g_addrindex->SetBlockRIData(block, _pocket_data, pindex->nHeight)) {
                 LogPrintf("--- Failed restore received data (%s) (AddrIndex::SetBlockRIData)\n", blockhash.GetHex());
                 return false;
             }
 
-            POCKETNET_DATA.erase(blockhash);
+            {
+                LOCK(POCKETNET_DATA_MUTEX);
+                POCKETNET_DATA.erase(blockhash);
+            }
         }
 
         // Get data from RIMempool and write to general RI tables
@@ -2501,7 +2504,6 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
 
-    // TODO (brangr): merge disconnectTip and rollbackDB
     if (disconnectpool) {
         // Save transactions to re-add to mempool at end of reorg
         for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it) {
@@ -2691,7 +2693,39 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
         NotifyWSClients(blockConnecting, pindexNew);
     }
     //-----------------------------------------------------
-    LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH:%s\n", pindexNew->nHeight, pindexNew->GetBlockHash().GetHex());
+    // Clear pocketnet cache
+    int cleared_count = 0;
+    int64_t cleared_size = 0;
+    
+    {
+        LOCK(POCKETNET_DATA_MUTEX);
+
+        std::map<uint256, std::string>::iterator iter = POCKETNET_DATA.begin();
+        std::map<uint256, std::string>::iterator endIter = POCKETNET_DATA.end();
+        for(; iter != endIter; )
+        {
+            if (mapBlockIndex.count(iter->first) == 0)
+            {
+                ++iter;
+                continue;
+            }
+
+            CBlockIndex* _cache_index = mapBlockIndex[iter->first];
+            if (_cache_index->nHeight < chainActive.Height())
+            {
+                cleared_count += 1;
+                cleared_size += iter->first.size() + iter->second.size();
+                iter = POCKETNET_DATA.erase(iter);
+            }
+            else
+            {
+                ++iter;
+            }
+        }
+    }
+    //-----------------------------------------------------
+    LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH: %s CC: %d (%d)\n",
+        pindexNew->nHeight, pindexNew->GetBlockHash().GetHex(), cleared_count, cleared_size);
     //-----------------------------------------------------
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
     return true;
@@ -3888,21 +3922,16 @@ bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationS
     {
         uint256 blockhash = block.GetHash();
 
-        // TODO (brangr): enable this check
-        // Before check this block need check valid Reindexer DB
-        // if (pindex->nHeight > Params().GetConsensus().nHeight_version_1_0_0 && !g_addrindex->CheckRHash(block, pindex->pprev)) {
-        // LogPrintf("WARNING!!! Received block not consistent with ReindexerDB (%s)\n", blockhash.GetHex());
-        //return state.DoS(200, error("Received block not consistent with ReindexerDB (%s)", blockhash.GetHex()), REJECT_INVALID, "bad-rhash");
-        // }
-
         // Read and parse received block data
         UniValue _txs_src(UniValue::VOBJ);
-        if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
-            std::string _pocket_data = POCKETNET_DATA[blockhash];
-            _txs_src.read(_pocket_data);
+        {
+            LOCK(POCKETNET_DATA_MUTEX);
+            if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
+                std::string _pocket_data = POCKETNET_DATA[blockhash];
+                _txs_src.read(_pocket_data);
+            }
         }
 
-        // TODO (brangr): change UniValue to RTransaction
         BlockVTX blockVtx;
 
         // Loop transaction and checks

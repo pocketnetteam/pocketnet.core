@@ -30,10 +30,12 @@ enum Limit {
     full_score_limit,
     full_complain_limit,
     change_info_timeout,
+    change_info_limit,
     edit_post_timeout,
     edit_video_timeout,
     max_user_size,
     max_post_size,
+    max_video_size,
     bad_reputation,
     scores_one_to_one,
     scores_one_to_one_over_comment,
@@ -51,6 +53,9 @@ enum Limit {
 
     threshold_balance_pro,
     pro_video_limit,
+
+    max_account_settings_size,
+    account_settings_daily_limit,
 };
 
 /*enum PostRanks {LAST5, LAST5R, BOOST, UREP, UREPR, DREP, PREP, PREPR, DPOST, POSTRF};
@@ -68,7 +73,6 @@ int64_t GetActualLimit(Limit type, int height);
 
 
 // Pocketnet transaction types
-// TODO (brangr): replace with asm bit
 #define OR_SCORE "7570766f74655368617265"
 #define OR_COMPLAIN "636f6d706c61696e5368617265"
 #define OR_POST "7368617265"
@@ -97,6 +101,9 @@ int64_t GetActualLimit(Limit type, int height);
 #define OR_MESSAGE_SERVER "6d657373616765536572766572" // Messaging server registration over User (userType = 2)
 #define OR_SERVER_PING "73657276657250696e67" // Server ping over Posts
 
+#define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
+
+#define OR_ACCOUNT_SETTINGS "616363536574" // Public account settings (accSet)
 
 // Check transaction type is pocketnet
 bool IsPocketTX(const CTxOut& out);
@@ -106,7 +113,7 @@ std::string PocketTXType(const CTransactionRef& tx);
 
 
 // Transaction type convert to reindexer table name
-bool ConvertOPToTableName(std::string op, std::string& ri_table);
+bool ConvertOPToTableName(const std::string& op, std::string& ri_table);
 
 
 // Checkpoints for blocks

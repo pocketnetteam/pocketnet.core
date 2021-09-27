@@ -68,7 +68,7 @@ bool AddrIndex::insert_to_mempool(reindexer::Item& item, std::string table)
         memItm["txid"] = item["txid"].As<string>();
         memItm["txid_source"] = "";
     }
-    
+
     memItm["data"] = EncodeBase64(item.GetJSON().ToString());
 
     return WriteMemRTransaction(memItm);
@@ -426,11 +426,11 @@ bool AddrIndex::IndexBlock(const CBlock& block, CBlockIndex* pindex)
     // Post ratings map for this block
     // <posttxid, <sum, cnt>>
     std::map<std::string, std::pair<int, int>> postRatings;
-    
+
     // Post reputations map for this block
     // <posttxid, rep>
     std::map<std::string, int> postReputations;
-    
+
     // Comment ratings map for this block
     // <commentid, <up, down>>
     std::map<std::string, std::pair<int, int>> commentRatings;
@@ -548,6 +548,11 @@ bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, 
 
         if (!g_pocketdb->UpsertWithCommit("Users", item).ok()) return false;
         if (!g_pocketdb->UpdateUsersView(_address, height).ok()) return false;
+    }
+
+    // Account Settings
+    if (table == "AccountSettings") {
+        if (!g_pocketdb->UpsertWithCommit("AccountSettings", item).ok()) return false;
     }
 
     // New Post
@@ -763,7 +768,7 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
             if (!g_pocketdb->UpdateBlockingView(_bl_address, _bl_address_to, _height_txid).ok()) return false;
         }
     }
-    
+
     // Rollback CommentScores
     {
         if (back_to_mempool) {
@@ -876,7 +881,7 @@ bool AddrIndex::RollbackDB(int blockHeight, bool back_to_mempool)
     return true;
 }
 
-bool AddrIndex::GetAddressRegistrationDate(std::vector<std::string> addresses,
+bool AddrIndex::GetAddressRegistrationDate(std::vector<std::string>& addresses,
     std::vector<AddressRegistrationItem>& registrations)
 {
     //db->AddIndex("Addresses", { "address", "hash", "string", IndexOpts().PK() });
@@ -902,7 +907,7 @@ bool AddrIndex::GetAddressRegistrationDate(std::vector<std::string> addresses,
     return true;
 }
 
-int64_t AddrIndex::GetAddressRegistrationDate(std::string _address)
+int64_t AddrIndex::GetAddressRegistrationDate(const std::string& _address)
 {
     //db->AddIndex("Addresses", { "address", "hash", "string", IndexOpts().PK() });
     //db->AddIndex("Addresses", { "txid", "", "string", IndexOpts() });
@@ -920,7 +925,7 @@ int64_t AddrIndex::GetAddressRegistrationDate(std::string _address)
     }
 }
 
-int64_t AddrIndex::GetAddressLikers(std::string _address, int height)
+int64_t AddrIndex::GetAddressLikers(const std::string& _address, int height)
 {
     auto[userId, userRegBlock] = g_pocketdb->GetUserData(_address);
     if (userId < 0)
@@ -929,7 +934,7 @@ int64_t AddrIndex::GetAddressLikers(std::string _address, int height)
     return g_pocketdb->GetUserLikersCount(userId, height);
 }
 
-bool AddrIndex::GetUnspentTransactions(std::vector<std::string> addresses,
+bool AddrIndex::GetUnspentTransactions(std::vector<std::string>& addresses,
     std::vector<AddressUnspentTransactionItem>& transactions)
 {
     // Get unspent transactions for addresses list from DB
@@ -954,7 +959,7 @@ bool AddrIndex::GetUnspentTransactions(std::vector<std::string> addresses,
     return true;
 }
 
-int64_t AddrIndex::GetUserRegistrationDate(std::string _address)
+int64_t AddrIndex::GetUserRegistrationDate(const std::string& _address)
 {
     reindexer::Item userItm;
     reindexer::Error err = g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("address", CondEq, _address), userItm);
@@ -966,7 +971,7 @@ int64_t AddrIndex::GetUserRegistrationDate(std::string _address)
     }
 }
 
-bool AddrIndex::GetRecomendedSubscriptions(std::string _address, int count, std::vector<string>& recommendedSubscriptions)
+bool AddrIndex::GetRecomendedSubscriptions(const std::string& _address, int count, std::vector<string>& recommendedSubscriptions)
 {
     int sampleSize = 1000; // size of representative sample
 
@@ -1074,7 +1079,7 @@ bool AddrIndex::GetRecomendedSubscriptions(std::string _address, int count, std:
     return true;
 }
 
-bool AddrIndex::GetRecommendedPostsBySubscriptions(std::string _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts)
+bool AddrIndex::GetRecommendedPostsBySubscriptions(const std::string& _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts)
 {
     std::vector<std::string> subscriptions;
     GetRecomendedSubscriptions(_address, count, subscriptions);
@@ -1104,7 +1109,7 @@ bool AddrIndex::GetRecommendedPostsBySubscriptions(std::string _address, int cou
     return true;
 }
 
-bool AddrIndex::GetRecommendedPostsByScores(std::string _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts)
+bool AddrIndex::GetRecommendedPostsByScores(const std::string& _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts)
 {
     int sampleSize = 1000; // size of representative sample
     std::vector<int> score_values;
@@ -1205,9 +1210,12 @@ bool AddrIndex::GetBlockRIData(CBlock block, std::string& data)
 
     // Maybe reindexer part data received from another node?
     // .. then relay from global POCKETNET_DATA
-    if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
-        data = POCKETNET_DATA[blockhash];
-        return true;
+    {
+        LOCK(POCKETNET_DATA_MUTEX);
+        if (POCKETNET_DATA.find(blockhash) != POCKETNET_DATA.end()) {
+            data = POCKETNET_DATA[blockhash];
+            return true;
+        }
     }
 
     // .. or data already in reindexer DB
@@ -1258,11 +1266,11 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
     // First check RIMempool for transactions from mempool
     // If RIMempool empty -> Check general tables
     reindexer::Item itm;
-    bool mempool = true;
+    bool mempool1 = true;
 
     if (!g_pocketdb->SelectOne(reindexer::Query("Mempool").Where("txid", CondEq, txid), itm).ok()) {
-        mempool = false;
-        
+        mempool1 = false;
+
         Error err;
         if (ri_table == "Posts") {
             err = g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, txid).Where("txidEdit", CondEq, ""), itm);
@@ -1287,7 +1295,7 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
 
                     VariantArray vaTags = hist_item["tags"];
                     itm["tags"] = vaTags;
-                    
+
                     VariantArray vaImages = hist_item["images"];
                     itm["images"] = vaImages;
                 }
@@ -1303,7 +1311,7 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
         } else {
             err = g_pocketdb->SelectOne(reindexer::Query(ri_table).Where("txid", CondEq, txid), itm);
         }
-        
+
         if (!err.ok()) {
             LogPrintf("WARNING! AddrIndex::GetTXRIData: ridata not found %s\n", txid);
             return false;
@@ -1317,7 +1325,7 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
         }
     }
 
-    ret_data.pushKV("t", (mempool ? "Mempool" : ri_table));
+    ret_data.pushKV("t", (mempool1 ? "Mempool" : ri_table));
     ret_data.pushKV("d", EncodeBase64(itm.GetJSON().ToString()));
     data = ret_data.write();
     return true;
@@ -1360,7 +1368,7 @@ bool AddrIndex::CommitRIMempool(const CBlock& block, int height)
         }
 
         // Parse mempool data
-        std::string ri_table = mpItm["table"].As<string>();
+        auto ri_table = mpItm["table"].As<string>();
         reindexer::Item new_item = g_pocketdb->DB()->NewItem(ri_table);
         new_item.FromJSON(DecodeBase64(mpItm["data"].As<string>()));
 
@@ -1375,12 +1383,12 @@ bool AddrIndex::CommitRIMempool(const CBlock& block, int height)
     return true;
 }
 
-bool AddrIndex::ClearMempool(std::string txid)
+bool AddrIndex::ClearMempool(const std::string& txid)
 {
     return g_pocketdb->DeleteWithCommit(reindexer::Query("Mempool").Where("txid", CondEq, txid)).ok();
 }
 
-std::string ComputeHash(std::string src)
+std::string ComputeHash(const std::string& src)
 {
     unsigned char _hash[32] = {};
     CSHA256().Write((const unsigned char*)src.data(), src.size()).Finalize(_hash);
@@ -1656,7 +1664,7 @@ bool AddrIndex::ComputeRHash(CBlockIndex* pindexPrev, std::string& hash)
     }
 
     hash = ComputeHash(data);
-    
+
     return true;
 }
 
@@ -1685,7 +1693,7 @@ bool AddrIndex::WriteRHash(CBlock& block, CBlockIndex* pindexPrev)
     return true;
 }
 
-UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::string table)
+UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std::string& table)
 {
     UniValue oitm(UniValue::VOBJ);
 
@@ -1693,7 +1701,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
     oitm.pushKV("table", table);
     oitm.pushKV("txid", item["txid"].As<string>());
     oitm.pushKV("address", item["address"].As<string>());
-    oitm.pushKV("size", (int)(item.GetJSON().ToString().size()));
+    oitm.pushKV("size", (int64_t)(item.GetJSON().ToString().size()));
     oitm.pushKV("time", (int64_t)tx->nTime);
     oitm.pushKV("contentType", getcontenttype(PocketTXType(tx)));
 
@@ -1708,17 +1716,36 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
     if (table == "Posts") {
         oitm.pushKV("txidEdit", item["txidEdit"].As<string>());
         oitm.pushKV("txidRepost", item["txidRepost"].As<string>());
+
+        // Calculate size for payload data
+        int64_t dataSize = item["url"].As<string>().size() +
+                        item["caption"].As<string>().size() +
+                        item["message"].As<string>().size() +
+                        item["txidEdit"].As<string>().size() +
+                        item["txidRepost"].As<string>().size() +
+                        item["settings"].As<string>().size() +
+                        item["lang"].As<string>().size();
+
+        reindexer::VariantArray va_tags = item["tags"];
+        for (size_t i = 0; i < va_tags.size(); ++i)
+            dataSize += va_tags[i].As<string>().size();
+
+        reindexer::VariantArray va_images = item["images"];
+        for (size_t i = 0; i < va_images.size(); ++i)
+            dataSize += va_images[i].As<string>().size();
+
+        oitm.pushKV("dataSize", dataSize);
     }
-    
+
     if (table == "Scores") {
         oitm.pushKV("posttxid", item["posttxid"].As<string>());
         oitm.pushKV("value", item["value"].As<int>());
     }
-    
+
     if (table == "Complains") {
         oitm.pushKV("posttxid", item["posttxid"].As<string>());
     }
-    
+
     if (table == "Subscribes") {
         oitm.pushKV("address_to", item["address_to"].As<string>());
         oitm.pushKV("private", item["private"].As<bool>());
@@ -1729,7 +1756,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
         oitm.pushKV("address_to", item["address_to"].As<string>());
         oitm.pushKV("unblocking", item["unblocking"].As<bool>());
     }
-    
+
     if (table == "Users") {
         oitm.pushKV("referrer", item["referrer"].As<string>());
         oitm.pushKV("name", item["name"].As<string>());
@@ -1740,7 +1767,19 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
         oitm.pushKV("data_hash_without_ref", itm_hash_ref);
 
         item["id"] = 0;
-        oitm.pushKV("size", (int)(item.GetJSON().ToString().size()));
+        item["block"] = 0;
+        oitm.pushKV("size", (int64_t)(item.GetJSON().ToString().size()));
+
+        // Calculate size for payload data
+        int64_t dataSize = item["name"].As<string>().size() +
+                           item["url"].As<string>().size() +
+                           item["lang"].As<string>().size() +
+                           item["about"].As<string>().size() +
+                           item["avatar"].As<string>().size() +
+                           item["donations"].As<string>().size() +
+                           item["referrer"].As<string>().size() +
+                           item["pubkey"].As<string>().size();
+        oitm.pushKV("dataSize", dataSize);
     }
 
     if (table == "Comment") {
@@ -1749,11 +1788,23 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, std::stri
         oitm.pushKV("postid", item["postid"].As<string>());
         oitm.pushKV("parentid", item["parentid"].As<string>());
         oitm.pushKV("answerid", item["answerid"].As<string>());
+
+        int64_t dataSize = UrlDecode(item["msg"].As<string>()).length();
+        oitm.pushKV("size", dataSize);
+        oitm.pushKV("dataSize", dataSize);
     }
 
     if (table == "CommentScores") {
         oitm.pushKV("commentid", item["commentid"].As<string>());
         oitm.pushKV("value", item["value"].As<int>());
+    }
+
+    if (table == "AccountSettings") {
+        oitm.pushKV("data", item["data"].As<string>());
+
+        // Calculate size for payload data
+        int64_t dataSize = item["data"].As<string>().size();
+        oitm.pushKV("dataSize", dataSize);
     }
 
     return oitm;

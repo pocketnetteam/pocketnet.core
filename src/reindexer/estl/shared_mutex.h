@@ -35,12 +35,12 @@ public:
 public:
 	__shared_mutex_pthread() {
 		int __ret = pthread_rwlock_init(&_M_rwlock, NULL);
-		assert(__ret == 0);
+		//assert(__ret == 0);
 	}
 
 	~__shared_mutex_pthread() {
 		int __ret __attribute((__unused__)) = pthread_rwlock_destroy(&_M_rwlock);
-		assert(__ret == 0);
+		//assert(__ret == 0);
 	}
 #endif
 
@@ -49,20 +49,20 @@ public:
 
 	void lock() {
 		int __ret = pthread_rwlock_wrlock(&_M_rwlock);
-		assert(__ret == 0);
+		//assert(__ret == 0);
 		(void)__ret;
 	}
 
 	bool try_lock() {
 		int __ret = pthread_rwlock_trywrlock(&_M_rwlock);
 		if (__ret == EBUSY) return false;
-		assert(__ret == 0);
+		//assert(__ret == 0);
 		return true;
 	}
 
 	void unlock() {
 		int __ret = pthread_rwlock_unlock(&_M_rwlock);
-		assert(__ret == 0);
+		//assert(__ret == 0);
 		(void)__ret;
 	}
 
@@ -71,13 +71,13 @@ public:
 		do
 			__ret = pthread_rwlock_rdlock(&_M_rwlock);
 		while (__ret == EAGAIN || __ret == EBUSY);
-		assert(__ret == 0);
+		//assert(__ret == 0);
 	}
 
 	bool try_lock_shared() {
 		int __ret = pthread_rwlock_tryrdlock(&_M_rwlock);
 		if (__ret == EBUSY || __ret == EAGAIN) return false;
-		assert(__ret == 0);
+		//assert(__ret == 0);
 		return true;
 	}
 

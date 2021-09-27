@@ -10,6 +10,7 @@
 #endif //HAVE_CONFIG_H
 //-----------------------------------------------------
 std::unique_ptr<PocketDB> g_pocketdb;
+Mutex POCKETNET_DATA_MUTEX;
 std::map<uint256, std::string> POCKETNET_DATA;
 //-----------------------------------------------------
 PocketDB::PocketDB()
@@ -139,6 +140,17 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Mempool", {"table", "-", "string", IndexOpts()});
         db->AddIndex("Mempool", {"data", "-", "string", IndexOpts()});
         db->Commit("Mempool");
+    }
+
+    // Account settings
+    if (table == "AccountSettings" || table == "ALL") {
+        db->OpenNamespace("AccountSettings", StorageOpts().Enabled().CreateIfMissing());
+        db->AddIndex("AccountSettings", {"txid", "hash", "string", IndexOpts().PK()});
+        db->AddIndex("AccountSettings", {"block", "tree", "int", IndexOpts()});
+        db->AddIndex("AccountSettings", {"time", "tree", "int64", IndexOpts()});
+        db->AddIndex("AccountSettings", {"address", "hash", "string", IndexOpts()});
+        db->AddIndex("AccountSettings", {"data", "-", "string", IndexOpts().SetCollateMode(CollateUTF8)});
+        db->Commit("AccountSettings");
     }
 
     // Users
@@ -398,7 +410,6 @@ bool PocketDB::InitDB(std::string table)
     }
 
     // Cumulative ratings table
-    // TODO (brangr): only for for threshold user reputation & must be moved to sql
     // Type for split:
     // ? - user reputation
     // 1 - user scores - for threshold reputation
@@ -410,10 +421,6 @@ bool PocketDB::InitDB(std::string table)
         db->AddIndex("Ratings", {"block", "tree", "int", IndexOpts()});
         db->AddIndex("Ratings", {"key", "hash", "int", IndexOpts()});
         db->AddIndex("Ratings", {"value", "hash", "int", IndexOpts()});
-        db->AddIndex("Ratings", {"type+block+key", {"type", "block", "key"}, "hash", "composite", IndexOpts().PK()});
-        // -----------------------------------
-        // TODO (brangr): remove force update index after release v0.19.11
-        db->DropIndex("Ratings", "type+block+key");
         db->AddIndex("Ratings", {"type+block+key+value", {"type", "block", "key", "value"}, "hash", "composite", IndexOpts().PK()});
         // -----------------------------------
         db->Commit("Ratings");
@@ -460,60 +467,6 @@ bool PocketDB::CheckIndexes(UniValue& obj)
     }
     //--------------------------
     return ret;
-}
-
-void PocketDB::UpdateIndexes(std::string table)
-{
-    // if (table == "UserRatings" || table == "ALL") {
-    //     db->UpdateIndex("UserRatings", {"block", "tree", "int", IndexOpts()});
-    //     db->UpdateIndex("UserRatings", {"address", "hash", "string", IndexOpts()});
-    //     db->UpdateIndex("UserRatings", {"address+block", {"address", "block"}, "hash", "composite", IndexOpts().PK()});
-    //     db->Commit("UserRatings");
-    // }
-
-    // if (table == "PostRatings" || table == "ALL") {
-    //     db->UpdateIndex("PostRatings", {"block", "tree", "int", IndexOpts()});
-    //     db->UpdateIndex("PostRatings", {"posttxid", "hash", "string", IndexOpts()});
-    //     db->UpdateIndex("PostRatings", {"posttxid+block", {"posttxid", "block"}, "hash", "composite", IndexOpts().PK()});
-    //     db->Commit("PostRatings");
-    // }
-
-    // if (table == "Scores" || table == "ALL") {
-    //     db->UpdateIndex("Scores", {"txid", "hash", "string", IndexOpts().PK()});
-    //     db->UpdateIndex("Scores", {"block", "tree", "int", IndexOpts()});
-    //     db->UpdateIndex("Scores", {"time", "tree", "int64", IndexOpts()});
-    //     db->UpdateIndex("Scores", {"posttxid", "hash", "string", IndexOpts()});
-    //     db->UpdateIndex("Scores", {"address", "hash", "string", IndexOpts()});
-    //     db->Commit("Scores");
-    // }
-
-    if (table == "UTXO" || table == "ALL") {
-        db->UpdateIndex("UTXO", {"block", "tree", "int", IndexOpts()});
-        db->UpdateIndex("UTXO", {"address", "hash", "string", IndexOpts()});
-        db->UpdateIndex("UTXO", {"spent_block", "tree", "int", IndexOpts()});
-        db->UpdateIndex("UTXO", {"txid+txout", {"txid", "txout"}, "hash", "composite", IndexOpts().PK()});
-        db->Commit("UTXO");
-    }
-
-    // if (table == "CommentRatings" || table == "ALL") {
-    //     db->UpdateIndex("CommentRatings", {"block", "tree", "int", IndexOpts()});
-    //     db->UpdateIndex("CommentRatings", {"commentid", "hash", "string", IndexOpts()});
-    //     db->UpdateIndex("CommentRatings", {"commentid+block", {"commentid", "block"}, "hash", "composite", IndexOpts().PK()});
-    //     db->Commit("CommentRatings");
-    // }
-
-    // // CommentScores
-    // if (table == "CommentScores" || table == "ALL") {
-    //     db->UpdateIndex("CommentScores", {"txid", "hash", "string", IndexOpts().PK()});
-    //     db->UpdateIndex("CommentScores", {"block", "tree", "int", IndexOpts()});
-    //     db->UpdateIndex("CommentScores", {"time", "tree", "int64", IndexOpts()});
-    //     db->UpdateIndex("CommentScores", {"commentid", "hash", "string", IndexOpts()});
-    //     db->UpdateIndex("CommentScores", {"address", "hash", "string", IndexOpts()});
-    //     db->Commit("CommentScores");
-    // }
-
-    // TODO (brangr): POSTS
-    // TODO (brangr): COMMENTS
 }
 
 bool PocketDB::GetStatistic(std::string table, UniValue& obj)
@@ -578,7 +531,6 @@ size_t PocketDB::SelectTotalCount(std::string table)
 
 size_t PocketDB::SelectCount(Query query)
 {
-    // TODO (brangr): Its not funny! :D
     QueryResults _res;
     if (db->Select(query, _res).ok())
         return _res.Count();
@@ -1160,21 +1112,31 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
     std::string data = "";
     //------------------------
     if (table == "Posts") {
-        // self.url.v + self.caption.v + self.message.v + self.tags.v.join(',') + self.images.v.join(',') + self.txid_edit.v
-        data += item["url"].As<string>();
-        data += item["caption"].As<string>();
-        data += item["message"].As<string>();
 
-        reindexer::VariantArray va_tags = item["tags"];
-        for (size_t i = 0; i < va_tags.size(); ++i)
-            data += (i ? "," : "") + va_tags[i].As<string>();
+        if (item["type"].As<int>() == (int)ContentType::ContentDelete)
+        {
+            // txid (original tx id) + settings (json as string)
+            data += item["txid"].As<string>();
+            data += item["settings"].As<string>();
+        }
+        else
+        {
+            // self.url.v + self.caption.v + self.message.v + self.tags.v.join(',') + self.images.v.join(',') + self.txid_edit.v
+            data += item["url"].As<string>();
+            data += item["caption"].As<string>();
+            data += item["message"].As<string>();
 
-        reindexer::VariantArray va_images = item["images"];
-        for (size_t i = 0; i < va_images.size(); ++i)
-            data += (i ? "," : "") + va_images[i].As<string>();
+            reindexer::VariantArray va_tags = item["tags"];
+            for (size_t i = 0; i < va_tags.size(); ++i)
+                data += (i ? "," : "") + va_tags[i].As<string>();
 
-        data += item["txidEdit"].As<string>() == "" ? "" : item["txid"].As<string>();
-        data += item["txidRepost"].As<string>();
+            reindexer::VariantArray va_images = item["images"];
+            for (size_t i = 0; i < va_images.size(); ++i)
+                data += (i ? "," : "") + va_images[i].As<string>();
+
+            data += item["txidEdit"].As<string>().empty() ? "" : item["txid"].As<string>();
+            data += item["txidRepost"].As<string>();
+        }
     }
 
     if (table == "Scores") {
@@ -1222,6 +1184,11 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
     if (table == "CommentScores") {
         data += item["commentid"].As<string>();
         data += std::to_string(item["value"].As<int>());
+    }
+
+    if (table == "AccountSettings") {
+        // data
+        data += item["data"].As<string>();
     }
     //------------------------
     // Compute hash for serialized item data

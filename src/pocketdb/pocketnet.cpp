@@ -65,11 +65,13 @@ std::string PocketTXType(const CTransactionRef &tx)
 }
 
 // Transaction type convert to reindexer table name
-bool ConvertOPToTableName(std::string op, std::string &ri_table)
+bool ConvertOPToTableName(const std::string& op, std::string &ri_table)
 {
     bool ret = true;
 
-    if (op == OR_POST)
+    if (op == OR_CONTENT_DELETE)
+        ri_table = "Posts";
+    else if (op == OR_POST)
         ri_table = "Posts";
     else if (op == OR_POSTEDIT)
         ri_table = "Posts";
@@ -110,6 +112,9 @@ bool ConvertOPToTableName(std::string op, std::string &ri_table)
         ri_table = "Comment";
     else if (op == OR_COMMENT_SCORE)
         ri_table = "CommentScores";
+
+    else if (op == OR_ACCOUNT_SETTINGS)
+        ri_table = "AccountSettings";
 
     else
         ret = false;
@@ -246,6 +251,11 @@ void FillLimitsMain(const CChainParams &params)
     _change_info_timeout.insert({ (int)params.GetConsensus().checkpoint_0_19_6, 60}); // blocks
     Limits.insert(std::make_pair(Limit::change_info_timeout, _change_info_timeout));
 
+    // change_info_limit
+    std::map<int, int64_t> _change_info_limit;
+    _change_info_limit.insert({0, 10});
+    Limits.insert(std::make_pair(Limit::change_info_limit, _change_info_limit));
+
     // edit_post_timeout
     std::map<int, int64_t> _edit_post_timeout;
     _edit_post_timeout.insert({0, 86400}); // seconds
@@ -266,6 +276,11 @@ void FillLimitsMain(const CChainParams &params)
     std::map<int, int64_t> _max_post_size;
     _max_post_size.insert({0, 60000});
     Limits.insert(std::make_pair(Limit::max_post_size, _max_post_size)); // 60Kb
+
+    // max_video_size
+    std::map<int, int64_t> _max_video_size;
+    _max_video_size.insert({0, 60000});
+    Limits.insert(std::make_pair(Limit::max_video_size, _max_video_size)); // 60Kb
 
     // bad_reputation
     std::map<int, int64_t> _bad_reputation;
@@ -343,6 +358,15 @@ void FillLimitsMain(const CChainParams &params)
     _lottery_referral_depth.insert({0, 30 * 24 * 3600});
     Limits.insert(std::make_pair(Limit::lottery_referral_depth, _lottery_referral_depth));
 
+    // max_account_settings_size
+    std::map<int, int64_t> _max_account_settings_size;
+    _max_account_settings_size.insert({0, 2048});
+    Limits.insert(std::make_pair(Limit::max_account_settings_size, _max_account_settings_size)); // 2Kb
+
+    // account_settings_daily_limit
+    std::map<int, int64_t> _account_settings_daily_limit;
+    _account_settings_daily_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::account_settings_daily_limit, _account_settings_daily_limit));
 };
 void FillLimitsTest(const CChainParams &params)
 {
@@ -454,6 +478,11 @@ void FillLimitsTest(const CChainParams &params)
     _change_info_timeout.insert({0, 30}); // blocks
     Limits.insert(std::make_pair(Limit::change_info_timeout, _change_info_timeout));
 
+    // change_info_limit
+    std::map<int, int64_t> _change_info_limit;
+    _change_info_limit.insert({0, 10});
+    Limits.insert(std::make_pair(Limit::change_info_limit, _change_info_limit));
+
     // edit_post_timeout
     std::map<int, int64_t> _edit_post_timeout;
     _edit_post_timeout.insert({0, 1440}); // blocks
@@ -473,6 +502,11 @@ void FillLimitsTest(const CChainParams &params)
     std::map<int, int64_t> _max_post_size;
     _max_post_size.insert({0, 60000});
     Limits.insert(std::make_pair(Limit::max_post_size, _max_post_size)); // 60Kb
+
+    // max_video_size
+    std::map<int, int64_t> _max_video_size;
+    _max_video_size.insert({0, 60000});
+    Limits.insert(std::make_pair(Limit::max_video_size, _max_video_size)); // 60Kb
 
     // bad_reputation
     std::map<int, int64_t> _bad_reputation;
@@ -544,6 +578,15 @@ void FillLimitsTest(const CChainParams &params)
     _lottery_referral_depth.insert({0, 30 * 24 * 3600});
     Limits.insert(std::make_pair(Limit::lottery_referral_depth, _lottery_referral_depth));
 
+    // max_account_settings_size
+    std::map<int, int64_t> _max_account_settings_size;
+    _max_account_settings_size.insert({0, 2048});
+    Limits.insert(std::make_pair(Limit::max_account_settings_size, _max_account_settings_size)); // 2Kb
+
+    // account_settings_daily_limit
+    std::map<int, int64_t> _account_settings_daily_limit;
+    _account_settings_daily_limit.insert({0, 5});
+    Limits.insert(std::make_pair(Limit::account_settings_daily_limit, _account_settings_daily_limit));
 };
 
 void FillLimits(const CChainParams &params)
@@ -784,6 +827,10 @@ void FillCheckpointsTransactions(const CChainParams &params)
     CheckpointsTransactions.push_back("ce7da6823ed58784003d4c418dca892d156e8ee5b5f36a76cafdd48cb50861d5");
     CheckpointsTransactions.push_back("cbf99c5c5073ccba798222af117984d304b30360d0397d32af45f52c49c5cb8c");
     CheckpointsTransactions.push_back("e48505877db1563304523d13a5057922a8adc9d0c8aaa4f488b56e18f318545e");
+    
+    // TODO (brangr): remove after release v0.19.14
+    CheckpointsTransactions.push_back("d7af84a33485503f2b4b364cce0c7ddbc373d63e4b69c094a77f1a67dfa97b2d");
+    CheckpointsTransactions.push_back("39523e93587efaec2924dce5e5ce8cfd9a4fa4936af05f69a5b1df35532abaa9");
 }
 
 bool IsCheckpointTransaction(std::string hash)
@@ -863,6 +910,8 @@ std::string getcontenttype(int type)
 {
     switch (type)
     {
+        case ContentDelete:
+            return "contentDelete";
         case ContentPost:
             return "share";
         case ContentVideo:
@@ -881,7 +930,8 @@ std::string getcontenttype(int type)
 }
 int getcontenttype(std::string type)
 {
-    if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return (int)ContentType::ContentPost;
+    if (type == "contentDelete" || type == OR_CONTENT_DELETE) return (int)ContentType::ContentDelete;
+    else if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return (int)ContentType::ContentPost;
     else if (type == "video" || type == OR_VIDEO) return (int)ContentType::ContentVideo;
     else if (type == "verification" || type == OR_VERIFICATION) return (int)ContentType::ContentVerification;
     else if (type == "serverPing" || type == OR_SERVER_PING) return (int)ContentType::ContentServerPing;

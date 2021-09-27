@@ -2600,24 +2600,25 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 		}
 
 		if (pocket_data != "") {
+            LOCK(POCKETNET_DATA_MUTEX);
 			POCKETNET_DATA.emplace(cmpctblock.header.GetHash(), pocket_data);
 		}
 		//------------------------------
         bool received_new_header = false;
 
         {
-        LOCK(cs_main);
+            LOCK(cs_main);
 
-        if (!LookupBlockIndex(cmpctblock.header.hashPrevBlock)) {
-            // Doesn't connect (or is genesis), instead of DoSing in AcceptBlockHeader, request deeper headers
-            if (!IsInitialBlockDownload())
-                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), uint256()));
-            return true;
-        }
+            if (!LookupBlockIndex(cmpctblock.header.hashPrevBlock)) {
+                // Doesn't connect (or is genesis), instead of DoSing in AcceptBlockHeader, request deeper headers
+                if (!IsInitialBlockDownload())
+                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), uint256()));
+                return true;
+            }
 
-        if (!LookupBlockIndex(cmpctblock.header.GetHash())) {
-            received_new_header = true;
-        }
+            if (!LookupBlockIndex(cmpctblock.header.GetHash())) {
+                received_new_header = true;
+            }
         }
 
         const CBlockIndex *pindex = nullptr;
@@ -2898,6 +2899,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         if (fBlockRead) {
 			if (pocket_data != "") {
+                LOCK(POCKETNET_DATA_MUTEX);
 				POCKETNET_DATA.emplace(pblock->GetHash(), pocket_data);
 			}
 			//----------------------------------
@@ -2961,6 +2963,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 		//----------------------------
 		// Before `ProcessNewBlock` need pass pocket data
 		if (pocket_data != "") {
+            LOCK(POCKETNET_DATA_MUTEX);
 			POCKETNET_DATA.emplace(pblock->GetHash(), pocket_data);
 		}
 		//----------------------------

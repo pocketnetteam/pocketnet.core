@@ -41,6 +41,7 @@ enum ContentType {
     ContentServerPing = 3,
     ContentPoll = 4,
     ContentTranslate = 5,
+    ContentDelete = 6
 };
 
 //-----------------------------------------------------
@@ -65,7 +66,6 @@ public:
     bool DropTable(std::string table);
 
     bool CheckIndexes(UniValue& obj);
-    void UpdateIndexes(std::string table = "ALL");
 
     // Statistics for DB
     bool GetStatistic(std::string table, UniValue& obj);
@@ -127,7 +127,6 @@ public:
 
     // Add new Post with move old version to history table
     Error CommitPostItem(Item& itm, int height);
-
     // Restore previous version of Post
     Error RestorePostItem(std::string posttxid, int height);
 
@@ -142,6 +141,7 @@ extern std::unique_ptr<PocketDB> g_pocketdb;
     Key - block hash
     Value - JSON string (UniValue)
 */
+extern Mutex POCKETNET_DATA_MUTEX;
 extern std::map<uint256, std::string> POCKETNET_DATA;
 //-----------------------------------------------------
 #endif // POCKETDB_H

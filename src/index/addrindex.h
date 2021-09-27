@@ -162,33 +162,33 @@ public:
 			key: txid in string
 			value: out number
 	*/
-    bool GetUnspentTransactions(std::vector<std::string> addresses,
+    bool GetUnspentTransactions(std::vector<std::string>& addresses,
         std::vector<AddressUnspentTransactionItem>& transactions);
     /*
 		Input list of addresses.
 		Output list of addresses with first transaction.
 	*/
-    int64_t GetAddressRegistrationDate(std::string _address);
+    int64_t GetAddressRegistrationDate(const std::string& _address);
     /*
 		Return registration date for one address
 	*/
-    bool GetAddressRegistrationDate(std::vector<std::string> addresses,
+    bool GetAddressRegistrationDate(std::vector<std::string>& addresses,
         std::vector<AddressRegistrationItem>& registrations);
     /*
         Count likers with reputation
     */
-    int64_t GetAddressLikers(std::string _address, int height);
+    int64_t GetAddressLikers(const std::string& _address, int height);
     /*
 		Returns date of registration user.
 		If not exists - return `-1`
 	*/
-    int64_t GetUserRegistrationDate(std::string _address);
+    int64_t GetUserRegistrationDate(const std::string& _address);
     /*
 		Functions for calculate recommendations for user
 	*/
-    bool GetRecomendedSubscriptions(std::string _address, int count, std::vector<string>& recommendedSubscriptions);
-    bool GetRecommendedPostsBySubscriptions(std::string _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts);
-    bool GetRecommendedPostsByScores(std::string _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts);
+    bool GetRecomendedSubscriptions(const std::string& _address, int count, std::vector<string>& recommendedSubscriptions);
+    bool GetRecommendedPostsBySubscriptions(const std::string& _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts);
+    bool GetRecommendedPostsByScores(const std::string& _address, int count, int nHeightFrom, std::string lang, std::vector<int> contentTypes, std::set<string>& recommendedPosts);
     /*
 		Get RI data for block transactions for send to another node.
 	*/
@@ -216,7 +216,7 @@ public:
     /*
 		Delete item from RIMempool
 	*/
-    bool ClearMempool(std::string txid);
+    bool ClearMempool(const std::string& txid);
     /*
 		Compute state of Reindexer DB
 	*/
@@ -232,7 +232,7 @@ public:
     /*
         Present reindexer::Item as UniValue for antibot check
     */
-    UniValue GetUniValue(const CTransactionRef& tx, Item& item, std::string table);
+    UniValue GetUniValue(const CTransactionRef& tx, Item& item, const std::string& table);
 };
 //-----------------------------------------------------
 extern std::unique_ptr<AddrIndex> g_addrindex;

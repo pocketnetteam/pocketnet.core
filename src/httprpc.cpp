@@ -217,26 +217,8 @@ static bool HTTPReq(HTTPRequest* req, bool rpcAuthenticate)
 
             jreq.parse(valRequest);
 
-            auto start = gStatEngineInstance.GetCurrentSystemTime();
-
             UniValue result = tableRPC.execute(jreq);
             
-            auto stop = gStatEngineInstance.GetCurrentSystemTime();
-
-            gStatEngineInstance.AddSample(
-                Statistic::RequestSample{
-                    jreq.strMethod,
-                    start,
-                    stop,
-                    jreq.peerAddr.substr(0, jreq.peerAddr.find(':')),
-                    valRequest.write().size(),
-                    result.write().size()
-                }
-            );
-
-            auto diff = (stop - start);
-            LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", jreq.strMethod, jreq.peerAddr.substr(0, jreq.peerAddr.find(':')), diff.count());
-
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
 
