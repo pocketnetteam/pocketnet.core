@@ -36,7 +36,11 @@ namespace Statistic
     class RequestStatEngine
     {
     public:
-        RequestStatEngine(RPCCache* rpcCache)
+        RequestStatEngine()
+        {
+        }
+
+        void RegisterRPCCache(const std::shared_ptr<RPCCache>& rpcCache)
         {
             _rpcCache = rpcCache;
         }
@@ -237,9 +241,12 @@ namespace Statistic
 
             UniValue rpcStat(UniValue::VOBJ);
 
-            auto[cacheCount, cacheSize] = _rpcCache->Statistic();
-            rpcStat.pushKV("CacheCount", cacheCount);
-            rpcStat.pushKV("CacheSize", ceil(((double)cacheSize / 1024.0 / 1024.0 * 1000.0)) / 1000.0);
+            if (_rpcCache)
+            {
+                auto[cacheCount, cacheSize] = _rpcCache->Statistic();
+                rpcStat.pushKV("CacheCount", cacheCount);
+                rpcStat.pushKV("CacheSize", ceil(((double)cacheSize / 1024.0 / 1024.0 * 1000.0)) / 1000.0);
+            }
 
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since, false));
             rpcStat.pushKV("RequestsCache", (int) GetNumSamplesSince(since, true));
@@ -305,7 +312,7 @@ namespace Statistic
         std::vector<RequestSample> _samples;
         Mutex _samplesLock;
         bool shutdown = false;
-        RPCCache* _rpcCache;
+        std::shared_ptr<RPCCache> _rpcCache;
 
         void RemoveSamplesBefore(RequestTime time)
         {

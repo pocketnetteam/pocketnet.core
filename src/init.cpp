@@ -80,7 +80,7 @@ static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 std::unique_ptr<CConnman> g_connman;
 std::unique_ptr<PeerLogicValidation> peerLogic;
-Statistic::RequestStatEngine gStatEngineInstance(tableRPC.CacheInstance());
+Statistic::RequestStatEngine gStatEngineInstance;
 
 
 #ifdef WIN32
@@ -1393,6 +1393,9 @@ bool AppInitMain()
 #if ENABLE_ZMQ
     RegisterZMQRPCCommands(tableRPC);
 #endif
+
+    // Register RPC table for statistic module
+    gStatEngineInstance.RegisterRPCCache(tableRPC.CacheInstance());
 
     /* Start the RPC server already.  It will be started in "warmup" mode
      * and not really process calls already (but it will signify connections

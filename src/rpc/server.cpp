@@ -549,9 +549,9 @@ std::vector<std::string> CRPCTable::listCommands() const
     return commandList;
 }
 
-RPCCache* CRPCTable::CacheInstance()
+std::shared_ptr<RPCCache> CRPCTable::CacheInstance()
 {
-    return cache;
+    return std::shared_ptr<RPCCache>(cache);
 }
 
 std::string HelpExampleCli(const std::string& methodname, const std::string& args)
