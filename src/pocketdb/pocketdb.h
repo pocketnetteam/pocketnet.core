@@ -66,7 +66,6 @@ public:
     bool DropTable(std::string table);
 
     bool CheckIndexes(UniValue& obj);
-    void UpdateIndexes(std::string table = "ALL");
 
     // Statistics for DB
     bool GetStatistic(std::string table, UniValue& obj);

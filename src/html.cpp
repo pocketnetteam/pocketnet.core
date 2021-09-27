@@ -5,7 +5,6 @@
 
 std::string ClearHtmlTags(std::string &input)
 {
-    // TODO (brangr): spaces vmesto tegov
     bool copy = true;
     std::string plainString = "";
     std::stringstream convertStream;

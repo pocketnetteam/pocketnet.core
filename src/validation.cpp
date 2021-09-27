@@ -2504,7 +2504,6 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
 
-    // TODO (brangr): merge disconnectTip and rollbackDB
     if (disconnectpool) {
         // Save transactions to re-add to mempool at end of reorg
         for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it) {
@@ -3923,13 +3922,6 @@ bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationS
     {
         uint256 blockhash = block.GetHash();
 
-        // TODO (brangr): enable this check
-        // Before check this block need check valid Reindexer DB
-        // if (pindex->nHeight > Params().GetConsensus().nHeight_version_1_0_0 && !g_addrindex->CheckRHash(block, pindex->pprev)) {
-        // LogPrintf("WARNING!!! Received block not consistent with ReindexerDB (%s)\n", blockhash.GetHex());
-        //return state.DoS(200, error("Received block not consistent with ReindexerDB (%s)", blockhash.GetHex()), REJECT_INVALID, "bad-rhash");
-        // }
-
         // Read and parse received block data
         UniValue _txs_src(UniValue::VOBJ);
         {
@@ -3940,7 +3932,6 @@ bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationS
             }
         }
 
-        // TODO (brangr): change UniValue to RTransaction
         BlockVTX blockVtx;
 
         // Loop transaction and checks
