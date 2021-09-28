@@ -56,6 +56,8 @@ namespace PocketDb
             
         UniValue GetUnspents(vector<string>& addresses, int height);
 
+        UniValue GetContentLanguage(int height);
+
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
     };
