@@ -32,7 +32,7 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_NotFound};
 
             // Original comment exists
-            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
+            auto originalTx = PocketDb::TransRepoInst.Get(*ptx->GetRootTxHash());
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 

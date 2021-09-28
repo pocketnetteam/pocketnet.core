@@ -24,7 +24,7 @@ namespace PocketServices
     using std::vector;
     using std::find;
 
-    class TransactionIndexer
+    class TransactionPostProcessing
     {
     public:
         static void Index(const CBlock& block, int height);

@@ -21,12 +21,11 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
 
         const auto tx = MakeTransactionRef(move(mTx));
-        
-        string address;
-        // TODO (brangr): get address from TxOuputs by TxHash and Number
-        // if (!GetInputAddress(tx->vin[0].prevout.hash, tx->vin[0].prevout.n, address)) {
-        //     throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid address");
-        // }
+
+        auto txOutput = request.DbConnection()->TransactionRepoInst->GetTxOutput(
+            tx->vin[0].prevout.hash.GetHex(), tx->vin[0].prevout.n);
+        if (!txOutput) throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid address");
+        string address = *txOutput->GetAddressHash();
 
         auto data = request.params[1];
         data.pushKV("txAddress", address);

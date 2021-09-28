@@ -22,7 +22,7 @@
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
 
-#include "pocketdb/services/TransactionIndexer.h"
+#include "pocketdb/services/TransactionPostProcessing.h"
 #include "pocketdb/consensus/Helper.h"
 #include "pocketdb/services/Accessor.h"
 #include "pocketdb/web/PocketFrontend.h"
@@ -752,7 +752,7 @@ static bool rest_topaddresses(HTTPRequest* req, const std::string& strURIPart)
 
     if (rf == RetFormat::JSON)
     {
-        auto result = req->DbConnection()->WebRepoInst->GetAddressInfo(count);
+        auto result = req->DbConnection()->WebRepoInst->GetTopAddresses(count);
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, result.write() + "\n");
         return true;
@@ -861,7 +861,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
             if (!PocketServices::Accessor::GetBlock(block, pocketBlock) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
-            PocketServices::TransactionIndexer::Rollback(pblockindex->nHeight);
+            PocketServices::TransactionPostProcessing::Rollback(pblockindex->nHeight);
 
             CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
             if (pblockindex->nHeight > 100000 && block.IsProofOfStake())
@@ -885,14 +885,14 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
                 // return RESTERR(req, HTTP_BAD_REQUEST, "Validate failed");
             }
 
-            PocketServices::TransactionIndexer::Index(block, pblockindex->nHeight);
+            PocketServices::TransactionPostProcessing::Index(block, pblockindex->nHeight);
         }
         catch (std::exception& ex)
         {
-            return RESTERR(req, HTTP_BAD_REQUEST, "TransactionIndexer::Index ended with result: ");
+            return RESTERR(req, HTTP_BAD_REQUEST, "TransactionPostProcessing::Index ended with result: ");
         }
 
-        LogPrintf("TransactionIndexer::Index at height %d\n", current);
+        LogPrintf("TransactionPostProcessing::Index at height %d\n", current);
         current += 1;
     }
 
@@ -954,7 +954,7 @@ static const struct
 void StartREST()
 {
     for (auto uri_prefixe : uri_prefixes)
-        g_socket->RegisterHTTPHandler(uri_prefixe.prefix, false, uri_prefixe.handler);
+        g_restSocket->RegisterHTTPHandler(uri_prefixe.prefix, false, uri_prefixe.handler);
 
     // Register web content route
     g_staticSocket->RegisterHTTPHandler("/", false, get_static_web);
@@ -967,7 +967,7 @@ void InterruptREST()
 void StopREST()
 {
     for (auto uri_prefixe : uri_prefixes)
-        g_socket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
+        g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
 
     g_staticSocket->UnregisterHTTPHandler("/", false);
 }

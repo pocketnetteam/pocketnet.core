@@ -7,6 +7,7 @@
 namespace PocketConsensus
 {
     PostConsensusFactory SocialConsensusHelper::m_postFactory;
+    AccountSettingConsensusFactory SocialConsensusHelper::m_accountSettingFactory;
     UserConsensusFactory SocialConsensusHelper::m_userFactory;
     VideoConsensusFactory SocialConsensusHelper::m_videoFactory;
     CommentConsensusFactory SocialConsensusHelper::m_commentFactory;
@@ -20,6 +21,7 @@ namespace PocketConsensus
     BlockingConsensusFactory SocialConsensusHelper::m_blockingFactory;
     BlockingCancelConsensusFactory SocialConsensusHelper::m_blockingCancelFactory;
     ComplainConsensusFactory SocialConsensusHelper::m_complainFactory;
+    ContentDeleteConsensusFactory SocialConsensusHelper::m_contentDeleteFactory;
 
     bool SocialConsensusHelper::Validate(const PocketBlockRef& block, int height)
     {
@@ -90,6 +92,9 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
+            case ACCOUNT_SETTING:
+                result = m_accountSettingFactory.Instance(0)->Check(tx, static_pointer_cast<AccountSetting>(ptx));
+                break;
             case ACCOUNT_USER:
                 result = m_userFactory.Instance(0)->Check(tx, static_pointer_cast<User>(ptx));
                 break;
@@ -107,6 +112,9 @@ namespace PocketConsensus
                 break;
             case CONTENT_COMMENT_DELETE:
                 result = m_commentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<CommentDelete>(ptx));
+                break;
+            case CONTENT_DELETE:
+                result = m_contentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<ContentDelete>(ptx));
                 break;
             case ACTION_SCORE_CONTENT:
                 result = m_scoreContentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreContent>(ptx));
@@ -174,6 +182,9 @@ namespace PocketConsensus
         tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
+            case ACCOUNT_SETTING:
+                result = m_accountSettingFactory.Instance(height)->Validate(static_pointer_cast<AccountSetting>(ptx), block);
+                break;
             case ACCOUNT_USER:
                 result = m_userFactory.Instance(height)->Validate(static_pointer_cast<User>(ptx), block);
                 break;
@@ -191,6 +202,9 @@ namespace PocketConsensus
                 break;
             case CONTENT_COMMENT_DELETE:
                 result = m_commentDeleteFactory.Instance(height)->Validate(static_pointer_cast<CommentDelete>(ptx), block);
+                break;
+            case CONTENT_DELETE:
+                result = m_contentDeleteFactory.Instance(height)->Validate(static_pointer_cast<ContentDelete>(ptx), block);
                 break;
             case ACTION_SCORE_CONTENT:
                 result = m_scoreContentFactory.Instance(height)->Validate(static_pointer_cast<ScoreContent>(ptx), block);

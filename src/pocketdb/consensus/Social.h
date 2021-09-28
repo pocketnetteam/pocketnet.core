@@ -14,6 +14,7 @@
 #include "pocketdb/models/base/Base.h"
 #include "pocketdb/consensus/Base.h"
 #include "pocketdb/helpers/CheckpointHelper.h"
+#include "pocketdb/helpers/TransactionHelper.h"
 
 namespace PocketConsensus
 {
@@ -41,12 +42,17 @@ namespace PocketConsensus
                 {
                     for (auto& blockTx : *block)
                     {
-                        if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                        if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
                             continue;
 
                         auto blockAddress = *blockTx->GetString1();
                         if (find(addresses.begin(), addresses.end(), blockAddress) != addresses.end())
-                            remove(addresses.begin(), addresses.end(), blockAddress);
+                        {
+                            addresses.erase(
+                                std::remove(addresses.begin(), addresses.end(), blockAddress),
+                                addresses.end()
+                            );
+                        }
                     }
                 }
 
@@ -129,16 +135,6 @@ namespace PocketConsensus
         bool IsEmpty(const shared_ptr<int64_t>& ptr) const
         {
             return !ptr;
-        }
-
-        // Helpers
-        bool IsIn(PocketTxType txType, const vector<PocketTxType>& inTypes) const
-        {
-            for (auto inType : inTypes)
-                if (inType == txType)
-                    return true;
-
-            return false;
         }
     };
 }

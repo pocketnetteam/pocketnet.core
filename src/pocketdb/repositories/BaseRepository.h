@@ -1,16 +1,15 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 Bitcoin developers
 // Copyright (c) 2018-2021 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETDB_BASEREPOSITORY_HPP
-#define POCKETDB_BASEREPOSITORY_HPP
+#ifndef POCKETDB_BASEREPOSITORY_H
+#define POCKETDB_BASEREPOSITORY_H
 
 #include <utility>
 #include <util.h>
 #include "shutdown.h"
 #include "pocketdb/SQLiteDatabase.h"
+#include "pocketdb/helpers/TransactionHelper.h"
 
 namespace PocketDb
 {
@@ -183,8 +182,7 @@ namespace PocketDb
         virtual void Init() = 0;
         virtual void Destroy() = 0;
     };
-
 }
 
-#endif //POCKETDB_BASEREPOSITORY_HPP
+#endif //POCKETDB_BASEREPOSITORY_H
 

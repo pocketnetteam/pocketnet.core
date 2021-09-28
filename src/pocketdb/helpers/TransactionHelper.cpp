@@ -38,6 +38,8 @@ namespace PocketHelpers
             return PocketTxType::CONTENT_VIDEO;
         else if (op == OR_SERVER_PING)
             return PocketTxType::CONTENT_SERVERPING;
+        else if (op == OR_CONTENT_DELETE)
+            return PocketTxType::CONTENT_DELETE;
         else if (op == OR_SCORE)
             return PocketTxType::ACTION_SCORE_CONTENT;
         else if (op == OR_COMPLAIN)
@@ -48,6 +50,8 @@ namespace PocketHelpers
             return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
         else if (op == OR_UNSUBSCRIBE)
             return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
+        else if (op == OR_ACCOUNT_SETTING)
+            return PocketTxType::ACCOUNT_SETTING;
         else if (op == OR_USERINFO)
             return PocketTxType::ACCOUNT_USER;
         else if (op == OR_VIDEO_SERVER)
@@ -116,10 +120,13 @@ namespace PocketHelpers
     {
         switch (*transaction.GetType())
         {
+            case PocketTxType::ACCOUNT_SETTING:
+                return "AccountSettings";
             case PocketTxType::ACCOUNT_USER:
                 return "Users";
             case PocketTxType::CONTENT_POST:
             case PocketTxType::CONTENT_VIDEO:
+            case PocketTxType::CONTENT_DELETE:
                 return "Posts";
             case PocketTxType::CONTENT_COMMENT:
             case PocketTxType::CONTENT_COMMENT_EDIT:
@@ -236,6 +243,9 @@ namespace PocketHelpers
             case TX_DEFAULT:
                 ptx = make_shared<Default>(tx);
                 break;
+            case ACCOUNT_SETTING:
+                ptx = make_shared<AccountSetting>(tx);
+                break;
             case ACCOUNT_USER:
                 ptx = make_shared<User>(tx);
                 break;
@@ -244,6 +254,9 @@ namespace PocketHelpers
                 break;
             case CONTENT_VIDEO:
                 ptx = make_shared<Video>(tx);
+                break;
+            case CONTENT_DELETE:
+                ptx = make_shared<ContentDelete>(tx);
                 break;
             case CONTENT_COMMENT:
                 ptx = make_shared<Comment>(tx);
@@ -299,6 +312,9 @@ namespace PocketHelpers
             case TX_DEFAULT:
                 ptx = make_shared<Default>();
                 break;
+            case ACCOUNT_SETTING:
+                ptx = make_shared<AccountSetting>();
+                break;
             case ACCOUNT_USER:
                 ptx = make_shared<User>();
                 break;
@@ -307,6 +323,9 @@ namespace PocketHelpers
                 break;
             case CONTENT_VIDEO:
                 ptx = make_shared<Video>();
+                break;
+            case CONTENT_DELETE:
+                ptx = make_shared<ContentDelete>();
                 break;
             case CONTENT_COMMENT:
                 ptx = make_shared<Comment>();
@@ -346,5 +365,32 @@ namespace PocketHelpers
         }
 
         return ptx;
+    }
+
+    bool TransactionHelper::IsIn(PocketTxType txType, const vector<PocketTxType>& inTypes)
+    {
+        for (auto inType : inTypes)
+            if (inType == txType)
+                return true;
+
+        return false;
+    }
+    string TransactionHelper::TxStringType(PocketTxType type)
+    {
+        switch (type)
+        {
+            case PocketTx::CONTENT_DELETE:
+                return "contentDelete";
+            case PocketTx::CONTENT_POST:
+                return "share";
+            case PocketTx::CONTENT_VIDEO:
+                return "video";
+            case PocketTx::CONTENT_SERVERPING:
+                return "serverPing";
+            case PocketTx::CONTENT_TRANSLATE:
+                return "translate";
+            default:
+                return "";
+        }
     }
 }

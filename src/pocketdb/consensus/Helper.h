@@ -23,6 +23,8 @@
 #include "pocketdb/consensus/social/SubscribePrivate.hpp"
 #include "pocketdb/consensus/social/User.hpp"
 #include "pocketdb/consensus/social/Video.hpp"
+#include "pocketdb/consensus/social/AccountSetting.hpp"
+#include "pocketdb/consensus/social/ContentDelete.hpp"
 
 namespace PocketConsensus
 {
@@ -60,6 +62,8 @@ namespace PocketConsensus
         static BlockingConsensusFactory m_blockingFactory;
         static BlockingCancelConsensusFactory m_blockingCancelFactory;
         static ComplainConsensusFactory m_complainFactory;
+        static AccountSettingConsensusFactory m_accountSettingFactory;
+        static ContentDeleteConsensusFactory m_contentDeleteFactory;
     };
 }
 

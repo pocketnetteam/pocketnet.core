@@ -19,18 +19,24 @@
 #include "rpc/server.h"
 #include "pocketdb/SQLiteConnection.h"
 
-static const int DEFAULT_HTTP_THREADS=4;
-static const int DEFAULT_HTTP_PUBLIC_THREADS=4;
-static const int DEFAULT_HTTP_STATIC_THREADS=4;
-static const int DEFAULT_HTTP_WORKQUEUE=16;
-static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE=16;
-static const int DEFAULT_HTTP_STATIC_WORKQUEUE=16;
-static const int DEFAULT_HTTP_SERVER_TIMEOUT=30;
+static const int DEFAULT_HTTP_THREADS = 4;
+static const int DEFAULT_HTTP_PUBLIC_THREADS = 4;
+static const int DEFAULT_HTTP_STATIC_THREADS = 4;
+static const int DEFAULT_HTTP_REST_THREADS = 4;
+static const int DEFAULT_HTTP_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_STATIC_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_REST_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_SERVER_TIMEOUT = 30;
 
 struct evhttp_request;
+
 class CService;
+
 class HTTPRequest;
-template<typename WorkItem> class WorkQueue;
+
+template<typename WorkItem>
+class WorkQueue;
 
 struct HTTPPathHandler;
 
@@ -53,7 +59,7 @@ void StopHTTPServer();
 bool UpdateHTTPServerLogging(bool enable);
 
 /** Handler for requests to a certain HTTP path */
-typedef std::function<bool(HTTPRequest* req, const std::string &)> HTTPRequestHandler;
+typedef std::function<bool(HTTPRequest* req, const std::string&)> HTTPRequestHandler;
 
 /** Return evhttp event base. This can be used by submodules to
  * queue timers or custom events.
@@ -75,7 +81,8 @@ public:
     explicit HTTPRequest(struct evhttp_request* req);
     ~HTTPRequest();
 
-    enum RequestMethod {
+    enum RequestMethod
+    {
         UNKNOWN,
         GET,
         POST,
@@ -150,7 +157,7 @@ public:
      * deleteWhenTriggered deletes this event object after the event is triggered (and the handler called)
      * handler is the handler to call when the event is triggered.
      */
-    HTTPEvent(struct event_base* base, bool deleteWhenTriggered, std::function<void()>  handler);
+    HTTPEvent(struct event_base* base, bool deleteWhenTriggered, std::function<void()> handler);
     ~HTTPEvent();
 
     /** Trigger the event. If tv is 0, trigger it immediately. Otherwise trigger it after
@@ -204,18 +211,22 @@ private:
 class HTTPSocket
 {
 private:
-    struct evhttp                      *m_http;
-    struct evhttp                      *m_eventHTTP;
-    std::vector<evhttp_bound_socket *> m_boundSockets;
-    std::vector<std::thread>           m_thread_http_workers;
+    struct evhttp* m_http;
+    struct evhttp* m_eventHTTP;
+    std::vector<evhttp_bound_socket*> m_boundSockets;
+    std::vector<std::thread> m_thread_http_workers;
 
 public:
-    HTTPSocket(struct event_base *base, int timeout, int queueDepth);
+    HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
     ~HTTPSocket();
+
+    /** Sets the need to check the request source. For public APIs,
+      * we do not need to restrict the source of the request. */
+    bool m_publicAccess;
 
     /** Work queue for handling longer requests off the event loop thread */
     CRPCTable m_table_rpc;
-    WorkQueue<HTTPClosure> *m_workQueue;
+    WorkQueue<HTTPClosure>* m_workQueue;
     std::vector<HTTPPathHandler> m_pathHandlers;
 
     /** Start worker threads to listen on bound http sockets */
@@ -225,24 +236,25 @@ public:
     /** Acquire a http socket handle for a provided IP address and port number */
     void BindAddress(std::string ipAddr, int port);
     /** Get number of bound IP sockets */
-    int  GetAddressCount();
+    int GetAddressCount();
 
     void InterruptHTTPSocket();
     /** Register handler for prefix.
      * If multiple handlers match a prefix, the first-registered one will
      * be invoked.
      */
-    void RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler);
+    void RegisterHTTPHandler(const std::string& prefix, bool exactMatch, const HTTPRequestHandler& handler);
     /** Unregister handler for prefix */
-    void UnregisterHTTPHandler(const std::string &prefix, bool exactMatch);
+    void UnregisterHTTPHandler(const std::string& prefix, bool exactMatch);
 
     bool HTTPReq(HTTPRequest* req);
 };
 
-std::string urlDecode(const std::string &urlEncoded);
+std::string urlDecode(const std::string& urlEncoded);
 
-extern HTTPSocket *g_socket;
-extern HTTPSocket *g_pubSocket;
-extern HTTPSocket *g_staticSocket;
+extern HTTPSocket* g_socket;
+extern HTTPSocket* g_pubSocket;
+extern HTTPSocket* g_staticSocket;
+extern HTTPSocket* g_restSocket;
 
 #endif // POCKETCOIN_HTTPSERVER_H

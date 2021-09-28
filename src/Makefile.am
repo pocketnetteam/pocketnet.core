@@ -108,17 +108,19 @@ POCKETDB_H = \
     pocketdb/web/PocketFrontend.h \
     pocketdb/web/PocketExplorerRpc.h \
     pocketdb/web/PocketTransactionRpc.h \
+    pocketdb/web/WebSocketRpc.h \
     pocketdb/web/PocketRpc.h \
     \
-    pocketdb/repositories/BaseRepository.hpp \
-    pocketdb/repositories/TransactionRepository.hpp \
+    pocketdb/repositories/BaseRepository.h \
+    pocketdb/repositories/TransactionRepository.h \
     pocketdb/repositories/ChainRepository.h \
     pocketdb/repositories/ConsensusRepository.h \
+    pocketdb/repositories/RatingsRepository.h \
     pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
     \
     pocketdb/services/TransactionSerializer.h \
-    pocketdb/services/TransactionIndexer.h \
+    pocketdb/services/TransactionPostProcessing.h \
     pocketdb/services/Accessor.h \
     \
     pocketdb/consensus/Base.h \
@@ -141,6 +143,8 @@ POCKETDB_H = \
     pocketdb/consensus/social/SubscribeCancel.hpp \
     pocketdb/consensus/social/SubscribePrivate.hpp \
     pocketdb/consensus/social/User.hpp \
+    pocketdb/consensus/social/AccountSetting.hpp \
+    pocketdb/consensus/social/ContentDelete.hpp \
     \
     pocketdb/models/base/PocketTypes.h \
     pocketdb/models/base/Base.h \
@@ -155,6 +159,8 @@ POCKETDB_H = \
     pocketdb/models/dto/Coinbase.h \
     pocketdb/models/dto/Coinstake.h \
     pocketdb/models/dto/Post.h \
+    pocketdb/models/dto/ContentDelete.h \
+    pocketdb/models/dto/AccountSetting.h \
     pocketdb/models/dto/User.h \
     pocketdb/models/dto/ScoreContent.h \
     pocketdb/models/dto/ScoreComment.h \
@@ -183,13 +189,15 @@ POCKETDB_CPP = \
     pocketdb/helpers/OpReturnCheckpointHelper.cpp \
     \
     pocketdb/services/TransactionSerializer.cpp \
-    pocketdb/services/TransactionIndexer.cpp \
+    pocketdb/services/TransactionPostProcessing.cpp \
     pocketdb/services/Accessor.cpp \
     \
-    pocketdb/repositories/web/WebRepository.cpp \
-    pocketdb/repositories/web/ExplorerRepository.cpp \
     pocketdb/repositories/ConsensusRepository.cpp \
     pocketdb/repositories/ChainRepository.cpp \
+    pocketdb/repositories/TransactionRepository.cpp \
+    pocketdb/repositories/RatingsRepository.cpp \
+    pocketdb/repositories/web/WebRepository.cpp \
+    pocketdb/repositories/web/ExplorerRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
     pocketdb/consensus/Base.cpp \
@@ -211,12 +219,15 @@ POCKETDB_CPP = \
     pocketdb/web/PocketFrontend.cpp \
     pocketdb/web/PocketExplorerRpc.cpp \
     pocketdb/web/PocketTransactionRpc.cpp \
+    pocketdb/web/WebSocketRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
     \
     pocketdb/models/dto/Default.cpp \
     pocketdb/models/dto/Coinbase.cpp \
     pocketdb/models/dto/Coinstake.cpp \
     pocketdb/models/dto/Post.cpp \
+    pocketdb/models/dto/ContentDelete.cpp \
+    pocketdb/models/dto/AccountSetting.cpp \
     pocketdb/models/dto/User.cpp \
     pocketdb/models/dto/ScoreContent.cpp \
     pocketdb/models/dto/ScoreComment.cpp \

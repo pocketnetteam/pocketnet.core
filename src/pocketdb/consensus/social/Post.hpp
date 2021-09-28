@@ -13,6 +13,9 @@ namespace PocketConsensus
     using namespace std;
     typedef shared_ptr<Post> PostRef;
 
+    // TODO (brangr) (v0.21.0): extract base class Content for Post, Video and ContentDelete
+    // Also split Post & Video for extract PostEdit & VideoEdit transactions with base class ContentEdit
+
     /*******************************************************************************************************************
     *  Post consensus base class
     *******************************************************************************************************************/
@@ -25,6 +28,22 @@ namespace PocketConsensus
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
                 return {false, baseValidateCode};
+
+            // Check if this post relay another
+            if (ptx->GetRelayTxHash())
+            {
+                if ((*ptx->GetRelayTxHash()).empty()) return {false, SocialConsensusResult_NotFound};
+                
+                auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRelayTxHash());
+                if (!lastContentOk) return {false, SocialConsensusResult_NotFound};
+                
+                if (*lastContent->GetType() != CONTENT_POST) return {false, SocialConsensusResult_NotAllowed};
+                if (*lastContent->GetType() == CONTENT_DELETE) return {false, SocialConsensusResult_RepostDeletedContent};
+            }
+
+            // Check payload size
+            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
+                return {false, code};
 
             if (ptx->IsEdit())
                 return ValidateEdit(ptx);
@@ -107,8 +126,14 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEdit(const PostRef& ptx)
         {
+            if (auto[ok, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash()); ok)
+            {
+                if (*lastContent->GetType() == CONTENT_DELETE)
+                    return {false, SocialConsensusResult_NotAllowed};
+            }
+
             // First get original post transaction
-            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
+            auto originalTx = PocketDb::TransRepoInst.Get(*ptx->GetRootTxHash());
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
@@ -190,6 +215,38 @@ namespace PocketConsensus
             int count = ConsensusRepoInst.CountChainPostEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_post_edit_count))
                 return {false, SocialConsensusResult_ContentEditLimit};
+
+            return Success;
+        }
+        virtual ConsensusValidateResult ValidatePayloadSize(const PostRef& ptx)
+        {
+            size_t dataSize =
+                (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
+                (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
+                (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
+                (ptx->GetRootTxHash() ? ptx->GetRootTxHash()->size() : 0) +
+                (ptx->GetRelayTxHash() ? ptx->GetRelayTxHash()->size() : 0) +
+                (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
+                (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
+
+            if (!IsEmpty(ptx->GetPayloadTags()))
+            {
+                UniValue tags(UniValue::VARR);
+                tags.read(*ptx->GetPayloadTags());
+                for (size_t i = 0; i < tags.size(); ++i)
+                    dataSize += tags[i].get_str().size();
+            }
+
+            if (!IsEmpty(ptx->GetPayloadImages()))
+            {
+                UniValue images(UniValue::VARR);
+                images.read(*ptx->GetPayloadImages());
+                for (size_t i = 0; i < images.size(); ++i)
+                    dataSize += images[i].get_str().size();
+            }
+
+            if (dataSize > GetConsensusLimit(ConsensusLimit_max_post_size))
+                return {false, SocialConsensusResult_ContentSizeLimit};
 
             return Success;
         }

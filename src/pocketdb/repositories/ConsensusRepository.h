@@ -8,7 +8,8 @@
 #define POCKETDB_CONSENSUSREPOSITORY_H
 
 #include "pocketdb/helpers/TransactionHelper.h"
-#include "pocketdb/repositories/TransactionRepository.hpp"
+#include "pocketdb/repositories/BaseRepository.h"
+#include "pocketdb/repositories/TransactionRepository.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
@@ -101,9 +102,13 @@ namespace PocketDb
 
         int CountMempoolUser(const string& address);
 
+        int CountMempoolAccountSetting(const string& address);
+        int CountChainAccountSetting(const string& address, int height);
+
         int CountMempoolVideo(const string& address);
         int CountChainVideoHeight(const string& address, int height);
 
+        int CountChainAccount(PocketTxType txType, const string& address, int height);
 
         int CountMempoolCommentEdit(const string& address, const string& rootTxHash);
         int CountChainCommentEdit(const string& address, const string& rootTxHash);
@@ -114,7 +119,7 @@ namespace PocketDb
         int CountMempoolVideoEdit(const string& address, const string& rootTxHash);
         int CountChainVideoEdit(const string& address, const string& rootTxHash);
 
-
+        int CountMempoolContentDelete(const string& address, const string& rootTxHash);
     };
 
 } // namespace PocketDb

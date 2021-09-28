@@ -9,6 +9,7 @@
 
 #include "pocketdb/repositories/web/WebRepository.h"
 #include "pocketdb/repositories/web/ExplorerRepository.h"
+#include "pocketdb/repositories/TransactionRepository.h"
 
 #include "pocketdb/web/PocketFrontend.h"
 
@@ -30,6 +31,7 @@ namespace PocketDb
 
         WebRepositoryRef WebRepoInst;
         ExplorerRepositoryRef ExplorerRepoInst;
+        TransactionRepositoryRef TransactionRepoInst;
 
     };
 

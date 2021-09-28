@@ -6,7 +6,7 @@
 #define POCKETDB_WEBREPOSITORY_H
 
 #include "pocketdb/helpers/TransactionHelper.h"
-#include "pocketdb/repositories/BaseRepository.hpp"
+#include "pocketdb/repositories/BaseRepository.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
@@ -34,13 +34,14 @@ namespace PocketDb
         UniValue GetAddressId(int64_t id);
         UniValue GetUserAddress(const string& name);
         UniValue GetAddressesRegistrationDates(const vector<string>& addresses);
-        UniValue GetAddressInfo(int count);
+        UniValue GetTopAddresses(int count);
         UniValue GetAccountState(const string& address, int heightWindow);
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
         UniValue GetCommentsByIds(const string& addressHash, const vector<string>& commentHashes);
         UniValue GetLastComments(int count, int height, const string& lang = "");
         UniValue GetPostScores(const vector<string>& postHashes, const string& address);
         UniValue GetPageScores(const vector<string>& commentHashes, const string& addressHash);
+        UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
         map<string, UniValue> GetUserProfile(const vector<string>& addresses, bool shortForm = true, int option = 0);
         map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses);
         map<string, UniValue> GetSubscribersAddresses(const vector<string>& addresses);

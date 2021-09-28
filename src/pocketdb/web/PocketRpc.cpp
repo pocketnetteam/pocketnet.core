@@ -43,7 +43,6 @@ static const CRPCCommand commands[] =
     // Old methods
     {"artifacts", "getrawtransactionwithmessagebyid", &getrawtransactionwithmessagebyid,  {"ids"}},
     {"artifacts", "getrawtransactionwithmessage",     &gettemplate,                       {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
-    {"artifacts", "getmissedinfo",                    &gettemplate,                       {"address", "blocknumber"}},
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
     {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
     {"artifacts", "search",                           &gettemplate,                       {"search_string", "type", "count"}},
@@ -53,6 +52,9 @@ static const CRPCCommand commands[] =
     {"artifacts", "gettags",                          &gettemplate,                       {"address", "count"}},
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecomendedsubscriptionsforuser",&gettemplate,                       {"address", "count"}},
+
+    // WebSocket
+    { "websocket",      "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},
 
     // Contents
     //{ "contents",       "getcontentsdata",                  &GetContentsData,               {"ids"}},

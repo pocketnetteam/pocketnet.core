@@ -34,7 +34,7 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_CommentDeletedEdit};
 
             // Original comment exists
-            auto originalTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetRootTxHash());
+            auto originalTx = PocketDb::TransRepoInst.Get(*ptx->GetRootTxHash());
             if (!originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
@@ -62,7 +62,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_InvalidAnswerComment};
 
                 if (!IsEmpty(originalPtx->GetAnswerTxHash()))
-                    if (!PocketDb::TransRepoInst.GetByHash(origAnswerTxHash))
+                    if (!PocketDb::TransRepoInst.Get(origAnswerTxHash))
                         return {false, SocialConsensusResult_InvalidAnswerComment};
             }
 
@@ -71,17 +71,25 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_CommentEditLimit};
 
             // Check exists content transaction
-            auto contentTx = PocketDb::TransRepoInst.GetByHash(*ptx->GetPostTxHash());
-            if (!contentTx)
+            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetPostTxHash());
+            if (!contentOk)
                 return {false, SocialConsensusResult_NotFound};
 
-            auto contentPtx = static_pointer_cast<CommentEdit>(contentTx);
+            if (*contentTx->GetType() == CONTENT_DELETE)
+                return {false, SocialConsensusResult_CommentDeletedContent};
+
+            // TODO (brangr): convert to Content base class
+            //auto contentPtx = static_pointer_cast<Content>(contentTx);
 
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
-                    *contentPtx->GetAddress(), *ptx->GetAddress()
+                    *contentTx->GetString1(), *ptx->GetAddress()
                 ); existsBlocking && blockingType == ACTION_BLOCKING)
                 return {false, SocialConsensusResult_Blocking};
+
+            // Check payload size
+            if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
+                return {false, code};
 
             // Check edit limit
             return ValidateEditOneLimit(ptx);
@@ -146,6 +154,15 @@ namespace PocketConsensus
             int count = ConsensusRepoInst.CountChainCommentEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_comment_edit_count))
                 return {false, SocialConsensusResult_CommentEditLimit};
+
+            return Success;
+        }
+        virtual ConsensusValidateResult ValidatePayloadSize(const CommentEditRef& ptx)
+        {
+            size_t dataSize = (ptx->GetPayloadMsg() ? HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).size() : 0);
+
+            if (dataSize > GetConsensusLimit(ConsensusLimit_max_comment_size))
+                return {false, SocialConsensusResult_ContentSizeLimit};
 
             return Success;
         }

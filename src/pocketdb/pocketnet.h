@@ -11,8 +11,8 @@
 #include <util.h>
 
 #include "pocketdb/repositories/ChainRepository.h"
-#include "pocketdb/repositories/RatingsRepository.hpp"
-#include "pocketdb/repositories/TransactionRepository.hpp"
+#include "pocketdb/repositories/RatingsRepository.h"
+#include "pocketdb/repositories/TransactionRepository.h"
 #include "pocketdb/repositories/ConsensusRepository.h"
 #include "pocketdb/repositories/web/WebRepository.h"
 #include "pocketdb/repositories/web/ExplorerRepository.h"

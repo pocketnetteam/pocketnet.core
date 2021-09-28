@@ -6,7 +6,6 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-
     UniValue GetComments(const JSONRPCRequest& request)
     {
         if (request.fHelp)
@@ -70,9 +69,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto aResult = request.DbConnection()->WebRepoInst->GetCommentsByIds(addressHash, cmnIds);
-
-        return aResult;
+        return request.DbConnection()->WebRepoInst->GetCommentsByIds(addressHash, cmnIds);
     }
 
     UniValue GetCommentsByPost(const JSONRPCRequest& request)
@@ -99,9 +96,7 @@ namespace PocketWeb::PocketWebRpc
             addressHash = request.params[2].get_str();
         }
 
-        auto aResult = request.DbConnection()->WebRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
-
-        return aResult;
+        return request.DbConnection()->WebRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
     }
 
     UniValue GetLastComments(const JSONRPCRequest& request)
@@ -112,27 +107,25 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet Pocketnet last comments.\n");
 
         int resultCount = 10;
-        if (request.params.size() > 0) {
+        if (!request.params.empty()) {
             if (request.params[0].isNum()) {
                 resultCount = request.params[0].get_int();
             }
         }
 
-        std::string address = "";
+        std::string address;
         if (request.params.size() > 1) {
             address = request.params[1].get_str();
         }
 
-        std::string lang = "";
+        std::string lang;
         if (request.params.size() > 2) {
             lang = request.params[2].get_str();
         }
 
         int nHeight = chainActive.Height();
 
-        auto aResult = request.DbConnection()->WebRepoInst->GetLastComments(resultCount, nHeight, lang);
-
-        return aResult;
+        return request.DbConnection()->WebRepoInst->GetLastComments(resultCount, nHeight, lang);
     }
 
 }

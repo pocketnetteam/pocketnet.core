@@ -22,7 +22,7 @@ namespace PocketServices
             if (txs.empty())
                 return true;
 
-            pocketBlock = PocketDb::TransRepoInst.GetList(txs, true);
+            pocketBlock = PocketDb::TransRepoInst.List(txs, true);
             return pocketBlock && pocketBlock->size() == txs.size();
         }
         catch (const std::exception& e)
@@ -48,7 +48,7 @@ namespace PocketServices
 
     bool Accessor::GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx)
     {
-        pocketTx = PocketDb::TransRepoInst.GetByHash(tx.GetHash().GetHex(), true);
+        pocketTx = PocketDb::TransRepoInst.Get(tx.GetHash().GetHex(), true);
         return pocketTx != nullptr;
     }
 

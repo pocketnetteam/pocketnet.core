@@ -100,11 +100,13 @@ namespace PocketWeb::PocketWebRpc
         int64_t nodePort = gArgs.GetArg("-port", Params().GetDefaultPort());
         int64_t publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
         int64_t staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
+        int64_t restPort = gArgs.GetArg("-restport", BaseParams().RestPort());
         int64_t wssPort = gArgs.GetArg("-wsport", 8087);
 
         UniValue ports(UniValue::VOBJ);
         ports.pushKV("node", nodePort);
         ports.pushKV("api", publicPort);
+        ports.pushKV("rest", restPort);
         ports.pushKV("wss", wssPort);
         ports.pushKV("http", staticPort);
         ports.pushKV("https", staticPort);

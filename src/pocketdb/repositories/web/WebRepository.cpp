@@ -150,7 +150,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRepository::GetAddressInfo(int count)
+    UniValue WebRepository::GetTopAddresses(int count)
     {
         UniValue result(UniValue::VARR);
 
@@ -281,7 +281,7 @@ namespace PocketDb
                 p.String3 as Avatar,
                 p.String7 as Donations,
                 p.String4 as About,
-                u.String2 as Referrer,
+                ifnull(u.String2,'') as Referrer,
                 p.String1 as Lang,
                 p.String5 as Url,
                 u.Time as LastUpdate,
@@ -320,14 +320,14 @@ namespace PocketDb
 
                 record.pushKV("address", address);
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 2); ok)
-                    record.pushKV("id", valueStr); //TODO (brangr): check pls in pocketrpc.cpp was id + 1
+                if (auto[ok, valueNum] = TryGetColumnInt(*stmt, 2); ok)
+                    record.pushKV("id", valueNum); //TODO (brangr): check pls in pocketrpc.cpp was id + 1
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("i", valueStr);
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("b", valueStr);
                 if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("r", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 11); ok) record.pushKV("rc", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 12); ok) record.pushKV("postcnt", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", valueStr);
+                if (auto[ok, valueNum] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("rc", valueNum);
+                if (auto[ok, valueNum] = TryGetColumnInt(*stmt, 12); ok) record.pushKV("postcnt", valueNum);
+                if (auto[ok, valueNum] = TryGetColumnInt(*stmt, 13); ok) record.pushKV("reputation", valueNum / 10.0);
 
                 if (option == 1)
                 {
@@ -463,7 +463,8 @@ namespace PocketDb
                 (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
                 (SELECT r.Value FROM Ratings r WHERE r.Id=c.Id AND r.Type=3 and r.Height=(select max(r1.Height) from Ratings r1 where r1.Type=3 and r1.Id=r.Id)) as Reputation,
                 IFNULL(sc.Int1, 0) AS MyScore,
-                (SELECT COUNT(1) FROM Transactions s WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount
+                (SELECT COUNT(1) FROM Transactions s WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
+                (SELECT sum(o1.Value) Amount FROM Transactions c1 JOIN Transactions p1 ON p1.Hash = c1.String3 JOIN TxOutputs o1 ON o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 WHERE c1.String2 = c.String2) as Amount
             FROM Transactions c
             JOIN Transactions r ON c.String2 = r.Hash
             JOIN Payload pl ON pl.TxHash = c.Hash
@@ -472,9 +473,11 @@ namespace PocketDb
                 and c.Height is not null
                 and c.Last = 1
                 and c.String3 = ?
-                AND c.String4 = ?
+                AND (? = '' or c.String4 = ?)
                 AND c.Time < ?
         )sql";
+
+        //TODO add donate amount
 
         TryTransactionStep(__func__, [&]()
         {
@@ -483,7 +486,8 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, addressHash);
             TryBindStatementText(stmt, 2, postHash);
             TryBindStatementText(stmt, 3, parentHash);
-            TryBindStatementInt64(stmt, 4, GetAdjustedTime());
+            TryBindStatementText(stmt, 4, parentHash);
+            TryBindStatementInt64(stmt, 5, GetAdjustedTime());
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -516,7 +520,8 @@ namespace PocketDb
                 (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
                 (SELECT r.Value FROM Ratings r WHERE r.Id=c.Id AND r.Type=3 and r.Height=(select max(r1.Height) from Ratings r1 where r1.Type=3 and r1.Id=r.Id)) as Reputation,
                 IFNULL(sc.Int1, 0) AS MyScore,
-                (SELECT COUNT(1) FROM Transactions s WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount
+                (SELECT COUNT(1) FROM Transactions s WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
+                (SELECT sum(o1.Value) Amount FROM Transactions c1 JOIN Transactions p1 ON p1.Hash = c1.String3 JOIN TxOutputs o1 ON o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 WHERE c1.String2 = c.String2) as Amount
             FROM Transactions c
             JOIN Transactions r on r.Type in (204,205) and r.Height is not null and r.Hash=c.String2
             JOIN Payload pl ON pl.TxHash = c.Hash
@@ -527,6 +532,8 @@ namespace PocketDb
                 and c.Time < ?
                 and c.String2 in ()sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql()
         )sql";
+
+        //TODO add donate amount
 
         auto result = UniValue(UniValue::VARR);
 
@@ -670,6 +677,69 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRepository::GetAddressScores(const vector<string>& postHashes, const string& address)
+    {
+        UniValue result(UniValue::VARR);
+
+        string postWhere;
+        if (!postHashes.empty())
+        {
+            postWhere += " and s.String2 in ( ";
+            postWhere += join(vector<string>(postHashes.size(), "?"), ",");
+            postWhere += " ) ";
+        }
+
+        string sql = R"sql(
+            select
+                s.String2 as posttxid,
+                s.String1 as address,
+                up.String2 as name,
+                up.String3 as avatar,
+                ur.Value as reputation,
+                s.Int1 as value
+            from Transactions s
+            join Transactions u
+                on u.Type in (100) and u.Height is not null and u.String1 = s.String1 and u.Last = 1
+            join Payload up on up.TxHash = u.Hash
+            left join (select ur.* from Ratings ur where ur.Type = 0
+                    and ur.Height = (select max(ur1.Height) from Ratings ur1 where ur1.Type = ur.Type and ur1.Id = ur.Id)) ur
+                on ur.Id = u.Id
+            where s.Type in (300)
+                and s.String1 = ?
+                )sql" + postWhere + R"sql()
+            order by s.Time desc
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+
+            int i = 2;
+            for (const auto& postHash : postHashes)
+                TryBindStatementText(stmt, i++, postHash);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("value", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue WebRepository::ParseCommentRow(sqlite3_stmt* stmt)
     {
         UniValue record(UniValue::VOBJ);
@@ -695,6 +765,14 @@ namespace PocketDb
         if (auto[ok, valueStr] = TryGetColumnString(stmt, 13); ok) record.pushKV("reputation", valueStr);
         if (auto[ok, valueStr] = TryGetColumnString(stmt, 14); ok) record.pushKV("myScore", valueStr);
         if (auto[ok, valueStr] = TryGetColumnString(stmt, 15); ok) record.pushKV("children", valueStr);
+        if (auto[ok, valueStr] = TryGetColumnString(stmt, 16); ok)
+        {
+            if (valueStr != "0")
+            {
+                record.pushKV("amount", valueStr);
+                record.pushKV("donation", "true");
+            }
+        }
 
         if (auto[ok, value] = TryGetColumnInt(stmt, 0); ok)
         {
@@ -842,7 +920,7 @@ namespace PocketDb
         string sql = R"sql(
             SELECT
                 t.String2 as RootTxHash,
-                case when t.Hash != t.String2 then 'true' else '' end edit,
+                case when t.Hash != t.String2 then 'true' else null end edit,
                 t.String3 as RelayTxHash,
                 t.String1 as AddressHash,
                 t.Time,
@@ -868,6 +946,7 @@ namespace PocketDb
         )sql";
 
         map<string, UniValue> result{};
+        std::vector<std::string> authors;
 
         TryTransactionStep(__func__, [&]()
         {
@@ -890,13 +969,15 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("repost", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
                 {
+                    authors.emplace_back(value);
                     record.pushKV("address", value);
-                    auto userprofile = GetUserProfile({value});
-                    record.pushKV("userprofile", userprofile[0]);
+                    //UniValue userprofile(UniValue::VARR);
+                    //auto userprofile = GetUserProfile({value});
+                    //record.pushKV("userprofile", userprofile[0]);
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", value == "201" ? "video" : "share");
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
@@ -922,46 +1003,24 @@ namespace PocketDb
                     record.pushKV("s", s);
                 }
 
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
+                record.pushKV("scoreSum", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
+                record.pushKV("scoreCnt", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
+                record.pushKV("comments", 0);//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("lastComment", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("reposted", valueStr);
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("userprofile", valueStr);
-
-                //          record.pushKV("address", address);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("id", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("i", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("b", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("r", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 11); ok) record.pushKV("rc", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 12); ok) record.pushKV("postcnt", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", valueStr);
-                //
-                ////          if (option == 1)
-                ////          {
-                ////              if (auto [ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("a", valueStr);
-                ////          }
-                ////
-                ////          if (shortForm)
-                ////          {
-                ////              result.insert_or_assign(address, record);
-                ////              continue;
-                ////          }
-                //
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("l", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("s", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("update", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 10); ok) record.pushKV("k", valueStr);
-                //          if (auto [ok, valueStr] = TryGetColumnString(*stmt, 14); ok) record.pushKV("regdate", valueStr);
 
                 result.insert_or_assign(txid, record);
             }
 
             FinalizeSqlStatement(*stmt);
         });
+
+        auto profiles = GetUserProfile(authors);
+        for (const auto &item : result) {
+            std::string useradr = item.second["address"].get_str();
+            result[item.first].pushKV("userprofile", profiles[useradr]);
+        }
 
         return result;
     }

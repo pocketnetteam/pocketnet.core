@@ -25,18 +25,21 @@ public:
     int RPCPort() const { return nRPCPort; }
     int PublicRPCPort() const { return nPublicRPCPort; }
     int StaticRPCPort() const { return nStaticRPCPort; }
+    int RestPort() const { return nRestPort; }
 
     CBaseChainParams() = delete;
-    CBaseChainParams(const std::string& data_dir, int rpc_port, int rpc_pub_port, int rpc_static_port) : 
+    CBaseChainParams(const std::string& data_dir, int rpc_port, int rpc_pub_port, int rpc_static_port, int rest_port) :
                                                                                     nRPCPort(rpc_port),
                                                                                     nPublicRPCPort(rpc_pub_port),
                                                                                     nStaticRPCPort(rpc_static_port),
+                                                                                    nRestPort(rest_port),
                                                                                     strDataDir(data_dir) {}
 
 private:
     int nRPCPort;
     int nPublicRPCPort;
     int nStaticRPCPort;
+    int nRestPort;
     std::string strDataDir;
 };
 

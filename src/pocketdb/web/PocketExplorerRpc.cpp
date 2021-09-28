@@ -130,7 +130,6 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.empty())
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameters");
 
-
         string blockHash;
         if (request.params[0].isStr())
             blockHash = request.params[0].get_str();
@@ -150,7 +149,6 @@ namespace PocketWeb::PocketWebRpc
 
         if (!pindex)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
-
 
         UniValue result(UniValue::VOBJ);
 

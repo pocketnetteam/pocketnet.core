@@ -178,6 +178,7 @@ static std::vector<CSubNet> rpc_allow_subnets;
 HTTPSocket *g_socket;
 HTTPSocket *g_pubSocket;
 HTTPSocket *g_staticSocket;
+HTTPSocket *g_restSocket;
 
 std::thread threadHTTP;
 std::future<bool> threadResult;
@@ -232,25 +233,19 @@ static std::string RequestMethodString(HTTPRequest::RequestMethod m)
     {
         case HTTPRequest::GET:
             return "GET";
-            break;
         case HTTPRequest::POST:
             return "POST";
-            break;
         case HTTPRequest::HEAD:
             return "HEAD";
-            break;
         case HTTPRequest::PUT:
             return "PUT";
-            break;
         case HTTPRequest::OPTIONS:
             return "OPTIONS";
-            break;
         default:
             return "unknown";
     }
 }
 
-static std::string sendrawtransaction("sendrawtransaction");
 /** HTTP request callback */
 static void http_request_cb(struct evhttp_request *req, void *arg)
 {
@@ -274,7 +269,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
         RequestMethodString(hreq->GetRequestMethod()), hreq->GetURI(), hreq->GetPeer().ToString());
 
     // Early address-based allow check
-    if (!ClientAllowed(hreq->GetPeer()))
+    if (!httpSock->m_publicAccess && !ClientAllowed(hreq->GetPeer()))
     {
         LogPrint(BCLog::HTTP, "Request from %s not allowed\n", hreq ? hreq->GetPeer().ToString() : "unknown");
         hreq->WriteReply(HTTP_FORBIDDEN);
@@ -364,6 +359,7 @@ static bool HTTPBindAddresses()
     int securePort = gArgs.GetArg("-rpcport", BaseParams().RPCPort());
     int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
     int staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
+    int restPort = gArgs.GetArg("-restport", BaseParams().RestPort());
 
     // Determine what addresses to bind to
     if (!gArgs.IsArgSet("-rpcallowip"))
@@ -400,6 +396,8 @@ static bool HTTPBindAddresses()
         g_pubSocket->BindAddress("0.0.0.0", publicPort);
         g_staticSocket->BindAddress("::", staticPort);
         g_staticSocket->BindAddress("0.0.0.0", staticPort);
+        g_restSocket->BindAddress("::", restPort);
+        g_restSocket->BindAddress("0.0.0.0", restPort);
     }
 
     return (g_pubSocket->GetAddressCount());
@@ -474,7 +472,7 @@ bool InitHTTPServer()
     eventBase = base_ctr.get();
 
     // General private socket
-    g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth);
+    g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth, false);
     RegisterBlockchainRPCCommands(g_socket->m_table_rpc);
     RegisterNetRPCCommands(g_socket->m_table_rpc);
     RegisterMiscRPCCommands(g_socket->m_table_rpc);
@@ -486,11 +484,12 @@ bool InitHTTPServer()
 #endif
 
     // Additional pocketnet seocket
-    g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth);
+    g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth, true);
     RegisterPocketnetWebRPCCommands(g_pubSocket->m_table_rpc);
 
     // Additional pocketnet static files socket
-    g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth);
+    g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
+    g_restSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
  
     if (!HTTPBindAddresses())
     {
@@ -528,6 +527,7 @@ void StartHTTPServer()
     int rpcMainThreads = std::max((long) gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
     int rpcPublicThreads = std::max((long) gArgs.GetArg("-rpcpublicthreads", DEFAULT_HTTP_PUBLIC_THREADS), 1L);
     int rpcStaticThreads = std::max((long) gArgs.GetArg("-rpcstaticthreads", DEFAULT_HTTP_STATIC_THREADS), 1L);
+    int rpcRestThreads = std::max((long) gArgs.GetArg("-rpcrestthreads", DEFAULT_HTTP_REST_THREADS), 1L);
 
     std::packaged_task<bool(event_base *)> task(ThreadHTTP);
     threadResult = task.get_future();
@@ -541,6 +541,7 @@ void StartHTTPServer()
     g_pubSocket->StartHTTPSocket(rpcPublicThreads, true);
 
     g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
+    g_restSocket->StartHTTPSocket(rpcRestThreads, true);
 }
 
 void InterruptHTTPServer()
@@ -549,6 +550,7 @@ void InterruptHTTPServer()
     g_socket->InterruptHTTPSocket();
     g_pubSocket->InterruptHTTPSocket();
     g_staticSocket->InterruptHTTPSocket();
+    g_restSocket->InterruptHTTPSocket();
 }
 
 void StopHTTPServer()
@@ -559,6 +561,7 @@ void StopHTTPServer()
     g_socket->StopHTTPSocket();
     g_pubSocket->StopHTTPSocket();
     g_staticSocket->StopHTTPSocket();
+    g_restSocket->StopHTTPSocket();
 
     if (eventBase)
     {
@@ -591,6 +594,9 @@ void StopHTTPServer()
     delete g_staticSocket;
     g_staticSocket = nullptr;
 
+    delete g_restSocket;
+    g_restSocket = nullptr;
+
     if (eventBase)
     {
         event_base_free(eventBase);
@@ -613,8 +619,8 @@ static void httpevent_callback_fn(evutil_socket_t, short, void *data)
         delete self;
 }
 
-HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth):
-    m_http(nullptr), m_eventHTTP(nullptr), m_workQueue(nullptr)
+HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, bool publicAccess):
+    m_http(nullptr), m_eventHTTP(nullptr), m_workQueue(nullptr), m_publicAccess(publicAccess)
 {
     /* Create a new evhttp object to handle requests. */
     raii_evhttp http_ctr = obtain_evhttp(base);

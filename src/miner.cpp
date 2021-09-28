@@ -235,7 +235,7 @@ void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
 
 bool BlockAssembler::TestTransaction(CTransactionRef& tx)
 {
-    auto ptx = PocketDb::TransRepoInst.GetByHash(tx->GetHash().GetHex(), true);
+    auto ptx = PocketDb::TransRepoInst.Get(tx->GetHash().GetHex(), true);
 
     // Payload should be in operative table Transactions
     if (!ptx)

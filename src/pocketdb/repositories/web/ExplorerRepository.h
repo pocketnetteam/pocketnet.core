@@ -6,7 +6,7 @@
 #define POCKETDB_EXPLORERREPOSITORY_H
 
 #include "pocketdb/helpers/TransactionHelper.h"
-#include "pocketdb/repositories/BaseRepository.hpp"
+#include "pocketdb/repositories/BaseRepository.h"
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
