@@ -75,6 +75,7 @@ namespace PocketConsensus
         SocialConsensusResult_TxORNotFound = 55,
         SocialConsensusResult_ComplainDeletedContent = 56,
         SocialConsensusResult_ScoreDeletedContent = 57,
+        SocialConsensusResult_RelayContentNotFound = 58,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
