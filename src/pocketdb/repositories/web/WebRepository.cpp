@@ -1426,4 +1426,49 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
         return {resultCount, resultData};
     }
 
+    UniValue WebRepository::GetRelayedContent(const string& address, int height)
+    {
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select
+                r.Hash,
+                r.String3 as RelayTxHash,
+                r.String1 as AddressHash,
+                r.Time,
+                r.Height
+            from Transactions r
+            join Transactions p on p.Hash = r.String3 and p.String1 = ?
+            where r.Type in (200, 201)
+              and r.Last = 1
+              and r.Height is not null
+              and r.Height > ?
+              and r.String3 is not null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, val] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", val);
+                if (auto[ok, val] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txidRepost", val);
+                if (auto[ok, val] = TryGetColumnString(*stmt, 2); ok) record.pushKV("addrFrom", val);
+                if (auto[ok, val] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("time", val);
+                if (auto[ok, val] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("nblock", val);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
 }

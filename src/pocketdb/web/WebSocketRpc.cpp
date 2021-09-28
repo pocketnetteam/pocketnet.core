@@ -45,8 +45,8 @@ namespace PocketWeb::PocketWebRpc
         // Pocketnet Team content
         std::string teamAddress = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
         auto[teamCount, teamData] = request.DbConnection()->WebRepoInst->GetLastAddressContent(teamAddress, blockNumber, 99);
-        for (const string& key : teamData.getKeys())
-            teamData.At(key).pushKV("msg", "sharepocketnet");
+        for (size_t i = 0; i < teamData.size(); i++)
+            teamData.At(i).pushKV("msg", "sharepocketnet");
         result.push_back(teamData);
 
         // Private subscribers news
@@ -66,23 +66,11 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        // TODO (brangr): implement
-        // reindexer::QueryResults reposts;
-        // g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).InnerJoin("txidRepost", "txid", CondEq,
-        //     reindexer::Query("Posts").Where("address", CondEq, address)), reposts);
-        // for (auto it : reposts)
-        // {
-        //     reindexer::Item itm(it.GetItem());
-        //     UniValue msg(UniValue::VOBJ);
-        //     msg.pushKV("msg", "reshare");
-        //     msg.pushKV("txid", itm["txid"].As<string>());
-        //     msg.pushKV("txidRepost", itm["txidRepost"].As<string>());
-        //     msg.pushKV("addrFrom", itm["address"].As<string>());
-        //     msg.pushKV("time", itm["time"].As<string>());
-        //     msg.pushKV("nblock", itm["block"].As<int>());
-        //
-        //     a.push_back(msg);
-        // }
+        // Reposts
+        auto reposts = request.DbConnection()->WebRepoInst->GetRelayedContent(address, blockNumber);
+        for (size_t i = 0; i < reposts.size(); i++)
+            reposts.At(i).pushKV("msg", "reshare");
+        result.push_back(reposts);
 
         // TODO (brangr): implement
         // reindexer::QueryResults subscribers;

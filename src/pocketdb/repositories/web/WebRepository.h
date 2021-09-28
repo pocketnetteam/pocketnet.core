@@ -63,6 +63,7 @@ namespace PocketDb
 
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
+        UniValue GetRelayedContent(const string& address, int height);
 
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
