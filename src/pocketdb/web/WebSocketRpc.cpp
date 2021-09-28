@@ -33,78 +33,40 @@ namespace PocketWeb::PocketWebRpc
         // Build result array
         UniValue result(UniValue::VARR);
 
-        // request.DbConnection()->WebRepoInst->GetContentLanguage(blockNumber);
-        // reindexer::QueryResults posts;
-        // g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber), posts);
-        // std::map<std::string, std::map<std::string, int>> contentLangCnt;
-        // for (auto& p : posts)
-        // {
-        //     reindexer::Item postItm = p.GetItem();
-        //
-        //     UniValue t(UniValue::VARR);
-        //     std::string lang = postItm["lang"].As<string>();
-        //     contentLangCnt[getcontenttype(postItm["type"].As<int>())][lang] += 1;
-        // }
-        // UniValue contentsLang(UniValue::VOBJ);
-        // for (const auto& itemContent : contentLangCnt)
-        // {
-        //     UniValue langContents(UniValue::VOBJ);
-        //     for (const auto& itemLang : itemContent.second)
-        //     {
-        //         langContents.pushKV(itemLang.first, itemLang.second);
-        //     }
-        //     contentsLang.pushKV(getcontenttype(getcontenttype(itemContent.first)), langContents);
-        // }
-        //
-        // UniValue msg(UniValue::VOBJ);
-        // msg.pushKV("block", (int) chainActive.Height());
-        // msg.pushKV("cntposts", (int) posts.Count());
-        // //msg.pushKV("cntpostslang", cntpostslang);
-        // msg.pushKV("contentsLang", contentsLang);
-        // a.push_back(msg);
-        //
-        // std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
-        // reindexer::QueryResults postspocketnet;
-        // g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).Where("address", CondEq, addrespocketnet),
-        //     postspocketnet);
-        // for (auto it : postspocketnet)
-        // {
-        //     reindexer::Item itm(it.GetItem());
-        //     UniValue msg(UniValue::VOBJ);
-        //     msg.pushKV("msg", "sharepocketnet");
-        //     msg.pushKV("txid", itm["txid"].As<string>());
-        //     msg.pushKV("time", itm["time"].As<string>());
-        //     msg.pushKV("nblock", itm["block"].As<int>());
-        //     a.push_back(msg);
-        // }
-        //
-        // reindexer::QueryResults subscribespriv;
-        // g_pocketdb->DB()->Select(reindexer::Query("SubscribesView").Where("address", CondEq, address).Where("private", CondEq, "true"),
-        //     subscribespriv);
-        // for (auto it : subscribespriv)
-        // {
-        //     reindexer::Item itm(it.GetItem());
-        //
-        //     reindexer::QueryResults postfromprivate;
-        //     g_pocketdb->Select(
-        //         reindexer::Query("Posts", 0, 1).Where("block", CondGt, blockNumber).Where("address", CondEq, itm["address_to"].As<string>()).Sort(
-        //             "time", true).ReqTotal(), postfromprivate);
-        //     if (postfromprivate.totalCount > 0)
-        //     {
-        //         reindexer::Item itm2(postfromprivate[0].GetItem());
-        //
-        //         UniValue msg(UniValue::VOBJ);
-        //         msg.pushKV("msg", "event");
-        //         msg.pushKV("mesType", "postfromprivate");
-        //         msg.pushKV("txid", itm2["txid"].As<string>());
-        //         msg.pushKV("addrFrom", itm2["address"].As<string>());
-        //         msg.pushKV("postsCnt", postfromprivate.totalCount);
-        //         msg.pushKV("time", itm2["time"].As<string>());
-        //         msg.pushKV("nblock", itm2["block"].As<int>());
-        //         a.push_back(msg);
-        //     }
-        // }
-        //
+        auto[contentCount, contentLangCount] = request.DbConnection()->WebRepoInst->GetContentLanguages(blockNumber);
+
+        // Full statistic
+        UniValue fullStat(UniValue::VOBJ);
+        fullStat.pushKV("block", chainActive.Height());
+        fullStat.pushKV("cntposts", contentCount);
+        fullStat.pushKV("contentsLang", contentLangCount);
+        result.push_back(fullStat);
+
+        // Pocketnet Team content
+        std::string teamAddress = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
+        auto[teamCount, teamData] = request.DbConnection()->WebRepoInst->GetLastAddressContent(teamAddress, blockNumber, 99);
+        for (const string& key : teamData.getKeys())
+            teamData.At(key).pushKV("msg", "sharepocketnet");
+        result.push_back(teamData);
+
+        // Private subscribers news
+        auto privateSubscribes = request.DbConnection()->WebRepoInst->GetSubscribesAddresses({ address }, { ACTION_SUBSCRIBE_PRIVATE });
+        UniValue subs = privateSubscribes[address];
+        for (size_t i = 0; i < subs.size(); i++)
+        {
+            UniValue sub = subs[i];
+            string subAddress = sub["adddress"].get_str();
+            if (auto[subCount, subData] = request.DbConnection()->WebRepoInst->GetLastAddressContent(subAddress, blockNumber, 1); subCount > 0)
+            {
+                subData.At(0).pushKV("msg", "event");
+                subData.At(0).pushKV("mesType", "postfromprivate");
+                subData.At(0).pushKV("addrFrom", subAddress);
+                subData.At(0).pushKV("postsCnt", subCount);
+                result.push_back(subData.At(0));
+            }
+        }
+
+        // TODO (brangr): implement
         // reindexer::QueryResults reposts;
         // g_pocketdb->DB()->Select(reindexer::Query("Posts").Where("block", CondGt, blockNumber).InnerJoin("txidRepost", "txid", CondEq,
         //     reindexer::Query("Posts").Where("address", CondEq, address)), reposts);
@@ -121,7 +83,8 @@ namespace PocketWeb::PocketWebRpc
         //
         //     a.push_back(msg);
         // }
-        //
+
+        // TODO (brangr): implement
         // reindexer::QueryResults subscribers;
         // g_pocketdb->DB()->Select(
         //     reindexer::Query("SubscribesView").Where("address_to", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(
@@ -152,7 +115,8 @@ namespace PocketWeb::PocketWebRpc
         //         }
         //     }
         // }
-        //
+
+        // TODO (brangr): implement
         // reindexer::QueryResults scores;
         // g_pocketdb->DB()->Select(reindexer::Query("Scores").Where("block", CondGt, blockNumber).InnerJoin("posttxid", "txid", CondEq,
         //     reindexer::Query("Posts").Where("address", CondEq, address)).Sort("time", true).Limit(cntResult), scores);
@@ -171,7 +135,8 @@ namespace PocketWeb::PocketWebRpc
         //     msg.pushKV("nblock", itm["block"].As<int>());
         //     a.push_back(msg);
         // }
-        //
+
+        // TODO (brangr): implement
         // reindexer::QueryResults commentScores;
         // g_pocketdb->DB()->Select(
         //     reindexer::Query("CommentScores")
@@ -195,7 +160,8 @@ namespace PocketWeb::PocketWebRpc
         //     msg.pushKV("nblock", itm["block"].As<int>());
         //     a.push_back(msg);
         // }
-        //
+
+        // TODO (brangr): implement
         // std::vector<std::string> txSent;
         // reindexer::QueryResults transactions;
         // g_pocketdb->DB()->Select(
@@ -265,7 +231,8 @@ namespace PocketWeb::PocketWebRpc
         //
         //     a.push_back(msg);
         // }
-        //
+
+        // TODO (brangr): implement
         // vector<string> answerpostids;
         // reindexer::QueryResults commentsAnswer;
         // g_pocketdb->DB()->Select(
@@ -303,7 +270,8 @@ namespace PocketWeb::PocketWebRpc
         //         answerpostids.push_back(itm["postid"].As<string>());
         //     }
         // }
-        //
+
+        // TODO (brangr): implement
         // reindexer::QueryResults commentsPost;
         // g_pocketdb->DB()->Select(
         //     reindexer::Query("Comment").Where("block", CondGt, blockNumber).Where("last", CondEq, true).InnerJoin("postid", "txid", CondEq,
@@ -334,7 +302,8 @@ namespace PocketWeb::PocketWebRpc
         //         a.push_back(msg);
         //     }
         // }
-        //
+
+        // TODO (brangr): ???
         // reindexer::QueryResults likedPosts;
         // g_pocketdb->DB()->Select(reindexer::Query("Post"), likedPosts);
 

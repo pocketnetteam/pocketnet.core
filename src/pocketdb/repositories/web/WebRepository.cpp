@@ -154,23 +154,21 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
+        auto sql = R"sql(
+            select o.AddressHash, sum(o.Value)
+            from TxOutputs o indexed by TxOutputs_SpentHeight
+            where o.SpentHeight is null
+            group by o.AddressHash
+            order by sum(o.Value) desc
+            limit ?
+        )sql";
+
         TryTransactionStep(__func__, [&]()
         {
-            bool stepResult = true;
-            auto stmt = SetupSqlStatement(R"sql(
-                select o.AddressHash, sum(o.Value)
-                from TxOutputs o indexed by TxOutputs_SpentHeight
-                where o.SpentHeight is null
-                group by o.AddressHash
-                order by sum(o.Value) desc
-                limit ?
-            )sql");
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, count);
 
-            auto countPtr = make_shared<int>(count);
-            if (!TryBindStatementInt(stmt, 1, countPtr))
-                stepResult = false;
-
-            while (stepResult && sqlite3_step(*stmt) == SQLITE_ROW)
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue addr(UniValue::VOBJ);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) addr.pushKV("address", value);
@@ -798,23 +796,25 @@ namespace PocketDb
         return record;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribesAddresses(const vector<string>& addresses)
+    map<string, UniValue> WebRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
     {
+        auto result = map<string, UniValue>();
+        for (const auto& address : addresses)
+            result[address] = UniValue(UniValue::VARR);
+
         string sql = R"sql(
-            select String1 as AddressHash,
+            select
+                String1 as AddressHash,
                 String2 as AddressToHash,
                 case
                     when Type = 303 then 1
                     else 0
                 end as Private
             from Transactions
-            where Type in (302, 303) and Last = 1
-            and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+            where Type in ()sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql()
+              and Last = 1
+              and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
         )sql";
-
-        auto result = map<string, UniValue>();
-        for (const auto& address : addresses)
-            result[address] = UniValue(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
         {
@@ -829,7 +829,7 @@ namespace PocketDb
                 UniValue record(UniValue::VOBJ);
                 auto[ok, address] = TryGetColumnString(*stmt, 0);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("adddress", value); // todo (team): ?? // Not mistake
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("adddress", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("private", value);
 
                 result[address].push_back(record);
@@ -841,14 +841,16 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribersAddresses(const vector<string>& addresses)
+    map<string, UniValue> WebRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
     {
         string sql = R"sql(
-            SELECT String2 as AddressToHash,
+            select
+                String2 as AddressToHash,
                 String1 as AddressHash
-            FROM Transactions
-            where Type in (302, 303) and Last = 1
-            and String2 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+            from Transactions
+            where Type in ()sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql()
+              and Last = 1
+              and String2 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
         )sql";
 
         auto result = map<string, UniValue>();
@@ -1017,7 +1019,8 @@ namespace PocketDb
         });
 
         auto profiles = GetUserProfile(authors);
-        for (const auto &item : result) {
+        for (const auto& item : result)
+        {
             std::string useradr = item.second["address"].get_str();
             result[item.first].pushKV("userprofile", profiles[useradr]);
         }
@@ -1298,45 +1301,129 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
 
         return result;
     }
-    UniValue WebRepository::GetContentLanguage(int height)
+
+    tuple<int, UniValue> WebRepository::GetContentLanguages(int height)
     {
-        UniValue result(UniValue::VARR);
+        int resultCount = 0;
+        UniValue resultData(UniValue::VOBJ);
 
-        // string sql = R"sql(
-        //
-        // )sql";
-        //
-        // TryTransactionStep(__func__, [&]()
-        // {
-        //     auto stmt = SetupSqlStatement(sql);
-        //
-        //     int i = 1;
-        //     for (const auto& address : addresses)
-        //         TryBindStatementText(stmt, i++, address);
-        //
-        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
-        //     {
-        //         UniValue record(UniValue::VOBJ);
-        //
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) record.pushKV("vout", value);
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
-        //         if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("amount", ValueFromAmount(value));
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("scriptPubKey", value);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("confirmations", height - value);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok)
-        //         {
-        //             record.pushKV("coinbase", value == 2 || value == 3);
-        //             record.pushKV("pockettx", value > 3);
-        //         }
-        //
-        //         result.push_back(record);
-        //     }
-        //
-        //     FinalizeSqlStatement(*stmt);
-        // });
+        string sql = R"sql(
+            select c.Type,
+                   p.String1 as lang,
+                   count(*) as cnt
+            from Transactions c
+            join Payload p on p.TxHash = c.Hash
+            where c.Type in (200, 201)
+              and c.Last = 1
+              and c.Height is not null
+              and c.Height > ?
+            group by c.Type, p.String1
+        )sql";
 
-        return result;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, height);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[okType, typeInt] = TryGetColumnInt(*stmt, 0);
+                auto[okLang, lang] = TryGetColumnString(*stmt, 1);
+                auto[okCount, count] = TryGetColumnInt(*stmt, 2);
+                if (!okType || !okLang || !okCount)
+                    continue;
+
+                auto type = TransactionHelper::TxStringType((PocketTxType) typeInt);
+
+                if (resultData.At(type).isNull())
+                {
+                    UniValue lang(UniValue::VOBJ);
+                    resultData.pushKV(type, lang);
+                }
+
+                resultData.At(type).pushKV(lang, count);
+                resultCount += count;
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {resultCount, resultData};
+    }
+
+    tuple<int, UniValue> WebRepository::GetLastAddressContent(const string& address, int height, int count)
+    {
+        int resultCount = 0;
+        UniValue resultData(UniValue::VARR);
+
+        // Get count
+        string sqlCount = R"sql(
+            select count(*)
+            from Transactions
+            where Type in (200, 201)
+              and Last = 1
+              and Height is not null
+              and Height > ?
+              and String1 = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sqlCount);
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    resultCount = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // Try get last N records
+        if (resultCount > 0)
+        {
+            string sql = R"sql(
+                select Hash,
+                       Time,
+                       Height
+                from Transactions
+                where Type in (200, 201)
+                  and Last = 1
+                  and Height is not null
+                  and Height > ?
+                  and String1 = ?
+                order by Height desc
+                limit ?
+            )sql";
+
+            TryTransactionStep(__func__, [&]()
+            {
+                auto stmt = SetupSqlStatement(sql);
+                TryBindStatementInt(stmt, 1, height);
+                TryBindStatementText(stmt, 2, address);
+                TryBindStatementInt(stmt, 3, count);
+
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    auto[okHash, hash] = TryGetColumnString(*stmt, 0);
+                    auto[okTime, time] = TryGetColumnInt64(*stmt, 1);
+                    auto[okHeight, height] = TryGetColumnInt(*stmt, 2);
+                    if (!okHash || !okTime || !okHeight)
+                        continue;
+
+                    UniValue record(UniValue::VOBJ);
+                    record.pushKV("txid", hash);
+                    record.pushKV("time", time);
+                    record.pushKV("nblock", height);
+                    resultData.push_back(record);
+                }
+
+                FinalizeSqlStatement(*stmt);
+            });
+        }
+
+        return {resultCount, resultData};
     }
 
 }

@@ -43,8 +43,13 @@ namespace PocketDb
         UniValue GetPageScores(const vector<string>& commentHashes, const string& addressHash);
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
         map<string, UniValue> GetUserProfile(const vector<string>& addresses, bool shortForm = true, int option = 0);
-        map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses);
-        map<string, UniValue> GetSubscribersAddresses(const vector<string>& addresses);
+
+        map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses,
+            const vector<PocketTxType>& types = { ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+
+        map<string, UniValue> GetSubscribersAddresses(const vector<string>& addresses,
+            const vector<PocketTxType>& types = { ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+
         map<string, UniValue> GetBlockingToAddresses(const vector<string>& addresses);
 
         map<string, UniValue> GetContentsData(const vector<string>& txids);
@@ -56,7 +61,8 @@ namespace PocketDb
             
         UniValue GetUnspents(vector<string>& addresses, int height);
 
-        UniValue GetContentLanguage(int height);
+        tuple<int, UniValue> GetContentLanguages(int height);
+        tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
 
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
