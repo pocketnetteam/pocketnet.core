@@ -9,7 +9,8 @@
 #include <QByteArray>
 #include <QString>
 
-#include <windef.h> // for HWND
+//TODO compat with all required defines because there is a big mess up with including only windows.h
+#include <compat.h> // for HWND
 
 #include <QAbstractNativeEventFilter>
 

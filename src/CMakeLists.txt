@@ -2,9 +2,11 @@ include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
 include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
-include(CheckLinkerFlag)
+include(CheckCXXSourceRuns)
 
 ### Options
+
+option(DISABLE_GUI "Disable building qt gui (Default is OFF)" OFF)
 
 option(DISABLE_ZMQ "Disable ZMQ notifications (default is OFF)" OFF)
 
@@ -60,11 +62,12 @@ option(WITH_UTILS "build pocketcoin-cli pocketcoin-tx (default=ON)" ON)
 option(WITH_DAEMON "build pocketcoind daemon (default=ON)" ON)
 option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want to statically link internal libraries. Ignored for non-MSVC build (default=ON)" ON)
 
-if (MSVC AND MSVC_FORCE_STATIC)
+if(MSVC AND MSVC_FORCE_STATIC)
+    set(Protobuf_USE_STATIC_LIBS ON)
     set(Boost_USE_STATIC_RUNTIME ON)
     set(Boost_USE_DEBUG_RUNTIME ON)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif ()
+endif()
 
 # BerkeleyDB
 if (NOT DISABLE_WALLET)
@@ -137,8 +140,8 @@ set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
 set(CMAKE_REQUIRED_LIBRARIES_BACKUP ${CMAKE_REQUIRED_LIBRARIES})
 set(CMAKE_REQUIRED_FLAGS_BACKUP ${CMAKE_REQUIRED_FLAGS})
 set(CMAKE_REQUIRED_LIBRARIES Boost::thread Boost::system Boost::chrono Boost::date_time)
-check_cxx_source_compiles("${CHECK_BOOST_SLEEP}" HAVE_WORKING_BOOST_SLEEP_FOR)
-if (HAVE_WORKING_BOOST_SLEEP_FOR)
+check_cxx_source_compiles("${CHECK_BOOST_SLEEP}" HAVE_WORKING_BOOST_SLEEP_FOR )
+if(HAVE_WORKING_BOOST_SLEEP_FOR)
     add_compile_definitions(HAVE_WORKING_BOOST_SLEEP_FOR=1)
 else ()
     set(CHECK_BOOST_SLEEP "  #include <boost/version.hpp>
@@ -161,7 +164,7 @@ endif ()
 
 # Common checks
 set(CMAKE_REQUIRED_FLAGS -msse4.1)
-check_cxx_source_compiles("#include <stdint.h>
+check_cxx_source_runs( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m128i l = _mm_set1_epi32(0);
@@ -169,7 +172,7 @@ check_cxx_source_compiles("#include <stdint.h>
                             }" ENABLE_SSE41)
 
 set(CMAKE_REQUIRED_FLAGS -mavx -mavx2)
-check_cxx_source_compiles("#include <stdint.h>
+check_cxx_source_runs( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m256i l = _mm256_set1_epi32(0);
@@ -177,7 +180,7 @@ check_cxx_source_compiles("#include <stdint.h>
                             }" ENABLE_AVX2)
 
 set(CMAKE_REQUIRED_FLAGS -msse4 -msha)
-check_cxx_source_compiles("#include <stdint.h>
+check_cxx_source_runs( "#include <stdint.h>
                             #include <immintrin.h>
                             int main() {
                                 __m128i i = _mm_set1_epi32(0);
@@ -422,42 +425,43 @@ add_library(${POCKETCOIN_SUPPORT}
 # Pocketcoin util library
 set(POCKETCOIN_UTIL pocketcoin_util)
 add_library(${POCKETCOIN_UTIL}
-        clientversion.h
-        clientversion.cpp
-        fs.h
-        fs.cpp
-        logging.h
-        logging.cpp
-        sync.h
-        sync.cpp
-        threadsafety.h
-        threadinterrupt.h
-        threadinterrupt.cpp
-        utilmemory.h
-        utilmoneystr.h
-        utilmoneystr.cpp
-        utiltime.h
-        utiltime.cpp
-        utils/html.h
-        utils/html.cpp
-        random.h
-        random.cpp
-        timedata.h
-        timedata.cpp
-        netaddress.h
-        netaddress.cpp
-        ui_interface.h
-        ui_interface.cpp
-        util.h
-        util.cpp
-        chainparamsbase.h
-        chainparamsbase.cpp
-        chainparamsseeds.h
-        warnings.h
-        warnings.cpp
-        )
-target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::filesystem Boost::date_time Event::event ${IPHLPAPI})
-if (WIN32)
+                clientversion.h
+                clientversion.cpp
+                fs.h
+                fs.cpp
+                logging.h
+                logging.cpp
+                sync.h
+                sync.cpp
+                threadsafety.h
+                threadinterrupt.h
+                threadinterrupt.cpp
+                utilmemory.h
+                utilmoneystr.h
+                utilmoneystr.cpp
+                utiltime.h
+                utiltime.cpp
+                utils/html.h
+                utils/html.cpp
+                random.h
+                random.cpp
+                timedata.h
+                timedata.cpp
+                netaddress.h
+                netaddress.cpp
+                ui_interface.h
+                ui_interface.cpp
+                util.h
+                util.cpp
+                chainparamsbase.h
+                chainparamsbase.cpp
+                chainparamsseeds.h
+                warnings.h
+                warnings.cpp
+            )
+target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::date_time Event::event)
+target_link_libraries(${POCKETCOIN_UTIL} PUBLIC Boost::filesystem)
+if(WIN32)
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ws2_32 crypt32 wsock32)
     add_compile_definitions(NOMINMAX)
 endif ()
@@ -555,6 +559,8 @@ add_library(${POCKETCOIN_CONSENSUS}
         key.cpp
         )
 target_link_libraries(${POCKETCOIN_CONSENSUS} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} ${POCKETDB} univalue secp256k1)
+# TODO hadrdcoded because we are always building consensus
+add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 
 
 # Common rpc that used by server and cli
@@ -780,6 +786,8 @@ add_library(${POCKETCOIN_SERVER}
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event ${IPHLPAPI} leveldb univalue SQlite::sqlite OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${SQlite3_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
+target_link_libraries(${POCKETCOIN_SERVER} PUBLIC SQlite::sqlite univalue)
+target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${SQlite3_INCLUDE_DIR})
 
 if (NOT DISABLE_WALLET)
     target_sources(${POCKETCOIN_SERVER} PRIVATE
@@ -847,13 +855,14 @@ endif ()
 
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
-target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event ${IPHLPAPI} SQlite::sqlite univalue secp256k1 memenv)
+target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event SQlite::sqlite univalue secp256k1 memenv)
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
 
 add_library(libpocketcoin_cli rpc/client.cpp)
+target_link_libraries(libpocketcoin_cli PRIVATE univalue Boost::filesystem)
 set(POCKETCOIN_CLI pocketcoin_cli)
-add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp)
-target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event ${IPHLPAPI} libpocketcoin_cli)
+add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
+target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli)
 target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
 
 set(POCKETCOIN_TX pocketcoin_tx)
@@ -861,4 +870,6 @@ add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
 target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} ${POCKETDB} ${POCKETCOIN_CRYPTO} ${POCKETCOIN_CONSENSUS} univalue SQlite::sqlite)
 target_include_directories(${POCKETCOIN_TX} PRIVATE ${SQlite3_INCLUDE_DIR})
 
-#include(QTInclude.cmake)
+if(NOT DISABLE_GUI)
+    add_subdirectory(qt/)
+endif()

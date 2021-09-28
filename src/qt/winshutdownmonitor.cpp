@@ -8,7 +8,6 @@
 #include <shutdown.h>
 #include <util.h>
 
-#include <windows.h>
 
 #include <QDebug>
 
