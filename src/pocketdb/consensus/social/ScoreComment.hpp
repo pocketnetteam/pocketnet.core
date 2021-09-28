@@ -40,7 +40,7 @@ namespace PocketConsensus
                 // ... or in block
                 for (auto& blockTx : *block)
                 {
-                    if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
+                    if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
                         continue;
 
                     auto blockPtx = static_pointer_cast<ScoreComment>(blockTx);
@@ -113,7 +113,7 @@ namespace PocketConsensus
             // Get count from block
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {ACTION_SCORE_COMMENT}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_SCORE_COMMENT}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<ScoreComment>(blockTx);

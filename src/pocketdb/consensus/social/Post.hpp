@@ -82,7 +82,7 @@ namespace PocketConsensus
             // Get count from block
             for (const auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST}))
                     continue;
 
                 const auto blockPtx = static_pointer_cast<Post>(blockTx);
@@ -187,7 +187,7 @@ namespace PocketConsensus
             // Double edit in block not allowed
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {CONTENT_POST}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<Post>(blockTx);
@@ -220,7 +220,7 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidatePayloadSize(const PostRef& ptx)
         {
-            size_t dataSize =
+            int64_t dataSize =
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
                 (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +

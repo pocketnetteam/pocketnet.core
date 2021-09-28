@@ -1302,39 +1302,39 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
     {
         UniValue result(UniValue::VARR);
 
-        string sql = R"sql(
-
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            for (const auto& address : addresses)
-                TryBindStatementText(stmt, i++, address);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) record.pushKV("vout", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("amount", ValueFromAmount(value));
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("scriptPubKey", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("confirmations", height - value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok)
-                {
-                    record.pushKV("coinbase", value == 2 || value == 3);
-                    record.pushKV("pockettx", value > 3);
-                }
-
-                result.push_back(record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
+        // string sql = R"sql(
+        //
+        // )sql";
+        //
+        // TryTransactionStep(__func__, [&]()
+        // {
+        //     auto stmt = SetupSqlStatement(sql);
+        //
+        //     int i = 1;
+        //     for (const auto& address : addresses)
+        //         TryBindStatementText(stmt, i++, address);
+        //
+        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
+        //     {
+        //         UniValue record(UniValue::VOBJ);
+        //
+        //         if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
+        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) record.pushKV("vout", value);
+        //         if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
+        //         if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("amount", ValueFromAmount(value));
+        //         if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("scriptPubKey", value);
+        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("confirmations", height - value);
+        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok)
+        //         {
+        //             record.pushKV("coinbase", value == 2 || value == 3);
+        //             record.pushKV("pockettx", value > 3);
+        //         }
+        //
+        //         result.push_back(record);
+        //     }
+        //
+        //     FinalizeSqlStatement(*stmt);
+        // });
 
         return result;
     }

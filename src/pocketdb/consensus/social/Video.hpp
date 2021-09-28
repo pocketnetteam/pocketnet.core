@@ -76,7 +76,7 @@ namespace PocketConsensus
             // Get count from block
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<Video>(blockTx);
@@ -171,7 +171,7 @@ namespace PocketConsensus
             // Double edit in block not allowed
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<Video>(blockTx);
@@ -214,7 +214,7 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidatePayloadSize(const VideoRef& ptx)
         {
-            size_t dataSize =
+            int64_t dataSize =
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
                 (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +

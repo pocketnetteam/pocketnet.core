@@ -61,7 +61,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {CONTENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_DELETE}))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())

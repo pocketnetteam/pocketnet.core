@@ -119,7 +119,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<CommentEdit>(blockTx);
@@ -159,7 +159,7 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidatePayloadSize(const CommentEditRef& ptx)
         {
-            size_t dataSize = (ptx->GetPayloadMsg() ? HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).size() : 0);
+            int64_t dataSize = (ptx->GetPayloadMsg() ? HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).size() : 0);
 
             if (dataSize > GetConsensusLimit(ConsensusLimit_max_comment_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};

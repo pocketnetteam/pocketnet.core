@@ -63,7 +63,7 @@ namespace PocketConsensus
             // Only one transaction (address -> addressTo) allowed in block
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE, ACTION_SUBSCRIBE_CANCEL}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE, ACTION_SUBSCRIBE_CANCEL}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<SubscribeCancel>(blockTx);

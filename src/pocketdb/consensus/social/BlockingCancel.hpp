@@ -61,7 +61,7 @@ namespace PocketConsensus
             // Only one transaction (address -> addressTo) allowed in block
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {ACTION_BLOCKING, ACTION_BLOCKING_CANCEL}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_BLOCKING, ACTION_BLOCKING_CANCEL}))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())

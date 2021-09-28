@@ -85,7 +85,7 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {CONTENT_COMMENT}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_COMMENT}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<Comment>(blockTx);
@@ -140,7 +140,7 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidatePayloadSize(const CommentRef& ptx)
         {
-            size_t dataSize = (ptx->GetPayloadMsg() ? HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).size() : 0);
+            int64_t dataSize = (ptx->GetPayloadMsg() ? HtmlUtils::UrlDecode(*ptx->GetPayloadMsg()).size() : 0);
 
             if (dataSize > GetConsensusLimit(ConsensusLimit_max_comment_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};

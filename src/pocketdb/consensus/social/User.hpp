@@ -84,7 +84,7 @@ namespace PocketConsensus
             // Only one transaction allowed in block
             for (auto& blockTx: *block)
             {
-                if (!IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<User>(blockTx);
@@ -156,7 +156,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx)
         {
-            size_t dataSize =
+            int64_t dataSize =
                 (ptx->GetPayloadName() ? ptx->GetPayloadName()->size() : 0) +
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0) +

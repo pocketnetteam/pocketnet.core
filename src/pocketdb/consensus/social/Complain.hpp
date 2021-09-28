@@ -65,7 +65,7 @@ namespace PocketConsensus
 
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {ACTION_COMPLAIN}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_COMPLAIN}))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())

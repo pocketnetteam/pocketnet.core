@@ -42,11 +42,7 @@ namespace PocketConsensus
 
             // Check payload
             if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetString1())) return {false, SocialConsensusResult_Failed};
-
-            // Check size
-            if ((*ptx->GetString1()).size() > GetConsensusLimit(ConsensusLimit_max_account_setting_size))
-                return {false, SocialConsensusResult_ContentSizeLimit};
+            if (IsEmpty(ptx->GetPayloadData())) return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
@@ -57,7 +53,7 @@ namespace PocketConsensus
             // Only one transaction allowed in block
             for (auto& blockTx : *block)
             {
-                if (!IsIn(*blockTx->GetType(), {ACCOUNT_SETTING}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_SETTING}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<AccountSetting>(blockTx);
@@ -104,9 +100,7 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidatePayloadSize(const AccountSettingRef& ptx)
         {
-            size_t dataSize = (ptx->GetPayloadData() ? ptx->GetPayloadData()->size() : 0);
-
-            if (dataSize > GetConsensusLimit(ConsensusLimit_max_account_setting_size))
+            if ((int64_t)ptx->GetPayloadData()->size() > GetConsensusLimit(ConsensusLimit_max_account_setting_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};
 
             return Success;
