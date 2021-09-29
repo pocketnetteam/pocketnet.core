@@ -64,6 +64,7 @@ option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want t
 
 if(MSVC AND MSVC_FORCE_STATIC)
     set(Protobuf_USE_STATIC_LIBS ON)
+    set(Boost_USE_STATIC_LIBS ON)
     set(Boost_USE_STATIC_RUNTIME ON)
     set(Boost_USE_DEBUG_RUNTIME ON)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -859,7 +860,7 @@ target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_C
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
 
 add_library(libpocketcoin_cli rpc/client.cpp)
-target_link_libraries(libpocketcoin_cli PRIVATE univalue Boost::filesystem)
+target_link_libraries(libpocketcoin_cli PRIVATE univalue)
 set(POCKETCOIN_CLI pocketcoin_cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
 target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli)
