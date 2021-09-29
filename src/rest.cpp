@@ -22,7 +22,7 @@
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
 
-#include "pocketdb/services/TransactionPostProcessing.h"
+#include "pocketdb/services/PostProcessing.h"
 #include "pocketdb/consensus/Helper.h"
 #include "pocketdb/services/Accessor.h"
 #include "pocketdb/web/PocketFrontend.h"
@@ -861,7 +861,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
             if (!PocketServices::Accessor::GetBlock(block, pocketBlock) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
-            PocketServices::TransactionPostProcessing::Rollback(pblockindex->nHeight);
+            PocketServices::PostProcessing::Rollback(pblockindex->nHeight);
 
             CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
             if (pblockindex->nHeight > 100000 && block.IsProofOfStake())
@@ -885,7 +885,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
                 // return RESTERR(req, HTTP_BAD_REQUEST, "Validate failed");
             }
 
-            PocketServices::TransactionPostProcessing::Index(block, pblockindex->nHeight);
+            PocketServices::PostProcessing::Index(block, pblockindex->nHeight);
         }
         catch (std::exception& ex)
         {

@@ -1006,7 +1006,7 @@ void PeerLogicValidation::NewPoWValidBlock(const CBlockIndex* pindex, const std:
     // Get PocketData for transactions from this block
     std::string pocketBlockData;
     if (pocketBlock)
-        pocketBlockData = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock)->write();
+        pocketBlockData = PocketServices::Serializer::SerializeBlock(*pocketBlock)->write();
 
     if (pocketBlockData.empty() && !PocketServices::Accessor::GetBlock(*pblock, pocketBlockData))
     {
@@ -2364,7 +2364,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         std::list<CTransactionRef> lRemovedTxn;
 
         // Deserialize pocket part if exists
-        auto[deserializeOk, pocketTx] = PocketServices::TransactionSerializer::DeserializeTransaction(ptx, vRecv);
+        auto[deserializeOk, pocketTx] = PocketServices::Serializer::DeserializeTransaction(ptx, vRecv);
         if (!deserializeOk)
             state.Invalid(false, 0, "Deserialize");
 
@@ -2750,7 +2750,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             }
 
             // Deserialize pocket part if exists
-            auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(*pblock, vRecv);
+            auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(*pblock, vRecv);
             auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
 
             // Setting fForceProcessing to true means that we bypass some of
@@ -2841,7 +2841,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         } // Don't hold cs_main when we call into ProcessNewBlock
 
         if (fBlockRead) {
-            auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(*pblock, vRecv);
+            auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(*pblock, vRecv);
             auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
 
             bool fNewBlock = false;
@@ -2909,7 +2909,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         // Deserialize pocket part if exists
-        auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(*pblock, vRecv);
+        auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(*pblock, vRecv);
         auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
 
         bool fNewBlock = false;

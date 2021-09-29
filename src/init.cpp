@@ -54,7 +54,7 @@
 
 #include <websocket/ws.h>
 #include "pocketdb/pocketnet.h"
-#include "pocketdb/services/TransactionPostProcessing.h"
+#include "pocketdb/services/PostProcessing.h"
 
 #ifndef WIN32
 

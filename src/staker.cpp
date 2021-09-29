@@ -11,7 +11,7 @@
 #include <script/sign.h>
 #include <consensus/merkle.h>
 
-#include "pocketdb/services/TransactionSerializer.h"
+#include "pocketdb/services/Serializer.h"
 
 Staker* Staker::getInstance()
 {
@@ -179,7 +179,7 @@ void Staker::worker(
             if (signBlock(block, wallet, nFees))
             {
                 // Extend pocketBlock with coinStake transaction
-                if (auto[ok, ptx] = PocketServices::TransactionSerializer::DeserializeTransaction(block->vtx[1]); ok)
+                if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
                     pocketBlock->emplace_back(ptx);
 
                 CheckStake(block, pocketBlock, wallet, chainparams);

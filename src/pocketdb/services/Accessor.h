@@ -9,7 +9,7 @@
 #include "primitives/block.h"
 
 #include "pocketdb/pocketnet.h"
-#include "pocketdb/services/TransactionSerializer.h"
+#include "pocketdb/services/Serializer.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 
 namespace PocketServices
