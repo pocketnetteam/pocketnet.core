@@ -53,9 +53,9 @@ namespace PocketDb
                        1,
                        o.TxHeight,
                        sum(o.Value)
-                            - ifnull((select sum(i.Value) from TxOutputs i where i.AddressHash = o.AddressHash and i.SpentHeight = o.TxHeight), 0)
-                            + ifnull((select b.Value from Balances b where b.AddressHash = o.AddressHash and b.Last = 1), 0)
-                from TxOutputs o
+                            - ifnull((select sum(i.Value) from TxOutputs i indexed by TxOutputs_AddressHash_SpentHeight_TxHeight where i.AddressHash = o.AddressHash and i.SpentHeight = o.TxHeight), 0)
+                            + ifnull((select b.Value from Balances b indexed by Balances_AddressHash_Last where b.AddressHash = o.AddressHash and b.Last = 1), 0)
+                from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
                 where o.TxHeight = ?
                 group by o.AddressHash
             )sql");
