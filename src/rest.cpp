@@ -97,12 +97,12 @@ static RetFormat ParseDataFormat(std::string& param, const std::string& strReq)
     return rf_names[0].rf;
 }
 
-static std::tuple<RetFormat, std::vector<std::string>> ParseParams(const std::string& strURIPart)
+static std::tuple <RetFormat, std::vector<std::string>> ParseParams(const std::string& strURIPart)
 {
     std::string param;
     RetFormat rf = ParseDataFormat(param, strURIPart);
 
-    std::vector<std::string> uriParts;
+    std::vector <std::string> uriParts;
     if (param.length() > 1)
     {
         std::string strUriParams = param.substr(1);
@@ -112,7 +112,7 @@ static std::tuple<RetFormat, std::vector<std::string>> ParseParams(const std::st
     return std::make_tuple(rf, uriParts);
 };
 
-static std::tuple<bool, int> TryGetParamInt(std::vector<std::string>& uriParts, int index)
+static std::tuple<bool, int> TryGetParamInt(std::vector <std::string>& uriParts, int index)
 {
     try
     {
@@ -130,7 +130,7 @@ static std::tuple<bool, int> TryGetParamInt(std::vector<std::string>& uriParts, 
     }
 }
 
-static std::tuple<bool, std::string> TryGetParamStr(std::vector<std::string>& uriParts, int index)
+static std::tuple<bool, std::string> TryGetParamStr(std::vector <std::string>& uriParts, int index)
 {
     try
     {
@@ -189,7 +189,7 @@ static bool rest_headers(HTTPRequest* req,
         return false;
     std::string param;
     const RetFormat rf = ParseDataFormat(param, strURIPart);
-    std::vector<std::string> path;
+    std::vector <std::string> path;
     boost::split(path, param, boost::is_any_of("/"));
 
     if (path.size() != 2)
@@ -219,7 +219,7 @@ static bool rest_headers(HTTPRequest* req,
     }
 
     CDataStream ssHeader(SER_NETWORK, PROTOCOL_VERSION);
-    for (const CBlockIndex* pindex : headers)
+    for (const CBlockIndex* pindex: headers)
     {
         ssHeader << pindex->GetBlockHeader();
     }
@@ -246,7 +246,7 @@ static bool rest_headers(HTTPRequest* req,
             UniValue jsonHeaders(UniValue::VARR);
             {
                 LOCK(cs_main);
-                for (const CBlockIndex* pindex : headers)
+                for (const CBlockIndex* pindex: headers)
                 {
                     jsonHeaders.push_back(blockheaderToJSON(pindex));
                 }
@@ -534,7 +534,7 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
     std::string param;
     const RetFormat rf = ParseDataFormat(param, strURIPart);
 
-    std::vector<std::string> uriParts;
+    std::vector <std::string> uriParts;
     if (param.length() > 1)
     {
         std::string strUriParams = param.substr(1);
@@ -548,7 +548,7 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
 
     bool fInputParsed = false;
     bool fCheckMemPool = false;
-    std::vector<COutPoint> vOutPoints;
+    std::vector <COutPoint> vOutPoints;
 
     // parse/deserialize input
     // input-format = output-format, rest/getutxos/bin requires binary input, gives binary output, ...
@@ -631,14 +631,14 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
 
     // check spentness and form a bitmap (as well as a JSON capable human-readable string representation)
     std::vector<unsigned char> bitmap;
-    std::vector<CCoin> outs;
+    std::vector <CCoin> outs;
     std::string bitmapStringRepresentation;
     std::vector<bool> hits;
     bitmap.resize((vOutPoints.size() + 7) / 8);
     {
         auto process_utxos = [&vOutPoints, &outs, &hits](const CCoinsView& view, const CTxMemPool& mempool)
         {
-            for (const COutPoint& vOutPoint : vOutPoints)
+            for (const COutPoint& vOutPoint: vOutPoints)
             {
                 Coin coin;
                 bool hit = !mempool.isSpent(vOutPoint) && view.GetCoin(vOutPoint, coin);
@@ -707,7 +707,7 @@ static bool rest_getutxos(HTTPRequest* req, const std::string& strURIPart)
             objGetUTXOResponse.pushKV("bitmap", bitmapStringRepresentation);
 
             UniValue utxos(UniValue::VARR);
-            for (const CCoin& coin : outs)
+            for (const CCoin& coin: outs)
             {
                 UniValue utxo(UniValue::VOBJ);
                 utxo.pushKV("height", (int32_t) coin.nHeight);
@@ -750,15 +750,10 @@ static bool rest_topaddresses(HTTPRequest* req, const std::string& strURIPart)
             count = 1000;
     }
 
-    if (rf == RetFormat::JSON)
-    {
-        auto result = req->DbConnection()->WebRepoInst->GetTopAddresses(count);
-        req->WriteHeader("Content-Type", "application/json");
-        req->WriteReply(HTTP_OK, result.write() + "\n");
-        return true;
-    }
-
-    return RESTERR(req, HTTP_NOT_FOUND, "output format not found (available: json)");
+    auto result = req->DbConnection()->WebRepoInst->GetTopAddresses(count);
+    req->WriteHeader("Content-Type", "application/json");
+    req->WriteReply(HTTP_OK, result.write() + "\n");
+    return true;
 }
 
 static bool rest_emission(HTTPRequest* req, const std::string& strURIPart)
@@ -857,7 +852,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
 
         try
         {
-            std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
+            std::shared_ptr <PocketHelpers::PocketBlock> pocketBlock = nullptr;
             if (!PocketServices::Accessor::GetBlock(block, pocketBlock) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
@@ -953,7 +948,7 @@ static const struct
 
 void StartREST()
 {
-    for (auto uri_prefixe : uri_prefixes)
+    for (auto uri_prefixe: uri_prefixes)
         g_restSocket->RegisterHTTPHandler(uri_prefixe.prefix, false, uri_prefixe.handler);
 
     // Register web content route
@@ -966,7 +961,7 @@ void InterruptREST()
 
 void StopREST()
 {
-    for (auto uri_prefixe : uri_prefixes)
+    for (auto uri_prefixe: uri_prefixes)
         g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
 
     g_staticSocket->UnregisterHTTPHandler("/", false);
