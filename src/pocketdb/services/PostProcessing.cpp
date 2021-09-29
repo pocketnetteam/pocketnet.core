@@ -54,11 +54,6 @@ namespace PocketServices
                         txInfo.Inputs.emplace_back(inp.prevout.hash.GetHex(), inp.prevout.n);
                 }
 
-                for (const auto& out : tx->vout)
-                {
-                    out.scriptPubKey.
-                }
-
                 txs.emplace_back(txInfo);
             }
         }
