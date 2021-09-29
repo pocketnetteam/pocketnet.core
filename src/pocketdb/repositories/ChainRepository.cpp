@@ -50,7 +50,9 @@ namespace PocketDb
                 select o.AddressHash,
                        1,
                        o.TxHeight,
-                       sum(o.Value) + ifnull((select b.Value from Balances b where b.AddressHash = o.AddressHash and b.Last = 1), 0)
+                       sum(o.Value)
+                            - ifnull((select sum(i.Value) from TxOutputs i where i.AddressHash = o.AddressHash and i.SpentHeight = o.TxHeight), 0)
+                            + ifnull((select b.Value from Balances b where b.AddressHash = o.AddressHash and b.Last = 1), 0)
                 from TxOutputs o
                 where o.TxHeight = ?
                 group by o.AddressHash, o.TxHeight

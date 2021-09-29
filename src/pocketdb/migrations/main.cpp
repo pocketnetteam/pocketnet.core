@@ -325,6 +325,7 @@ namespace PocketDb
 
             create index if not exists Balances_Height on Balances (Height);
             create index if not exists Balances_AddressHash_Height_Last on Balances (AddressHash, Height, Last);
+            create index if not exists Balances_Value on Balances (Value);
 
             -----------------------------------WEB-----------------------------------
             create index if not exists Transactions_Height_Time on Transactions (Height, Time);
