@@ -55,7 +55,7 @@ namespace PocketDb
                             + ifnull((select b.Value from Balances b where b.AddressHash = o.AddressHash and b.Last = 1), 0)
                 from TxOutputs o
                 where o.TxHeight = ?
-                group by o.AddressHash, o.TxHeight
+                group by o.AddressHash
             )sql");
             TryBindStatementInt(stmt, 1, height);
             TryStepStatement(stmt);
