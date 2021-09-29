@@ -375,13 +375,31 @@ namespace PocketDb
         TryBindStatementInt(stmt11, 1, height);
         TryStepStatement(stmt11);
 
-        // Remove ratings
+        // Restore Last for deleting records
         auto stmt2 = SetupSqlStatement(R"sql(
-            DELETE FROM Ratings
-            WHERE Height >= ?
+            update Ratings set Last=1
+            from (
+                select r1.Id, max(r2.Height)Height
+                from Ratings r1
+                join Ratings r2 on r2.Last = 0 and r2.Id = r1.Id and r2.Height < ?
+                where r1.Height >= ?
+                  and r1.Last = 1
+                group by r1.Type, r1.Id
+            )r
+            where Ratings.Type = r.Type
+              and Ratings.Id = r.Id
+              and Ratings.Height = t.Height
         )sql");
         TryBindStatementInt(stmt2, 1, height);
         TryStepStatement(stmt2);
+
+        // Remove ratings
+        auto stmt21 = SetupSqlStatement(R"sql(
+            delete from Ratings
+            where Height >= ?
+        )sql");
+        TryBindStatementInt(stmt21, 1, height);
+        TryStepStatement(stmt21);
     }
 
 

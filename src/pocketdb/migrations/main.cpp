@@ -138,10 +138,11 @@ namespace PocketDb
             create table if not exists Ratings
             (
                 Type   int not null,
+                Last   int not null,
                 Height int not null,
                 Id     int not null,
                 Value  int not null,
-                primary key (Type, Id, Height, Value)
+                primary key (Type, Height, Id, Value)
             );
         )sql");
 
@@ -290,6 +291,7 @@ namespace PocketDb
             create index if not exists Transactions_Type_Last_String1_Height on Transactions (Type, Last, String1, Height);
             create index if not exists Transactions_Type_Last_String2_Height on Transactions (Type, Last, String2, Height);
             create index if not exists Transactions_Type_Last_String1_String2_Height on Transactions (Type, Last, String1, String2, Height);
+            create index if not exists Transactions_Type_Last_Height_String3 on Transactions (Type, Last, Height, String3);
             create index if not exists Transactions_Type_String1_String2_Height on Transactions (Type, String1, String2, Height);
             create index if not exists Transactions_Type_String1_Height_Time_Int1 on Transactions (Type, String1, Height, Time, Int1);
             create index if not exists Transactions_String1_Last_Height on Transactions (String1, Last, Height);

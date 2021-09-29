@@ -33,14 +33,17 @@ namespace PocketWeb::PocketWebRpc
         // Build result array
         UniValue result(UniValue::VARR);
 
-        auto[contentCount, contentLangCount] = request.DbConnection()->WebRepoInst->GetContentLanguages(blockNumber);
+        // ---------------------------------------------------------------------
 
-        // Full statistic
+        // Language statistic
+        auto[contentCount, contentLangCount] = request.DbConnection()->WebRepoInst->GetContentLanguages(blockNumber);
         UniValue fullStat(UniValue::VOBJ);
         fullStat.pushKV("block", chainActive.Height());
         fullStat.pushKV("cntposts", contentCount);
         fullStat.pushKV("contentsLang", contentLangCount);
         result.push_back(fullStat);
+
+        // ---------------------------------------------------------------------
 
         // Pocketnet Team content
         std::string teamAddress = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
@@ -48,6 +51,8 @@ namespace PocketWeb::PocketWebRpc
         for (size_t i = 0; i < teamData.size(); i++)
             teamData.At(i).pushKV("msg", "sharepocketnet");
         result.push_back(teamData);
+
+        // ---------------------------------------------------------------------
 
         // Private subscribers news
         auto privateSubscribes = request.DbConnection()->WebRepoInst->GetSubscribesAddresses({ address }, { ACTION_SUBSCRIBE_PRIVATE });
@@ -66,17 +71,24 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
+        // ---------------------------------------------------------------------
+
         // Reposts
         auto reposts = request.DbConnection()->WebRepoInst->GetRelayedContent(address, blockNumber);
         for (size_t i = 0; i < reposts.size(); i++)
             reposts.At(i).pushKV("msg", "reshare");
         result.push_back(reposts);
 
+        // ---------------------------------------------------------------------
+
         // TODO (brangr): implement
+        // Get new subscribers
         // reindexer::QueryResults subscribers;
         // g_pocketdb->DB()->Select(
-        //     reindexer::Query("SubscribesView").Where("address_to", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(
+        //     reindexer::Query("SubscribesView").Where("address_to", CondEq, address)
+        //     .Where("block", CondGt, blockNumber).Sort("time", true).Limit(
         //         cntResult), subscribers);
+        //
         // for (auto it : subscribers)
         // {
         //     reindexer::Item itm(it.GetItem());
@@ -104,50 +116,29 @@ namespace PocketWeb::PocketWebRpc
         //     }
         // }
 
-        // TODO (brangr): implement
-        // reindexer::QueryResults scores;
-        // g_pocketdb->DB()->Select(reindexer::Query("Scores").Where("block", CondGt, blockNumber).InnerJoin("posttxid", "txid", CondEq,
-        //     reindexer::Query("Posts").Where("address", CondEq, address)).Sort("time", true).Limit(cntResult), scores);
-        // for (auto it : scores)
-        // {
-        //     reindexer::Item itm(it.GetItem());
-        //     UniValue msg(UniValue::VOBJ);
-        //     msg.pushKV("addr", address);
-        //     msg.pushKV("addrFrom", itm["address"].As<string>());
-        //     msg.pushKV("msg", "event");
-        //     msg.pushKV("txid", itm["txid"].As<string>());
-        //     msg.pushKV("time", itm["time"].As<string>());
-        //     msg.pushKV("posttxid", itm["posttxid"].As<string>());
-        //     msg.pushKV("upvoteVal", itm["value"].As<int>());
-        //     msg.pushKV("mesType", "upvoteShare");
-        //     msg.pushKV("nblock", itm["block"].As<int>());
-        //     a.push_back(msg);
-        // }
+        // ---------------------------------------------------------------------
 
-        // TODO (brangr): implement
-        // reindexer::QueryResults commentScores;
-        // g_pocketdb->DB()->Select(
-        //     reindexer::Query("CommentScores")
-        //         .Where("block", CondGt, blockNumber)
-        //         .InnerJoin("commentid", "txid", CondEq, reindexer::Query("Comment").Where("address", CondEq, address))
-        //         .Sort("time", true)
-        //         .Limit(cntResult),
-        //     commentScores);
-        // for (auto it : commentScores)
-        // {
-        //     reindexer::Item itm(it.GetItem());
-        //     UniValue msg(UniValue::VOBJ);
-        //     msg.pushKV("addr", address);
-        //     msg.pushKV("addrFrom", itm["address"].As<string>());
-        //     msg.pushKV("msg", "event");
-        //     msg.pushKV("txid", itm["txid"].As<string>());
-        //     msg.pushKV("time", itm["time"].As<string>());
-        //     msg.pushKV("commentid", itm["commentid"].As<string>());
-        //     msg.pushKV("upvoteVal", itm["value"].As<int>());
-        //     msg.pushKV("mesType", "cScore");
-        //     msg.pushKV("nblock", itm["block"].As<int>());
-        //     a.push_back(msg);
-        // }
+        // Scores to contents
+        auto scores = request.DbConnection()->WebRepoInst->GetContentsScores(address, blockNumber, cntResult);
+        for (size_t i = 0; i < scores.size(); i++)
+        {
+            scores.At(i).pushKV("msg", "event");
+            scores.At(i).pushKV("mesType", "upvoteShare");
+        }
+        result.push_back(scores);
+
+        // ---------------------------------------------------------------------
+
+        // Scores to comments
+        auto commentScores = request.DbConnection()->WebRepoInst->GetContentsScores(address, blockNumber, cntResult);
+        for (size_t i = 0; i < commentScores.size(); i++)
+        {
+            commentScores.At(i).pushKV("msg", "event");
+            commentScores.At(i).pushKV("mesType", "cScore");
+        }
+        result.push_back(commentScores);
+
+        // ---------------------------------------------------------------------
 
         // TODO (brangr): implement
         // std::vector<std::string> txSent;
@@ -220,6 +211,8 @@ namespace PocketWeb::PocketWebRpc
         //     a.push_back(msg);
         // }
 
+        // ---------------------------------------------------------------------
+
         // TODO (brangr): implement
         // vector<string> answerpostids;
         // reindexer::QueryResults commentsAnswer;
@@ -258,6 +251,8 @@ namespace PocketWeb::PocketWebRpc
         //         answerpostids.push_back(itm["postid"].As<string>());
         //     }
         // }
+
+        // ---------------------------------------------------------------------
 
         // TODO (brangr): implement
         // reindexer::QueryResults commentsPost;

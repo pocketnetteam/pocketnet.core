@@ -36,12 +36,18 @@ namespace PocketDb
         UniValue GetAddressesRegistrationDates(const vector<string>& addresses);
         UniValue GetTopAddresses(int count);
         UniValue GetAccountState(const string& address, int heightWindow);
+
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
         UniValue GetCommentsByIds(const string& addressHash, const vector<string>& commentHashes);
         UniValue GetLastComments(int count, int height, const string& lang = "");
+
         UniValue GetPostScores(const vector<string>& postHashes, const string& address);
-        UniValue GetPageScores(const vector<string>& commentHashes, const string& addressHash);
+        UniValue GetPageScores(const vector<string>& commentHashes, const string& address);
+
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
+        UniValue GetContentsScores(const string& address, int height, int limit);
+        UniValue GetCommentsScores(const string& address, int height, int limit);
+
         map<string, UniValue> GetUserProfile(const vector<string>& addresses, bool shortForm = true, int option = 0);
 
         map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses,
