@@ -420,7 +420,7 @@ namespace PocketDb
         auto stmt2 = SetupSqlStatement(R"sql(
             update Ratings set Last=1
             from (
-                select r1.Id, max(r2.Height)Height
+                select r1.Type, r1.Id, max(r2.Height)Height
                 from Ratings r1
                 join Ratings r2 on r2.Last = 0 and r2.Id = r1.Id and r2.Height < ?
                 where r1.Height >= ?
@@ -429,7 +429,7 @@ namespace PocketDb
             )r
             where Ratings.Type = r.Type
               and Ratings.Id = r.Id
-              and Ratings.Height = t.Height
+              and Ratings.Height = r.Height
         )sql");
         TryBindStatementInt(stmt2, 1, height);
         TryBindStatementInt(stmt2, 2, height);

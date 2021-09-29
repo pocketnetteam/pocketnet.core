@@ -81,10 +81,10 @@ namespace PocketDb
             auto stmtUpdate = SetupSqlStatement(R"sql(
                 update Ratings
                     set Last = 0
-                where r.Type = ?
-                  and r.Last = 1
-                  and r.Id = ?
-                  and r.Height < ?
+                where Type = ?
+                  and Last = 1
+                  and Id = ?
+                  and Height < ?
             )sql");
             TryBindStatementInt(stmtUpdate, 1, rating.GetTypeInt());
             TryBindStatementInt64(stmtUpdate, 2, rating.GetId());
