@@ -1479,10 +1479,10 @@ static void StartWS()
         UniValue val;
         if (val.read(out_message))
         {
-            std::vector<std::string> keys = val.getKeys();
-            if (std::find(keys.begin(), keys.end(), "addr") != keys.end())
+            try
             {
-                try
+                std::vector<std::string> keys = val.getKeys();
+                if (std::find(keys.begin(), keys.end(), "addr") != keys.end())
                 {
                     std::string _addr = val["addr"].get_str();
 
@@ -1505,27 +1505,27 @@ static void StartWS()
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
                         WSConnections.erase(connection->ID());
                         WSConnections.insert_or_assign(connection->ID(), wsUser);
-                    }
-                    else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
+                    } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
                             WSConnections.erase(connection->ID());
                         }
                     }
-                } catch (const std::exception& e)
-                {
-                    LogPrintf("Warning: ws.on_message - %s\n", e.what());
                 }
+            }
+            catch (const std::exception &e)
+            {
+                LogPrintf("Warning: ws.on_message - %s\n", e.what());
             }
         }
     };
 
     ws.on_open = [](std::shared_ptr<WsServer::Connection> connection)
     {
-        //cout << "Server: Opened connection " << connection.get() << endl;
-        //if ((std::find(WSConnections.begin(), WSConnections.end(), connection) == WSConnections.end()))
-        //    WSConnections.push_back(connection);
+//        cout << "Server: Opened connection " << connection.get() << endl;
+//        if ((std::find(WSConnections.begin(), WSConnections.end(), connection) == WSConnections.end()))
+//            WSConnections.push_back(connection);
     };
 
     ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/)
