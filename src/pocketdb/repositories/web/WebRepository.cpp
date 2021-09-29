@@ -156,7 +156,7 @@ namespace PocketDb
 
         auto sql = R"sql(
             select AddressHash, Value
-            from Balances indexed by Balances_Value
+            from Balances indexed by Balances_Last_Value
             where Last = 1
             order by Value desc
             limit ?
