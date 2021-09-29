@@ -8,7 +8,7 @@ namespace PocketServices
 {
     void PostProcessing::Index(const CBlock& block, int height)
     {
-        vector <TransactionIndexingInfo> txs;
+        vector<TransactionIndexingInfo> txs;
         PrepareTransactions(block, txs);
 
         int64_t nTime1 = GetTimeMicros();
@@ -18,10 +18,15 @@ namespace PocketServices
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (nTime2 - nTime1), height);
 
-        IndexRatings(height, block);
+        IndexBalances(height);
 
         int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (nTime3 - nTime2), height);
+        LogPrint(BCLog::BENCH, "    - IndexBalances: %.2fms _ %d\n", 0.001 * (nTime3 - nTime2), height);
+
+        IndexRatings(height, block);
+
+        int64_t nTime4 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (nTime4 - nTime3), height);
     }
 
     bool PostProcessing::Rollback(int height)
@@ -29,7 +34,7 @@ namespace PocketServices
         return PocketDb::ChainRepoInst.Rollback(height);
     }
 
-    void PostProcessing::PrepareTransactions(const CBlock& block, vector <TransactionIndexingInfo>& txs)
+    void PostProcessing::PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs)
     {
         for (size_t i = 0; i < block.vtx.size(); i++)
         {
@@ -49,6 +54,11 @@ namespace PocketServices
                         txInfo.Inputs.emplace_back(inp.prevout.hash.GetHex(), inp.prevout.n);
                 }
 
+                for (const auto& out : tx->vout)
+                {
+                    out.scriptPubKey.
+                }
+
                 txs.emplace_back(txInfo);
             }
         }
@@ -58,6 +68,11 @@ namespace PocketServices
     void PostProcessing::IndexChain(const string& blockHash, int height, vector <TransactionIndexingInfo>& txs)
     {
         PocketDb::ChainRepoInst.IndexBlock(blockHash, height, txs);
+    }
+
+    void PostProcessing::IndexBalances(int height)
+    {
+        PocketDb::ChainRepoInst.IndexBalances(height);
     }
 
     void PostProcessing::IndexRatings(int height, const CBlock& block)

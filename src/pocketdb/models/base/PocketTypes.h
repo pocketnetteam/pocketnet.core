@@ -84,14 +84,12 @@ namespace PocketTx
     };
 
     // Rating types
-    // TODO (brangr): rename?
     enum RatingType
     {
         RATING_ACCOUNT = 0,
         RATING_ACCOUNT_LIKERS = 1,
         RATING_POST = 2,
         RATING_COMMENT = 3,
-        RATING_BALANCE = 4,
     };
 
     // Transaction info for indexing spents and other

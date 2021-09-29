@@ -33,6 +33,7 @@ namespace PocketServices
         static void PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs);
         // Set block height for all transactions in block
         static void IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs);
+        static void IndexBalances(int height);
         static void IndexRatings(int height, const CBlock& block);
     private:
         static void BuildAccountLikers(const shared_ptr<ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers);

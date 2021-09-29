@@ -146,6 +146,17 @@ namespace PocketDb
             );
         )sql");
 
+        Tables.emplace_back(R"sql(
+            create table if not exists Balances
+            (
+                AddressHash     text    not null,
+                Last            int     not null,
+                Height          int     not null,
+                Value           int     not null,
+                primary key (AddressHash, Height)
+            );
+        )sql");
+
 
         Views.emplace_back(R"sql(
             drop view if exists vWebUsers;
@@ -309,6 +320,9 @@ namespace PocketDb
             create index if not exists Ratings_Height on Ratings (Height);
 
             create index if not exists Payload_String2 on Payload (String2);
+
+            create index if not exists Balances_Height on Balances (Height);
+            create index if not exists Balances_AddressHash_Height_Last on Balances (AddressHash, Height, Last);
 
             -----------------------------------WEB-----------------------------------
             create index if not exists Transactions_Height_Time on Transactions (Height, Time);

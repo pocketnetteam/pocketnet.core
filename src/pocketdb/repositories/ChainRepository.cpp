@@ -40,6 +40,42 @@ namespace PocketDb
         });
     }
 
+    void ChainRepository::IndexBalances(int height)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            // Generate new balance records
+            auto stmt = SetupSqlStatement(R"sql(
+                insert into Balances (AddressHash, Last, Height, Value)
+                select o.AddressHash,
+                       1,
+                       o.TxHeight,
+                       sum(o.Value) + ifnull((select b.Value from Balances b where b.AddressHash = o.AddressHash and b.Last = 1), 0)
+                from TxOutputs o
+                where o.TxHeight = ?
+                group by o.AddressHash, o.TxHeight
+            )sql");
+            TryBindStatementInt(stmt, 1, height);
+            TryStepStatement(stmt);
+
+            // Remove old Last records
+            auto stmtOld = SetupSqlStatement(R"sql(
+                update Balances indexed by Balances_AddressHash_Height_Last
+                    set Last = 0
+                from (
+                    select b.AddressHash, b.Height
+                    from Balances b indexed by Balances_Height
+                    where b.Height = ?
+                ) b
+                where Balances.AddressHash = b.AddressHash
+                  and Balances.Height < b.Height
+                  and Balances.Last = 1
+            )sql");
+            TryBindStatementInt(stmtOld, 1, height);
+            TryStepStatement(stmtOld);
+        });
+    }
+
     bool ChainRepository::ClearDatabase()
     {
         LogPrintf("Full reindexing database. This can take several hours.\n");
@@ -338,6 +374,7 @@ namespace PocketDb
             where Transactions.Id = t.Id and Transactions.Height = t.Height
         )sql");
         TryBindStatementInt(stmt, 1, height);
+        TryBindStatementInt(stmt, 2, height);
         TryStepStatement(stmt);
     }
 
@@ -355,6 +392,8 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(stmt0, 1, height);
         TryStepStatement(stmt0);
+
+        // ----------------------------------------
 
         // Rollback spent transaction outputs
         auto stmt1 = SetupSqlStatement(R"sql(
@@ -375,7 +414,9 @@ namespace PocketDb
         TryBindStatementInt(stmt11, 1, height);
         TryStepStatement(stmt11);
 
-        // Restore Last for deleting records
+        // ----------------------------------------
+
+        // Restore Last for deleting ratings
         auto stmt2 = SetupSqlStatement(R"sql(
             update Ratings set Last=1
             from (
@@ -391,6 +432,7 @@ namespace PocketDb
               and Ratings.Height = t.Height
         )sql");
         TryBindStatementInt(stmt2, 1, height);
+        TryBindStatementInt(stmt2, 2, height);
         TryStepStatement(stmt2);
 
         // Remove ratings
@@ -400,6 +442,34 @@ namespace PocketDb
         )sql");
         TryBindStatementInt(stmt21, 1, height);
         TryStepStatement(stmt21);
+
+        // ----------------------------------------
+
+        // Restore Last for deleting balances
+        auto stmt3 = SetupSqlStatement(R"sql(
+            update Balances set Last=1
+            from (
+                select b1.AddressHash, max(b2.Height)Height
+                from Balances b1
+                join Balances b2 on b2.Last = 0 and b2.AddressHash = b1.AddressHash and b2.Height < ?
+                where b1.Height >= ?
+                  and b1.Last = 1
+                group by b1.AddressHash
+            )b
+            where Balances.AddressHash = b.AddressHash
+              and Balances.Height = b.Height
+        )sql");
+        TryBindStatementInt(stmt3, 1, height);
+        TryBindStatementInt(stmt3, 2, height);
+        TryStepStatement(stmt3);
+
+        // Remove balances
+        auto stmt31 = SetupSqlStatement(R"sql(
+            delete from Balances
+            where Height >= ?
+        )sql");
+        TryBindStatementInt(stmt31, 1, height);
+        TryStepStatement(stmt31);
     }
 
 

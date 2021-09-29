@@ -336,11 +336,10 @@ namespace PocketDb
         int64_t result = 0;
 
         auto sql = R"sql(
-            select sum(Value)
-            from TxOutputs
-            where   SpentHeight is null
-                and TxHeight is not null
-                and AddressHash = ?
+            select Value
+            from Balances
+            where AddressHash = ?
+              and Last = 1
         )sql";
 
         TryTransactionStep(__func__, [&]()
