@@ -155,11 +155,10 @@ namespace PocketDb
         UniValue result(UniValue::VARR);
 
         auto sql = R"sql(
-            select o.AddressHash, sum(o.Value)
-            from TxOutputs o indexed by TxOutputs_SpentHeight
-            where o.SpentHeight is null
-            group by o.AddressHash
-            order by sum(o.Value) desc
+            select AddressHash, Value
+            from Balances indexed by Balances_Value
+            where Last = 1
+            order by Value desc
             limit ?
         )sql";
 
