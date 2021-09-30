@@ -234,11 +234,40 @@ namespace PocketDb
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("postHash", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("parentHash", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("answerHash", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("parentHash", value); else result.pushKV("parentHash", "");
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("answerHash", value); else result.pushKV("answerHash", "");
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("rootHash", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("postAddress", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) result.pushKV("answerAddress", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue NotifierRepository::GetPostCountFromMySubscribes(const string& address, int height)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            SELECT COUNT(1) Count
+            FROM Transactions sub
+            INNER JOIN Transactions post ON post.String1 = sub.String2 and post.Type IN (200, 201, 202, 203) and post.Last = 1
+            WHERE sub.Type IN (302, 303) AND sub.Last = 1 and post.Height = ? and sub.String1 = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) result.pushKV("count", value);
             }
 
             FinalizeSqlStatement(*stmt);

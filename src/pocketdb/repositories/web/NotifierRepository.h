@@ -25,6 +25,7 @@ namespace PocketDb
         UniValue GetSubscribeAddressTo(const string& subscribeHash);
         UniValue GetCommentInfoAddressByScore(const string& commentScoreHash);
         UniValue GetFullCommentInfo(const string& commentHash);
+        UniValue GetPostCountFromMySubscribes(const string& address, int height);
     };
 }
 
