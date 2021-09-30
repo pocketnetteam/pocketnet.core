@@ -740,6 +740,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/pocketnet.h
         pocketdb/pocketnet.cpp
         pocketdb/services/TransactionSerializer.cpp
+        pocketdb/services/WsNotifier.cpp
+        pocketdb/services/WsNotifier.h
         pocketdb/services/TransactionPostProcessing.cpp
         pocketdb/services/Accessor.cpp
         pocketdb/services/TransactionSerializer.h
@@ -754,6 +756,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/ChainRepository.cpp
         pocketdb/repositories/ConsensusRepository.h
         pocketdb/repositories/ConsensusRepository.cpp
+        pocketdb/repositories/web/NotifierRepository.h
+        pocketdb/repositories/web/NotifierRepository.cpp
         pocketdb/repositories/web/WebRepository.h
         pocketdb/repositories/web/ExplorerRepository.h
         pocketdb/repositories/web/WebRepository.cpp

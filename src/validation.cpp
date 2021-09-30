@@ -3095,6 +3095,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          sharesCnt += 1;
 
                          //TODO get post lang in sqlite
+                         // request (1)
                          reindexer::Item shr_itm;
                          if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, txid), shr_itm).ok())
                          {
@@ -3156,10 +3157,12 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      reindexer::Item _repost_itm;
                      if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
                          txidpocketnet = txidpocketnet + txid + ",";
+                         // request (2)
                      else if (g_pocketdb->SelectOne(reindexer::Query("Posts").InnerJoin("txid", "txidRepost", CondEq, reindexer::Query("Posts").Where("txid", CondEq, txid)), _repost_itm).ok())
                      {
                          reindexer::Item _itmP;
                          std::string addrFrom = "";
+                         // request (3)
                          if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _repost_itm["txid"].As<string>()), _itmP).ok())
                              addrFrom = _itmP["address"].As<string>();
                          custom_fields cFields
@@ -3172,6 +3175,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          PrepareWSMessage(messages, "event", _repost_itm["address"].As<string>(), txid, txtime, cFields);
                      }
 
+                     // request (4)
                      reindexer::QueryResults postfromprivate;
                      g_pocketdb->DB()->Select(reindexer::Query("SubscribesView").Where("address_to", CondEq, addr.first).Where("private", CondEq, "true"), postfromprivate);
                      for (auto it : postfromprivate) {
@@ -3186,6 +3190,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  case "userInfo":
                  {
                      reindexer::Item _user_itm;
+                     // request (5)
                      if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("txid", CondEq, txid), _user_itm).ok())
                      {
                          if (_user_itm["time"].As<int64_t>() == _user_itm["regdate"].As<int64_t>())
@@ -3209,6 +3214,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      reindexer::QueryResults queryResS;
                      reindexer::QueryResults queryResP;
 
+                     // request (6)
                      reindexer::Error errS = g_pocketdb->DB()->Select(
                              reindexer::Query("Scores", 0, 1)
                                      .Where("txid", CondEq, txid),
@@ -3218,6 +3224,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          reindexer::Item itmS(queryResS[0].GetItem());
 
+                         // request (7)
                          reindexer::Error errP = g_pocketdb->DB()->Select(
                                  reindexer::Query("Posts", 0, 1)
                                          .Where("txid", CondEq, itmS["posttxid"].As<string>()),
@@ -3246,6 +3253,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  {
                      reindexer::QueryResults queryRes;
 
+                     // request (8)
                      reindexer::Error err = g_pocketdb->DB()->Select(
                              reindexer::Query("Subscribes", 0, 1)
                                      .Where("txid", CondEq, txid),
@@ -3269,6 +3277,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      reindexer::QueryResults queryResS;
                      reindexer::QueryResults queryResP;
 
+                     // request (9)
                      reindexer::Error errS = g_pocketdb->DB()->Select(
                              reindexer::Query("CommentScores", 0, 1)
                                      .Where("txid", CondEq, txid),
@@ -3276,6 +3285,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 
                      if (errS.ok() && queryResS.Count() > 0)
                      {
+                         // request (10)
                          reindexer::Item itmS(queryResS[0].GetItem());
                          reindexer::Error errP = g_pocketdb->DB()->Select(
                                  reindexer::Query("Comment", 0, 1)
@@ -3303,6 +3313,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  case "commentDelete":
                  {
                      reindexer::QueryResults queryResS;
+                     // request (11)
                      reindexer::Error errS = g_pocketdb->DB()->Select(
                              reindexer::Query("Comment", 0, 1)
                                      .Where("txid", CondEq, txid),
@@ -3314,6 +3325,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 
                          // First send notification to autor of post
                          reindexer::QueryResults queryResP;
+                         // request (12)
                          reindexer::Error errP = g_pocketdb->DB()->Select(
                                  reindexer::Query("Posts", 0, 1)
                                          .Where("txid", CondEq, itmS["postid"].As<string>()),
@@ -3338,6 +3350,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 
                          // Second send notification to autor of comment if answerid not empty
                          reindexer::QueryResults queryResP;
+                         // request (13)
                          reindexer::Error errP = g_pocketdb->DB()->Select(
                                  reindexer::Query("Comment", 0, 1)
                                          .Where("otxid", CondEq, itmS["answerid"].As<string>())
