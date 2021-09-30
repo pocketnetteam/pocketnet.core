@@ -125,7 +125,7 @@ set(WITH_PIC ${WITH_PIC_BACKUP} CACHE BOOL "Enable fPIC" FORCE)
 
 # Finding boost
 # TODO minimal boost version is increased to 1.66 because websockets (websocket/ws.h) are using lambdas as WriteHandler. This functional was implemented in 1.66.
-find_package(Boost 1.66 REQUIRED COMPONENTS System Thread Chrono filesystem date_time)
+find_package(Boost 1.66 REQUIRED COMPONENTS system thread chrono filesystem date_time)
 ######## Boost sleep functions validation
 set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         #include <boost/version.hpp>
