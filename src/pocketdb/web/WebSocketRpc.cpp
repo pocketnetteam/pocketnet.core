@@ -49,8 +49,10 @@ namespace PocketWeb::PocketWebRpc
         std::string teamAddress = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
         auto[teamCount, teamData] = request.DbConnection()->WebRepoInst->GetLastAddressContent(teamAddress, blockNumber, 99);
         for (size_t i = 0; i < teamData.size(); i++)
+        {
             teamData.At(i).pushKV("msg", "sharepocketnet");
-        result.push_back(teamData);
+            result.push_back(teamData[i]);
+        }
 
         // ---------------------------------------------------------------------
 
@@ -67,21 +69,18 @@ namespace PocketWeb::PocketWebRpc
                 subData.At(0).pushKV("mesType", "postfromprivate");
                 subData.At(0).pushKV("addrFrom", subAddress);
                 subData.At(0).pushKV("postsCnt", subCount);
-                result.push_back(subData.At(0));
+                result.push_back(subData[0]);
             }
         }
 
         // ---------------------------------------------------------------------
 
         // Reposts
-        auto reposts = request.DbConnection()->WebRepoInst->GetRelayedContent(address, blockNumber);
-        for (size_t i = 0; i < reposts.size(); i++)
-            reposts.At(i).pushKV("msg", "reshare");
-        result.push_back(reposts);
+        result.push_backV(request.DbConnection()->WebRepoInst->GetMissedRelayedContent(address, blockNumber));
 
         // ---------------------------------------------------------------------
 
-        // TODO (brangr): implement
+        // TODO (brangr): Oo
         // Get new subscribers
         // reindexer::QueryResults subscribers;
         // g_pocketdb->DB()->Select(
@@ -119,100 +118,21 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         // Scores to contents
-        auto scores = request.DbConnection()->WebRepoInst->GetContentsScores(address, blockNumber, cntResult);
-        for (size_t i = 0; i < scores.size(); i++)
-        {
-            scores.At(i).pushKV("msg", "event");
-            scores.At(i).pushKV("mesType", "upvoteShare");
-        }
-        result.push_back(scores);
+        result.push_backV(request.DbConnection()->WebRepoInst->GetMissedContentsScores(address, blockNumber, cntResult));
 
         // ---------------------------------------------------------------------
 
         // Scores to comments
-        auto commentScores = request.DbConnection()->WebRepoInst->GetContentsScores(address, blockNumber, cntResult);
-        for (size_t i = 0; i < commentScores.size(); i++)
-        {
-            commentScores.At(i).pushKV("msg", "event");
-            commentScores.At(i).pushKV("mesType", "cScore");
-        }
-        result.push_back(commentScores);
+        result.push_backV(request.DbConnection()->WebRepoInst->GetMissedCommentsScores(address, blockNumber, cntResult));
 
         // ---------------------------------------------------------------------
 
-        // TODO (brangr): implement
-        // std::vector<std::string> txSent;
-        // reindexer::QueryResults transactions;
-        // g_pocketdb->DB()->Select(
-        //     reindexer::Query("UTXO").Where("address", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult),
-        //     transactions);
-        // for (auto it : transactions)
-        // {
-        //     reindexer::Item itm(it.GetItem());
-        //
-        //     // Double transaction notify not allowed
-        //     if (std::find(txSent.begin(), txSent.end(), itm["txid"].As<string>()) != txSent.end()) continue;
-        //
-        //     UniValue msg(UniValue::VOBJ);
-        //     msg.pushKV("addr", itm["address"].As<string>());
-        //     msg.pushKV("msg", "transaction");
-        //     msg.pushKV("txid", itm["txid"].As<string>());
-        //     msg.pushKV("time", itm["time"].As<string>());
-        //     msg.pushKV("amount", itm["amount"].As<int64_t>());
-        //     msg.pushKV("nblock", itm["block"].As<int>());
-        //
-        //     uint256 hash = ParseHashV(itm["txid"].As<string>(), "txid");
-        //     CTransactionRef tx;
-        //     uint256 hash_block;
-        //     CBlockIndex* blockindex = nullptr;
-        //     if (GetTransaction(hash, tx, Params().GetConsensus(), hash_block, true, blockindex))
-        //     {
-        //         const CTxOut& txout = tx->vout[itm["txout"].As<int>()];
-        //         std::string optype = "";
-        //         if (txout.scriptPubKey[0] == OP_RETURN)
-        //         {
-        //             std::string asmstr = ScriptToAsmStr(txout.scriptPubKey);
-        //             std::vector<std::string> spl;
-        //             boost::split(spl, asmstr, boost::is_any_of("\t "));
-        //             if (spl.size() == 3)
-        //             {
-        //                 if (spl[1] == OR_POST || spl[1] == OR_POSTEDIT)
-        //                     optype = "share";
-        //                 else if (spl[1] == OR_VIDEO)
-        //                     optype = "video";
-        //                 else if (spl[1] == OR_SCORE)
-        //                     optype = "upvoteShare";
-        //                 else if (spl[1] == OR_SUBSCRIBE)
-        //                     optype = "subscribe";
-        //                 else if (spl[1] == OR_SUBSCRIBEPRIVATE)
-        //                     optype = "subscribePrivate";
-        //                 else if (spl[1] == OR_USERINFO)
-        //                     optype = "userInfo";
-        //                 else if (spl[1] == OR_UNSUBSCRIBE)
-        //                     optype = "unsubscribe";
-        //                 else if (spl[1] == OR_COMMENT)
-        //                     optype = "comment";
-        //                 else if (spl[1] == OR_COMMENT_EDIT)
-        //                     optype = "commentEdit";
-        //                 else if (spl[1] == OR_COMMENT_DELETE)
-        //                     optype = "commentDelete";
-        //                 else if (spl[1] == OR_COMMENT_SCORE)
-        //                     optype = "cScore";
-        //             }
-        //         }
-        //
-        //         if (optype != "") msg.pushKV("type", optype);
-        //
-        //         UniValue txinfo(UniValue::VOBJ);
-        //         TxToJSON(*tx, hash_block, txinfo);
-        //         msg.pushKV("txinfo", txinfo);
-        //     }
-        //
-        //     a.push_back(msg);
-        // }
+        // New incoming transactions
+        result.push_backV(request.DbConnection()->WebRepoInst->GetMissedTransactions(address, blockNumber, cntResult));
 
         // ---------------------------------------------------------------------
 
+        // Comments answers
         // TODO (brangr): implement
         // vector<string> answerpostids;
         // reindexer::QueryResults commentsAnswer;
