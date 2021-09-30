@@ -369,7 +369,11 @@ namespace PocketHelpers
 
     bool TransactionHelper::IsIn(PocketTxType txType, const vector<PocketTxType>& inTypes)
     {
-        return any_of(inTypes.begin(), inTypes.end(), txType);
+        for (auto inType : inTypes)
+            if (inType == txType)
+                return true;
+
+        return false;
     }
 
     string TransactionHelper::TxStringType(PocketTxType type)
