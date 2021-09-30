@@ -38,9 +38,15 @@ namespace PocketConsensus
                     PocketHelpers::SocialCheckpoints socialCheckpoints;
                     if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
                         return {false, SocialConsensusResult_RelayContentNotFound};
-                };
-                if (*relayTx->GetType() != CONTENT_POST) return {false, SocialConsensusResult_NotAllowed};
-                if (*relayTx->GetType() == CONTENT_DELETE) return {false, SocialConsensusResult_RepostDeletedContent};
+                }
+                else
+                {
+                    if (*relayTx->GetType() != CONTENT_POST)
+                        return {false, SocialConsensusResult_NotAllowed};
+
+                    if (*relayTx->GetType() == CONTENT_DELETE)
+                        return {false, SocialConsensusResult_RepostDeletedContent};
+                }
             }
 
             // Check payload size
