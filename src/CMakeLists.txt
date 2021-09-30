@@ -4,6 +4,8 @@ include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceRuns)
 
+set(CMAKE_CXX_STANDARD 17)
+
 ### Options
 
 option(DISABLE_GUI "Disable building qt gui (Default is OFF)" OFF)
