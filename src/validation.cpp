@@ -3064,8 +3064,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 typedef std::map<std::string, std::string> custom_fields;
 void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 {
-    // TODO (brangr): Implement send notifies
-    //TODO Start
+     // TODO (brangr): Implement send notifies
      // <address, [messages]>
      std::map<std::string, std::vector<UniValue>> messages;
      uint256 _block_hash = block.GetHash();
@@ -3094,12 +3093,12 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          optype = "share";
                          sharesCnt += 1;
 
-                         //TODO get post lang in sqlite
-                         // request (1)
-                         reindexer::Item shr_itm;
-                         if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, txid), shr_itm).ok())
+                         auto response = PocketDb::NotifierRepoInst.GetPostLang(txid);
+
+                         if (response.exists("lang"))
                          {
-                             std::string lang = shr_itm["lang"].As<string>();
+                             std::string lang = response["lang"].get_str();
+
                              auto itl = sharesCntLang.find(lang);
                              if (itl != sharesCntLang.end())
                                  itl->second += 1;
@@ -3154,96 +3153,70 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  // Event for new PocketNET transaction
                  case "share":
                  {
-                     reindexer::Item _repost_itm;
                      if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
-                         txidpocketnet = txidpocketnet + txid + ",";
-                         // request (2)
-                     else if (g_pocketdb->SelectOne(reindexer::Query("Posts").InnerJoin("txid", "txidRepost", CondEq, reindexer::Query("Posts").Where("txid", CondEq, txid)), _repost_itm).ok())
                      {
-                         reindexer::Item _itmP;
-                         std::string addrFrom = "";
-                         // request (3)
-                         if (g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, _repost_itm["txid"].As<string>()), _itmP).ok())
-                             addrFrom = _itmP["address"].As<string>();
-                         custom_fields cFields
+                         txidpocketnet = txidpocketnet + txid + ",";
+                     }
+                     else
+                     {
+                         auto response = PocketDb::NotifierRepoInst.GetOriginalPostAddressByRepost(txid);
+                         if (response.exists("hash"))
                          {
-                             {"mesType", "reshare"},
-                             {"txidRepost", _repost_itm["txid"].As<string>()},
-                             {"addrFrom", addrFrom}
-                         };
+                             std::string addrFrom = response["address"].get_str();
 
-                         PrepareWSMessage(messages, "event", _repost_itm["address"].As<string>(), txid, txtime, cFields);
+                             custom_fields cFields
+                             {
+                                 {"mesType",    "reshare"},
+                                 {"txidRepost", response["hash"].get_str()},
+                                 {"addrFrom",   addrFrom}
+                             };
+
+                             PrepareWSMessage(messages, "event", addrFrom, txid, txtime, cFields);
+                         }
                      }
 
-                     // request (4)
-                     reindexer::QueryResults postfromprivate;
-                     g_pocketdb->DB()->Select(reindexer::Query("SubscribesView").Where("address_to", CondEq, addr.first).Where("private", CondEq, "true"), postfromprivate);
-                     for (auto it : postfromprivate) {
-                         reindexer::Item _itm(it.GetItem());
+                     auto subscribesResponse = PocketDb::NotifierRepoInst.GetPrivateSubscribeAddressesByAddressTo(addr.first);
+                     for (size_t i = 0; i < subscribesResponse.size(); ++i)
+                     {
+                         auto address = subscribesResponse[i]["address"].get_str();
+
                          custom_fields cFields{
                                  {"mesType", "postfromprivate"},
                                  {"addrFrom", addr.first}};
-                         PrepareWSMessage(messages, "event", _itm["address"].As<string>(), txid, txtime, cFields);
+                         PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                      }
                  }
                  break;
                  case "userInfo":
                  {
-                     reindexer::Item _user_itm;
-                     // request (5)
-                     if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("txid", CondEq, txid), _user_itm).ok())
+                     //TODO check if (_user_itm["time"].As<int64_t>() == _user_itm["regdate"].As<int64_t>())
+                     auto response = PocketDb::NotifierRepoInst.GetUserReferrerAddress(txid);
+                     if (response.exists("referrerAddress"))
                      {
-                         if (_user_itm["time"].As<int64_t>() == _user_itm["regdate"].As<int64_t>())
+                         custom_fields cFields
                          {
-                             if (_user_itm["referrer"].As<string>() != "")
-                             {
-                                 custom_fields cFields
-                                 {
-                                     {"mesType", optype},
-                                     {"addrFrom", addr.first}
-                                 };
+                             {"mesType", optype},
+                             {"addrFrom", addr.first}
+                         };
 
-                                 PrepareWSMessage(messages, "event", _user_itm["referrer"].As<string>(), txid, txtime, cFields);
-                             }
-                         }
+                         PrepareWSMessage(messages, "event", response["referrerAddress"].get_str(), txid, txtime, cFields);
                      }
                  }
                  break;
                  case "upvoteShare":
                  {
-                     reindexer::QueryResults queryResS;
-                     reindexer::QueryResults queryResP;
-
-                     // request (6)
-                     reindexer::Error errS = g_pocketdb->DB()->Select(
-                             reindexer::Query("Scores", 0, 1)
-                                     .Where("txid", CondEq, txid),
-                             queryResS);
-
-                     if (errS.ok() && queryResS.Count() > 0)
+                     auto response = PocketDb::NotifierRepoInst.GetPostInfoAddressByScore(txid);
+                     if (response.exists("postTxHash"))
                      {
-                         reindexer::Item itmS(queryResS[0].GetItem());
-
-                         // request (7)
-                         reindexer::Error errP = g_pocketdb->DB()->Select(
-                                 reindexer::Query("Posts", 0, 1)
-                                         .Where("txid", CondEq, itmS["posttxid"].As<string>()),
-                                 queryResP);
-
-                         if (errP.ok() && queryResP.Count() > 0)
+                         custom_fields cFields
                          {
-                             reindexer::Item itmP(queryResP[0].GetItem());
+                             {"mesType", optype},
+                             {"addrFrom", addr.first},
+                             {"posttxid", response["postTxHash"].get_str()},
+                             {"upvoteVal", response["value"].get_str()}
+                         };
 
-                             custom_fields cFields
-                             {
-                                 {"mesType", optype},
-                                 {"addrFrom", addr.first},
-                                 {"posttxid", itmS["posttxid"].As<string>()},
-                                 {"upvoteVal", itmS["value"].As<string>()}
-                             };
-
-                             PrepareWSMessage(messages, "event", itmP["address"].As<string>(), txid, txtime, cFields);
-                         }
+                         PrepareWSMessage(messages, "event", response["postAddress"].get_str(), txid, txtime, cFields);
                      }
                  }
                  break;
@@ -3251,60 +3224,33 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  case "subscribePrivate":
                  case "unsubscribe":
                  {
-                     reindexer::QueryResults queryRes;
-
-                     // request (8)
-                     reindexer::Error err = g_pocketdb->DB()->Select(
-                             reindexer::Query("Subscribes", 0, 1)
-                                     .Where("txid", CondEq, txid),
-                             queryRes);
-
-                     if (err.ok() && queryRes.Count() > 0)
+                     auto response = PocketDb::NotifierRepoInst.GetSubscribeAddressTo(txid);
+                     if (response.exists("addressTo"))
                      {
-                         reindexer::Item itm(queryRes[0].GetItem());
-
-                         custom_fields cFields{
-                                 {"mesType", optype},
-                                 {"addrFrom", addr.first},
+                         custom_fields cFields
+                         {
+                             {"mesType", optype},
+                             {"addrFrom", addr.first},
                          };
 
-                         PrepareWSMessage(messages, "event", itm["address_to"].As<string>(), txid, txtime, cFields);
+                         PrepareWSMessage(messages, "event", response["addressTo"].get_str(), txid, txtime, cFields);
                      }
                  }
                  break;
                  case "cScore":
                  {
-                     reindexer::QueryResults queryResS;
-                     reindexer::QueryResults queryResP;
-
-                     // request (9)
-                     reindexer::Error errS = g_pocketdb->DB()->Select(
-                             reindexer::Query("CommentScores", 0, 1)
-                                     .Where("txid", CondEq, txid),
-                             queryResS);
-
-                     if (errS.ok() && queryResS.Count() > 0)
+                     auto response = PocketDb::NotifierRepoInst.GetCommentInfoAddressByScore(txid);
+                     if (response.exists("commentHash"))
                      {
-                         // request (10)
-                         reindexer::Item itmS(queryResS[0].GetItem());
-                         reindexer::Error errP = g_pocketdb->DB()->Select(
-                                 reindexer::Query("Comment", 0, 1)
-                                         .Where("otxid", CondEq, itmS["commentid"].As<string>())
-                                         .Where("last", CondEq, true),
-                                 queryResP);
-
-                         if (errP.ok() && queryResP.Count() > 0)
+                         custom_fields cFields
                          {
-                             reindexer::Item itmP(queryResP[0].GetItem());
+                             {"mesType", optype},
+                             {"addrFrom", addr.first},
+                             {"commentid", response["commentHash"].get_str()},
+                             {"upvoteVal", response["value"].get_str()}
+                         };
 
-                             custom_fields cFields{
-                                     {"mesType", optype},
-                                     {"addrFrom", addr.first},
-                                     {"commentid", itmS["commentid"].As<string>()},
-                                     {"upvoteVal", itmS["value"].As<string>()}};
-
-                             PrepareWSMessage(messages, "event", itmP["address"].As<string>(), txid, txtime, cFields);
-                         }
+                         PrepareWSMessage(messages, "event", response["commentAddress"].get_str(), txid, txtime, cFields);
                      }
                  }
                  break;
@@ -3312,66 +3258,34 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  case "commentEdit":
                  case "commentDelete":
                  {
-                     reindexer::QueryResults queryResS;
-                     // request (11)
-                     reindexer::Error errS = g_pocketdb->DB()->Select(
-                             reindexer::Query("Comment", 0, 1)
-                                     .Where("txid", CondEq, txid),
-                             queryResS);
-
-                     if (errS.ok() && queryResS.Count() > 0)
+                     auto response = PocketDb::NotifierRepoInst.GetFullCommentInfo(txid);
+                     if (response.exists("postHash"))
                      {
-                         reindexer::Item itmS(queryResS[0].GetItem());
-
-                         // First send notification to autor of post
-                         reindexer::QueryResults queryResP;
-                         // request (12)
-                         reindexer::Error errP = g_pocketdb->DB()->Select(
-                                 reindexer::Query("Posts", 0, 1)
-                                         .Where("txid", CondEq, itmS["postid"].As<string>()),
-                                 queryResP);
-
-                         if (errP.ok() && queryResP.Count() > 0)
+                         custom_fields cFields
                          {
-                             reindexer::Item itmP(queryResP[0].GetItem());
+                             {"mesType", optype},
+                             {"addrFrom", addr.first},
+                             {"posttxid", response["postHash"].get_str()},
+                             {"parentid", response["parentHash"].get_str()},
+                             {"answerid", response["answerHash"].get_str()},
+                             {"reason", "post"},
+                         };
 
-                             custom_fields cFields
-                             {
-                                     {"mesType", optype},
-                                     {"addrFrom", addr.first},
-                                     {"posttxid", itmS["postid"].As<string>()},
-                                     {"parentid", itmS["parentid"].As<string>()},
-                                     {"answerid", itmS["answerid"].As<string>()},
-                                     {"reason", "post"},
-                             };
+                         PrepareWSMessage(messages, "event", response["postAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);
 
-                             PrepareWSMessage(messages, "event", itmP["address"].As<string>(), itmS["otxid"].As<string>(), txtime, cFields);
-                         }
-
-                         // Second send notification to autor of comment if answerid not empty
-                         reindexer::QueryResults queryResP;
-                         // request (13)
-                         reindexer::Error errP = g_pocketdb->DB()->Select(
-                                 reindexer::Query("Comment", 0, 1)
-                                         .Where("otxid", CondEq, itmS["answerid"].As<string>())
-                                         .Where("last", CondEq, true),
-                                 queryResP);
-
-                         if (errP.ok() && queryResP.Count() > 0)
+                         if (response.exists("answerAddress"))
                          {
-                             reindexer::Item itmP(queryResP[0].GetItem());
-
                              custom_fields cFields
                              {
                                  {"mesType", optype},
                                  {"addrFrom", addr.first},
-                                 {"posttxid", itmS["postid"].As<string>()},
-                                 {"parentid", itmS["parentid"].As<string>()},
-                                 {"answerid", itmS["answerid"].As<string>()},
+                                 {"posttxid", response["postHash"].get_str()},
+                                 {"parentid", response["parentHash"].get_str()},
+                                 {"answerid", response["answerHash"].get_str()},
                                  {"reason", "answer"},
                              };
 
-                             PrepareWSMessage(messages, "event", itmP["address"].As<string>(), itmS["otxid"].As<string>(), txtime, cFields);
+                             PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);
                          }
                      }
                  }
@@ -3396,6 +3310,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
          msg.pushKV("shares", sharesCnt);
          msg.pushKV("sharesLang", sharesLang);
 
+         // request(14)
          reindexer::QueryResults queryResSubscribes;
          reindexer::Error err = g_pocketdb->DB()->Select(
              reindexer::Query("SubscribesView")
@@ -3409,6 +3324,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  _addrs.push_back(itm["address_to"].As<string>());
              }
 
+             // request(15)
              reindexer::QueryResults queryResShares;
              reindexer::Error err = g_pocketdb->DB()->Select(
                  reindexer::Query("Posts")

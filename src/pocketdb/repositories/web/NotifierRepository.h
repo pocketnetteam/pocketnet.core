@@ -19,7 +19,7 @@ namespace PocketDb
 
         UniValue GetPostLang(const string& postHash);
         UniValue GetOriginalPostAddressByRepost(const string& repostHash);
-        UniValue GetPrivateSubscribeAddressByAddressTo(const string& addressTo);
+        UniValue GetPrivateSubscribeAddressesByAddressTo(const string& addressTo);
         UniValue GetUserReferrerAddress(const string& userHash);
         UniValue GetPostInfoAddressByScore(const string& postScoreHash);
         UniValue GetSubscribeAddressTo(const string& subscribeHash);
