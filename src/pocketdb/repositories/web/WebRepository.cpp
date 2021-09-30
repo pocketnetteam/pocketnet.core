@@ -1577,69 +1577,70 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
     vector<UniValue> WebRepository::GetMissedTransactions(const string& address, int height, int count)
     {
         vector<UniValue> result;
-
-        string sql = R"sql(
-            select
-                s.String1 as address,
-                s.Hash,
-                s.Time,
-                s.String2 as commenttxid,
-                s.Int1 as value,
-                s.Height
-            from Transactions c
-            join Transactions s on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
-            where c.Type in (204, 205)
-              and c.Last = 1
-              and c.Height is not null
-              and c.String1 = ?
-            order by s.Time desc
-            limit ?
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementInt(stmt, 2, height);
-            TryBindStatementInt(stmt, 3, limit);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("addr", address);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("commentid", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
-
-                result.push_back(record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
         return result;
 
-        std::vector<std::string> txSent;
-        reindexer::QueryResults transactions;
-        g_pocketdb->DB()->Select(
-            reindexer::Query("UTXO").Where("address", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult),
-            transactions);
+        // string sql = R"sql(
+        //     select
+        //         s.String1 as address,
+        //         s.Hash,
+        //         s.Time,
+        //         s.String2 as commenttxid,
+        //         s.Int1 as value,
+        //         s.Height
+        //     from Transactions c
+        //     join Transactions s on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
+        //     where c.Type in (204, 205)
+        //       and c.Last = 1
+        //       and c.Height is not null
+        //       and c.String1 = ?
+        //     order by s.Time desc
+        //     limit ?
+        // )sql";
+        //
+        // TryTransactionStep(__func__, [&]()
+        // {
+        //     auto stmt = SetupSqlStatement(sql);
+        //
+        //     TryBindStatementText(stmt, 1, address);
+        //     TryBindStatementInt(stmt, 2, height);
+        //     TryBindStatementInt(stmt, 3, limit);
+        //
+        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
+        //     {
+        //         UniValue record(UniValue::VOBJ);
+        //
+        //         record.pushKV("addr", address);
+        //         if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
+        //         if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
+        //         if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
+        //         if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("commentid", value);
+        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
+        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
+        //
+        //         result.push_back(record);
+        //     }
+        //
+        //     FinalizeSqlStatement(*stmt);
+        // });
+        //
+        // return result;
 
-        msg.pushKV("addr", itm["address"].As<string>());
-        msg.pushKV("msg", "transaction");
-        msg.pushKV("txid", itm["txid"].As<string>());
-        msg.pushKV("time", itm["time"].As<string>());
-        msg.pushKV("amount", itm["amount"].As<int64_t>());
-        msg.pushKV("nblock", itm["block"].As<int>());
-
-        auto stringType = TransactionHelper::TxStringType(txType);
-        if (!stringType.empty())
-            transactions.At(i).pushKV("type", stringType);
+        // std::vector<std::string> txSent;
+        // reindexer::QueryResults transactions;
+        // g_pocketdb->DB()->Select(
+        //     reindexer::Query("UTXO").Where("address", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult),
+        //     transactions);
+        //
+        // msg.pushKV("addr", itm["address"].As<string>());
+        // msg.pushKV("msg", "transaction");
+        // msg.pushKV("txid", itm["txid"].As<string>());
+        // msg.pushKV("time", itm["time"].As<string>());
+        // msg.pushKV("amount", itm["amount"].As<int64_t>());
+        // msg.pushKV("nblock", itm["block"].As<int>());
+        //
+        // auto stringType = TransactionHelper::TxStringType(txType);
+        // if (!stringType.empty())
+        //     transactions.At(i).pushKV("type", stringType);
 
         // TODO (brangr): implement
         // UniValue txinfo(UniValue::VOBJ);
