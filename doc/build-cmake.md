@@ -51,27 +51,18 @@ All options are specified like this: **-D**OPTION=VALUE\
 If value is boolean - pass ON or OFF as a value
 
 ### Suggestions for Windows building
-- Build Boost from source.
-  - Use **b2** to build for msvc toolchain or **b2 toolset=gcc** for mingw/cygwin build
-  - [*NOTE*] **b2** without arguments will build libraries with **dynamic runtime**. If you want to build boost for static runtime linkage call **b2 runtime-link=static runtime-debugging=on** 
-  *runtime-debgging=on* should be specified because pocketnet.core requires runtime assertions that are available only on Debug build and mixing up debug and release runtime static linking with MSVC will result in link error.
-  - After compilation use **b2 install --prefix path_to_boost/** and use this path_to_boost/ for with BOOST_ROOT option 
-
-- Use **vcpkg** for other dependencies
+- Use **vcpkg** for dependencies
   - ```code
     git clone https://github.com/Microsoft/vcpkg.git
     cd vcpkg
     ./bootstrap-vcpkg.sh
-    ./vcpkg integrate install
+    ./vcpkg install package_name:x64-windows-static
     ```
-  - E.x. **vcpkg install libevent:x64-windows-static** and specify **-DEVENT_ROOT=path_to_vcpkg/packages/libevent_x64-windows-static** for correct linking with libevent
-  - [*NOTE*] If using non-statically build dependencies - consider copy dll files (*path_to_vcpkg*/packages/*package_name*/bin/) to place where binaries are located (${CMAKE_BINARY_DIR}/src). Also provide *-DMSVC_FORCE_STATIC=OFF* as a cmake option to allow dynamic linking
-  - [**IMPORTANT**] Replace libraries in "*path_to_vcpkg*/packages/*package_name*/lib" with those which are located under "debug" folder of package. See boost notes for explaining.
-  - Use CMAKE_PREFIX_PATH to specify path to vcpkg libraries: *vcpkg_root*/installed/x64-windows-static/lib/
-    - Copy files from debug to lib as it was explained above.
-  - Protobuf:
-    - Even if protobuf has been installed via vcpkg, you should create "bin" folder in the root of package (or in the "*vcpkg_root*/installed/x64-windows-static" in you use CMAKE_PREFIX_PATH) and place there all from *protobuf_package*/tools/protobuf for automated finding these executables or manually specify "Protobuf_PROTOC_EXECUTABLE" (see FindProtobuf CMake docs)
-
+  - Pass vcpkg toolchain as cmake option. Also specify used triplet (use x64-windows-static unless otherwise required)
+    ```code
+    -DCMAKE_TOOLCHAIN_FILE=[vcpkg root]/scripts/buildsystems/vcpkg.cmake
+    -DVCPKG_TARGET_TRIPLET=x64-windows-static
+    ```
 - If building dependencies from source - specify MTd (Static debug runtime linker):
   - CMake:
     - There are libraries provided specific option for this (e.x. libevent)
