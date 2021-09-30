@@ -120,9 +120,9 @@ POCKETDB_H = \
     pocketdb/repositories/web/NotifierRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
     \
-    pocketdb/services/TransactionSerializer.h \
     pocketdb/services/WsNotifier.h \
-    pocketdb/services/TransactionPostProcessing.h \
+    pocketdb/services/b/services/Serializer.h \
+    pocketdb/services/b/services/PostProcessing.h \
     pocketdb/services/Accessor.h \
     \
     pocketdb/consensus/Base.h \
@@ -190,9 +190,9 @@ POCKETDB_CPP = \
     pocketdb/helpers/SocialCheckpointHelper.cpp \
     pocketdb/helpers/OpReturnCheckpointHelper.cpp \
     \
-    pocketdb/services/TransactionSerializer.cpp \
     pocketdb/services/WsNotifier.cpp \
-    pocketdb/services/TransactionPostProcessing.cpp \
+    pocketdb/services/Serializer.cpp \
+    pocketdb/services/PostProcessing.cpp \
     pocketdb/services/Accessor.cpp \
     \
     pocketdb/repositories/ConsensusRepository.cpp \

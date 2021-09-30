@@ -49,24 +49,25 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
+            // Insert new Last record
             auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Ratings (
                     Type,
+                    Last,
                     Height,
                     Id,
                     Value
-                ) SELECT ?,?,?,
+                ) SELECT ?,1,?,?,
                     ifnull((
                         select r.Value
                         from Ratings r
                         where r.Type = ?
+                            and r.Last = 1
                             and r.Id = ?
                             and r.Height < ?
-                        order by r.Height desc
                         limit 1
                     ), 0) + ?
             )sql");
-
             TryBindStatementInt(stmt, 1, rating.GetTypeInt());
             TryBindStatementInt(stmt, 2, rating.GetHeight());
             TryBindStatementInt64(stmt, 3, rating.GetId());
@@ -74,8 +75,21 @@ namespace PocketDb
             TryBindStatementInt64(stmt, 5, rating.GetId());
             TryBindStatementInt(stmt, 6, rating.GetHeight());
             TryBindStatementInt64(stmt, 7, rating.GetValue());
-
             TryStepStatement(stmt);
+
+            // Clear old Last record
+            auto stmtUpdate = SetupSqlStatement(R"sql(
+                update Ratings
+                    set Last = 0
+                where Type = ?
+                  and Last = 1
+                  and Id = ?
+                  and Height < ?
+            )sql");
+            TryBindStatementInt(stmtUpdate, 1, rating.GetTypeInt());
+            TryBindStatementInt64(stmtUpdate, 2, rating.GetId());
+            TryBindStatementInt(stmtUpdate, 3, rating.GetHeight());
+            TryStepStatement(stmtUpdate);
         });
     }
 
@@ -86,11 +100,18 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 INSERT OR FAIL INTO Ratings (
                     Type,
+                    Last,
                     Height,
                     Id,
                     Value
-                ) SELECT ?,?,?,?
-                WHERE NOT EXISTS (select 1 from Ratings r where r.Type=? and r.Id=? and r.Value=?)
+                ) SELECT ?,1,?,?,?
+                WHERE NOT EXISTS (
+                    select 1
+                    from Ratings r
+                    where r.Type=?
+                      and r.Id=?
+                      and r.Value=?
+                )
             )sql");
 
             TryBindStatementInt(stmt, 1, rating.GetTypeInt());

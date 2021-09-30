@@ -107,13 +107,6 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        auto getcontenttype = [](std::string type) -> int {
-            if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return (int)PocketTx::CONTENT_POST;
-            else if (type == "video" || type == OR_VIDEO) return (int)PocketTx::CONTENT_VIDEO;
-            else return (int)PocketTx::NOT_SUPPORTED;
-        };
-
-
         std::vector<int> contentTypes;
         if (request.params.size() > 5)
         {

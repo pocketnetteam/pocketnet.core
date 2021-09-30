@@ -74,6 +74,7 @@ public:
     const UniValue& operator[](const std::string& key) const;
     UniValue& At(const std::string& key);
     const UniValue& operator[](size_t index) const;
+    UniValue& At(size_t index);
     bool exists(const std::string& key) const { size_t i; return findKey(key, i); }
 
     bool isNull() const { return (typ == VNULL); }

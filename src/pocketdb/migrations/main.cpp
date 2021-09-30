@@ -138,10 +138,22 @@ namespace PocketDb
             create table if not exists Ratings
             (
                 Type   int not null,
+                Last   int not null,
                 Height int not null,
                 Id     int not null,
                 Value  int not null,
-                primary key (Type, Id, Height, Value)
+                primary key (Type, Height, Id, Value)
+            );
+        )sql");
+
+        Tables.emplace_back(R"sql(
+            create table if not exists Balances
+            (
+                AddressHash     text    not null,
+                Last            int     not null,
+                Height          int     not null,
+                Value           int     not null,
+                primary key (AddressHash, Height)
             );
         )sql");
 
@@ -290,6 +302,7 @@ namespace PocketDb
             create index if not exists Transactions_Type_Last_String1_Height on Transactions (Type, Last, String1, Height);
             create index if not exists Transactions_Type_Last_String2_Height on Transactions (Type, Last, String2, Height);
             create index if not exists Transactions_Type_Last_String1_String2_Height on Transactions (Type, Last, String1, String2, Height);
+            create index if not exists Transactions_Type_Last_Height_String3 on Transactions (Type, Last, Height, String3);
             create index if not exists Transactions_Type_String1_String2_Height on Transactions (Type, String1, String2, Height);
             create index if not exists Transactions_Type_String1_Height_Time_Int1 on Transactions (Type, String1, Height, Time, Int1);
             create index if not exists Transactions_String1_Last_Height on Transactions (String1, Last, Height);
@@ -303,10 +316,18 @@ namespace PocketDb
             create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
             create index if not exists TxOutputs_Value on TxOutputs (Value);
             create index if not exists TxOutputs_AddressHash_SpentHeight_TxHeight on TxOutputs (AddressHash, SpentHeight, TxHeight);
+            create index if not exists TxOutputs_TxHeight_AddressHash on TxOutputs (TxHeight, AddressHash);
 
             create index if not exists Ratings_Height on Ratings (Height);
+            create index if not exists Ratings_Type_Id_Last on Ratings (Type, Id, Last);
+            create index if not exists Ratings_Last_Id_Height on Ratings (Last, Id, Height);
 
             create index if not exists Payload_String2 on Payload (String2);
+
+            create index if not exists Balances_Height on Balances (Height);
+            create index if not exists Balances_AddressHash_Height_Last on Balances (AddressHash, Height, Last);
+            create index if not exists Balances_Last_Value on Balances (Last, Value);
+            create index if not exists Balances_AddressHash_Last on Balances (AddressHash, Last);
 
             -----------------------------------WEB-----------------------------------
             create index if not exists Transactions_Height_Time on Transactions (Height, Time);

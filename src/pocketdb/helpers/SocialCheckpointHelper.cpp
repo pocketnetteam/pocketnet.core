@@ -163,8 +163,13 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("cb6a33aee2f933e3198ff9edf8c9a4a958f3a0953c6bebfb2b0a42aa5c25e6ec", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("73a20c40d0b318725d88ebc1438e2082db800be34d404a26994c6b54a5714a37", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("897eca2d187863ef126815201b13bd748318126115ed87806995e810252ac59e", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
-
-
+    _checkpoints.emplace("ebbd469d8567b7644564d298e6300c31fa6bb592bdd32c9fc1de07bebce9ee62", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("c74641d493d7d102748d2ed54de855eb399ecbb70b1c7e5854d4194009da3c5e", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("f35e6e2ba1ee6d32c9c9fd4476d340a5644bd032c410e2fc257c5255c8608fc3", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("a8611e3813c7ee567f44cbe53ce25d19d76ae5920b939e948c19c7c969475d4a", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("d000bf49402e180104303eb13087af5baaf4c6113f31f0bf06188578d8c069cc", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("7ecf297230ecbc55b014ce302cde241d9362c50f2aadbc3f476dd9ae8a6aaa9f", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
+    _checkpoints.emplace("986dac41d232dd3443b12a4b8153176f9dfa86997e8793e57c2c0488690456ed", tuple(ACTION_SUBSCRIBE_PRIVATE, SocialConsensusResult_DoubleSubscribe));
 
     _checkpoints.emplace("08aa6a715e644abfe47f9623bdc4a568b6edb0432e1bf5b59a2cee7565c81226", tuple(ACTION_SUBSCRIBE_CANCEL, SocialConsensusResult_DoubleSubscribe));
     _checkpoints.emplace("87e63741701602706bee96257259054030b8f91c4fcab849aa1aac33cab5d692", tuple(ACTION_SUBSCRIBE_CANCEL, SocialConsensusResult_DoubleSubscribe));
@@ -217,5 +222,10 @@ SocialCheckpoints::SocialCheckpoints()
     _checkpoints.emplace("98b1f8aae6800fa7c897ed17278b2b950960af9b72b7aa98fdc335a46f7eda7d", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
     _checkpoints.emplace("9ec07ff6b6ce5f16ed5d0f98d01eef86c5c95e976c3299ea463fbbd5244612e5", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
     _checkpoints.emplace("aa0d158ef6f646e7c4fe88e23b1d0d25f8d7a5d29f7a102d523e12f4c029c324", tuple(CONTENT_POST, SocialConsensusResult_ContentLimit));
+
+    _checkpoints.emplace("97e3df91e7632820735931453616ed5257da21a97c85a0bc38554e706b8ba098", tuple(CONTENT_POST, SocialConsensusResult_RelayContentNotFound));
+    _checkpoints.emplace("360ad72d6603c5d02af08b440969fa9090730d063355668226e449507156e631", tuple(CONTENT_POST, SocialConsensusResult_RelayContentNotFound));
+    _checkpoints.emplace("343f2edf880dac72f48686efae16c3bb402de0ec6407384d9cba25809028261c", tuple(CONTENT_POST, SocialConsensusResult_RelayContentNotFound));
+    _checkpoints.emplace("9cf45700ce1b94eaad64080c150b37a528f0421dd0c1d12851e509fa12dc5fb2", tuple(CONTENT_POST, SocialConsensusResult_RelayContentNotFound));
 
 }

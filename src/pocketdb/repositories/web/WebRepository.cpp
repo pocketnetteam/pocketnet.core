@@ -154,23 +154,20 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
+        auto sql = R"sql(
+            select AddressHash, Value
+            from Balances indexed by Balances_Last_Value
+            where Last = 1
+            order by Value desc
+            limit ?
+        )sql";
+
         TryTransactionStep(__func__, [&]()
         {
-            bool stepResult = true;
-            auto stmt = SetupSqlStatement(R"sql(
-                select o.AddressHash, sum(o.Value)
-                from TxOutputs o indexed by TxOutputs_SpentHeight
-                where o.SpentHeight is null
-                group by o.AddressHash
-                order by sum(o.Value) desc
-                limit ?
-            )sql");
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, count);
 
-            auto countPtr = make_shared<int>(count);
-            if (!TryBindStatementInt(stmt, 1, countPtr))
-                stepResult = false;
-
-            while (stepResult && sqlite3_step(*stmt) == SQLITE_ROW)
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue addr(UniValue::VOBJ);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) addr.pushKV("address", value);
@@ -196,7 +193,7 @@ namespace PocketDb
                 (select reg.Time from Transactions reg indexed by Transactions_Id
                     where reg.Id=u.Id and reg.Height=(select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id=reg.Id)) as RegistrationDate,
 
-                ifnull((select r.Value from Ratings r where r.Type=0 and r.Id=u.Id and r.Height=(select max(r1.height) from Ratings r1 where r1.Type=0 and r1.Id=r.Id)),0) as Reputation,
+                ifnull((select r.Value from Ratings r where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
 
                 ifnull((select sum(o.Value) from TxOutputs o indexed by TxOutputs_AddressHash_SpentHeight_TxHeight
                     where o.AddressHash=u.String1 and o.SpentHeight is null),0) as Balance,
@@ -293,8 +290,7 @@ namespace PocketDb
                 (select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height
                     where po.Type in (200) and po.Last=1 and po.Height is not null and po.String1=u.String1) as PostsCount,
 
-                (select r.Value from Ratings r indexed by Ratings_Height
-                    where r.Type=0 and r.Id=u.Id order by r.Height desc limit 1) / 10 as Reputation,
+                (select r.Value from Ratings r where r.Type=0 and r.Id=u.Id and r.Last=1) / 10 as Reputation,
 
                 (select reg.Time from Transactions reg indexed by Transactions_Id
                     where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1) as RegistrationDate
@@ -380,7 +376,7 @@ namespace PocketDb
                 t.String5 as AnswerTxHash,
                 (select count(1) from Transactions sc where sc.Type=301 and sc.Height is not null and sc.String2=t.Hash and sc.Int1=1) as ScoreUp,
                 (select count(1) from Transactions sc where sc.Type=301 and sc.Height is not null and sc.String2=t.Hash and sc.Int1=-1) as ScoreDown,
-                (select r.Value from Ratings r where r.Id=t.Id and r.Type=3 and r.Height=(select max(r1.height) from Ratings r1 where r1.Type=3 and r1.Id=r.Id)) as Reputation,
+                (select r.Value from Ratings r where r.Id=t.Id and r.Type=3 and r.Last=1) as Reputation,
                 pl.String2 AS Msg
             from Transactions t
             join RowIds rid on t.RowId = rid.RowId
@@ -461,7 +457,7 @@ namespace PocketDb
                 c.String5 as AnswerTxHash,
                 (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
                 (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
-                (SELECT r.Value FROM Ratings r WHERE r.Id=c.Id AND r.Type=3 and r.Height=(select max(r1.Height) from Ratings r1 where r1.Type=3 and r1.Id=r.Id)) as Reputation,
+                (SELECT r.Value FROM Ratings r WHERE r.Id=c.Id AND r.Type=3 and r.Last=1) as Reputation,
                 IFNULL(sc.Int1, 0) AS MyScore,
                 (SELECT COUNT(1) FROM Transactions s WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
                 (SELECT sum(o1.Value) Amount FROM Transactions c1 JOIN Transactions p1 ON p1.Hash = c1.String3 JOIN TxOutputs o1 ON o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 WHERE c1.String2 = c.String2) as Amount
@@ -518,7 +514,7 @@ namespace PocketDb
                 c.String5 as AnswerTxHash,
                 (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
                 (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
-                (SELECT r.Value FROM Ratings r WHERE r.Id=c.Id AND r.Type=3 and r.Height=(select max(r1.Height) from Ratings r1 where r1.Type=3 and r1.Id=r.Id)) as Reputation,
+                (SELECT r.Value FROM Ratings r WHERE r.Id=c.Id AND r.Type=3 and r.Last=1) as Reputation,
                 IFNULL(sc.Int1, 0) AS MyScore,
                 (SELECT COUNT(1) FROM Transactions s WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
                 (SELECT sum(o1.Value) Amount FROM Transactions c1 JOIN Transactions p1 ON p1.Hash = c1.String3 JOIN TxOutputs o1 ON o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 WHERE c1.String2 = c.String2) as Amount
@@ -569,7 +565,7 @@ namespace PocketDb
                 sc.String1, -- address
                 p.String2, -- name
                 p.String3, -- avatar
-                (select r.Value from Ratings r where r.Type=0 and r.Id=u.Id order by Height desc limit 1), -- user reputation
+                (select r.Value from Ratings r where r.Type=0 and r.Id=u.Id and r.Last=1), -- user reputation
                 sc.Int1, -- score value
                 case
                     when sub.Type is null then null
@@ -629,7 +625,7 @@ namespace PocketDb
             c.String2 as RootTxHash,
             (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
             (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = -1) as ScoreDown,
-            (select r.Value from Ratings r where r.Id=c.Id and r.Type=3 and r.Height=(select max(r1.Height) from Ratings r1 where r1.Id=r.Id and r1.Type=3)) as Reputation,
+            (select r.Value from Ratings r where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
             msc.Int1 AS MyScore
             from Transactions c
             left join Transactions msc on msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1=?
@@ -698,14 +694,12 @@ namespace PocketDb
                 ur.Value as reputation,
                 s.Int1 as value
             from Transactions s
-            join Transactions u
-                on u.Type in (100) and u.Height is not null and u.String1 = s.String1 and u.Last = 1
+            join Transactions u on u.Type in (100) and u.Height is not null and u.String1 = s.String1 and u.Last = 1
             join Payload up on up.TxHash = u.Hash
-            left join (select ur.* from Ratings ur where ur.Type = 0
-                    and ur.Height = (select max(ur1.Height) from Ratings ur1 where ur1.Type = ur.Type and ur1.Id = ur.Id)) ur
-                on ur.Id = u.Id
+            left join (select ur.* from Ratings ur where ur.Type=0 and ur.Last=1) ur on ur.Id = u.Id
             where s.Type in (300)
                 and s.String1 = ?
+                and s.Height is not null
                 )sql" + postWhere + R"sql()
             order by s.Time desc
         )sql";
@@ -730,6 +724,108 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) record.pushKV("reputation", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("value", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue WebRepository::GetContentsScores(const string& address, int height, int limit)
+    {
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select
+                s.String1 as address,
+                s.Hash,
+                s.Time,
+                s.String2 as posttxid,
+                s.Int1 as value,
+                s.Height
+            from Transactions c
+            join Transactions s on s.Type in (300) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
+            where c.Type in (200, 201)
+              and c.Last = 1
+              and c.Height is not null
+              and c.String1 = ?
+            order by s.Time desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+            TryBindStatementInt(stmt, 3, limit);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                record.pushKV("addr", address);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue WebRepository::GetCommentsScores(const string& address, int height, int limit)
+    {
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select
+                s.String1 as address,
+                s.Hash,
+                s.Time,
+                s.String2 as commenttxid,
+                s.Int1 as value,
+                s.Height
+            from Transactions c
+            join Transactions s on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
+            where c.Type in (204, 205)
+              and c.Last = 1
+              and c.Height is not null
+              and c.String1 = ?
+            order by s.Time desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 3, limit);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                record.pushKV("addr", address);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("commentid", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
 
                 result.push_back(record);
             }
@@ -798,23 +894,25 @@ namespace PocketDb
         return record;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribesAddresses(const vector<string>& addresses)
+    map<string, UniValue> WebRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
     {
+        auto result = map<string, UniValue>();
+        for (const auto& address : addresses)
+            result[address] = UniValue(UniValue::VARR);
+
         string sql = R"sql(
-            select String1 as AddressHash,
+            select
+                String1 as AddressHash,
                 String2 as AddressToHash,
                 case
                     when Type = 303 then 1
                     else 0
                 end as Private
             from Transactions
-            where Type in (302, 303) and Last = 1
-            and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+            where Type in ()sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql()
+              and Last = 1
+              and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
         )sql";
-
-        auto result = map<string, UniValue>();
-        for (const auto& address : addresses)
-            result[address] = UniValue(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
         {
@@ -829,7 +927,7 @@ namespace PocketDb
                 UniValue record(UniValue::VOBJ);
                 auto[ok, address] = TryGetColumnString(*stmt, 0);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("adddress", value); // todo (team): ?? // Not mistake
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("adddress", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("private", value);
 
                 result[address].push_back(record);
@@ -841,14 +939,16 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribersAddresses(const vector<string>& addresses)
+    map<string, UniValue> WebRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
     {
         string sql = R"sql(
-            SELECT String2 as AddressToHash,
+            select
+                String2 as AddressToHash,
                 String1 as AddressHash
-            FROM Transactions
-            where Type in (302, 303) and Last = 1
-            and String2 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+            from Transactions
+            where Type in ()sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql()
+              and Last = 1
+              and String2 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
         )sql";
 
         auto result = map<string, UniValue>();
@@ -1017,7 +1117,8 @@ namespace PocketDb
         });
 
         auto profiles = GetUserProfile(authors);
-        for (const auto &item : result) {
+        for (const auto& item : result)
+        {
             std::string useradr = item.second["address"].get_str();
             result[item.first].pushKV("userprofile", profiles[useradr]);
         }
@@ -1298,43 +1399,172 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
 
         return result;
     }
-    UniValue WebRepository::GetContentLanguage(int height)
+
+    tuple<int, UniValue> WebRepository::GetContentLanguages(int height)
+    {
+        int resultCount = 0;
+        UniValue resultData(UniValue::VOBJ);
+
+        string sql = R"sql(
+            select c.Type,
+                   p.String1 as lang,
+                   count(*) as cnt
+            from Transactions c
+            join Payload p on p.TxHash = c.Hash
+            where c.Type in (200, 201)
+              and c.Last = 1
+              and c.Height is not null
+              and c.Height > ?
+            group by c.Type, p.String1
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, height);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[okType, typeInt] = TryGetColumnInt(*stmt, 0);
+                auto[okLang, lang] = TryGetColumnString(*stmt, 1);
+                auto[okCount, count] = TryGetColumnInt(*stmt, 2);
+                if (!okType || !okLang || !okCount)
+                    continue;
+
+                auto type = TransactionHelper::TxStringType((PocketTxType) typeInt);
+
+                if (resultData.At(type).isNull())
+                {
+                    UniValue lang(UniValue::VOBJ);
+                    resultData.pushKV(type, lang);
+                }
+
+                resultData.At(type).pushKV(lang, count);
+                resultCount += count;
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {resultCount, resultData};
+    }
+
+    tuple<int, UniValue> WebRepository::GetLastAddressContent(const string& address, int height, int count)
+    {
+        int resultCount = 0;
+        UniValue resultData(UniValue::VARR);
+
+        // Get count
+        string sqlCount = R"sql(
+            select count(*)
+            from Transactions
+            where Type in (200, 201)
+              and Last = 1
+              and Height is not null
+              and Height > ?
+              and String1 = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sqlCount);
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    resultCount = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // Try get last N records
+        if (resultCount > 0)
+        {
+            string sql = R"sql(
+                select Hash,
+                       Time,
+                       Height
+                from Transactions
+                where Type in (200, 201)
+                  and Last = 1
+                  and Height is not null
+                  and Height > ?
+                  and String1 = ?
+                order by Height desc
+                limit ?
+            )sql";
+
+            TryTransactionStep(__func__, [&]()
+            {
+                auto stmt = SetupSqlStatement(sql);
+                TryBindStatementInt(stmt, 1, height);
+                TryBindStatementText(stmt, 2, address);
+                TryBindStatementInt(stmt, 3, count);
+
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    auto[okHash, hash] = TryGetColumnString(*stmt, 0);
+                    auto[okTime, time] = TryGetColumnInt64(*stmt, 1);
+                    auto[okHeight, height] = TryGetColumnInt(*stmt, 2);
+                    if (!okHash || !okTime || !okHeight)
+                        continue;
+
+                    UniValue record(UniValue::VOBJ);
+                    record.pushKV("txid", hash);
+                    record.pushKV("time", time);
+                    record.pushKV("nblock", height);
+                    resultData.push_back(record);
+                }
+
+                FinalizeSqlStatement(*stmt);
+            });
+        }
+
+        return {resultCount, resultData};
+    }
+
+    UniValue WebRepository::GetRelayedContent(const string& address, int height)
     {
         UniValue result(UniValue::VARR);
 
-        // string sql = R"sql(
-        //
-        // )sql";
-        //
-        // TryTransactionStep(__func__, [&]()
-        // {
-        //     auto stmt = SetupSqlStatement(sql);
-        //
-        //     int i = 1;
-        //     for (const auto& address : addresses)
-        //         TryBindStatementText(stmt, i++, address);
-        //
-        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
-        //     {
-        //         UniValue record(UniValue::VOBJ);
-        //
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) record.pushKV("vout", value);
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
-        //         if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("amount", ValueFromAmount(value));
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("scriptPubKey", value);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("confirmations", height - value);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok)
-        //         {
-        //             record.pushKV("coinbase", value == 2 || value == 3);
-        //             record.pushKV("pockettx", value > 3);
-        //         }
-        //
-        //         result.push_back(record);
-        //     }
-        //
-        //     FinalizeSqlStatement(*stmt);
-        // });
+        string sql = R"sql(
+            select
+                r.Hash,
+                r.String3 as RelayTxHash,
+                r.String1 as AddressHash,
+                r.Time,
+                r.Height
+            from Transactions r
+            join Transactions p on p.Hash = r.String3 and p.String1 = ?
+            where r.Type in (200, 201)
+              and r.Last = 1
+              and r.Height is not null
+              and r.Height > ?
+              and r.String3 is not null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, val] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", val);
+                if (auto[ok, val] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txidRepost", val);
+                if (auto[ok, val] = TryGetColumnString(*stmt, 2); ok) record.pushKV("addrFrom", val);
+                if (auto[ok, val] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("time", val);
+                if (auto[ok, val] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("nblock", val);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
 
         return result;
     }

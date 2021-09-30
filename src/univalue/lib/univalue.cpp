@@ -228,6 +228,16 @@ const UniValue& UniValue::operator[](size_t index) const
     return values.at(index);
 }
 
+UniValue& UniValue::At(size_t index)
+{
+    if (typ != VOBJ && typ != VARR)
+        return const_cast<UniValue&>(NullUniValue);
+    if (index >= values.size())
+        return const_cast<UniValue&>(NullUniValue);
+
+    return values.at(index);
+}
+
 const char *uvTypeName(UniValue::VType t)
 {
     switch (t) {

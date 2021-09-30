@@ -336,11 +336,10 @@ namespace PocketDb
         int64_t result = 0;
 
         auto sql = R"sql(
-            select sum(Value)
-            from TxOutputs
-            where   SpentHeight is null
-                and TxHeight is not null
-                and AddressHash = ?
+            select Value
+            from Balances
+            where AddressHash = ?
+              and Last = 1
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -366,8 +365,8 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = ?
-                and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 AND u.String1 = ? LIMIT 1)
-                and r.Height = (select max(r1.Height) from Ratings r1 where r1.Type=r.Type and r1.Id=r.Id)
+                and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
+                and r.Last = 1
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -395,7 +394,7 @@ namespace PocketDb
             from Ratings r
             where r.Type = ?
                 and r.Id = ?
-                and r.Height = (select max(r1.Height) from Ratings r1 where r1.Type=? and r1.Id=?)
+                and r.Last = 1
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -403,8 +402,6 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
             TryBindStatementInt(stmt, 1, (int) RatingType::RATING_ACCOUNT);
             TryBindStatementInt(stmt, 2, addressId);
-            TryBindStatementInt(stmt, 3, (int) RatingType::RATING_ACCOUNT);
-            TryBindStatementInt(stmt, 4, addressId);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

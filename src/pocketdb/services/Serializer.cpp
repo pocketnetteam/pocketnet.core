@@ -2,35 +2,35 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "pocketdb/services/TransactionSerializer.h"
+#include "pocketdb/services/Serializer.h"
 
 namespace PocketServices
 {
-    tuple<bool, PocketBlock> TransactionSerializer::DeserializeBlock(CBlock& block, CDataStream& stream)
+    tuple<bool, PocketBlock> Serializer::DeserializeBlock(CBlock& block, CDataStream& stream)
     {
         // Get Serialized data from stream
         auto pocketData = parseStream(stream);
         return deserializeBlock(block, pocketData);
     }
-    tuple<bool, PocketBlock> TransactionSerializer::DeserializeBlock(CBlock& block)
+    tuple<bool, PocketBlock> Serializer::DeserializeBlock(CBlock& block)
     {
         UniValue fakeData(UniValue::VOBJ);
         return deserializeBlock(block, fakeData);
     }
 
-    tuple<bool, PTransactionRef> TransactionSerializer::DeserializeTransactionRpc(const CTransactionRef& tx, const UniValue& pocketData)
+    tuple<bool, PTransactionRef> Serializer::DeserializeTransactionRpc(const CTransactionRef& tx, const UniValue& pocketData)
     {
         auto ptx = buildInstanceRpc(tx, pocketData);
         return {ptx != nullptr, ptx};
     }
 
-    tuple<bool, PTransactionRef> TransactionSerializer::DeserializeTransaction(const CTransactionRef& tx, CDataStream& stream)
+    tuple<bool, PTransactionRef> Serializer::DeserializeTransaction(const CTransactionRef& tx, CDataStream& stream)
     {
         auto pocketData = parseStream(stream);
         return deserializeTransaction(tx, pocketData);
     }
 
-    tuple<bool, PTransactionRef> TransactionSerializer::DeserializeTransaction(const CTransactionRef& tx)
+    tuple<bool, PTransactionRef> Serializer::DeserializeTransaction(const CTransactionRef& tx)
     {
         UniValue fakeData(UniValue::VOBJ);
         return deserializeTransaction(tx, fakeData);
@@ -38,7 +38,7 @@ namespace PocketServices
 
     // Serialize protocol compatible with Reindexer
     // It makes sense to serialize only Pocket transactions that contain a payload.
-    shared_ptr <UniValue> TransactionSerializer::SerializeBlock(const PocketBlock& block)
+    shared_ptr <UniValue> Serializer::SerializeBlock(const PocketBlock& block)
     {
         auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
         for (const auto& transaction : block)
@@ -55,7 +55,7 @@ namespace PocketServices
 
     // Serialize protocol compatible with Reindexer
     // It makes sense to serialize only Pocket transactions that contain a payload.
-    shared_ptr <UniValue> TransactionSerializer::SerializeTransaction(const Transaction& transaction)
+    shared_ptr <UniValue> Serializer::SerializeTransaction(const Transaction& transaction)
     {
         if (!PocketHelpers::TransactionHelper::IsPocketTransaction(*transaction.GetType()))
             return nullptr;
@@ -72,7 +72,7 @@ namespace PocketServices
     }
 
 
-    shared_ptr <Transaction> TransactionSerializer::buildInstance(const CTransactionRef& tx, const UniValue& src)
+    shared_ptr <Transaction> Serializer::buildInstance(const CTransactionRef& tx, const UniValue& src)
     {
         PocketTxType txType;
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
@@ -108,7 +108,7 @@ namespace PocketServices
         return ptx;
     }
 
-    shared_ptr <Transaction> TransactionSerializer::buildInstanceRpc(const CTransactionRef& tx, const UniValue& src)
+    shared_ptr <Transaction> Serializer::buildInstanceRpc(const CTransactionRef& tx, const UniValue& src)
     {
         PocketTxType txType;
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
@@ -127,7 +127,7 @@ namespace PocketServices
     }
 
 
-    bool TransactionSerializer::buildOutputs(const CTransactionRef& tx, shared_ptr <Transaction>& ptx)
+    bool Serializer::buildOutputs(const CTransactionRef& tx, shared_ptr <Transaction>& ptx)
     {
         // indexing Outputs
         for (size_t i = 0; i < tx->vout.size(); i++)
@@ -156,7 +156,7 @@ namespace PocketServices
         return !ptx->Outputs().empty();
     }
 
-    UniValue TransactionSerializer::parseStream(CDataStream& stream)
+    UniValue Serializer::parseStream(CDataStream& stream)
     {
         // Prepare source data - old format (Json)
         UniValue pocketData(UniValue::VOBJ);
@@ -172,7 +172,7 @@ namespace PocketServices
     }
 
 
-    tuple<bool, PocketBlock> TransactionSerializer::deserializeBlock(CBlock& block, UniValue& pocketData)
+    tuple<bool, PocketBlock> Serializer::deserializeBlock(CBlock& block, UniValue& pocketData)
     {
         // Restore pocket transaction instance
         PocketBlock pocketBlock;
@@ -204,7 +204,7 @@ namespace PocketServices
         return {true, pocketBlock};
     }
 
-    tuple<bool, shared_ptr<Transaction>> TransactionSerializer::deserializeTransaction(const CTransactionRef& tx, UniValue& pocketData)
+    tuple<bool, shared_ptr<Transaction>> Serializer::deserializeTransaction(const CTransactionRef& tx, UniValue& pocketData)
     {
         auto ptx = buildInstance(tx, pocketData);
         return {ptx != nullptr, ptx};

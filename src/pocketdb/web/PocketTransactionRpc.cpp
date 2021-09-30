@@ -30,7 +30,7 @@ namespace PocketWeb::PocketWebRpc
         auto data = request.params[1];
         data.pushKV("txAddress", address);
 
-        auto[deserializeOk, ptx] = PocketServices::TransactionSerializer::DeserializeTransactionRpc(tx, data);
+        auto[deserializeOk, ptx] = PocketServices::Serializer::DeserializeTransactionRpc(tx, data);
         if (!deserializeOk)
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX deserialize failed");
 

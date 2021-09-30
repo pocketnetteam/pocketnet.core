@@ -36,7 +36,7 @@ namespace PocketServices
     using namespace PocketTx;
     using namespace PocketHelpers;
 
-    class TransactionSerializer
+    class Serializer
     {
     public:
         static tuple<bool, PocketBlock> DeserializeBlock(CBlock& block, CDataStream& stream);

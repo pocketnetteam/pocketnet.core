@@ -4,6 +4,8 @@ include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceRuns)
 
+set(CMAKE_CXX_STANDARD 17)
+
 ### Options
 
 option(DISABLE_GUI "Disable building qt gui (Default is OFF)" OFF)
@@ -64,6 +66,7 @@ option(MSVC_FORCE_STATIC "Build with MTd runtime linking. Use this if you want t
 
 if(MSVC AND MSVC_FORCE_STATIC)
     set(Protobuf_USE_STATIC_LIBS ON)
+    set(Boost_USE_STATIC_LIBS ON)
     set(Boost_USE_STATIC_RUNTIME ON)
     set(Boost_USE_DEBUG_RUNTIME ON)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -124,7 +127,7 @@ set(WITH_PIC ${WITH_PIC_BACKUP} CACHE BOOL "Enable fPIC" FORCE)
 
 # Finding boost
 # TODO minimal boost version is increased to 1.66 because websockets (websocket/ws.h) are using lambdas as WriteHandler. This functional was implemented in 1.66.
-find_package(Boost 1.66 REQUIRED COMPONENTS System Thread Chrono filesystem date_time)
+find_package(Boost 1.66 REQUIRED COMPONENTS system thread chrono filesystem date_time)
 ######## Boost sleep functions validation
 set(CHECK_BOOST_SLEEP "#include <boost/thread/thread.hpp>
                         #include <boost/version.hpp>
@@ -739,13 +742,13 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/web/PocketRpc.cpp
         pocketdb/pocketnet.h
         pocketdb/pocketnet.cpp
-        pocketdb/services/TransactionSerializer.cpp
         pocketdb/services/WsNotifier.cpp
         pocketdb/services/WsNotifier.h
-        pocketdb/services/TransactionPostProcessing.cpp
+        pocketdb/services/Serializer.cpp
+        pocketdb/services/PostProcessing.cpp
         pocketdb/services/Accessor.cpp
-        pocketdb/services/TransactionSerializer.h
-        pocketdb/services/TransactionPostProcessing.h
+        pocketdb/services/Serializer.h
+        pocketdb/services/PostProcessing.h
         pocketdb/services/Accessor.h
         pocketdb/repositories/BaseRepository.h
         pocketdb/repositories/TransactionRepository.h
@@ -863,7 +866,7 @@ target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_C
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
 
 add_library(libpocketcoin_cli rpc/client.cpp)
-target_link_libraries(libpocketcoin_cli PRIVATE univalue Boost::filesystem)
+target_link_libraries(libpocketcoin_cli PRIVATE univalue)
 set(POCKETCOIN_CLI pocketcoin_cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
 target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli)

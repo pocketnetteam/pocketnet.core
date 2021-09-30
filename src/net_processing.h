@@ -13,7 +13,7 @@
 #include <utilstrencodings.h>
 
 #include "pocketdb/helpers/TransactionHelper.h"
-#include "pocketdb/services/TransactionSerializer.h"
+#include "pocketdb/services/Serializer.h"
 
 using namespace PocketHelpers;
 

@@ -27,7 +27,7 @@
 #include <consensus/merkle.h>
 #include <memory>
 
-#include "pocketdb/services/TransactionSerializer.h"
+#include "pocketdb/services/Serializer.h"
 
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
@@ -145,7 +145,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
 
         // Extend pocketblock with coinbase transaction
         auto pocketBlock = std::make_shared<PocketBlock>(pblocktemplate->pocketBlock);
-        if (auto[ok, ptx] = PocketServices::TransactionSerializer::DeserializeTransaction(pblock->vtx[0]); ok)
+        if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(pblock->vtx[0]); ok)
             pocketBlock->emplace_back(ptx);
 
         CValidationState state;

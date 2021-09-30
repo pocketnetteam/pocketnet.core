@@ -39,7 +39,7 @@ namespace PocketServices
         if (!GetBlock(block, pocketBlock))
             return false;
 
-        auto dataPtr = PocketServices::TransactionSerializer::SerializeBlock(*pocketBlock);
+        auto dataPtr = PocketServices::Serializer::SerializeBlock(*pocketBlock);
         if (dataPtr)
             data = dataPtr->write();
 
@@ -62,7 +62,7 @@ namespace PocketServices
         if (!GetTransaction(tx, pocketTx) && pocketTx)
             return false;
             
-        auto dataPtr = PocketServices::TransactionSerializer::SerializeTransaction(*pocketTx);
+        auto dataPtr = PocketServices::Serializer::SerializeTransaction(*pocketTx);
         if (dataPtr)
             data = dataPtr->write();
 

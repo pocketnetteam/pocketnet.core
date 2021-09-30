@@ -36,6 +36,9 @@ namespace PocketDb
         // Also spent outputs
         void IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs);
 
+        // Precalculate address balances from TxOutputs
+        void IndexBalances(int height);
+
         // Clear all calculated data
         bool ClearDatabase();
 

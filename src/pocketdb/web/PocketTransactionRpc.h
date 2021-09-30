@@ -11,7 +11,7 @@
 #include "consensus/validation.h"
 #include "validationinterface.h"
 #include "txmempool.h"
-#include "pocketdb/services/TransactionSerializer.h"
+#include "pocketdb/services/Serializer.h"
 #include "pocketdb/consensus/Base.h"
 #include "pocketdb/consensus/Helper.h"
 

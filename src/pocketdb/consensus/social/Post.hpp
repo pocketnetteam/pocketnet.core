@@ -30,15 +30,17 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Check if this post relay another
-            if (ptx->GetRelayTxHash())
+            if (!IsEmpty(ptx->GetRelayTxHash()))
             {
-                if ((*ptx->GetRelayTxHash()).empty()) return {false, SocialConsensusResult_NotFound};
-                
-                auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRelayTxHash());
-                if (!lastContentOk) return {false, SocialConsensusResult_NotFound};
-                
-                if (*lastContent->GetType() != CONTENT_POST) return {false, SocialConsensusResult_NotAllowed};
-                if (*lastContent->GetType() == CONTENT_DELETE) return {false, SocialConsensusResult_RepostDeletedContent};
+                auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRelayTxHash());
+                if (!relayOk)
+                {
+                    PocketHelpers::SocialCheckpoints socialCheckpoints;
+                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
+                        return {false, SocialConsensusResult_RelayContentNotFound};
+                };
+                if (*relayTx->GetType() != CONTENT_POST) return {false, SocialConsensusResult_NotAllowed};
+                if (*relayTx->GetType() == CONTENT_DELETE) return {false, SocialConsensusResult_RepostDeletedContent};
             }
 
             // Check payload size
