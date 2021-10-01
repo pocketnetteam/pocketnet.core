@@ -188,16 +188,18 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            SELECT score.String2 CommentHash, score.Int1 Value, comment.String1 CommentAddress
-            FROM Transactions score
-            INNER JOIN Transactions comment ON score.String2 = comment.String2
-            WHERE score.Type = 301 and comment.Last = 1 and score.Hash = ?
+            select
+                score.String2 CommentHash,
+                score.Int1 Value,
+                comment.String1 CommentAddress
+            from Transactions score
+            join Transactions comment on score.String2 = comment.Hash
+            where score.Hash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-
             TryBindStatementText(stmt, 1, commentScoreHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -218,11 +220,20 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            SELECT comment.String3 PostHash, comment.String4 ParentHash, comment.String5 AnswerHash, comment.String2 RootHash, post.String1 PostAddress, answer.String1 AnswerAddress
-            FROM Transactions comment
-            INNER JOIN Transactions post ON comment.String3 = post.Hash
-            LEFT JOIN Transactions answer ON comment.String5 = answer.String2 and answer.Last = 1
-            WHERE comment.Type IN (204, 205, 206) and comment.Hash = ?
+            select
+                comment.String3 PostHash,
+                comment.String4 ParentHash,
+                comment.String5 AnswerHash,
+                comment.String2 RootHash,
+                content.String1 ContentAddress,
+                answer.String1 AnswerAddress
+            from Transactions comment -- sqlite_autoindex_Transactions_1 (Hash)
+            join Transactions content -- sqlite_autoindex_Transactions_1 (Hash)
+                on content.Type in (200, 201) and content.Hash = comment.String3
+            left join Transactions answer indexed by Transactions_Type_Last_String2_Height
+                on answer.Type in (204, 205) and answer.Last = 1 and answer.String2 = comment.String5
+            WHERE comment.Type in (204, 205)
+              and comment.Hash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()

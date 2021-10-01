@@ -844,9 +844,10 @@ namespace PocketDb
             select
                 String2 as AddressToHash,
                 String1 as AddressHash
-            from Transactions
+            from Transactions indexed by Transactions_Type_Last_String2_Height
             where Type in ()sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql()
               and Last = 1
+              and Height is not null
               and String2 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
         )sql";
 
@@ -1747,8 +1748,9 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
                 s.String2 as commenttxid,
                 s.Int1 as value,
                 s.Height
-            from Transactions c
-            join Transactions s on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
+            from Transactions c indexed by Transactions_Type_Last_String1_Height
+            join Transactions s indexed by Transactions_Type_Last_String2_Height
+                on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
             where c.Type in (204, 205)
               and c.Last = 1
               and c.Height is not null
