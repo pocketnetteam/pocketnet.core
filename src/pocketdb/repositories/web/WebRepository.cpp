@@ -438,7 +438,8 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
+    UniValue
+    WebRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
         auto result = UniValue(UniValue::VARR);
 
@@ -594,7 +595,7 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, addressHash);
 
             int i = 2;
-            for (const auto& postHash : postHashes)
+            for (const auto& postHash: postHashes)
                 TryBindStatementText(stmt, i++, postHash);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -711,7 +712,7 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, address);
 
             int i = 2;
-            for (const auto& postHash : postHashes)
+            for (const auto& postHash: postHashes)
                 TryBindStatementText(stmt, i++, postHash);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -792,10 +793,11 @@ namespace PocketDb
         return record;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
+    map<string, UniValue>
+    WebRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
     {
         auto result = map<string, UniValue>();
-        for (const auto& address : addresses)
+        for (const auto& address: addresses)
             result[address] = UniValue(UniValue::VARR);
 
         string sql = R"sql(
@@ -817,7 +819,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
-            for (const auto& address : addresses)
+            for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -825,8 +827,8 @@ namespace PocketDb
                 UniValue record(UniValue::VOBJ);
                 auto[ok, address] = TryGetColumnString(*stmt, 0);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("adddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("private", value);
+                if (auto[ok1, value] = TryGetColumnString(*stmt, 1); ok1) record.pushKV("adddress", value);
+                if (auto[ok2, value] = TryGetColumnString(*stmt, 2); ok2) record.pushKV("private", value);
 
                 result[address].push_back(record);
             }
@@ -837,7 +839,8 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
+    map<string, UniValue>
+    WebRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
     {
         string sql = R"sql(
             select
@@ -850,7 +853,7 @@ namespace PocketDb
         )sql";
 
         auto result = map<string, UniValue>();
-        for (const auto& address : addresses)
+        for (const auto& address: addresses)
             result[address] = UniValue(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
@@ -858,7 +861,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
-            for (const auto& address : addresses)
+            for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -886,7 +889,7 @@ namespace PocketDb
         )sql";
 
         auto result = map<string, UniValue>();
-        for (const auto& address : addresses)
+        for (const auto& address: addresses)
             result[address] = UniValue(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
@@ -894,7 +897,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
-            for (const auto& address : addresses)
+            for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -911,7 +914,8 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRepository::GetContents(int nHeight, const string& start_txid, int countOut, const string& lang,
+    map<string, UniValue>
+    WebRepository::GetContents(int nHeight, const string& start_txid, int countOut, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
     {
@@ -975,7 +979,8 @@ namespace PocketDb
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", value == "201" ? "video" : "share");
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok)
+                    record.pushKV("type", value == "201" ? "video" : "share");
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
@@ -1001,10 +1006,13 @@ namespace PocketDb
                     record.pushKV("s", s);
                 }
 
-                record.pushKV("scoreSum", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
-                record.pushKV("scoreCnt", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
+                record.pushKV("scoreSum",
+                    "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
+                record.pushKV("scoreCnt",
+                    "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
-                record.pushKV("comments", 0);//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
+                record.pushKV("comments",
+                    0);//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("lastComment", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("reposted", valueStr);
 
@@ -1015,7 +1023,7 @@ namespace PocketDb
         });
 
         auto profiles = GetUserProfile(authors);
-        for (const auto& item : result)
+        for (const auto& item: result)
         {
             std::string useradr = item.second["address"].get_str();
             result[item.first].pushKV("userprofile", profiles[useradr]);
@@ -1270,7 +1278,7 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
-            for (const auto& address : addresses)
+            for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -1332,10 +1340,7 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
                 auto type = TransactionHelper::TxStringType((PocketTxType) typeInt);
 
                 if (resultData.At(type).isNull())
-                {
-                    UniValue lang(UniValue::VOBJ);
-                    resultData.pushKV(type, lang);
-                }
+                    resultData.pushKV(type, UniValue(UniValue::VOBJ));
 
                 resultData.At(type).pushKV(lang, count);
                 resultCount += count;
@@ -1404,14 +1409,14 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
                 {
                     auto[okHash, hash] = TryGetColumnString(*stmt, 0);
                     auto[okTime, time] = TryGetColumnInt64(*stmt, 1);
-                    auto[okHeight, height] = TryGetColumnInt(*stmt, 2);
+                    auto[okHeight, block] = TryGetColumnInt(*stmt, 2);
                     if (!okHash || !okTime || !okHeight)
                         continue;
 
                     UniValue record(UniValue::VOBJ);
                     record.pushKV("txid", hash);
                     record.pushKV("time", time);
-                    record.pushKV("nblock", height);
+                    record.pushKV("nblock", block);
                     resultData.push_back(record);
                 }
 
@@ -1574,78 +1579,157 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
         return result;
     }
 
-    vector<UniValue> WebRepository::GetMissedTransactions(const string& address, int height, int count)
+    map<string, UniValue> WebRepository::GetMissedTransactions(const string& address, int height, int count)
+    {
+        map<string, UniValue> result;
+
+        string sql = R"sql(
+            select
+                o.TxHash,
+                t.Time,
+                o.Value,
+                o.TxHeight,
+                t.Type
+            from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight
+            join Transactions t on t.Hash = o.TxHash
+            where o.AddressHash = ?
+              and o.TxHeight > ?
+            order by o.TxHeight desc
+            limit ?
+         )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 3, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[okTxHash, txHash] = TryGetColumnString(*stmt, 0);
+                if (!okTxHash) continue;
+
+                UniValue record(UniValue::VOBJ);
+                record.pushKV("txid", txHash);
+                record.pushKV("addr", address);
+                record.pushKV("msg", "transaction");
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("amount", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("nblock", value);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok)
+                {
+                    auto stringType = TransactionHelper::TxStringType((PocketTxType) value);
+                    if (!stringType.empty())
+                        record.pushKV("type", stringType);
+                }
+
+                result.emplace(txHash, record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    vector<UniValue> WebRepository::GetMissedCommentAnswers(const string& address, int height, int count)
     {
         vector<UniValue> result;
+
+        string sql = R"sql(
+            select *
+            from Transactions c
+            join Transactions a on a.Type in (204, 205) and a.Height > ? and a.Last = 1 and a.String5 = c.String2
+            where c.Type in (204, 205)
+              and c.Last = 1
+              and c.Height is not null
+              and c.String1 = ?
+            order by a.Height desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 3, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[okTxHash, txHash] = TryGetColumnString(*stmt, 0);
+                if (!okTxHash) continue;
+
+
+                if (itm["otxid"].As<string>() != itm["txid"].As<string>()) continue;
+
+                UniValue record(UniValue::VOBJ);
+                record.pushKV("txid", txHash);
+                record.pushKV("addr", address);
+                record.pushKV("msg", "transaction");
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("amount", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("nblock", value);
+
+                msg.pushKV("addr", address);
+                msg.pushKV("addrFrom", itm["address"].As<string>());
+                msg.pushKV("nblock", itm["block"].As<int>());
+                msg.pushKV("msg", "comment");
+                msg.pushKV("mesType", "answer");
+                msg.pushKV("txid", itm["otxid"].As<string>());
+                msg.pushKV("posttxid", itm["postid"].As<string>());
+                msg.pushKV("reason", "answer");
+                msg.pushKV("time", itm["time"].As<string>());
+                if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
+                if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
+
+                result.emplace(txHash, record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
         return result;
+    }
 
-        // string sql = R"sql(
-        //     select
-        //         s.String1 as address,
-        //         s.Hash,
-        //         s.Time,
-        //         s.String2 as commenttxid,
-        //         s.Int1 as value,
-        //         s.Height
-        //     from Transactions c
-        //     join Transactions s on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
-        //     where c.Type in (204, 205)
-        //       and c.Last = 1
-        //       and c.Height is not null
-        //       and c.String1 = ?
-        //     order by s.Time desc
-        //     limit ?
-        // )sql";
-        //
-        // TryTransactionStep(__func__, [&]()
-        // {
-        //     auto stmt = SetupSqlStatement(sql);
-        //
-        //     TryBindStatementText(stmt, 1, address);
-        //     TryBindStatementInt(stmt, 2, height);
-        //     TryBindStatementInt(stmt, 3, limit);
-        //
-        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
-        //     {
-        //         UniValue record(UniValue::VOBJ);
-        //
-        //         record.pushKV("addr", address);
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
-        //         if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("commentid", value);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
-        //
-        //         result.push_back(record);
-        //     }
-        //
-        //     FinalizeSqlStatement(*stmt);
-        // });
-        //
-        // return result;
+    vector<UniValue> WebRepository::GetMissedPostComments(const string& address, int height, int count)
+    {
+        reindexer::QueryResults commentsPost;
+        g_pocketdb->DB()->Select(
+            reindexer::Query("Comment").Where("block", CondGt, blockNumber).Where("last", CondEq, true).InnerJoin(
+                "postid", "txid", CondEq,
+                reindexer::Query("Posts").Where("address", CondEq, address).Not().Where("txid", CondSet,
+                    answerpostids)).Sort("time", true).Limit(
+                cntResult), commentsPost);
 
-        // std::vector<std::string> txSent;
-        // reindexer::QueryResults transactions;
-        // g_pocketdb->DB()->Select(
-        //     reindexer::Query("UTXO").Where("address", CondEq, address).Where("block", CondGt, blockNumber).Sort("time", true).Limit(cntResult),
-        //     transactions);
-        //
-        // msg.pushKV("addr", itm["address"].As<string>());
-        // msg.pushKV("msg", "transaction");
-        // msg.pushKV("txid", itm["txid"].As<string>());
-        // msg.pushKV("time", itm["time"].As<string>());
-        // msg.pushKV("amount", itm["amount"].As<int64_t>());
-        // msg.pushKV("nblock", itm["block"].As<int>());
-        //
-        // auto stringType = TransactionHelper::TxStringType(txType);
-        // if (!stringType.empty())
-        //     transactions.At(i).pushKV("type", stringType);
+        for (auto it: commentsPost)
+        {
+            reindexer::Item itm(it.GetItem());
+            if (address != itm["address"].As<string>())
+            {
+                if (itm["msg"].As<string>() == "") continue;
+                if (itm["otxid"].As<string>() != itm["txid"].As<string>()) continue;
 
-        // TODO (brangr): implement
-        // UniValue txinfo(UniValue::VOBJ);
-        // TxToJSON(*tx, hash_block, txinfo);
-        // msg.pushKV("txinfo", txinfo);
+                UniValue msg(UniValue::VOBJ);
+                msg.pushKV("addr", address);
+                msg.pushKV("addrFrom", itm["address"].As<string>());
+                msg.pushKV("nblock", itm["block"].As<int>());
+                msg.pushKV("msg", "comment");
+                msg.pushKV("mesType", "post");
+                msg.pushKV("txid", itm["otxid"].As<string>());
+                msg.pushKV("posttxid", itm["postid"].As<string>());
+                msg.pushKV("reason", "post");
+                msg.pushKV("time", itm["time"].As<string>());
+                if (itm["parentid"].As<string>() != "") msg.pushKV("parentid", itm["parentid"].As<string>());
+                if (itm["answerid"].As<string>() != "") msg.pushKV("answerid", itm["answerid"].As<string>());
+
+                a.push_back(msg);
+            }
+        }
     }
 
 }

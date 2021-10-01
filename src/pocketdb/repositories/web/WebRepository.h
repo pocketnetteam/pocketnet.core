@@ -71,7 +71,9 @@ namespace PocketDb
         vector<UniValue> GetMissedRelayedContent(const string& address, int height);
         vector<UniValue> GetMissedContentsScores(const string& address, int height, int limit);
         vector<UniValue> GetMissedCommentsScores(const string& address, int height, int limit);
-        vector<UniValue> GetMissedTransactions(const string& address, int height, int count);
+        map<string, UniValue> GetMissedTransactions(const string& address, int height, int count);
+        vector<UniValue> GetMissedCommentAnswers(const string& address, int height, int count);
+        vector<UniValue> GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count);
 
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
