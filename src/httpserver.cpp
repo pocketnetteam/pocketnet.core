@@ -787,14 +787,14 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
             string method = jreq.strMethod;
 
             auto rpcKey = gen_random(8);
-            LogPrint(BCLog::RPC, "RPC execute method %s%s (%s) with params: %s\n",
+            LogPrint(BCLog::RPC, "RPC started method %s%s (%s) with params: %s\n",
                 uri, method, rpcKey, jreq.params.write(0, 0));
 
             int64_t nTime1 = GetTimeMicros();
             UniValue result = m_table_rpc.execute(jreq);
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::RPC, "RPC execute method %s%s (%s) > %.2fms with params: %s\n",
-                uri, method, rpcKey, 0.001 * (nTime2 - nTime1), jreq.params.write(0, 0));
+            LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
+                uri, method, rpcKey, 0.001 * (nTime2 - nTime1));
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
