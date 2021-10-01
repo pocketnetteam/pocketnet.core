@@ -1153,7 +1153,7 @@ namespace PocketDb
                 p.String4 as Tags,
                 p.String5 as Images,
                 p.String6 as Settings
-            FROM Transactions t indexed by Transactions_Height_Time
+            FROM Transactions t indexed by Transactions_Last_Id_Height
             JOIN Payload p on t.Hash = p.TxHash
             where t.Id > ifnull((select max(t0.Id) from Transactions t0 indexed by Transactions_Type_Last_String2_Height where t0.Type in (200, 201) and t0.String2 = ? and t0.Last = 1),0)
                 and t.Last = 1
