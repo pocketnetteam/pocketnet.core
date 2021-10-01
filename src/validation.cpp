@@ -3146,7 +3146,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  {"amount", std::to_string(addr.second.second)},
              };
 
-             if (optype != "") cTrFields.emplace("type", optype);
+             if (!optype.empty()) cTrFields.emplace("type", optype);
              PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
              // Event for new PocketNET transaction
@@ -3187,7 +3187,6 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
              }
              else if (optype == "userInfo")
              {
-                 //TODO check if (_user_itm["time"].As<int64_t>() == _user_itm["regdate"].As<int64_t>())
                  auto response = PocketDb::NotifierRepoInst.GetUserReferrerAddress(txid);
                  if (response.exists("referrerAddress"))
                  {

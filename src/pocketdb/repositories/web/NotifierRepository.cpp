@@ -106,7 +106,7 @@ namespace PocketDb
         string sql = R"sql(
             SELECT t.String2 as ReferrerAddress
             FROM Transactions t
-            WHERE t.Type = 100 and t.String2 is not null and t.Hash = ?
+            WHERE t.Type = 100 and t.String2 is not null and t.Hash = ? and t.Last = 1
         )sql";
 
         TryTransactionStep(__func__, [&]()
