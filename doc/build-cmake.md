@@ -69,3 +69,34 @@ If value is boolean - pass ON or OFF as a value
     - Otherwise pass -DCMAKE_MSVC_RUNTIME_LIBRARY="MultiThreadedDebug" as a cmake option
   - Others:
     - Pass "/MTd" as a compiler option (without "-")
+
+### Step-by-step instruction for windows with clion and vcpkg
+Configure Clion with VisualStudio toolchain
+1) Install vspkg:
+   - git clone https://github.com/Microsoft/vcpkg.git
+   - cd vcpkg
+   - ./bootstrap-vcpkg.sh
+   - ./vcpkg integrate install
+2) Install boost:
+   - download boost_*.7z from point 1: https://www.boost.org/doc/libs/1_76_0/more/getting_started/windows.html
+   - build from source: (In point 5.1 in link above)
+     - .\bootstrap
+     - .\b2 runtime-link=static runtime-debugging=on
+3) Install packages in vcpkg:
+   - ./vcpkg.exe install berkeleydb:x64-windows-static
+   - ./vcpkg.exe install openssl:x64-windows-static
+   - ./vcpkg.exe install sqlite3:x64-windows-static
+   - ./vcpkg.exe install libevent:x64-windows-static
+   - ./vcpkg.exe install protobuf:x64-windows-static
+   - ./vcpkg.exe install qt5:x64-windows-static
+   - ./vcpkg.exe install zeromq:x64-windows-static
+   - ./vcpkg.exe install protobuf:x64-windows-static
+4) Go to folder ..\vcpkg\installed\x64-windows-static\debug\lib and copy all content to folder ..\vcpkg\installed\x64-windows-static\lib
+5) Install VisualStudio
+6) In Settings -> Build, Execution, Deployment -> Toolchains - add VisualStuio Toolchain
+7) In Settings -> Build, Execution, Deployment -> CMake - create debug profile
+8) In debug profile -> CMake options - should be something like this:
+   - -DCMAKE_CXX_STANDARD=17
+   - -DBOOST_ROOT="C:\dev\boost\boost_1_77_0\stage\lib\cmake"
+   - -DCMAKE_PREFIX_PATH="C:\dev\vcpkg\installed\x64-windows-static"
+9) Profit
