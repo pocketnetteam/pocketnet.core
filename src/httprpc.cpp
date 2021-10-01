@@ -97,7 +97,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
     // Check authorization
     std::pair<bool, std::string> authHeader = req->GetHeader("authorization");
     if (!authHeader.first) {
-        LogPrint(BCLog::RPC, "WARNING: Request whithour authorization header\n");
+        LogPrint(BCLog::RPC, "WARNING: Request without authorization header\n");
         req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
         req->WriteReply(HTTP_UNAUTHORIZED);
         return false;

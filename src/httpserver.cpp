@@ -59,6 +59,8 @@ public:
         func(jreq, path);
         auto stop = gStatEngineInstance.GetCurrentSystemTime();
 
+        LogPrint(BCLog::RPC, "RPC execute method %s with %d ms\n", uri, stop - start);
+
         if (log)
         {
             gStatEngineInstance.AddSample(
