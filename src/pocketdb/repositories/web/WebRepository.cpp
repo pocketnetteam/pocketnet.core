@@ -935,6 +935,7 @@ namespace PocketDb
             JOIN Payload p on t.Hash = p.TxHash
             where t.Last = 1
                 and t.Height <= ?
+                and t.Height > ?
                 and t.Time <= ?
                 and t.String3 is null
                 and p.String1 = ?
@@ -951,9 +952,10 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             TryBindStatementInt(stmt, 1, nHeight);
-            TryBindStatementInt64(stmt, 2, GetAdjustedTime());
-            TryBindStatementText(stmt, 3, lang);
-            TryBindStatementInt(stmt, 4, countOut);
+            TryBindStatementInt(stmt, 2, nHeight - depth);
+            TryBindStatementInt64(stmt, 3, GetAdjustedTime());
+            TryBindStatementText(stmt, 4, lang);
+            TryBindStatementInt(stmt, 5, countOut);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {

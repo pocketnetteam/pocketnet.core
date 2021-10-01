@@ -158,7 +158,7 @@ namespace PocketWeb::PocketWebRpc
 
         map<string, UniValue> contents = request.DbConnection()->WebRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, contentTypes);
 
-        UniValue aResult(UniValue::VOBJ);
+        UniValue aResult(UniValue::VARR);
         for (auto& c : contents)
         {
             aResult.push_back(c.second);
