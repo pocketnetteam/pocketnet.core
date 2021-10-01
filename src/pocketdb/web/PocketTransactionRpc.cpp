@@ -14,6 +14,9 @@ namespace PocketWeb::PocketWebRpc
                 "\nAdd new pocketnet transaction.\n"
             );
 
+        if (Params().NetworkID() != NetworkTest)
+            throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Only for TEST network");
+
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
 
         CMutableTransaction mTx;
