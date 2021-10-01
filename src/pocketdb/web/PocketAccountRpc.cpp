@@ -168,9 +168,10 @@ namespace PocketWeb::PocketWebRpc
         auto address = request.params[0].get_str();
 
         auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto windowDepth = reputationConsensus->GetConsensusLimit(ConsensusLimit_depth);
 
         // Read general account info and current state
-        auto result = request.DbConnection()->WebRepoInst->GetAccountState(address, chainActive.Height());
+        auto result = request.DbConnection()->WebRepoInst->GetAccountState(address, chainActive.Height() - windowDepth);
         if (result["address"].isNull())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Pocketcoin address not found"));
 

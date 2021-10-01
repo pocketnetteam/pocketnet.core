@@ -193,29 +193,31 @@ namespace PocketDb
                 (select reg.Time from Transactions reg indexed by Transactions_Id
                     where reg.Id=u.Id and reg.Height=(select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id=reg.Id)) as RegistrationDate,
 
-                ifnull((select r.Value from Ratings r where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
+                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last
+                    where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
 
-                ifnull((select sum(o.Value) from TxOutputs o indexed by TxOutputs_AddressHash_SpentHeight_TxHeight
-                    where o.AddressHash=u.String1 and o.SpentHeight is null),0) as Balance,
+                ifnull((select b.Value from Balances b indexed by Balances_AddressHash_Last
+                    where b.AddressHash=u.String1 and b.Last=1),0) as Balance,
 
-                (select count(1) from Ratings r where r.Type=1 and r.Id=u.Id) as Likers,
+                (select count(1) from Ratings r indexed by Ratings_Type_Id_Last
+                    where r.Type=1 and r.Id=u.Id) as Likers,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (200) and p.Hash=p.String2 and p.String1=u.String1 and p.Height>=?) as PostSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (201) and p.Hash=p.String2 and p.String1=u.String1 and p.Height>=?) as VideoSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (204) and p.String1=u.String1 and p.Height>=?) as CommentSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (300) and p.String1=u.String1 and p.Height>=?) as ScoreSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (301) and p.String1=u.String1 and p.Height>=?) as ScoreCommentSpent,
 
-                (select count(1) from Transactions p indexed by Transactions_Type_Last_String1_Height
+                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (307) and p.String1=u.String1 and p.Height>=?) as ComplainSpent
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height
@@ -353,6 +355,10 @@ namespace PocketDb
 
     UniValue WebRepository::GetLastComments(int count, int height, const string& lang)
     {
+        auto result = UniValue(UniValue::VARR);
+        return result;
+        // TODO (team): need refactor
+
         auto sql = R"sql(
             WITH RowIds AS (
                 SELECT MAX(c.RowId) as RowId
@@ -385,8 +391,6 @@ namespace PocketDb
             order by t.Height desc, t.Time desc
             limit ?;
         )sql";
-
-        auto result = UniValue(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
         {
