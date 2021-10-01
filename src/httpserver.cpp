@@ -755,6 +755,8 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
 
         // Set the URI
         jreq.URI = req->GetURI();
+        string uri = jreq.URI;
+        string method = jreq.strMethod;
         std::string strReply;
 
         // singleton request
