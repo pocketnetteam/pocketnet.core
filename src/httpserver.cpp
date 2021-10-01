@@ -59,7 +59,7 @@ public:
         func(jreq, path);
         auto stop = gStatEngineInstance.GetCurrentSystemTime();
 
-        LogPrint(BCLog::RPC, "RPC execute method %s with %d ms\n", uri, stop.count() - start.count());
+        LogPrint(BCLog::RPC, "RPC execute method %s%s with %d ms\n", uri, _path, stop.count() - start.count());
 
         if (log)
         {
