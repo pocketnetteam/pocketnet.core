@@ -3154,7 +3154,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
              {
                  if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
                  {
-                     txidpocketnet = txidpocketnet + txid + ",";
+                     txidpocketnet += txid + ",";
                  }
                  else
                  {
@@ -3200,7 +3200,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      PrepareWSMessage(messages, "event", response["referrerAddress"].get_str(), txid, txtime, cFields);
                  }
              }
-             else if ("upvoteShare")
+             else if (optype == "upvoteShare")
              {
                  auto response = PocketDb::NotifierRepoInst.GetPostInfoAddressByScore(txid);
                  if (response.exists("postTxHash"))
