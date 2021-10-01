@@ -1155,7 +1155,8 @@ namespace PocketDb
                 p.String6 as Settings
             FROM Transactions t indexed by Transactions_Last_Id_Height
             JOIN Payload p on t.Hash = p.TxHash
-            where t.Id > ifnull((select max(t0.Id) from Transactions t0 indexed by Transactions_Type_Last_String2_Height where t0.Type in (200, 201) and t0.String2 = ? and t0.Last = 1),0)
+            where t.Id < ifnull((select max(t0.Id) from Transactions t0 indexed by Transactions_Type_Last_String2_Height
+                                 where t0.Type in (200, 201) and t0.String2 = ? and t0.Last = 1), 9999999999999)
                 and t.Last = 1
                 and t.Height <= ?
                 and t.Time <= ?
