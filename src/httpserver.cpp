@@ -399,8 +399,6 @@ static void libevent_log_cb(int severity, const char *msg)
         LogPrint(BCLog::LIBEVENT, "libevent: %s\n", msg);
 }
 
-<<<<<<< HEAD
-=======
 using namespace std::chrono;
 
 static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const UniValue& id)
@@ -420,20 +418,6 @@ static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const Uni
     req->WriteReply(nStatus, strReply);
 }
 
-void RegisterAllCoreRPCCommands(CRPCTable& table)
-{
-    RegisterBlockchainRPCCommands(table);
-    RegisterNetRPCCommands(table);
-    RegisterMiscRPCCommands(table);
-    RegisterMiningRPCCommands(table);
-    RegisterRawTransactionRPCCommands(table);
-    g_wallet_init_interface.RegisterRPC(table);
-#if ENABLE_ZMQ
-    RegisterZMQRPCCommands(table);
-#endif
-}
-
->>>>>>> 851aa39... Re-enable unit tests, run by calling "make check"
 bool InitHTTPServer()
 {
     if (!InitHTTPAllowList())
@@ -463,21 +447,8 @@ bool InitHTTPServer()
     raii_event_base base_ctr = obtain_event_base();
     eventBase = base_ctr.get();
 
-<<<<<<< HEAD
     g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth, false);
     g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth, true);
-=======
-    // General private socket
-    g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth);
-    RegisterAllCoreRPCCommands(g_socket->m_table_rpc);
-
-    // Additional pocketnet seocket
-    g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth);
-    RegisterPocketnetWebRPCCommands(g_pubSocket->m_table_rpc);
-
-    // Additional pocketnet static files socket
-    g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth);
->>>>>>> 851aa39... Re-enable unit tests, run by calling "make check"
  
     if (!HTTPBindAddresses())
     {

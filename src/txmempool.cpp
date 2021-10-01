@@ -407,7 +407,9 @@ void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, setEntries &setAnces
 void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
 {
     NotifyEntryRemoved(it->GetSharedTx(), reason);
+
     const uint256 hash = it->GetTx().GetHash();
+
     for (const CTxIn& txin : it->GetTx().vin) {
         mapNextTx.erase(txin.prevout);
     }
@@ -422,10 +424,15 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
         vTxHashes.clear();
 
     totalTxSize -= it->GetTxSize();
+
     cachedInnerUsage -= it->DynamicMemoryUsage();
     cachedInnerUsage -= memusage::DynamicUsage(mapLinks[it].parents) + memusage::DynamicUsage(mapLinks[it].children);
+
     mapLinks.erase(it);
+
     mapTx.erase(it);
+
+    // Crash in here:
     g_addrindex->ClearMempool(hash.GetHex());
 
     nTransactionsUpdated++;
@@ -461,15 +468,19 @@ void CTxMemPool::CalculateDescendants(txiter entryit, setEntries& setDescendants
     }
 }
 
+
 void CTxMemPool::removeRecursive(const CTransaction &origTx, MemPoolRemovalReason reason)
 {
     // Remove transaction from memory pool
     {
         LOCK(cs);
         setEntries txToRemove;
+
         txiter origit = mapTx.find(origTx.GetHash());
+
         if (origit != mapTx.end()) {
             txToRemove.insert(origit);
+
         } else {
             // When recursively removing but origTx isn't in the mempool
             // be sure to remove any children that are in the pool. This can
@@ -484,6 +495,7 @@ void CTxMemPool::removeRecursive(const CTransaction &origTx, MemPoolRemovalReaso
                 txToRemove.insert(nextit);
             }
         }
+
         setEntries setAllRemoves;
         for (txiter it : txToRemove) {
             CalculateDescendants(it, setAllRemoves);
@@ -491,6 +503,7 @@ void CTxMemPool::removeRecursive(const CTransaction &origTx, MemPoolRemovalReaso
 
         RemoveStaged(setAllRemoves, false, reason);
     }
+
 }
 
 void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMemPoolHeight, int flags)
@@ -920,6 +933,7 @@ size_t CTxMemPool::DynamicMemoryUsage() const {
 
 void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPoolRemovalReason reason) {
     AssertLockHeld(cs);
+
     UpdateForRemoveFromMempool(stage, updateDescendants);
     for (txiter it : stage) {
         removeUnchecked(it, reason);

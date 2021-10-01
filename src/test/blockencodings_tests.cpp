@@ -9,8 +9,22 @@
 #include <random.h>
 
 #include <test/test_pocketcoin.h>
+#include <pocketdb/pocketdb.h>
 
 #include <boost/test/unit_test.hpp>
+
+struct cout_redirect {
+    cout_redirect( std::streambuf * new_buffer ) 
+        : old( std::cout.rdbuf( new_buffer ) )
+    { }
+
+    ~cout_redirect( ) {
+        std::cout.rdbuf( old );
+    }
+
+private:
+    std::streambuf * old;
+};
 
 std::vector<std::pair<uint256, CTransactionRef>> extra_txn;
 
@@ -62,7 +76,13 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
     CTxMemPool pool;
     TestMemPoolEntryHelper entry;
 
+    // TAWMAZ: Init pocketdb
+    g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
+    g_pocketdb->Init();
+
     CBlock block(BuildBlockTestCase());
+
+    BOOST_TEST_MESSAGE("Acquiring lock.");
 
     LOCK(pool.cs);
     pool.addUnchecked(entry.FromTx(block.vtx[2]));
@@ -80,10 +100,10 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
         stream >> shortIDs2;
 
         PartiallyDownloadedBlock partialBlock(&pool);
-        BOOST_CHECK(partialBlock.InitData(shortIDs2, extra_txn) == READ_STATUS_OK);
-        BOOST_CHECK( partialBlock.IsTxAvailable(0));
-        BOOST_CHECK(!partialBlock.IsTxAvailable(1));
-        BOOST_CHECK( partialBlock.IsTxAvailable(2));
+        BOOST_CHECK_MESSAGE(partialBlock.InitData(shortIDs2, extra_txn) == READ_STATUS_OK, "InitData failed");
+        BOOST_CHECK_MESSAGE( partialBlock.IsTxAvailable(0), "TX 0 not available");
+        BOOST_CHECK_MESSAGE(!partialBlock.IsTxAvailable(1), "TX 1 present when it should not be");
+        BOOST_CHECK_MESSAGE( partialBlock.IsTxAvailable(2), "TX 2 not availabe");
 
         BOOST_CHECK_EQUAL(pool.mapTx.find(block.vtx[2]->GetHash())->GetSharedTx().use_count(), SHARED_TX_OFFSET + 1);
 

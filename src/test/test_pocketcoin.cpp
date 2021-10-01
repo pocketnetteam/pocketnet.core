@@ -84,7 +84,7 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         // Ideally we'd move all the RPC tests to the functional testing framework
         // instead of unit tests, but for now we need these here.
 
-        RegisterAllCoreRPCCommands(g_socket->m_table_rpc);
+        RegisterAllCoreRPCCommands(tableRPC);
         ClearDatadirCache();
 
         // We have to run a scheduler thread to prevent ActivateBestChain
@@ -170,10 +170,11 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
     CValidationState state;
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
-    auto pocketBlockRef = std::make_shared<PocketBlock>(pblocktemplate->pocketBlock);
+    //auto pocketBlockRef = std::make_shared<PocketBlock>(pblocktemplate->pocketBlock);
     bool fNewBlock = false;
  
-    ProcessNewBlock(state, chainparams, pblock, pocketBlockRef, true, true, &fNewBlock);
+    //ProcessNewBlock(state, chainparams, pblock, pocketBlockRef, true, true, &fNewBlock);
+    ProcessNewBlock(state, chainparams, pblock, true, true, &fNewBlock);
     CBlock result = block;
     return result;
 }

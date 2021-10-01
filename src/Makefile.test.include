@@ -29,7 +29,6 @@ POCKETCOIN_TEST_SUITE = \
 # test_pocketcoin binary #
 # Disabled tests:
 #  test/bip32_tests.cpp
-#  test/blockencodings_tests.cpp
 #  test/checkqueue_tests.cpp
 #  test/denialofservice_tests.cpp
 #  test/descriptor_tests.cpp
@@ -62,6 +61,7 @@ POCKETCOIN_TESTS =\
   test/bech32_tests.cpp \
   test/blockchain_tests.cpp \
   test/blockfilter_tests.cpp \
+  test/blockencodings_tests.cpp \
   test/bloom_tests.cpp \
   test/bswap_tests.cpp \
   test/coins_tests.cpp \

@@ -621,6 +621,7 @@ Error PocketDB::DeleteWithCommit(Query query)
 Error PocketDB::DeleteWithCommit(Query query, size_t& deleted)
 {
     QueryResults res;
+
     Error err = db->Delete(query, res);
     deleted = res.Count();
 
