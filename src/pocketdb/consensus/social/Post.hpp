@@ -33,19 +33,20 @@ namespace PocketConsensus
             if (!IsEmpty(ptx->GetRelayTxHash()))
             {
                 auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRelayTxHash());
-                if (!relayOk)
+                if (relayOk)
+                {
+                    if (*relayTx->GetType() == CONTENT_DELETE)
+                        return {false, SocialConsensusResult_RepostDeletedContent};
+
+                    // TODO (brangr): enable in future if needed
+                    // if (*relayTx->GetType() != CONTENT_POST)
+                    //     return {false, SocialConsensusResult_NotAllowed};
+                }
+                else
                 {
                     PocketHelpers::SocialCheckpoints socialCheckpoints;
                     if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
                         return {false, SocialConsensusResult_RelayContentNotFound};
-                }
-                else
-                {
-                    if (*relayTx->GetType() != CONTENT_POST)
-                        return {false, SocialConsensusResult_NotAllowed};
-
-                    if (*relayTx->GetType() == CONTENT_DELETE)
-                        return {false, SocialConsensusResult_RepostDeletedContent};
                 }
             }
 
