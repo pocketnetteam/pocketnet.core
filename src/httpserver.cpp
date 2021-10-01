@@ -769,7 +769,8 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
             int64_t nTime1 = GetTimeMicros();
             UniValue result = m_table_rpc.execute(jreq);
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::RPC, "RPC execute method %s (%s) with %.2fms\n", uri, method, 0.001 * (nTime2 - nTime1));
+            LogPrint(BCLog::RPC, "RPC execute method %s (%s) = %.2fms with params: %s\n",
+                uri, method, 0.001 * (nTime2 - nTime1), jreq.params.write(0, 0));
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
