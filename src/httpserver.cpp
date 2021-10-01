@@ -54,13 +54,10 @@ public:
 
         auto uri = jreq->GetURI();
         auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
-        auto method = jreq->GetRequestMethod();
 
         auto start = gStatEngineInstance.GetCurrentSystemTime();
         func(jreq, path);
         auto stop = gStatEngineInstance.GetCurrentSystemTime();
-
-        LogPrint(BCLog::RPC, "RPC execute method %s (%s) with %d ms\n", uri, method, stop.count() - start.count());
 
         if (log)
         {
@@ -766,7 +763,10 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
             jreq.parse(valRequest);
             jreq.SetDbConnection(req->DbConnection());
 
+            int64_t nTime1 = GetTimeMicros();
             UniValue result = m_table_rpc.execute(jreq);
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::RPC, "RPC execute method %s (%s) with %.2fms\n", uri, method, 0.001 * (nTime2 - nTime1));
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
