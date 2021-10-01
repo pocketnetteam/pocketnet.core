@@ -621,39 +621,37 @@ namespace PocketDb
 
     UniValue WebRepository::GetPageScores(const vector<string>& commentHashes, const string& addressHash)
     {
+        auto result = UniValue(UniValue::VARR);
+
+        string commentHashesWhere;
+        if (!commentHashes.empty())
+            commentHashesWhere = " and c.RootTxHash (" + join(vector<string>(commentHashes.size(), "?"), ",") + ")";
+
         string sql = R"sql(
             select
-            c.String2 as RootTxHash,
-            (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
-            (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = -1) as ScoreDown,
-            (select r.Value from Ratings r where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
-            msc.Int1 AS MyScore
+                c.String2 as RootTxHash,
+                (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
+                (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = -1) as ScoreDown,
+                (select r.Value from Ratings r where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
+                msc.Int1 AS MyScore
             from Transactions c
             left join Transactions msc on msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1=?
             where c.Type in (204, 205)
                 and c.Last = 1
                 and c.Time < ?
+                )sql" + commentHashesWhere + R"sql(
         )sql";
 
-        sql += "AND c.RootTxHash IN ('";
-        sql += commentHashes[0];
-        sql += "'";
-        for (size_t i = 1; i < commentHashes.size(); i++)
-        {
-            sql += ",'";
-            sql += commentHashes[i];
-            sql += "'";
-        }
-        sql += ")";
-
-        auto result = UniValue(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, addressHash);
-            TryBindStatementInt64(stmt, 2, GetAdjustedTime());
+            int i = 1;
+            TryBindStatementText(stmt, i++, addressHash);
+            TryBindStatementInt64(stmt, i++, GetAdjustedTime());
+            for (const auto& commentHashe: commentHashes)
+                TryBindStatementText(stmt, i++, commentHashe);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
