@@ -755,8 +755,6 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
 
         // Set the URI
         jreq.URI = req->GetURI();
-        string uri = jreq.URI;
-        string method = jreq.strMethod;
         std::string strReply;
 
         // singleton request
@@ -764,6 +762,9 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
         {
             jreq.parse(valRequest);
             jreq.SetDbConnection(req->DbConnection());
+
+            string uri = jreq.URI;
+            string method = jreq.strMethod;
 
             int64_t nTime1 = GetTimeMicros();
             UniValue result = m_table_rpc.execute(jreq);
