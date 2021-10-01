@@ -375,6 +375,7 @@ namespace PocketHelpers
 
         return false;
     }
+
     string TransactionHelper::TxStringType(PocketTxType type)
     {
         switch (type)
@@ -389,6 +390,24 @@ namespace PocketHelpers
                 return "serverPing";
             case PocketTx::CONTENT_TRANSLATE:
                 return "translate";
+            case PocketTx::ACTION_SCORE_CONTENT:
+                return "upvoteShare";
+            case PocketTx::ACTION_SUBSCRIBE:
+                return "subscribe";
+            case PocketTx::ACTION_SUBSCRIBE_PRIVATE:
+                return "subscribePrivate";
+            case PocketTx::ACTION_SUBSCRIBE_CANCEL:
+                return "unsubscribe";
+            case PocketTx::ACCOUNT_USER:
+                return "userInfo";
+            case PocketTx::CONTENT_COMMENT:
+                return "comment";
+            case PocketTx::CONTENT_COMMENT_EDIT:
+                return "commentEdit";
+            case PocketTx::CONTENT_COMMENT_DELETE:
+                return "commentDelete";
+            case PocketTx::ACTION_SCORE_COMMENT:
+                return "cScore";
             default:
                 return "";
         }

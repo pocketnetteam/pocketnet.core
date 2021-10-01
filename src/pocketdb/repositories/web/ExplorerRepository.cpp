@@ -344,7 +344,7 @@ namespace PocketDb {
                 TryBindStatementText(stmt, i++, tx);
 
             TryBindStatementInt(stmt, i++, pageStart);
-            TryBindStatementInt(stmt, i++, pageStart + pageSize);
+            TryBindStatementInt(stmt, i, pageStart + pageSize);
         });
     }
 

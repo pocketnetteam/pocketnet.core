@@ -438,7 +438,8 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
+    UniValue
+    WebRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
         auto result = UniValue(UniValue::VARR);
 
@@ -594,7 +595,7 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, addressHash);
 
             int i = 2;
-            for (const auto& postHash : postHashes)
+            for (const auto& postHash: postHashes)
                 TryBindStatementText(stmt, i++, postHash);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -711,7 +712,7 @@ namespace PocketDb
             TryBindStatementText(stmt, 1, address);
 
             int i = 2;
-            for (const auto& postHash : postHashes)
+            for (const auto& postHash: postHashes)
                 TryBindStatementText(stmt, i++, postHash);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -724,108 +725,6 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) record.pushKV("reputation", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("value", value);
-
-                result.push_back(record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    UniValue WebRepository::GetContentsScores(const string& address, int height, int limit)
-    {
-        UniValue result(UniValue::VARR);
-
-        string sql = R"sql(
-            select
-                s.String1 as address,
-                s.Hash,
-                s.Time,
-                s.String2 as posttxid,
-                s.Int1 as value,
-                s.Height
-            from Transactions c
-            join Transactions s on s.Type in (300) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
-            where c.Type in (200, 201)
-              and c.Last = 1
-              and c.Height is not null
-              and c.String1 = ?
-            order by s.Time desc
-            limit ?
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementText(stmt, 2, address);
-            TryBindStatementInt(stmt, 3, limit);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("addr", address);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
-
-                result.push_back(record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
-    }
-
-    UniValue WebRepository::GetCommentsScores(const string& address, int height, int limit)
-    {
-        UniValue result(UniValue::VARR);
-
-        string sql = R"sql(
-            select
-                s.String1 as address,
-                s.Hash,
-                s.Time,
-                s.String2 as commenttxid,
-                s.Int1 as value,
-                s.Height
-            from Transactions c
-            join Transactions s on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
-            where c.Type in (204, 205)
-              and c.Last = 1
-              and c.Height is not null
-              and c.String1 = ?
-            order by s.Time desc
-            limit ?
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementInt(stmt, 2, height);
-            TryBindStatementInt(stmt, 3, limit);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                record.pushKV("addr", address);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("commentid", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
 
                 result.push_back(record);
             }
@@ -894,10 +793,11 @@ namespace PocketDb
         return record;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
+    map<string, UniValue>
+    WebRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
     {
         auto result = map<string, UniValue>();
-        for (const auto& address : addresses)
+        for (const auto& address: addresses)
             result[address] = UniValue(UniValue::VARR);
 
         string sql = R"sql(
@@ -919,7 +819,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
-            for (const auto& address : addresses)
+            for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -927,8 +827,8 @@ namespace PocketDb
                 UniValue record(UniValue::VOBJ);
                 auto[ok, address] = TryGetColumnString(*stmt, 0);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("adddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("private", value);
+                if (auto[ok1, value] = TryGetColumnString(*stmt, 1); ok1) record.pushKV("adddress", value);
+                if (auto[ok2, value] = TryGetColumnString(*stmt, 2); ok2) record.pushKV("private", value);
 
                 result[address].push_back(record);
             }
@@ -939,7 +839,8 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
+    map<string, UniValue>
+    WebRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
     {
         string sql = R"sql(
             select
@@ -952,7 +853,7 @@ namespace PocketDb
         )sql";
 
         auto result = map<string, UniValue>();
-        for (const auto& address : addresses)
+        for (const auto& address: addresses)
             result[address] = UniValue(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
@@ -960,7 +861,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
-            for (const auto& address : addresses)
+            for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -988,7 +889,7 @@ namespace PocketDb
         )sql";
 
         auto result = map<string, UniValue>();
-        for (const auto& address : addresses)
+        for (const auto& address: addresses)
             result[address] = UniValue(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
@@ -996,7 +897,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
-            for (const auto& address : addresses)
+            for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -1013,7 +914,8 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRepository::GetContents(int nHeight, const string& start_txid, int countOut, const string& lang,
+    map<string, UniValue>
+    WebRepository::GetContents(int nHeight, const string& start_txid, int countOut, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
         const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
     {
@@ -1077,7 +979,8 @@ namespace PocketDb
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", value == "201" ? "video" : "share");
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok)
+                    record.pushKV("type", value == "201" ? "video" : "share");
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
@@ -1103,10 +1006,13 @@ namespace PocketDb
                     record.pushKV("s", s);
                 }
 
-                record.pushKV("scoreSum", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
-                record.pushKV("scoreCnt", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
+                record.pushKV("scoreSum",
+                    "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
+                record.pushKV("scoreCnt",
+                    "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
-                record.pushKV("comments", 0);//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
+                record.pushKV("comments",
+                    0);//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("lastComment", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("reposted", valueStr);
 
@@ -1117,7 +1023,7 @@ namespace PocketDb
         });
 
         auto profiles = GetUserProfile(authors);
-        for (const auto& item : result)
+        for (const auto& item: result)
         {
             std::string useradr = item.second["address"].get_str();
             result[item.first].pushKV("userprofile", profiles[useradr]);
@@ -1372,7 +1278,7 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
-            for (const auto& address : addresses)
+            for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -1434,10 +1340,7 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
                 auto type = TransactionHelper::TxStringType((PocketTxType) typeInt);
 
                 if (resultData.At(type).isNull())
-                {
-                    UniValue lang(UniValue::VOBJ);
-                    resultData.pushKV(type, lang);
-                }
+                    resultData.pushKV(type, UniValue(UniValue::VOBJ));
 
                 resultData.At(type).pushKV(lang, count);
                 resultCount += count;
@@ -1506,14 +1409,14 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
                 {
                     auto[okHash, hash] = TryGetColumnString(*stmt, 0);
                     auto[okTime, time] = TryGetColumnInt64(*stmt, 1);
-                    auto[okHeight, height] = TryGetColumnInt(*stmt, 2);
+                    auto[okHeight, block] = TryGetColumnInt(*stmt, 2);
                     if (!okHash || !okTime || !okHeight)
                         continue;
 
                     UniValue record(UniValue::VOBJ);
                     record.pushKV("txid", hash);
                     record.pushKV("time", time);
-                    record.pushKV("nblock", height);
+                    record.pushKV("nblock", block);
                     resultData.push_back(record);
                 }
 
@@ -1524,9 +1427,9 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
         return {resultCount, resultData};
     }
 
-    UniValue WebRepository::GetRelayedContent(const string& address, int height)
+    vector<UniValue> WebRepository::GetMissedRelayedContent(const string& address, int height)
     {
-        UniValue result(UniValue::VARR);
+        vector<UniValue> result;
 
         string sql = R"sql(
             select
@@ -1554,11 +1457,293 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
             {
                 UniValue record(UniValue::VOBJ);
 
+                record.pushKV("msg", "reshare");
                 if (auto[ok, val] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", val);
                 if (auto[ok, val] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txidRepost", val);
                 if (auto[ok, val] = TryGetColumnString(*stmt, 2); ok) record.pushKV("addrFrom", val);
                 if (auto[ok, val] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("time", val);
                 if (auto[ok, val] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("nblock", val);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    vector<UniValue> WebRepository::GetMissedContentsScores(const string& address, int height, int limit)
+    {
+        vector<UniValue> result;
+
+        string sql = R"sql(
+            select
+                s.String1 as address,
+                s.Hash,
+                s.Time,
+                s.String2 as posttxid,
+                s.Int1 as value,
+                s.Height
+            from Transactions c
+            join Transactions s on s.Type in (300) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
+            where c.Type in (200, 201)
+              and c.Last = 1
+              and c.Height is not null
+              and c.String1 = ?
+            order by s.Time desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+            TryBindStatementInt(stmt, 3, limit);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                record.pushKV("addr", address);
+                record.pushKV("msg", "event");
+                record.pushKV("mesType", "upvoteShare");
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    vector<UniValue> WebRepository::GetMissedCommentsScores(const string& address, int height, int limit)
+    {
+        vector<UniValue> result;
+
+        string sql = R"sql(
+            select
+                s.String1 as address,
+                s.Hash,
+                s.Time,
+                s.String2 as commenttxid,
+                s.Int1 as value,
+                s.Height
+            from Transactions c
+            join Transactions s on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
+            where c.Type in (204, 205)
+              and c.Last = 1
+              and c.Height is not null
+              and c.String1 = ?
+            order by s.Time desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 3, limit);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                record.pushKV("addr", address);
+                record.pushKV("msg", "event");
+                record.pushKV("mesType", "cScore");
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("commentid", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("upvoteVal", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("nblock", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    map<string, UniValue> WebRepository::GetMissedTransactions(const string& address, int height, int count)
+    {
+        map<string, UniValue> result;
+
+        string sql = R"sql(
+            select
+                o.TxHash,
+                t.Time,
+                o.Value,
+                o.TxHeight,
+                t.Type
+            from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight
+            join Transactions t on t.Hash = o.TxHash
+            where o.AddressHash = ?
+              and o.TxHeight > ?
+            order by o.TxHeight desc
+            limit ?
+         )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 3, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[okTxHash, txHash] = TryGetColumnString(*stmt, 0);
+                if (!okTxHash) continue;
+
+                UniValue record(UniValue::VOBJ);
+                record.pushKV("txid", txHash);
+                record.pushKV("addr", address);
+                record.pushKV("msg", "transaction");
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("amount", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("nblock", value);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok)
+                {
+                    auto stringType = TransactionHelper::TxStringType((PocketTxType) value);
+                    if (!stringType.empty())
+                        record.pushKV("type", stringType);
+                }
+
+                result.emplace(txHash, record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    vector<UniValue> WebRepository::GetMissedCommentAnswers(const string& address, int height, int count)
+    {
+        vector<UniValue> result;
+
+        string sql = R"sql(
+            select
+                c.Hash,
+                c.Time,
+                c.Height,
+                c.String1 as addrFrom,
+                c.String3 as posttxid,
+                c.String4 as  parentid,
+                c.String5 as  answerid
+            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
+                on a.Type in (204, 205) and a.Height > ? and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1
+            where c.Type in (204, 205)
+              and c.Last = 1
+              and c.Height is not null
+              and c.String1 = ?
+            order by a.Height desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 3, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                record.pushKV("addr", address);
+                record.pushKV("msg", "comment");
+                record.pushKV("mesType", "answer");
+                record.pushKV("reason", "answer");
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("answerid", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    vector<UniValue> WebRepository::GetMissedPostComments(const string& address, const vector<string>& excludePosts,
+        int height, int count)
+    {
+        vector<UniValue> result;
+
+        string sql = R"sql(
+            select
+                c.Hash,
+                c.Time,
+                c.Height,
+                c.String1 as addrFrom,
+                c.String3 as posttxid,
+                c.String4 as  parentid,
+                c.String5 as  answerid
+            from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions c indexed by Transactions_Type_Last_Height_String3
+                on c.Type in (204, 205) and c.Height > ? and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
+            where p.Type in (200, 201)
+              and p.Last = 1
+              and p.Height is not null
+              and p.String1 = ?
+              and p.Hash not in ( )sql" + join(vector<string>(excludePosts.size(), "?"), ",") + R"sql( )
+            order by c.Height desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            TryBindStatementInt(stmt, i++, height);
+            TryBindStatementText(stmt, i++, address);
+            for (const auto& excludePost: excludePosts)
+                TryBindStatementText(stmt, i++, excludePost);
+            TryBindStatementInt(stmt, i, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                record.pushKV("addr", address);
+                record.pushKV("msg", "comment");
+                record.pushKV("mesType", "post");
+                record.pushKV("reason", "post");
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 1); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 2); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("answerid", value);
 
                 result.push_back(record);
             }

@@ -45,8 +45,6 @@ namespace PocketDb
         UniValue GetPageScores(const vector<string>& commentHashes, const string& address);
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
-        UniValue GetContentsScores(const string& address, int height, int limit);
-        UniValue GetCommentsScores(const string& address, int height, int limit);
 
         map<string, UniValue> GetUserProfile(const vector<string>& addresses, bool shortForm = true, int option = 0);
 
@@ -69,7 +67,13 @@ namespace PocketDb
 
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
-        UniValue GetRelayedContent(const string& address, int height);
+
+        vector<UniValue> GetMissedRelayedContent(const string& address, int height);
+        vector<UniValue> GetMissedContentsScores(const string& address, int height, int limit);
+        vector<UniValue> GetMissedCommentsScores(const string& address, int height, int limit);
+        map<string, UniValue> GetMissedTransactions(const string& address, int height, int count);
+        vector<UniValue> GetMissedCommentAnswers(const string& address, int height, int count);
+        vector<UniValue> GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count);
 
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);

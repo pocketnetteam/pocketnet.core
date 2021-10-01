@@ -339,9 +339,6 @@ public:
     const uint32_t nTime;
     const uint32_t nLockTime;
 
-    // Pocketnet transaction part
-    std::shared_ptr<PocketTx::Transaction> ptx = nullptr;
-
 private:
     /** Memory only. */
     const uint256 hash;
