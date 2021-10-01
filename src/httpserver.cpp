@@ -737,6 +737,26 @@ void HTTPSocket::UnregisterHTTPHandler(const std::string &prefix, bool exactMatc
     }
 }
 
+static inline std::string gen_random(const int len) {
+
+    std::string tmp_s;
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+
+    srand( (unsigned) time(NULL) * getpid());
+
+    tmp_s.reserve(len);
+
+    for (int i = 0; i < len; ++i)
+        tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+
+
+    return tmp_s;
+
+}
+
 bool HTTPSocket::HTTPReq(HTTPRequest* req)
 {
     // JSONRPC handles only POST
@@ -766,11 +786,15 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
             string uri = jreq.URI;
             string method = jreq.strMethod;
 
+            auto rpcKey = gen_random(8);
+            LogPrint(BCLog::RPC, "RPC execute method %s%s (%s) with params: %s\n",
+                uri, method, rpcKey, jreq.params.write(0, 0));
+
             int64_t nTime1 = GetTimeMicros();
             UniValue result = m_table_rpc.execute(jreq);
             int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::RPC, "RPC execute method %s%s = %.2fms with params: %s\n",
-                uri, method, 0.001 * (nTime2 - nTime1), jreq.params.write(0, 0));
+            LogPrint(BCLog::RPC, "RPC execute method %s%s (%s) > %.2fms with params: %s\n",
+                uri, method, rpcKey, 0.001 * (nTime2 - nTime1), jreq.params.write(0, 0));
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
