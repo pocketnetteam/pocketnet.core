@@ -34,29 +34,32 @@ namespace PocketConsensus
         virtual ConsensusValidateResult Validate(const shared_ptr<T>& ptx, const PocketBlockRef& block)
         {
             // Account must be registered
+            vector<string> addressesForCheck;
             vector<string> addresses = GetAddressesForCheckRegistration(ptx);
             if (!addresses.empty())
             {
                 // First check block - maybe user registration this?
                 if (block)
                 {
-                    for (auto& blockTx : *block)
+                    for (const string& address : addresses)
                     {
-                        if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
-                            continue;
-
-                        auto blockAddress = *blockTx->GetString1();
-                        if (find(addresses.begin(), addresses.end(), blockAddress) != addresses.end())
+                        bool inBlock = false;
+                        for (auto& blockTx: *block)
                         {
-                            addresses.erase(
-                                std::remove(addresses.begin(), addresses.end(), blockAddress),
-                                addresses.end()
-                            );
+                            if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                                continue;
+
+                            if (*blockTx->GetString1() == address)
+                                inBlock = true;
                         }
+
+                        if (!inBlock)
+                            addressesForCheck.push_back(address);
                     }
                 }
 
-                if (!addresses.empty() && !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addresses, false))
+                if (!addressesForCheck.empty() &&
+                    !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck, false))
                     return {false, SocialConsensusResult_NotRegistered};
             }
 
