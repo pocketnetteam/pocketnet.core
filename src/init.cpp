@@ -160,20 +160,17 @@ void ShutdownPocketServices()
 {
     // Before close database we must stop all repositories
     PocketDb::SQLiteDbInst.m_connection_mutex.lock();
-    PocketDb::SQLiteDbWebInst.m_connection_mutex.lock();
 
     PocketDb::TransRepoInst.Destroy();
     PocketDb::ChainRepoInst.Destroy();
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
-    PocketDb::WebRepoInst.Destroy();
-
-    // Now we must close database connect
     PocketDb::SQLiteDbInst.Close();
+
+    PocketDb::NotifierRepoInst.Destroy();
     PocketDb::SQLiteDbWebInst.Close();
 
     PocketDb::SQLiteDbInst.m_connection_mutex.unlock();
-    PocketDb::SQLiteDbWebInst.m_connection_mutex.unlock();
 }
 
 void Interrupt()
@@ -1640,7 +1637,7 @@ bool AppInitMain()
         (GetDataDir() / "pocketdb").string(),
         (GetDataDir() / "pocketdb" / "main.sqlite3").string());
 
-    PocketDb::WebRepoInst.Init();
+    PocketDb::NotifierRepoInst.Init();
 
     PocketWeb::PocketFrontendInst.Init();
 
