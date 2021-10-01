@@ -50,6 +50,123 @@ namespace PocketWeb::PocketWebRpc
     //     return aResult;
     // }
 
+    UniValue GetContents(const JSONRPCRequest& request)
+    {
+        if (request.fHelp || request.params.size() < 1) {
+            throw std::runtime_error(
+                "getcontents address\n"
+                "\nReturns contents for address.\n"
+                "\nArguments:\n"
+                "1. address            (string) A pocketcoin addresses to filter\n"
+                "\nResult\n"
+                "[                     (array of contents)\n"
+                "  ...\n"
+                "]");
+        }
+
+        std::string address;
+        if (request.params[0].isStr()) {
+            address = request.params[0].get_str();
+        }
+
+        map<string, UniValue> contents = request.DbConnection()->WebRepoInst->GetContentsForAddress(address);
+
+        UniValue aResult(UniValue::VARR);
+
+        for (auto& c : contents)
+        {
+            aResult.push_back(c.second);
+        }
+        return aResult;
+    }
+
+    UniValue GetHotPosts(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "GetHotPosts\n"
+                "\n.\n");
+
+        int count = 30;
+        if (request.params.size() > 0) {
+            if (request.params[0].isNum()) {
+                count = request.params[0].get_int();
+            } else if (request.params[0].isStr()) {
+                ParseInt32(request.params[0].get_str(), &count);
+            }
+        }
+
+        // Depth in blocks (default about 3 days)
+        int dayInBlocks = 24 * 60;
+        int depthBlocks = 3 * dayInBlocks;
+        if (request.params.size() > 1) {
+            if (request.params[1].isNum()) {
+                depthBlocks = request.params[1].get_int();
+            } else if (request.params[1].isStr()) {
+                ParseInt32(request.params[1].get_str(), &depthBlocks);
+            }
+            if (depthBlocks == 259200) { // for old version electron
+                depthBlocks = 3 * dayInBlocks;
+            }
+            depthBlocks = std::min(depthBlocks, 365 * dayInBlocks);
+        }
+
+        int nHeightOffset = chainActive.Height();
+        int nOffset = 0;
+        if (request.params.size() > 2) {
+            if (request.params[2].isNum()) {
+                if (request.params[2].get_int() > 0) {
+                    nOffset = request.params[2].get_int();
+                }
+            } else if (request.params[2].isStr()) {
+                ParseInt32(request.params[2].get_str(), &nOffset);
+            }
+            nHeightOffset -= nOffset;
+        }
+
+        std::string lang = "";
+        if (request.params.size() > 3) {
+            lang = request.params[3].get_str();
+        }
+
+        std::vector<int> contentTypes;
+        // if (request.params.size() > 4) {
+        //     if (request.params[4].isNum()) {
+        //         contentTypes.push_back(request.params[4].get_int());
+        //     } else if (request.params[4].isStr()) {
+        //         if (getcontenttype(request.params[4].get_str()) >= 0) {
+        //             contentTypes.push_back(getcontenttype(request.params[4].get_str()));
+        //         }
+        //     } else if (request.params[4].isArray()) {
+        //         UniValue cntntTps = request.params[4].get_array();
+        //         if (cntntTps.size() > 10) {
+        //             throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array content types");
+        //         }
+        //         if(cntntTps.size() > 0) {
+        //             for (unsigned int idx = 0; idx < cntntTps.size(); idx++) {
+        //                 if (cntntTps[idx].isNum()) {
+        //                     contentTypes.push_back(cntntTps[idx].get_int());
+        //                 } else if (cntntTps[idx].isStr()) {
+        //                     if (getcontenttype(cntntTps[idx].get_str()) >= 0) {
+        //                         contentTypes.push_back(getcontenttype(cntntTps[idx].get_str()));
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
+
+        map<string, UniValue> contents = request.DbConnection()->WebRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, contentTypes);
+
+        UniValue aResult(UniValue::VOBJ);
+        for (auto& c : contents)
+        {
+            aResult.push_back(c.second);
+        }
+
+        return aResult;
+    }
+
     UniValue GetHistoricalStrip(const JSONRPCRequest& request)
     {
         if (request.fHelp)

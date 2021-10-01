@@ -47,8 +47,6 @@ static const CRPCCommand commands[] =
     {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
     {"artifacts", "search",                           &gettemplate,                       {"search_string", "type", "count"}},
     {"artifacts", "searchlinks",                      &gettemplate,                       {"search_request", "contenttypes", "height", "count"}},
-    {"artifacts", "gethotposts",                      &gettemplate,                       {"count", "depth", "height", "lang", "contenttypes"}},
-    {"artifacts", "getcontents",                      &gettemplate,                       {"address"}},
     {"artifacts", "gettags",                          &gettemplate,                       {"address", "count"}},
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecomendedsubscriptionsforuser",&gettemplate,                       {"address", "count"}},
@@ -57,6 +55,8 @@ static const CRPCCommand commands[] =
     { "websocket",      "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},
 
     // Contents
+    {"contents",        "gethotposts",                      &GetHotPosts,                   {"count", "depth", "height", "lang", "contenttypes"}},
+    {"contents",        "getcontents",                      &GetContents,                   {"address"}},
     //{ "contents",       "getcontentsdata",                  &GetContentsData,               {"ids"}},
     { "contents",       "gethistoricalstrip",               &GetHistoricalStrip,            {"endTime", "depth"}},
     { "contents",       "gethierarchicalstrip",             &GetHierarchicalStrip,          {"endTime", "depth"}},
@@ -64,7 +64,7 @@ static const CRPCCommand commands[] =
     // Comments
     {"comments",        "getcomments",                      &GetComments,                   {"postid", "parentid", "address", "ids"}},
     {"comments",        "getlastcomments",                  &GetLastComments,               {"count", "address"}},
-    // TODO (mavreh): implement
+    // TODO (only1question): implement
     // GetCommentsByPost
     // GetCommentsByIds
 
