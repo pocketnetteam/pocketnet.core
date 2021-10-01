@@ -1162,7 +1162,7 @@ namespace PocketDb
                 and t.String3 is null
                 and p.String1 = ?
                 and t.Type in (200, 201)
-            order by t.Height desc, t.Time desc
+            order by t.Id desc
             limit ?
         )sql";
 
