@@ -54,12 +54,13 @@ public:
 
         auto uri = jreq->GetURI();
         auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
+        auto method = jreq->GetRequestMethod();
 
         auto start = gStatEngineInstance.GetCurrentSystemTime();
         func(jreq, path);
         auto stop = gStatEngineInstance.GetCurrentSystemTime();
 
-        LogPrint(BCLog::RPC, "RPC execute method %s (%s) with %d ms\n", uri, jreq->GetRequestMethod(), stop.count() - start.count());
+        LogPrint(BCLog::RPC, "RPC execute method %s (%s) with %d ms\n", uri, method, stop.count() - start.count());
 
         if (log)
         {
