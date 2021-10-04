@@ -786,7 +786,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
             string uri = jreq.URI;
             string method = jreq.strMethod;
 
-            auto rpcKey = gen_random(8);
+            auto rpcKey = gen_random(15);
             LogPrint(BCLog::RPC, "RPC started method %s%s (%s) with params: %s\n",
                 uri, method, rpcKey, jreq.params.write(0, 0));
 

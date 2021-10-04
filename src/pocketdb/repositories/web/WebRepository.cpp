@@ -623,29 +623,41 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRepository::GetPageScores(const vector<string>& commentHashes, const string& addressHash)
+    UniValue WebRepository::GetPageScores(const vector<string>& postHashes, const vector<string>& commentHashes, const string& addressHash, int height)
     {
         auto result = UniValue(UniValue::VARR);
 
+        // TODO (o1q): postHashes.empty() && -- Add posts check
+        if (commentHashes.empty())
+            return result;
+
         string commentHashesWhere;
         if (!commentHashes.empty())
-            commentHashesWhere = " and c.RootTxHash (" + join(vector<string>(commentHashes.size(), "?"), ",") + ")";
+            commentHashesWhere = " and c.String2 in (" + join(vector<string>(commentHashes.size(), "?"), ",") + ")";
 
         string sql = R"sql(
             select
                 c.String2 as RootTxHash,
-                (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
-                (select count(1) from Transactions sc WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = -1) as ScoreDown,
+
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
+
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = -1) as ScoreDown,
+
                 (select r.Value from Ratings r where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
+
                 msc.Int1 AS MyScore
-            from Transactions c
-            left join Transactions msc on msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1=?
+
+            from Transactions c indexed by Transactions_Type_Last_String2_Height
+            left join Transactions msc indexed by Transactions_Type_String1_String2_Height
+                on msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1 = ?
             where c.Type in (204, 205)
                 and c.Last = 1
-                and c.Time < ?
+                and c.Height is not null
+                and c.Height <= ?
                 )sql" + commentHashesWhere + R"sql(
         )sql";
-
 
         TryTransactionStep(__func__, [&]()
         {
@@ -653,7 +665,7 @@ namespace PocketDb
 
             int i = 1;
             TryBindStatementText(stmt, i++, addressHash);
-            TryBindStatementInt64(stmt, i++, GetAdjustedTime());
+            TryBindStatementInt(stmt, i++, height);
             for (const auto& commentHashe: commentHashes)
                 TryBindStatementText(stmt, i++, commentHashe);
 
