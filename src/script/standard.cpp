@@ -94,7 +94,8 @@ txnouttype Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned 
     // Shortcut for pay-to-script-hash, which are more constrained than the other types:
     // it is always OP_HASH160 20 [20 byte hash] OP_EQUAL
     if (scriptPubKey.IsPayToScriptHash())
-    {
+    {   
+        std::cout << "TAWMAZ: IsPayToScriptHash\n";;
         std::vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.begin()+22);
         vSolutionsRet.push_back(hashBytes);
         return TX_SCRIPTHASH;
@@ -103,6 +104,7 @@ txnouttype Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned 
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
     if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+        std::cout << "TAWMAZ: IsWitnessProgram\n";;
         if (witnessversion == 0 && witnessprogram.size() == WITNESS_V0_KEYHASH_SIZE) {
             vSolutionsRet.push_back(witnessprogram);
             return TX_WITNESS_V0_KEYHASH;
@@ -148,6 +150,7 @@ txnouttype Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned 
         return TX_MULTISIG;
     }
 
+    std::cout << "TAWMAZ: nothing matched TX_NONSTANDARD\n";;
     vSolutionsRet.clear();
     return TX_NONSTANDARD;
 }

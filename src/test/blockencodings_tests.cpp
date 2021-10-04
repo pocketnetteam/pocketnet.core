@@ -5,13 +5,19 @@
 #include <blockencodings.h>
 #include <consensus/merkle.h>
 #include <chainparams.h>
+#include <script/sign.h>
 #include <pow.h>
 #include <random.h>
+#include <key.h>
+#include <keystore.h>
 
 #include <test/test_pocketcoin.h>
 #include <pocketdb/pocketdb.h>
 
 #include <boost/test/unit_test.hpp>
+
+#include <validation.h>
+#include <consensus/validation.h>
 
 struct cout_redirect {
     cout_redirect( std::streambuf * new_buffer ) 
@@ -37,11 +43,20 @@ BOOST_FIXTURE_TEST_SUITE(blockencodings_tests, RegtestingSetup)
 static CBlock BuildBlockTestCase() {
     CBlock block;
     CMutableTransaction tx;
+    CBasicKeyStore keystore;
+
+    // Add some keys to the keystore:
+    CKey key[4];
+    for (int i = 0; i < 4; i++)
+    {
+        key[i].MakeNewKey(i % 2);
+        keystore.AddKey(key[i]);
+    }
 
     tx.vin.resize(1);
     tx.vin[0].scriptSig.resize(10);
     tx.vout.resize(1);
-    tx.vout[0].nValue = 42;
+    tx.vout[0].nValue = 500000;
 
     block.vtx.resize(3);
     block.vtx[0] = MakeTransactionRef(tx);
@@ -51,6 +66,11 @@ static CBlock BuildBlockTestCase() {
 
     tx.vin[0].prevout.hash = InsecureRand256();
     tx.vin[0].prevout.n = 0;
+    // PocketNet coinstake transaction requires at least 2 outputs
+    tx.vout.resize(2);
+    tx.vout[0].nValue=0; 
+    tx.vout[1].nValue=50;
+    tx.vout[1].scriptPubKey << ToByteVector(key[1].GetPubKey()) << OP_CHECKSIG;
     block.vtx[1] = MakeTransactionRef(tx);
 
     tx.vin.resize(10);
@@ -58,12 +78,16 @@ static CBlock BuildBlockTestCase() {
         tx.vin[i].prevout.hash = InsecureRand256();
         tx.vin[i].prevout.n = 0;
     }
+    tx.vout[0].nValue = 1000;
     block.vtx[2] = MakeTransactionRef(tx);
 
     bool mutated;
     block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
     assert(!mutated);
     while (!CheckProofOfWork(block.GetHash(), block.nBits, Params().GetConsensus(), 0)) ++block.nNonce;
+    
+    // Sign block now that it is assembled 
+    key[1].Sign(block.GetHash(), block.vchBlockSig);
     return block;
 }
 
@@ -75,19 +99,27 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
 {
     CTxMemPool pool;
     TestMemPoolEntryHelper entry;
-
-    // TAWMAZ: Init pocketdb
+    CBlock block(BuildBlockTestCase());
     g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
     g_pocketdb->Init();
 
-    CBlock block(BuildBlockTestCase());
-
-    BOOST_TEST_MESSAGE("Acquiring lock.");
+    CValidationState state;
+    BOOST_TEST_MESSAGE("Initial block check");
+    BOOST_CHECK_MESSAGE(CheckBlock(block, state, Params().GetConsensus()), "CheckBlock of initial block failed!");
+    BOOST_TEST_MESSAGE(block.ToString());
 
     LOCK(pool.cs);
     pool.addUnchecked(entry.FromTx(block.vtx[2]));
-
     BOOST_CHECK_EQUAL(pool.mapTx.find(block.vtx[2]->GetHash())->GetSharedTx().use_count(), SHARED_TX_OFFSET + 0);
+
+    BOOST_TEST_MESSAGE("Transaction record vtx[0] = \n");
+    BOOST_TEST_MESSAGE(block.vtx[0]->ToString());
+
+    BOOST_TEST_MESSAGE("Transaction record vtx[1] = \n");
+    BOOST_TEST_MESSAGE(block.vtx[1]->ToString());
+
+    BOOST_TEST_MESSAGE("Transaction record vtx[2] = \n");
+    BOOST_TEST_MESSAGE(block.vtx[2]->ToString());
 
     // Do a simple ShortTxIDs RT
     {
@@ -99,6 +131,8 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
         CBlockHeaderAndShortTxIDs shortIDs2;
         stream >> shortIDs2;
 
+        BOOST_CHECK_EQUAL_COLLECTIONS(shortIDs.vchBlockSig.begin(), shortIDs.vchBlockSig.end(), shortIDs2.vchBlockSig.begin(), shortIDs2.vchBlockSig.end());
+
         PartiallyDownloadedBlock partialBlock(&pool);
         BOOST_CHECK_MESSAGE(partialBlock.InitData(shortIDs2, extra_txn) == READ_STATUS_OK, "InitData failed");
         BOOST_CHECK_MESSAGE( partialBlock.IsTxAvailable(0), "TX 0 not available");
@@ -108,9 +142,10 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
         BOOST_CHECK_EQUAL(pool.mapTx.find(block.vtx[2]->GetHash())->GetSharedTx().use_count(), SHARED_TX_OFFSET + 1);
 
         size_t poolSize = pool.size();
-        pool.removeRecursive(*block.vtx[2]);
+        pool.removeRecursive(*block.vtx[2], MemPoolRemovalReason::REPLACED);
         BOOST_CHECK_EQUAL(pool.size(), poolSize - 1);
 
+        BOOST_TEST_MESSAGE("Block 2 test\n");
         CBlock block2;
         {
             PartiallyDownloadedBlock tmp = partialBlock;
@@ -127,6 +162,8 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
         bool mutated;
         BOOST_CHECK(block.hashMerkleRoot != BlockMerkleRoot(block2, &mutated));
 
+        BOOST_TEST_MESSAGE("Block 3 test, vtx[1] = \n");
+        BOOST_TEST_MESSAGE(block.vtx[1]->ToString());
         CBlock block3;
         BOOST_CHECK(partialBlock.FillBlock(block3, {block.vtx[1]}) == READ_STATUS_OK);
         BOOST_CHECK_EQUAL(block.GetHash().ToString(), block3.GetHash().ToString());
@@ -164,10 +201,14 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
+        //std::cout << "TestHeaderAndShortIDs serialize\n";
         READWRITE(header);
+        //std::cout << "nonce\n";
         READWRITE(nonce);
-        READWRITE(vchBlockSig);
+        //std::cout << "shorttxids_size\n";
+
         size_t shorttxids_size = shorttxids.size();
+
         READWRITE(VARINT(shorttxids_size));
         shorttxids.resize(shorttxids_size);
         for (size_t i = 0; i < shorttxids.size(); i++) {
@@ -176,8 +217,13 @@ public:
             READWRITE(lsb);
             READWRITE(msb);
             shorttxids[i] = (uint64_t(msb) << 32) | uint64_t(lsb);
+            //std::cout << "shorttxid " << shorttxids[i] << "\n";
+
         }
+        //std::cout << "prefilledtxn\n";
         READWRITE(prefilledtxn);
+        //std::cout << "vchBlockSig\n";
+        READWRITE(vchBlockSig);
     }
 };
 
@@ -190,12 +236,12 @@ BOOST_AUTO_TEST_CASE(NonCoinbasePreforwardRTTest)
     LOCK(pool.cs);
     pool.addUnchecked(entry.FromTx(block.vtx[2]));
     BOOST_CHECK_EQUAL(pool.mapTx.find(block.vtx[2]->GetHash())->GetSharedTx().use_count(), SHARED_TX_OFFSET + 0);
-
     uint256 txhash;
 
     // Test with pre-forwarding tx 1, but not coinbase
     {
         TestHeaderAndShortIDs shortIDs(block);
+
         shortIDs.prefilledtxn.resize(1);
         shortIDs.prefilledtxn[0] = {1, block.vtx[1]};
         shortIDs.shorttxids.resize(2);

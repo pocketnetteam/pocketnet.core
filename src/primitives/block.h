@@ -10,6 +10,7 @@
 #include <serialize.h>
 #include <uint256.h>
 #include <arith_uint256.h>
+#include <iostream>
 
 /** Nodes collect new transactions into a block, hash them into a hash tree,
  * and scan through nonce values to make the block's hash satisfy proof-of-work
@@ -119,6 +120,9 @@ public:
 
     bool IsProofOfStake() const
     {
+        std::cout << "IsProoOfStake, vtx.size=" << vtx.size() << "\n";
+        if (vtx.size() > 1)
+            std::cout << ", vtx[1]->IsCoinStake()=" << vtx[1]->IsCoinStake() << "\n";
         return (vtx.size() > 1 && vtx[1]->IsCoinStake());
     }
 
