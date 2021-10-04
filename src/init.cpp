@@ -53,8 +53,12 @@
 #include <warnings.h>
 
 #include <websocket/ws.h>
+#include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/pocketnet.h"
-#include "pocketdb/services/PostProcessing.h"
+#include "pocketdb/services/ChainPostProcessing.h"
+#include "pocketdb/migrations/base.h"
+#include "pocketdb/migrations/main.h"
+#include "pocketdb/migrations/web.h"
 
 #ifndef WIN32
 
@@ -165,10 +169,9 @@ void ShutdownPocketServices()
     PocketDb::ChainRepoInst.Destroy();
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
-    PocketDb::SQLiteDbInst.Close();
-
     PocketDb::NotifierRepoInst.Destroy();
-    PocketDb::SQLiteDbWebInst.Close();
+
+    PocketDb::SQLiteDbInst.Close();
 
     PocketDb::SQLiteDbInst.m_connection_mutex.unlock();
 }
@@ -1624,20 +1627,27 @@ bool AppInitMain()
     // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB..."));
 
-    PocketDb::SQLiteDbInst.Init(
-        (GetDataDir() / "pocketdb").string(),
-        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
+    PocketDb::IntitializeSqlite((GetDataDir() / "pocketdb").string());
+
+    PocketDb::PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDb::PocketDbMainMigration>();
+    PocketDb::SQLiteDbInst.Init("main", mainDbMigration);
+    PocketDb::SQLiteDbInst.CreateStructure();
 
     PocketDb::TransRepoInst.Init();
     PocketDb::ChainRepoInst.Init();
     PocketDb::RatingsRepoInst.Init();
     PocketDb::ConsensusRepoInst.Init();
-
-    PocketDb::SQLiteDbWebInst.Init(
-        (GetDataDir() / "pocketdb").string(),
-        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
-
     PocketDb::NotifierRepoInst.Init();
+
+    // Open, create structure and close `web` db
+    PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
+    SQLiteDatabase sqliteDbWebInst(false);
+    sqliteDbWebInst.Init("web", webDbMigration);
+    sqliteDbWebInst.CreateStructure();
+    sqliteDbWebInst.Close();
+
+    // Attach `web` db to `main` db
+    PocketDb::SQLiteDbInst.AttachDatabase("web");
 
     PocketWeb::PocketFrontendInst.Init();
 

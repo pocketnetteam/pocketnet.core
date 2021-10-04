@@ -38,7 +38,6 @@ namespace PocketTx
         bool operator==(const string& hash) const;
 
         shared_ptr<PocketTxType> GetType() const;
-        shared_ptr<int> GetTypeInt() const;
         void SetType(PocketTxType value);
 
         shared_ptr<int64_t> GetTime() const;

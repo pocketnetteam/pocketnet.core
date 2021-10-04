@@ -19,7 +19,6 @@ namespace PocketTx
         ~Rating() = default;
 
         shared_ptr<RatingType> GetType() const;
-        shared_ptr<int> GetTypeInt() const;
         void SetType(RatingType value);
 
         shared_ptr <int> GetHeight() const;

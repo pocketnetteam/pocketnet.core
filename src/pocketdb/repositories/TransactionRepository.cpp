@@ -228,7 +228,7 @@ namespace PocketDb
             WHERE not exists (select 1 from Transactions t where t.Hash=?)
         )sql");
 
-        TryBindStatementInt(stmt, 1, ptx->GetTypeInt());
+        TryBindStatementInt(stmt, 1, (int)*ptx->GetType());
         TryBindStatementText(stmt, 2, ptx->GetHash());
         TryBindStatementInt64(stmt, 3, ptx->GetTime());
         TryBindStatementText(stmt, 4, ptx->GetString1());

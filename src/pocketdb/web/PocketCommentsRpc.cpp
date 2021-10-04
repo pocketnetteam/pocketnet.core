@@ -69,7 +69,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        return request.DbConnection()->WebRepoInst->GetCommentsByIds(addressHash, cmnIds);
+        return request.DbConnection()->WebRpcRepoInst->GetCommentsByIds(addressHash, cmnIds);
     }
 
     UniValue GetCommentsByPost(const JSONRPCRequest& request)
@@ -96,7 +96,7 @@ namespace PocketWeb::PocketWebRpc
             addressHash = request.params[2].get_str();
         }
 
-        return request.DbConnection()->WebRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
+        return request.DbConnection()->WebRpcRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
     }
 
     UniValue GetLastComments(const JSONRPCRequest& request)
@@ -125,7 +125,7 @@ namespace PocketWeb::PocketWebRpc
 
         int nHeight = chainActive.Height();
 
-        return request.DbConnection()->WebRepoInst->GetLastComments(resultCount, nHeight, lang);
+        return request.DbConnection()->WebRpcRepoInst->GetLastComments(resultCount, nHeight, lang);
     }
 
 }

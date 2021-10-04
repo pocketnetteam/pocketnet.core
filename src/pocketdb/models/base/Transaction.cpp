@@ -43,7 +43,6 @@ namespace PocketTx
     bool Transaction::operator==(const string& hash) const { return *m_hash == hash; }
 
     shared_ptr <PocketTxType> Transaction::GetType() const { return m_type; }
-    shared_ptr<int> Transaction::GetTypeInt() const { return make_shared<int>((int) *m_type); }
     void Transaction::SetType(PocketTxType value) { m_type = make_shared<PocketTxType>(value); }
 
     shared_ptr <int64_t> Transaction::GetTime() const { return m_time; }

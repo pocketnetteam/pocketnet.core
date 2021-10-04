@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETDB_TRANSACTIONINDEXER_H
-#define POCKETDB_TRANSACTIONINDEXER_H
+#ifndef POCKETDB_CHAIN_POST_PROCESSING_H
+#define POCKETDB_CHAIN_POST_PROCESSING_H
 
 #include "util.h"
 #include "chain.h"
@@ -24,7 +24,7 @@ namespace PocketServices
     using std::vector;
     using std::find;
 
-    class PostProcessing
+    class ChainPostProcessing
     {
     public:
         static void Index(const CBlock& block, int height);
@@ -40,4 +40,4 @@ namespace PocketServices
     };
 } // namespace PocketServices
 
-#endif // POCKETDB_TRANSACTIONINDEXER_H
+#endif // POCKETDB_CHAIN_POST_PROCESSING_H

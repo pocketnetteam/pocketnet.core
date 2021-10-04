@@ -7,7 +7,6 @@
 namespace PocketTx
 {
     shared_ptr <RatingType> Rating::GetType() const { return m_type; }
-    shared_ptr<int> Rating::GetTypeInt() const { return make_shared<int>((int) *m_type); }
     void Rating::SetType(RatingType value) { m_type = make_shared<RatingType>(value); }
 
     shared_ptr<int> Rating::GetHeight() const { return m_height; }

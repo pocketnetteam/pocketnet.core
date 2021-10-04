@@ -8,20 +8,18 @@ namespace PocketDb
 {
     SQLiteConnection::SQLiteConnection()
     {
-        SQLiteDbInst = make_shared<SQLiteDatabase>(false, true);
-        SQLiteDbInst->Init(
-            (GetDataDir() / "pocketdb").string(),
-            (GetDataDir() / "pocketdb" / "main.sqlite3").string()
-        );
+        SQLiteDbInst = make_shared<SQLiteDatabase>(true);
+        SQLiteDbInst->Init("main");
+        SQLiteDbInst->AttachDatabase("web");
 
-        WebRepoInst = make_shared<WebRepository>(*SQLiteDbInst);
+        WebRpcRepoInst = make_shared<WebRpcRepository>(*SQLiteDbInst);
         ExplorerRepoInst = make_shared<ExplorerRepository>(*SQLiteDbInst);
         TransactionRepoInst = make_shared<TransactionRepository>(*SQLiteDbInst);
     }
 
     SQLiteConnection::~SQLiteConnection()
     {
-        WebRepoInst->Destroy();
+        WebRpcRepoInst->Destroy();
         ExplorerRepoInst->Destroy();
         TransactionRepoInst->Destroy();
 

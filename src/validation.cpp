@@ -40,7 +40,7 @@
 #include <boost/thread.hpp>
 #include <univalue.h>
 
-#include "pocketdb/services/PostProcessing.h"
+#include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/services/Accessor.h"
 #include "pocketdb/consensus/Helper.h"
 
@@ -2125,7 +2125,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             view.SetBestBlock(pindex->GetBlockHash());
 
             // Also indexing pocketdb
-            PocketServices::PostProcessing::Index(block, pindex->nHeight);
+            PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
         }
 
         return true;
@@ -2504,7 +2504,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
     try
     {
-        PocketServices::PostProcessing::Index(block, pindex->nHeight);
+        PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
     }
     catch (const std::exception& e)
     {
@@ -2809,7 +2809,7 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
 
-        if (!PocketServices::PostProcessing::Rollback(chainActive.Height()))
+        if (!PocketServices::ChainPostProcessing::Rollback(chainActive.Height()))
             return error("DisconnectTip(): DisconnectBlock (Pocketnet part) %s failed", pindexDelete->GetBlockHash().ToString());
 
         bool flushed = view.Flush();
@@ -5466,7 +5466,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
             if (pindex->nStatus & BLOCK_FAILED_MASK)
                 ResetBlockFailureFlags(pindex);
 
-            if (!PocketServices::PostProcessing::Rollback(pindex->nHeight))
+            if (!PocketServices::ChainPostProcessing::Rollback(pindex->nHeight))
                 return error("VerifyDB(): failed rollback sqlite database for %s block", pindex->GetBlockHash().ToString());
 
             if (!g_chainstate.ConnectBlock(block, pocketBlock, state, pindex, coins, chainparams))

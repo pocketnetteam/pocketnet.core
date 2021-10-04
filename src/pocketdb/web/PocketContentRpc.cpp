@@ -8,7 +8,7 @@ namespace PocketWeb::PocketWebRpc
 {
     // std::map<std::string, UniValue> GetContentsData(const DbConnectionRef& dbCon, std::vector<std::string> txids)
     // {
-    //     auto result = dbCon->WebRepoInst->GetContentsData(txids);
+    //     auto result = dbCon->WebRpcRepoInst->GetContentsData(txids);
     //
     //     return result;
     // }
@@ -69,7 +69,7 @@ namespace PocketWeb::PocketWebRpc
             address = request.params[0].get_str();
         }
 
-        map<string, UniValue> contents = request.DbConnection()->WebRepoInst->GetContentsForAddress(address);
+        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
 
         UniValue aResult(UniValue::VARR);
 
@@ -156,7 +156,7 @@ namespace PocketWeb::PocketWebRpc
         //     }
         // }
 
-        map<string, UniValue> contents = request.DbConnection()->WebRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, contentTypes);
+        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, contentTypes);
 
         UniValue aResult(UniValue::VARR);
         for (auto& c : contents)
@@ -358,7 +358,7 @@ namespace PocketWeb::PocketWebRpc
         UniValue aContents(UniValue::VARR);
 
         int totalcount = 0;
-        map<string, UniValue> contents = request.DbConnection()->WebRepoInst->GetContents(nHeight, start_txid, countOut, lang, tags, contentTypes,
+        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContents(nHeight, start_txid, countOut, lang, tags, contentTypes,
             txidsExcluded, adrsExcluded, tagsExcluded, address);
         for (auto& c : contents)
         {

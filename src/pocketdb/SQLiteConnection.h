@@ -7,7 +7,7 @@
 
 #include "pocketdb/SQLiteDatabase.h"
 
-#include "pocketdb/repositories/web/WebRepository.h"
+#include "pocketdb/repositories/web/WebRpcRepository.h"
 #include "pocketdb/repositories/web/ExplorerRepository.h"
 #include "pocketdb/repositories/TransactionRepository.h"
 
@@ -29,7 +29,7 @@ namespace PocketDb
         SQLiteConnection();
         virtual ~SQLiteConnection();
 
-        WebRepositoryRef WebRepoInst;
+        WebRpcRepositoryRef WebRpcRepoInst;
         ExplorerRepositoryRef ExplorerRepoInst;
         TransactionRepositoryRef TransactionRepoInst;
 

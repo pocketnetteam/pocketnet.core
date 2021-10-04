@@ -37,7 +37,7 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         // Language statistic
-        auto[contentCount, contentLangCount] = request.DbConnection()->WebRepoInst->GetContentLanguages(blockNumber);
+        auto[contentCount, contentLangCount] = request.DbConnection()->WebRpcRepoInst->GetContentLanguages(blockNumber);
         UniValue fullStat(UniValue::VOBJ);
         fullStat.pushKV("block", chainActive.Height());
         fullStat.pushKV("cntposts", contentCount);
@@ -48,7 +48,7 @@ namespace PocketWeb::PocketWebRpc
 
         // Pocketnet Team content
         std::string teamAddress = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
-        auto[teamCount, teamData] = request.DbConnection()->WebRepoInst->GetLastAddressContent(
+        auto[teamCount, teamData] = request.DbConnection()->WebRpcRepoInst->GetLastAddressContent(
             teamAddress, blockNumber, 99);
         for (size_t i = 0; i < teamData.size(); i++)
         {
@@ -59,14 +59,14 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         // Private subscribers news
-        auto privateSubscribes = request.DbConnection()->WebRepoInst->GetSubscribesAddresses({address},
+        auto privateSubscribes = request.DbConnection()->WebRpcRepoInst->GetSubscribesAddresses({address},
             {ACTION_SUBSCRIBE_PRIVATE});
         UniValue subs = privateSubscribes[address];
         for (size_t i = 0; i < subs.size(); i++)
         {
             UniValue sub = subs[i];
             string subAddress = sub["adddress"].get_str();
-            if (auto[subCount, subData] = request.DbConnection()->WebRepoInst->GetLastAddressContent(subAddress,
+            if (auto[subCount, subData] = request.DbConnection()->WebRpcRepoInst->GetLastAddressContent(subAddress,
                     blockNumber, 1); subCount > 0)
             {
                 subData.At(0).pushKV("msg", "event");
@@ -80,24 +80,24 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         // Reposts
-        result.push_backV(request.DbConnection()->WebRepoInst->GetMissedRelayedContent(address, blockNumber));
+        result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedRelayedContent(address, blockNumber));
 
         // ---------------------------------------------------------------------
 
         // Scores to contents
         result.push_backV(
-            request.DbConnection()->WebRepoInst->GetMissedContentsScores(address, blockNumber, cntResult));
+            request.DbConnection()->WebRpcRepoInst->GetMissedContentsScores(address, blockNumber, cntResult));
 
         // ---------------------------------------------------------------------
 
         // Scores to comments
-        result.push_backV(request.DbConnection()->WebRepoInst->GetMissedCommentsScores(
+        result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedCommentsScores(
             address, blockNumber, cntResult));
 
         // ---------------------------------------------------------------------
 
         // New incoming missed transactions
-        auto missedTransactions = request.DbConnection()->WebRepoInst->GetMissedTransactions(
+        auto missedTransactions = request.DbConnection()->WebRpcRepoInst->GetMissedTransactions(
             address, blockNumber, cntResult);
 
         // Restore transactions details
@@ -117,7 +117,7 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         // Comments answers
-        auto answers = request.DbConnection()->WebRepoInst->GetMissedCommentAnswers(address, blockNumber, cntResult);
+        auto answers = request.DbConnection()->WebRpcRepoInst->GetMissedCommentAnswers(address, blockNumber, cntResult);
         vector<string> answersPosts;
         for (const auto& answer: answers)
             answersPosts.push_back(answer["posttxid"].get_str());
@@ -126,7 +126,7 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         // New comments to posts
-        result.push_backV(request.DbConnection()->WebRepoInst->GetMissedPostComments(
+        result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedPostComments(
             address, answersPosts, blockNumber, cntResult));
 
         // ---------------------------------------------------------------------

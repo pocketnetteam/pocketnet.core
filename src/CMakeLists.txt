@@ -356,7 +356,9 @@ add_library(${POCKETCOIN_COMMON}
 # It is divided to pocketdb-server part and this functional part
 set(POCKETDB pocketdb)
 add_library(${POCKETDB}
+        pocketdb/migrations/base.h
         pocketdb/migrations/main.h
+        pocketdb/migrations/web.h
         pocketdb/models/base/PocketTypes.h
         pocketdb/models/base/Base.h
         pocketdb/models/base/Payload.h
@@ -384,6 +386,7 @@ add_library(${POCKETDB}
         pocketdb/models/dto/AccountSetting.h
         pocketdb/models/dto/ContentDelete.h
         pocketdb/migrations/main.cpp
+        pocketdb/migrations/web.cpp
         pocketdb/models/base/Base.cpp
         pocketdb/models/base/Payload.cpp
         pocketdb/models/base/Transaction.cpp
@@ -745,10 +748,12 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/services/WsNotifier.cpp
         pocketdb/services/WsNotifier.h
         pocketdb/services/Serializer.cpp
-        pocketdb/services/PostProcessing.cpp
+        pocketdb/services/ChainPostProcessing.cpp
+        pocketdb/services/WebPostProcessing.cpp
         pocketdb/services/Accessor.cpp
         pocketdb/services/Serializer.h
-        pocketdb/services/PostProcessing.h
+        pocketdb/services/ChainPostProcessing.h
+        pocketdb/services/WebPostProcessing.h
         pocketdb/services/Accessor.h
         pocketdb/repositories/BaseRepository.h
         pocketdb/repositories/TransactionRepository.h
@@ -761,9 +766,9 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/ConsensusRepository.cpp
         pocketdb/repositories/web/NotifierRepository.h
         pocketdb/repositories/web/NotifierRepository.cpp
-        pocketdb/repositories/web/WebRepository.h
+        pocketdb/repositories/web/WebRpcRepository.h
         pocketdb/repositories/web/ExplorerRepository.h
-        pocketdb/repositories/web/WebRepository.cpp
+        pocketdb/repositories/web/WebRpcRepository.cpp
         pocketdb/repositories/web/ExplorerRepository.cpp
         pocketdb/consensus/Base.h
         pocketdb/consensus/Helper.h

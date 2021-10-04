@@ -249,9 +249,7 @@ namespace Statistic
         void Run(boost::thread_group& threadGroup)
         {
             shutdown = false;
-            threadGroup.create_thread(
-                boost::bind(
-                    &RequestStatEngine::PeriodicStatLogger, this));
+            threadGroup.create_thread(boost::bind(&RequestStatEngine::PeriodicStatLogger, this));
         }
 
         void Stop()

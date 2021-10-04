@@ -95,7 +95,9 @@ POCKETDB_H = \
     pocketdb/SQLiteDatabase.h \
     pocketdb/SQLiteConnection.h \
     \
+    pocketdb/migrations/base.h \
     pocketdb/migrations/main.h \
+    pocketdb/migrations/web.h \
     \
     pocketdb/helpers/TransactionHelper.h \
     pocketdb/helpers/CheckpointHelper.h \
@@ -116,13 +118,14 @@ POCKETDB_H = \
     pocketdb/repositories/ChainRepository.h \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/RatingsRepository.h \
-    pocketdb/repositories/web/WebRepository.h \
+    pocketdb/repositories/web/WebRpcRepository.h \
     pocketdb/repositories/web/NotifierRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
     \
     pocketdb/services/WsNotifier.h \
     pocketdb/services/b/services/Serializer.h \
-    pocketdb/services/b/services/PostProcessing.h \
+    pocketdb/services/b/services/ChainPostProcessing.h \
+    pocketdb/services/b/services/WebPostProcessing.h \
     pocketdb/services/Accessor.h \
     \
     pocketdb/consensus/Base.h \
@@ -184,6 +187,7 @@ POCKETDB_CPP = \
     pocketdb/pocketnet.cpp \
     \
     pocketdb/migrations/main.cpp \
+    pocketdb/migrations/web.cpp \
     \
     pocketdb/helpers/TransactionHelper.cpp \
     pocketdb/helpers/LotteryCheckpointHelper.cpp \
@@ -192,14 +196,15 @@ POCKETDB_CPP = \
     \
     pocketdb/services/WsNotifier.cpp \
     pocketdb/services/Serializer.cpp \
-    pocketdb/services/PostProcessing.cpp \
+    pocketdb/services/ChainPostProcessing.cpp \
+    pocketdb/services/WebPostProcessing.cpp \
     pocketdb/services/Accessor.cpp \
     \
     pocketdb/repositories/ConsensusRepository.cpp \
     pocketdb/repositories/ChainRepository.cpp \
     pocketdb/repositories/TransactionRepository.cpp \
     pocketdb/repositories/RatingsRepository.cpp \
-    pocketdb/repositories/web/WebRepository.cpp \
+    pocketdb/repositories/web/WebRpcRepository.cpp \
     pocketdb/repositories/web/NotifierRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
     \

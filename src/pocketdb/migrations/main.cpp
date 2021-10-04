@@ -2,9 +2,9 @@
 
 namespace PocketDb
 {
-    PocketDbMigration::PocketDbMigration()
+    PocketDbMainMigration::PocketDbMainMigration() : PocketDbMigration()
     {
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists Transactions
             (
                 Type      int    not null,
@@ -72,7 +72,7 @@ namespace PocketDb
             );
         )sql");
 
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists Payload
             (
                 TxHash  text   primary key, -- Transactions.Hash
@@ -119,7 +119,7 @@ namespace PocketDb
             );
         )sql");
 
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists TxOutputs
             (
                 TxHash          text   not null, -- Transactions.Hash
@@ -134,7 +134,7 @@ namespace PocketDb
             );
         )sql");
 
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists Ratings
             (
                 Type   int not null,
@@ -146,7 +146,7 @@ namespace PocketDb
             );
         )sql");
 
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists Balances
             (
                 AddressHash     text    not null,
@@ -158,7 +158,7 @@ namespace PocketDb
         )sql");
 
 
-        Views.emplace_back(R"sql(
+        _views.emplace_back(R"sql(
             drop view if exists vWebUsers;
             create view vWebUsers as
             select t.Hash,
@@ -182,7 +182,7 @@ namespace PocketDb
             and t.Type = 100;
         )sql");
 
-        Views.emplace_back(R"sql(
+        _views.emplace_back(R"sql(
             drop view if exists vWebContents;
             create view vWebContents as
             select t.Hash,
@@ -205,7 +205,7 @@ namespace PocketDb
             where t.Last = 1;
         )sql");
 
-        Views.emplace_back(R"sql(
+        _views.emplace_back(R"sql(
             drop view if exists vWebPosts;
             create view vWebPosts as
             select t.Hash,
@@ -231,7 +231,7 @@ namespace PocketDb
             and t.Type = 200;
         )sql");
 
-        Views.emplace_back(R"sql(
+        _views.emplace_back(R"sql(
             drop view if exists vWebComments;
             create view vWebComments as
             select t.Hash,
@@ -255,7 +255,7 @@ namespace PocketDb
             and t.Type = 204;
         )sql");
 
-        Views.emplace_back(R"sql(
+        _views.emplace_back(R"sql(
             drop view if exists vWebScorePosts;
             create view vWebScorePosts as
             select String1 as AddressHash,
@@ -265,7 +265,7 @@ namespace PocketDb
             where Type in (300);
         )sql");
 
-        Views.emplace_back(R"sql(
+        _views.emplace_back(R"sql(
             drop view if exists vWebScoreComments;
             create view vWebScoreComments as
             select String1 as AddressHash,
@@ -275,7 +275,7 @@ namespace PocketDb
             where Type in (301);
         )sql");
 
-        Views.emplace_back(R"sql(
+        _views.emplace_back(R"sql(
             drop view if exists vWebScoresPosts;
             create view vWebScoresPosts as
             select count(*) as cnt, avg(Int1) as average, String2 as PostTxHash
@@ -284,7 +284,7 @@ namespace PocketDb
             group by String2;
         )sql");
 
-        Views.emplace_back(R"sql(
+        _views.emplace_back(R"sql(
             drop view if exists vWebScoresComments;
             create view vWebScoresComments as
             select count(*) as cnt, avg(Int1) as average, String2 as CommentTxHash
@@ -294,7 +294,7 @@ namespace PocketDb
         )sql");
 
 
-        Indexes = R"sql(
+        _indexes = R"sql(
             create index if not exists Transactions_Id on Transactions (Id);
             create index if not exists Transactions_Id_Last on Transactions (Id, Last);
             create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);

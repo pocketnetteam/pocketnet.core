@@ -2,11 +2,11 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "pocketdb/services/PostProcessing.h"
+#include "pocketdb/services/ChainPostProcessing.h"
 
 namespace PocketServices
 {
-    void PostProcessing::Index(const CBlock& block, int height)
+    void ChainPostProcessing::Index(const CBlock& block, int height)
     {
         vector<TransactionIndexingInfo> txs;
         PrepareTransactions(block, txs);
@@ -29,12 +29,12 @@ namespace PocketServices
         LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (nTime4 - nTime3), height);
     }
 
-    bool PostProcessing::Rollback(int height)
+    bool ChainPostProcessing::Rollback(int height)
     {
         return PocketDb::ChainRepoInst.Rollback(height);
     }
 
-    void PostProcessing::PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs)
+    void ChainPostProcessing::PrepareTransactions(const CBlock& block, vector<TransactionIndexingInfo>& txs)
     {
         for (size_t i = 0; i < block.vtx.size(); i++)
         {
@@ -60,17 +60,17 @@ namespace PocketServices
     }
 
     // Set block height for all transactions in block
-    void PostProcessing::IndexChain(const string& blockHash, int height, vector <TransactionIndexingInfo>& txs)
+    void ChainPostProcessing::IndexChain(const string& blockHash, int height, vector <TransactionIndexingInfo>& txs)
     {
         PocketDb::ChainRepoInst.IndexBlock(blockHash, height, txs);
     }
 
-    void PostProcessing::IndexBalances(int height)
+    void ChainPostProcessing::IndexBalances(int height)
     {
         PocketDb::ChainRepoInst.IndexBalances(height);
     }
 
-    void PostProcessing::IndexRatings(int height, const CBlock& block)
+    void ChainPostProcessing::IndexRatings(int height, const CBlock& block)
     {
         map <RatingType, map<int, int>> ratingValues;
         map<int, vector<int>> accountLikersSrc;
@@ -195,7 +195,7 @@ namespace PocketServices
         PocketDb::RatingsRepoInst.InsertRatings(ratings);
     }
 
-    void PostProcessing::BuildAccountLikers(const shared_ptr <ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
+    void ChainPostProcessing::BuildAccountLikers(const shared_ptr <ScoreDataDto>& scoreData, map<int, vector<int>>& accountLikers)
     {
         auto found = find(
             accountLikers[scoreData->ContentAddressId].begin(),

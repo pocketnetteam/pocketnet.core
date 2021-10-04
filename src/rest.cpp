@@ -22,7 +22,7 @@
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
 
-#include "pocketdb/services/PostProcessing.h"
+#include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/consensus/Helper.h"
 #include "pocketdb/services/Accessor.h"
 #include "pocketdb/web/PocketFrontend.h"
@@ -750,7 +750,7 @@ static bool rest_topaddresses(HTTPRequest* req, const std::string& strURIPart)
             count = 1000;
     }
 
-    auto result = req->DbConnection()->WebRepoInst->GetTopAddresses(count);
+    auto result = req->DbConnection()->WebRpcRepoInst->GetTopAddresses(count);
     req->WriteHeader("Content-Type", "application/json");
     req->WriteReply(HTTP_OK, result.write() + "\n");
     return true;
@@ -856,7 +856,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
             if (!PocketServices::Accessor::GetBlock(block, pocketBlock) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
-            PocketServices::PostProcessing::Rollback(pblockindex->nHeight);
+            PocketServices::ChainPostProcessing::Rollback(pblockindex->nHeight);
 
             CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
             if (pblockindex->nHeight > 100000 && block.IsProofOfStake())
@@ -880,7 +880,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
                 // return RESTERR(req, HTTP_BAD_REQUEST, "Validate failed");
             }
 
-            PocketServices::PostProcessing::Index(block, pblockindex->nHeight);
+            PocketServices::ChainPostProcessing::Index(block, pblockindex->nHeight);
         }
         catch (std::exception& ex)
         {

@@ -68,10 +68,10 @@ namespace PocketDb
                         limit 1
                     ), 0) + ?
             )sql");
-            TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+            TryBindStatementInt(stmt, 1, *rating.GetType());
             TryBindStatementInt(stmt, 2, rating.GetHeight());
             TryBindStatementInt64(stmt, 3, rating.GetId());
-            TryBindStatementInt(stmt, 4, rating.GetTypeInt());
+            TryBindStatementInt(stmt, 4, *rating.GetType());
             TryBindStatementInt64(stmt, 5, rating.GetId());
             TryBindStatementInt(stmt, 6, rating.GetHeight());
             TryBindStatementInt64(stmt, 7, rating.GetValue());
@@ -86,7 +86,7 @@ namespace PocketDb
                   and Id = ?
                   and Height < ?
             )sql");
-            TryBindStatementInt(stmtUpdate, 1, rating.GetTypeInt());
+            TryBindStatementInt(stmtUpdate, 1, *rating.GetType());
             TryBindStatementInt64(stmtUpdate, 2, rating.GetId());
             TryBindStatementInt(stmtUpdate, 3, rating.GetHeight());
             TryStepStatement(stmtUpdate);
@@ -114,11 +114,11 @@ namespace PocketDb
                 )
             )sql");
 
-            TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+            TryBindStatementInt(stmt, 1, (int)*rating.GetType());
             TryBindStatementInt(stmt, 2, rating.GetHeight());
             TryBindStatementInt64(stmt, 3, rating.GetId());
             TryBindStatementInt64(stmt, 4, rating.GetValue());
-            TryBindStatementInt(stmt, 5, rating.GetTypeInt());
+            TryBindStatementInt(stmt, 5, (int)*rating.GetType());
             TryBindStatementInt64(stmt, 6, rating.GetId());
             TryBindStatementInt64(stmt, 7, rating.GetValue());
 

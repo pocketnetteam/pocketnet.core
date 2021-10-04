@@ -14,7 +14,7 @@
 #include "pocketdb/repositories/RatingsRepository.h"
 #include "pocketdb/repositories/TransactionRepository.h"
 #include "pocketdb/repositories/ConsensusRepository.h"
-#include "pocketdb/repositories/web/WebRepository.h"
+#include "pocketdb/repositories/web/WebRpcRepository.h"
 #include "pocketdb/repositories/web/ExplorerRepository.h"
 #include "pocketdb/repositories/web/NotifierRepository.h"
 #include "pocketdb/web/PocketFrontend.h"
@@ -26,8 +26,6 @@ namespace PocketDb
     extern ChainRepository ChainRepoInst;
     extern RatingsRepository RatingsRepoInst;
     extern ConsensusRepository ConsensusRepoInst;
-
-    extern SQLiteDatabase SQLiteDbWebInst;
     extern NotifierRepository NotifierRepoInst;
 } // namespace PocketDb
 

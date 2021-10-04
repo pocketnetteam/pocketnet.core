@@ -49,7 +49,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        return request.DbConnection()->WebRepoInst->GetAddressScores(postHashes, address);
+        return request.DbConnection()->WebRpcRepoInst->GetAddressScores(postHashes, address);
     }
 
     UniValue GetPostScores(const JSONRPCRequest& request)
@@ -88,7 +88,7 @@ namespace PocketWeb::PocketWebRpc
             address = request.params[1].get_str();
         }
 
-        return request.DbConnection()->WebRepoInst->GetPostScores(postHashes, address);
+        return request.DbConnection()->WebRpcRepoInst->GetPostScores(postHashes, address);
     }
 
     UniValue GetPageScores(const JSONRPCRequest& request)
@@ -115,6 +115,6 @@ namespace PocketWeb::PocketWebRpc
         for (unsigned int idx = 0; idx < commentTxIds.size(); idx++)
             commentIds.push_back(commentTxIds[idx].get_str());
 
-        return request.DbConnection()->WebRepoInst->GetPageScores(postIds, commentIds, address, chainActive.Height());
+        return request.DbConnection()->WebRpcRepoInst->GetPageScores(postIds, commentIds, address, chainActive.Height());
     }
 }

@@ -153,7 +153,7 @@ namespace PocketConsensus
         if (auto[ok, code] = result; !ok)
         {
             LogPrintf("Warning: SocialConsensus %d check failed with result %d for transaction %s\n",
-                *ptx->GetTypeInt(), (int) code, *ptx->GetHash());
+                (int)*ptx->GetType(), (int) code, *ptx->GetHash());
 
             return {false, code};
         }
@@ -243,7 +243,7 @@ namespace PocketConsensus
         if (auto[ok, code] = result; !ok)
         {
             LogPrintf("Warning: SocialConsensus %d validate failed with result %d for transaction %s with block at height %d\n",
-                *ptx->GetTypeInt(), (int) code, *ptx->GetHash(), height);
+                (int)*ptx->GetType(), (int) code, *ptx->GetHash(), height);
 
             return {false, code};
         }
