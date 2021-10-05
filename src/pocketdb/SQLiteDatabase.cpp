@@ -294,7 +294,7 @@ namespace PocketDb
         assert(m_db);
 
         fs::path dbPath(sqlite_base_directory);
-        string cmnd = "deatach " + dbName + ";";
+        string cmnd = "detach " + dbName + ";";
         if (sqlite3_exec(m_db, cmnd.c_str(), nullptr, nullptr, nullptr) != 0)
             throw std::runtime_error("Failed detach database " + dbName);
     }
