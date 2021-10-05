@@ -189,7 +189,6 @@ ReadStatus PartiallyDownloadedBlock::FillBlock(CBlock& block, const std::vector<
                 return READ_STATUS_INVALID;
             }
             block.vtx[i] = vtx_missing[tx_missing_offset++];
-            std::cout << "TAWMAZ: filling missing transaction " << i << "\n";
         } else
             block.vtx[i] = std::move(txn_available[i]);
     }
@@ -213,7 +212,6 @@ ReadStatus PartiallyDownloadedBlock::FillBlock(CBlock& block, const std::vector<
     }
 
     LogPrint(BCLog::CMPCTBLOCK, "Successfully reconstructed block %s with %lu txn prefilled, %lu txn from mempool (incl at least %lu from extra pool) and %lu txn requested\n", hash.ToString(), prefilled_count, mempool_count, extra_count, vtx_missing.size());
-    std::cout << "Successfully reconstructed block";
     if (vtx_missing.size() < 5) {
         for (const auto& tx : vtx_missing) {
             LogPrint(BCLog::CMPCTBLOCK, "Reconstructed block %s required tx %s\n", hash.ToString(), tx->GetHash().ToString());
