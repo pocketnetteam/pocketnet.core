@@ -18,7 +18,7 @@ namespace PocketDbWeb
         TxType Type;
         string Lang;
         int64_t Id;
-        ContentType ContentType;
+        ContentFieldType FieldType;
         string Value;
     };
 

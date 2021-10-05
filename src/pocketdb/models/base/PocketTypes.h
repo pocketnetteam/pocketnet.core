@@ -93,7 +93,7 @@ namespace PocketTx
     };
 
     // Content field types
-    enum ContentType
+    enum ContentFieldType
     {
         // TODO (brangr): implement
     };
