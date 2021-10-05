@@ -27,7 +27,7 @@ namespace PocketDb
                 select count(*)
                 from Ratings
                 where Type = ?
-                  and ContentId = ?
+                  and Id = ?
                   and Value = ?
             )sql");
 
@@ -55,7 +55,7 @@ namespace PocketDb
                     Type,
                     Last,
                     Height,
-                    ContentId,
+                    Id,
                     Value
                 ) SELECT ?,1,?,?,
                     ifnull((
@@ -63,7 +63,7 @@ namespace PocketDb
                         from Ratings r
                         where r.Type = ?
                             and r.Last = 1
-                            and r.ContentId = ?
+                            and r.Id = ?
                             and r.Height < ?
                         limit 1
                     ), 0) + ?
@@ -83,7 +83,7 @@ namespace PocketDb
                     set Last = 0
                 where Type = ?
                   and Last = 1
-                  and ContentId = ?
+                  and Id = ?
                   and Height < ?
             )sql");
             TryBindStatementInt(stmtUpdate, 1, *rating.GetType());
@@ -102,14 +102,14 @@ namespace PocketDb
                     Type,
                     Last,
                     Height,
-                    ContentId,
+                    Id,
                     Value
                 ) SELECT ?,1,?,?,?
                 WHERE NOT EXISTS (
                     select 1
                     from Ratings r
                     where r.Type=?
-                      and r.ContentId=?
+                      and r.Id=?
                       and r.Value=?
                 )
             )sql");

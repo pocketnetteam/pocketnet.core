@@ -52,7 +52,7 @@ namespace PocketDb
                     t.Hash,
                     t.Time,
                     t.Last,
-                    t.ContentId,
+                    t.Id,
                     t.String1,
                     t.String2,
                     t.String3,
@@ -100,7 +100,7 @@ namespace PocketDb
                     t.Hash,
                     t.Time,
                     t.Last,
-                    t.ContentId,
+                    t.Id,
                     t.String1,
                     t.String2,
                     t.String3,
@@ -365,7 +365,7 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = ?
-                and r.ContentId = (SELECT u.ContentId FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
+                and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
                 and r.Last = 1
         )sql";
 
@@ -393,7 +393,7 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = ?
-                and r.ContentId = ?
+                and r.Id = ?
                 and r.Last = 1
         )sql";
 
@@ -421,7 +421,7 @@ namespace PocketDb
             select min(Height)
             from Transactions
             where Type in (100, 101, 102)
-            and ContentId = ?
+            and Id = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -450,13 +450,13 @@ namespace PocketDb
                 s.Type sType,
                 s.Time sTime,
                 s.Int1 sValue,
-                sa.ContentId saId,
+                sa.Id saId,
                 sa.String1 saHash,
                 c.Hash cTxHash,
                 c.Type cType,
                 c.Time cTime,
-                c.ContentId cId,
-                ca.ContentId caId,
+                c.Id cId,
+                ca.Id caId,
                 ca.String1 caHash
             from Transactions s
                 -- Score Address
@@ -618,7 +618,7 @@ namespace PocketDb
             select count(1)
             from Ratings r
             where   r.Type = ?
-                and r.ContentId = ?
+                and r.Id = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()

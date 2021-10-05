@@ -24,11 +24,11 @@ namespace PocketDb
                 -- Subscribe
                 Last      int    not null default 0,
 
-                -- AccountUser.ContentId
-                -- ContentPost.ContentId
-                -- ContentVideo.ContentId
-                -- Comment.ContentId
-                ContentId        int    null,
+                -- AccountUser.Id
+                -- ContentPost.Id
+                -- ContentVideo.Id
+                -- Comment.Id
+                Id        int    null,
 
                 -- AccountUser.AddressHash
                 -- ContentPost.AddressHash
@@ -140,9 +140,9 @@ namespace PocketDb
                 Type   int not null,
                 Last   int not null,
                 Height int not null,
-                ContentId     int not null,
+                Id     int not null,
                 Value  int not null,
-                primary key (Type, Height, ContentId, Value)
+                primary key (Type, Height, Id, Value)
             );
         )sql");
 
@@ -162,7 +162,7 @@ namespace PocketDb
             drop view if exists vWebUsers;
             create view vWebUsers as
             select t.Hash,
-                t.ContentId,
+                t.Id,
                 t.Time,
                 t.BlockHash,
                 t.Height,
@@ -295,8 +295,8 @@ namespace PocketDb
 
 
         _indexes = R"sql(
-            create index if not exists Transactions_Id on Transactions (ContentId);
-            create index if not exists Transactions_Id_Last on Transactions (ContentId, Last);
+            create index if not exists Transactions_Id on Transactions (Id);
+            create index if not exists Transactions_Id_Last on Transactions (Id, Last);
             create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
             create index if not exists Transactions_Height_Type on Transactions (Height, Type);
             create index if not exists Transactions_Type_Last_String1_Height on Transactions (Type, Last, String1, Height);
@@ -307,7 +307,7 @@ namespace PocketDb
             create index if not exists Transactions_Type_String1_String2_Height on Transactions (Type, String1, String2, Height);
             create index if not exists Transactions_Type_String1_Height_Time_Int1 on Transactions (Type, String1, Height, Time, Int1);
             create index if not exists Transactions_String1_Last_Height on Transactions (String1, Last, Height);
-            create index if not exists Transactions_Last_Id_Height on Transactions (Last, ContentId, Height);
+            create index if not exists Transactions_Last_Id_Height on Transactions (Last, Id, Height);
             create index if not exists Transactions_Time_Type_Height on Transactions (Time, Type, Height);
             create index if not exists Transactions_Type_Time_Height on Transactions (Type, Time, Height);
             create index if not exists Transactions_BlockHash on Transactions (BlockHash);
@@ -321,8 +321,8 @@ namespace PocketDb
             create index if not exists TxOutputs_AddressHash_TxHeight on TxOutputs (AddressHash, TxHeight);
 
             create index if not exists Ratings_Height on Ratings (Height);
-            create index if not exists Ratings_Type_Id_Last on Ratings (Type, ContentId, Last);
-            create index if not exists Ratings_Last_Id_Height on Ratings (Last, ContentId, Height);
+            create index if not exists Ratings_Type_Id_Last on Ratings (Type, Id, Last);
+            create index if not exists Ratings_Last_Id_Height on Ratings (Last, Id, Height);
 
             create index if not exists Payload_String2 on Payload (String2);
 

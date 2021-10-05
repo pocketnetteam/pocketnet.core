@@ -35,7 +35,7 @@ namespace PocketDb
                 t.Hash,
                 t.Time,
                 t.Last,
-                t.ContentId,
+                t.Id,
                 t.String1,
                 t.String2,
                 t.String3,
