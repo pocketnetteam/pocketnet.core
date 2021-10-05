@@ -9,12 +9,12 @@ namespace PocketTx
 {
     Complain::Complain() : Transaction()
     {
-        SetType(PocketTxType::ACTION_COMPLAIN);
+        SetType(TxType::ACTION_COMPLAIN);
     }
 
     Complain::Complain(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::ACTION_COMPLAIN);
+        SetType(TxType::ACTION_COMPLAIN);
     }
 
     shared_ptr <UniValue> Complain::Serialize() const

@@ -16,17 +16,17 @@ namespace PocketServices
         IndexChain(block.GetHash().GetHex(), height, txs);
 
         int64_t nTime2 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (nTime2 - nTime1), height);
+        LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
 
         IndexBalances(height);
 
         int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexBalances: %.2fms _ %d\n", 0.001 * (nTime3 - nTime2), height);
+        LogPrint(BCLog::BENCH, "    - IndexBalances: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
 
         IndexRatings(height, block);
 
         int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (nTime4 - nTime3), height);
+        LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime4 - nTime3), height);
     }
 
     bool ChainPostProcessing::Rollback(int height)
@@ -41,7 +41,7 @@ namespace PocketServices
             auto& tx = block.vtx[i];
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
 
-            if (txType != PocketTxType::NOT_SUPPORTED)
+            if (txType != TxType::NOT_SUPPORTED)
             {
                 TransactionIndexingInfo txInfo;
                 txInfo.Hash = tx->GetHash().GetHex();
@@ -84,8 +84,8 @@ namespace PocketServices
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
 
             // Only scores allowed in calculating ratings
-            if (txType != PocketTxType::ACTION_SCORE_CONTENT &&
-                txType != PocketTxType::ACTION_SCORE_COMMENT)
+            if (txType != TxType::ACTION_SCORE_CONTENT &&
+                txType != TxType::ACTION_SCORE_COMMENT)
                 continue;
 
             // Need select content id for saving rating

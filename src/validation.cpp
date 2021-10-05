@@ -4813,8 +4813,8 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime2 = GetTimeMicros();
         nTimeVerify += nTime2 - nTime1;
         LogPrint(BCLog::BENCH, " -- Lock cs_main: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime2 - nTime1),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime2 - nTime1) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime2 - nTime1),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime2 - nTime1) / (double)(pocketBlock->size() - 1));
 
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
@@ -4823,8 +4823,8 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime3 = GetTimeMicros();
         nTimeVerify += nTime3 - nTime2;
         LogPrint(BCLog::BENCH, " -- Check block: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime3 - nTime2),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime3 - nTime2),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime3 - nTime2) / (double)(pocketBlock->size() - 1));
 
         // It is necessary to check that block and pocket Black contain an equal number of transactions
         // Also check pocket block with general pocketnet consensus rules
@@ -4834,8 +4834,8 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;
         LogPrint(BCLog::BENCH, " -- Social check block: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime4 - nTime3),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime4 - nTime3),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime4 - nTime3) / (double)(pocketBlock->size() - 1));
 
         // Store generic block to disk
         if (ret)
@@ -4844,8 +4844,8 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
         LogPrint(BCLog::BENCH, " -- Accept LeveDb: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime5 - nTime4),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime5 - nTime4),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime5 - nTime4) / (double)(pocketBlock->size() - 1));
 
         // Store pocketnet block to disk
         if (ret)
@@ -4865,8 +4865,8 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime6 = GetTimeMicros();
         nTimeVerify += nTime6 - nTime5;
         LogPrint(BCLog::BENCH, " -- Accept SQLite: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime6 - nTime5),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime6 - nTime5),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime6 - nTime5) / (double)(pocketBlock->size() - 1));
 
         // Check FAILED
         if (!ret)

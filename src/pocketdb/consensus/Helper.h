@@ -46,7 +46,7 @@ namespace PocketConsensus
     protected:
         static tuple<bool, SocialConsensusResult> validate(const PTransactionRef& ptx, const PocketBlockRef& block, int height);
         static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx);
-        static bool isConsensusable(PocketTxType txType);
+        static bool isConsensusable(TxType txType);
     private:
         static PostConsensusFactory m_postFactory;
         static UserConsensusFactory m_userFactory;

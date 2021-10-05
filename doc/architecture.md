@@ -115,7 +115,7 @@ Pocket sqlite database сохраняет все транзакции в раз�
 
 Все типы транзакций, хранящиеся в `main.Transactions` определены как Enum и имеют зафиксированное целое значение - [src/pocketdb/models/base/Base.hpp]()
 ```c++
-enum PocketTxType
+enum TxType
 {
     NOT_SUPPORTED = 0,
 

@@ -9,12 +9,12 @@ namespace PocketTx
 {
     ScoreComment::ScoreComment() : Transaction()
     {
-        SetType(PocketTxType::ACTION_SCORE_COMMENT);
+        SetType(TxType::ACTION_SCORE_COMMENT);
     }
 
     ScoreComment::ScoreComment(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::ACTION_SCORE_COMMENT);
+        SetType(TxType::ACTION_SCORE_COMMENT);
     }
 
     shared_ptr <UniValue> ScoreComment::Serialize() const

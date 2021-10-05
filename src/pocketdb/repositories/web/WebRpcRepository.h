@@ -49,10 +49,10 @@ namespace PocketDb
         map<string, UniValue> GetUserProfile(const vector<string>& addresses, bool shortForm = true, int option = 0);
 
         map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses,
-            const vector<PocketTxType>& types = { ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+            const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
 
         map<string, UniValue> GetSubscribersAddresses(const vector<string>& addresses,
-            const vector<PocketTxType>& types = { ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+            const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
 
         map<string, UniValue> GetBlockingToAddresses(const vector<string>& addresses);
 

@@ -6,22 +6,29 @@
 #define POCKETDB_WEB_POST_PROCESSING_H
 
 #include <boost/thread.hpp>
-#include "validation.h"
 #include "utiltime.h"
+#include "sync.h"
+#include "utils/html.h"
 
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/repositories/web/WebRepository.h"
 
+#include "pocketdb/models/web/Tag.h"
+#include "pocketdb/models/web/Content.h"
+
 namespace PocketServices
 {
     using namespace PocketDb;
+    using namespace PocketDbWeb;
 
     class WebPostProcessor
     {
     public:
         WebPostProcessor();
-        void Start(boost::thread_group& threadGroup, int startHeight);
+        void Start(boost::thread_group& threadGroup);
         void Stop();
+
+        void Enqueue(const string& blockHash);
 
     private:
         SQLiteDatabaseRef sqliteDbInst;
@@ -29,12 +36,15 @@ namespace PocketServices
 
         uint32_t sleep = 5 * 1000;
         bool shutdown = false;
-        int height;
+
+        Mutex _queue_mutex;
+        std::condition_variable _queue_cond;
+        deque<string> _queue_records;
 
         void Worker();
 
-        void ProcessTags();
-        void ProcessSearchContent();
+        void ProcessTags(const string& blockHash);
+        void ProcessSearchContent(const string& blockHash);
     };
 
 } // PocketServices

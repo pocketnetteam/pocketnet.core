@@ -41,8 +41,8 @@ namespace PocketDb
         tuple<bool, int64_t> GetLastAccountHeight(const string& address);
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
 
-        tuple<bool, PocketTxType> GetLastBlockingType(const string& address, const string& addressTo);
-        tuple<bool, PocketTxType> GetLastSubscribeType(const string& address, const string& addressTo);
+        tuple<bool, TxType> GetLastBlockingType(const string& address, const string& addressTo);
+        tuple<bool, TxType> GetLastSubscribeType(const string& address, const string& addressTo);
 
         shared_ptr<string> GetContentAddress(const string& postHash);
         int64_t GetUserBalance(const string& address);
@@ -72,7 +72,7 @@ namespace PocketDb
 
         // Exists
         bool ExistsComplain(const string& txHash, const string& postHash, const string& address);
-        bool ExistsScore(const string& address, const string& contentHash, PocketTxType type, bool mempool);
+        bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
         bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
         bool ExistsAnotherByName(const string& address, const string& name);
 
@@ -108,7 +108,7 @@ namespace PocketDb
         int CountMempoolVideo(const string& address);
         int CountChainVideoHeight(const string& address, int height);
 
-        int CountChainAccount(PocketTxType txType, const string& address, int height);
+        int CountChainAccount(TxType txType, const string& address, int height);
 
         int CountMempoolCommentEdit(const string& address, const string& rootTxHash);
         int CountChainCommentEdit(const string& address, const string& rootTxHash);

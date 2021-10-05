@@ -9,12 +9,12 @@ namespace PocketTx
 {
     Default::Default() : Transaction()
     {
-        SetType(PocketTxType::TX_DEFAULT);
+        SetType(TxType::TX_DEFAULT);
     }
 
     Default::Default(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::TX_DEFAULT);
+        SetType(TxType::TX_DEFAULT);
     }
 
     void Default::Deserialize(const UniValue& src) {}

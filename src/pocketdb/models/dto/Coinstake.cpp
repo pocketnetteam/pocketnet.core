@@ -9,12 +9,12 @@ namespace PocketTx
 {
     Coinstake::Coinstake() : Transaction()
     {
-        SetType(PocketTxType::TX_COINSTAKE);
+        SetType(TxType::TX_COINSTAKE);
     }
 
     Coinstake::Coinstake(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::TX_COINSTAKE);
+        SetType(TxType::TX_COINSTAKE);
     }
 
     void Coinstake::Deserialize(const UniValue& src)

@@ -171,6 +171,7 @@ void ShutdownPocketServices()
     PocketDb::ConsensusRepoInst.Destroy();
     PocketDb::NotifierRepoInst.Destroy();
 
+    PocketDb::SQLiteDbInst.DetachDatabase("web");
     PocketDb::SQLiteDbInst.Close();
 
     PocketDb::SQLiteDbInst.m_connection_mutex.unlock();

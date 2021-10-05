@@ -52,7 +52,7 @@ namespace PocketDb
                     t.Hash,
                     t.Time,
                     t.Last,
-                    t.Id,
+                    t.ContentId,
                     t.String1,
                     t.String2,
                     t.String3,
@@ -100,7 +100,7 @@ namespace PocketDb
                     t.Hash,
                     t.Time,
                     t.Last,
-                    t.Id,
+                    t.ContentId,
                     t.String1,
                     t.String2,
                     t.String3,
@@ -170,10 +170,10 @@ namespace PocketDb
         return result;
     }
 
-    tuple<bool, PocketTxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
+    tuple<bool, TxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
     {
         bool blockingExists = false;
-        PocketTxType blockingType = PocketTxType::NOT_SUPPORTED;
+        TxType blockingType = TxType::NOT_SUPPORTED;
 
         TryTransactionStep(__func__, [&]()
         {
@@ -195,7 +195,7 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                 {
                     blockingExists = true;
-                    blockingType = (PocketTxType) value;
+                    blockingType = (TxType) value;
                 }
             }
 
@@ -205,11 +205,11 @@ namespace PocketDb
         return {blockingExists, blockingType};
     }
 
-    tuple<bool, PocketTxType> ConsensusRepository::GetLastSubscribeType(const string& address,
+    tuple<bool, TxType> ConsensusRepository::GetLastSubscribeType(const string& address,
         const string& addressTo)
     {
         bool subscribeExists = false;
-        PocketTxType subscribeType = PocketTxType::NOT_SUPPORTED;
+        TxType subscribeType = TxType::NOT_SUPPORTED;
 
         TryTransactionStep(__func__, [&]()
         {
@@ -231,7 +231,7 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                 {
                     subscribeExists = true;
-                    subscribeType = (PocketTxType) value;
+                    subscribeType = (TxType) value;
                 }
             }
 
@@ -299,7 +299,7 @@ namespace PocketDb
 
 
     bool ConsensusRepository::ExistsScore(const string& address, const string& contentHash,
-        PocketTxType type, bool mempool)
+        TxType type, bool mempool)
     {
         bool result = false;
 
@@ -365,7 +365,7 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = ?
-                and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
+                and r.ContentId = (SELECT u.ContentId FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
                 and r.Last = 1
         )sql";
 
@@ -393,7 +393,7 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = ?
-                and r.Id = ?
+                and r.ContentId = ?
                 and r.Last = 1
         )sql";
 
@@ -421,7 +421,7 @@ namespace PocketDb
             select min(Height)
             from Transactions
             where Type in (100, 101, 102)
-            and Id = ?
+            and ContentId = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -450,13 +450,13 @@ namespace PocketDb
                 s.Type sType,
                 s.Time sTime,
                 s.Int1 sValue,
-                sa.Id saId,
+                sa.ContentId saId,
                 sa.String1 saHash,
                 c.Hash cTxHash,
                 c.Type cType,
                 c.Time cTime,
-                c.Id cId,
-                ca.Id caId,
+                c.ContentId cId,
+                ca.ContentId caId,
                 ca.String1 caHash
             from Transactions s
                 -- Score Address
@@ -478,14 +478,14 @@ namespace PocketDb
                 ScoreDataDto data;
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) data.ScoreTxHash = value;
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) data.ScoreType = (PocketTxType) value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) data.ScoreType = (TxType) value;
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) data.ScoreTime = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) data.ScoreValue = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) data.ScoreAddressId = value;
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) data.ScoreAddressHash = value;
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) data.ContentTxHash = value;
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) data.ContentType = (PocketTxType) value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) data.ContentType = (TxType) value;
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) data.ContentTime = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) data.ContentId = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) data.ContentAddressId = value;
@@ -618,7 +618,7 @@ namespace PocketDb
             select count(1)
             from Ratings r
             where   r.Type = ?
-                and r.Id = ?
+                and r.ContentId = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -1393,7 +1393,7 @@ namespace PocketDb
         return result;
     }
 
-    int ConsensusRepository::CountChainAccount(PocketTxType txType, const string& address, int height)
+    int ConsensusRepository::CountChainAccount(TxType txType, const string& address, int height)
     {
         int result = 0;
 

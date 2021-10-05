@@ -9,12 +9,12 @@ namespace PocketTx
 {
     CommentDelete::CommentDelete() : Comment()
     {
-        SetType(PocketTxType::CONTENT_COMMENT_DELETE);
+        SetType(TxType::CONTENT_COMMENT_DELETE);
     }
 
     CommentDelete::CommentDelete(const std::shared_ptr<const CTransaction>& tx) : Comment(tx)
     {
-        SetType(PocketTxType::CONTENT_COMMENT_DELETE);
+        SetType(TxType::CONTENT_COMMENT_DELETE);
     }
 
     void CommentDelete::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)

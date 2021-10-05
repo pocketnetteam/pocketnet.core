@@ -28,7 +28,7 @@ namespace PocketConsensus
 
             // Actual content not deleted
             if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
-                !ok || *actuallTx->GetType() == PocketTxType::CONTENT_DELETE)
+                !ok || *actuallTx->GetType() == TxType::CONTENT_DELETE)
                 return {false, SocialConsensusResult_ContentDeleteDouble};
 
             // Original content exists

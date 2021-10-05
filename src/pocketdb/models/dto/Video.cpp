@@ -9,12 +9,12 @@ namespace PocketTx
 {
     Video::Video() : Post()
     {
-        SetType(PocketTxType::CONTENT_VIDEO);
+        SetType(TxType::CONTENT_VIDEO);
     }
 
     Video::Video(const std::shared_ptr<const CTransaction>& tx) : Post(tx)
     {
-        SetType(PocketTxType::CONTENT_VIDEO);
+        SetType(TxType::CONTENT_VIDEO);
     }
 
     shared_ptr <UniValue> Video::Serialize() const

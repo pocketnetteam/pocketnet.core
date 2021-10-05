@@ -64,11 +64,11 @@ namespace PocketConsensus
             if (!parseScoreOk)
                 continue;
 
-            if (scoreTxData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT
+            if (scoreTxData->ScoreType == PocketTx::TxType::ACTION_SCORE_COMMENT
                 && scoreTxData->ScoreValue != 1)
                 continue;
 
-            if (scoreTxData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_CONTENT
+            if (scoreTxData->ScoreType == PocketTx::TxType::ACTION_SCORE_CONTENT
                 && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
                 continue;
 
@@ -86,14 +86,14 @@ namespace PocketConsensus
             ))
                 continue;
 
-            if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_CONTENT)
+            if (scoreData->ScoreType == PocketTx::TxType::ACTION_SCORE_CONTENT)
             {
                 postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
                 ExtendReferrer(scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
                     (int64_t) tx->nTime, postReferrersCandidates);
             }
 
-            if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT)
+            if (scoreData->ScoreType == PocketTx::TxType::ACTION_SCORE_COMMENT)
             {
                 commentCandidates[scoreData->ContentAddressHash] += scoreData->ScoreValue;
                 ExtendReferrer(scoreData->ScoreAddressHash, scoreData->ContentAddressHash,

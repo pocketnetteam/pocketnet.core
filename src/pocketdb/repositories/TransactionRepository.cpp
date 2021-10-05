@@ -35,7 +35,7 @@ namespace PocketDb
                 t.Hash,
                 t.Time,
                 t.Last,
-                t.Id,
+                t.ContentId,
                 t.String1,
                 t.String2,
                 t.String3,
@@ -252,7 +252,7 @@ namespace PocketDb
         if (!ok0 || !ok1 || !ok2)
             return make_tuple(false, nullptr);
 
-        auto ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<PocketTxType>(txType));
+        auto ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<TxType>(txType));
         ptx->SetTime(nTime);
         ptx->SetHash(txHash);
 

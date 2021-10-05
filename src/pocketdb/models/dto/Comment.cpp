@@ -9,12 +9,12 @@ namespace PocketTx
 {
     Comment::Comment() : Transaction()
     {
-        SetType(PocketTxType::CONTENT_COMMENT);
+        SetType(TxType::CONTENT_COMMENT);
     }
 
     Comment::Comment(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::CONTENT_COMMENT);
+        SetType(TxType::CONTENT_COMMENT);
     }
 
     shared_ptr <UniValue> Comment::Serialize() const

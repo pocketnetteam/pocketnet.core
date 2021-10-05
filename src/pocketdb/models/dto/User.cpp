@@ -9,12 +9,12 @@ namespace PocketTx
 {
     User::User() : Transaction()
     {
-        SetType(PocketTxType::ACCOUNT_USER);
+        SetType(TxType::ACCOUNT_USER);
     }
 
     User::User(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::ACCOUNT_USER);
+        SetType(TxType::ACCOUNT_USER);
     }
 
     shared_ptr <UniValue> User::Serialize() const

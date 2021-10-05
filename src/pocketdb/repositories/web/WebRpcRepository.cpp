@@ -785,7 +785,7 @@ namespace PocketDb
 
         if (auto[ok, value] = TryGetColumnInt(stmt, 0); ok)
         {
-            switch (static_cast<PocketTxType>(value))
+            switch (static_cast<TxType>(value))
             {
                 case PocketTx::CONTENT_COMMENT:
                     record.pushKV("deleted", false);
@@ -808,7 +808,7 @@ namespace PocketDb
     }
 
     map<string, UniValue>
-    WebRpcRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
+    WebRpcRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<TxType>& types)
     {
         auto result = map<string, UniValue>();
         for (const auto& address: addresses)
@@ -854,7 +854,7 @@ namespace PocketDb
     }
 
     map<string, UniValue>
-    WebRpcRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<PocketTxType>& types)
+    WebRpcRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<TxType>& types)
     {
         string sql = R"sql(
             select
@@ -995,7 +995,7 @@ namespace PocketDb
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((PocketTxType)value));
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((TxType)value));
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
@@ -1100,7 +1100,7 @@ namespace PocketDb
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((PocketTxType)value));
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((TxType)value));
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
@@ -1217,7 +1217,7 @@ namespace PocketDb
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((PocketTxType)value));
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((TxType)value));
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
@@ -1571,7 +1571,7 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
                 if (!okType || !okLang || !okCount)
                     continue;
 
-                auto type = TransactionHelper::TxStringType((PocketTxType) typeInt);
+                auto type = TransactionHelper::TxStringType((TxType) typeInt);
 
                 if (resultData.At(type).isNull())
                     resultData.pushKV(type, UniValue(UniValue::VOBJ));
@@ -1856,7 +1856,7 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
 
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok)
                 {
-                    auto stringType = TransactionHelper::TxStringType((PocketTxType) value);
+                    auto stringType = TransactionHelper::TxStringType((TxType) value);
                     if (!stringType.empty())
                         record.pushKV("type", stringType);
                 }

@@ -54,6 +54,7 @@ namespace PocketDb
 
         bool AbortTransaction();
 
+        void DetachDatabase(const string& dbName);
         void AttachDatabase(const string& dbName);
 
     };

@@ -71,14 +71,14 @@ namespace PocketTx
     class ScoreDataDto : BaseReturnDto
     {
     public:
-        PocketTxType ScoreType;
+        TxType ScoreType;
         string ScoreTxHash;
         int ScoreAddressId;
         string ScoreAddressHash;
         int64_t ScoreTime;
         int ScoreValue;
 
-        PocketTxType ContentType;
+        TxType ContentType;
         string ContentTxHash;
         int ContentId;
         int ContentAddressId;

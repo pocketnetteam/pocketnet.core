@@ -170,10 +170,10 @@ namespace PocketDb
         // Get new ID or copy previous
         auto setIdStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
-                Id = ifnull(
-                    -- copy self Id
+                ContentId = ifnull(
+                    -- copy self ContentId
                     (
-                        select a.Id
+                        select a.ContentId
                         from Transactions a indexed by Transactions_Type_Last_String1_Height
                         where a.Type = Transactions.Type
                             and a.Last = 1
@@ -185,7 +185,7 @@ namespace PocketDb
                     ifnull(
                         -- new record
                         (
-                            select max( a.Id ) + 1
+                            select max( a.ContentId ) + 1
                             from Transactions a indexed by Transactions_Id
                         ),
                         0 -- for first record
@@ -206,10 +206,10 @@ namespace PocketDb
         // Get new ID or copy previous
         auto setIdStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
-                Id = ifnull(
-                    -- copy self Id
+                ContentId = ifnull(
+                    -- copy self ContentId
                     (
-                        select c.Id
+                        select c.ContentId
                         from Transactions c indexed by Transactions_Type_Last_String2_Height
                         where c.Type in (Transactions.Type, 207)
                             and c.Last = 1
@@ -221,7 +221,7 @@ namespace PocketDb
                     -- new record
                     ifnull(
                         (
-                            select max( c.Id ) + 1
+                            select max( c.ContentId ) + 1
                             from Transactions c indexed by Transactions_Id
                         ),
                         0 -- for first record
@@ -242,10 +242,10 @@ namespace PocketDb
         // Get new ID or copy previous
         auto setIdStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
-                Id = ifnull(
-                    -- copy self Id
+                ContentId = ifnull(
+                    -- copy self ContentId
                     (
-                        select max( c.Id )
+                        select max( c.ContentId )
                         from Transactions c indexed by Transactions_Type_Last_String2_Height
                         where c.Type in (204, 205, 206)
                             and c.Last = 1
@@ -256,7 +256,7 @@ namespace PocketDb
                     -- new record
                     ifnull(
                         (
-                            select max( c.Id ) + 1
+                            select max( c.ContentId ) + 1
                             from Transactions c indexed by Transactions_Id
                         ),
                         0 -- for first record
@@ -277,10 +277,10 @@ namespace PocketDb
         // Set last=1 for new transaction
         auto setLastStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
-                Id = ifnull(
-                    -- copy self Id
+                ContentId = ifnull(
+                    -- copy self ContentId
                     (
-                        select a.Id
+                        select a.ContentId
                         from Transactions a indexed by Transactions_Type_Last_String1_String2_Height
                         where a.Type in (305, 306)
                             and a.Last = 1
@@ -294,7 +294,7 @@ namespace PocketDb
                     ifnull(
                         -- new record
                         (
-                            select max( a.Id ) + 1
+                            select max( a.ContentId ) + 1
                             from Transactions a indexed by Transactions_Id
                         ),
                         0 -- for first record
@@ -315,10 +315,10 @@ namespace PocketDb
         // Set last=1 for new transaction
         auto setLastStmt = SetupSqlStatement(R"sql(
             UPDATE Transactions SET
-                Id = ifnull(
-                    -- copy self Id
+                ContentId = ifnull(
+                    -- copy self ContentId
                     (
-                        select a.Id
+                        select a.ContentId
                         from Transactions a indexed by Transactions_Type_Last_String1_String2_Height
                         where a.Type in (302, 303, 304)
                             and a.Last = 1
@@ -332,7 +332,7 @@ namespace PocketDb
                     ifnull(
                         -- new record
                         (
-                            select max( a.Id ) + 1
+                            select max( a.ContentId ) + 1
                             from Transactions a indexed by Transactions_Id
                         ),
                         0 -- for first record
@@ -358,7 +358,7 @@ namespace PocketDb
                 from Transactions t
                 where   t.Hash = ?
             ) as tInner
-            WHERE   Transactions.Id = tInner.Id
+            WHERE   Transactions.ContentId = tInner.ContentId
                 and Transactions.Last = 1
                 and Transactions.Hash != tInner.Hash
         )sql");
@@ -374,14 +374,14 @@ namespace PocketDb
         auto stmt = SetupSqlStatement(R"sql(
             update Transactions set Last=1
             from (
-                select t1.Id, max(t2.Height)Height
+                select t1.ContentId, max(t2.Height)Height
                 from Transactions t1 indexed by Transactions_Last_Id_Height
-                join Transactions t2 on t2.Id = t1.Id and t2.Height < ? and t2.Last = 0
+                join Transactions t2 on t2.ContentId = t1.ContentId and t2.Height < ? and t2.Last = 0
                 where t1.Height >= ?
                   and t1.Last = 1
-                group by t1.Id
+                group by t1.ContentId
             )t
-            where Transactions.Id = t.Id and Transactions.Height = t.Height
+            where Transactions.ContentId = t.ContentId and Transactions.Height = t.Height
         )sql");
         TryBindStatementInt(stmt, 1, height);
         TryBindStatementInt(stmt, 2, height);
@@ -396,7 +396,7 @@ namespace PocketDb
                 BlockHash = null,
                 BlockNum = null,
                 Height = null,
-                Id = null,
+                ContentId = null,
                 Last = 0
             WHERE Height >= ?
         )sql");
@@ -430,15 +430,15 @@ namespace PocketDb
         auto stmt2 = SetupSqlStatement(R"sql(
             update Ratings set Last=1
             from (
-                select r1.Type, r1.Id, max(r2.Height)Height
+                select r1.Type, r1.ContentId, max(r2.Height)Height
                 from Ratings r1
-                join Ratings r2 on r2.Last = 0 and r2.Id = r1.Id and r2.Height < ?
+                join Ratings r2 on r2.Last = 0 and r2.ContentId = r1.ContentId and r2.Height < ?
                 where r1.Height >= ?
                   and r1.Last = 1
-                group by r1.Type, r1.Id
+                group by r1.Type, r1.ContentId
             )r
             where Ratings.Type = r.Type
-              and Ratings.Id = r.Id
+              and Ratings.ContentId = r.ContentId
               and Ratings.Height = r.Height
         )sql");
         TryBindStatementInt(stmt2, 1, height);

@@ -20,7 +20,7 @@ namespace PocketConsensus
 {
     using namespace std;
     using namespace PocketDb;
-    using PocketTx::PocketTxType;
+    using PocketTx::TxType;
 
     typedef tuple<bool, SocialConsensusResult> ConsensusValidateResult;
 

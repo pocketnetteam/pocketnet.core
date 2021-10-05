@@ -10,12 +10,12 @@ namespace PocketTx
 
     Blocking::Blocking() : Transaction()
     {
-        SetType(PocketTxType::ACTION_BLOCKING);
+        SetType(TxType::ACTION_BLOCKING);
     }
 
     Blocking::Blocking(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::ACTION_BLOCKING);
+        SetType(TxType::ACTION_BLOCKING);
     }
 
     shared_ptr <UniValue> Blocking::Serialize() const

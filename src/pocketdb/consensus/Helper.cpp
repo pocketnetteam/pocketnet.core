@@ -56,9 +56,9 @@ namespace PocketConsensus
         {
             // NOT_SUPPORTED transactions not checked
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
-            if (txType == PocketTxType::NOT_SUPPORTED)
+            if (txType == TxType::NOT_SUPPORTED)
                 continue;
-            if (coinstakeBlock && txType == PocketTxType::TX_COINBASE)
+            if (coinstakeBlock && txType == TxType::TX_COINBASE)
                 continue;
 
             // Maybe payload not exists?
@@ -161,7 +161,7 @@ namespace PocketConsensus
         return {true, SocialConsensusResult_Success};
     }
 
-    bool SocialConsensusHelper::isConsensusable(PocketTxType txType)
+    bool SocialConsensusHelper::isConsensusable(TxType txType)
     {
         switch (txType)
         {

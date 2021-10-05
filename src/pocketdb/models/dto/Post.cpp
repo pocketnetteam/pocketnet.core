@@ -9,12 +9,12 @@ namespace PocketTx
 {
     Post::Post() : Transaction()
     {
-        SetType(PocketTxType::CONTENT_POST);
+        SetType(TxType::CONTENT_POST);
     }
 
     Post::Post(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::CONTENT_POST);
+        SetType(TxType::CONTENT_POST);
     }
 
     shared_ptr<UniValue> Post::Serialize() const

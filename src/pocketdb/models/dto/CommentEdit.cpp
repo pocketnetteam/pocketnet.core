@@ -9,11 +9,11 @@ namespace PocketTx
 {
     CommentEdit::CommentEdit() : Comment()
     {
-        SetType(PocketTxType::CONTENT_COMMENT_EDIT);
+        SetType(TxType::CONTENT_COMMENT_EDIT);
     }
 
     CommentEdit::CommentEdit(const std::shared_ptr<const CTransaction>& tx) : Comment(tx)
     {
-        SetType(PocketTxType::CONTENT_COMMENT_EDIT);
+        SetType(TxType::CONTENT_COMMENT_EDIT);
     }
 } // namespace PocketTx

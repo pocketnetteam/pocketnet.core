@@ -121,18 +121,18 @@ namespace PocketConsensus
 
     bool ReputationConsensus::AllowModifyReputation(shared_ptr<ScoreDataDto>& scoreData, const CTransactionRef& tx, bool lottery)
     {
-        if (scoreData->ScoreType == PocketTxType::ACTION_SCORE_CONTENT)
+        if (scoreData->ScoreType == TxType::ACTION_SCORE_CONTENT)
             return AllowModifyReputationOverPost(scoreData, tx, lottery);
 
-        if (scoreData->ScoreType == PocketTxType::ACTION_SCORE_COMMENT)
+        if (scoreData->ScoreType == TxType::ACTION_SCORE_COMMENT)
             return AllowModifyReputationOverComment(scoreData, tx, lottery);
 
         return false;
     }
 
-    bool ReputationConsensus::AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, PocketTxType contentType)
+    bool ReputationConsensus::AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType)
     {
-        if (contentType == PocketTxType::CONTENT_POST)
+        if (contentType == TxType::CONTENT_POST)
             return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
 
         return true;

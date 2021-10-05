@@ -37,8 +37,8 @@ namespace PocketTx
         void SetHash(string value);
         bool operator==(const string& hash) const;
 
-        shared_ptr<PocketTxType> GetType() const;
-        void SetType(PocketTxType value);
+        shared_ptr<TxType> GetType() const;
+        void SetType(TxType value);
 
         shared_ptr<int64_t> GetTime() const;
         void SetTime(int64_t value);
@@ -74,7 +74,7 @@ namespace PocketTx
         bool HasPayload() const;
 
     protected:
-        shared_ptr<PocketTxType> m_type = nullptr;
+        shared_ptr<TxType> m_type = nullptr;
         shared_ptr<string> m_hash = nullptr;
         shared_ptr<int64_t> m_time = nullptr;
         shared_ptr<int64_t> m_id = nullptr;

@@ -286,7 +286,17 @@ namespace PocketDb
         fs::path dbPath(sqlite_base_directory);
         string cmnd = "attach database '" + (dbPath / (dbName + ".sqlite3")).string() + "' as " + dbName + ";";
         if (sqlite3_exec(m_db, cmnd.c_str(), nullptr, nullptr, nullptr) != 0)
-            throw std::runtime_error("Failed apply journal_mode = wal");
+            throw std::runtime_error("Failed attach database " + dbName);
+    }
+
+    void SQLiteDatabase::DetachDatabase(const string& dbName)
+    {
+        assert(m_db);
+
+        fs::path dbPath(sqlite_base_directory);
+        string cmnd = "deatach " + dbName + ";";
+        if (sqlite3_exec(m_db, cmnd.c_str(), nullptr, nullptr, nullptr) != 0)
+            throw std::runtime_error("Failed detach database " + dbName);
     }
 
 } // namespace PocketDb

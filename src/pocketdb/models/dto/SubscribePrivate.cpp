@@ -9,12 +9,12 @@ namespace PocketTx
 {
     SubscribePrivate::SubscribePrivate() : Subscribe()
     {
-        SetType(PocketTxType::ACTION_SUBSCRIBE_PRIVATE);
+        SetType(TxType::ACTION_SUBSCRIBE_PRIVATE);
     }
 
     SubscribePrivate::SubscribePrivate(const std::shared_ptr<const CTransaction>& tx) : Subscribe(tx)
     {
-        SetType(PocketTxType::ACTION_SUBSCRIBE_PRIVATE);
+        SetType(TxType::ACTION_SUBSCRIBE_PRIVATE);
     }
 
     shared_ptr <UniValue> SubscribePrivate::Serialize() const

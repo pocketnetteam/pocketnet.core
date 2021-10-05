@@ -7,15 +7,23 @@ namespace PocketDb
         _tables.emplace_back(R"sql(
             create table if not exists Tags
             (
-              Type  int not null,
-              Id    int not null,
-              Value text not null,
-              primary key (Value, Id, Type)
+              Id    integer primary key,
+              Value text not null
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
+            create table if not exists TagsMap
+            (
+              ContentId   int not null,
+              TagId       int not null,
+              primary key (ContentId, TagId)
             );
         )sql");
 
         _indexes = R"sql(
-            create index if not exists Tags_Id on Tags (Id);
+            create unique index if not exists Tags_Value on Tags (Value);
+            create index if not exists TagsMap_TagId_ContentId on TagsMap (TagId, ContentId);
         )sql";
     }
 }

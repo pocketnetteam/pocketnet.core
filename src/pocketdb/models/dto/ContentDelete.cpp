@@ -9,12 +9,12 @@ namespace PocketTx
 {
     ContentDelete::ContentDelete() : Transaction()
     {
-        SetType(PocketTxType::CONTENT_DELETE);
+        SetType(TxType::CONTENT_DELETE);
     }
 
     ContentDelete::ContentDelete(const CTransactionRef& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::CONTENT_DELETE);
+        SetType(TxType::CONTENT_DELETE);
     }
 
     shared_ptr <string> ContentDelete::GetAddress() const { return m_string1; }

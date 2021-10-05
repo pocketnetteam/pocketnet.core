@@ -9,12 +9,12 @@ namespace PocketTx
 {
     Coinbase::Coinbase() : Transaction()
     {
-        SetType(PocketTxType::TX_COINBASE);
+        SetType(TxType::TX_COINBASE);
     }
 
     Coinbase::Coinbase(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::TX_COINBASE);
+        SetType(TxType::TX_COINBASE);
     }
 
     void Coinbase::Deserialize(const UniValue& src)

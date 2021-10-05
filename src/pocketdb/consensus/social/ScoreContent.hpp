@@ -59,7 +59,7 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_SelfScore};
 
             // Scores for deleted contents not allowed
-            if (*lastContent->GetType() == PocketTxType::CONTENT_DELETE)
+            if (*lastContent->GetType() == TxType::CONTENT_DELETE)
                 return {false, SocialConsensusResult_ScoreDeletedContent};
 
             // Check Blocking

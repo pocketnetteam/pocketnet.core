@@ -46,7 +46,7 @@ namespace PocketTx
     #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
 
     // Int tx type
-    enum PocketTxType
+    enum TxType
     {
         NOT_SUPPORTED = 0,
 
@@ -92,54 +92,60 @@ namespace PocketTx
         RATING_COMMENT = 3,
     };
 
+    // Content field types
+    enum ContentType
+    {
+        // TODO (brangr): implement
+    };
+
     // Transaction info for indexing spents and other
     struct TransactionIndexingInfo
     {
         string Hash;
         int BlockNumber;
-        PocketTxType Type;
+        TxType Type;
         vector<pair<string, int>> Inputs;
 
         bool IsAccount() const
         {
-            return Type == PocketTxType::ACCOUNT_USER ||
-                   Type == PocketTxType::ACCOUNT_VIDEO_SERVER ||
-                   Type == PocketTxType::ACCOUNT_MESSAGE_SERVER ||
-                   Type == PocketTxType::ACCOUNT_SETTING;
+            return Type == TxType::ACCOUNT_USER ||
+                   Type == TxType::ACCOUNT_VIDEO_SERVER ||
+                   Type == TxType::ACCOUNT_MESSAGE_SERVER ||
+                   Type == TxType::ACCOUNT_SETTING;
         }
 
         bool IsContent() const
         {
-            return Type == PocketTxType::CONTENT_POST ||
-                   Type == PocketTxType::CONTENT_VIDEO ||
-                   Type == PocketTxType::CONTENT_TRANSLATE ||
-                   Type == PocketTxType::CONTENT_DELETE;
+            return Type == TxType::CONTENT_POST ||
+                   Type == TxType::CONTENT_VIDEO ||
+                   Type == TxType::CONTENT_TRANSLATE ||
+                   Type == TxType::CONTENT_DELETE;
         }
 
         bool IsComment() const
         {
-            return Type == PocketTxType::CONTENT_COMMENT ||
-                   Type == PocketTxType::CONTENT_COMMENT_EDIT ||
-                   Type == PocketTxType::CONTENT_COMMENT_DELETE;
+            return Type == TxType::CONTENT_COMMENT ||
+                   Type == TxType::CONTENT_COMMENT_EDIT ||
+                   Type == TxType::CONTENT_COMMENT_DELETE;
         }
 
         bool IsBlocking() const
         {
-            return Type == PocketTxType::ACTION_BLOCKING ||
-                   Type == PocketTxType::ACTION_BLOCKING_CANCEL;
+            return Type == TxType::ACTION_BLOCKING ||
+                   Type == TxType::ACTION_BLOCKING_CANCEL;
         }
 
         bool IsSubscribe() const
         {
-            return Type == PocketTxType::ACTION_SUBSCRIBE ||
-                   Type == PocketTxType::ACTION_SUBSCRIBE_CANCEL ||
-                   Type == PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
+            return Type == TxType::ACTION_SUBSCRIBE ||
+                   Type == TxType::ACTION_SUBSCRIBE_CANCEL ||
+                   Type == TxType::ACTION_SUBSCRIBE_PRIVATE;
         }
 
         bool IsActionScore() const
         {
-            return Type == PocketTxType::ACTION_SCORE_COMMENT ||
-                   Type == PocketTxType::ACTION_SCORE_CONTENT;
+            return Type == TxType::ACTION_SCORE_COMMENT ||
+                   Type == TxType::ACTION_SCORE_CONTENT;
         }
     };
 }

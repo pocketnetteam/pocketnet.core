@@ -9,12 +9,12 @@ namespace PocketTx
 {
     AccountSetting::AccountSetting() : Transaction()
     {
-        SetType(PocketTxType::ACCOUNT_SETTING);
+        SetType(TxType::ACCOUNT_SETTING);
     }
 
     AccountSetting::AccountSetting(const CTransactionRef& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::ACCOUNT_SETTING);
+        SetType(TxType::ACCOUNT_SETTING);
     }
 
     

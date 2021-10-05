@@ -23,6 +23,7 @@ namespace PocketDb
         ExplorerRepoInst->Destroy();
         TransactionRepoInst->Destroy();
 
+        SQLiteDbInst->DetachDatabase("web");
         SQLiteDbInst->Close();
     }
 

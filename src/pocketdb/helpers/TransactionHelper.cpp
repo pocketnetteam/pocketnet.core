@@ -30,48 +30,48 @@ namespace PocketHelpers
         return make_tuple(!address.empty(), address);
     }
 
-    PocketTxType TransactionHelper::ConvertOpReturnToType(const string& op)
+    TxType TransactionHelper::ConvertOpReturnToType(const string& op)
     {
         if (op == OR_POST || op == OR_POSTEDIT)
-            return PocketTxType::CONTENT_POST;
+            return TxType::CONTENT_POST;
         else if (op == OR_VIDEO)
-            return PocketTxType::CONTENT_VIDEO;
+            return TxType::CONTENT_VIDEO;
         else if (op == OR_SERVER_PING)
-            return PocketTxType::CONTENT_SERVERPING;
+            return TxType::CONTENT_SERVERPING;
         else if (op == OR_CONTENT_DELETE)
-            return PocketTxType::CONTENT_DELETE;
+            return TxType::CONTENT_DELETE;
         else if (op == OR_SCORE)
-            return PocketTxType::ACTION_SCORE_CONTENT;
+            return TxType::ACTION_SCORE_CONTENT;
         else if (op == OR_COMPLAIN)
-            return PocketTxType::ACTION_COMPLAIN;
+            return TxType::ACTION_COMPLAIN;
         else if (op == OR_SUBSCRIBE)
-            return PocketTxType::ACTION_SUBSCRIBE;
+            return TxType::ACTION_SUBSCRIBE;
         else if (op == OR_SUBSCRIBEPRIVATE)
-            return PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
+            return TxType::ACTION_SUBSCRIBE_PRIVATE;
         else if (op == OR_UNSUBSCRIBE)
-            return PocketTxType::ACTION_SUBSCRIBE_CANCEL;
+            return TxType::ACTION_SUBSCRIBE_CANCEL;
         else if (op == OR_ACCOUNT_SETTING)
-            return PocketTxType::ACCOUNT_SETTING;
+            return TxType::ACCOUNT_SETTING;
         else if (op == OR_USERINFO)
-            return PocketTxType::ACCOUNT_USER;
+            return TxType::ACCOUNT_USER;
         else if (op == OR_VIDEO_SERVER)
-            return PocketTxType::ACCOUNT_VIDEO_SERVER;
+            return TxType::ACCOUNT_VIDEO_SERVER;
         else if (op == OR_MESSAGE_SERVER)
-            return PocketTxType::ACCOUNT_MESSAGE_SERVER;
+            return TxType::ACCOUNT_MESSAGE_SERVER;
         else if (op == OR_BLOCKING)
-            return PocketTxType::ACTION_BLOCKING;
+            return TxType::ACTION_BLOCKING;
         else if (op == OR_UNBLOCKING)
-            return PocketTxType::ACTION_BLOCKING_CANCEL;
+            return TxType::ACTION_BLOCKING_CANCEL;
         else if (op == OR_COMMENT)
-            return PocketTxType::CONTENT_COMMENT;
+            return TxType::CONTENT_COMMENT;
         else if (op == OR_COMMENT_EDIT)
-            return PocketTxType::CONTENT_COMMENT_EDIT;
+            return TxType::CONTENT_COMMENT_EDIT;
         else if (op == OR_COMMENT_DELETE)
-            return PocketTxType::CONTENT_COMMENT_DELETE;
+            return TxType::CONTENT_COMMENT_DELETE;
         else if (op == OR_COMMENT_SCORE)
-            return PocketTxType::ACTION_SCORE_COMMENT;
+            return TxType::ACTION_SCORE_COMMENT;
 
-        return PocketTxType::TX_DEFAULT;
+        return TxType::TX_DEFAULT;
     }
 
     string TransactionHelper::ParseAsmType(const CTransactionRef& tx, vector<string>& vasm)
@@ -91,7 +91,7 @@ namespace PocketHelpers
         return "";
     }
 
-    PocketTxType TransactionHelper::ParseType(const CTransactionRef& tx, vector<string>& vasm)
+    TxType TransactionHelper::ParseType(const CTransactionRef& tx, vector<string>& vasm)
     {
         if (tx->IsCoinBase())
         {
@@ -99,18 +99,18 @@ namespace PocketHelpers
                 [](int i, const CTxOut& o) { return o.nValue + i; });
 
             if (txOutSum <= 0)
-                return PocketTxType::NOT_SUPPORTED;
+                return TxType::NOT_SUPPORTED;
             else
-                return PocketTxType::TX_COINBASE;
+                return TxType::TX_COINBASE;
         }
 
         if (tx->IsCoinStake())
-            return PocketTxType::TX_COINSTAKE;
+            return TxType::TX_COINSTAKE;
 
         return ConvertOpReturnToType(ParseAsmType(tx, vasm));
     }
 
-    PocketTxType TransactionHelper::ParseType(const CTransactionRef& tx)
+    TxType TransactionHelper::ParseType(const CTransactionRef& tx)
     {
         vector<string> vasm;
         return ParseType(tx, vasm);
@@ -120,37 +120,37 @@ namespace PocketHelpers
     {
         switch (*transaction.GetType())
         {
-            case PocketTxType::ACCOUNT_SETTING:
+            case TxType::ACCOUNT_SETTING:
                 return "AccountSettings";
-            case PocketTxType::ACCOUNT_USER:
+            case TxType::ACCOUNT_USER:
                 return "Users";
-            case PocketTxType::CONTENT_POST:
-            case PocketTxType::CONTENT_VIDEO:
-            case PocketTxType::CONTENT_DELETE:
+            case TxType::CONTENT_POST:
+            case TxType::CONTENT_VIDEO:
+            case TxType::CONTENT_DELETE:
                 return "Posts";
-            case PocketTxType::CONTENT_COMMENT:
-            case PocketTxType::CONTENT_COMMENT_EDIT:
-            case PocketTxType::CONTENT_COMMENT_DELETE:
+            case TxType::CONTENT_COMMENT:
+            case TxType::CONTENT_COMMENT_EDIT:
+            case TxType::CONTENT_COMMENT_DELETE:
                 return "Comment";
-            case PocketTxType::ACTION_SCORE_CONTENT:
+            case TxType::ACTION_SCORE_CONTENT:
                 return "Scores";
-            case PocketTxType::ACTION_SCORE_COMMENT:
+            case TxType::ACTION_SCORE_COMMENT:
                 return "CommentScores";
-            case PocketTxType::ACTION_COMPLAIN:
+            case TxType::ACTION_COMPLAIN:
                 return "Complains";
-            case PocketTxType::ACTION_BLOCKING_CANCEL:
-            case PocketTxType::ACTION_BLOCKING:
+            case TxType::ACTION_BLOCKING_CANCEL:
+            case TxType::ACTION_BLOCKING:
                 return "Blocking";
-            case PocketTxType::ACTION_SUBSCRIBE_CANCEL:
-            case PocketTxType::ACTION_SUBSCRIBE_PRIVATE:
-            case PocketTxType::ACTION_SUBSCRIBE:
+            case TxType::ACTION_SUBSCRIBE_CANCEL:
+            case TxType::ACTION_SUBSCRIBE_PRIVATE:
+            case TxType::ACTION_SUBSCRIBE:
                 return "Subscribes";
             default:
                 return "";
         }
     }
 
-    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx, PocketTxType& txType)
+    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx, TxType& txType)
     {
         txType = ParseType(tx);
         return txType != NOT_SUPPORTED;
@@ -158,7 +158,7 @@ namespace PocketHelpers
 
     bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx)
     {
-        PocketTxType txType = NOT_SUPPORTED;
+        TxType txType = NOT_SUPPORTED;
         return IsPocketSupportedTransaction(tx, txType);
     }
 
@@ -168,7 +168,7 @@ namespace PocketHelpers
         return IsPocketSupportedTransaction(txRef);
     }
 
-    bool TransactionHelper::IsPocketTransaction(PocketTxType& txType)
+    bool TransactionHelper::IsPocketTransaction(TxType& txType)
     {
         return txType != NOT_SUPPORTED &&
                txType != TX_COINBASE &&
@@ -176,7 +176,7 @@ namespace PocketHelpers
                txType != TX_DEFAULT;
     }
 
-    bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx, PocketTxType& txType)
+    bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx, TxType& txType)
     {
         txType = ParseType(tx);
         return IsPocketTransaction(txType);
@@ -184,7 +184,7 @@ namespace PocketHelpers
 
     bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx)
     {
-        PocketTxType txType = NOT_SUPPORTED;
+        TxType txType = NOT_SUPPORTED;
         return IsPocketTransaction(tx, txType);
     }
 
@@ -201,8 +201,8 @@ namespace PocketHelpers
         vector<string> vasm;
         scoreData->ScoreType = ParseType(tx, vasm);
 
-        if (scoreData->ScoreType != PocketTxType::ACTION_SCORE_CONTENT &&
-            scoreData->ScoreType != PocketTxType::ACTION_SCORE_COMMENT)
+        if (scoreData->ScoreType != TxType::ACTION_SCORE_CONTENT &&
+            scoreData->ScoreType != TxType::ACTION_SCORE_COMMENT)
             return make_tuple(false, scoreData);
 
         if (vasm.size() >= 4)
@@ -229,7 +229,7 @@ namespace PocketHelpers
         return make_tuple(finalCheck, scoreData);
     }
 
-    PTransactionRef TransactionHelper::CreateInstance(PocketTxType txType, const CTransactionRef& tx)
+    PTransactionRef TransactionHelper::CreateInstance(TxType txType, const CTransactionRef& tx)
     {
         PTransactionRef ptx = nullptr;
         switch (txType)
@@ -298,7 +298,7 @@ namespace PocketHelpers
         return ptx;
     }
 
-    PTransactionRef TransactionHelper::CreateInstance(PocketTxType txType)
+    PTransactionRef TransactionHelper::CreateInstance(TxType txType)
     {
         PTransactionRef ptx = nullptr;
         switch (txType)
@@ -367,7 +367,7 @@ namespace PocketHelpers
         return ptx;
     }
 
-    bool TransactionHelper::IsIn(PocketTxType txType, const vector<PocketTxType>& inTypes)
+    bool TransactionHelper::IsIn(TxType txType, const vector<TxType>& inTypes)
     {
         for (auto inType : inTypes)
             if (inType == txType)
@@ -376,7 +376,7 @@ namespace PocketHelpers
         return false;
     }
 
-    string TransactionHelper::TxStringType(PocketTxType type)
+    string TransactionHelper::TxStringType(TxType type)
     {
         switch (type)
         {
