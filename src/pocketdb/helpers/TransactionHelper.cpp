@@ -412,4 +412,24 @@ namespace PocketHelpers
                 return "";
         }
     }
+
+    int TransactionHelper::TxIntType(const string& type)
+    {
+        if (type == "contentDelete" || type == OR_CONTENT_DELETE) return (int)PocketTxType::CONTENT_DELETE;
+        else if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return (int)PocketTxType::CONTENT_POST;
+        else if (type == "video" || type == OR_VIDEO) return (int)PocketTxType::CONTENT_VIDEO;
+        else if (type == "serverPing" || type == OR_SERVER_PING) return (int)PocketTxType::CONTENT_SERVERPING;
+        else if (type == "translate" || type == OR_TRANSLATE) return (int)PocketTxType::CONTENT_TRANSLATE;
+        else if (type == "upvoteShare" || type == OR_SCORE) return (int)PocketTxType::ACTION_SCORE_CONTENT;
+        else if (type == "subscribe" || type == OR_SUBSCRIBE) return (int)PocketTxType::ACTION_SUBSCRIBE;
+        else if (type == "subscribePrivate" || type == OR_SUBSCRIBEPRIVATE) return (int)PocketTxType::ACTION_SUBSCRIBE_PRIVATE;
+        else if (type == "unsubscribe" || type == OR_UNSUBSCRIBE) return (int)PocketTxType::ACTION_SUBSCRIBE_CANCEL;
+        else if (type == "userInfo" || type == OR_USERINFO) return (int)PocketTxType::ACCOUNT_USER;
+        else if (type == "comment" || type == OR_COMMENT) return (int)PocketTxType::CONTENT_COMMENT;
+        else if (type == "commentEdit" || type == OR_COMMENT_EDIT) return (int)PocketTxType::CONTENT_COMMENT_EDIT;
+        else if (type == "commentDelete" || type == OR_COMMENT_DELETE) return (int)PocketTxType::CONTENT_COMMENT_DELETE;
+        else if (type == "cScore" || type == OR_COMMENT_SCORE) return (int)PocketTxType::ACTION_SCORE_COMMENT;
+        else return (int)PocketTxType::NOT_SUPPORTED;
+        //TODO (o1q): check if other types are needed
+    }
 }

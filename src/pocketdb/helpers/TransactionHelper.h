@@ -67,6 +67,7 @@ namespace PocketHelpers
         static PTransactionRef CreateInstance(PocketTxType txType, const CTransactionRef& tx);
         static bool IsIn(PocketTxType txType, const vector<PocketTxType>& inTypes);
         static string TxStringType(PocketTxType type);
+        static int TxIntType(const string& type);
     };
 }
 

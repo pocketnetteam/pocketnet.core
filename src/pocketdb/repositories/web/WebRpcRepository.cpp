@@ -955,7 +955,7 @@ namespace PocketDb
                 and t.Time <= ?
                 and t.String3 is null
                 and p.String1 = ?
-                and t.Type in (200, 201)
+                and t.Type in ()sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql()
             order by t.Height desc, t.Time desc
             limit ?
         )sql";
@@ -971,7 +971,10 @@ namespace PocketDb
             TryBindStatementInt(stmt, 2, nHeight - depth);
             TryBindStatementInt64(stmt, 3, GetAdjustedTime());
             TryBindStatementText(stmt, 4, lang);
-            TryBindStatementInt(stmt, 5, countOut);
+            int i = 5;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+            TryBindStatementInt(stmt, i++, countOut);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -992,7 +995,7 @@ namespace PocketDb
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", value == "201" ? "video" : "share");
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((PocketTxType)value));
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
@@ -1097,7 +1100,7 @@ namespace PocketDb
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("type", value == "201" ? "video" : "share");
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((PocketTxType)value));
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
@@ -1174,7 +1177,7 @@ namespace PocketDb
                 and t.Time <= ?
                 and t.String3 is null
                 and p.String1 = ?
-                and t.Type in (200, 201)
+                and t.Type in ()sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql()
             order by t.Id desc
             limit ?
         )sql";
@@ -1190,7 +1193,10 @@ namespace PocketDb
             TryBindStatementInt(stmt, 2, nHeight);
             TryBindStatementInt64(stmt, 3, GetAdjustedTime());
             TryBindStatementText(stmt, 4, lang);
-            TryBindStatementInt(stmt, 5, countOut);
+            int i = 5;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+            TryBindStatementInt(stmt, i++, countOut);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -1211,8 +1217,7 @@ namespace PocketDb
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok)
-                    record.pushKV("type", value == "201" ? "video" : "share");
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((PocketTxType)value));
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
                 if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url

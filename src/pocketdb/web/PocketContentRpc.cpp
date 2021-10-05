@@ -130,31 +130,27 @@ namespace PocketWeb::PocketWebRpc
         }
 
         std::vector<int> contentTypes;
-        // if (request.params.size() > 4) {
-        //     if (request.params[4].isNum()) {
-        //         contentTypes.push_back(request.params[4].get_int());
-        //     } else if (request.params[4].isStr()) {
-        //         if (getcontenttype(request.params[4].get_str()) >= 0) {
-        //             contentTypes.push_back(getcontenttype(request.params[4].get_str()));
-        //         }
-        //     } else if (request.params[4].isArray()) {
-        //         UniValue cntntTps = request.params[4].get_array();
-        //         if (cntntTps.size() > 10) {
-        //             throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array content types");
-        //         }
-        //         if(cntntTps.size() > 0) {
-        //             for (unsigned int idx = 0; idx < cntntTps.size(); idx++) {
-        //                 if (cntntTps[idx].isNum()) {
-        //                     contentTypes.push_back(cntntTps[idx].get_int());
-        //                 } else if (cntntTps[idx].isStr()) {
-        //                     if (getcontenttype(cntntTps[idx].get_str()) >= 0) {
-        //                         contentTypes.push_back(getcontenttype(cntntTps[idx].get_str()));
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+        if (request.params.size() > 4) {
+            if (request.params[4].isNum()) {
+                contentTypes.push_back(request.params[4].get_int());
+            } else if (request.params[4].isStr()) {
+                contentTypes.push_back(TransactionHelper::TxIntType(request.params[4].get_str()));
+            } else if (request.params[4].isArray()) {
+                UniValue cntntTps = request.params[4].get_array();
+                if (cntntTps.size() > 10) {
+                    throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array content types");
+                }
+                if(cntntTps.size() > 0) {
+                    for (unsigned int idx = 0; idx < cntntTps.size(); idx++) {
+                        if (cntntTps[idx].isNum()) {
+                            contentTypes.push_back(cntntTps[idx].get_int());
+                        } else if (cntntTps[idx].isStr()) {
+                            contentTypes.push_back(TransactionHelper::TxIntType(cntntTps[idx].get_str()));
+                        }
+                    }
+                }
+            }
+        }
 
         map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, contentTypes);
 
@@ -233,9 +229,7 @@ namespace PocketWeb::PocketWebRpc
             }
             else if (request.params[5].isStr())
             {
-                auto type = TransactionHelper::ConvertOpReturnToType(request.params[5].get_str());
-                if (TransactionHelper::IsIn(type, {CONTENT_POST, CONTENT_VIDEO}))
-                    contentTypes.push_back(type);
+                contentTypes.push_back(TransactionHelper::TxIntType(request.params[5].get_str()));
             }
             else if (request.params[5].isArray())
             {
