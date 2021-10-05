@@ -1644,7 +1644,9 @@ bool AppInitMain()
     SQLiteDatabase sqliteDbWebInst(false);
     sqliteDbWebInst.Init("web", webDbMigration);
     sqliteDbWebInst.CreateStructure();
+    sqliteDbWebInst.m_connection_mutex.lock();
     sqliteDbWebInst.Close();
+    sqliteDbWebInst.m_connection_mutex.unlock();
 
     // Attach `web` db to `main` db
     PocketDb::SQLiteDbInst.AttachDatabase("web");

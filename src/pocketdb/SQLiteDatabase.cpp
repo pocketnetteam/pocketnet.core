@@ -128,7 +128,7 @@ namespace PocketDb
                         __func__, ret, sqlite3_errstr(ret)));
             }
 
-            if (!isReadOnlyConnect && sqlite3_db_readonly(m_db, dbName.c_str()) != 0)
+            if (!isReadOnlyConnect && sqlite3_db_readonly(m_db, dbName.c_str()) == 1)
                 throw std::runtime_error("Database opened in readonly");
 
             if (sqlite3_exec(m_db, "PRAGMA journal_mode = wal;", nullptr, nullptr, nullptr) != 0)
