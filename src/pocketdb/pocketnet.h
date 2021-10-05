@@ -10,6 +10,8 @@
 #include <sstream>
 #include <util.h>
 
+#include "logging.h"
+
 #include "pocketdb/repositories/ChainRepository.h"
 #include "pocketdb/repositories/RatingsRepository.h"
 #include "pocketdb/repositories/TransactionRepository.h"
@@ -18,6 +20,7 @@
 #include "pocketdb/repositories/web/ExplorerRepository.h"
 #include "pocketdb/repositories/web/NotifierRepository.h"
 #include "pocketdb/web/PocketFrontend.h"
+#include "pocketdb/services/WebPostProcessing.h"
 
 namespace PocketDb
 {
@@ -29,10 +32,16 @@ namespace PocketDb
     extern NotifierRepository NotifierRepoInst;
 } // namespace PocketDb
 
+namespace PocketServices
+{
+    extern WebPostProcessor WebPostProcessorInst;
+} // namespace PocketServices
+
 namespace PocketWeb
 {
-    extern PocketWeb::PocketFrontend PocketFrontendInst;
+    extern PocketFrontend PocketFrontendInst;
 } // namespace PocketWeb
+
 
 // Antibot limits
 enum Limit

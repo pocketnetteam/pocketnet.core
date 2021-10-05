@@ -1,5 +1,4 @@
 #include "pocketdb/pocketnet.h"
-#include "logging.h"
 
 namespace PocketDb
 {
@@ -9,14 +8,17 @@ namespace PocketDb
     RatingsRepository RatingsRepoInst(PocketDb::SQLiteDbInst);
     ConsensusRepository ConsensusRepoInst(PocketDb::SQLiteDbInst);
     NotifierRepository NotifierRepoInst(PocketDb::SQLiteDbInst);
-}
+} // PocketDb
 
 namespace PocketWeb
 {
     PocketFrontend PocketFrontendInst;
-}
+} // PocketWeb
 
-
+namespace PocketServices
+{
+    WebPostProcessor WebPostProcessorInst;
+} // namespace PocketServices
 
 
 

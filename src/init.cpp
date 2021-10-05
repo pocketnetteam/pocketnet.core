@@ -199,6 +199,7 @@ void Shutdown()
     if (!lockShutdown)
         return;
 
+    PocketServices::WebPostProcessorInst.Stop();
     gStatEngineInstance.Stop();
 
     StopHTTPRPC();
@@ -2215,6 +2216,10 @@ bool AppInitMain()
     if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
 
     gStatEngineInstance.Run(threadGroup);
+
+    // TODO (brangr): implement
+    //if (gArgs.GetBoolArg("-wsuse", false))
+    PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));
