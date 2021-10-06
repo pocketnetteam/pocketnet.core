@@ -44,7 +44,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
-            int64_t nTime1 = GetTimeMicros();
+            //int64_t nTime1 = GetTimeMicros();
 
             // Generate new balance records
             auto stmt = SetupSqlStatement(R"sql(
@@ -62,8 +62,8 @@ namespace PocketDb
             TryBindStatementInt(stmt, 1, height);
             TryStepStatement(stmt);
 
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - IndexBalances (Insert): %.2fms _ %d\n", 0.001 * (nTime2 - nTime1), height);
+            //int64_t nTime2 = GetTimeMicros();
+            //LogPrint(BCLog::BENCH, "      - IndexBalances (Insert): %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
 
             // Remove old Last records
             auto stmtOld = SetupSqlStatement(R"sql(
@@ -81,8 +81,8 @@ namespace PocketDb
             TryBindStatementInt(stmtOld, 1, height);
             TryStepStatement(stmtOld);
 
-            int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexBalances (Update): %.2fms _ %d\n", 0.001 * (nTime3 - nTime2), height);
+            //int64_t nTime3 = GetTimeMicros();
+            //LogPrint(BCLog::BENCH, "      - IndexBalances (Update): %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
         });
     }
 

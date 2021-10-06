@@ -6,17 +6,16 @@
 
 namespace PocketServices
 {
-    WebPostProcessor::WebPostProcessor()
+    WebPostProcessor::WebPostProcessor() = default;
+
+    void WebPostProcessor::Start(boost::thread_group& threadGroup)
     {
         sqliteDbInst = make_shared<SQLiteDatabase>(false);
         sqliteDbInst->Init("main");
         sqliteDbInst->AttachDatabase("web");
 
         webRepoInst = make_shared<WebRepository>(*sqliteDbInst);
-    }
 
-    void WebPostProcessor::Start(boost::thread_group& threadGroup)
-    {
         shutdown = false;
         threadGroup.create_thread([this] { Worker(); });
     }

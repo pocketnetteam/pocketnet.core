@@ -2515,6 +2515,11 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         return false;
     }
 
+    // -----------------------------------------------------------------------------------------------------------------
+    // Extend WEB database
+    PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
+
+    // -----------------------------------------------------------------------------------------------------------------
     int64_t nTime6 = GetTimeMicros();
     nTimeVerify += nTime6 - nTime5;
     LogPrint(BCLog::BENCH, "    - Sqlite index writing: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",

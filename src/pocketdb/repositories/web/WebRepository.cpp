@@ -72,7 +72,6 @@ namespace PocketDb
             )sql");
             for (const auto& tag: tags) TryBindStatementText(tagsStmt, i++, tag);
             TryStepStatement(tagsStmt);
-            FinalizeSqlStatement(*tagsStmt);
 
             // Delete exists mappings ContentId <-> TagId
             i = 1;
@@ -82,7 +81,6 @@ namespace PocketDb
             )sql");
             for (const auto& id: ids) TryBindStatementInt64(idsStmt, i++, id);
             TryStepStatement(idsStmt);
-            FinalizeSqlStatement(*idsStmt);
 
             // Insert new mappings ContentId <-> TagId
             for (const auto& contentTag : contentTags)
@@ -97,7 +95,6 @@ namespace PocketDb
                 TryBindStatementInt64(stmt, 1, contentTag.ContentId);
                 TryBindStatementText(stmt, 2, contentTag.Value);
                 TryStepStatement(stmt);
-                FinalizeSqlStatement(*stmt);
             }
         });
     }
