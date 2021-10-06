@@ -8,7 +8,6 @@
 #include <primitives/block.h>
 
 #include <memory>
-#include <iostream>
 
 class CTxMemPool;
 
@@ -160,15 +159,11 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
-        //std::cout << "CBlockHeaderAndShortTxIDs serialization write header\n";
         READWRITE(header);
-        //std::cout << "CBlockHeaderAndShortTxIDs nonce\n";
         READWRITE(nonce);
-        //std::cout << "CBlockHeaderAndShortTxIDs shorttxids\n";
         uint64_t shorttxids_size = (uint64_t)shorttxids.size();
         READWRITE(COMPACTSIZE(shorttxids_size));
         if (ser_action.ForRead()) {
-            //std::cout << "CBlockHeaderAndShortTxIDs read\n";
             size_t i = 0;
             while (shorttxids.size() < shorttxids_size) {
                 shorttxids.resize(std::min((uint64_t)(1000 + shorttxids.size()), shorttxids_size));
@@ -177,7 +172,6 @@ public:
                     READWRITE(lsb);
                     READWRITE(msb);
                     shorttxids[i] = (uint64_t(msb) << 32) | uint64_t(lsb);
-                    //std::cout << "CBlockHeaderAndShortTxIDs readtxid = " << shorttxids[i] << "\n";
 
                     static_assert(SHORTTXIDS_LENGTH == 6, "shorttxids serialization assumes 6-byte shorttxids");
                 }
@@ -190,13 +184,11 @@ public:
                 READWRITE(msb);
             }
         }
-        //std::cout << "CBlockHeaderAndShortTxIDs prefilledtxn\n";
         READWRITE(prefilledtxn);
 
         if (ser_action.ForRead())
             FillShortTxIDSelector();
-        
-        //std::cout << "CBlockHeaderAndShortTxIDs vchBlockSig\n";      
+
         READWRITE(vchBlockSig);
     }
 };

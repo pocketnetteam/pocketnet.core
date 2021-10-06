@@ -3788,7 +3788,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     if (fCheckMerkleRoot) {
         bool mutated;
         uint256 hashMerkleRoot2 = BlockMerkleRoot(block, &mutated);
-        std::cout << "hashMerkleRoot=" << block.hashMerkleRoot.ToString() << " hashMerkleRoot2=" << hashMerkleRoot2.ToString();
         if (block.hashMerkleRoot != hashMerkleRoot2)
             return state.DoS(100, false, REJECT_INVALID, "bad-txnmrklroot", true, "hashMerkleRoot mismatch");
 
@@ -3827,7 +3826,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
     // Check proof-of-stake block signature
     if (fCheckSig && !CheckBlockSignature(block)) {
-        std::cout << "CheckBlockSignature failed!\n";
         //return error("CheckBlock() : bad proof-of-stake block signature");
         return false;
     }
@@ -3835,7 +3833,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     // Check transactions
     for (const auto& tx : block.vtx) {
         if (!CheckTransaction(*tx, state, true)) {
-            std::cout << "Transaction check failed, tx hash:" << tx->GetHash().ToString() << "\n";
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
                 strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(), state.GetDebugMessage()));
         }
@@ -3961,21 +3958,11 @@ bool CheckBlockAdditional(CBlockIndex* pindex, const CBlock& block, CValidationS
 bool CheckBlockSignature(const CBlock& block)
 {
     if (block.IsProofOfWork()) {
-<<<<<<< HEAD
-=======
-        LogPrintf("CheckBlockSignature: proof of work\n");
-        std::cout << "CheckBlockSignature: proof of work - " << block.vchBlockSig.empty() << "\n";
->>>>>>> e4c5d52... Blockencodings_test now working by properly signing block.
         return block.vchBlockSig.empty();
     }
 
     if (block.vchBlockSig.empty()) {
-<<<<<<< HEAD
-        //LogPrintf("CheckBlockSignature: Bad Block - vchBlockSig empty\n");
-=======
         LogPrintf("CheckBlockSignature: Bad Block - vchBlockSig empty\n");
-        std::cout << "CheckBlockSignature: Bad Block - vchBlockSig empty\n";
->>>>>>> e4c5d52... Blockencodings_test now working by properly signing block.
         return false;
     }
 
@@ -3986,22 +3973,15 @@ bool CheckBlockSignature(const CBlock& block)
     txnouttype whichType = Solver(txout.scriptPubKey, vSolutions);
     if (whichType == TX_NONSTANDARD) {
         LogPrintf("CheckBlockSignature: Bad Block - wrong signature\n");
-        std::cout << "CheckBlockSignature: Bad Block - wrong signature\n";
         return false;
     }
 
     if (whichType == TX_PUBKEY) {
         std::vector<unsigned char>& vchPubKey = vSolutions[0];
-<<<<<<< HEAD
-=======
-        LogPrintf("CheckBlockSignature: verify block hash\n");
-        std::cout << "CheckBlockSignature: verify block hash; hash=" << block.GetHash().ToString() << "\n";
->>>>>>> e4c5d52... Blockencodings_test now working by properly signing block.
         return CPubKey(vchPubKey).Verify(block.GetHash(), block.vchBlockSig);
     }
 
     LogPrintf("CheckBlockSignature: Unknown type\n");
-    std::cout << "CheckBlockSignature: Unknown type\n";
     return false;
 }
 

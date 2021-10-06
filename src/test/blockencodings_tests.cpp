@@ -19,19 +19,6 @@
 #include <validation.h>
 #include <consensus/validation.h>
 
-struct cout_redirect {
-    cout_redirect( std::streambuf * new_buffer ) 
-        : old( std::cout.rdbuf( new_buffer ) )
-    { }
-
-    ~cout_redirect( ) {
-        std::cout.rdbuf( old );
-    }
-
-private:
-    std::streambuf * old;
-};
-
 std::vector<std::pair<uint256, CTransactionRef>> extra_txn;
 
 struct RegtestingSetup : public TestingSetup {
@@ -44,14 +31,11 @@ static CBlock BuildBlockTestCase() {
     CBlock block;
     CMutableTransaction tx;
     CBasicKeyStore keystore;
+    CKey key;
 
-    // Add some keys to the keystore:
-    CKey key[4];
-    for (int i = 0; i < 4; i++)
-    {
-        key[i].MakeNewKey(i % 2);
-        keystore.AddKey(key[i]);
-    }
+    // Add key to the keystore:
+    key.MakeNewKey(0);
+    keystore.AddKey(key);
 
     tx.vin.resize(1);
     tx.vin[0].scriptSig.resize(10);
@@ -70,7 +54,7 @@ static CBlock BuildBlockTestCase() {
     tx.vout.resize(2);
     tx.vout[0].nValue=0; 
     tx.vout[1].nValue=50;
-    tx.vout[1].scriptPubKey << ToByteVector(key[1].GetPubKey()) << OP_CHECKSIG;
+    tx.vout[1].scriptPubKey << ToByteVector(key.GetPubKey()) << OP_CHECKSIG;
     block.vtx[1] = MakeTransactionRef(tx);
 
     tx.vin.resize(10);
@@ -87,7 +71,7 @@ static CBlock BuildBlockTestCase() {
     while (!CheckProofOfWork(block.GetHash(), block.nBits, Params().GetConsensus(), 0)) ++block.nNonce;
     
     // Sign block now that it is assembled 
-    key[1].Sign(block.GetHash(), block.vchBlockSig);
+    key.Sign(block.GetHash(), block.vchBlockSig);
     return block;
 }
 
@@ -104,7 +88,6 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
     g_pocketdb->Init();
 
     CValidationState state;
-    BOOST_TEST_MESSAGE("Initial block check");
     BOOST_CHECK_MESSAGE(CheckBlock(block, state, Params().GetConsensus()), "CheckBlock of initial block failed!");
     BOOST_TEST_MESSAGE(block.ToString());
 
@@ -145,7 +128,6 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
         pool.removeRecursive(*block.vtx[2], MemPoolRemovalReason::REPLACED);
         BOOST_CHECK_EQUAL(pool.size(), poolSize - 1);
 
-        BOOST_TEST_MESSAGE("Block 2 test\n");
         CBlock block2;
         {
             PartiallyDownloadedBlock tmp = partialBlock;
@@ -162,7 +144,6 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
         bool mutated;
         BOOST_CHECK(block.hashMerkleRoot != BlockMerkleRoot(block2, &mutated));
 
-        BOOST_TEST_MESSAGE("Block 3 test, vtx[1] = \n");
         BOOST_TEST_MESSAGE(block.vtx[1]->ToString());
         CBlock block3;
         BOOST_CHECK(partialBlock.FillBlock(block3, {block.vtx[1]}) == READ_STATUS_OK);
@@ -201,11 +182,8 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
-        //std::cout << "TestHeaderAndShortIDs serialize\n";
         READWRITE(header);
-        //std::cout << "nonce\n";
         READWRITE(nonce);
-        //std::cout << "shorttxids_size\n";
 
         size_t shorttxids_size = shorttxids.size();
 
@@ -217,12 +195,8 @@ public:
             READWRITE(lsb);
             READWRITE(msb);
             shorttxids[i] = (uint64_t(msb) << 32) | uint64_t(lsb);
-            //std::cout << "shorttxid " << shorttxids[i] << "\n";
-
         }
-        //std::cout << "prefilledtxn\n";
         READWRITE(prefilledtxn);
-        //std::cout << "vchBlockSig\n";
         READWRITE(vchBlockSig);
     }
 };

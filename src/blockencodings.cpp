@@ -185,7 +185,6 @@ ReadStatus PartiallyDownloadedBlock::FillBlock(CBlock& block, const std::vector<
     for (size_t i = 0; i < txn_available.size(); i++) {
         if (!txn_available[i]) {
             if (vtx_missing.size() <= tx_missing_offset) {
-                std::cout << "TAWMAZ: Incomplete missing transaction vectory vtx_missing.size()=" << vtx_missing.size() << "\n";
                 return READ_STATUS_INVALID;
             }
             block.vtx[i] = vtx_missing[tx_missing_offset++];

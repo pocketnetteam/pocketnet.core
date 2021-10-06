@@ -11,7 +11,6 @@
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
-#include <iostream>
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
@@ -361,14 +360,11 @@ public:
 
     bool IsCoinBase() const
     {
-        //std::cout << "TAWMAZ: IsCoinBase vin.size()=" << vin.size() << " vin[0].prevout.IsNull()=" << vin[0].prevout.IsNull() << "\n";
         return (vin.size() == 1 && vin[0].prevout.IsNull());
     }
 
     bool IsCoinStake() const
     {
-        //std::cout << "TAWMAZ: IsCoinStake vin.size()=" << vin.size() << " vin[0].prevout.IsNull()=" << vin[0].prevout.IsNull() << "\n";
-        //std::cout << "TAWMAZ: IsCoinStake vout.size()=" << vout.size() << " vout[0].IsEmptyOrWinners()=" << vout[0].IsEmptyOrWinners() << "\n";
         return (vin.size() > 0 && (!vin[0].prevout.IsNull()) && vout.size() >= 2 && vout[0].IsEmptyOrWinners());
     }
 

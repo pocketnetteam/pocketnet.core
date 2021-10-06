@@ -7,7 +7,6 @@
 
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
-#include <iostream>
 
 namespace
 {
@@ -173,11 +172,9 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
     secp256k1_pubkey pubkey;
     secp256k1_ecdsa_signature sig;
     if (!secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubkey, vch, size())) {
-        std::cout << "TAWMAZ ERROR: Verify secp256k1_ec_pubkey_parse failed!\n";
         return false;
     }
     if (!ecdsa_signature_parse_der_lax(secp256k1_context_verify, &sig, vchSig.data(), vchSig.size())) {
-        std::cout << "TAWMAZ ERROR: Verify ecdsa_signature_parse_der_lax failed!\n";
         return false;
     }
 
