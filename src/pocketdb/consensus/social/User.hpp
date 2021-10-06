@@ -196,13 +196,12 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *  Start checkpoint at 9999999 block
+    *  Start checkpoint at 1381841 block
     *******************************************************************************************************************/
-    // TODO (brangr): set checkpoint after v0.19.14
-    class UserConsensus_checkpoint_9999999 : public UserConsensus_checkpoint_1180000
+    class UserConsensus_checkpoint_1381841 : public UserConsensus_checkpoint_1180000
     {
     public:
-        UserConsensus_checkpoint_9999999(int height) : UserConsensus_checkpoint_1180000(height) {}
+        UserConsensus_checkpoint_1381841(int height) : UserConsensus_checkpoint_1180000(height) {}
     protected:
         ConsensusValidateResult ValidateEditLimit(const UserRef& ptx) override
         {
@@ -227,7 +226,7 @@ namespace PocketConsensus
         const vector<ConsensusCheckpoint < UserConsensus>> m_rules = {
             { 0, -1, [](int height) { return make_shared<UserConsensus>(height); }},
             { 1180000, 0, [](int height) { return make_shared<UserConsensus_checkpoint_1180000>(height); }},
-            { 9999999, 162000, [](int height) { return make_shared<UserConsensus_checkpoint_9999999>(height); }},
+            { 1381841, 162000, [](int height) { return make_shared<UserConsensus_checkpoint_1381841>(height); }},
         };
     public:
         shared_ptr<UserConsensus> Instance(int height)
