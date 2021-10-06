@@ -1090,15 +1090,18 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // subsequent verification of the consensus and inclusion in the block.
         if (!pocketTx && !PocketServices::Accessor::ExistsTransaction(tx))
             return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
-                
-        try
+        
+        if (pocketTx)
         {
-            PocketBlock pocketBlock{pocketTx};
-            PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
-        }
-        catch (const std::exception& e)
-        {
-            return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
+            try
+            {
+                PocketBlock pocketBlock{pocketTx};
+                PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+            }
+            catch (const std::exception& e)
+            {
+                return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
+            }
         }
 
         // Store transaction in memory
