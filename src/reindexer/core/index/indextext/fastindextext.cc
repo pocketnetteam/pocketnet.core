@@ -123,10 +123,11 @@ IdSet::Ptr FastIndexText<T>::Select(FtCtx::Ptr fctx, FtDSLQuery &dsl) {
 		auto id = vid.id;
 		assert(id < IdType(vdocs.size()));
 
-		if (!vdocs[id].keyEntry) {
+		if (!vdocs[id].keyEntry)
 			continue;
-		};
-		assert(!GetEntry(vdocs[id].keyEntry)->Unsorted().empty());
+		if (!GetEntry(vdocs[id].keyEntry)->Unsorted().empty())
+            continue;
+            
 		if (vid.proc <= minRelevancy) break;
 		int proc = std::min(255, vid.proc / merdeInfo.mergeCnt);
 		fctx->Add(GetEntry(vdocs[id].keyEntry)->Sorted(0).begin(), GetEntry(vdocs[id].keyEntry)->Sorted(0).end(), proc,

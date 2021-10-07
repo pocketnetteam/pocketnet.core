@@ -1258,12 +1258,6 @@ bool AntiBot::check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool ch
             userItm)
         .ok())
     {
-        if (!_address_referrer.empty())
-        {
-            result = ANTIBOTRESULT::ReferrerAfterRegistration;
-            return false;
-        }
-
         if (height <= (int)Params().GetConsensus().checkpoint_fix_size_payload)
         {
             auto depth = checkTime_19_6
@@ -1281,8 +1275,7 @@ bool AntiBot::check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool ch
     if (checkMempool)
     {
         reindexer::QueryResults res;
-        if (g_pocketdb->Select(
-            reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, _txid), res).ok())
+        if (g_pocketdb->Select(reindexer::Query("Mempool").Where("table", CondEq, "Users").Not().Where("txid", CondEq, _txid), res).ok())
         {
             for (auto& m : res)
             {
@@ -1294,11 +1287,8 @@ bool AntiBot::check_changeInfo(const UniValue& oitm, BlockVTX& blockVtx, bool ch
                 {
                     if (t_itm["address"].As<string>() == _address)
                     {
-                        if (!checkTime_19_3 || t_itm["time"].As<int64_t>() <= _time)
-                        {
-                            result = ANTIBOTRESULT::ChangeInfoDoubleInBlock;
-                            return false;
-                        }
+                        result = ANTIBOTRESULT::ChangeInfoDoubleInBlock;
+                        return false;
                     }
                 }
             }

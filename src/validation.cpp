@@ -1536,11 +1536,19 @@ static bool UndoReadFromDisk(CBlockUndo& blockundo, const CBlockIndex* pindex)
     uint256 hashChecksum;
     CHashVerifier<CAutoFile> verifier(&filein); // We need a CHashVerifier as reserializing may lose data
     try {
-        verifier << pindex->pprev->GetBlockHash();
-        verifier >> blockundo;
+        verifier << pindex->pprev->GetBlockHash();   
+    } catch (const std::exception& e) {
+        return error("%s: Deserialize or I/O error 1 (%d) - %s", __func__, pos.nFile, e.what());
+    }
+    try {
+        verifier >> blockundo;   
+    } catch (const std::exception& e) {
+        return error("%s: Deserialize or I/O error 2 (%d) - %s", __func__, pos.nFile, e.what());
+    }
+    try {
         filein >> hashChecksum;
     } catch (const std::exception& e) {
-        return error("%s: Deserialize or I/O error - %s", __func__, e.what());
+        return error("%s: Deserialize or I/O error 3 (%d) - %s", __func__, pos.nFile, e.what());
     }
 
     // Verify checksum
@@ -3240,6 +3248,11 @@ bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainPar
             // This is likely a fatal error, but keep the mempool consistent,
             // just in case. Only remove from the mempool in this case.
             UpdateMempoolForReorg(disconnectpool, false);
+
+            // If we're unable to disconnect a block during normal operation,
+            // then that is a failure of our local system -- we should abort
+            // rather than stay on a less work chain.
+            AbortNode(state, "Failed to disconnect block; see debug.log for details");
             return false;
         }
         fBlocksDisconnected = true;
