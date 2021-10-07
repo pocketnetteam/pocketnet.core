@@ -540,7 +540,7 @@ bool AddrIndex::WriteRTransaction(const CTransactionRef& tx, std::string table, 
         if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("address", CondEq, _address), user_cur).ok()) {
             item["id"] = user_cur["id"].As<int>();
             item["regdate"] = user_cur["regdate"].As<int64_t>();
-            item["referrer"] = user_cur["referrer"].As<string>();
+            // item["referrer"] = user_cur["referrer"].As<string>();
         } else {
             item["id"] = (int)g_pocketdb->SelectTotalCount("UsersView");
             item["regdate"] = item["time"].As<int64_t>();
@@ -1317,12 +1317,12 @@ bool AddrIndex::GetTXRIData(CTransactionRef& tx, std::string& data)
             return false;
         }
 
-        if (ri_table == "Users") {
-            reindexer::Item prevItm;
-            if (g_pocketdb->SelectOne(Query("Users").Where("address", CondEq, itm["address"].As<string>()).Where("time", CondLt, itm["time"].As<int64_t>()), prevItm).ok()) {
-                itm["referrer"] = "";
-            }
-        }
+        // if (ri_table == "Users") {
+        //     reindexer::Item prevItm;
+        //     if (g_pocketdb->SelectOne(Query("Users").Where("address", CondEq, itm["address"].As<string>()).Where("time", CondLt, itm["time"].As<int64_t>()), prevItm).ok()) {
+        //         itm["referrer"] = "";
+        //     }
+        // }
     }
 
     ret_data.pushKV("t", (mempool1 ? "Mempool" : ri_table));
@@ -1706,7 +1706,7 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std
     oitm.pushKV("contentType", getcontenttype(PocketTXType(tx)));
 
     std::string itm_hash;
-    g_pocketdb->GetHashItem(item, table, true, itm_hash);
+    g_pocketdb->GetHashItem(item, table, itm_hash);
     oitm.pushKV("data_hash", itm_hash);
 
     std::string asmStr;
@@ -1761,10 +1761,6 @@ UniValue AddrIndex::GetUniValue(const CTransactionRef& tx, Item& item, const std
         oitm.pushKV("referrer", item["referrer"].As<string>());
         oitm.pushKV("name", item["name"].As<string>());
         oitm.pushKV("userType", item["gender"].As<int>());
-
-        std::string itm_hash_ref;
-        g_pocketdb->GetHashItem(item, table, false, itm_hash_ref);
-        oitm.pushKV("data_hash_without_ref", itm_hash_ref);
 
         item["id"] = 0;
         item["block"] = 0;

@@ -98,7 +98,7 @@ public:
     Error UpdateBlockingView(std::string address, std::string address_to, int height);
 
     // Return hash by values for compare with OP_RETURN
-    bool GetHashItem(Item& item, std::string table, bool with_referrer, std::string& out_hash);
+    bool GetHashItem(Item& item, std::string table, std::string& out_hash);
 
     // Ratings
     // User

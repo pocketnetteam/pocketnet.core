@@ -672,15 +672,7 @@ void setAccount(const UniValue& payload, RTransaction& tx, AccountType accountTy
 
     tx.pTransaction["time"] = (int64_t)tx->nTime;
     tx.pTransaction["regdate"] = (int64_t)tx->nTime;
-    tx.pTransaction["referrer"] = "";
-
-    reindexer::Item user_cur;
-    if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("address", CondEq, tx.Address), user_cur).ok()) {
-        tx.pTransaction["regdate"] = user_cur["regdate"].As<int64_t>();
-    } else if (payload.exists("r")) {
-        tx.pTransaction["referrer"] = payload["r"].get_str();
-    }
-
+    if (payload.exists("r")) tx.pTransaction["referrer"] = payload["r"].get_str();
     if (payload.exists("a")) tx.pTransaction["about"] = payload["a"].get_str();
     if (payload.exists("s")) tx.pTransaction["url"] = payload["s"].get_str();
     if (payload.exists("b")) tx.pTransaction["donations"] = payload["b"].get_str();
@@ -938,7 +930,7 @@ UniValue generatepocketnettransaction(const JSONRPCRequest& request)
 
     // generate hash
     std::string payloadHash;
-    if (!g_pocketdb->GetHashItem(tmp_tx.pTransaction, tmp_tx.pTable, true, payloadHash))
+    if (!g_pocketdb->GetHashItem(tmp_tx.pTransaction, tmp_tx.pTable, payloadHash))
         throw JSONRPCError(RPC_TRANSACTION_ERROR, "Failed generate payload hash");
 
     // Build outputs

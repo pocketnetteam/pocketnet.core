@@ -649,10 +649,20 @@ Error PocketDB::UpdateUsersView(std::string address, int height)
     else
         err = SelectOne(Query("Users").Where("address", CondEq, address).Sort("time", true), _user_itm);
 
+    // For rollback
     if (err.code() == 13) return DeleteWithCommit(Query("UsersView").Where("address", CondEq, address));
-    if (err.ok()) {
-        Item _view_itm = db->NewItem("UsersView");
 
+    // In Users exists account - update view
+    if (err.ok()) {
+
+        // Save referrer from first transaction or from new first transaction
+        auto referrer = _user_itm["referrer"].As<string>();
+        reindexer::Item user_cur;
+        if (g_pocketdb->SelectOne(reindexer::Query("UsersView").Where("address", CondEq, address), user_cur).ok()) {
+            referrer = user_cur["referrer"].As<string>();
+        }
+
+        Item _view_itm = db->NewItem("UsersView");
         _view_itm["txid"] = _user_itm["txid"].As<string>();
         _view_itm["block"] = _user_itm["block"].As<int>();
         _view_itm["time"] = _user_itm["time"].As<int64_t>();
@@ -667,7 +677,7 @@ Error PocketDB::UpdateUsersView(std::string address, int height)
         _view_itm["url"] = _user_itm["url"].As<string>();
         _view_itm["pubkey"] = _user_itm["pubkey"].As<string>();
         _view_itm["donations"] = _user_itm["donations"].As<string>();
-        _view_itm["referrer"] = _user_itm["referrer"].As<string>();
+        _view_itm["referrer"] = referrer;
         _view_itm["id"] = _user_itm["id"].As<int>();
         _view_itm["reputation"] = GetUserReputation(address, height);
 
@@ -1107,7 +1117,7 @@ void PocketDB::SearchTags(std::string search, int count, std::map<std::string, i
     }
 }
 
-bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, std::string& out_hash)
+bool PocketDB::GetHashItem(Item& item, std::string table, std::string& out_hash)
 {
     std::string data = "";
     //------------------------
@@ -1170,7 +1180,7 @@ bool PocketDB::GetHashItem(Item& item, std::string table, bool with_referrer, st
         data += item["about"].As<string>();
         data += item["avatar"].As<string>();
         data += item["donations"].As<string>();
-        if (with_referrer) data += item["referrer"].As<string>();
+        data += item["referrer"].As<string>();
         data += item["pubkey"].As<string>();
     }
 

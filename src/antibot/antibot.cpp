@@ -2135,7 +2135,7 @@ void AntiBot::CheckTransactionRIItem(const UniValue& oitm, BlockVTX& blockVtx, b
 
         if (vasm[2] != oitm["data_hash"].get_str())
         {
-            if (table != "Users" || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str()))
+            if (table != "Users") // || (table == "Users" && vasm[2] != oitm["data_hash_without_ref"].get_str())
             {
                 resultCode = ANTIBOTRESULT::FailedOpReturn;
                 return;
