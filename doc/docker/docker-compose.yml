@@ -12,9 +12,6 @@ services:
       - 37071:37071
       - 38081:38081
       - 8087:8087
-    networks:
-      nginx_net:
-
 
   nginx:
     container_name: nginx
