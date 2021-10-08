@@ -1,9 +1,9 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
-#ifndef POCKETCOIN_POLICY_FEES_H
-#define POCKETCOIN_POLICY_FEES_H
+#ifndef BITCOIN_POLICY_FEES_H
+#define BITCOIN_POLICY_FEES_H
 
 #include <amount.h>
 #include <policy/feerate.h>
@@ -43,19 +43,7 @@ enum class FeeReason {
     PAYTXFEE,
     FALLBACK,
     REQUIRED,
-    MAXTXFEE,
 };
-
-std::string StringForFeeReason(FeeReason reason);
-
-/* Used to determine type of fee estimation requested */
-enum class FeeEstimateMode {
-    UNSET,        //! Use default settings based on other criteria
-    ECONOMICAL,   //! Force estimateSmartFee to use non-conservative estimates
-    CONSERVATIVE, //! Force estimateSmartFee to use conservative estimates
-};
-
-bool FeeModeFromString(const std::string& mode_string, FeeEstimateMode& fee_estimate_mode);
 
 /* Used to return detailed information about a feerate bucket */
 struct EstimatorBucket
@@ -150,9 +138,9 @@ private:
 
     /** Decay of .962 is a half-life of 18 blocks or about 3 hours */
     static constexpr double SHORT_DECAY = .962;
-    /** Decay of .998 is a half-life of 144 blocks or about 1 day */
+    /** Decay of .9952 is a half-life of 144 blocks or about 1 day */
     static constexpr double MED_DECAY = .9952;
-    /** Decay of .9995 is a half-life of 1008 blocks or about 1 week */
+    /** Decay of .99931 is a half-life of 1008 blocks or about 1 week */
     static constexpr double LONG_DECAY = .99931;
 
     /** Require greater than 60% of X feerate transactions to be confirmed within Y/2 blocks*/
@@ -228,10 +216,12 @@ public:
     unsigned int HighestTargetTracked(FeeEstimateHorizon horizon) const;
 
 private:
-    unsigned int nBestSeenHeight;
-    unsigned int firstRecordedHeight;
-    unsigned int historicalFirst;
-    unsigned int historicalBest;
+    mutable RecursiveMutex m_cs_fee_estimator;
+
+    unsigned int nBestSeenHeight GUARDED_BY(m_cs_fee_estimator);
+    unsigned int firstRecordedHeight GUARDED_BY(m_cs_fee_estimator);
+    unsigned int historicalFirst GUARDED_BY(m_cs_fee_estimator);
+    unsigned int historicalBest GUARDED_BY(m_cs_fee_estimator);
 
     struct TxStatsInfo
     {
@@ -241,34 +231,32 @@ private:
     };
 
     // map of txids to information about that transaction
-    std::map<uint256, TxStatsInfo> mapMemPoolTxs;
+    std::map<uint256, TxStatsInfo> mapMemPoolTxs GUARDED_BY(m_cs_fee_estimator);
 
     /** Classes to track historical data on transaction confirmations */
-    std::unique_ptr<TxConfirmStats> feeStats;
-    std::unique_ptr<TxConfirmStats> shortStats;
-    std::unique_ptr<TxConfirmStats> longStats;
+    std::unique_ptr<TxConfirmStats> feeStats PT_GUARDED_BY(m_cs_fee_estimator);
+    std::unique_ptr<TxConfirmStats> shortStats PT_GUARDED_BY(m_cs_fee_estimator);
+    std::unique_ptr<TxConfirmStats> longStats PT_GUARDED_BY(m_cs_fee_estimator);
 
-    unsigned int trackedTxs;
-    unsigned int untrackedTxs;
+    unsigned int trackedTxs GUARDED_BY(m_cs_fee_estimator);
+    unsigned int untrackedTxs GUARDED_BY(m_cs_fee_estimator);
 
-    std::vector<double> buckets;              // The upper-bound of the range for the bucket (inclusive)
-    std::map<double, unsigned int> bucketMap; // Map of bucket upper-bound to index into all vectors by bucket
-
-    mutable CCriticalSection cs_feeEstimator;
+    std::vector<double> buckets GUARDED_BY(m_cs_fee_estimator); // The upper-bound of the range for the bucket (inclusive)
+    std::map<double, unsigned int> bucketMap GUARDED_BY(m_cs_fee_estimator); // Map of bucket upper-bound to index into all vectors by bucket
 
     /** Process a transaction confirmed in a block*/
-    bool processBlockTx(unsigned int nBlockHeight, const CTxMemPoolEntry* entry);
+    bool processBlockTx(unsigned int nBlockHeight, const CTxMemPoolEntry* entry) EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
 
     /** Helper for estimateSmartFee */
-    double estimateCombinedFee(unsigned int confTarget, double successThreshold, bool checkShorterHorizon, EstimationResult *result) const;
+    double estimateCombinedFee(unsigned int confTarget, double successThreshold, bool checkShorterHorizon, EstimationResult *result) const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
     /** Helper for estimateSmartFee */
-    double estimateConservativeFee(unsigned int doubleTarget, EstimationResult *result) const;
+    double estimateConservativeFee(unsigned int doubleTarget, EstimationResult *result) const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
     /** Number of blocks of data recorded while fee estimates have been running */
-    unsigned int BlockSpan() const;
+    unsigned int BlockSpan() const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
     /** Number of blocks of recorded fee estimate data represented in saved data file */
-    unsigned int HistoricalBlockSpan() const;
+    unsigned int HistoricalBlockSpan() const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
     /** Calculation of highest target that reasonable estimate can be provided for */
-    unsigned int MaxUsableEstimate() const;
+    unsigned int MaxUsableEstimate() const EXCLUSIVE_LOCKS_REQUIRED(m_cs_fee_estimator);
 };
 
 class FeeFilterRounder
@@ -285,7 +273,7 @@ public:
     /** Create new FeeFilterRounder */
     explicit FeeFilterRounder(const CFeeRate& minIncrementalFee);
 
-    /** Quantize a minimum fee for privacy purpose before broadcast **/
+    /** Quantize a minimum fee for privacy purpose before broadcast. Not thread-safe due to use of FastRandomContext */
     CAmount round(CAmount currentMinFee);
 
 private:
@@ -293,4 +281,4 @@ private:
     FastRandomContext insecure_rand;
 };
 
-#endif // POCKETCOIN_POLICY_FEES_H
+#endif // BITCOIN_POLICY_FEES_H
