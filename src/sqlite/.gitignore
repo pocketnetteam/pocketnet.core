@@ -1,0 +1,8 @@
+src/sqlite/compile
+src/sqlite/config.guess
+src/sqlite/config.sub
+src/sqlite/depcomp
+src/sqlite/install-sh
+src/sqlite/ltmain.sh
+src/sqlite/missing
+src/sqlite/sqlite3.pc
