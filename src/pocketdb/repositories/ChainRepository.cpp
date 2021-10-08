@@ -10,6 +10,7 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
+            // Each transaction is processed individually
             for (const auto& txInfo : txs)
             {
                 // All transactions must have a blockHash & height relation
@@ -37,6 +38,40 @@ namespace PocketDb
                         IndexSubscribe(txInfo.Hash);
                 }
             }
+
+            // After set height and mark inputs as spent we need recalculcate balances
+            IndexBalances(height);
+
+            // TODO (brangr): FOR DEBUG balances
+            // Generate new balance records
+            auto stmt = SetupSqlStatement(R"sql(
+                select
+                    b.AddressHash,
+                    b.Value,
+                    (select sum(o.Value) from TxOutputs o where o.AddressHash = b.AddressHash and SpentHeight is null)outsBal
+                from Balances b
+                where b.Height = ?
+                group by b.AddressHash
+            )sql");
+            TryBindStatementInt(stmt, 1, height);
+
+            bool check = true;
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[ok0, address] = TryGetColumnString(*stmt, 0);
+                auto[ok1, balance] = TryGetColumnInt64(*stmt, 1);
+                auto[ok2, balanceOuts] = TryGetColumnInt64(*stmt, 2);
+                if (balance != balanceOuts)
+                {
+                    check = false;
+                    LogPrintf("--- Inconsistence balance for %s %d != %d\n", address, balance, balanceOuts);
+                }
+            }
+
+            if (!check)
+                StartShutdown();
+
+            FinalizeSqlStatement(*stmt);
         });
     }
 
@@ -46,10 +81,10 @@ namespace PocketDb
 
         LogPrintf("Deleting database indexes..\n");
         m_database.DropIndexes();
-        
+
         LogPrintf("Rollback to first block..\n");
         RollbackHeight(0);
-        
+
         m_database.CreateStructure();
 
         return true;
@@ -121,48 +156,37 @@ namespace PocketDb
 
     void ChainRepository::IndexBalances(int height)
     {
-        TryTransactionStep(__func__, [&]()
-        {
-            int64_t nTime1 = GetTimeMicros();
+        // Generate new balance records
+        auto stmt = SetupSqlStatement(R"sql(
+            insert into Balances (AddressHash, Last, Height, Value)
+            select o.AddressHash,
+                   1,
+                   o.TxHeight,
+                   sum(o.Value)
+                        - ifnull((select sum(i.Value) from TxOutputs i indexed by TxOutputs_AddressHash_SpentHeight_TxHeight where i.AddressHash = o.AddressHash and i.SpentHeight = o.TxHeight), 0)
+                        + ifnull((select b.Value from Balances b indexed by Balances_AddressHash_Last where b.AddressHash = o.AddressHash and b.Last = 1), 0)
+            from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
+            where o.TxHeight = ?
+            group by o.AddressHash
+        )sql");
+        TryBindStatementInt(stmt, 1, height);
+        TryStepStatement(stmt);
 
-            // Generate new balance records
-            auto stmt = SetupSqlStatement(R"sql(
-                insert into Balances (AddressHash, Last, Height, Value)
-                select o.AddressHash,
-                       1,
-                       o.TxHeight,
-                       sum(o.Value)
-                            - ifnull((select sum(i.Value) from TxOutputs i indexed by TxOutputs_AddressHash_SpentHeight_TxHeight where i.AddressHash = o.AddressHash and i.SpentHeight = o.TxHeight), 0)
-                            + ifnull((select b.Value from Balances b indexed by Balances_AddressHash_Last where b.AddressHash = o.AddressHash and b.Last = 1), 0)
-                from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
-                where o.TxHeight = ?
-                group by o.AddressHash
-            )sql");
-            TryBindStatementInt(stmt, 1, height);
-            TryStepStatement(stmt);
-
-            int64_t nTime2 = GetTimeMicros();
-            LogPrint(BCLog::BENCH, "      - IndexBalances (Insert): %.2fms _ %d\n", 0.001 * (nTime2 - nTime1), height);
-
-            // Remove old Last records
-            auto stmtOld = SetupSqlStatement(R"sql(
-                update Balances indexed by Balances_AddressHash_Height_Last
-                  set Last = 0
-                where Balances.Last = 1
-                  and Balances.Height < ?
-                  and Balances.AddressHash in (
-                    select b.AddressHash
-                    from Balances b indexed by Balances_Height
-                    where b.Height = ?
-                  )
-            )sql");
-            TryBindStatementInt(stmtOld, 1, height);
-            TryBindStatementInt(stmtOld, 2, height);
-            TryStepStatement(stmtOld);
-
-            int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexBalances (Update): %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
-        });
+        // Remove old Last records
+        auto stmtOld = SetupSqlStatement(R"sql(
+            update Balances indexed by Balances_AddressHash_Height_Last
+              set Last = 0
+            where Balances.Last = 1
+              and Balances.Height < ?
+              and Balances.AddressHash in (
+                select b.AddressHash
+                from Balances b indexed by Balances_Height
+                where b.Height = ?
+              )
+        )sql");
+        TryBindStatementInt(stmtOld, 1, height);
+        TryBindStatementInt(stmtOld, 2, height);
+        TryStepStatement(stmtOld);
     }
 
     void ChainRepository::IndexAccount(const string& txHash)
@@ -405,7 +429,7 @@ namespace PocketDb
         TryBindStatementInt(stmt2, 1, height);
         TryBindStatementInt(stmt2, 2, height);
         TryStepStatement(stmt2);
-        
+
         // Restore Last for deleting balances
         auto stmt3 = SetupSqlStatement(R"sql(
             update Balances set Last=1
