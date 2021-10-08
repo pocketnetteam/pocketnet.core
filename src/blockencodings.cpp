@@ -17,7 +17,7 @@
 
 CBlockHeaderAndShortTxIDs::CBlockHeaderAndShortTxIDs(const CBlock& block, bool fUseWTXID) :
         nonce(GetRand(std::numeric_limits<uint64_t>::max())),
-        shorttxids(block.vtx.size() - 1), prefilledtxn(1), header(block) {
+        shorttxids(block.vtx.size() - 1), prefilledtxn(1), header(block), vchBlockSig(block.vchBlockSig) {
     FillShortTxIDSelector();
     //TODO: Use our mempool prior to block acceptance to predictively fill more than just the coinbase
     prefilledtxn[0] = {0, block.vtx[0]};
@@ -53,6 +53,7 @@ ReadStatus PartiallyDownloadedBlock::InitData(const CBlockHeaderAndShortTxIDs& c
 
     assert(header.IsNull() && txn_available.empty());
     header = cmpctblock.header;
+    vchBlockSig = cmpctblock.vchBlockSig;
     txn_available.resize(cmpctblock.BlockTxCount());
 
     int32_t lastprefilledindex = -1;
@@ -177,13 +178,15 @@ ReadStatus PartiallyDownloadedBlock::FillBlock(CBlock& block, const std::vector<
     assert(!header.IsNull());
     uint256 hash = header.GetHash();
     block = header;
+    block.vchBlockSig = vchBlockSig;
     block.vtx.resize(txn_available.size());
 
     size_t tx_missing_offset = 0;
     for (size_t i = 0; i < txn_available.size(); i++) {
         if (!txn_available[i]) {
-            if (vtx_missing.size() <= tx_missing_offset)
+            if (vtx_missing.size() <= tx_missing_offset) {
                 return READ_STATUS_INVALID;
+            }
             block.vtx[i] = vtx_missing[tx_missing_offset++];
         } else
             block.vtx[i] = std::move(txn_available[i]);

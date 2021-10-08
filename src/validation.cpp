@@ -3786,7 +3786,6 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
 bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckSig)
 {
     // These are checks that are independent of context.
-
     if (block.fChecked)
         return true;
 
@@ -3976,7 +3975,7 @@ bool CheckBlockSignature(const CBlock& block)
     }
 
     if (block.vchBlockSig.empty()) {
-        //LogPrintf("CheckBlockSignature: Bad Block - vchBlockSig empty\n");
+        LogPrintf("CheckBlockSignature: Bad Block - vchBlockSig empty\n");
         return false;
     }
 

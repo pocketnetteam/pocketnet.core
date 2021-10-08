@@ -144,6 +144,7 @@ protected:
 
 public:
     CBlockHeader header;
+    std::vector<unsigned char> vchBlockSig;
 
     // Dummy for deserialization
     CBlockHeaderAndShortTxIDs() {}
@@ -160,7 +161,6 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(header);
         READWRITE(nonce);
-
         uint64_t shorttxids_size = (uint64_t)shorttxids.size();
         READWRITE(COMPACTSIZE(shorttxids_size));
         if (ser_action.ForRead()) {
@@ -172,6 +172,7 @@ public:
                     READWRITE(lsb);
                     READWRITE(msb);
                     shorttxids[i] = (uint64_t(msb) << 32) | uint64_t(lsb);
+
                     static_assert(SHORTTXIDS_LENGTH == 6, "shorttxids serialization assumes 6-byte shorttxids");
                 }
             }
@@ -183,11 +184,12 @@ public:
                 READWRITE(msb);
             }
         }
-
         READWRITE(prefilledtxn);
 
         if (ser_action.ForRead())
             FillShortTxIDSelector();
+
+        READWRITE(vchBlockSig);
     }
 };
 
@@ -198,6 +200,7 @@ protected:
     CTxMemPool* pool;
 public:
     CBlockHeader header;
+    std::vector<unsigned char> vchBlockSig;
     explicit PartiallyDownloadedBlock(CTxMemPool* poolIn) : pool(poolIn) {}
 
     // extra_txn is a list of extra transactions to look at, in <witness hash, reference> form

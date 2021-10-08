@@ -184,7 +184,6 @@ public:
 
             winners = true;
         }
-
         return (nValue == 0 && (scriptPubKey.empty() || winners));
     }
 

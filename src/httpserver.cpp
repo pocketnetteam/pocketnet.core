@@ -399,6 +399,25 @@ static void libevent_log_cb(int severity, const char *msg)
         LogPrint(BCLog::LIBEVENT, "libevent: %s\n", msg);
 }
 
+using namespace std::chrono;
+
+static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const UniValue& id)
+{
+    // Send error reply from json-rpc error object
+    int nStatus = HTTP_INTERNAL_SERVER_ERROR;
+    int code = find_value(objError, "code").get_int();
+
+    if (code == RPC_INVALID_REQUEST)
+        nStatus = HTTP_BAD_REQUEST;
+    else if (code == RPC_METHOD_NOT_FOUND)
+        nStatus = HTTP_NOT_FOUND;
+
+    std::string strReply = JSONRPCReply(NullUniValue, objError, id);
+
+    req->WriteHeader("Content-Type", "application/json");
+    req->WriteReply(nStatus, strReply);
+}
+
 bool InitHTTPServer()
 {
     if (!InitHTTPAllowList())
