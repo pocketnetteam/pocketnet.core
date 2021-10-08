@@ -125,7 +125,7 @@ IdSet::Ptr FastIndexText<T>::Select(FtCtx::Ptr fctx, FtDSLQuery &dsl) {
 
 		if (!vdocs[id].keyEntry)
 			continue;
-		if (!GetEntry(vdocs[id].keyEntry)->Unsorted().empty())
+		if (GetEntry(vdocs[id].keyEntry)->Unsorted().empty())
             continue;
             
 		if (vid.proc <= minRelevancy) break;
