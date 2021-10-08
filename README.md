@@ -128,7 +128,7 @@ You can get help and useful information from different sources:
 - Contact section below
 
 # License
-Pocketnet Core is released under the terms of the Apache 2.0 license. See [COPYING](COPYING) for more
+Pocketnet Core is released under the terms of the Apache 2.0 license. See [LICENSE](LICENSE) for more
 information or see https://opensource.org/licenses/Apache-2.0.
 
 # Contacts
