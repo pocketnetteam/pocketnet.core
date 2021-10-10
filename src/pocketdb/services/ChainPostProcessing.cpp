@@ -18,15 +18,10 @@ namespace PocketServices
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
 
-        IndexBalances(height);
-
-        int64_t nTime3 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexBalances: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
-
         IndexRatings(height, block);
 
-        int64_t nTime4 = GetTimeMicros();
-        LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime4 - nTime3), height);
+        int64_t nTime3 = GetTimeMicros();
+        LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
     }
 
     bool ChainPostProcessing::Rollback(int height)
@@ -63,11 +58,6 @@ namespace PocketServices
     void ChainPostProcessing::IndexChain(const string& blockHash, int height, vector <TransactionIndexingInfo>& txs)
     {
         PocketDb::ChainRepoInst.IndexBlock(blockHash, height, txs);
-    }
-
-    void ChainPostProcessing::IndexBalances(int height)
-    {
-        PocketDb::ChainRepoInst.IndexBalances(height);
     }
 
     void ChainPostProcessing::IndexRatings(int height, const CBlock& block)
