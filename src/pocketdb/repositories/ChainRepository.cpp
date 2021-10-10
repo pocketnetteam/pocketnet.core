@@ -8,6 +8,8 @@ namespace PocketDb
 {
     void ChainRepository::IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
+        bool check = true;
+
         TryTransactionStep(__func__, [&]()
         {
             // Each transaction is processed individually
@@ -39,6 +41,11 @@ namespace PocketDb
                 }
             }
 
+
+        });
+
+        TryTransactionStep(__func__, [&]()
+        {
             // After set height and mark inputs as spent we need recalculcate balances
             IndexBalances(height);
 
@@ -48,14 +55,13 @@ namespace PocketDb
                 select
                     b.AddressHash,
                     b.Value,
-                    (select sum(o.Value) from TxOutputs o where o.AddressHash = b.AddressHash and SpentHeight is null)outsBal
+                    (select sum(o.Value) from TxOutputs o where o.TxHeight is not null and o.AddressHash = b.AddressHash and SpentHeight is null)outsBal
                 from Balances b
                 where b.Height = ?
                 group by b.AddressHash
             )sql");
             TryBindStatementInt(stmt, 1, height);
 
-            bool check = true;
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto[ok0, address] = TryGetColumnString(*stmt, 0);
@@ -64,14 +70,14 @@ namespace PocketDb
                 if (balance != balanceOuts)
                 {
                     check = false;
-                    LogPrintf("--- Inconsistence balance for %s %d != %d\n", address, balance, balanceOuts);
+                    LogPrintf("--- Inconsistence balance for %s %d != %d at height %d\n", address, balance, balanceOuts, height);
                 }
             }
 
+            FinalizeSqlStatement(*stmt);
+
             if (!check)
                 StartShutdown();
-
-            FinalizeSqlStatement(*stmt);
         });
     }
 
@@ -159,17 +165,33 @@ namespace PocketDb
         // Generate new balance records
         auto stmt = SetupSqlStatement(R"sql(
             insert into Balances (AddressHash, Last, Height, Value)
-            select o.AddressHash,
-                   1,
-                   o.TxHeight,
-                   sum(o.Value)
-                        - ifnull((select sum(i.Value) from TxOutputs i indexed by TxOutputs_AddressHash_SpentHeight_TxHeight where i.AddressHash = o.AddressHash and i.SpentHeight = o.TxHeight), 0)
-                        + ifnull((select b.Value from Balances b indexed by Balances_AddressHash_Last where b.AddressHash = o.AddressHash and b.Last = 1), 0)
-            from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
-            where o.TxHeight = ?
-            group by o.AddressHash
+            select
+                saldo.AddressHash,
+                1,
+                ?,
+                sum(saldo.Value) + b.Value
+            from (
+
+                select o.AddressHash,
+                       o.Value
+                from TxOutputs o indexed by TxOutputs_TxHeight
+                where o.TxHeight = ?
+
+                union
+
+                select o.AddressHash,
+                       -o.Value
+                from TxOutputs o indexed by TxOutputs_SpentHeight
+                where o.SpentHeight = ?
+
+            ) saldo
+            join Balances b indexed by Balances_AddressHash_Last
+                on b.AddressHash = saldo.AddressHash and b.Last = 1
+            group by saldo.AddressHash
         )sql");
         TryBindStatementInt(stmt, 1, height);
+        TryBindStatementInt(stmt, 2, height);
+        TryBindStatementInt(stmt, 3, height);
         TryStepStatement(stmt);
 
         // Remove old Last records
