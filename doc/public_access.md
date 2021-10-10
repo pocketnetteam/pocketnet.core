@@ -17,7 +17,9 @@
     - 37071 - to manage node
     - 38081 - to accept HTTP POST requests along the path *.*.*.*:38081/public
     - 8087  - for the ability to establish a WebSocket connection to a node to support notifications
-    Opening ports may require additional work in the settings of the router, operating system, or hosting control panels.
+
+    > Opening ports may require additional work in the settings of the router, operating system, or hosting control panels.
+    
     > Search query: "How to open a port windows" or "How to open a port linux" or "How to open a port <your_router_model>"
 
 3.  If your host is hidden from the Internet by a router or router you may also need to forward the ports
