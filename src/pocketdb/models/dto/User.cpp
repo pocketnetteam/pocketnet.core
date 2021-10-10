@@ -91,7 +91,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "donations"); ok) m_payload->SetString7(val);
     }
 
-    void User::BuildHash()
+    string User::BuildHash()
     {
         std::string data;
 
@@ -104,7 +104,7 @@ namespace PocketTx
         data += GetReferrerAddress() ? *GetReferrerAddress() : "";
         data += m_payload->GetString6() ? *m_payload->GetString6() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 
 } // namespace PocketTx

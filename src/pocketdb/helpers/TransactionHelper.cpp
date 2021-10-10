@@ -150,6 +150,16 @@ namespace PocketHelpers
         }
     }
 
+    string TransactionHelper::ExtractOpReturnHash(const CTransactionRef& tx)
+    {
+        vector<string> vasm;
+        ParseAsmType(tx, vasm);
+        if (vasm.size() < 3)
+            return "";
+
+        return vasm[2];
+    }
+
     bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx, TxType& txType)
     {
         txType = ParseType(tx);

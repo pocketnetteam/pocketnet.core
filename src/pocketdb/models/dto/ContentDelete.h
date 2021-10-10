@@ -26,9 +26,10 @@ namespace PocketTx
         shared_ptr<string> GetRootTxHash() const;
         void SetRootTxHash(string value);
 
+        string BuildHash() override;
+
     protected:
         void DeserializePayload(const UniValue& src, const CTransactionRef& tx) override;
-        void BuildHash() override;
     }; // class ContentDelete
 
 } // namespace PocketTx

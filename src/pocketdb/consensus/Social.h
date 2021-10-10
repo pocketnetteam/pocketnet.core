@@ -97,20 +97,15 @@ namespace PocketConsensus
         // Generic check consistence Transaction and Payload
         virtual ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const shared_ptr<T>& ptx)
         {
-            // TODO (brangr): implement check opreturn hash
-            // if (IsEmpty(tx->GetOpReturnPayload()))
-            //     return {false, SocialConsensusResult_PayloadORNotFound};
-            //
-            // if (IsEmpty(tx->GetOpReturnTx()))
-            //     return {false, SocialConsensusResult_TxORNotFound};
-            //
-            // if (*tx->GetOpReturnTx() != *tx->GetOpReturnPayload())
-            // {
-            //     // TODO (brangr): DEBUG!!
-            //    PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
-            //    if (!opReturnCheckpoints.IsCheckpoint(*tx->GetHash(), *tx->GetOpReturnPayload()))
-            //        return {false, SocialConsensusResult_FailedOpReturn};
-            // }
+            auto ptxORHash = ptx->BuildHash();
+            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
+
+            if (ptxORHash != txORHash)
+            {
+               PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
+               if (!opReturnCheckpoints.IsCheckpoint(*ptx->GetHash(), ptxORHash))
+                   return {false, SocialConsensusResult_FailedOpReturn};
+            }
 
             return Success;
         }

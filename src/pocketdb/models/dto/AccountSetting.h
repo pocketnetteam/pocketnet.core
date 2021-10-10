@@ -25,9 +25,10 @@ namespace PocketTx
 
         shared_ptr <string> GetPayloadData() const;
 
+        string BuildHash() override;
+
     protected:
         void DeserializePayload(const UniValue& src, const CTransactionRef& tx) override;
-        void BuildHash() override;
     }; // class AccountSetting
 
 } // namespace PocketTx

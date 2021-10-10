@@ -7,26 +7,13 @@
 
 namespace PocketTx
 {
-    Coinbase::Coinbase() : Transaction()
+    Coinbase::Coinbase() : Default()
     {
         SetType(TxType::TX_COINBASE);
     }
 
-    Coinbase::Coinbase(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
+    Coinbase::Coinbase(const std::shared_ptr<const CTransaction>& tx) : Default(tx)
     {
         SetType(TxType::TX_COINBASE);
-    }
-
-    void Coinbase::Deserialize(const UniValue& src)
-    {
-
-    }
-
-    void Coinbase::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
-    {
-
-    }
-    void Coinbase::BuildHash()
-    {
     }
 } // namespace PocketTx

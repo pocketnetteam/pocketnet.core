@@ -54,13 +54,13 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "d"); ok) m_payload->SetString1(val);
     }
 
-    void AccountSetting::BuildHash()
+    string AccountSetting::BuildHash()
     {
         std::string data;
 
         data += m_payload->GetString1() ? *m_payload->GetString1() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 
 } // namespace PocketTx

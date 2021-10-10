@@ -5,21 +5,16 @@
 #ifndef POCKETTX_COINBASE_H
 #define POCKETTX_COINBASE_H
 
-#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/dto/Default.h"
 
 namespace PocketTx
 {
 
-    class Coinbase : public Transaction
+    class Coinbase : public Default
     {
     public:
         Coinbase();
         Coinbase(const std::shared_ptr<const CTransaction>& tx);
-
-        void Deserialize(const UniValue& src) override;
-    protected:
-        void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
-        void BuildHash() override;
     };
 
 } // namespace PocketTx

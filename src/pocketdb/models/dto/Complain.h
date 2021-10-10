@@ -30,9 +30,10 @@ namespace PocketTx
         shared_ptr <int64_t> GetReason() const;
         void SetReason(int64_t value);
 
+        string BuildHash() override;
+
     protected:
         void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
-        void BuildHash() override;
     };
 
 } // namespace PocketTx

@@ -896,6 +896,53 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
     return true;
 }
 
+static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    auto[rf, uriParts] = ParseParams(strURIPart);
+    int start = 0;
+    int height = 1;
+
+    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
+        start = result;
+
+    if (auto[ok, result] = TryGetParamInt(uriParts, 1); ok)
+        height = result;
+
+    int current = start;
+    while (current <= height)
+    {
+        CBlockIndex* pblockindex = chainActive[current];
+        if (!pblockindex)
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
+
+        CBlock block;
+        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
+
+        std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
+        if (!PocketServices::Accessor::GetBlock(block, pocketBlock) || !pocketBlock)
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
+
+        if (PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock))
+        {
+            LogPrintf("SocialConsensusHelper::Check at height %d - SUCCESS\n", current);
+            current += 1;
+        }
+        else
+        {
+            LogPrintf("SocialConsensusHelper::Check at height %d - FAILED\n", current);
+            return false;
+        }
+    }
+
+    req->WriteHeader("Content-Type", "text/plain");
+    req->WriteReply(HTTP_OK, "Success\n");
+    return true;
+}
+
 static bool get_static_web(HTTPRequest* req, const std::string& strURIPart)
 {
     if (!CheckWarmup(req))
@@ -943,7 +990,9 @@ static const struct
     {"/rest/blockhash",          rest_blockhash},
 
     // Debug
-    {"/rest/pindexblock",        debug_index_block},
+    {"/rest/debugindex",        debug_index_block},
+    {"/rest/debugcheck",        debug_check_block},
+
 };
 
 void StartREST()

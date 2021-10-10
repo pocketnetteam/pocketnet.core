@@ -55,6 +55,7 @@ namespace PocketHelpers
         static TxType ParseType(const CTransactionRef& tx, vector<string>& vasm);
         static TxType ParseType(const CTransactionRef& tx);
         static string ConvertToReindexerTable(const Transaction& transaction);
+        static string ExtractOpReturnHash(const CTransactionRef& tx);
         static bool IsPocketSupportedTransaction(const CTransactionRef& tx, TxType& txType);
         static bool IsPocketSupportedTransaction(const CTransactionRef& tx);
         static bool IsPocketSupportedTransaction(const CTransaction& tx);

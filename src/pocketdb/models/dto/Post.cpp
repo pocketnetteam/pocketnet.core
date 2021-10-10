@@ -134,7 +134,7 @@ namespace PocketTx
     shared_ptr<string> Post::GetPayloadImages() const { return GetPayload() ? GetPayload()->GetString5() : nullptr; }
     shared_ptr<string> Post::GetPayloadSettings() const { return GetPayload() ? GetPayload()->GetString6() : nullptr; }
 
-    void Post::BuildHash()
+    string Post::BuildHash()
     {
         std::string data;
 
@@ -169,6 +169,6 @@ namespace PocketTx
 
         data += GetRelayTxHash() ? *GetRelayTxHash() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 } // namespace PocketTx

@@ -28,7 +28,7 @@ namespace PocketTx
 
     }
 
-    void CommentDelete::BuildHash()
+    string CommentDelete::BuildHash()
     {
         std::string data;
 
@@ -37,6 +37,6 @@ namespace PocketTx
         data += GetParentTxHash() ? *GetParentTxHash() : "";
         data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 } // namespace PocketTx

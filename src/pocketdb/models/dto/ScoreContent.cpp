@@ -56,11 +56,13 @@ namespace PocketTx
     {
     }
 
-    void ScoreContent::BuildHash()
+    string ScoreContent::BuildHash()
     {
         std::string data;
+
         data += GetContentTxHash() ? *GetContentTxHash() : "";
         data += GetValue() ? std::to_string(*GetValue()) : "";
-        Transaction::GenerateHash(data);
+
+        return Transaction::GenerateHash(data);
     }
 } // namespace PocketTx

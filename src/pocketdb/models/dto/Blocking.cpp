@@ -52,11 +52,11 @@ namespace PocketTx
     {
     }
 
-    void Blocking::BuildHash()
+    string Blocking::BuildHash()
     {
         string data;
         data += GetAddressTo() ? *GetAddressTo() : "";
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 
 

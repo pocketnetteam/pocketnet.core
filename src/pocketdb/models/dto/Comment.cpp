@@ -90,7 +90,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "msg"); ok) SetPayloadMsg(val);
     }
 
-    void Comment::BuildHash()
+    string Comment::BuildHash()
     {
         std::string data;
 
@@ -99,7 +99,7 @@ namespace PocketTx
         data += GetParentTxHash() ? *GetParentTxHash() : "";
         data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 
 } // namespace PocketTx

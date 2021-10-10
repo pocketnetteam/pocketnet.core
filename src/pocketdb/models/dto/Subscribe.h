@@ -28,9 +28,10 @@ namespace PocketTx
         shared_ptr <string> GetAddressTo() const;
         void SetAddressTo(string value);
 
+        string BuildHash() override;
+
     protected:
         void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
-        void BuildHash() override;
     };
 
 } // namespace PocketTx

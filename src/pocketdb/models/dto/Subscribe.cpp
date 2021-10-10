@@ -52,10 +52,12 @@ namespace PocketTx
     {
     }
 
-    void Subscribe::BuildHash()
+    string Subscribe::BuildHash()
     {
         std::string data;
+
         data += GetAddressTo() ? *GetAddressTo() : "";
-        Transaction::GenerateHash(data);
+
+        return Transaction::GenerateHash(data);
     }
 } // namespace PocketTx

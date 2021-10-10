@@ -56,12 +56,14 @@ namespace PocketTx
     {
     }
 
-    void Complain::BuildHash()
+    string Complain::BuildHash()
     {
         string data;
+
         data += GetPostTxHash() ? *GetPostTxHash() : "";
         data += "_";
         data += GetReason() ? std::to_string(*GetReason()) : "";
-        Transaction::GenerateHash(data);
+
+        return Transaction::GenerateHash(data);
     }
 } // namespace PocketTx

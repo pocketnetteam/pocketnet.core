@@ -31,7 +31,7 @@ namespace PocketTx
         virtual void DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx);
         virtual void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx);
 
-        virtual void BuildHash() = 0;
+        virtual string BuildHash() = 0;
 
         shared_ptr<string> GetHash() const;
         void SetHash(string value);

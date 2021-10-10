@@ -61,14 +61,14 @@ namespace PocketTx
         }
     }
 
-    void ContentDelete::BuildHash()
+    string ContentDelete::BuildHash()
     {
         std::string data;
 
         data += *GetRootTxHash();
         data += m_payload->GetString1() ? *m_payload->GetString1() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 
 } // namespace PocketTx

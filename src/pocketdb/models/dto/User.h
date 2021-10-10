@@ -12,7 +12,6 @@ namespace PocketTx
     class User : public PocketTx::Transaction
     {
     public:
-
         User();
         User(const std::shared_ptr<const CTransaction>& tx);
 
@@ -36,9 +35,10 @@ namespace PocketTx
         shared_ptr <string> GetPayloadDonations() const;
         shared_ptr <string> GetPayloadPubkey() const;
 
+        string BuildHash() override;
+
     protected:
         void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
-        void BuildHash() override;
     }; // class User
 
 } // namespace PocketTx

@@ -7,28 +7,14 @@
 
 namespace PocketTx
 {
-    Coinstake::Coinstake() : Transaction()
+    Coinstake::Coinstake() : Default()
     {
         SetType(TxType::TX_COINSTAKE);
     }
 
-    Coinstake::Coinstake(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
+    Coinstake::Coinstake(const std::shared_ptr<const CTransaction>& tx) : Default(tx)
     {
         SetType(TxType::TX_COINSTAKE);
-    }
-
-    void Coinstake::Deserialize(const UniValue& src)
-    {
-
-    }
-
-    void Coinstake::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
-    {
-
-    }
-    void Coinstake::BuildHash()
-    {
-
     }
 
 } // namespace PocketTx
