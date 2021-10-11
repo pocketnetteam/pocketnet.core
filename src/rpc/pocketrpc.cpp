@@ -4,6 +4,9 @@
 
 #include <pos.h>
 #include <validation.h>
+#include "wallet/rpcwallet.h"
+#include "wallet/wallet.h"
+#include "wallet/coincontrol.h"
 
 static std::map<std::string, std::vector<std::string>> pocketnetDevelopers{
     {CBaseChainParams::MAIN, {
@@ -767,6 +770,8 @@ UniValue sendrawtransactionwithmessage(const JSONRPCRequest& request)
     return PostPocketTransaction(tx);
 }
 
+//----------------------------------------------------------
+
 CMutableTransaction ConstructPocketnetTransaction(const UniValue& inputs_in, const CTxOut& dataOut, const UniValue& outputs_in, const UniValue& locktime, const UniValue& rbf)
 {
     if (inputs_in.isNull() || outputs_in.isNull())
@@ -870,11 +875,54 @@ CMutableTransaction ConstructPocketnetTransaction(const UniValue& inputs_in, con
     return rawTx;
 }
 
+CTransactionRef SendMoney(CWallet * const pwallet, const CTxDestination &address, CAmount nValue, bool fSubtractFeeFromAmount, const CCoinControl& coin_control, mapValue_t mapValue)
+{
+    CAmount curBalance = pwallet->GetBalance();
+
+    // Check amount
+    if (nValue <= 0)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid amount");
+
+    if (nValue > curBalance)
+        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
+
+    if (pwallet->GetBroadcastTransactions() && !g_connman) {
+        throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
+    }
+
+    // Parse Pocketcoin address
+    CScript scriptPubKey = GetScriptForDestination(address);
+
+    // Create and send the transaction
+    CReserveKey reservekey(pwallet);
+    CAmount nFeeRequired;
+    std::string strError;
+    std::vector<CRecipient> vecSend;
+    int nChangePosRet = -1;
+    CRecipient recipient = {scriptPubKey, nValue, fSubtractFeeFromAmount};
+    vecSend.push_back(recipient);
+    CTransactionRef tx;
+    if (!pwallet->CreateTransaction(vecSend, tx, reservekey, nFeeRequired, nChangePosRet, strError, coin_control)) {
+        if (!fSubtractFeeFromAmount && nValue + nFeeRequired > curBalance)
+            strError = strprintf("Error: This transaction requires a transaction fee of at least %s", FormatMoney(nFeeRequired));
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    CValidationState state;
+    if (!pwallet->CommitTransaction(tx, std::move(mapValue), {} /* orderForm */, reservekey, g_connman.get(), state)) {
+        strError = strprintf("Error: The transaction was rejected! Reason given: %s", FormatStateMessage(state));
+        throw JSONRPCError(RPC_WALLET_ERROR, strError);
+    }
+    return tx;
+}
+
 // Get free output and generate pocketnet transaction
 UniValue generatepocketnettransaction(const JSONRPCRequest& request)
 {
     if (request.fHelp)
-        throw std::runtime_error("sendrawtransactionwithmessage\n\nCreate new pocketnet transaction.\n");
+        throw std::runtime_error("generatepocketnettransaction\n\nCreate new pocketnet transaction.\n");
+
+    if (Params().NetworkIDString() != CBaseChainParams::TESTNET)
+        throw std::runtime_error("Only for testnet\n");
 
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VARR, UniValue::VNUM, UniValue::VSTR, UniValue::VOBJ});
 
@@ -981,6 +1029,50 @@ UniValue generatepocketnettransaction(const JSONRPCRequest& request)
     // accept transaction
     return PostPocketTransaction(tx);
 }
+
+// Create address with private key + auto increase balance
+UniValue generatepocketnetaddress(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error("generatepocketnetaddress\n\nCreate new pocketnet address with private key.\n");
+
+    if (Params().NetworkIDString() != CBaseChainParams::TESTNET)
+        throw std::runtime_error("Only for testnet\n");
+    
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    // Amount for full address
+    CAmount nAmount = 2000;
+
+    UniValue result(UniValue::VOBJ);
+
+    // Create address
+    bool fCompressed = pwallet->CanSupportFeature(FEATURE_COMPRPUBKEY); // default to compressed public keys if we want 0.6.0 wallets
+    CKey secretKey;
+    secretKey.MakeNewKey(fCompressed);
+    CPubKey pubkey = secretKey.GetPubKey();
+    
+    OutputType output_type = pwallet->m_default_address_type;
+    CTxDestination dest = GetDestinationForKey(pubkey, output_type);
+    auto addressDest = EncodeDestination(dest);
+
+    // Send money
+    CCoinControl coin_control;
+    mapValue_t mapValue;
+    auto tx = SendMoney(pwallet, dest, nAmount, false, coin_control, std::move(mapValue));
+    
+
+    result.pushKV("address", addressDest);
+    result.pushKV("privkey", EncodeSecret(secretKey));
+    result.pushKV("refill", tx->GetHash().GetHex());
+    return result;
+}
+
 //----------------------------------------------------------
 UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
 {
@@ -4458,7 +4550,8 @@ static const CRPCCommand commands[] =
 
     // Pocketnet transactions
     {"pocketnetrpc", "sendrawtransactionwithmessage",     &sendrawtransactionwithmessage,     {"hexstring", "message", "type"},                                                      false},
-    {"hidden",       "generatepocketnettransaction",      &generatepocketnettransaction,      {"address", "privKey", "outCount", "type", "payload"},                                                      false},
+    {"hidden",       "generatepocketnettransaction",      &generatepocketnettransaction,      {"address", "privKey", "outCount", "type", "payload"},                                 false},
+    {"hidden",       "generatepocketnetaddress",          &generatepocketnetaddress,          {"address","privkey","amount"},                                                        false },
 
 // TODO (brangr): new types
 //        {"pocketnetrpc", "setshare",                          &SetShare,                          {"hexstring", "message"},         false},
