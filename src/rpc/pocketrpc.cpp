@@ -1051,6 +1051,8 @@ UniValue generatepocketnetaddress(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VOBJ);
 
+    LOCK2(cs_main, pwallet->cs_wallet);
+
     // Create address
     bool fCompressed = pwallet->CanSupportFeature(FEATURE_COMPRPUBKEY); // default to compressed public keys if we want 0.6.0 wallets
     CKey secretKey;
