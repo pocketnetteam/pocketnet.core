@@ -93,6 +93,11 @@ namespace PocketTx
 
     string User::BuildHash()
     {
+        return BuildHash(true);
+    }
+
+    string User::BuildHash(bool includeReferrer)
+    {
         std::string data;
 
         data += m_payload->GetString2() ? *m_payload->GetString2() : "";
@@ -101,7 +106,7 @@ namespace PocketTx
         data += m_payload->GetString4() ? *m_payload->GetString4() : "";
         data += m_payload->GetString3() ? *m_payload->GetString3() : "";
         data += m_payload->GetString7() ? *m_payload->GetString7() : "";
-        data += GetReferrerAddress() ? *GetReferrerAddress() : "";
+        data += includeReferrer && GetReferrerAddress() ? *GetReferrerAddress() : "";
         data += m_payload->GetString6() ? *m_payload->GetString6() : "";
 
         return Transaction::GenerateHash(data);

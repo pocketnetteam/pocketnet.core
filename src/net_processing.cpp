@@ -1289,6 +1289,7 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
 
             std::string pocketBlockData;
             if (!PocketServices::Accessor::GetBlock(block, pocketBlockData)) {
+                return; // TODO (brangr): DEBUG
                 assert(!"cannot load block payload from sqlite db");
             }
 
@@ -1308,7 +1309,10 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
         {
             std::string pocketBlockData;
             if (!PocketServices::Accessor::GetBlock(*pblock, pocketBlockData))
+            {
+                return; // TODO (brangr): DEBUG
                 assert(!"cannot load block payload from sqlite db");
+            }
 
             if (inv.type == MSG_FILTERED_BLOCK) {
                 bool sendMerkleBlock = false;

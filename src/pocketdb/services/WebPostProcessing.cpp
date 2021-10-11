@@ -10,8 +10,10 @@ namespace PocketServices
 
     void WebPostProcessor::Start(boost::thread_group& threadGroup)
     {
+        auto dbBasePath = (GetDataDir() / "pocketdb").string();
+
         sqliteDbInst = make_shared<SQLiteDatabase>(false);
-        sqliteDbInst->Init("main");
+        sqliteDbInst->Init(dbBasePath, "main");
         sqliteDbInst->AttachDatabase("web");
 
         webRepoInst = make_shared<WebRepository>(*sqliteDbInst);

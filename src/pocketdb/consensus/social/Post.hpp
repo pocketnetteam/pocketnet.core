@@ -44,8 +44,7 @@ namespace PocketConsensus
                 }
                 else
                 {
-                    PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
+                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
                         return {false, SocialConsensusResult_RelayContentNotFound};
                 }
             }
@@ -169,8 +168,7 @@ namespace PocketConsensus
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
             if (count >= GetLimit(mode))
             {
-                PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ContentLimit))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ContentLimit))
                     return {false, SocialConsensusResult_ContentLimit};
             }
 

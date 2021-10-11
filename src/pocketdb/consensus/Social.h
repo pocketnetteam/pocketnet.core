@@ -13,7 +13,6 @@
 #include "pocketdb/pocketnet.h"
 #include "pocketdb/models/base/Base.h"
 #include "pocketdb/consensus/Base.h"
-#include "pocketdb/helpers/CheckpointHelper.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 
 namespace PocketConsensus
@@ -102,8 +101,7 @@ namespace PocketConsensus
 
             if (ptxORHash != txORHash)
             {
-               PocketHelpers::OpReturnCheckpoints opReturnCheckpoints;
-               if (!opReturnCheckpoints.IsCheckpoint(*ptx->GetHash(), ptxORHash))
+               if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
                    return {false, SocialConsensusResult_FailedOpReturn};
             }
 

@@ -8,8 +8,10 @@ namespace PocketDb
 {
     SQLiteConnection::SQLiteConnection()
     {
+        auto dbBasePath = (GetDataDir() / "pocketdb").string();
+
         SQLiteDbInst = make_shared<SQLiteDatabase>(true);
-        SQLiteDbInst->Init("main");
+        SQLiteDbInst->Init(dbBasePath, "main");
         SQLiteDbInst->AttachDatabase("web");
 
         WebRpcRepoInst = make_shared<WebRpcRepository>(*SQLiteDbInst);

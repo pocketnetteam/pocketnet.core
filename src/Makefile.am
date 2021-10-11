@@ -104,7 +104,6 @@ POCKETDB_H = \
     pocketdb/migrations/web.h \
     \
     pocketdb/helpers/TransactionHelper.h \
-    pocketdb/helpers/CheckpointHelper.h \
     \
     pocketdb/web/PocketContentRpc.h \
     pocketdb/web/PocketCommentsRpc.h \
@@ -122,6 +121,8 @@ POCKETDB_H = \
     pocketdb/repositories/ChainRepository.h \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/RatingsRepository.h \
+    pocketdb/repositories/CheckpointRepository.h \
+    pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/WebRpcRepository.h \
     pocketdb/repositories/web/NotifierRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
@@ -182,7 +183,10 @@ POCKETDB_H = \
     pocketdb/models/dto/SubscribePrivate.h \
     pocketdb/models/dto/SubscribeCancel.h \
     pocketdb/models/dto/Complain.h \
-    pocketdb/models/dto/Video.h
+    pocketdb/models/dto/Video.h \
+    \
+    pocketdb/models/web/Tag.h \
+    pocketdb/models/web/Content.h
 
 # PocketDb CPP
 POCKETDB_CPP = \
@@ -194,9 +198,6 @@ POCKETDB_CPP = \
     pocketdb/migrations/web.cpp \
     \
     pocketdb/helpers/TransactionHelper.cpp \
-    pocketdb/helpers/LotteryCheckpointHelper.cpp \
-    pocketdb/helpers/SocialCheckpointHelper.cpp \
-    pocketdb/helpers/OpReturnCheckpointHelper.cpp \
     \
     pocketdb/services/WsNotifier.cpp \
     pocketdb/services/Serializer.cpp \
@@ -208,6 +209,8 @@ POCKETDB_CPP = \
     pocketdb/repositories/ChainRepository.cpp \
     pocketdb/repositories/TransactionRepository.cpp \
     pocketdb/repositories/RatingsRepository.cpp \
+    pocketdb/repositories/CheckpointRepository.cpp \
+    pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/WebRpcRepository.cpp \
     pocketdb/repositories/web/NotifierRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
@@ -253,7 +256,10 @@ POCKETDB_CPP = \
     pocketdb/models/dto/SubscribePrivate.cpp \
     pocketdb/models/dto/SubscribeCancel.cpp \
     pocketdb/models/dto/Complain.cpp \
-    pocketdb/models/dto/Video.cpp
+    pocketdb/models/dto/Video.cpp \
+    \
+    pocketdb/models/web/Tag.cpp \
+    pocketdb/models/web/Content.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \

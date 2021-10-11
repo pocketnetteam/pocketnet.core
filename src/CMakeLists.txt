@@ -718,11 +718,6 @@ add_library(${POCKETCOIN_SERVER}
         rpc/util.h
         walletinitinterface.h
         pocketdb/helpers/TransactionHelper.h
-        pocketdb/helpers/CheckpointHelper.h
-        pocketdb/helpers/TransactionHelper.cpp
-        pocketdb/helpers/LotteryCheckpointHelper.cpp
-        pocketdb/helpers/SocialCheckpointHelper.cpp
-        pocketdb/helpers/OpReturnCheckpointHelper.cpp
         pocketdb/SQLiteDatabase.h
         pocketdb/SQLiteConnection.h
         pocketdb/SQLiteDatabase.cpp
@@ -768,6 +763,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/ChainRepository.cpp
         pocketdb/repositories/ConsensusRepository.h
         pocketdb/repositories/ConsensusRepository.cpp
+        pocketdb/repositories/CheckpointRepository.h
+        pocketdb/repositories/CheckpointRepository.cpp
         pocketdb/repositories/web/NotifierRepository.h
         pocketdb/repositories/web/NotifierRepository.cpp
         pocketdb/repositories/web/WebRepository.h

@@ -29,9 +29,7 @@ namespace PocketConsensus
             // Duplicate name
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
             {
-                PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(),
-                    SocialConsensusResult_NicknameDouble))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameDouble))
                     return {false, SocialConsensusResult_NicknameDouble};
             }
 
@@ -61,18 +59,33 @@ namespace PocketConsensus
             auto name = *ptx->GetPayloadName();
             if (name.empty() || name.size() > 35)
             {
-                PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(),
-                    SocialConsensusResult_NicknameLong))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
                     return {false, SocialConsensusResult_NicknameLong};
             }
 
             // Trim spaces
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
             {
-                PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_Failed))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_Failed))
                     return {false, SocialConsensusResult_Failed};
+            }
+
+            return Success;
+        }
+
+        ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
+        {
+            auto ptxORHash = ptx->BuildHash();
+            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
+
+            if (ptxORHash != txORHash)
+            {
+                ptxORHash = ptx->BuildHash(false);
+                if (ptxORHash != txORHash)
+                {
+                    if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
+                        return {false, SocialConsensusResult_FailedOpReturn};
+                }
             }
 
             return Success;
@@ -94,9 +107,7 @@ namespace PocketConsensus
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
-                    PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(),
-                        SocialConsensusResult_ChangeInfoDoubleInBlock))
+                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoDoubleInBlock))
                         return {false, SocialConsensusResult_ChangeInfoDoubleInBlock};
                 }
             }
@@ -127,10 +138,6 @@ namespace PocketConsensus
             // Check editing limits
             if (auto[ok, code] = ValidateEditLimit(ptx); !ok)
                 return {false, code};
-
-            // For edit user profile referrer not allowed
-            if (ptx->GetReferrerAddress() != nullptr)
-                return {false, SocialConsensusResult_ReferrerAfterRegistration};
 
             return Success;
         }

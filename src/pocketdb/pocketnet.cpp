@@ -3,11 +3,14 @@
 namespace PocketDb
 {
     SQLiteDatabase SQLiteDbInst(false);
-    TransactionRepository TransRepoInst(PocketDb::SQLiteDbInst);
-    ChainRepository ChainRepoInst(PocketDb::SQLiteDbInst);
-    RatingsRepository RatingsRepoInst(PocketDb::SQLiteDbInst);
-    ConsensusRepository ConsensusRepoInst(PocketDb::SQLiteDbInst);
-    NotifierRepository NotifierRepoInst(PocketDb::SQLiteDbInst);
+    TransactionRepository TransRepoInst(SQLiteDbInst);
+    ChainRepository ChainRepoInst(SQLiteDbInst);
+    RatingsRepository RatingsRepoInst(SQLiteDbInst);
+    ConsensusRepository ConsensusRepoInst(SQLiteDbInst);
+    NotifierRepository NotifierRepoInst(SQLiteDbInst);
+
+    SQLiteDatabase SQLiteDbCheckpointInst(true);
+    CheckpointRepository CheckpointRepoInst(SQLiteDbCheckpointInst);
 } // PocketDb
 
 namespace PocketWeb

@@ -21,14 +21,14 @@ namespace PocketDb
 {
     using namespace std;
 
-    extern string sqlite_base_directory;
-    void IntitializeSqlite(const string& dir);
+    void IntitializeSqlite();
 
     class SQLiteDatabase
     {
     private:
         PocketDbMigrationRef m_db_migration;
         string m_file_path;
+        string m_db_path;
         bool isReadOnlyConnect;
 
         void Cleanup() noexcept;
@@ -40,7 +40,7 @@ namespace PocketDb
 
         explicit SQLiteDatabase(bool readOnly);
 
-        void Init(const string& dbName, const PocketDbMigrationRef& migration = nullptr);
+        void Init(const std::string& dbBasePath, const string& dbName, const PocketDbMigrationRef& migration = nullptr);
 
         void CreateStructure();
 

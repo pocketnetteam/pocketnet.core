@@ -9,7 +9,7 @@
 
 namespace PocketTx
 {
-    class User : public PocketTx::Transaction
+    class User : public Transaction
     {
     public:
         User();
@@ -36,6 +36,7 @@ namespace PocketTx
         shared_ptr <string> GetPayloadPubkey() const;
 
         string BuildHash() override;
+        string BuildHash(bool includeReferrer);
 
     protected:
         void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;

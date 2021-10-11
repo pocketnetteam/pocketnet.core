@@ -1628,11 +1628,12 @@ bool AppInitMain()
 
     // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB..."));
+    auto dbBasePath = (GetDataDir() / "pocketdb").string();
 
-    PocketDb::IntitializeSqlite((GetDataDir() / "pocketdb").string());
+    PocketDb::IntitializeSqlite();
 
     PocketDb::PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDb::PocketDbMainMigration>();
-    PocketDb::SQLiteDbInst.Init("main", mainDbMigration);
+    PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
     PocketDb::SQLiteDbInst.CreateStructure();
 
     PocketDb::TransRepoInst.Init();
@@ -1643,8 +1644,8 @@ bool AppInitMain()
 
     // Open, create structure and close `web` db
     PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
-    SQLiteDatabase sqliteDbWebInst(false);
-    sqliteDbWebInst.Init("web", webDbMigration);
+    PocketDb::SQLiteDatabase sqliteDbWebInst(false);
+    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration);
     sqliteDbWebInst.CreateStructure();
     sqliteDbWebInst.m_connection_mutex.lock();
     sqliteDbWebInst.Close();
@@ -1652,6 +1653,16 @@ bool AppInitMain()
 
     // Attach `web` db to `main` db
     PocketDb::SQLiteDbInst.AttachDatabase("web");
+
+    // Intialize Checkpoints DB
+    if (!fs::exists("checkpoint.sqlite3"))
+    {
+        return InitError(_("./checkpoint.sqlite3 not found. "
+                           "Download actual from "
+                           "https://raw.githubusercontent.com/pocketnetteam/pocketnet.core/master/share/checkpoints/checkpoint.sqlite3"));
+    }
+    PocketDb::SQLiteDbInst.Init("", "checkpoint");
+    PocketDb::SQLiteDbInst.CreateStructure();
 
     PocketWeb::PocketFrontendInst.Init();
 
