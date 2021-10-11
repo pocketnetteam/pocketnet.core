@@ -98,7 +98,8 @@ namespace PocketDb
         // Create directory structure
         try
         {
-            fs::create_directories(m_db_path);
+            if (!m_db_path.empty())
+                fs::create_directories(m_db_path);
         }
         catch (const fs::filesystem_error&)
         {

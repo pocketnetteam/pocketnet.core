@@ -1661,8 +1661,7 @@ bool AppInitMain()
                            "Download actual from "
                            "https://raw.githubusercontent.com/pocketnetteam/pocketnet.core/master/share/checkpoints/checkpoint.sqlite3"));
     }
-    PocketDb::SQLiteDbInst.Init("", "checkpoint");
-    PocketDb::SQLiteDbInst.CreateStructure();
+    PocketDb::SQLiteDbCheckpointInst.Init("", "checkpoint");
 
     PocketWeb::PocketFrontendInst.Init();
 
