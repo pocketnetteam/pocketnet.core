@@ -114,6 +114,7 @@ POCKETDB_H = \
     pocketdb/web/PocketExplorerRpc.h \
     pocketdb/web/PocketTransactionRpc.h \
     pocketdb/web/WebSocketRpc.h \
+    pocketdb/web/PocketTagsRpc.h \
     pocketdb/web/PocketRpc.h \
     \
     pocketdb/repositories/BaseRepository.h \
@@ -236,6 +237,7 @@ POCKETDB_CPP = \
     pocketdb/web/PocketExplorerRpc.cpp \
     pocketdb/web/PocketTransactionRpc.cpp \
     pocketdb/web/WebSocketRpc.cpp \
+    pocketdb/web/PocketTagsRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
     \
     pocketdb/models/dto/Default.cpp \

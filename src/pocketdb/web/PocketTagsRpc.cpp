@@ -37,6 +37,6 @@ namespace PocketWeb::PocketWebRpc
 
         std::map<std::string, int> mapTags;
 
-        return UniValue;
+        return UniValue(UniValue::VARR);
     }
 }

@@ -742,6 +742,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/web/WebSocketRpc.cpp
         pocketdb/web/PocketRpc.h
         pocketdb/web/PocketRpc.cpp
+        pocketdb/web/PocketTagsRpc.h
+        pocketdb/web/PocketTagsRpc.cpp
         pocketdb/pocketnet.h
         pocketdb/pocketnet.cpp
         pocketdb/services/WsNotifier.cpp
