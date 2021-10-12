@@ -46,7 +46,7 @@ namespace PocketDb
 
     bool ChainRepository::ClearDatabase()
     {
-        LogPrintf("Full reindexing database. This can take several hours.\n");
+        LogPrintf("Full reindexing database. This can take several days.\n");
 
         LogPrintf("Deleting database indexes..\n");
         m_database.DropIndexes();
