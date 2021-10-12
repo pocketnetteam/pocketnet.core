@@ -27,9 +27,9 @@ namespace PocketTx
         result->pushKV("parentid", GetParentTxHash() ? *GetParentTxHash() : "");
         result->pushKV("answerid", GetAnswerTxHash() ? *GetAnswerTxHash() : "");
 
-        result->pushKV("lang", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "en");
-        result->pushKV("msg", (m_payload && m_payload->GetString2()) ? *m_payload->GetString2() : "");
+        result->pushKV("msg", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "");
 
+        result->pushKV("last", false);
         result->pushKV("scoreUp", 0);
         result->pushKV("scoreDown", 0);
         result->pushKV("reputation", 0);

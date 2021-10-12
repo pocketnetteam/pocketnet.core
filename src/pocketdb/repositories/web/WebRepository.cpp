@@ -173,8 +173,9 @@ namespace PocketDb
                 case CONTENT_COMMENT:
                 case CONTENT_COMMENT_EDIT:
 
-                    if (auto[ok, string1] = TryGetColumnString(*stmt, 2); ok)
-                        result.emplace_back(Content(id, ContentFieldType_CommentMessage, string1));
+                    // TODO (brangr): implement extract message from JSON
+                    // if (auto[ok, string1] = TryGetColumnString(*stmt, 2); ok)
+                    //     result.emplace_back(Content(id, ContentFieldType_CommentMessage, string1));
 
                     break;
                 default:
@@ -190,8 +191,23 @@ namespace PocketDb
 
     void WebRepository::UpsertContent(const vector<Content>& contentList)
     {
+        vector<int> ids;
+        for (auto& contentItm : contentList)
+        {
+            if (find(ids.begin(), ids.end(), contentItm.ContentId) == ids.end())
+                ids.emplace_back(contentItm.ContentId);
+        }
+
         TryTransactionStep(__func__, [&]()
         {
+            int i = 1;
+            auto idsStmt = SetupSqlStatement(R"sql(
+                delete from web.Content
+                where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+            )sql");
+            for (const auto& id: ids) TryBindStatementInt64(idsStmt, i++, id);
+            TryStepStatement(idsStmt);
+            
             for (const auto& contentItm : contentList)
             {
                 auto stmt = SetupSqlStatement(R"sql(
