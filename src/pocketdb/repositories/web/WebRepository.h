@@ -17,6 +17,7 @@
 namespace PocketDb
 {
     using namespace PocketDbWeb;
+    using namespace PocketTx;
 
     using boost::algorithm::join;
     using boost::adaptors::transformed;
@@ -32,7 +33,7 @@ namespace PocketDb
         void UpsertContentTags(const vector<Tag>& contentTags);
 
         vector<Content> GetContent(const string& blockHash);
-        void UpsertContent(const vector<Content>& contents);
+        void UpsertContent(const vector<Content>& contentList);
     };
 
     typedef shared_ptr<WebRepository> WebRepositoryRef;

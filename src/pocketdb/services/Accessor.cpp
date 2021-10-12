@@ -35,8 +35,6 @@ namespace PocketServices
     // Read block data for send via network
     bool Accessor::GetBlock(const CBlock& block, string& data)
     {
-        return false; // TODO (brangr): DEBUG
-
         PocketBlockRef pocketBlock;
         if (!GetBlock(block, pocketBlock))
             return false;
@@ -57,8 +55,6 @@ namespace PocketServices
     // Read transaction data for send via network
     bool Accessor::GetTransaction(const CTransaction& tx, string& data)
     {
-        return false; // TODO (brangr): DEBUG
-
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
             return true;
 

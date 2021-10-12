@@ -95,15 +95,31 @@ namespace PocketServices
     {
         try
         {
-            // TODO (brangr): implement
-            // decode
-            // place to search tables
+            int64_t nTime1 = GetTimeMicros();
 
-            // webRepoInst->ExpandContent(height);
+            vector<Content> contentList = webRepoInst->GetContent(blockHash);
+            if (contentList.empty())
+                return;
+
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Select): %.2fms\n", 0.001 * (double)(nTime2 - nTime1));
+
+            // Decode content before upsert
+            for (auto& contentItm : contentList)
+                contentItm.Value = HtmlUtils::UrlDecode(contentItm.Value);
+
+            int64_t nTime3 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
+
+            // Insert content
+            webRepoInst->UpsertContent(contentList);
+
+            int64_t nTime4 = GetTimeMicros();
+            LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Upsert): %.2fms\n", 0.001 * (double)(nTime4 - nTime3));
         }
         catch (const std::exception& e)
         {
-            LogPrintf("Warning: WebPostProcessor::InsertTags - %s\n", e.what());
+            LogPrintf("Warning: WebPostProcessor::ProcessSearchContent - %s\n", e.what());
         }
     }
 

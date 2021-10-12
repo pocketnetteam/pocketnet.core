@@ -15,11 +15,11 @@ namespace PocketDbWeb
 
     struct Content
     {
-        TxType Type;
-        string Lang;
-        int64_t Id;
+        int64_t ContentId;
         ContentFieldType FieldType;
         string Value;
+
+        Content(int64_t contentId, ContentFieldType fieldType, string value);
     };
 
 } // PocketDbWeb

@@ -103,82 +103,107 @@ namespace PocketDb
     {
         vector<Content> result;
 
-        // TODO (brangr): implement
-//        string sql = R"sql(
-//            select distinct p.Id, json_each.value
-//            from Transactions p indexed by Transactions_BlockHash
-//            join Payload pp on pp.TxHash = p.Hash
-//            join json_each(pp.String4)
-//            where p.Type in (200, 201)
-//              and p.Last = 1
-//              and p.BlockHash = ?
-//        )sql";
-//
-//        TryTransactionStep(__func__, [&]()
-//        {
-//            auto stmt = SetupSqlStatement(sql);
-//            TryBindStatementText(stmt, 1, blockHash);
-//
-//            while (sqlite3_step(*stmt) == SQLITE_ROW)
-//            {
-//                auto[okId, id] = TryGetColumnInt64(*stmt, 0);
-//                if (!okId) continue;
-//
-//                auto[okValue, value] = TryGetColumnString(*stmt, 1);
-//                if (!okValue) continue;
-//
-//                result.emplace_back(Content(id, value));
-//            }
-//
-//            FinalizeSqlStatement(*stmt);
-//        });
+        string sql = R"sql(
+            select
+                t.Type,
+                t.Id,
+                p.String1,
+                p.String2,
+                p.String3,
+                p.String4,
+                p.String5,
+                p.String6,
+                p.String7
+            from Transactions t indexed by Transactions_BlockHash
+            join Payload p on p.TxHash = t.Hash
+            where t.BlockHash = ?
+              and t.Type in (100, 101, 102, 200, 201, 204, 205)
+       )sql";
+       
+       TryTransactionStep(__func__, [&]()
+       {
+           auto stmt = SetupSqlStatement(sql);
+           TryBindStatementText(stmt, 1, blockHash);
+
+           while (sqlite3_step(*stmt) == SQLITE_ROW)
+           {
+                auto[okType, type] = TryGetColumnInt(*stmt, 0);
+                auto[okId, id] = TryGetColumnInt64(*stmt, 1);
+                if (!okType || !okId)
+                    continue;
+
+                switch ((TxType)type)
+                {
+                case ACCOUNT_USER:
+
+                    if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
+                        result.emplace_back(Content(id, ContentFieldType_AccountUserName, string2));
+
+                    if (auto[ok, string4] = TryGetColumnString(*stmt, 5); ok)    
+                        result.emplace_back(Content(id, ContentFieldType_AccountUserAbout, string4));
+
+                    if (auto[ok, string5] = TryGetColumnString(*stmt, 6); ok)
+                        result.emplace_back(Content(id, ContentFieldType_AccountUserUrl, string5));
+
+                    break;
+                case CONTENT_POST:
+
+                    if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
+                        result.emplace_back(Content(id, ContentFieldType_ContentPostCaption, string2));
+                    
+                    if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
+                        result.emplace_back(Content(id, ContentFieldType_ContentPostMessage, string3));
+
+                    if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
+                        result.emplace_back(Content(id, ContentFieldType_ContentPostUrl, string7));
+
+                    break;
+                case CONTENT_VIDEO:
+
+                    if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
+                        result.emplace_back(Content(id, ContentFieldType_ContentVideoCaption, string2));
+
+                    if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
+                        result.emplace_back(Content(id, ContentFieldType_ContentVideoMessage, string3));
+
+                    if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
+                        result.emplace_back(Content(id, ContentFieldType_ContentVideoUrl, string7));
+
+                    break;
+                case CONTENT_COMMENT:
+                case CONTENT_COMMENT_EDIT:
+
+                    if (auto[ok, string1] = TryGetColumnString(*stmt, 2); ok)
+                        result.emplace_back(Content(id, ContentFieldType_CommentMessage, string1));
+
+                    break;
+                default:
+                    break;
+                }
+           }
+
+           FinalizeSqlStatement(*stmt);
+       });
 
         return result;
     }
 
-    void WebRepository::UpsertContent(const vector<Content>& contents)
+    void WebRepository::UpsertContent(const vector<Content>& contentList)
     {
-
+        TryTransactionStep(__func__, [&]()
+        {
+            for (const auto& contentItm : contentList)
+            {
+                auto stmt = SetupSqlStatement(R"sql(
+                    insert or ignore
+                    into web.Content (ContentId, FieldType, Value)
+                    values (?,?,?)
+                )sql");
+                TryBindStatementInt64(stmt, 1, contentItm.ContentId);
+                TryBindStatementInt(stmt, 2, (int)contentItm.FieldType);
+                TryBindStatementText(stmt, 3, contentItm.Value);
+                TryStepStatement(stmt);
+            }
+        });
     }
-
-//    void WebRepository::InsertTags(int height)
-//    {
-//        string deleteSql = R"sql(
-//            delete from web.Tags indexed by Tags_Id
-//            where web.Tags.ContentId in (
-//                select p.ContentId
-//                from Transactions p
-//                where p.Height >= ?
-//            )
-//        )sql";
-//
-//        string insertSql = R"sql(
-//            insert into web.Tags (Type, ContentId, Value)
-//            select distinct p.Type, p.ContentId, json_each.value
-//            from Transactions p indexed by Transactions_Type_Last_Height_String3
-//            join Payload pp  on pp.TxHash = p.Hash
-//            join json_each(pp.String4)
-//            where p.Type in (200, 201)
-//              and p.Last = 1
-//              and p.Height >= ?
-//        )sql";
-//
-//        TryTransactionStep(__func__, [&]()
-//        {
-//            auto deleteStmt = SetupSqlStatement(deleteSql);
-//            TryBindStatementInt(deleteStmt, 1, height);
-//    TryStepStatement(stmt);
-//            FinalizeSqlStatement(*deleteStmt);
-//
-//            auto insertStmt = SetupSqlStatement(insertSql);
-//            TryBindStatementInt(insertStmt, 1, height);
-//    TryStepStatement(stmt);
-//            FinalizeSqlStatement(*insertStmt);
-//        });
-//    }
-//
-//    void WebRepository::ProcessSearchContent(int height)
-//    {
-//
-//    }
 }

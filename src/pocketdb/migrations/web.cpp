@@ -21,6 +21,15 @@ namespace PocketDb
             );
         )sql");
 
+        _tables.emplace_back(R"sql(
+            create virtual table if not exists Content using fts5
+            (
+                ContentId UNINDEXED,
+                FieldType UNINDEXED,
+                Value
+            );
+        )sql");
+
         _indexes = R"sql(
             create unique index if not exists Tags_Value on Tags (Value);
             create index if not exists TagsMap_TagId_ContentId on TagsMap (TagId, ContentId);

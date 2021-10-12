@@ -95,7 +95,16 @@ namespace PocketTx
     // Content field types
     enum ContentFieldType
     {
-        // TODO (brangr): implement
+        ContentFieldType_CommentMessage = 0, // Payload.String1
+        ContentFieldType_AccountUserName = 1, // Payload.String2
+        ContentFieldType_ContentPostCaption = 2, // Payload.String2
+        ContentFieldType_ContentVideoCaption = 3, // Payload.String2
+        ContentFieldType_ContentPostMessage = 4, // Payload.String3
+        ContentFieldType_ContentVideoMessage = 5, // Payload.String3
+        ContentFieldType_AccountUserAbout = 6, // Payload.String4
+        ContentFieldType_AccountUserUrl = 7, // Payload.String5
+        ContentFieldType_ContentPostUrl = 8, // Payload.String7
+        ContentFieldType_ContentVideoUrl = 9, // Payload.String7
     };
 
     // Transaction info for indexing spents and other
