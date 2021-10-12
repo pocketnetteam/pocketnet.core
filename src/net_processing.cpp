@@ -542,19 +542,20 @@ static void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman* connma
                 return;
             }
         }
-        connman->ForNode(nodeid, [connman](CNode* pfrom){
+        uint64_t cmpctVer = CMPCT_BLOCKS_PROTOCOL_VERSION;
+        connman->ForNode(nodeid, [connman, cmpctVer](CNode* pfrom){
             AssertLockHeld(cs_main);
             if (lNodesAnnouncingHeaderAndIDs.size() >= 3) {
                 // As per BIP152, we only get 3 of our peers to announce
                 // blocks using compact encodings.
-                connman->ForNode(lNodesAnnouncingHeaderAndIDs.front(), [connman, CMPCT_BLOCKS_PROTOCOL_VERSION](CNode* pnodeStop){
+                connman->ForNode(lNodesAnnouncingHeaderAndIDs.front(), [connman, cmpctVer](CNode* pnodeStop){
                     AssertLockHeld(cs_main);
-                    connman->PushMessage(pnodeStop, CNetMsgMaker(pnodeStop->GetSendVersion()).Make(NetMsgType::SENDCMPCT, /*fAnnounceUsingCMPCTBLOCK=*/false, CMPCT_BLOCKS_PROTOCOL_VERSION));
+                    connman->PushMessage(pnodeStop, CNetMsgMaker(pnodeStop->GetSendVersion()).Make(NetMsgType::SENDCMPCT, /*fAnnounceUsingCMPCTBLOCK=*/false, cmpctVer));
                     return true;
                 });
                 lNodesAnnouncingHeaderAndIDs.pop_front();
             }
-            connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::SENDCMPCT, /*fAnnounceUsingCMPCTBLOCK=*/true, CMPCT_BLOCKS_PROTOCOL_VERSION));
+            connman->PushMessage(pfrom, CNetMsgMaker(pfrom->GetSendVersion()).Make(NetMsgType::SENDCMPCT, /*fAnnounceUsingCMPCTBLOCK=*/true, cmpctVer));
             lNodesAnnouncingHeaderAndIDs.push_back(pfrom->GetId());
             return true;
         });
