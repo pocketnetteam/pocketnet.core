@@ -1655,13 +1655,19 @@ bool AppInitMain()
     PocketDb::SQLiteDbInst.AttachDatabase("web");
 
     // Intialize Checkpoints DB
-    if (!fs::exists("checkpoint.sqlite3"))
+    auto checkpointDbName = Params().NetworkIDString();
+    auto checkpointDbPath = (GetDataDir() / "checkpoints");
+    if (!fs::exists((checkpointDbPath / (checkpointDbName + ".sqlite3")).string()))
     {
-        return InitError(_("./checkpoint.sqlite3 not found. "
-                           "Download actual from "
-                           "https://raw.githubusercontent.com/pocketnetteam/pocketnet.core/master/share/checkpoints/checkpoint.sqlite3"));
+        LogPrintf("Checkpoint DB %s not found!\nDownload actual DB file from %s and place to %s directory.\n",
+            (checkpointDbPath / (checkpointDbName + ".sqlite3")).string(),
+            "https://github.com/pocketnetteam/pocketnet.core/tree/master/checkpoints/" + checkpointDbName + ".sqlite3",
+            checkpointDbPath.string()
+        );
+
+        return InitError(_("Unable to start server. Checkpoints DB not found. See debug log for details."));
     }
-    PocketDb::SQLiteDbCheckpointInst.Init("", "checkpoint");
+    PocketDb::SQLiteDbCheckpointInst.Init(checkpointDbPath.string(), checkpointDbName);
 
     PocketWeb::PocketFrontendInst.Init();
 
