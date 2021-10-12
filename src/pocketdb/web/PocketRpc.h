@@ -7,6 +7,7 @@
 
 #include "rpc/server.h"
 
+#include "pocketdb/web/PocketTagsRpc.h"
 #include "pocketdb/web/PocketContentRpc.h"
 #include "pocketdb/web/PocketExplorerRpc.h"
 #include "pocketdb/web/PocketCommentsRpc.h"

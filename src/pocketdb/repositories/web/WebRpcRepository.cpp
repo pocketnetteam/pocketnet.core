@@ -929,6 +929,40 @@ namespace PocketDb
         return result;
     }
 
+    map<string, UniValue> WebRpcRepository::GetTags(const string& addresses, const int countOut, const int nHeight, const string& lang)
+    {
+        /*string sql = R"sql(
+            SELECT
+                t.String2 as RootTxHash,
+                case when t.Hash != t.String2 then 'true' else null end edit,
+                t.String3 as RelayTxHash,
+                t.String1 as AddressHash,
+                t.Time,
+                p.String1 as Lang,
+                t.Type,
+                p.String2 as Caption,
+                p.String3 as Message,
+                p.String7 as Url,
+                p.String4 as Tags,
+                p.String5 as Images,
+                p.String6 as Settings
+            FROM web.Tags t
+            JOIN web.TagsMap tm
+            JOIN web.TagsMap tm
+            where t.Last = 1
+                and t.Height <= ?
+                and t.Height > ?
+                and t.Time <= ?
+                and t.String3 is null
+                and p.String1 = ?
+                and t.Type in ()sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql()
+            order by t.Height desc, t.Time desc
+            limit ?
+        )sql";*/
+        map<string, UniValue> result{};
+        return result;
+    }
+
     map<string, UniValue> WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang,
         const vector<int>& contentTypes)
     {
@@ -1181,12 +1215,12 @@ namespace PocketDb
                 and t.String3 is null
                 )sql";
         if (!lang.empty()) sql += R"sql( and p.String1 = ?)sql";
-        if (!tags.empty()) sql += R"sql( and t.id in (select tm.ContentId from Tags t join TagsMap tm on t.Id=tm.TagId where t.Value in ()sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql()))sql";
+        if (!tags.empty()) sql += R"sql( and t.id in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ()sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql()))sql";
         if (!contentTypes.empty()) sql += R"sql( and t.Type in ()sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql())sql";
         else sql += R"sql( and t.Type != ?)sql";
         if (!txidsExcluded.empty()) sql += R"sql( and t.String2 not in ()sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql())sql";
         if (!adrsExcluded.empty()) sql += R"sql( and t.String1 not in ()sql" + join(vector<string>(adrsExcluded.size(), "?"), ",") + R"sql())sql";
-        if (!tags.empty()) sql += R"sql( and t.id not in (select tm.ContentId from Tags t join TagsMap tm on t.Id=tm.TagId where t.Value in ()sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql()))sql";
+        if (!tags.empty()) sql += R"sql( and t.id not in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ()sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql()))sql";
         if (!address.empty()) sql += R"sql( and t.String1 = ?)sql";
         sql += R"sql( order by t.Id desc)sql";
         if (countOut > 0) sql += R"sql( limit ?)sql";

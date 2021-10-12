@@ -44,10 +44,8 @@ static const CRPCCommand commands[] =
     {"artifacts", "getrawtransactionwithmessagebyid", &getrawtransactionwithmessagebyid,  {"ids"}},
     {"artifacts", "getrawtransactionwithmessage",     &gettemplate,                       {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
-    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
     {"artifacts", "search",                           &gettemplate,                       {"search_string", "type", "count"}},
     {"artifacts", "searchlinks",                      &gettemplate,                       {"search_request", "contenttypes", "height", "count"}},
-    {"artifacts", "gettags",                          &gettemplate,                       {"address", "count"}},
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecomendedsubscriptionsforuser",&gettemplate,                       {"address", "count"}},
 
@@ -60,6 +58,10 @@ static const CRPCCommand commands[] =
     //{ "contents",       "getcontentsdata",                  &GetContentsData,               {"ids"}},
     { "contents",       "gethistoricalstrip",               &GetHistoricalStrip,            {"endTime", "depth"}},
     { "contents",       "gethierarchicalstrip",             &GetHierarchicalStrip,          {"endTime", "depth"}},
+
+    // Tags
+//    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
+    { "tags",           "gettags",                          &GetTags,                       {"address", "count", "height", "lang"}},
 
     // Comments
     {"comments",        "getcomments",                      &GetComments,                   {"postid", "parentid", "address", "ids"}},
