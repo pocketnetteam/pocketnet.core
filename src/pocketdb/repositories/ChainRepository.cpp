@@ -8,8 +8,6 @@ namespace PocketDb
 {
     void ChainRepository::IndexBlock(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
-        bool check = true;
-
         TryTransactionStep(__func__, [&]()
         {
             // Each transaction is processed individually
@@ -134,7 +132,7 @@ namespace PocketDb
                 saldo.AddressHash,
                 1,
                 ?,
-                sum(saldo.Value) + b.Value
+                sum(saldo.Value) + ifnull(b.Value,0)
             from (
 
                 select o.AddressHash,
@@ -150,7 +148,7 @@ namespace PocketDb
                 where o.SpentHeight = ?
 
             ) saldo
-            join Balances b indexed by Balances_AddressHash_Last
+            left join Balances b indexed by Balances_AddressHash_Last
                 on b.AddressHash = saldo.AddressHash and b.Last = 1
             group by saldo.AddressHash
         )sql");

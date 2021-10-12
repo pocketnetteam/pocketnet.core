@@ -227,7 +227,7 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidatePayloadSize(const PostRef& ptx)
         {
-            int64_t dataSize =
+            size_t dataSize =
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
                 (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
@@ -252,7 +252,7 @@ namespace PocketConsensus
                     dataSize += images[i].get_str().size();
             }
 
-            if (dataSize > GetConsensusLimit(ConsensusLimit_max_post_size))
+            if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_post_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};
 
             return Success;
