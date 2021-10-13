@@ -9,7 +9,7 @@
 #include "wallet/coincontrol.h"
 
 static std::map<std::string, std::vector<std::string>> pocketnetDevelopers{
-    {CBaseChainParams::MAIN, {
+    {"main", {
         "P9EkPPJPPRYxmK541WJkmH8yBM4GuWDn2m",
         "PUGBtfmivvcg1afnEt9vqVi3yZ7v6S9BcC",
         "PDtuJDVXaq82HH7fafgwBmcoxbqqWdJ9u9",
@@ -19,7 +19,7 @@ static std::map<std::string, std::vector<std::string>> pocketnetDevelopers{
         "PAF1BvWEH7pA24QbbEvCEasViC2Pw9BVj3",
         "PSADH5AY5M9RaWrDVdaMrR2C2s6dCGfNK4"
     }},
-    {CBaseChainParams::TESTNET, {
+    {"test", {
         "TG69Jioc81PiwMAJtRanfZqUmRY4TUG7nt",
         "TLnfXcFNxxrpEUUzrzZvbW7b9gWFtAcc8x",
         "TYMo5HRFpc7tqzccaVifx7s2x2ZDqMikCR",
