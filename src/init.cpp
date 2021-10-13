@@ -162,7 +162,6 @@ static CScheduler scheduler;
 
 void ShutdownPocketServices()
 {
-    // Before close database we must stop all repositories
     PocketDb::SQLiteDbInst.m_connection_mutex.lock();
 
     PocketDb::TransRepoInst.Destroy();
@@ -175,6 +174,11 @@ void ShutdownPocketServices()
     PocketDb::SQLiteDbInst.Close();
 
     PocketDb::SQLiteDbInst.m_connection_mutex.unlock();
+
+    PocketDb::SQLiteDbCheckpointInst.m_connection_mutex.lock();
+    PocketDb::CheckpointRepoInst.Destroy();
+    PocketDb::SQLiteDbCheckpointInst.Close();
+    PocketDb::SQLiteDbCheckpointInst.m_connection_mutex.unlock();
 }
 
 void Interrupt()
@@ -459,117 +463,57 @@ void SetupServerArgs()
         "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)",
         MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024),
         false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false,
-        OptionsCategory::OPTIONS);
-    gArgs.AddArg("-reindex-chainstate",
-        "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.",
-        false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
+
 #ifndef WIN32
-    gArgs.AddArg("-sysperms",
-        "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)",
-        false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-sysperms", "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)", false, OptionsCategory::OPTIONS);
 #else
     hidden_args.emplace_back("-sysperms");
 #endif
-    gArgs.AddArg("-txindex",
-        strprintf("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)",
-            DEFAULT_TXINDEX), false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-txindex", strprintf("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)", DEFAULT_TXINDEX), false, OptionsCategory::OPTIONS);
 
-    gArgs.AddArg("-addnode=<ip>",
-        "Add a node to connect to and attempt to keep the connection open (see the `addnode` RPC command help for more info). This option can be specified multiple times to add multiple nodes.",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-banscore=<n>",
-        strprintf("Threshold for disconnecting misbehaving peers (default: %u)", DEFAULT_BANSCORE_THRESHOLD), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-bantime=<n>",
-        strprintf("Number of seconds to keep misbehaving peers from reconnecting (default: %u)",
-            DEFAULT_MISBEHAVING_BANTIME), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-bind=<addr>", "Bind to given address and always listen on it. Use [host]:port notation for IPv6",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-connect=<ip>",
-        "Connect only to the specified node; -noconnect disables automatic connections (the rules for this peer are the same as for -addnode). This option can be specified multiple times to connect to multiple nodes.",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-discover", "Discover own IP addresses (default: 1 when listening and no -externalip or -proxy)",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-dns",
-        strprintf("Allow DNS lookups for -addnode, -seednode and -connect (default: %u)", DEFAULT_NAME_LOOKUP), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-dnsseed",
-        "Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used)", false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-enablebip61", strprintf("Send reject messages per BIP61 (default: %u)", DEFAULT_ENABLE_BIP61), false,
-        OptionsCategory::CONNECTION);
+    gArgs.AddArg("-addnode=<ip>", "Add a node to connect to and attempt to keep the connection open (see the `addnode` RPC command help for more info). This option can be specified multiple times to add multiple nodes.", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-banscore=<n>", strprintf("Threshold for disconnecting misbehaving peers (default: %u)", DEFAULT_BANSCORE_THRESHOLD), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-bantime=<n>", strprintf("Number of seconds to keep misbehaving peers from reconnecting (default: %u)", DEFAULT_MISBEHAVING_BANTIME), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-bind=<addr>", "Bind to given address and always listen on it. Use [host]:port notation for IPv6", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-connect=<ip>", "Connect only to the specified node; -noconnect disables automatic connections (the rules for this peer are the same as for -addnode). This option can be specified multiple times to connect to multiple nodes.", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-discover", "Discover own IP addresses (default: 1 when listening and no -externalip or -proxy)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-dns", strprintf("Allow DNS lookups for -addnode, -seednode and -connect (default: %u)", DEFAULT_NAME_LOOKUP), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-dnsseed", "Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-enablebip61", strprintf("Send reject messages per BIP61 (default: %u)", DEFAULT_ENABLE_BIP61), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-externalip=<ip>", "Specify your own public address", false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-forcednsseed",
-        strprintf("Always query for peer addresses via DNS lookup (default: %u)", DEFAULT_FORCEDNSSEED), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-listen", "Accept connections from outside (default: 1 if no -proxy or -connect)", false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-listenonion",
-        strprintf("Automatically create Tor hidden service (default: %d)", DEFAULT_LISTEN_ONION), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxconnections=<n>",
-        strprintf("Maintain at most <n> connections to peers (default: %u)", DEFAULT_MAX_PEER_CONNECTIONS), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxreceivebuffer=<n>",
-        strprintf("Maximum per-connection receive buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXRECEIVEBUFFER),
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxsendbuffer=<n>",
-        strprintf("Maximum per-connection send buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXSENDBUFFER), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxtimeadjustment", strprintf(
-        "Maximum allowed median peer time offset adjustment. Local perspective of time may be influenced by peers forward or backward by this amount. (default: %u seconds)",
-        DEFAULT_MAX_TIME_ADJUSTMENT), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxuploadtarget=<n>",
-        strprintf("Tries to keep outbound traffic under the given target (in MiB per 24h), 0 = no limit (default: %d)",
-            DEFAULT_MAX_UPLOAD_TARGET), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-onion=<ip:port>",
-        "Use separate SOCKS5 proxy to reach peers via Tor hidden services, set -noonion to disable (default: -proxy)",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-onlynet=<net>",
-        "Make outgoing connections only through network <net> (ipv4, ipv6 or onion). Incoming connections are not affected by this option. This option can be specified multiple times to allow multiple networks.",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-peerbloomfilters",
-        strprintf("Support filtering of blocks and transaction with bloom filters (default: %u)",
-            DEFAULT_PEERBLOOMFILTERS), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-permitbaremultisig", strprintf("Relay non-P2SH multisig (default: %u)", DEFAULT_PERMIT_BAREMULTISIG),
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-port=<port>", strprintf("Listen for connections on <port> (default: %u, testnet: %u, regtest: %u)",
-        defaultChainParams->GetDefaultPort(), testnetChainParams->GetDefaultPort(),
-        regtestChainParams->GetDefaultPort()), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-proxy=<ip:port>", "Connect through SOCKS5 proxy, set -noproxy to disable (default: disabled)", false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-proxyrandomize",
-        strprintf("Randomize credentials for every proxy connection. This enables Tor stream isolation (default: %u)",
-            DEFAULT_PROXYRANDOMIZE), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-seednode=<ip>",
-        "Connect to a node to retrieve peer addresses, and disconnect. This option can be specified multiple times to connect to multiple nodes.",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-timeout=<n>",
-        strprintf("Specify connection timeout in milliseconds (minimum: 1, default: %d)", DEFAULT_CONNECT_TIMEOUT),
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-torcontrol=<ip>:<port>",
-        strprintf("Tor control port to use if onion listening enabled (default: %s)", DEFAULT_TOR_CONTROL), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-torpassword=<pass>", "Tor control port password (default: empty)", false,
-        OptionsCategory::CONNECTION);
+    gArgs.AddArg("-forcednsseed", strprintf("Always query for peer addresses via DNS lookup (default: %u)", DEFAULT_FORCEDNSSEED), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-listen", "Accept connections from outside (default: 1 if no -proxy or -connect)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-listenonion", strprintf("Automatically create Tor hidden service (default: %d)", DEFAULT_LISTEN_ONION), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxconnections=<n>", strprintf("Maintain at most <n> connections to peers (default: %u)", DEFAULT_MAX_PEER_CONNECTIONS), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxreceivebuffer=<n>", strprintf("Maximum per-connection receive buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXRECEIVEBUFFER), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxsendbuffer=<n>", strprintf("Maximum per-connection send buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXSENDBUFFER), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxtimeadjustment", strprintf("Maximum allowed median peer time offset adjustment. Local perspective of time may be influenced by peers forward or backward by this amount. (default: %u seconds)", DEFAULT_MAX_TIME_ADJUSTMENT), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxuploadtarget=<n>", strprintf("Tries to keep outbound traffic under the given target (in MiB per 24h), 0 = no limit (default: %d)", DEFAULT_MAX_UPLOAD_TARGET), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-onion=<ip:port>", "Use separate SOCKS5 proxy to reach peers via Tor hidden services, set -noonion to disable (default: -proxy)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-onlynet=<net>", "Make outgoing connections only through network <net> (ipv4, ipv6 or onion). Incoming connections are not affected by this option. This option can be specified multiple times to allow multiple networks.", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-peerbloomfilters", strprintf("Support filtering of blocks and transaction with bloom filters (default: %u)", DEFAULT_PEERBLOOMFILTERS), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-permitbaremultisig", strprintf("Relay non-P2SH multisig (default: %u)", DEFAULT_PERMIT_BAREMULTISIG), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-port=<port>", strprintf("Listen for connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultChainParams->GetDefaultPort(), testnetChainParams->GetDefaultPort(), regtestChainParams->GetDefaultPort()), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-proxy=<ip:port>", "Connect through SOCKS5 proxy, set -noproxy to disable (default: disabled)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-proxyrandomize", strprintf("Randomize credentials for every proxy connection. This enables Tor stream isolation (default: %u)", DEFAULT_PROXYRANDOMIZE), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-seednode=<ip>", "Connect to a node to retrieve peer addresses, and disconnect. This option can be specified multiple times to connect to multiple nodes.", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-timeout=<n>", strprintf("Specify connection timeout in milliseconds (minimum: 1, default: %d)", DEFAULT_CONNECT_TIMEOUT), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-torcontrol=<ip>:<port>", strprintf("Tor control port to use if onion listening enabled (default: %s)", DEFAULT_TOR_CONTROL), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-torpassword=<pass>", "Tor control port password (default: empty)", false, OptionsCategory::CONNECTION);
 #ifdef USE_UPNP
 #if USE_UPNP
     gArgs.AddArg("-upnp", "Use UPnP to map the listening port (default: 1 when listening and no -proxy)", false, OptionsCategory::CONNECTION);
 #else
-    gArgs.AddArg("-upnp", strprintf("Use UPnP to map the listening port (default: %u)", 0), false,
-        OptionsCategory::CONNECTION);
+    gArgs.AddArg("-upnp", strprintf("Use UPnP to map the listening port (default: %u)", 0), false, OptionsCategory::CONNECTION);
 #endif
 #else
     hidden_args.emplace_back("-upnp");
 #endif
-    gArgs.AddArg("-whitebind=<addr>",
-        "Bind to given address and whitelist peers connecting to it. Use [host]:port notation for IPv6", false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-whitelist=<IP address or network>",
-        "Whitelist peers connecting from the given IP address (e.g. 1.2.3.4) or CIDR notated network (e.g. 1.2.3.0/24). Can be specified multiple times."
-        " Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway",
-        false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-whitebind=<addr>", "Bind to given address and whitelist peers connecting to it. Use [host]:port notation for IPv6", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-whitelist=<IP address or network>", "Whitelist peers connecting from the given IP address (e.g. 1.2.3.4) or CIDR notated network (e.g. 1.2.3.0/24). Can be specified multiple times. Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway", false, OptionsCategory::CONNECTION);
 
     g_wallet_init_interface.AddWalletOptions();
 

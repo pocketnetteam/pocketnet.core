@@ -68,10 +68,6 @@ namespace PocketConsensus
         // Generic transactions validating
         virtual ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx)
         {
-            // TODO (brangr): DEBUG!
-            // if (AlreadyExists(ptx))
-            //    return {true, SocialConsensusResult_AlreadyExists};
-
             if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
                 return {false, result};
 

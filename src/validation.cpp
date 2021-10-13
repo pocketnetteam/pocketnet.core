@@ -2446,24 +2446,24 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    // Checks PoS logic
-    if (  pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
-    {
-        if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
-        {
-            return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
-        }
-    }
+    auto skipValidation = gArgs.GetArg("-skip-validation", 0);
 
-    if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
+    // Checks PoS logic
+    // TODO (brangr): соберу чекпойнты и если норм этот код не нужен будет
+    // if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
+    // {
+    //     if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
+    //     {
+    //         return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
+    //     }
+    // }
+
+    // if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
+    //if (pindex->nHeight > skipValidation)
     {
         int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
         if (nStakeReward > nCalculatedStakeReward)
-        {
-            return state.DoS(100,
-                error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward,
-                    nCalculatedStakeReward));
-        }
+            return state.DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward));
 
         int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
@@ -2486,7 +2486,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // TODO (brangr): DEBUG!
-    if (!PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight))
+    if (pindex->nHeight > skipValidation && !PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight))
     {
         LogPrintf("SocialConsensusHelper::Validate failed for height %d\n", pindex->nHeight);
         //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
@@ -2494,7 +2494,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     int64_t nTime5 = GetTimeMicros();
     nTimeVerify += nTime5 - nTime4;
-    LogPrint(BCLog::BENCH, "    - Pocket consensus: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+    LogPrint(BCLog::BENCH, "    - Consensus validation: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
         MILLI * (nTime5 - nTime4), nInputs <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (nInputs - 1), nTimeVerify * MICRO,
         nTimeVerify * MILLI / nBlocksTotal);
 
@@ -2522,7 +2522,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     // -----------------------------------------------------------------------------------------------------------------
     int64_t nTime6 = GetTimeMicros();
     nTimeVerify += nTime6 - nTime5;
-    LogPrint(BCLog::BENCH, "    - Sqlite index writing: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+    LogPrint(BCLog::BENCH, "    - SQLite indexing: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
         MILLI * (nTime6 - nTime5), nInputs <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (nInputs - 1), nTimeVerify * MICRO,
         nTimeVerify * MILLI / nBlocksTotal);
 

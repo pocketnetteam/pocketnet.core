@@ -216,7 +216,7 @@ namespace PocketDb
     {
         int res = sqlite3_close(m_db);
         if (res != SQLITE_OK)
-            LogPrintf("Error: %s: %d; Failed to close database: %s\n", __func__, res, sqlite3_errstr(res));
+            LogPrintf("Error: %s: %d; Failed to close database %s: %s\n", __func__, res, m_file_path, sqlite3_errstr(res));
 
         m_db = nullptr;
     }
