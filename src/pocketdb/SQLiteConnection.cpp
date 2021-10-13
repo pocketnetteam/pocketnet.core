@@ -21,12 +21,16 @@ namespace PocketDb
 
     SQLiteConnection::~SQLiteConnection()
     {
+        SQLiteDbInst->m_connection_mutex.lock();
+
         WebRpcRepoInst->Destroy();
         ExplorerRepoInst->Destroy();
         TransactionRepoInst->Destroy();
 
         SQLiteDbInst->DetachDatabase("web");
         SQLiteDbInst->Close();
+
+        SQLiteDbInst->m_connection_mutex.unlock();
     }
 
 
