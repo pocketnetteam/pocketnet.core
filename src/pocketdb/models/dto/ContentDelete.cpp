@@ -29,9 +29,17 @@ namespace PocketTx
         auto result = Transaction::Serialize();
 
         result->pushKV("address", *GetAddress());
-        result->pushKV("txidEdit", *GetRootTxHash());
+        
+        // For olf protocol edited content
+        // txid     - original content hash
+        // txidEdit - actual transaction hash
+        result->pushKV("txid", *GetRootTxHash());
+        result->pushKV("txidEdit", *GetHash());
         
         result->pushKV("settings", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "");
+        
+        // For compatible with reindexer DB
+        result->pushKV("type", 6);
 
         return result;
     }
