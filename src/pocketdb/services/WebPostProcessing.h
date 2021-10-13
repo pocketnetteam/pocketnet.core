@@ -37,6 +37,7 @@ namespace PocketServices
         uint32_t sleep = 5 * 1000;
         bool shutdown = false;
 
+        Mutex _running_mutex;
         Mutex _queue_mutex;
         std::condition_variable _queue_cond;
         deque<string> _queue_records;

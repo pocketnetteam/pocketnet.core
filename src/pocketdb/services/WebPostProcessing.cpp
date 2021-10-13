@@ -10,6 +10,31 @@ namespace PocketServices
 
     void WebPostProcessor::Start(boost::thread_group& threadGroup)
     {
+        shutdown = false;
+        threadGroup.create_thread([this] { Worker(); });
+    }
+
+    void WebPostProcessor::Stop()
+    {
+        // Signal for complete all tasks
+        {
+            LOCK(_queue_mutex);
+
+            shutdown = true;
+            _queue_cond.notify_all();
+        }
+
+        // Wait all tasks completed
+        LOCK(_running_mutex);
+    }
+
+    void WebPostProcessor::Worker()
+    {
+        LogPrintf("WebPostProcessor: starting thread worker\n");
+
+        LOCK(_running_mutex);
+
+        // Run database
         auto dbBasePath = (GetDataDir() / "pocketdb").string();
 
         sqliteDbInst = make_shared<SQLiteDatabase>(false);
@@ -18,19 +43,7 @@ namespace PocketServices
 
         webRepoInst = make_shared<WebRepository>(*sqliteDbInst);
 
-        shutdown = false;
-        threadGroup.create_thread([this] { Worker(); });
-    }
-
-    void WebPostProcessor::Stop()
-    {
-        LOCK(_queue_mutex);
-        shutdown = true;
-        _queue_cond.notify_all();
-    }
-
-    void WebPostProcessor::Worker()
-    {
+        // Start worker infinity loop
         while (true)
         {
             string blockHash;
@@ -50,6 +63,20 @@ namespace PocketServices
             ProcessTags(blockHash);
             ProcessSearchContent(blockHash);
         }
+
+        // Shutdown DB
+        sqliteDbInst->m_connection_mutex.lock();
+
+        webRepoInst->Destroy();
+        webRepoInst = nullptr;
+
+        sqliteDbInst->DetachDatabase("web");
+        sqliteDbInst->Close();
+
+        sqliteDbInst->m_connection_mutex.unlock();
+        sqliteDbInst = nullptr;
+
+        LogPrintf("WebPostProcessor: thread worker exit\n");
     }
 
     void WebPostProcessor::Enqueue(const string& blockHash)
