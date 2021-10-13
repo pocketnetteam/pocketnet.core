@@ -91,19 +91,12 @@ private:
 public:
     explicit CTxOutCompressor(CTxOut &txoutIn) : txout(txoutIn) { }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        if (!ser_action.ForRead()) {
-            uint64_t nVal = CompressAmount(txout.nValue);
-            READWRITE(VARINT(nVal));
-        } else {
-            uint64_t nVal = 0;
-            READWRITE(VARINT(nVal));
-            txout.nValue = DecompressAmount(nVal);
-        }
-        CScriptCompressor cscript(REF(txout.scriptPubKey));
+    SERIALIZE_METHODS(CTxOutCompressor, obj) {
+        uint64_t nVal;
+        SER_WRITE(obj, nVal = CompressAmount(obj.txout.nValue))
+        READWRITE(VARINT(nVal));
+        SER_READ(obj, obj.txout.nValue = DecompressAmount(nVal));
+        CScriptCompressor cscript(REF(obj.txout.scriptPubKey));
         READWRITE(cscript);
     }
 };
