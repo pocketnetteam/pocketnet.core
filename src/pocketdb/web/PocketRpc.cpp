@@ -71,7 +71,7 @@ static const CRPCCommand commands[] =
     // GetCommentsByIds
 
     // Accounts
-    { "accounts",       "getuserprofile",                   &GetUserProfile,                {"addresses", "short"}},
+    { "accounts",       "getuserprofile",                   &GetAccountProfiles,                {"addresses", "short"}},
     { "accounts",       "getuseraddress",                   &GetUserAddress,                {"name"}},
     { "accounts",       "getaddressregistration",           &GetAddressRegistration,        {"addresses"}},
     { "accounts",       "getuserstate",                     &GetUserState,                  {"address"}},

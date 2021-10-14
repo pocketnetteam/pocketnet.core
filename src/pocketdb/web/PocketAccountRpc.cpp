@@ -26,7 +26,7 @@ namespace PocketWeb::PocketWebRpc
 
     map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm, int option)
     {
-        auto result = dbCon->WebRpcRepoInst->GetUserProfile(addresses, shortForm, option);
+        auto result = dbCon->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm, option);
 
         if (shortForm)
             return result;
@@ -50,7 +50,7 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetUserProfile(const JSONRPCRequest& request)
+    UniValue GetAccountProfiles(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(

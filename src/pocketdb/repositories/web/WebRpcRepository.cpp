@@ -268,9 +268,15 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRpcRepository::GetUserProfile(const vector<string>& addresses, bool shortForm, int option)
+    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm = true, int option = 0)
     {
-        map<string, UniValue> result{};
+        vector<tuple<string, int64_t, UniValue>> result{};
+        
+        string where;
+        if (!addresses.empty())
+            where += " and u.String1 in (" + join(vector<string>(addresses.size(), "?"), ",") + ") ";
+        if (!ids.empty())
+            where += " and u.Id in (" + join(vector<string>(ids.size(), "?"), ",") + ") ";
 
         string sql = R"sql(
             select
@@ -299,33 +305,39 @@ namespace PocketDb
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height
             join Payload p on p.TxHash=u.Hash
-            where u.Type in (100,101,102) and u.Last=1 and u.Height is not null
-            and u.String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+            where u.Type in (100,101,102)
+              and u.Last=1
+              and u.Height is not null.
+              )sql" + where + R"sql(
         )sql";
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
-            for (int i = 0; i < (int) addresses.size(); i++)
-                TryBindStatementText(stmt, i + 1, addresses[i]);
+            int i = 1;
+            for (const string& address : addresses)
+                TryBindStatementText(stmt, i++, address);
+            for (int64_t id : ids)
+                TryBindStatementInt64(stmt, i++, id);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto[ok, address] = TryGetColumnString(*stmt, 0);
+                auto[ok, id] = TryGetColumnInt64(*stmt, 2);
 
                 UniValue record(UniValue::VOBJ);
 
                 record.pushKV("address", address);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", valueStr);
-                if (auto[ok, valueNum] = TryGetColumnInt(*stmt, 2); ok)
-                    record.pushKV("id", valueNum); //TODO (brangr): check pls in pocketrpc.cpp was id + 1
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("i", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("b", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("r", valueStr);
-                if (auto[ok, valueNum] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("rc", valueNum);
-                if (auto[ok, valueNum] = TryGetColumnInt(*stmt, 12); ok) record.pushKV("postcnt", valueNum);
-                if (auto[ok, valueNum] = TryGetColumnInt(*stmt, 13); ok) record.pushKV("reputation", valueNum / 10.0);
+                record.pushKV("id", id);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("i", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("b", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("r", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("rc", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 12); ok) record.pushKV("postcnt", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 13); ok) record.pushKV("reputation", value / 10.0);
 
                 if (option == 1)
                 {
@@ -334,21 +346,43 @@ namespace PocketDb
 
                 if (shortForm)
                 {
-                    result.insert_or_assign(address, record);
+                    result.emplace_back(address, id, record);
                     continue;
                 }
 
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("l", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("s", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("update", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 10); ok) record.pushKV("k", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 14); ok) record.pushKV("regdate", valueStr);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("l", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("s", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("update", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("k", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("regdate", value);
 
-                result.insert_or_assign(address, record);
+                result.emplace_back(address, id, record);
             }
 
             FinalizeSqlStatement(*stmt);
         });
+
+        return result;
+    }
+
+    map<string, UniValue> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, bool shortForm, int option)
+    {
+        map<string, UniValue> result{};
+
+        auto _result = GetAccountProfiles(addresses, {}, shortForm, option);
+        for (const auto[address, _, record] : _result)
+            result.insert_or_assign(address, record);
+
+        return result;
+    }
+
+    map<int64_t, UniValue> WebRpcRepository::GetAccountProfiles(const vector<int64_t>& ids, bool shortForm, int option)
+    {
+        map<int64_t, UniValue> result{};
+
+        auto _result = GetAccountProfiles({}, ids,shortForm, option);
+        for (const auto[_, id, record] : _result)
+            result.insert_or_assign(id, record);
 
         return result;
     }
@@ -1024,7 +1058,7 @@ namespace PocketDb
                     authors.emplace_back(value);
                     record.pushKV("address", value);
                     //UniValue userprofile(UniValue::VARR);
-                    //auto userprofile = GetUserProfile({value});
+                    //auto userprofile = GetAccountProfiles({value});
                     //record.pushKV("userprofile", userprofile[0]);
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
@@ -1068,7 +1102,7 @@ namespace PocketDb
             FinalizeSqlStatement(*stmt);
         });
 
-        auto profiles = GetUserProfile(authors);
+        auto profiles = GetAccountProfiles(authors);
         for (const auto& item : result)
         {
             std::string useradr = item.second["address"].get_str();
@@ -1129,7 +1163,7 @@ namespace PocketDb
                     authors.emplace_back(value);
                     record.pushKV("address", value);
                     //UniValue userprofile(UniValue::VARR);
-                    //auto userprofile = GetUserProfile({value});
+                    //auto userprofile = GetAccountProfiles({value});
                     //record.pushKV("userprofile", userprofile[0]);
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
@@ -1173,7 +1207,7 @@ namespace PocketDb
             FinalizeSqlStatement(*stmt);
         });
 
-        auto profiles = GetUserProfile(authors);
+        auto profiles = GetAccountProfiles(authors);
         for (const auto& item : result)
         {
             std::string useradr = item.second["address"].get_str();
@@ -1268,7 +1302,7 @@ namespace PocketDb
                     authors.emplace_back(value);
                     record.pushKV("address", value);
                     //UniValue userprofile(UniValue::VARR);
-                    //auto userprofile = GetUserProfile({value});
+                    //auto userprofile = GetAccountProfiles({value});
                     //record.pushKV("userprofile", userprofile[0]);
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
@@ -1312,7 +1346,7 @@ namespace PocketDb
             FinalizeSqlStatement(*stmt);
         });
 
-        auto profiles = GetUserProfile(authors);
+        auto profiles = GetAccountProfiles(authors);
         for (const auto& item: result)
         {
             std::string useradr = item.second["address"].get_str();

@@ -78,26 +78,89 @@ namespace PocketWeb::PocketWebRpc
 
         // -----------------------------------------------------------
         UniValue result(UniValue::VOBJ);
-        UniValue data(UniValue::VARR);
-
+        
         // Search simple tags without join content data
         if (type == "tags")
-            data = request.DbConnection()->SearchRepoInst->SearchTags(searchRequest);
+        {
+            UniValue data = request.DbConnection()->SearchRepoInst->SearchTags(searchRequest);
+            result.pushKV("tags", UniValue(UniValue::VOBJ));
+            result.At("tags").pushKV("data", data);
+        }
 
         // Search posts in caption, message and urls
         if (type == "posts")
-            data = request.DbConnection()->SearchRepoInst->SearchPosts(searchRequest);
-        
-        // Get all videos with equal link
+        {
+            searchRequest.TxTypes = { CONTENT_POST, CONTENT_VIDEO };
+            searchRequest.FieldTypes = {
+                ContentFieldType_ContentPostCaption,
+                ContentFieldType_ContentVideoCaption,
+                ContentFieldType_ContentPostMessage,
+                ContentFieldType_ContentVideoMessage,
+                ContentFieldType_ContentPostUrl,
+                ContentFieldType_ContentVideoUrl
+            };
+
+            // Search
+            auto ids = request.DbConnection()->SearchRepoInst->SearchIds(searchRequest);
+            
+            // Get content data
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, searchRequest.Address);
+            
+            UniValue data(UniValue::VARR);
+            for (const auto& content : contents)
+                data.push_back(content.second);
+
+            result.pushKV("posts", UniValue(UniValue::VOBJ));
+            result.At("posts").pushKV("data", data);
+        }
+
+        // Get all videos with requested link
         if (type == "videolink")
-            data = request.DbConnection()->SearchRepoInst->SearchVideoLink(searchRequest);
+        {
+            searchRequest.TxTypes = { CONTENT_VIDEO };
+            searchRequest.FieldTypes = { ContentFieldType_ContentVideoUrl };
+
+            // Search
+            auto ids = request.DbConnection()->SearchRepoInst->SearchIds(searchRequest);
+            
+            // Get content data
+            auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, searchRequest.Address);
+
+            UniValue data(UniValue::VARR);
+            for (const auto& content : contents)
+                data.push_back(content.second);
+
+            result.pushKV("videos", UniValue(UniValue::VOBJ));
+            result.At("videos").pushKV("data", data);
+        }
 
         // Search users
         if (type == "users")
-            data = request.DbConnection()->SearchRepoInst->SearchAccounts(searchRequest);
+        {
+            searchRequest.Address = "";
+            searchRequest.TxTypes = { ACCOUNT_USER };
+            searchRequest.FieldTypes = {
+                ContentFieldType_AccountUserName,
+                ContentFieldType_AccountUserAbout,
+                ContentFieldType_AccountUserUrl
+            };
+
+            // Search
+            auto ids = request.DbConnection()->SearchRepoInst->SearchIds(searchRequest);
+            
+            // Get accounts data
+            auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true, 1);
+
+            UniValue data(UniValue::VARR);
+            for (const auto& account : accounts)
+                data.push_back(account.second);
+
+            result.pushKV("users", UniValue(UniValue::VOBJ));
+            result.At("users").pushKV("data", data);
+        }
         
         // Send result
-        result.pushKV("data", data);
+        
         return result;
     }
 }

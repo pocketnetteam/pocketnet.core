@@ -8,6 +8,8 @@
 #include <vector>
 #include <string>
 
+#include "pocketdb/models/base/PocketTypes.h"
+
 namespace PocketDbWeb
 {
     using namespace std;
@@ -20,12 +22,18 @@ namespace PocketDbWeb
         int PageSize;
         string Address;
 
+        vector<ContentFieldType> FieldTypes;
+        vector<TxType> TxTypes;
+
         SearchRequest() = default;
 
-        SearchRequest(const string& keyword, int topBlock = 0, int pageStart = 0, int pageSize = 10, const string& address = "")
+        SearchRequest(const string& keyword, const vector<ContentFieldType>& fieldTypes, const vector<TxType>& txTypes,
+            int topBlock = 0, int pageStart = 0, int pageSize = 10, const string& address = "")
         {
             Keyword = keyword;
-            TopBlock = startBlock;
+            FieldTypes = move(fieldTypes);
+            TxTypes = move(txTypes);
+            TopBlock = topBlock;
             PageStart = pageStart;
             PageSize = pageSize;
             Address = address;

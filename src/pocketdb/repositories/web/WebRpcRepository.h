@@ -46,7 +46,8 @@ namespace PocketDb
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
 
-        map<string, UniValue> GetUserProfile(const vector<string>& addresses, bool shortForm = true, int option = 0);
+        map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int option = 0);
+        map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int option = 0);
 
         map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses,
             const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
@@ -59,6 +60,7 @@ namespace PocketDb
         map<string, UniValue> GetTags(const string& addresses, const int nHeight, const int from, const string& lang);
 
         map<string, UniValue> GetContentsData(const vector<string>& txids);
+        map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
         //map<string, UniValue> GetContents(map<string, param>& conditions, optional<int> &counttotal);
         //map<string, UniValue> GetContents(map<string, param>& conditions);
         map<string, UniValue> GetContentsForAddress(const string& address);
@@ -83,6 +85,7 @@ namespace PocketDb
 
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
+        vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm = true, int option = 0);
     };
 
     typedef shared_ptr<WebRpcRepository> WebRpcRepositoryRef;

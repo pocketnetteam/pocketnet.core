@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETDB_WEB_REPOSITORY_H
-#define POCKETDB_WEB_REPOSITORY_H
+#ifndef POCKETDB_SEARCH_REPOSITORY_H
+#define POCKETDB_SEARCH_REPOSITORY_H
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/range/adaptor/transformed.hpp>
@@ -28,15 +28,13 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        UniValue SearchTags(const SearchRequest& searchRequest);
-        UniValue SearchPosts(const SearchRequest& searchRequest);
-        UniValue SearchVideoLink(const SearchRequest& searchRequest);
-        UniValue SearchAccounts(const SearchRequest& searchRequest);        
+        UniValue SearchTags(const SearchRequest& request);
+        vector<int64_t> SearchIds(const SearchRequest& request);
     };
 
     typedef shared_ptr<SearchRepository> SearchRepositoryRef;
 
 } // namespace PocketDb
 
-#endif // POCKETDB_WEB_REPOSITORY_H
+#endif // POCKETDB_SEARCH_REPOSITORY_H
 

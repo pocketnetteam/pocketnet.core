@@ -8,11 +8,13 @@
 #include "rpc/server.h"
 #include "utils/html.h"
 #include "pocketdb/helpers/TransactionHelper.h"
+#include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/models/web/SearchRequest.h"
 
 namespace PocketWeb::PocketWebRpc
 {
     using namespace PocketDbWeb;
+    using namespace PocketTx;
 
     UniValue Search(const JSONRPCRequest& request);
 }
