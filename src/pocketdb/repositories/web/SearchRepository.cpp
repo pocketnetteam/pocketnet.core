@@ -2,42 +2,37 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "pocketdb/repositories/web/WebRepository.h"
+#include "pocketdb/repositories/web/SearchRepository.h"
 
 namespace PocketDb
 {
-    void WebRepository::Init() {}
+    void SearchRepository::Init() {}
 
-    void WebRepository::Destroy() {}
+    void SearchRepository::Destroy() {}
 
-    vector<Tag> WebRepository::GetContentTags(const string& blockHash)
+    UniValue SearchRepository::SearchTags(const SearchRequest& request)
     {
-        vector<Tag> result;
+        UniValue result(UniValue::VARR);
 
         string sql = R"sql(
-            select distinct p.Id, json_each.value
-            from Transactions p indexed by Transactions_BlockHash
-            join Payload pp on pp.TxHash = p.Hash
-            join json_each(pp.String4)
-            where p.Type in (200, 201)
-              and p.Last = 1
-              and p.BlockHash = ?
+            select Value
+            from Tags t indexed by Tags_Value
+            where t.Value like '%?%'
+            limit ?
+            offset ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, blockHash);
+            TryBindStatementText(stmt, 1, request.Keyword);
+            TryBindStatementInt(stmt, 2, request.PageSize);
+            TryBindStatementInt(stmt, 3, request.PageStart);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto[okId, id] = TryGetColumnInt64(*stmt, 0);
-                if (!okId) continue;
-
-                auto[okValue, value] = TryGetColumnString(*stmt, 1);
-                if (!okValue) continue;
-
-                result.emplace_back(Tag(id, value));
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    result.push_back(value);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -46,180 +41,138 @@ namespace PocketDb
         return result;
     }
 
-    void WebRepository::UpsertContentTags(const vector<Tag>& contentTags)
+    UniValue SearchRepository::SearchPosts(const SearchRequest& searchRequest)
     {
-        // build distinct lists
-        vector<string> tags;
-        vector<int> ids;
-        for (auto& contentTag : contentTags)
-        {
-            if (find(tags.begin(), tags.end(), contentTag.Value) == tags.end())
-                tags.emplace_back(contentTag.Value);
-
-            if (find(ids.begin(), ids.end(), contentTag.ContentId) == ids.end())
-                ids.emplace_back(contentTag.ContentId);
-        }
-
-        // Next work in transaction
-        TryTransactionStep(__func__, [&]()
-        {
-            // Insert new tags and ignore exists
-            int i = 1;
-            auto tagsStmt = SetupSqlStatement(R"sql(
-                insert or ignore
-                into web.Tags (Value)
-                values )sql" + join(vector<string>(tags.size(), "(?)"), ",") + R"sql(
-            )sql");
-            for (const auto& tag: tags) TryBindStatementText(tagsStmt, i++, tag);
-            TryStepStatement(tagsStmt);
-
-            // Delete exists mappings ContentId <-> TagId
-            i = 1;
-            auto idsStmt = SetupSqlStatement(R"sql(
-                delete from web.TagsMap
-                where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-            )sql");
-            for (const auto& id: ids) TryBindStatementInt64(idsStmt, i++, id);
-            TryStepStatement(idsStmt);
-
-            // Insert new mappings ContentId <-> TagId
-            for (const auto& contentTag : contentTags)
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    insert or ignore
-                    into web.TagsMap (ContentId, TagId) values (
-                        ?,
-                        (select t.Id from web.Tags t where t.Value = ?)
-                    )
-                )sql");
-                TryBindStatementInt64(stmt, 1, contentTag.ContentId);
-                TryBindStatementText(stmt, 2, contentTag.Value);
-                TryStepStatement(stmt);
-            }
-        });
-    }
-
-    vector<Content> WebRepository::GetContent(const string& blockHash)
-    {
-        vector<Content> result;
+        UniValue result(UniValue::VARR);
 
         string sql = R"sql(
-            select
-                t.Type,
-                t.Id,
-                p.String1,
-                p.String2,
-                p.String3,
-                p.String4,
-                p.String5,
-                p.String6,
-                p.String7
-            from Transactions t indexed by Transactions_BlockHash
-            join Payload p on p.TxHash = t.Hash
-            where t.BlockHash = ?
-              and t.Type in (100, 101, 102, 200, 201, 204, 205)
-       )sql";
-       
-       TryTransactionStep(__func__, [&]()
-       {
-           auto stmt = SetupSqlStatement(sql);
-           TryBindStatementText(stmt, 1, blockHash);
-
-           while (sqlite3_step(*stmt) == SQLITE_ROW)
-           {
-                auto[okType, type] = TryGetColumnInt(*stmt, 0);
-                auto[okId, id] = TryGetColumnInt64(*stmt, 1);
-                if (!okType || !okId)
-                    continue;
-
-                switch ((TxType)type)
-                {
-                case ACCOUNT_USER:
-
-                    if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
-                        result.emplace_back(Content(id, ContentFieldType_AccountUserName, string2));
-
-                    if (auto[ok, string4] = TryGetColumnString(*stmt, 5); ok)    
-                        result.emplace_back(Content(id, ContentFieldType_AccountUserAbout, string4));
-
-                    if (auto[ok, string5] = TryGetColumnString(*stmt, 6); ok)
-                        result.emplace_back(Content(id, ContentFieldType_AccountUserUrl, string5));
-
-                    break;
-                case CONTENT_POST:
-
-                    if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentPostCaption, string2));
-                    
-                    if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentPostMessage, string3));
-
-                    if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentPostUrl, string7));
-
-                    break;
-                case CONTENT_VIDEO:
-
-                    if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentVideoCaption, string2));
-
-                    if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentVideoMessage, string3));
-
-                    if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentVideoUrl, string7));
-
-                    break;
-                case CONTENT_COMMENT:
-                case CONTENT_COMMENT_EDIT:
-
-                    // TODO (brangr): implement extract message from JSON
-                    // if (auto[ok, string1] = TryGetColumnString(*stmt, 2); ok)
-                    //     result.emplace_back(Content(id, ContentFieldType_CommentMessage, string1));
-
-                    break;
-                default:
-                    break;
-                }
-           }
-
-           FinalizeSqlStatement(*stmt);
-       });
-
-        return result;
-    }
-
-    void WebRepository::UpsertContent(const vector<Content>& contentList)
-    {
-        vector<int> ids;
-        for (auto& contentItm : contentList)
-        {
-            if (find(ids.begin(), ids.end(), contentItm.ContentId) == ids.end())
-                ids.emplace_back(contentItm.ContentId);
-        }
+            
+        )sql";
 
         TryTransactionStep(__func__, [&]()
         {
-            int i = 1;
-            auto idsStmt = SetupSqlStatement(R"sql(
-                delete from web.Content
-                where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-            )sql");
-            for (const auto& id: ids) TryBindStatementInt64(idsStmt, i++, id);
-            TryStepStatement(idsStmt);
-            
-            for (const auto& contentItm : contentList)
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, request.Keyword);
+            TryBindStatementInt(stmt, 2, request.PageSize);
+            TryBindStatementInt(stmt, 3, request.PageStart);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto stmt = SetupSqlStatement(R"sql(
-                    insert or ignore
-                    into web.Content (ContentId, FieldType, Value)
-                    values (?,?,?)
-                )sql");
-                TryBindStatementInt64(stmt, 1, contentItm.ContentId);
-                TryBindStatementInt(stmt, 2, (int)contentItm.FieldType);
-                TryBindStatementText(stmt, 3, contentItm.Value);
-                TryStepStatement(stmt);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    result.push_back(value);
             }
+
+            FinalizeSqlStatement(*stmt);
         });
+
+        return result;
+
+        {
+            //LogPrintf("--- Search: %s\n", fulltext_search_string);
+            reindexer::QueryResults resPostsBySearchString;
+            if (g_pocketdb->Select(
+                    reindexer::Query("Posts", resultStart, resulCount)
+                    .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
+                    .Where(search_string.at(0) == '#' ? "tags" : "caption+message", CondEq, search_string.at(0) == '#' ? search_string.substr(1) : "\"" + search_string + "\"")
+                    .Where("address", address == "" ? CondGt : CondEq, address)
+                    .Not().Where("type", CondEq, (int)ContentType::ContentDelete)
+                    .Sort("time", true)
+                    .ReqTotal(),
+                    resPostsBySearchString)
+                    .ok()) {
+                UniValue aPosts(UniValue::VARR);
+
+                for (auto& it : resPostsBySearchString) {
+                    Item _itm = it.GetItem();
+                    string _txid = _itm["txid"].As<string>();
+                    string _caption = _itm["caption_"].As<string>();
+                    string _message = _itm["message_"].As<string>();
+
+                    if (fs) getFastSearchString(search_string, _caption, mFastSearch);
+                    if (fs) getFastSearchString(search_string, _message, mFastSearch);
+
+                    if (all || type == "posts") aPosts.push_back(getPostData(_itm, ""));
+                }
+
+                if (all || type == "posts") {
+                    UniValue oPosts(UniValue::VOBJ);
+                    oPosts.pushKV("count", resPostsBySearchString.totalCount);
+                    oPosts.pushKV("data", aPosts);
+                    result.pushKV("posts", oPosts);
+                }
+            }
+        }
+    }
+
+    UniValue SearchRepository::SearchVideoLink(const SearchRequest& searchRequest)
+    {
+        {
+            reindexer::QueryResults resVideoLinksBySearchString;
+            if (g_pocketdb->Select(
+                    reindexer::Query("Posts", resultStart, resulCount)
+                    .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
+                    .Where("type", CondEq, (int)ContentType::ContentVideo)
+                    .Where("url", CondSet, search_vector)
+                    .Where("address", address == "" ? CondGt : CondEq, address)
+                    .Sort("time", true)
+                    .ReqTotal(),
+                    resVideoLinksBySearchString)
+                    .ok()) {
+                UniValue aPosts(UniValue::VARR);
+
+                for (auto& it : resVideoLinksBySearchString) {
+                    Item _itm = it.GetItem();
+                    string _txid = _itm["txid"].As<string>();
+
+                    aPosts.push_back(getPostData(_itm, ""));
+                }
+
+                UniValue oPosts(UniValue::VOBJ);
+                oPosts.pushKV("count", resVideoLinksBySearchString.totalCount);
+                oPosts.pushKV("data", aPosts);
+                result.pushKV("videos", oPosts);
+            }
+        }
+    }
+
+    UniValue SearchRepository::SearchAccounts(const SearchRequest& searchRequest)
+    {
+        {
+            reindexer::QueryResults resUsersBySearchString;
+            if (g_pocketdb->Select(
+                    reindexer::Query("UsersView", resultStart, resulCount)
+                    .Where("block", blockNumber ? CondLe : CondGe, blockNumber)
+                    .Where("name_text", CondEq, "*" + UrlEncode(search_string) + "*")
+                    //.Sort("time", false)  // Do not sort or think about full-text match first
+                    .ReqTotal(),
+                    resUsersBySearchString)
+                    .ok()) {
+                vector<string> vUserAdresses;
+
+                for (auto& it : resUsersBySearchString) {
+                    Item _itm = it.GetItem();
+                    string _address = _itm["address"].As<string>();
+                    vUserAdresses.push_back(_address);
+                }
+
+                auto mUsers = getUsersProfiles(vUserAdresses, true, 1);
+
+                UniValue aUsers(UniValue::VARR);
+                for (const auto& item : vUserAdresses) {
+                    aUsers.push_back(mUsers[item]);
+                }
+                //for (auto& u : mUsers) {
+                //    aUsers.push_back(u.second);
+                //}
+
+                UniValue oUsers(UniValue::VOBJ);
+                oUsers.pushKV("count", resUsersBySearchString.totalCount);
+                oUsers.pushKV("data", aUsers);
+
+                result.pushKV("users", oUsers);
+            }
+
+            fsresultCount = resUsersBySearchString.Count() < fsresultCount ? fsresultCount - resUsersBySearchString.Count() : 0;
+        }
     }
 }

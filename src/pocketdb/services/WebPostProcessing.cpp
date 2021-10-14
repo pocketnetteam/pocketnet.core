@@ -133,7 +133,30 @@ namespace PocketServices
 
             // Decode content before upsert
             for (auto& contentItm : contentList)
-                contentItm.Value = HtmlUtils::UrlDecode(contentItm.Value);
+            {
+                switch (contentItm.FieldType)
+                {
+                    case ContentFieldType_ContentPostCaption:
+                    case ContentFieldType_ContentVideoCaption:
+                    case ContentFieldType_ContentPostMessage:
+                    case ContentFieldType_ContentVideoMessage:
+                    case ContentFieldType_AccountUserAbout:
+                    case ContentFieldType_AccountUserUrl:
+                    case ContentFieldType_ContentPostUrl:
+                    case ContentFieldType_ContentVideoUrl:
+                        contentItm.Value = HtmlUtils::UrlDecode(contentItm.Value);
+                        break;
+                    case ContentFieldType_CommentMessage:
+                        // TODO (brangr): get message from JSON
+                        break;
+                    case ContentFieldType_AccountUserName:
+                        // Nothing
+                        break;
+                    default:
+                        break;
+                }
+                
+            }
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessSearchContent (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));

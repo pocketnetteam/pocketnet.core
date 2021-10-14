@@ -29,6 +29,9 @@ namespace PocketDb
         void Destroy() override;
 
         UniValue SearchTags(const SearchRequest& searchRequest);
+        UniValue SearchPosts(const SearchRequest& searchRequest);
+        UniValue SearchVideoLink(const SearchRequest& searchRequest);
+        UniValue SearchAccounts(const SearchRequest& searchRequest);        
     };
 
     typedef shared_ptr<SearchRepository> SearchRepositoryRef;

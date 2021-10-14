@@ -14,18 +14,18 @@ namespace PocketDbWeb
 
     struct SearchRequest
     {
-        vector<string> Keywords;
-        int StartBlock;
+        string Keyword;
+        int TopBlock;
         int PageStart;
         int PageSize;
         string Address;
 
         SearchRequest() = default;
 
-        SearchRequest(const vector<string>& keywords, int startBlock = 0, int pageStart = 0, int pageSize = 10, const string& address = "")
+        SearchRequest(const string& keyword, int topBlock = 0, int pageStart = 0, int pageSize = 10, const string& address = "")
         {
-            Keywords = keywords;
-            StartBlock = startBlock;
+            Keyword = keyword;
+            TopBlock = startBlock;
             PageStart = pageStart;
             PageSize = pageSize;
             Address = address;
