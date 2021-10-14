@@ -179,7 +179,6 @@ public:
     }
 
     SERIALIZE_METHODS(TestHeaderAndShortIDs, obj) { READWRITE(obj.header, obj.nonce, Using<VectorFormatter<CustomUintFormatter<CBlockHeaderAndShortTxIDs::SHORTTXIDS_LENGTH>>>(obj.shorttxids), obj.prefilledtxn, obj.vchBlockSig); }
-
 };
 
 BOOST_AUTO_TEST_CASE(NonCoinbasePreforwardRTTest)

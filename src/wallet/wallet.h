@@ -559,7 +559,7 @@ public:
     SERIALIZE_METHODS(CWalletKey, obj) {
         int nVersion = s.GetVersion();
         if (!(s.GetType() & SER_GETHASH))
-            READWRITE(obj.nVersion);
+            READWRITE(nVersion);
         READWRITE(obj.vchPrivKey);
         READWRITE(obj.nTimeCreated);
         READWRITE(obj.nTimeExpires);

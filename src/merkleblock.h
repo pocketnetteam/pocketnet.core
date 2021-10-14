@@ -13,6 +13,10 @@
 
 #include <vector>
 
+// Helper functions for serialization.
+std::vector<unsigned char> BitsToBytes(const std::vector<bool>& bits);
+std::vector<bool> BytesToBits(const std::vector<unsigned char>& bytes);
+
 /** Data structure that represents a partial merkle tree.
  *
  * It represents a subset of the txid's of a known block, in a way that

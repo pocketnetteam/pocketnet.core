@@ -243,12 +243,13 @@ static int test_one_input(std::vector<uint8_t> buffer) {
         case CTXOUTCOMPRESSOR_DESERIALIZE:
         {
             CTxOut to;
-            CTxOutCompressor toc(to);
+#ifdef DISABLE_TEST
+            TxOutCompression toc(to);
             try
             {
                 ds >> toc;
             } catch (const std::ios_base::failure& e) {return 0;}
-
+#endif
             break;
         }
         case BLOCKTRANSACTIONS_DESERIALIZE:
