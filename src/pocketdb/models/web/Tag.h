@@ -18,7 +18,11 @@ namespace PocketDbWeb
         int64_t ContentId;
         string Value;
 
-        Tag(int64_t contentId, const string& value);
+        Tag(int64_t contentId, const string& value)
+        {
+            ContentId = contentId;
+            Value = value;
+        }
     };
 
 } // PocketDbWeb

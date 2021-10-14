@@ -412,9 +412,8 @@ add_library(${POCKETDB}
         pocketdb/models/dto/AccountSetting.cpp
         pocketdb/models/dto/ContentDelete.cpp
         pocketdb/models/web/Tag.h
-        pocketdb/models/web/Tag.cpp
         pocketdb/models/web/Content.h
-        pocketdb/models/web/Content.cpp
+        pocketdb/models/web/SearchRequest.h
         )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
 
@@ -740,6 +739,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/web/PocketTransactionRpc.h
         pocketdb/web/WebSocketRpc.h
         pocketdb/web/WebSocketRpc.cpp
+        pocketdb/web/SearchRpc.h
+        pocketdb/web/SearchRpc.cpp
         pocketdb/web/PocketRpc.h
         pocketdb/web/PocketRpc.cpp
         pocketdb/web/PocketTagsRpc.h
@@ -771,10 +772,12 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/web/NotifierRepository.cpp
         pocketdb/repositories/web/WebRepository.h
         pocketdb/repositories/web/WebRpcRepository.h
-        pocketdb/repositories/web/ExplorerRepository.h
         pocketdb/repositories/web/WebRepository.cpp
         pocketdb/repositories/web/WebRpcRepository.cpp
+        pocketdb/repositories/web/ExplorerRepository.h
         pocketdb/repositories/web/ExplorerRepository.cpp
+        pocketdb/repositories/web/SearchRepository.h
+        pocketdb/repositories/web/SearchRepository.cpp
         pocketdb/consensus/Base.h
         pocketdb/consensus/Helper.h
         pocketdb/consensus/Social.h

@@ -16,6 +16,7 @@ namespace PocketDb
 
         WebRpcRepoInst = make_shared<WebRpcRepository>(*SQLiteDbInst);
         ExplorerRepoInst = make_shared<ExplorerRepository>(*SQLiteDbInst);
+        SearchRepoInst = make_shared<SearchRepository>(*SQLiteDbInst);
         TransactionRepoInst = make_shared<TransactionRepository>(*SQLiteDbInst);
     }
 
@@ -25,6 +26,7 @@ namespace PocketDb
 
         WebRpcRepoInst->Destroy();
         ExplorerRepoInst->Destroy();
+        SearchRepoInst->Destroy();
         TransactionRepoInst->Destroy();
 
         SQLiteDbInst->DetachDatabase("web");

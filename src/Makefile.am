@@ -114,6 +114,7 @@ POCKETDB_H = \
     pocketdb/web/PocketExplorerRpc.h \
     pocketdb/web/PocketTransactionRpc.h \
     pocketdb/web/WebSocketRpc.h \
+    pocketdb/web/SearchRpc.h \
     pocketdb/web/PocketTagsRpc.h \
     pocketdb/web/PocketRpc.h \
     \
@@ -127,6 +128,7 @@ POCKETDB_H = \
     pocketdb/repositories/web/WebRpcRepository.h \
     pocketdb/repositories/web/NotifierRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
+    pocketdb/repositories/web/SearchRepository.h \
     \
     pocketdb/services/WsNotifier.h \
     pocketdb/services/b/services/Serializer.h \
@@ -187,7 +189,8 @@ POCKETDB_H = \
     pocketdb/models/dto/Video.h \
     \
     pocketdb/models/web/Tag.h \
-    pocketdb/models/web/Content.h
+    pocketdb/models/web/Content.h \
+    pocketdb/models/web/SearchRequest.h
 
 # PocketDb CPP
 POCKETDB_CPP = \
@@ -215,6 +218,7 @@ POCKETDB_CPP = \
     pocketdb/repositories/web/WebRpcRepository.cpp \
     pocketdb/repositories/web/NotifierRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
+    pocketdb/repositories/web/SearchRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
     pocketdb/consensus/Base.cpp \
@@ -237,6 +241,7 @@ POCKETDB_CPP = \
     pocketdb/web/PocketExplorerRpc.cpp \
     pocketdb/web/PocketTransactionRpc.cpp \
     pocketdb/web/WebSocketRpc.cpp \
+    pocketdb/web/SearchRpc.cpp \
     pocketdb/web/PocketTagsRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
     \
@@ -258,10 +263,7 @@ POCKETDB_CPP = \
     pocketdb/models/dto/SubscribePrivate.cpp \
     pocketdb/models/dto/SubscribeCancel.cpp \
     pocketdb/models/dto/Complain.cpp \
-    pocketdb/models/dto/Video.cpp \
-    \
-    pocketdb/models/web/Tag.cpp \
-    pocketdb/models/web/Content.cpp
+    pocketdb/models/dto/Video.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \
