@@ -439,7 +439,6 @@ static UniValue sendtoaddress(const JSONRPCRequest& request)
         }
     }
 
-
     EnsureWalletIsUnlocked(pwallet);
 
     CTransactionRef tx = SendMoney(pwallet, dest, nAmount, fSubtractFeeFromAmount, coin_control, std::move(mapValue));
@@ -1886,7 +1885,6 @@ static UniValue abandontransaction(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-
 static UniValue backupwallet(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1920,7 +1918,6 @@ static UniValue backupwallet(const JSONRPCRequest& request)
 
     return NullUniValue;
 }
-
 
 static UniValue keypoolrefill(const JSONRPCRequest& request)
 {
@@ -1966,7 +1963,6 @@ static UniValue keypoolrefill(const JSONRPCRequest& request)
 
     return NullUniValue;
 }
-
 
 static void LockWallet(CWallet* pWallet)
 {
@@ -2049,7 +2045,6 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-
 static UniValue walletpassphrasechange(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -2100,7 +2095,6 @@ static UniValue walletpassphrasechange(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-
 static UniValue walletlock(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -2139,7 +2133,6 @@ static UniValue walletlock(const JSONRPCRequest& request)
 
     return NullUniValue;
 }
-
 
 static UniValue encryptwallet(const JSONRPCRequest& request)
 {
@@ -4165,7 +4158,6 @@ int GetsStakeSubTotal(vStakePeriodRange_T& aRange)
     return nElement;
 }
 
-
 // prepare range for stake report
 vStakePeriodRange_T PrepareRangeForStakeReport()
 {
@@ -4230,7 +4222,6 @@ vStakePeriodRange_T PrepareRangeForStakeReport()
 
 return aRange;
 }
-
 
 // getstakereport: return SubTotal of the staked coin in last 24H, 7 days, etc.. of all owns address
 UniValue getstakereport(const JSONRPCRequest &request)
