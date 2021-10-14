@@ -96,7 +96,7 @@ static constexpr unsigned int AVG_FEEFILTER_BROADCAST_INTERVAL = 10 * 60;
 /** Maximum feefilter broadcast delay after significant change. */
 static constexpr unsigned int MAX_FEEFILTER_CHANGE_DELAY = 5 * 60;
 /* For PocketNet the compact blocks version 3 is the first to work on the PocketNet network */
-static constexpr unsigned int CMPCT_BLOCKS_PROTOCOL_VERSION = 3;
+static constexpr uint64_t CMPCT_BLOCKS_PROTOCOL_VERSION = 3;
 
 // Internal stuff
 namespace {
