@@ -1881,7 +1881,7 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
                 o.Value,
                 o.TxHeight,
                 t.Type
-            from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight
+            from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
             join Transactions t on t.Hash = o.TxHash
             where o.AddressHash = ?
               and o.TxHeight > ?

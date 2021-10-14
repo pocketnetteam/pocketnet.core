@@ -2449,17 +2449,15 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     auto skipValidation = gArgs.GetArg("-skip-validation", 0);
 
     // Checks PoS logic
-    // TODO (brangr): соберу чекпойнты и если норм этот код не нужен будет
-    // if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
-    // {
-    //     if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
-    //     {
-    //         return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
-    //     }
-    // }
+    if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
+    {
+        if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
+        {
+            return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
+        }
+    }
 
-    // if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
-    //if (pindex->nHeight > skipValidation)
+    if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
     {
         int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
         if (nStakeReward > nCalculatedStakeReward)
@@ -2471,6 +2469,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
         {
             LogPrintf("@@@ Checkpoint for %d %s\n", pindex->nHeight, block.GetHash().GetHex());
+            StartShutdown();
+            return false;
             //return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
         }
     }
@@ -2489,6 +2489,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     if (pindex->nHeight > skipValidation && !PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight))
     {
         LogPrintf("SocialConsensusHelper::Validate failed for height %d\n", pindex->nHeight);
+        StartShutdown();
+        return false;
         //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
     }
 
@@ -4839,7 +4841,8 @@ bool ProcessNewBlock(CValidationState& state,
         {
             ret = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock);
             // TODO (brangr): DEBUG
-            if (!ret) ret = true;
+            if (!ret)
+                StartShutdown();
         }
 
         int64_t nTime4 = GetTimeMicros();

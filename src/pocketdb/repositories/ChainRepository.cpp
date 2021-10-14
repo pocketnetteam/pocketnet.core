@@ -38,9 +38,42 @@ namespace PocketDb
                         IndexSubscribe(txInfo.Hash);
                 }
             }
+        });
 
+        TryTransactionStep(__func__, [&]()
+        {
             // After set height and mark inputs as spent we need recalculcate balances
             IndexBalances(height);
+
+            // TODO (brangr): FOR DEBUG balances
+            auto stmt = SetupSqlStatement(R"sql(
+                select
+                    b.AddressHash,
+                    b.Value,
+                    (select sum(o.Value) from TxOutputs o where o.TxHeight is not null and o.AddressHash = b.AddressHash and SpentHeight is null)outsBal
+                from Balances b
+                where b.Height = ?
+                group by b.AddressHash
+            )sql");
+            TryBindStatementInt(stmt, 1, height);
+
+            bool check = true;
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[ok0, address] = TryGetColumnString(*stmt, 0);
+                auto[ok1, balance] = TryGetColumnInt64(*stmt, 1);
+                auto[ok2, balanceOuts] = TryGetColumnInt64(*stmt, 2);
+                if (balance != balanceOuts)
+                {
+                    check = false;
+                    LogPrintf("--- Inconsistence balance for %s %d != %d at height %d\n", address, balance, balanceOuts, height);
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+
+            if (!check)
+                StartShutdown();
         });
     }
 
@@ -132,20 +165,24 @@ namespace PocketDb
                 saldo.AddressHash,
                 1,
                 ?,
-                sum(saldo.Value) + ifnull(b.Value,0)
+                sum(ifnull(saldo.Amount,0)) + ifnull(b.Value,0)
             from (
 
-                select o.AddressHash,
-                       o.Value
-                from TxOutputs o indexed by TxOutputs_TxHeight
-                where o.TxHeight = ?
+                select 'unspent',
+                       o.AddressHash,
+                       sum(o.Value)Amount
+                from TxOutputs o indexed by TxOutputs_TxHeight_AddressHash
+                where  o.TxHeight = ?
+                group by o.AddressHash
 
                 union
 
-                select o.AddressHash,
-                       -o.Value
-                from TxOutputs o indexed by TxOutputs_SpentHeight
+                select 'spent',
+                       o.AddressHash,
+                       -sum(o.Value)Amount
+                from TxOutputs o indexed by TxOutputs_SpentHeight_AddressHash
                 where o.SpentHeight = ?
+                group by o.AddressHash
 
             ) saldo
             left join Balances b indexed by Balances_AddressHash_Last
