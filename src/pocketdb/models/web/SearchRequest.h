@@ -13,6 +13,7 @@
 namespace PocketDbWeb
 {
     using namespace std;
+    using namespace PocketTx;
 
     struct SearchRequest
     {

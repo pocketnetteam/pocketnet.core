@@ -85,7 +85,7 @@ namespace PocketDb
 
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
-        vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm = true, int option = 0);
+        vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm, int option);
     };
 
     typedef shared_ptr<WebRpcRepository> WebRpcRepositoryRef;

@@ -268,7 +268,7 @@ namespace PocketDb
         return result;
     }
 
-    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm = true, int option = 0)
+    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm, int option)
     {
         vector<tuple<string, int64_t, UniValue>> result{};
         
@@ -323,8 +323,8 @@ namespace PocketDb
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto[ok, address] = TryGetColumnString(*stmt, 0);
-                auto[ok, id] = TryGetColumnInt64(*stmt, 2);
+                auto[ok0, address] = TryGetColumnString(*stmt, 0);
+                auto[ok2, id] = TryGetColumnInt64(*stmt, 2);
 
                 UniValue record(UniValue::VOBJ);
 
@@ -370,7 +370,7 @@ namespace PocketDb
         map<string, UniValue> result{};
 
         auto _result = GetAccountProfiles(addresses, {}, shortForm, option);
-        for (const auto[address, _, record] : _result)
+        for (const auto[address, id, record] : _result)
             result.insert_or_assign(address, record);
 
         return result;
@@ -381,7 +381,7 @@ namespace PocketDb
         map<int64_t, UniValue> result{};
 
         auto _result = GetAccountProfiles({}, ids,shortForm, option);
-        for (const auto[_, id, record] : _result)
+        for (const auto[address, id, record] : _result)
             result.insert_or_assign(id, record);
 
         return result;
