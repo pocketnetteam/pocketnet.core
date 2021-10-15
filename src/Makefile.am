@@ -321,10 +321,10 @@ POCKETCOIN_CORE_H = \
     statistic.hpp \
     scheduler.h \
     script/descriptor.h \
-    script/ismine.h \
     script/sigcache.h \
     script/sign.h \
     script/standard.h \
+    script/keyorigin.h \
     shutdown.h \
     staker.h \
     streams.h \
@@ -539,6 +539,8 @@ libpocketcoin_consensus_a_SOURCES = \
   script/script.h \
   script/script_error.cpp \
   script/script_error.h \
+  script/signingprovider.cpp \
+  script/signingprovider.h \
   serialize.h \
   span.h \
   tinyformat.h \
@@ -568,7 +570,6 @@ libpocketcoin_common_a_SOURCES = \
   protocol.cpp \
   scheduler.cpp \
   script/descriptor.cpp \
-  script/ismine.cpp \
   script/sign.cpp \
   script/standard.cpp \
   warnings.cpp \

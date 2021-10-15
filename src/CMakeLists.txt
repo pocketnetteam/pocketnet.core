@@ -657,10 +657,11 @@ add_library(${POCKETCOIN_SERVER}
         policy/policy.cpp
         policy/rbf.h
         policy/rbf.cpp
+        script/keyorigin.h
         script/descriptor.h
         script/descriptor.cpp
-        script/ismine.h
-        script/ismine.cpp
+        script/signingprovider.h
+        script/signingprovider.cpp
         script/sigcache.h
         script/sigcache.cpp
         script/sign.h
