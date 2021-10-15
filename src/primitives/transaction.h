@@ -1,21 +1,25 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef POCKETCOIN_PRIMITIVES_TRANSACTION_H
-#define POCKETCOIN_PRIMITIVES_TRANSACTION_H
+#ifndef BITCOIN_PRIMITIVES_TRANSACTION_H
+#define BITCOIN_PRIMITIVES_TRANSACTION_H
 
 #include <stdint.h>
 #include <amount.h>
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
-#include "core_io.h"
-#include "streams.h"
 
-#include "pocketdb/models/base/Transaction.h"
+#include <tuple>
 
+/**
+ * A flag that is ORed into the protocol version to designate that a transaction
+ * should be (un)serialized without witness data.
+ * Make sure that this does not collide with any of the values in `version.h`
+ * or with `ADDRV2_FORMAT`.
+ */
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
@@ -25,24 +29,15 @@ public:
     uint256 hash;
     uint32_t n;
 
-    COutPoint() : n((uint32_t) -1) {}
-    COutPoint(const uint256& hashIn, uint32_t nIn) : hash(hashIn), n(nIn) {}
+    static constexpr uint32_t NULL_INDEX = std::numeric_limits<uint32_t>::max();
 
-    ADD_SERIALIZE_METHODS;
+    COutPoint(): n(NULL_INDEX) { }
+    COutPoint(const uint256& hashIn, uint32_t nIn): hash(hashIn), n(nIn) { }
 
-    template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(hash);
-        READWRITE(n);
-    }
+    SERIALIZE_METHODS(COutPoint, obj) { READWRITE(obj.hash, obj.n); }
 
-    void SetNull()
-    {
-        hash.SetNull();
-        n = (uint32_t) -1;
-    }
-    bool IsNull() const { return (hash.IsNull() && n == (uint32_t) -1); }
+    void SetNull() { hash.SetNull(); n = NULL_INDEX; }
+    bool IsNull() const { return (hash.IsNull() && n == NULL_INDEX); }
 
     friend bool operator<(const COutPoint& a, const COutPoint& b)
     {
@@ -73,7 +68,7 @@ public:
     COutPoint prevout;
     CScript scriptSig;
     uint32_t nSequence;
-    CScriptWitness scriptWitness; //! Only serialized through CTransaction
+    CScriptWitness scriptWitness; //!< Only serialized through CTransaction
 
     /* Setting nSequence to this value for every input in a transaction
      * disables nLockTime. */
@@ -82,7 +77,7 @@ public:
     /* Below flags apply in the context of BIP 68*/
     /* If this flag set, CTxIn::nSequence is NOT interpreted as a
      * relative lock-time. */
-    static const uint32_t SEQUENCE_LOCKTIME_DISABLE_FLAG = (1 << 31);
+    static const uint32_t SEQUENCE_LOCKTIME_DISABLE_FLAG = (1U << 31);
 
     /* If CTxIn::nSequence encodes a relative lock-time and this flag
      * is set, the relative lock-time has units of 512 seconds,
@@ -110,15 +105,7 @@ public:
     explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn = CScript(), uint32_t nSequenceIn = SEQUENCE_FINAL);
     CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn = CScript(), uint32_t nSequenceIn = SEQUENCE_FINAL);
 
-    ADD_SERIALIZE_METHODS;
-
-    template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(prevout);
-        READWRITE(scriptSig);
-        READWRITE(nSequence);
-    }
+    SERIALIZE_METHODS(CTxIn, obj) { READWRITE(obj.prevout, obj.scriptSig, obj.nSequence); }
 
     friend bool operator==(const CTxIn& a, const CTxIn& b)
     {
@@ -151,14 +138,7 @@ public:
 
     CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
 
-    ADD_SERIALIZE_METHODS;
-
-    template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(nValue);
-        READWRITE(scriptPubKey);
-    }
+    SERIALIZE_METHODS(CTxOut, obj) { READWRITE(obj.nValue, obj.scriptPubKey); }
 
     void SetNull()
     {
@@ -240,7 +220,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s)
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s >> tx.nVersion;
-    s >> tx.nTime;
+    s >> tx.nTime; // Pocketnet addition
     unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();
@@ -268,6 +248,11 @@ inline void UnserializeTransaction(TxType& tx, Stream& s)
         {
             s >> tx.vin[i].scriptWitness.stack;
         }
+        if (!tx.HasWitness())
+        {
+            /* It's illegal to encode witnesses when all witness stacks are empty. */
+            throw std::ios_base::failure("Superfluous witness record");
+        }
     }
     if (flags)
     {
@@ -283,7 +268,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s)
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s << tx.nVersion;
-    s << tx.nTime;
+    s << tx.nTime; // Pocketnet addition
     unsigned char flags = 0;
     // Consistency check
     if (fAllowWitness)
@@ -336,7 +321,7 @@ public:
     const std::vector<CTxIn> vin;
     const std::vector<CTxOut> vout;
     const int32_t nVersion;
-    const uint32_t nTime;
+    const uint32_t nTime; // Pocketnet addition
     const uint32_t nLockTime;
 
 private:
@@ -352,7 +337,7 @@ public:
     CTransaction();
 
     /** Convert a CMutableTransaction into a CTransaction. */
-    CTransaction(const CMutableTransaction& tx);
+    explicit CTransaction(const CMutableTransaction& tx);
     CTransaction(CMutableTransaction&& tx);
 
     template<typename Stream>
@@ -376,8 +361,6 @@ public:
 
     // Return sum of txouts.
     CAmount GetValueOut() const;
-    // GetValueIn() is a method on CCoinsViewCache, because
-    // inputs must be known to compute value in.
 
     /**
      * Get the total transaction size in bytes, including witness data.
@@ -391,7 +374,7 @@ public:
         return (vin.size() == 1 && vin[0].prevout.IsNull());
     }
 
-    bool IsCoinStake() const
+    bool IsCoinStake() const // Pocketnet addition
     {
         return (vin.size() > 0 && (!vin[0].prevout.IsNull()) && vout.size() >= 2 && vout[0].IsEmptyOrWinners());
     }
@@ -427,7 +410,7 @@ struct CMutableTransaction
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
     int32_t nVersion;
-    uint32_t nTime;
+    uint32_t nTime; // Pocketnet addition
     uint32_t nLockTime;
 
     CMutableTransaction();
@@ -469,7 +452,7 @@ struct CMutableTransaction
         return false;
     }
 
-    void SetTime(uint32_t nTime)
+    void SetTime(uint32_t nTime) // Pocketnet addition
     {
         this->nTime = nTime;
     }
@@ -483,4 +466,17 @@ static inline CTransactionRef MakeTransactionRef(Tx&& txIn)
     return std::make_shared<const CTransaction>(std::forward<Tx>(txIn));
 }
 
-#endif // POCKETCOIN_PRIMITIVES_TRANSACTION_H
+/** A generic txid reference (txid or wtxid). */
+class GenTxid
+{
+    bool m_is_wtxid;
+    uint256 m_hash;
+public:
+    GenTxid(bool is_wtxid, const uint256& hash) : m_is_wtxid(is_wtxid), m_hash(hash) {}
+    bool IsWtxid() const { return m_is_wtxid; }
+    const uint256& GetHash() const { return m_hash; }
+    friend bool operator==(const GenTxid& a, const GenTxid& b) { return a.m_is_wtxid == b.m_is_wtxid && a.m_hash == b.m_hash; }
+    friend bool operator<(const GenTxid& a, const GenTxid& b) { return std::tie(a.m_is_wtxid, a.m_hash) < std::tie(b.m_is_wtxid, b.m_hash); }
+};
+
+#endif // BITCOIN_PRIMITIVES_TRANSACTION_H

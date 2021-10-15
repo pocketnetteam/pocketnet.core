@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2018 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef POCKETCOIN_PRIMITIVES_BLOCK_H
-#define POCKETCOIN_PRIMITIVES_BLOCK_H
+#ifndef BITCOIN_PRIMITIVES_BLOCK_H
+#define BITCOIN_PRIMITIVES_BLOCK_H
 
 #include <primitives/transaction.h>
 #include <serialize.h>
@@ -34,17 +34,7 @@ public:
         SetNull();
     }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(this->nVersion);
-        READWRITE(hashPrevBlock);
-        READWRITE(hashMerkleRoot);
-        READWRITE(nTime);
-        READWRITE(nBits);
-        READWRITE(nNonce);
-    }
+    SERIALIZE_METHODS(CBlockHeader, obj) { READWRITE(obj.nVersion, obj.hashPrevBlock, obj.hashMerkleRoot, obj.nTime, obj.nBits, obj.nNonce); }
 
     void SetNull()
     {
@@ -68,7 +58,7 @@ public:
         return (int64_t)nTime;
     }
 
-    unsigned int GetStakeEntropyBit() const
+    unsigned int GetStakeEntropyBit() const // Pocketcoin addition
     {
         // Take last bit of block hash as entropy bit
         unsigned int nEntropyBit = ((UintToArith256(GetHash()).GetLow64()) & 1llu);
@@ -100,29 +90,26 @@ public:
         *(static_cast<CBlockHeader*>(this)) = header;
     }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITEAS(CBlockHeader, *this);
-        READWRITE(vtx);
-        READWRITE(vchBlockSig);
+    SERIALIZE_METHODS(CBlock, obj)
+    {
+        READWRITEAS(CBlockHeader, obj);
+        READWRITE(obj.vtx);
     }
 
     void SetNull()
     {
         CBlockHeader::SetNull();
         vtx.clear();
-        vchBlockSig.clear();
+        vchBlockSig.clear(); // Pocketcoin addition
         fChecked = false;
     }
 
-    bool IsProofOfStake() const
+    bool IsProofOfStake() const // Pocketcoin addition
     {
         return (vtx.size() > 1 && vtx[1]->IsCoinStake());
     }
 
-    bool IsProofOfWork() const
+    bool IsProofOfWork() const // Pocketcoin addition
     {
         return !IsProofOfStake();
     }
@@ -154,14 +141,12 @@ struct CBlockLocator
 
     explicit CBlockLocator(const std::vector<uint256>& vHaveIn) : vHave(vHaveIn) {}
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    SERIALIZE_METHODS(CBlockLocator, obj)
+    {
         int nVersion = s.GetVersion();
         if (!(s.GetType() & SER_GETHASH))
             READWRITE(nVersion);
-        READWRITE(vHave);
+        READWRITE(obj.vHave);
     }
 
     void SetNull()
@@ -175,4 +160,4 @@ struct CBlockLocator
     }
 };
 
-#endif // POCKETCOIN_PRIMITIVES_BLOCK_H
+#endif // BITCOIN_PRIMITIVES_BLOCK_H
