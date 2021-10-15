@@ -243,7 +243,7 @@ static int test_one_input(std::vector<uint8_t> buffer) {
         case CTXOUTCOMPRESSOR_DESERIALIZE:
         {
             CTxOut to;
-#ifdef DISABLE_TEST
+#ifdef DISABLED_TEST
             TxOutCompression toc(to);
             try
             {
