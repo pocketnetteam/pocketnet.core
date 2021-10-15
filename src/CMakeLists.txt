@@ -444,8 +444,8 @@ add_library(${POCKETCOIN_UTIL}
                 utilmoneystr.cpp
                 utiltime.h
                 utiltime.cpp
-                utils/html.h
-                utils/html.cpp
+                util/html.h
+                util/html.cpp
                 random.h
                 random.cpp
                 timedata.h
@@ -454,8 +454,8 @@ add_library(${POCKETCOIN_UTIL}
                 netaddress.cpp
                 ui_interface.h
                 ui_interface.cpp
-                util.h
-                util.cpp
+                util/system.h
+                util/system.cpp
                 chainparamsbase.h
                 chainparamsbase.cpp
                 chainparamsseeds.h

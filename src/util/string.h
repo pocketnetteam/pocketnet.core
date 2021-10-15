@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,49 +7,43 @@
  * Server/client environment: argument handling, config file parsing,
  * thread wrappers, startup time
  */
-#ifndef POCKETCOIN_UTIL_H
-#define POCKETCOIN_UTIL_H
+#ifndef BITCOIN_UTIL_SYSTEM_H
+#define BITCOIN_UTIL_SYSTEM_H
 
 #if defined(HAVE_CONFIG_H)
 #include <config/pocketcoin-config.h>
 #endif
 
+#include <attributes.h>
 #include <compat.h>
+#include <compat/assumptions.h>
 #include <fs.h>
 #include <logging.h>
+#include <optional.h>
 #include <sync.h>
 #include <tinyformat.h>
-#include <utilmemory.h>
-#include <utiltime.h>
+#include <util/memory.h>
+#include <util/settings.h>
+#include <util/threadnames.h>
+#include <util/time.h>
 
-#include <atomic>
 #include <exception>
 #include <map>
 #include <set>
 #include <stdint.h>
 #include <string>
-#include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <boost/thread/condition_variable.hpp> // for boost::thread_interrupted
+
+class UniValue;
 
 // Application startup time (used for uptime calculation)
 int64_t GetStartupTime();
 
 extern const char * const POCKETCOIN_CONF_FILENAME;
-extern const char * const POCKETCOIN_PID_FILENAME;
-
-/** Translate a message to the native language of the user. */
-const extern std::function<std::string(const char*)> G_TRANSLATION_FUN;
-
-/**
- * Translation function.
- * If no translation function is set, simply return the input.
- */
-inline std::string _(const char* psz)
-{
-    return G_TRANSLATION_FUN ? (G_TRANSLATION_FUN)(psz) : psz;
-}
+extern const char * const POCKETCOIN_SETTINGS_FILENAME;
 
 void SetupEnvironment();
 bool SetupNetworking();
@@ -68,7 +62,17 @@ int RaiseFileDescriptorLimit(int nMinFD);
 void AllocateFileRange(FILE *file, unsigned int offset, unsigned int length);
 bool RenameOver(fs::path src, fs::path dest);
 bool LockDirectory(const fs::path& directory, const std::string lockfile_name, bool probe_only=false);
+void UnlockDirectory(const fs::path& directory, const std::string& lockfile_name);
 bool DirIsWritable(const fs::path& directory);
+bool CheckDiskSpace(const fs::path& dir, uint64_t additional_bytes = 0);
+
+/** Get the size of a file by scanning it.
+ *
+ * @param[in] path The file path
+ * @param[in] max Stop seeking beyond this limit
+ * @return The file size or max
+ */
+std::streampos GetFileSize(const char* path, std::streamsize max = std::numeric_limits<std::streamsize>::max());
 
 /** Release all directory locks. This is used for unit testing only, at runtime
  * the global destructor will take care of the locks.
@@ -77,18 +81,33 @@ void ReleaseDirectoryLocks();
 
 bool TryCreateDirectories(const fs::path& p);
 fs::path GetDefaultDataDir();
-const fs::path &GetBlocksDir(bool fNetSpecific = true);
+// The blocks directory is always net specific.
+const fs::path &GetBlocksDir();
 const fs::path &GetDataDir(bool fNetSpecific = true);
+// Return true if -datadir option points to a valid directory or is not specified.
+bool CheckDataDirOption();
+/** Tests only */
 void ClearDatadirCache();
 fs::path GetConfigFile(const std::string& confPath);
-#ifndef WIN32
-fs::path GetPidFile();
-void CreatePidFile(const fs::path &path, pid_t pid);
-#endif
 #ifdef WIN32
 fs::path GetSpecialFolderPath(int nFolder, bool fCreate = true);
 #endif
+#ifndef WIN32
+std::string ShellEscape(const std::string& arg);
+#endif
+#if HAVE_SYSTEM
 void runCommand(const std::string& strCommand);
+#endif
+#ifdef HAVE_BOOST_PROCESS
+/**
+ * Execute a command which returns JSON, and parse the result.
+ *
+ * @param str_command The command to execute, including any arguments
+ * @param str_std_in string to pass to stdin
+ * @return parsed JSON
+ */
+UniValue RunCommandParseJSON(const std::string& str_command, const std::string& str_std_in="");
+#endif // HAVE_BOOST_PROCESS
 
 /**
  * Most paths passed as configuration arguments are treated as relative to
@@ -127,39 +146,82 @@ enum class OptionsCategory {
     HIDDEN // Always the last option to avoid printing these in the help
 };
 
+struct SectionInfo
+{
+    std::string m_name;
+    std::string m_file;
+    int m_line;
+};
+
 class ArgsManager
 {
-protected:
-    friend class ArgsManagerHelper;
+public:
+    enum Flags {
+        // Boolean options can accept negation syntax -noOPTION or -noOPTION=1
+        ALLOW_BOOL = 0x01,
+        ALLOW_INT = 0x02,
+        ALLOW_STRING = 0x04,
+        ALLOW_ANY = ALLOW_BOOL | ALLOW_INT | ALLOW_STRING,
+        DEBUG_ONLY = 0x100,
+        /* Some options would cause cross-contamination if values for
+         * mainnet were used while running on regtest/testnet (or vice-versa).
+         * Setting them as NETWORK_ONLY ensures that sharing a config file
+         * between mainnet and regtest/testnet won't cause problems due to these
+         * parameters by accident. */
+        NETWORK_ONLY = 0x200,
+        // This argument's value is sensitive (such as a password).
+        SENSITIVE = 0x400,
+    };
 
+protected:
     struct Arg
     {
         std::string m_help_param;
         std::string m_help_text;
-        bool m_debug_only;
-
-        Arg(const std::string& help_param, const std::string& help_text, bool debug_only) : m_help_param(help_param), m_help_text(help_text), m_debug_only(debug_only) {};
+        unsigned int m_flags;
     };
 
-    mutable CCriticalSection cs_args;
-    std::map<std::string, std::vector<std::string>> m_override_args GUARDED_BY(cs_args);
-    std::map<std::string, std::vector<std::string>> m_config_args GUARDED_BY(cs_args);
+    mutable RecursiveMutex cs_args;
+    util::Settings m_settings GUARDED_BY(cs_args);
     std::string m_network GUARDED_BY(cs_args);
     std::set<std::string> m_network_only_args GUARDED_BY(cs_args);
     std::map<OptionsCategory, std::map<std::string, Arg>> m_available_args GUARDED_BY(cs_args);
+    std::list<SectionInfo> m_config_sections GUARDED_BY(cs_args);
 
-    bool ReadConfigStream(std::istream& stream, std::string& error, bool ignore_invalid_keys = false);
+    NODISCARD bool ReadConfigStream(std::istream& stream, const std::string& filepath, std::string& error, bool ignore_invalid_keys = false);
+
+    /**
+     * Returns true if settings values from the default section should be used,
+     * depending on the current network and whether the setting is
+     * network-specific.
+     */
+    bool UseDefaultSection(const std::string& arg) const EXCLUSIVE_LOCKS_REQUIRED(cs_args);
+
+    /**
+     * Get setting value.
+     *
+     * Result will be null if setting was unset, true if "-setting" argument was passed
+     * false if "-nosetting" argument was passed, and a string if a "-setting=value"
+     * argument was passed.
+     */
+    util::SettingsValue GetSetting(const std::string& arg) const;
+
+    /**
+     * Get list of setting values.
+     */
+    std::vector<util::SettingsValue> GetSettingsList(const std::string& arg) const;
 
 public:
     ArgsManager();
+    ~ArgsManager();
 
     /**
      * Select the network in use
      */
     void SelectConfigNetwork(const std::string& network);
 
-    bool ParseParameters(int argc, const char* const argv[], std::string& error);
-    bool ReadConfigFiles(std::string& error, bool ignore_invalid_keys = false);
+    NODISCARD bool ParseParameters(int argc, const char* const argv[], std::string& error);
+    NODISCARD bool ReadConfigFiles(std::string& error, bool ignore_invalid_keys = false);
 
     /**
      * Log warnings for options in m_section_only_args when
@@ -167,7 +229,12 @@ public:
      * on the command line or in a network-specific section in the
      * config file.
      */
-    void WarnForSectionOnlyArgs();
+    const std::set<std::string> GetUnsuitableSectionOnlyArgs() const;
+
+    /**
+     * Log warnings for unrecognized section names in the config file.
+     */
+    const std::list<SectionInfo> GetUnrecognizedSections() const;
 
     /**
      * Return a vector of strings of the given argument
@@ -244,7 +311,7 @@ public:
     void ForceSetArg(const std::string& strArg, const std::string& strValue);
 
     /**
-     * Looks for -regtest, -testnet and returns the appropriate BIP70 chain name.
+     * Returns the appropriate chain name from the program arguments.
      * @return CBaseChainParams::MAIN by default; raises runtime error if an invalid combination is given.
      */
     std::string GetChainName() const;
@@ -252,7 +319,7 @@ public:
     /**
      * Add argument
      */
-    void AddArg(const std::string& name, const std::string& help, const bool debug_only, const OptionsCategory& cat);
+    void AddArg(const std::string& name, const std::string& help, unsigned int flags, const OptionsCategory& cat);
 
     /**
      * Add many hidden arguments
@@ -265,6 +332,7 @@ public:
     void ClearArgs() {
         LOCK(cs_args);
         m_available_args.clear();
+        m_network_only_args.clear();
     }
 
     /**
@@ -273,9 +341,56 @@ public:
     std::string GetHelpMessage() const;
 
     /**
-     * Check whether we know of this arg
+     * Return Flags for known arg.
+     * Return nullopt for unknown arg.
      */
-    bool IsArgKnown(const std::string& key) const;
+    Optional<unsigned int> GetArgFlags(const std::string& name) const;
+
+    /**
+     * Read and update settings file with saved settings. This needs to be
+     * called after SelectParams() because the settings file location is
+     * network-specific.
+     */
+    bool InitSettings(std::string& error);
+
+    /**
+     * Get settings file path, or return false if read-write settings were
+     * disabled with -nosettings.
+     */
+    bool GetSettingsPath(fs::path* filepath = nullptr, bool temp = false) const;
+
+    /**
+     * Read settings file. Push errors to vector, or log them if null.
+     */
+    bool ReadSettingsFile(std::vector<std::string>* errors = nullptr);
+
+    /**
+     * Write settings file. Push errors to vector, or log them if null.
+     */
+    bool WriteSettingsFile(std::vector<std::string>* errors = nullptr) const;
+
+    /**
+     * Access settings with lock held.
+     */
+    template <typename Fn>
+    void LockSettings(Fn&& fn)
+    {
+        LOCK(cs_args);
+        fn(m_settings);
+    }
+
+    /**
+     * Log the config file options and the command line arguments,
+     * useful for troubleshooting.
+     */
+    void LogArgs() const;
+
+private:
+    // Helper function for LogArgs().
+    void logArgsPrefix(
+        const std::string& prefix,
+        const std::string& section,
+        const std::map<std::string, std::vector<util::SettingsValue>>& args) const;
 };
 
 extern ArgsManager gArgs;
@@ -284,6 +399,9 @@ extern ArgsManager gArgs;
  * @return true if help has been requested via a command-line arg
  */
 bool HelpRequested(const ArgsManager& args);
+
+/** Add help options to the args manager */
+void SetupHelpOptions(ArgsManager& args);
 
 /**
  * Format a string to be used as group of options in help messages
@@ -308,15 +426,12 @@ std::string HelpMessageOpt(const std::string& option, const std::string& message
  */
 int GetNumCores();
 
-void RenameThread(const char* name);
-
 /**
  * .. and a wrapper that just calls func once
  */
 template <typename Callable> void TraceThread(const char* name,  Callable func)
 {
-    std::string s = strprintf("pocketcoin-%s", name);
-    RenameThread(s.c_str());
+    util::ThreadRename(name);
     try
     {
         LogPrintf("%s thread start\n", name);
@@ -344,10 +459,8 @@ std::string CopyrightHolders(const std::string& strPrefix);
  * On platforms that support it, tell the kernel the calling thread is
  * CPU-intensive and non-interactive. See SCHED_BATCH in sched(7) for details.
  *
- * @return The return value of sched_setschedule(), or 1 on systems without
- * sched_setschedule().
  */
-int ScheduleBatchPriority();
+void ScheduleBatchPriority();
 
 namespace util {
 
@@ -361,6 +474,21 @@ inline void insert(std::set<TsetT>& dst, const Tsrc& src) {
     dst.insert(src.begin(), src.end());
 }
 
+#ifdef WIN32
+class WinCmdLineArgs
+{
+public:
+    WinCmdLineArgs();
+    ~WinCmdLineArgs();
+    std::pair<int, char**> get();
+
+private:
+    int argc;
+    char** argv;
+    std::vector<std::string> args;
+};
+#endif
+
 } // namespace util
 
-#endif // POCKETCOIN_UTIL_H
+#endif // BITCOIN_UTIL_SYSTEM_H

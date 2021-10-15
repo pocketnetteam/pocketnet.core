@@ -342,7 +342,7 @@ POCKETCOIN_CORE_H = \
     txmempool.h \
     ui_interface.h \
     undo.h \
-    util.h \
+    util/system.h \
     utilmemory.h \
     utilmoneystr.h \
     utiltime.h \
@@ -367,7 +367,7 @@ POCKETCOIN_CORE_H = \
     zmq/zmqpublishnotifier.h \
     zmq/zmqrpc.h \
     websocket/ws.h \
-    utils/html.h \
+    util/html.h \
     $(POCKETDB_H)
 
 
@@ -429,7 +429,7 @@ libpocketcoin_server_a_SOURCES = \
     validationinterface.cpp \
     versionbits.cpp \
     websocket/ws.cpp \
-    utils/html.cpp \
+    util/html.cpp \
     $(POCKETDB_CPP) \
     $(POCKETCOIN_CORE_H)
 
@@ -594,7 +594,7 @@ libpocketcoin_util_a_SOURCES = \
   support/cleanse.cpp \
   sync.cpp \
   threadinterrupt.cpp \
-  util.cpp \
+  util/system.cpp \
   utilmoneystr.cpp \
   utilstrencodings.cpp \
   utiltime.cpp \
