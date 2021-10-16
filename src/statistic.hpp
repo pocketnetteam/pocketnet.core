@@ -248,6 +248,7 @@ namespace Statistic
                 rpcStat.pushKV("CacheSize", ceil(((double)cacheSize / 1024.0 / 1024.0 * 1000.0)) / 1000.0);
             }
 
+            rpcStat.pushKV("WSConnections", (int) WSConnections.size());
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since, false));
             rpcStat.pushKV("RequestsCache", (int) GetNumSamplesSince(since, true));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since, false).count());
