@@ -623,8 +623,10 @@ namespace PocketWeb::PocketWebRpc
 
         std::map<std::string, std::map<PostRanks, double>> postsRanks;
 
-        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContents(0, nHeight, nHeight - cntBlocksForResult,
-            "", lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, "");
+        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContents(
+            0, nHeight, nHeight - cntBlocksForResult, "", lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, "");
+
+            
         //for (auto& c : contents)
 
         /*err = g_pocketdb->DB()->Select(query, queryResults);

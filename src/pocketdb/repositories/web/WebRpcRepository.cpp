@@ -566,7 +566,7 @@ namespace PocketDb
                 and c.Height is not null
                 and c.Last = 1
                 and c.Time < ?
-                and c.String2 in ()sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql()
+                and c.String2 in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
         )sql";
 
         //TODO add donate amount
@@ -623,7 +623,7 @@ namespace PocketDb
                 on sub.Type in (302, 303) and sub.Last=1 and sub.Height is not null and sub.String2=sc.String1 AND sub.String1=?
 
             where sc.Type in (300) and sc.Height is not null
-                and sc.String2 in ()sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql()
+                and sc.String2 in ( )sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql( )
             order by sub.Type is null, sc.Time
         )sql";
 
@@ -858,9 +858,9 @@ namespace PocketDb
                     else 0
                 end as Private
             from Transactions
-            where Type in ()sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql()
+            where Type in ( )sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
               and Last = 1
-              and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+              and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -896,10 +896,10 @@ namespace PocketDb
                 String2 as AddressToHash,
                 String1 as AddressHash
             from Transactions indexed by Transactions_Type_Last_String2_Height
-            where Type in ()sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql()
+            where Type in ( )sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
               and Last = 1
               and Height is not null
-              and String2 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+              and String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
         )sql";
 
         auto result = map<string, UniValue>();
@@ -935,7 +935,7 @@ namespace PocketDb
                 String2 as AddressToHash
             FROM Transactions
             WHERE Type in (305) and Last = 1
-            and String1 in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+            and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
         )sql";
 
         auto result = map<string, UniValue>();
@@ -990,7 +990,7 @@ namespace PocketDb
                 and t.Time <= ?
                 and t.String3 is null
                 and p.String1 = ?
-                and t.Type in ()sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql()
+                and t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
             order by t.Height desc, t.Time desc
             limit ?
         )sql";*/
@@ -1024,7 +1024,7 @@ namespace PocketDb
                 and t.Time <= ?
                 and t.String3 is null
                 and p.String1 = ?
-                and t.Type in ()sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql()
+                and t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
             order by t.Height desc, t.Time desc
             limit ?
         )sql";
@@ -1351,7 +1351,8 @@ namespace PocketDb
     }
 
     // TODO (brangr, mavreh): добавить свои лайки
-    map<string, UniValue> WebRpcRepository::GetContents(int countOut, int nHeightLe, int nHeightGt,
+    map<string, UniValue> WebRpcRepository::GetContents(
+        int countOut, int nHeightLe, int nHeightGt,
         const string& contentId, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes,
         const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
@@ -1378,19 +1379,28 @@ namespace PocketDb
                 and t.Id < ifnull((select max(t0.Id) from Transactions t0 indexed by Transactions_Type_Last_String2_Height
                                  where t0.Type in (200, 201) and t0.String2 = ? and t0.Last = 1), 9999999999999)
                 and t.Height <= ?
-                and t.Height > ?
+                --and t.Height > ?
                 and t.Time <= ?
                 and t.String3 is null
-                )sql";
-        if (!lang.empty()) sql += " and p.String1 = ?";
+        )sql";
+
+        if (!lang.empty()) sql += " and p.String1 = ? ";
+
         if (!tags.empty()) sql += " and t.id in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
-        if (!contentTypes.empty()) sql += " and t.Type in ()sql" + join(vector<string>(contentTypes.size(), "?"), ",") + ")";
+        
+        if (!contentTypes.empty()) sql += " and t.Type in ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
         else sql += " and t.Type != ? ";
+        
         if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+        
         if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
-        if (!tags.empty()) sql += " and t.id not in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+        
+        if (!tagsExcluded.empty()) sql += " and t.id not in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
+        
         if (!address.empty()) sql += " and t.String1 = ? ";
+        
         sql += " order by t.Id desc ";
+        
         if (countOut > 0) sql += " limit ? ";
 
         map<string, UniValue> result{};
@@ -1403,25 +1413,44 @@ namespace PocketDb
 
             TryBindStatementText(stmt, nBind++, contentId);
             TryBindStatementInt(stmt, nBind++, nHeightLe);
-            TryBindStatementInt(stmt, nBind++, nHeightGt);
+
+            // TODO (brangr, mavreh): Это условие не отдает если не было постов - нужно вообще это условие?
+            // TryBindStatementInt(stmt, nBind++, nHeightGt);
+            
             TryBindStatementInt64(stmt, nBind++, GetAdjustedTime());
+            
             if (!lang.empty()) TryBindStatementText(stmt, nBind++, lang);
-            for (const auto& tag: tags)
-                TryBindStatementText(stmt, nBind++, contentId);
+
+            if (!tags.empty())
+                for (const auto& tag: tags)
+                    TryBindStatementText(stmt, nBind++, tag);
+
             if (!contentTypes.empty())
                 for (const auto& contenttype: contentTypes)
                     TryBindStatementInt(stmt, nBind++, contenttype);
             else
                 TryBindStatementInt(stmt, nBind++, TxType::CONTENT_DELETE);
-            for (const auto& extxid: txidsExcluded)
-                TryBindStatementText(stmt, nBind++, extxid);
-            for (const auto& exadr: adrsExcluded)
-                TryBindStatementText(stmt, nBind++, exadr);
-            for (const auto& extag: tagsExcluded)
-                TryBindStatementText(stmt, nBind++, extag);
+
+            if (!txidsExcluded.empty())
+                for (const auto& extxid: txidsExcluded)
+                    TryBindStatementText(stmt, nBind++, extxid);
+            
+            if (!adrsExcluded.empty())
+                for (const auto& exadr: adrsExcluded)
+                    TryBindStatementText(stmt, nBind++, exadr);
+            
+            if (!tagsExcluded.empty())
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, nBind++, extag);
+            
             if (!address.empty()) TryBindStatementText(stmt, nBind++, address);
+            
             if (countOut > 0) TryBindStatementInt(stmt, nBind++, countOut);
 
+            LogPrintf("!!! countOut = %d\n", countOut);
+            LogPrintf("--- %s\n", sqlite3_expanded_sql(*stmt));
+
+            // Get results
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
@@ -1464,6 +1493,7 @@ namespace PocketDb
                     record.pushKV("s", s);
                 }
 
+                // TODO (brangr): implement
                 record.pushKV("scoreSum", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
                 record.pushKV("scoreCnt", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
                 //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
@@ -1724,7 +1754,7 @@ map<string, UniValue> GetContents(map<string, param>& conditions)
                 t.Type
             from TxOutputs o
             join Transactions t on t.Hash=o.TxHash
-            where o.AddressHash in ()sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql()
+            where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
                 and o.SpentHeight is null
         )sql";
 

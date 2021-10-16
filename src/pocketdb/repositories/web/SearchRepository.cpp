@@ -56,8 +56,8 @@ namespace PocketDb
         string sql = R"sql(
             select t.Id
             from Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
-            join web.Content c on c.FieldType in ()sql" + fieldTypes + R"sql() and c.Value like ? and c.ContentId = t.Id
-            where t.Type in ()sql" + txTypes + R"sql()
+            join web.Content c on c.FieldType in ( )sql" + fieldTypes + R"sql( ) and c.Value like ? and c.ContentId = t.Id
+            where t.Type in ( )sql" + txTypes + R"sql( )
                 and t.Height is not null
                 )sql" + heightWhere + R"sql(
                 )sql" + addressWhere + R"sql(

@@ -57,8 +57,10 @@ namespace PocketWeb::PocketWebRpc
                 "getuserprofile \"address\" ( shortForm )\n"
                 "\nReturn Pocketnet user profile.\n");
 
+        UniValue result(UniValue::VARR);
+
         if (request.params.empty())
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
+            return result;
 
         vector<string> addresses;
         if (request.params[0].isStr())
@@ -67,26 +69,23 @@ namespace PocketWeb::PocketWebRpc
         {
             UniValue addr = request.params[0].get_array();
             for (unsigned int idx = 0; idx < addr.size(); idx++)
-            {
                 addresses.push_back(addr[idx].get_str());
-            }
         }
 
         if (addresses.empty())
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+            return result;
 
         // Short profile form is: address, b, i, name
         bool shortForm = false;
         if (request.params.size() > 1)
             shortForm = request.params[1].get_str() == "1";
 
-        UniValue aResult(UniValue::VARR);
-
+        // Get data
         map<string, UniValue> profiles = GetUsersProfiles(request.DbConnection(), addresses, shortForm);
         for (auto& p : profiles)
-            aResult.push_back(p.second);
+            result.push_back(p.second);
 
-        return aResult;
+        return result;
     }
 
     UniValue GetUserAddress(const JSONRPCRequest& request)
