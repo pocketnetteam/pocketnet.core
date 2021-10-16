@@ -16,6 +16,7 @@
 #include "pocketdb/web/PocketAccountRpc.h"
 #include "pocketdb/web/PocketTransactionRpc.h"
 #include "pocketdb/web/WebSocketRpc.h"
+#include "pocketdb/web/SearchRpc.h"
 
 using namespace PocketWeb::PocketWebRpc;
 

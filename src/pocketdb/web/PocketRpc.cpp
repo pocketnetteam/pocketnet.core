@@ -44,10 +44,12 @@ static const CRPCCommand commands[] =
     {"artifacts", "getrawtransactionwithmessagebyid", &getrawtransactionwithmessagebyid,  {"ids"}},
     {"artifacts", "getrawtransactionwithmessage",     &gettemplate,                       {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
-    {"artifacts", "search",                           &gettemplate,                       {"search_string", "type", "count"}},
     {"artifacts", "searchlinks",                      &gettemplate,                       {"search_request", "contenttypes", "height", "count"}},
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecomendedsubscriptionsforuser",&gettemplate,                       {"address", "count"}},
+
+    // Search
+    {"search",          "search",                           &Search,                        {"keyword", "type", "topBlock", "pageStart", "pageSize", "address"}},
 
     // WebSocket
     { "websocket",      "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},

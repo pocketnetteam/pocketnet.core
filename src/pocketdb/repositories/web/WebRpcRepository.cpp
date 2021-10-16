@@ -1268,7 +1268,7 @@ namespace PocketDb
                 UniValue record(UniValue::VOBJ);
 
                 auto[okHash, txHash] = TryGetColumnString(*stmt, 0);
-                auto[okId, txId] = TryGetColumnString(*stmt, 1);
+                auto[okId, txId] = TryGetColumnInt64(*stmt, 1);
                 record.pushKV("txid", txHash);
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("edit", value);
