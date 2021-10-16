@@ -1447,9 +1447,6 @@ namespace PocketDb
             
             if (countOut > 0) TryBindStatementInt(stmt, nBind++, countOut);
 
-            LogPrintf("!!! countOut = %d\n", countOut);
-            LogPrintf("--- %s\n", sqlite3_expanded_sql(*stmt));
-
             // Get results
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
