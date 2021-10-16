@@ -1309,10 +1309,7 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
         {
             std::string pocketBlockData;
             if (!PocketServices::Accessor::GetBlock(*pblock, pocketBlockData))
-            {
-                return; // TODO (brangr): DEBUG
                 assert(!"cannot load block payload from sqlite db");
-            }
 
             if (inv.type == MSG_FILTERED_BLOCK) {
                 bool sendMerkleBlock = false;
@@ -1415,7 +1412,7 @@ void static ProcessGetData(CNode* pfrom, const CChainParams& chainparams, CConnm
                     // Join PocketNet data from PocketDB to transaction stream
                     std::string txPayloadData;
                     if (PocketServices::Accessor::GetTransaction(*txinfo.tx, txPayloadData)) {
-                        connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *txinfo.tx, "POCKET_DB_DATA"));
+                        connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *txinfo.tx, txPayloadData));
                         push = true;
                     }
                 }

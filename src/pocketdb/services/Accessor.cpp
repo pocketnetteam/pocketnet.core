@@ -55,6 +55,8 @@ namespace PocketServices
     // Read transaction data for send via network
     bool Accessor::GetTransaction(const CTransaction& tx, string& data)
     {
+        LogPrintf("!!!!! Try get transaction data %s\n", tx.GetHash().GetHex());
+
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
             return true;
 

@@ -117,7 +117,7 @@ namespace PocketDb
                     p.String7 pString7
                 FROM Transactions t indexed by Transactions_Type_Last_String2_Height
                 LEFT JOIN Payload p on t.Hash = p.TxHash
-                WHERE t.Type in (200, 201, 202, 203, 204, 205, 206)
+                WHERE t.Type in (200, 201, 202, 203, 204, 205, 206, 207)
                     and t.String2 = ?
                     and t.Last = 1
                     and t.Height is not null

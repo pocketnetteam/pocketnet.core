@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/models/base/Base.h"
+#include "utilstrencodings.h"
 
 namespace PocketTx
 {
@@ -26,18 +27,36 @@ namespace PocketTx
 
     tuple<bool, int> Base::TryGetInt(const UniValue& o, const string& key)
     {
-        auto exists = o.exists(key) && o[key].isNum();
+        auto exists = o.exists(key);
         if (exists)
-            return make_tuple(true, o[key].get_int());
+        {
+            if (o[key].isNum())
+                return make_tuple(true, o[key].get_int());
+            else
+            {
+                int val;
+                if (ParseInt32(o[key].get_str(), &val))
+                    return make_tuple(true, val);
+            }
+        }
 
         return make_tuple(false, 0);
     }
 
     tuple<bool, int64_t> Base::TryGetInt64(const UniValue& o, const string& key)
     {
-        auto exists = o.exists(key) && o[key].isNum();
+        auto exists = o.exists(key);
         if (exists)
-            return make_tuple(true, o[key].get_int64());
+        {
+            if (o[key].isNum())
+                return make_tuple(true, o[key].get_int64());
+            else
+            {
+                int64_t val;
+                if (ParseInt64(o[key].get_str(), &val))
+                    return make_tuple(true, val);
+            }
+        }
 
         return make_tuple(false, 0);
     }
