@@ -25,10 +25,10 @@ namespace PocketDb
                 // Also all edited transactions must have Last=(0/1) field
                 {
                     if (txInfo.IsAccount())
-                        IndexAccount(txInfo.Hash);
+                        IndexAccount(txInfo.Hash, txInfo.Type);
 
                     if (txInfo.IsContent())
-                        IndexContent(txInfo.Hash);
+                        IndexContent(txInfo.Hash, txInfo.Type);
 
                     if (txInfo.IsComment())
                         IndexComment(txInfo.Hash);
@@ -190,7 +190,7 @@ namespace PocketDb
         TryStepStatement(stmtOld);
     }
 
-    void ChainRepository::IndexAccount(const string& txHash)
+    void ChainRepository::IndexAccount(const string& txHash, TxType txType)
     {
         // Get new ID or copy previous
         auto setIdStmt = SetupSqlStatement(R"sql(
@@ -200,7 +200,7 @@ namespace PocketDb
                     (
                         select a.Id
                         from Transactions a indexed by Transactions_Type_Last_String1_Height
-                        where a.Type = Transactions.Type
+                        where a.Type in (?)
                             and a.Last = 1
                             -- String1 = AddressHash
                             and a.String1 = Transactions.String1
@@ -219,14 +219,15 @@ namespace PocketDb
                 Last = 1
             WHERE Hash = ?
         )sql");
-        TryBindStatementText(setIdStmt, 1, txHash);
+        TryBindStatementInt(setIdStmt, 1, (int)txType);
+        TryBindStatementText(setIdStmt, 2, txHash);
         TryStepStatement(setIdStmt);
 
         // Clear old last records for set new last
         ClearOldLast(txHash);
     }
 
-    void ChainRepository::IndexContent(const string& txHash)
+    void ChainRepository::IndexContent(const string& txHash, TxType txType)
     {
         // Get new ID or copy previous
         auto setIdStmt = SetupSqlStatement(R"sql(
@@ -236,7 +237,7 @@ namespace PocketDb
                     (
                         select c.Id
                         from Transactions c indexed by Transactions_Type_Last_String2_Height
-                        where c.Type in (Transactions.Type, 207)
+                        where c.Type in (?, 207)
                             and c.Last = 1
                             -- String2 = RootTxHash
                             and c.String2 = Transactions.String2
@@ -255,7 +256,8 @@ namespace PocketDb
                 Last = 1
             WHERE Hash = ?
         )sql");
-        TryBindStatementText(setIdStmt, 1, txHash);
+        TryBindStatementInt(setIdStmt, 1, (int)txType);
+        TryBindStatementText(setIdStmt, 2, txHash);
         TryStepStatement(setIdStmt);
 
         // Clear old last records for set new last
