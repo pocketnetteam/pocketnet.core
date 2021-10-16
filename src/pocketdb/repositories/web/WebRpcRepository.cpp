@@ -271,6 +271,9 @@ namespace PocketDb
     vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm, int option)
     {
         vector<tuple<string, int64_t, UniValue>> result{};
+
+        if (addresses.empty() && ids.empty())
+            return result;
         
         string where;
         if (!addresses.empty())
@@ -364,7 +367,6 @@ namespace PocketDb
 
         return result;
     }
-
     map<string, UniValue> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, bool shortForm, int option)
     {
         map<string, UniValue> result{};
@@ -375,12 +377,11 @@ namespace PocketDb
 
         return result;
     }
-
     map<int64_t, UniValue> WebRpcRepository::GetAccountProfiles(const vector<int64_t>& ids, bool shortForm, int option)
     {
         map<int64_t, UniValue> result{};
 
-        auto _result = GetAccountProfiles({}, ids,shortForm, option);
+        auto _result = GetAccountProfiles({}, ids, shortForm, option);
         for (const auto[address, id, record] : _result)
             result.insert_or_assign(id, record);
 
@@ -1217,20 +1218,138 @@ namespace PocketDb
         return result;
     }
 
-
+    // TODO (brangr, mavreh): добавить свои лайки
     vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetContentsData(const vector<string>& txHashes, const vector<int64_t>& ids, const string& address)
     {
+        vector<tuple<string, int64_t, UniValue>> result{};
 
+        string where;
+        if (!txHashes.empty())
+            where += " and t.Hash in (" + join(vector<string>(txHashes.size(), "?"), ",") + ") ";
+        if (!ids.empty())
+            where += " and t.Id in (" + join(vector<string>(ids.size(), "?"), ",") + ") ";
+
+        string sql = R"sql(
+            select
+                t.String2 as RootTxHash,
+                t.Id,
+                case when t.Hash != t.String2 then 'true' else null end edit,
+                t.String3 as RelayTxHash,
+                t.String1 as AddressHash,
+                t.Time,
+                p.String1 as Lang,
+                t.Type,
+                p.String2 as Caption,
+                p.String3 as Message,
+                p.String7 as Url,
+                p.String4 as Tags,
+                p.String5 as Images,
+                p.String6 as Settings
+            from Transactions t
+            join Payload p on t.Hash = p.TxHash
+            where t.Type in (200, 201)
+              and t.Height is not null
+              and t.Last = 1
+        )sql";
+
+        std::vector<std::string> authors;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            for (const string& txHash : txHashes)
+                TryBindStatementText(stmt, i++, txHash);
+            for (int64_t id : ids)
+                TryBindStatementInt64(stmt, i++, id);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                auto[okHash, txHash] = TryGetColumnString(*stmt, 0);
+                auto[okId, txId] = TryGetColumnString(*stmt, 1);
+                record.pushKV("txid", txHash);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("edit", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("repost", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok)
+                {
+                    authors.emplace_back(value);
+                    record.pushKV("address", value);
+                }
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("l", value); // lang
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("c", value); // caption
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("m", value); // message
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("u", value); // url
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
+                {
+                    UniValue t(UniValue::VARR);
+                    t.read(value);
+                    record.pushKV("t", t);
+                }
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
+                {
+                    UniValue i(UniValue::VARR);
+                    i.read(value);
+                    record.pushKV("i", i);
+                }
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok)
+                {
+                    UniValue s(UniValue::VOBJ);
+                    s.read(value);
+                    record.pushKV("s", s);
+                }
+
+                record.pushKV("scoreSum", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
+                record.pushKV("scoreCnt", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
+                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
+                record.pushKV("comments", 0);//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
+                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("lastComment", valueStr);
+                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("reposted", valueStr);
+
+                result.emplace_back(txHash, txId, record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        auto profiles = GetAccountProfiles(authors, true, 0);
+        for (auto[hash, id, record] : result)
+        {
+            std::string useradr = record["address"].get_str();
+            record.pushKV("userprofile", profiles[useradr]);
+        }
+
+        return result;
     }
     map<string, UniValue> WebRpcRepository::GetContentsData(const vector<string>& txHashes, const string& address)
     {
+        map<string, UniValue> result{};
 
+        auto _result = GetContentsData(txHashes, {}, address);
+        for (const auto[hash, id, record] : _result)
+            result.insert_or_assign(hash, record);
+
+        return result;
     }
     map<int64_t, UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
     {
+        map<int64_t, UniValue> result{};
 
+        auto _result = GetContentsData({}, ids, address);
+        for (const auto[hash, id, record] : _result)
+            result.insert_or_assign(id, record);
+
+        return result;
     }
 
+    // TODO (brangr, mavreh): добавить свои лайки
     map<string, UniValue> WebRpcRepository::GetContents(int countOut, int nHeightLe, int nHeightGt,
         const string& contentId, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes,
@@ -1262,16 +1381,16 @@ namespace PocketDb
                 and t.Time <= ?
                 and t.String3 is null
                 )sql";
-        if (!lang.empty()) sql += R"sql( and p.String1 = ?)sql";
-        if (!tags.empty()) sql += R"sql( and t.id in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ()sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql()))sql";
-        if (!contentTypes.empty()) sql += R"sql( and t.Type in ()sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql())sql";
-        else sql += R"sql( and t.Type != ?)sql";
-        if (!txidsExcluded.empty()) sql += R"sql( and t.String2 not in ()sql" + join(vector<string>(txidsExcluded.size(), "?"), ",") + R"sql())sql";
-        if (!adrsExcluded.empty()) sql += R"sql( and t.String1 not in ()sql" + join(vector<string>(adrsExcluded.size(), "?"), ",") + R"sql())sql";
-        if (!tags.empty()) sql += R"sql( and t.id not in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ()sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql()))sql";
-        if (!address.empty()) sql += R"sql( and t.String1 = ?)sql";
-        sql += R"sql( order by t.Id desc)sql";
-        if (countOut > 0) sql += R"sql( limit ?)sql";
+        if (!lang.empty()) sql += " and p.String1 = ?";
+        if (!tags.empty()) sql += " and t.id in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+        if (!contentTypes.empty()) sql += " and t.Type in ()sql" + join(vector<string>(contentTypes.size(), "?"), ",") + ")";
+        else sql += " and t.Type != ? ";
+        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!tags.empty()) sql += " and t.id not in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+        if (!address.empty()) sql += " and t.String1 = ? ";
+        sql += " order by t.Id desc ";
+        if (countOut > 0) sql += " limit ? ";
 
         map<string, UniValue> result{};
         std::vector<std::string> authors;
@@ -1315,9 +1434,6 @@ namespace PocketDb
                 {
                     authors.emplace_back(value);
                     record.pushKV("address", value);
-                    //UniValue userprofile(UniValue::VARR);
-                    //auto userprofile = GetAccountProfiles({value});
-                    //record.pushKV("userprofile", userprofile[0]);
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
@@ -1360,7 +1476,7 @@ namespace PocketDb
             FinalizeSqlStatement(*stmt);
         });
 
-        auto profiles = GetAccountProfiles(authors);
+        auto profiles = GetAccountProfiles(authors, true, 0);
         for (const auto& item: result)
         {
             std::string useradr = item.second["address"].get_str();
