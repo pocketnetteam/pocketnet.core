@@ -39,7 +39,6 @@ BOOST_AUTO_TEST_CASE(gcsfilter_test)
     }
 }
 
-#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(blockfilter_basic_test)
 {
     CScript included_scripts[5], excluded_scripts[3];
@@ -76,9 +75,9 @@ BOOST_AUTO_TEST_CASE(blockfilter_basic_test)
 
     CBlockUndo block_undo;
     block_undo.vtxundo.emplace_back();
-    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(500, included_scripts[3]), 1000, true, false);
-    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(600, included_scripts[4]), 10000, false, false);
-    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(700, excluded_scripts[2]), 100000, false, false);
+    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(500, included_scripts[3]), 1000, true, false, false);
+    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(600, included_scripts[4]), 10000, false, false, false);
+    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(700, excluded_scripts[2]), 100000, false, false, false);
 
     BlockFilter block_filter(BlockFilterType::BASIC, block, block_undo);
     const GCSFilter& filter = block_filter.GetFilter();
@@ -90,9 +89,9 @@ BOOST_AUTO_TEST_CASE(blockfilter_basic_test)
         BOOST_CHECK(!filter.Match(GCSFilter::Element(script.begin(), script.end())));
     }
 }
-#endif
 
 #ifdef DISABLED_TEST
+/* TODO: blockfilters.json needs to be updated with PocketNet compatible block headers for this test to work */
 BOOST_AUTO_TEST_CASE(blockfilters_json_test)
 {
     UniValue json;
@@ -117,7 +116,8 @@ BOOST_AUTO_TEST_CASE(blockfilters_json_test)
 
         unsigned int pos = 0;
         /*int block_height =*/ test[pos++].get_int();
-        /*uint256 block_hash =*/ ParseHashStr(test[pos++].get_str(), "block_hash");
+        uint256 block_hash;
+        BOOST_CHECK(ParseHashStr(test[pos++].get_str(), block_hash));
 
         CBlock block;
         BOOST_REQUIRE(DecodeHexBlk(block, test[pos++].get_str()));
@@ -129,12 +129,14 @@ BOOST_AUTO_TEST_CASE(blockfilters_json_test)
         for (unsigned int ii = 0; ii < prev_scripts.size(); ii++) {
             std::vector<unsigned char> raw_script = ParseHex(prev_scripts[ii].get_str());
             CTxOut txout(0, CScript(raw_script.begin(), raw_script.end()));
-            tx_undo.vprevout.emplace_back(txout, 0, false, false);
+            tx_undo.vprevout.emplace_back(txout, 0, false, false, false);
         }
 
-        uint256 prev_filter_header_basic = ParseHashStr(test[pos++].get_str(), "prev_filter_header_basic");
+        uint256 prev_filter_header_basic;
+        BOOST_CHECK(ParseHashStr(test[pos++].get_str(), prev_filter_header_basic));
         std::vector<unsigned char> filter_basic = ParseHex(test[pos++].get_str());
-        uint256 filter_header_basic = ParseHashStr(test[pos++].get_str(), "filter_header_basic");
+        uint256 filter_header_basic;
+        BOOST_CHECK(ParseHashStr(test[pos++].get_str(), filter_header_basic));
 
         BlockFilter computed_filter_basic(BlockFilterType::BASIC, block, block_undo);
         BOOST_CHECK(computed_filter_basic.GetFilter().GetEncoded() == filter_basic);
