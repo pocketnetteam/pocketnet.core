@@ -1217,6 +1217,20 @@ namespace PocketDb
         return result;
     }
 
+
+    vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetContentsData(const vector<string>& txHashes, const vector<int64_t>& ids, const string& address)
+    {
+
+    }
+    map<string, UniValue> WebRpcRepository::GetContentsData(const vector<string>& txHashes, const string& address)
+    {
+
+    }
+    map<int64_t, UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
+    {
+
+    }
+
     map<string, UniValue> WebRpcRepository::GetContents(int countOut, int nHeightLe, int nHeightGt,
         const string& contentId, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes,
