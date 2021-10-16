@@ -19,7 +19,7 @@ namespace PocketDbWeb
         ContentFieldType FieldType;
         string Value;
 
-        Content(int64_t contentId, ContentFieldType fieldType, string value)
+        Content(int64_t contentId, ContentFieldType fieldType, const string& value)
         {
             ContentId = contentId;
             FieldType = fieldType;

@@ -7,7 +7,6 @@
 
 #include <vector>
 #include <string>
-
 #include "pocketdb/models/base/PocketTypes.h"
 
 namespace PocketDbWeb
@@ -18,9 +17,9 @@ namespace PocketDbWeb
     struct SearchRequest
     {
         string Keyword;
-        int TopBlock;
-        int PageStart;
-        int PageSize;
+        int TopBlock = 0;
+        int PageStart = 0;
+        int PageSize = 10;
         string Address;
 
         vector<ContentFieldType> FieldTypes;
@@ -32,8 +31,8 @@ namespace PocketDbWeb
             int topBlock = 0, int pageStart = 0, int pageSize = 10, const string& address = "")
         {
             Keyword = keyword;
-            FieldTypes = move(fieldTypes);
-            TxTypes = move(txTypes);
+            FieldTypes = fieldTypes;
+            TxTypes = txTypes;
             TopBlock = topBlock;
             PageStart = pageStart;
             PageSize = pageSize;

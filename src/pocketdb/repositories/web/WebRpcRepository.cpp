@@ -310,7 +310,7 @@ namespace PocketDb
             join Payload p on p.TxHash=u.Hash
             where u.Type in (100,101,102)
               and u.Last=1
-              and u.Height is not null.
+              and u.Height is not null
               )sql" + where + R"sql(
         )sql";
 
@@ -1250,6 +1250,7 @@ namespace PocketDb
             where t.Type in (200, 201)
               and t.Height is not null
               and t.Last = 1
+              )sql" + where + R"sql(
         )sql";
 
         std::vector<std::string> authors;
@@ -1294,9 +1295,9 @@ namespace PocketDb
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
                 {
-                    UniValue i(UniValue::VARR);
-                    i.read(value);
-                    record.pushKV("i", i);
+                    UniValue ii(UniValue::VARR);
+                    ii.read(value);
+                    record.pushKV("i", ii);
                 }
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok)
@@ -1320,7 +1321,7 @@ namespace PocketDb
         });
 
         auto profiles = GetAccountProfiles(authors, true, 0);
-        for (auto[hash, id, record] : result)
+        for (auto&[hash, id, record] : result)
         {
             std::string useradr = record["address"].get_str();
             record.pushKV("userprofile", profiles[useradr]);
@@ -1333,7 +1334,7 @@ namespace PocketDb
         map<string, UniValue> result{};
 
         auto _result = GetContentsData(txHashes, {}, address);
-        for (const auto[hash, id, record] : _result)
+        for (const auto&[hash, id, record] : _result)
             result.insert_or_assign(hash, record);
 
         return result;
@@ -1343,7 +1344,7 @@ namespace PocketDb
         map<int64_t, UniValue> result{};
 
         auto _result = GetContentsData({}, ids, address);
-        for (const auto[hash, id, record] : _result)
+        for (const auto&[hash, id, record] : _result)
             result.insert_or_assign(id, record);
 
         return result;

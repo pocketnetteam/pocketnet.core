@@ -14,10 +14,11 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
+        string keyword = "%" + request.Keyword + "%";
         string sql = R"sql(
             select Value
             from Tags t indexed by Tags_Value
-            where t.Value like '%?%'
+            where t.Value like ?
             limit ?
             offset ?
         )sql";
@@ -25,7 +26,7 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, request.Keyword);
+            TryBindStatementText(stmt, 1, keyword);
             TryBindStatementInt(stmt, 2, request.PageSize);
             TryBindStatementInt(stmt, 3, request.PageStart);
 
@@ -43,9 +44,10 @@ namespace PocketDb
 
     vector<int64_t> SearchRepository::SearchIds(const SearchRequest& request)
     {
-        vector<int> ids;
+        vector<int64_t> ids;
 
         // First search request
+        string keyword = "%" + request.Keyword + "%";
         string fieldTypes = join(request.FieldTypes | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
         string txTypes = join(request.TxTypes | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
         string heightWhere = request.TopBlock > 0 ? " and t.Height <= ? " : "";
@@ -54,7 +56,7 @@ namespace PocketDb
         string sql = R"sql(
             select t.Id
             from Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
-            join web.Content c on c.FieldType in ()sql" + fieldTypes + R"sql() and c.Value like '%?%' and c.ContentId = t.Id
+            join web.Content c on c.FieldType in ()sql" + fieldTypes + R"sql() and c.Value like ? and c.ContentId = t.Id
             where t.Type in ()sql" + txTypes + R"sql()
                 and t.Height is not null
                 )sql" + heightWhere + R"sql(
@@ -68,7 +70,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
-            TryBindStatementText(stmt, i++, request.Keyword);
+            TryBindStatementText(stmt, i++, keyword);
 
             if (request.TopBlock > 0)
                 TryBindStatementInt(stmt, i++, request.TopBlock);
@@ -87,6 +89,8 @@ namespace PocketDb
 
             FinalizeSqlStatement(*stmt);
         });
+
+        return ids;
     }
 
 }
