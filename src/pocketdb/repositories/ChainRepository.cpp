@@ -10,6 +10,8 @@ namespace PocketDb
     {
         TryTransactionStep(__func__, [&]()
         {
+            int64_t nTime1 = GetTimeMicros();
+
             // Each transaction is processed individually
             for (const auto& txInfo : txs)
             {
@@ -38,42 +40,19 @@ namespace PocketDb
                         IndexSubscribe(txInfo.Hash);
                 }
             }
-        });
 
-        TryTransactionStep(__func__, [&]()
-        {
+            int64_t nTime2 = GetTimeMicros();
+
             // After set height and mark inputs as spent we need recalculcate balances
             IndexBalances(height);
 
-            // TODO (brangr): FOR DEBUG balances
-            auto stmt = SetupSqlStatement(R"sql(
-                select
-                    b.AddressHash,
-                    b.Value,
-                    (select sum(o.Value) from TxOutputs o where o.TxHeight is not null and o.AddressHash = b.AddressHash and SpentHeight is null)outsBal
-                from Balances b
-                where b.Height = ?
-                group by b.AddressHash
-            )sql");
-            TryBindStatementInt(stmt, 1, height);
+            int64_t nTime3 = GetTimeMicros();
 
-            bool check = true;
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                auto[ok0, address] = TryGetColumnString(*stmt, 0);
-                auto[ok1, balance] = TryGetColumnInt64(*stmt, 1);
-                auto[ok2, balanceOuts] = TryGetColumnInt64(*stmt, 2);
-                if (balance != balanceOuts)
-                {
-                    check = false;
-                    LogPrintf("--- Inconsistence balance for %s %d != %d at height %d\n", address, balance, balanceOuts, height);
-                }
-            }
-
-            FinalizeSqlStatement(*stmt);
-
-            if (!check)
-                StartShutdown();
+            LogPrint(BCLog::BENCH, "    - IndexBlock: %.2fms + %.2fms = %.2fms\n",
+                0.001 * double(nTime2 - nTime1),
+                0.001 * double(nTime3 - nTime2),
+                0.001 * double(nTime3 - nTime1)
+            );
         });
     }
 

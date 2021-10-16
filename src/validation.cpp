@@ -2489,8 +2489,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     if (pindex->nHeight > skipValidation && !PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight))
     {
         LogPrintf("SocialConsensusHelper::Validate failed for height %d\n", pindex->nHeight);
-        StartShutdown();
-        return false;
+        //StartShutdown();
+        //return false;
         //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
     }
 
