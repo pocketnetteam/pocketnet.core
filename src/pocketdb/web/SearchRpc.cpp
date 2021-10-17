@@ -149,7 +149,7 @@ namespace PocketWeb::PocketWebRpc
             auto ids = request.DbConnection()->SearchRepoInst->SearchIds(searchRequest);
             
             // Get accounts data
-            auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true, 1);
+            auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
 
             UniValue data(UniValue::VARR);
             for (const auto& account : accounts)

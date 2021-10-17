@@ -24,7 +24,7 @@ namespace PocketWeb::PocketWebRpc
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
     }
 
-    map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm, int option)
+    map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm, bool option)
     {
         auto result = dbCon->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm, option);
 

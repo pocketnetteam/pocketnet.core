@@ -5,6 +5,7 @@
 #ifndef POCKETDB_WEB_RPC_REPOSITORY_H
 #define POCKETDB_WEB_RPC_REPOSITORY_H
 
+#include "pocketdb/helpers/PocketnetHelper.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/repositories/BaseRepository.h"
 
@@ -46,8 +47,8 @@ namespace PocketDb
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
 
-        map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true, int option = 0);
-        map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true, int option = 0);
+        map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true);
+        map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true);
 
         map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses,
             const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
@@ -87,7 +88,7 @@ namespace PocketDb
 
     private:
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
-        vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm, int option);
+        vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm);
         vector<tuple<string, int64_t, UniValue>> GetContentsData(const vector<string>& txHashes, const vector<int64_t>& ids, const string& address);
     };
 
