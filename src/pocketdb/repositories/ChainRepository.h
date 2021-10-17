@@ -53,8 +53,8 @@ namespace PocketDb
         void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
         void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
 
-        void IndexAccount(const string& txHash, TxType txType);
-        void IndexContent(const string& txHash, TxType txType);
+        void IndexAccount(const string& txHash);
+        void IndexContent(const string& txHash);
         void IndexComment(const string& txHash);
         void IndexBlocking(const string& txHash);
         void IndexSubscribe(const string& txHash);
