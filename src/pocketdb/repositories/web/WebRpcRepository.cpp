@@ -1538,7 +1538,6 @@ namespace PocketDb
         return result;
     }
 
-    // TODO (brangr, mavreh): добавить свои лайки
     map<string, UniValue> WebRpcRepository::GetContents(
         int countOut, int nHeightLe, int nHeightGt,
         const string& contentId, const string& lang,
@@ -1563,7 +1562,8 @@ namespace PocketDb
                 p.String6 as Settings
             FROM Transactions t indexed by Transactions_Last_Id_Height
             JOIN Payload p on t.Hash = p.TxHash
-            where t.Last = 1
+            where t.Type in (200, 201)
+                and t.Last = 1
                 and t.Id < ifnull((select max(t0.Id) from Transactions t0 indexed by Transactions_Type_Last_String2_Height
                                  where t0.Type in (200, 201) and t0.String2 = ? and t0.Last = 1), 9999999999999)
                 and t.Height <= ?
