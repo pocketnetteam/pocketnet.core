@@ -103,6 +103,7 @@ POCKETDB_H = \
     pocketdb/migrations/main.h \
     pocketdb/migrations/web.h \
     \
+    pocketdb/helpers/PocketnetHelper.h \
     pocketdb/helpers/TransactionHelper.h \
     \
     pocketdb/web/PocketContentRpc.h \
