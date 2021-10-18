@@ -15,8 +15,8 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue GetContents(const JSONRPCRequest& request);
     UniValue GetHotPosts(const JSONRPCRequest& request);
-    UniValue GetHistoricalStrip(const JSONRPCRequest& request);
-    UniValue GetHierarchicalStrip(const JSONRPCRequest& request);
+    UniValue GetHistoricalFeed(const JSONRPCRequest& request);
+    UniValue GetHierarchicalFeed(const JSONRPCRequest& request);
     
 }
 

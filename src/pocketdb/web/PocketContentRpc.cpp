@@ -114,7 +114,7 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, contentTypes, address);
     }
 
-    UniValue GetHistoricalStrip(const JSONRPCRequest& request)
+    UniValue GetHistoricalFeed(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
@@ -302,22 +302,19 @@ namespace PocketWeb::PocketWebRpc
         UniValue oResult(UniValue::VOBJ);
         UniValue aContents(UniValue::VARR);
 
-        // int totalcount = 0;
         map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContents(
             countOut, nHeight, 0, start_txid, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
 
         for (auto& c: contents)
-        {
             aContents.push_back(c.second);
-        }
 
         oResult.pushKV("height", nHeight);
         oResult.pushKV("contents", aContents);
-        // oResult.pushKV("contentsTotal", totalcount);
+
         return oResult;
     }
 
-    UniValue GetHierarchicalStrip(const JSONRPCRequest& request)
+    UniValue GetHierarchicalFeed(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(

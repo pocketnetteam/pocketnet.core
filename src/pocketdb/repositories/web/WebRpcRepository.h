@@ -23,6 +23,34 @@ namespace PocketDb
     using namespace PocketTx;
     using namespace PocketHelpers;
 
+    struct HierarchicalRecord
+    {
+        int64_t Id;
+        double LAST5;
+        double LAST5R;
+        double BOOST;
+        double UREP;
+        double UREPR;
+        double DREP;
+        double PREP;
+        double PREPR;
+        double DPOST;
+        double POSTRF;
+
+        bool operator > (const HierarchicalRecord& b) const
+        {
+            return (POSTRF > b.POSTRF);
+        }
+
+        struct ById
+        {
+            bool operator ()( const HierarchicalRecord &a, const HierarchicalRecord &b ) const
+            { 
+                return a.Id < b.Id;
+            }
+        };
+    };
+
     class WebRpcRepository : public BaseRepository
     {
     public:
@@ -66,12 +94,6 @@ namespace PocketDb
         UniValue GetContentsForAddress(const string& address);
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address);
         
-        map<string, UniValue> GetContents(int countOut, int nHeightLe, int nHeightGt,
-            const string& contentId, const string& lang,
-            const vector<string>& tags, const vector<int>& contentTypes,
-            const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
-            const string& address);
-            
         UniValue GetUnspents(vector<string>& addresses, int height);
 
         tuple<int, UniValue> GetContentLanguages(int height);
@@ -84,11 +106,12 @@ namespace PocketDb
         vector<UniValue> GetMissedCommentAnswers(const string& address, int height, int count);
         vector<UniValue> GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count);
 
-        UniValue GetHierarchicalStrip(int countOut, const string& topContentHash, int topHeight, const string& lang, const vector<string>& tags,
+        UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
+            const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
+        UniValue GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
             const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
 
     private:
-        enum PostRanks {LAST5, LAST5R, BOOST, UREP, UREPR, DREP, PREP, PREPR, DPOST, POSTRF};
         int cntBlocksForResult = 300;
         int cntPrevPosts = 5;
         int durationBlocksForPrevPosts = 30 * 24 * 60; // about 1 month

@@ -1910,7 +1910,16 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetHierarchicalStrip(int countOut, const string& topContentHash, int topHeight, const string& lang, const vector<string>& tags,
+    // ------------------------------------------------------
+    // Feeds
+
+    UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
+        const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
+    {
+        // TODO (brangr): implement
+    }
+
+    UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
         const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
     {
         UniValue result(UniValue::VARR);
@@ -1986,7 +1995,7 @@ namespace PocketDb
         if (!tagsExcluded.empty()) sql += " and t.id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
 
         // ---------------------------------------------
-        map<int64_t, map<PostRanks, double>> postsRanks;
+        vector<HierarchicalRecord> postsRanks;
         double dekay = (contentTypes.size() == 1 && contentTypes[0] == CONTENT_VIDEO) ? dekayVideo : dekayContent;
 
         TryTransactionStep(__func__, [&]()
@@ -2025,7 +2034,7 @@ namespace PocketDb
             // Get results
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                UniValue record(UniValue::VOBJ);
+                HierarchicalRecord record;
 
                 auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
                 auto[ok1, contentRating] = TryGetColumnInt(*stmt, 1);
@@ -2033,11 +2042,12 @@ namespace PocketDb
                 auto[ok3, contentOrigHeight] = TryGetColumnInt(*stmt, 3);
                 auto[ok4, contentScores] = TryGetColumnInt(*stmt, 4);
 
-                postsRanks[contentId][LAST5] = 1.0 * contentScores;
-                postsRanks[contentId][UREP] = accountRating;
-                postsRanks[contentId][PREP] = contentRating;
-                postsRanks[contentId][DREP] = pow(dekayRep, (topHeight - contentOrigHeight));
-                postsRanks[contentId][DPOST] = pow(dekay, (topHeight - contentOrigHeight));
+                record.Id = contentId;
+                record.LAST5 = 1.0 * contentScores;
+                record.UREP = accountRating;
+                record.PREP = contentRating;
+                record.DREP = pow(dekayRep, (topHeight - contentOrigHeight));
+                record.DPOST = pow(dekay, (topHeight - contentOrigHeight));
             }
 
             FinalizeSqlStatement(*stmt);
@@ -2045,71 +2055,78 @@ namespace PocketDb
 
         // ---------------------------------------------
         // Calculate content ratings
-        map<PostRanks, int> count;
         int nElements = postsRanks.size();
-        for (auto& iPostRank : postsRanks) {
-            count[LAST5R] = 0;
-            count[UREPR] = 0;
-            count[PREPR] = 0;
+        for (auto& iPostRank : postsRanks)
+        {
+            double _LAST5R = 0;
+            double _UREPR = 0;
+            double _PREPR = 0;
+
             double boost = 0;
             if (nElements > 1)
             {
                 for (auto jPostRank : postsRanks)
                 {
-                    if (iPostRank.second[LAST5] > jPostRank.second[LAST5])
-                        count[LAST5R] += 1;
-                    if (iPostRank.second[UREP] > jPostRank.second[UREP])
-                        count[UREPR] += 1;
-                    if (iPostRank.second[PREP] > jPostRank.second[PREP])
-                        count[PREPR] += 1;
+                    if (iPostRank.LAST5 > jPostRank.LAST5)
+                        _LAST5R += 1;
+                    if (iPostRank.UREP > jPostRank.UREP)
+                        _UREPR += 1;
+                    if (iPostRank.PREP > jPostRank.PREP)
+                        _PREPR += 1;
                 }
 
-                iPostRank.second[LAST5R] = 1.0 * (count[LAST5R] * 100) / (nElements - 1);
-                iPostRank.second[UREPR] = min(iPostRank.second[UREP], 1.0 * (count[UREPR] * 100) / (nElements - 1)) * (iPostRank.second[UREP] < 0 ? 2.0 : 1.0);
-                iPostRank.second[PREPR] = min(iPostRank.second[PREP], 1.0 * (count[PREPR] * 100) / (nElements - 1)) * (iPostRank.second[PREP] < 0 ? 2.0 : 1.0);
+                iPostRank.LAST5R = 1.0 * (_LAST5R * 100) / (nElements - 1);
+                iPostRank.UREPR = min(iPostRank.UREP, 1.0 * (_UREPR * 100) / (nElements - 1)) * (iPostRank.UREP < 0 ? 2.0 : 1.0);
+                iPostRank.PREPR = min(iPostRank.PREP, 1.0 * (_PREPR * 100) / (nElements - 1)) * (iPostRank.PREP < 0 ? 2.0 : 1.0);
             }
             else
             {
-                iPostRank.second[LAST5R] = 100;
-                iPostRank.second[UREPR] = 100;
-                iPostRank.second[PREPR] = 100;
+                iPostRank.LAST5R = 100;
+                iPostRank.UREPR = 100;
+                iPostRank.PREPR = 100;
             }
 
-            iPostRank.second[POSTRF] = 0.4 * (0.75 * (iPostRank.second[LAST5R] + boost) + 0.25 * iPostRank.second[UREPR]) *
-                                                      iPostRank.second[DREP] + 0.6 * iPostRank.second[PREPR] * iPostRank.second[DPOST];
+            iPostRank.POSTRF = 0.4 * (0.75 * (iPostRank.LAST5R + boost) + 0.25 * iPostRank.UREPR) * iPostRank.DREP + 0.6 * iPostRank.PREPR * iPostRank.DPOST;
         }
 
-        // ---------------------------------------------
         // Sort results
-        // TODO (brangr): change to vector with class for sort by field
-        vector<pair<double, int64_t>> postsRaited;
+        sort(postsRanks.begin(), postsRanks.end(), greater<HierarchicalRecord>());
 
-        UniValue oPost(UniValue::VOBJ);
-        for (auto iPostRank : postsRanks)
-            postsRaited.push_back(make_pair(iPostRank.second[POSTRF], iPostRank.first));
-
-        sort(postsRaited.begin(), postsRaited.end(), greater{});
-
-        vector<int64_t> txidsHierarchical;
-        for (auto v : postsRaited)
-            txidsHierarchical.push_back(v.second);
-
-        // ---------------------------------------------
         // Build result list
-        // If ended - request historical data
-
-        if (!txidsHierarchical.empty())
+        bool found = false;
+        vector<int64_t> resultIds;
+        for(auto iter = postsRanks.begin(); iter < postsRanks.end() && (int)resultIds.size() < countOut; iter++)
         {
+            // Find start position
+            if (!found)
+            {
+                if (iter->Id == topContentId)
+                    found = true;
 
+                continue;
+            }
+
+            // Save id for get data
+            resultIds.push_back(iter->Id);
         }
 
+        // Get content data
+        auto contents = GetContentsData(resultIds, address);
+        for (const auto& content : contents)
+            result.push_back(content.second);
 
-       
+        // ---------------------------------------------
+        // If not completed - request historical data
+        int lack = countOut - (int)resultIds.size();
+        if (lack > 0)
+        {
+            auto _topContentId = min_element(postsRanks.begin(), postsRanks.end(), HierarchicalRecord::ById())->Id; 
+            UniValue histContents = GetHistoricalFeed(countOut, _topContentId, topHeight, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
+            result.push_backV(histContents.getValues());
+        }
 
-        
-
-
-
+        // Complete!
+        return result;
     }
 
 }
