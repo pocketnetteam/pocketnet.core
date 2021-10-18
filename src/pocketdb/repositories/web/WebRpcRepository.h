@@ -64,7 +64,8 @@ namespace PocketDb
         map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
 
         UniValue GetContentsForAddress(const string& address);
-        map<string, UniValue> GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes);
+        UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const string& address);
+        
         map<string, UniValue> GetContents(int countOut, int nHeightLe, int nHeightGt,
             const string& contentId, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes,

@@ -6,55 +6,11 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    // std::map<std::string, UniValue> GetContentsData(const DbConnectionRef& dbCon, std::vector<std::string> txids)
-    // {
-    //     auto result = dbCon->WebRpcRepoInst->GetContentsData(txids);
-    //
-    //     return result;
-    // }
-    //
-    // UniValue GetContentsData(const JSONRPCRequest& request)
-    // {
-    //     if (request.fHelp)
-    //         throw std::runtime_error(
-    //             "GetContentsData\n"
-    //             "\n.\n");
-    //
-    //     std::vector<std::string> txids;
-    //     if (request.params.size() > 0)
-    //     {
-    //         if (request.params[0].isStr())
-    //         {
-    //             txids.emplace_back(request.params[0].get_str());
-    //         }
-    //         else if (request.params[0].isArray())
-    //         {
-    //             UniValue ids = request.params[0].get_array();
-    //             for (unsigned int idx = 0; idx < ids.size(); idx++)
-    //             {
-    //                 if (ids[idx].isStr())
-    //                 {
-    //                     txids.emplace_back(ids[idx].get_str());
-    //                 }
-    //             }
-    //         }
-    //     }
-    //
-    //     std::map<std::string, UniValue> contentsdata = GetContentsData(request.DbConnection(), txids);
-    //
-    //     UniValue aResult(UniValue::VARR);
-    //     for (auto& cd : contentsdata)
-    //     {
-    //         aResult.push_back(cd.second);
-    //     }
-    //     return aResult;
-    // }
-
     UniValue GetContents(const JSONRPCRequest& request)
     {
         if (request.fHelp || request.params.size() < 1)
         {
-            throw std::runtime_error(
+            throw runtime_error(
                 "getcontents address\n"
                 "\nReturns contents for address.\n"
                 "\nArguments:\n"
@@ -65,7 +21,7 @@ namespace PocketWeb::PocketWebRpc
                 "]");
         }
 
-        std::string address;
+        string address;
         if (request.params[0].isStr())
             address = request.params[0].get_str();
 
@@ -75,21 +31,16 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetHotPosts(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
-                "GetHotPosts\n"
-                "\n.\n");
+            throw runtime_error(
+                "GetHotPosts\n");
 
         int count = 30;
         if (request.params.size() > 0)
         {
             if (request.params[0].isNum())
-            {
                 count = request.params[0].get_int();
-            }
             else if (request.params[0].isStr())
-            {
                 ParseInt32(request.params[0].get_str(), &count);
-            }
         }
 
         // Depth in blocks (default about 3 days)
@@ -98,18 +49,16 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 1)
         {
             if (request.params[1].isNum())
-            {
                 depthBlocks = request.params[1].get_int();
-            }
             else if (request.params[1].isStr())
-            {
                 ParseInt32(request.params[1].get_str(), &depthBlocks);
-            }
+
             if (depthBlocks == 259200)
             { // for old version electron
                 depthBlocks = 3 * dayInBlocks;
             }
-            depthBlocks = std::min(depthBlocks, 365 * dayInBlocks);
+
+            depthBlocks = min(depthBlocks, 365 * dayInBlocks);
         }
 
         int nHeightOffset = chainActive.Height();
@@ -119,9 +68,7 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[2].isNum())
             {
                 if (request.params[2].get_int() > 0)
-                {
                     nOffset = request.params[2].get_int();
-                }
             }
             else if (request.params[2].isStr())
             {
@@ -130,64 +77,21 @@ namespace PocketWeb::PocketWebRpc
             nHeightOffset -= nOffset;
         }
 
-        std::string lang = "";
+        string lang = "";
         if (request.params.size() > 3)
-        {
             lang = request.params[3].get_str();
-        }
 
-        std::vector<int> contentTypes;
+        string address = "";
         if (request.params.size() > 4)
-        {
-            if (request.params[4].isNum())
-            {
-                contentTypes.push_back(request.params[4].get_int());
-            }
-            else if (request.params[4].isStr())
-            {
-                if (TransactionHelper::TxIntType(request.params[4].get_str()) != TxType::NOT_SUPPORTED)
-                    contentTypes.push_back(TransactionHelper::TxIntType(request.params[4].get_str()));
-            }
-            else if (request.params[4].isArray())
-            {
-                UniValue cntntTps = request.params[4].get_array();
-                if (cntntTps.size() > 10)
-                {
-                    throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array content types");
-                }
-                if (cntntTps.size() > 0)
-                {
-                    for (unsigned int idx = 0; idx < cntntTps.size(); idx++)
-                    {
-                        if (cntntTps[idx].isNum())
-                        {
-                            contentTypes.push_back(cntntTps[idx].get_int());
-                        }
-                        else if (cntntTps[idx].isStr())
-                        {
-                            if (TransactionHelper::TxIntType(cntntTps[idx].get_str()) != TxType::NOT_SUPPORTED)
-                                contentTypes.push_back(TransactionHelper::TxIntType(cntntTps[idx].get_str()));
-                        }
-                    }
-                }
-            }
-        }
+            address = request.params[4].get_str();
 
-        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, contentTypes);
-
-        UniValue aResult(UniValue::VARR);
-        for (auto& c: contents)
-        {
-            aResult.push_back(c.second);
-        }
-
-        return aResult;
+        return request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, address);
     }
 
     UniValue GetHistoricalStrip(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "GetHistoricalStrip\n"
                 "\n.\n");
 
@@ -199,7 +103,7 @@ namespace PocketWeb::PocketWebRpc
                     nHeight = request.params[0].get_int();
         }
 
-        std::string start_txid;
+        string start_txid;
         if (request.params.size() > 1)
         {
             start_txid = request.params[1].get_str();
@@ -210,16 +114,16 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[2].isNum())
                 countOut = request.params[2].get_int();
 
-        std::string lang;
+        string lang;
         if (request.params.size() > 3)
             lang = request.params[3].get_str();
 
-        std::vector<string> tags;
+        vector<string> tags;
         if (request.params.size() > 4)
         {
             if (request.params[4].isStr())
             {
-                std::string tag = boost::trim_copy(request.params[4].get_str());
+                string tag = boost::trim_copy(request.params[4].get_str());
                 if (!tag.empty())
                     tags.push_back(tag);
             }
@@ -233,7 +137,7 @@ namespace PocketWeb::PocketWebRpc
                 {
                     for (unsigned int idx = 0; idx < tgs.size(); idx++)
                     {
-                        std::string tag = boost::trim_copy(tgs[idx].get_str());
+                        string tag = boost::trim_copy(tgs[idx].get_str());
                         if (!tag.empty())
                             tags.push_back(tag);
                     }
@@ -241,7 +145,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::vector<int> contentTypes;
+        vector<int> contentTypes;
         if (request.params.size() > 5)
         {
             if (request.params[5].isNum())
@@ -277,7 +181,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::vector<string> txidsExcluded;
+        vector<string> txidsExcluded;
         if (request.params.size() > 6)
         {
             if (request.params[6].isStr())
@@ -294,7 +198,7 @@ namespace PocketWeb::PocketWebRpc
                 {
                     for (unsigned int idx = 0; idx < txids.size(); idx++)
                     {
-                        std::string txidEx = boost::trim_copy(txids[idx].get_str());
+                        string txidEx = boost::trim_copy(txids[idx].get_str());
                         if (!txidEx.empty())
                             txidsExcluded.push_back(txidEx);
                     }
@@ -302,7 +206,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::vector<string> adrsExcluded;
+        vector<string> adrsExcluded;
         if (request.params.size() > 7)
         {
             if (request.params[7].isStr())
@@ -320,7 +224,7 @@ namespace PocketWeb::PocketWebRpc
                 {
                     for (unsigned int idx = 0; idx < adrs.size(); idx++)
                     {
-                        std::string adrEx = boost::trim_copy(adrs[idx].get_str());
+                        string adrEx = boost::trim_copy(adrs[idx].get_str());
                         if (!adrEx.empty())
                         {
                             adrsExcluded.push_back(adrEx);
@@ -330,7 +234,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::vector<string> tagsExcluded;
+        vector<string> tagsExcluded;
         if (request.params.size() > 8)
         {
             if (request.params[8].isStr())
@@ -348,7 +252,7 @@ namespace PocketWeb::PocketWebRpc
                 {
                     for (unsigned int idx = 0; idx < tagsEx.size(); idx++)
                     {
-                        std::string tgsEx = boost::trim_copy(tagsEx[idx].get_str());
+                        string tgsEx = boost::trim_copy(tagsEx[idx].get_str());
                         if (!tgsEx.empty())
                         {
                             tagsExcluded.push_back(tgsEx);
@@ -358,7 +262,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::string address;
+        string address;
         if (request.params.size() > 9)
         {
             RPCTypeCheckArgument(request.params[9], UniValue::VSTR);
@@ -366,7 +270,7 @@ namespace PocketWeb::PocketWebRpc
             CTxDestination dest = DecodeDestination(address);
 
             if (!IsValidDestination(dest))
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + address);
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
         }
 
         UniValue oResult(UniValue::VOBJ);
@@ -390,7 +294,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetHierarchicalStrip(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "GetHierarchicalStrip\n"
                 "\n.\n");
 
@@ -406,7 +310,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::string start_txid = "";
+        string start_txid = "";
         if (request.params.size() > 1)
         {
             start_txid = request.params[1].get_str();
@@ -421,19 +325,19 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::string lang = "";
+        string lang = "";
         if (request.params.size() > 3)
         {
             lang = request.params[3].get_str();
         }
 
-        std::vector<string> tags;
+        vector<string> tags;
         UniValue uvTags(UniValue::VARR);
         if (request.params.size() > 4)
         {
             if (request.params[4].isStr())
             {
-                std::string tag = boost::trim_copy(request.params[4].get_str());
+                string tag = boost::trim_copy(request.params[4].get_str());
                 if (!tag.empty())
                 {
                     tags.push_back(tag);
@@ -452,7 +356,7 @@ namespace PocketWeb::PocketWebRpc
                     uvTags = tgs;
                     for (unsigned int idx = 0; idx < tgs.size(); idx++)
                     {
-                        std::string tag = boost::trim_copy(tgs[idx].get_str());
+                        string tag = boost::trim_copy(tgs[idx].get_str());
                         if (!tag.empty())
                         {
                             tags.push_back(tag);
@@ -462,7 +366,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::vector<int> contentTypes;
+        vector<int> contentTypes;
         UniValue uvContentTypes(UniValue::VARR);
         if (request.params.size() > 5)
         {
@@ -502,7 +406,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::vector<string> txidsExcluded;
+        vector<string> txidsExcluded;
         UniValue uvTxidsExcluded(UniValue::VARR);
         if (request.params.size() > 6)
         {
@@ -523,7 +427,7 @@ namespace PocketWeb::PocketWebRpc
                     uvTxidsExcluded = txids;
                     for (unsigned int idx = 0; idx < txids.size(); idx++)
                     {
-                        std::string txidEx = boost::trim_copy(txids[idx].get_str());
+                        string txidEx = boost::trim_copy(txids[idx].get_str());
                         if (!txidEx.empty())
                         {
                             txidsExcluded.push_back(txidEx);
@@ -533,7 +437,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::vector<string> adrsExcluded;
+        vector<string> adrsExcluded;
         UniValue uvAdrsExcluded(UniValue::VARR);
         if (request.params.size() > 7)
         {
@@ -554,7 +458,7 @@ namespace PocketWeb::PocketWebRpc
                     uvAdrsExcluded = adrs;
                     for (unsigned int idx = 0; idx < adrs.size(); idx++)
                     {
-                        std::string adrEx = boost::trim_copy(adrs[idx].get_str());
+                        string adrEx = boost::trim_copy(adrs[idx].get_str());
                         if (!adrEx.empty())
                         {
                             adrsExcluded.push_back(adrEx);
@@ -564,7 +468,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::vector<string> tagsExcluded;
+        vector<string> tagsExcluded;
         UniValue uvTagsExcluded(UniValue::VARR);
         if (request.params.size() > 8)
         {
@@ -584,7 +488,7 @@ namespace PocketWeb::PocketWebRpc
                 {
                     for (unsigned int idx = 0; idx < tagsEx.size(); idx++)
                     {
-                        std::string tgsEx = boost::trim_copy(tagsEx[idx].get_str());
+                        string tgsEx = boost::trim_copy(tagsEx[idx].get_str());
                         if (!tgsEx.empty())
                         {
                             tagsExcluded.push_back(tgsEx);
@@ -609,10 +513,10 @@ namespace PocketWeb::PocketWebRpc
         if (contentTypes.size() == 1 && contentTypes[0] == TxType::CONTENT_VIDEO)
             dekayPost = 0.99;
 
-        std::vector<std::string> txidsOut;
-        std::vector<std::string> txidsHierarchical;
+        vector<string> txidsOut;
+        vector<string> txidsHierarchical;
 
-        std::map<std::string, std::map<PostRanks, double>> postsRanks;
+        map<string, map<PostRanks, double>> postsRanks;
 
         // map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContents(
         //     0, nHeight, nHeight - cntBlocksForResult, "", lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, "");
@@ -637,8 +541,8 @@ namespace PocketWeb::PocketWebRpc
                 reindexer::QueryResults queryPrevsPostsResult;
 
                 int cntPositiveScores = 0;
-                std::string posttxid = itm["txid"].As<string>();
-                std::string postaddress = itm["address"].As<string>();
+                string posttxid = itm["txid"].As<string>();
+                string postaddress = itm["address"].As<string>();
                 int postblock = itm["block"].As<int>();
                 int postblockOrig = postblock;
                 if (it.GetJoined().size() > 2 && it.GetJoined()[2].Count() > 0) {
@@ -654,7 +558,7 @@ namespace PocketWeb::PocketWebRpc
                         for (auto itPostRep : postRepQueryResult) {
                             reindexer::Item itmPR(itPostRep.GetItem());
                             if (g_antibot->AllowModifyReputationOverPost(itmPR["address"].As<string>(), postaddress, itmPR["block"].As<int>(), itmPR["time"].As<int64_t>(), posttxid, false)) {
-                                std::map<scoreDetail, std::string> postScoresDetail;           // DEBUGINFO
+                                map<scoreDetail, string> postScoresDetail;           // DEBUGINFO
                                 postScoresDetail[ADDRESS] = itmPR["address"].As<string>(); // DEBUGINFO
                                 postScoresDetail[VALUE] = itmPR["value"].As<string>();     // DEBUGINFO
                                 postScoresDetails[posttxid].push_back(postScoresDetail);       // DEBUGINFO
@@ -671,12 +575,12 @@ namespace PocketWeb::PocketWebRpc
                     .Not().Where("type", CondEq, (int)ContentType::ContentDelete);
                 err = g_pocketdb->DB()->Select(queryPrevsPosts, queryPrevsPostsResult);
                 if (err.ok()) {
-                    std::vector<std::string> prevPostsIds;
+                    vector<string> prevPostsIds;
                     for (auto itPrevPost : queryPrevsPostsResult) {
                         reindexer::Item itmPP(itPrevPost.GetItem());
                         prevPostsIds.push_back(itmPP["txid"].As<string>());
                     }
-                    std::vector<int> scores = {1, 5};
+                    vector<int> scores = {1, 5};
                     reindexer::Query queryScores;
                     reindexer::QueryResults queryScoresResult;
                     queryScores = reindexer::Query("Scores");
@@ -685,15 +589,15 @@ namespace PocketWeb::PocketWebRpc
                     queryScores = queryScores.Where("value", CondSet, scores);
                     reindexer::Error errSc = g_pocketdb->DB()->Select(queryScores, queryScoresResult);
                     if (errSc.ok()) {
-                        std::vector<string> addressesRated;
+                        vector<string> addressesRated;
                         for (auto itScore : queryScoresResult) {
                             reindexer::Item itmScore(itScore.GetItem());
                             if (g_antibot->AllowModifyReputationOverPost(itmScore["address"].As<string>(), postaddress, itmScore["block"].As<int>(), itmScore["time"].As<int64_t>(), itmScore["txid"].As<string>(), false)) {
-                                if(std::find(addressesRated.begin(), addressesRated.end(), itmScore["address"].As<string>()) == addressesRated.end()) {
+                                if(find(addressesRated.begin(), addressesRated.end(), itmScore["address"].As<string>()) == addressesRated.end()) {
                                     addressesRated.push_back(itmScore["address"].As<string>());
                                     cntPositiveScores += itmScore["value"].As<int>() == 5 ? 1 : -1;
                                     *//*
-                                    std::map<scoreDetail, std::string> postPrevScoresDetail; // DEBUGINFO
+                                    map<scoreDetail, string> postPrevScoresDetail; // DEBUGINFO
                                     postPrevScoresDetail[ADDRESS] = itmScore["address"].As<string>(); // DEBUGINFO
                                     postPrevScoresDetail[VALUE] = itmScore["value"].As<string>(); // DEBUGINFO
                                     postPrevScoresDetail[TXID] = itmScore["posttxid"].As<string>(); // DEBUGINFO
@@ -711,7 +615,7 @@ namespace PocketWeb::PocketWebRpc
                 postsRanks[posttxid][DPOST] = pow(dekayPost, (nHeight - postblockOrig));
             }
 
-            std::map<PostRanks, int> count;
+            map<PostRanks, int> count;
             int nElements = postsRanks.size();
             for (auto iPostRank : postsRanks) {
                 count[LAST5R] = 0;
@@ -731,8 +635,8 @@ namespace PocketWeb::PocketWebRpc
                         }
                     }
                     postsRanks[iPostRank.first][LAST5R] = 1.0 * (count[LAST5R] * 100) / (nElements - 1);
-                    postsRanks[iPostRank.first][UREPR] = std::min(postsRanks[iPostRank.first][UREP], 1.0 * (count[UREPR] * 100) / (nElements - 1)) * (postsRanks[iPostRank.first][UREP] < 0 ? 2.0 : 1.0);
-                    postsRanks[iPostRank.first][PREPR] = std::min(postsRanks[iPostRank.first][PREP], 1.0 * (count[PREPR] * 100) / (nElements - 1)) * (postsRanks[iPostRank.first][PREP] < 0 ? 2.0 : 1.0);
+                    postsRanks[iPostRank.first][UREPR] = min(postsRanks[iPostRank.first][UREP], 1.0 * (count[UREPR] * 100) / (nElements - 1)) * (postsRanks[iPostRank.first][UREP] < 0 ? 2.0 : 1.0);
+                    postsRanks[iPostRank.first][PREPR] = min(postsRanks[iPostRank.first][PREP], 1.0 * (count[PREPR] * 100) / (nElements - 1)) * (postsRanks[iPostRank.first][PREP] < 0 ? 2.0 : 1.0);
                 }
                 else {
                     postsRanks[iPostRank.first][LAST5R] = 100;
@@ -747,14 +651,14 @@ namespace PocketWeb::PocketWebRpc
                                                       0.6 * postsRanks[iPostRank.first][PREPR] * postsRanks[iPostRank.first][DPOST];
             }
 
-            std::vector<std::pair<double, string>> postsRaited;
+            vector<pair<double, string>> postsRaited;
 
             UniValue oPost(UniValue::VOBJ);
             for (auto iPostRank : postsRanks) {
-                postsRaited.push_back(std::make_pair(iPostRank.second[POSTRF], iPostRank.first));
+                postsRaited.push_back(make_pair(iPostRank.second[POSTRF], iPostRank.first));
             }
 
-            std::sort(postsRaited.begin(), postsRaited.end(), std::greater{});
+            sort(postsRaited.begin(), postsRaited.end(), greater{});
 
             for (auto v : postsRaited) {
                 txidsHierarchical.push_back(v.second);

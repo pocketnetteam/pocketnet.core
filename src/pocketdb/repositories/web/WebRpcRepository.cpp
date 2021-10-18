@@ -1041,117 +1041,50 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang,
-        const vector<int>& contentTypes)
+    UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const string& address)
     {
+        UniValue result(UniValue::VARR);
+
         string sql = R"sql(
-            SELECT
-                t.String2 as RootTxHash,
-                case when t.Hash != t.String2 then 'true' else null end edit,
-                t.String3 as RelayTxHash,
-                t.String1 as AddressHash,
-                t.Time,
-                p.String1 as Lang,
-                t.Type,
-                p.String2 as Caption,
-                p.String3 as Message,
-                p.String7 as Url,
-                p.String4 as Tags,
-                p.String5 as Images,
-                p.String6 as Settings
-            FROM Transactions t indexed by Transactions_Height_Time
-            JOIN Payload p on t.Hash = p.TxHash
-            where t.Last = 1
+            select t.Id
+            from Transactions t indexed by Transactions_Type_Last_String3_Height
+            join Payload p indexed by Payload_String1_TxHash
+                on p.String1 = ? and t.Hash = p.TxHash
+            where t.Type in (200,201)
+                and t.Last = 1
                 and t.Height <= ?
                 and t.Height > ?
-                and t.Time <= ?
                 and t.String3 is null
-                and p.String1 = ?
-                and t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-            order by t.Height desc, t.Time desc
+            order by t.Height desc
             limit ?
         )sql";
 
-        map<string, UniValue> result{};
-        std::vector<std::string> authors;
-
+        vector<int64_t> ids;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, nHeight);
-            TryBindStatementInt(stmt, 2, nHeight - depth);
-            TryBindStatementInt64(stmt, 3, GetAdjustedTime());
-            TryBindStatementText(stmt, 4, lang);
-            int i = 5;
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
+            int i = 1;
+            TryBindStatementText(stmt, i++, lang);
+            TryBindStatementInt(stmt, i++, nHeight);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
             TryBindStatementInt(stmt, i++, countOut);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                UniValue record(UniValue::VOBJ);
-
-                auto[ok, txid] = TryGetColumnString(*stmt, 0);
-                record.pushKV("txid", txid);
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("edit", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("repost", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
-                {
-                    authors.emplace_back(value);
-                    record.pushKV("address", value);
-                    //UniValue userprofile(UniValue::VARR);
-                    //auto userprofile = GetAccountProfiles({value});
-                    //record.pushKV("userprofile", userprofile[0]);
-                }
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((TxType)value));
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok)
-                {
-                    UniValue t(UniValue::VARR);
-                    t.read(value);
-                    record.pushKV("t", t);
-                }
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
-                {
-                    UniValue i(UniValue::VARR);
-                    i.read(value);
-                    record.pushKV("i", i);
-                }
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
-                {
-                    UniValue s(UniValue::VOBJ);
-                    s.read(value);
-                    record.pushKV("s", s);
-                }
-
-                record.pushKV("scoreSum", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
-                record.pushKV("scoreCnt", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
-                record.pushKV("comments", 0);//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("lastComment", valueStr);
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("reposted", valueStr);
-
-                result.insert_or_assign(txid, record);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    ids.push_back(value);
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        auto profiles = GetAccountProfiles(authors);
-        for (const auto& item : result)
-        {
-            std::string useradr = item.second["address"].get_str();
-            result[item.first].pushKV("userprofile", profiles[useradr]);
-        }
+        if (ids.empty())
+            return result;
+
+        auto contents = GetContentsData(ids, address);
+        for (const auto& content : contents)
+            result.push_back(content.second);
 
         return result;
     }
