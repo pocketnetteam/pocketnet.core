@@ -64,7 +64,7 @@ namespace PocketDb
         map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
 
         UniValue GetContentsForAddress(const string& address);
-        UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const string& address);
+        UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address);
         
         map<string, UniValue> GetContents(int countOut, int nHeightLe, int nHeightGt,
             const string& contentId, const string& lang,
@@ -84,7 +84,18 @@ namespace PocketDb
         vector<UniValue> GetMissedCommentAnswers(const string& address, int height, int count);
         vector<UniValue> GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count);
 
+        UniValue GetHierarchicalStrip(int countOut, const string& topContentHash, int topHeight, const string& lang, const vector<string>& tags,
+            const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
+
     private:
+        enum PostRanks {LAST5, LAST5R, BOOST, UREP, UREPR, DREP, PREP, PREPR, DPOST, POSTRF};
+        int cntBlocksForResult = 300;
+        int cntPrevPosts = 5;
+        int durationBlocksForPrevPosts = 30 * 24 * 60; // about 1 month
+        double dekayRep = 0.82;
+        double dekayVideo = 0.99;
+        double dekayContent =  0.96;
+
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
         vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm);
         vector<tuple<string, int64_t, UniValue>> GetContentsData(const vector<string>& txHashes, const vector<int64_t>& ids, const string& address);

@@ -901,7 +901,7 @@ namespace PocketDb
                     else 0
                 end as Private
             from Transactions
-            where Type in ( )sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+            where Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
               and Last = 1
               and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
         )sql";
@@ -939,7 +939,7 @@ namespace PocketDb
                 String2 as AddressToHash,
                 String1 as AddressHash
             from Transactions indexed by Transactions_Type_Last_String2_Height
-            where Type in ( )sql" + join(types | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
+            where Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
               and Last = 1
               and Height is not null
               and String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
@@ -1009,6 +1009,7 @@ namespace PocketDb
 
     map<string, UniValue> WebRpcRepository::GetTags(const string& addresses, const int countOut, const int nHeight, const string& lang)
     {
+        // TODO (brangr): implement
         /*string sql = R"sql(
             SELECT
                 t.String2 as RootTxHash,
@@ -1041,7 +1042,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const string& address)
+    UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address)
     {
         UniValue result(UniValue::VARR);
 
@@ -1050,7 +1051,7 @@ namespace PocketDb
             from Transactions t indexed by Transactions_Type_Last_String3_Height
             join Payload p indexed by Payload_String1_TxHash
                 on p.String1 = ? and t.Hash = p.TxHash
-            where t.Type in (200,201)
+            where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.Last = 1
                 and t.Height <= ?
                 and t.Height > ?
@@ -1066,6 +1067,8 @@ namespace PocketDb
 
             int i = 1;
             TryBindStatementText(stmt, i++, lang);
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
             TryBindStatementInt(stmt, i++, nHeight);
             TryBindStatementInt(stmt, i++, nHeight - depth);
             TryBindStatementInt(stmt, i++, countOut);
@@ -1380,7 +1383,7 @@ namespace PocketDb
         auto profiles = GetAccountProfiles(authors, true);
         for (auto&[hash, id, record] : result)
         {
-            std::string useradr = record["address"].get_str();
+            string useradr = record["address"].get_str();
             record.pushKV("userprofile", profiles[useradr]);
         }
 
@@ -1403,170 +1406,6 @@ namespace PocketDb
         auto _result = GetContentsData({}, ids, address);
         for (const auto&[hash, id, record] : _result)
             result.insert_or_assign(id, record);
-
-        return result;
-    }
-
-    map<string, UniValue> WebRpcRepository::GetContents(
-        int countOut, int nHeightLe, int nHeightGt,
-        const string& contentId, const string& lang,
-        const vector<string>& tags, const vector<int>& contentTypes,
-        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
-        const string& address)
-    {
-        string sql = R"sql(
-            SELECT
-                t.String2 as RootTxHash,
-                case when t.Hash != t.String2 then 'true' else null end edit,
-                t.String3 as RelayTxHash,
-                t.String1 as AddressHash,
-                t.Time,
-                p.String1 as Lang,
-                t.Type,
-                p.String2 as Caption,
-                p.String3 as Message,
-                p.String7 as Url,
-                p.String4 as Tags,
-                p.String5 as Images,
-                p.String6 as Settings
-            FROM Transactions t indexed by Transactions_Last_Id_Height
-            JOIN Payload p on t.Hash = p.TxHash
-            where t.Type in (200, 201)
-                and t.Last = 1
-                and t.Id < ifnull((select max(t0.Id) from Transactions t0 indexed by Transactions_Type_Last_String2_Height
-                                 where t0.Type in (200, 201) and t0.String2 = ? and t0.Last = 1), 9999999999999)
-                and t.Height <= ?
-                --and t.Height > ?
-                and t.Time <= ?
-                and t.String3 is null
-        )sql";
-
-        if (!lang.empty()) sql += " and p.String1 = ? ";
-
-        if (!tags.empty()) sql += " and t.id in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
-        
-        if (!contentTypes.empty()) sql += " and t.Type in ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
-        else sql += " and t.Type != ? ";
-        
-        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
-        
-        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
-        
-        if (!tagsExcluded.empty()) sql += " and t.id not in (select tm.ContentId from web.Tags t join web.TagsMap tm on t.Id=tm.TagId where t.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
-        
-        if (!address.empty()) sql += " and t.String1 = ? ";
-        
-        sql += " order by t.Id desc ";
-        
-        if (countOut > 0) sql += " limit ? ";
-
-        map<string, UniValue> result{};
-        std::vector<std::string> authors;
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            int nBind = 1;
-
-            TryBindStatementText(stmt, nBind++, contentId);
-            TryBindStatementInt(stmt, nBind++, nHeightLe);
-
-            // TODO (brangr, mavreh): Это условие не отдает если не было постов - нужно вообще это условие?
-            // TryBindStatementInt(stmt, nBind++, nHeightGt);
-            
-            TryBindStatementInt64(stmt, nBind++, GetAdjustedTime());
-            
-            if (!lang.empty()) TryBindStatementText(stmt, nBind++, lang);
-
-            if (!tags.empty())
-                for (const auto& tag: tags)
-                    TryBindStatementText(stmt, nBind++, tag);
-
-            if (!contentTypes.empty())
-                for (const auto& contenttype: contentTypes)
-                    TryBindStatementInt(stmt, nBind++, contenttype);
-            else
-                TryBindStatementInt(stmt, nBind++, TxType::CONTENT_DELETE);
-
-            if (!txidsExcluded.empty())
-                for (const auto& extxid: txidsExcluded)
-                    TryBindStatementText(stmt, nBind++, extxid);
-            
-            if (!adrsExcluded.empty())
-                for (const auto& exadr: adrsExcluded)
-                    TryBindStatementText(stmt, nBind++, exadr);
-            
-            if (!tagsExcluded.empty())
-                for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, nBind++, extag);
-            
-            if (!address.empty()) TryBindStatementText(stmt, nBind++, address);
-            
-            if (countOut > 0) TryBindStatementInt(stmt, nBind++, countOut);
-
-            // Get results
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                auto[ok, txid] = TryGetColumnString(*stmt, 0);
-                record.pushKV("txid", txid);
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("edit", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("repost", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
-                {
-                    authors.emplace_back(value);
-                    record.pushKV("address", value);
-                }
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("c", value); // caption
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("m", value); // message
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("u", value); // url
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok)
-                {
-                    UniValue t(UniValue::VARR);
-                    t.read(value);
-                    record.pushKV("t", t);
-                }
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
-                {
-                    UniValue i(UniValue::VARR);
-                    i.read(value);
-                    record.pushKV("i", i);
-                }
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
-                {
-                    UniValue s(UniValue::VOBJ);
-                    s.read(value);
-                    record.pushKV("s", s);
-                }
-
-                // TODO (brangr): implement
-                record.pushKV("scoreSum", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreSum", valueStr);
-                record.pushKV("scoreCnt", "0");//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("scoreCnt", valueStr);
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("myVal", valueStr);
-                record.pushKV("comments", 0);//if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("comments", valueStr);
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("lastComment", valueStr);
-                //if (auto [ok, valueStr] = TryGetColumnString(*stmt, 0); ok) record.pushKV("reposted", valueStr);
-
-                result.insert_or_assign(txid, record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        auto profiles = GetAccountProfiles(authors, true);
-        for (const auto& item: result)
-        {
-            std::string useradr = item.second["address"].get_str();
-            result[item.first].pushKV("userprofile", profiles[useradr]);
-        }
 
         return result;
     }
@@ -2069,6 +1908,208 @@ namespace PocketDb
         });
 
         return result;
+    }
+
+    UniValue WebRpcRepository::GetHierarchicalStrip(int countOut, const string& topContentHash, int topHeight, const string& lang, const vector<string>& tags,
+        const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
+    {
+        UniValue result(UniValue::VARR);
+
+        if (contentTypes.empty())
+            return result;
+
+        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
+
+        string sql = R"sql(
+            select (t.Id)ContentId,
+                ifnull(pr.Value,0)ContentRating,
+                ifnull(ur.Value,0)AccountRating,
+                torig.Height,
+
+                ifnull( (
+                    select sum((
+                        select case when s.Int1 = 5 then 1 else -1 end
+                        from Transactions s indexed by Transactions_Type_Last_String2_Height
+                        join Transactions su indexed by Transactions_Type_Last_String1_Height
+                            on su.Type in (100) and
+                               su.Height is not null and
+                               su.String1 = s.String1 and
+                               su.Last = 1
+                        join Ratings sur on sur.Type = 1 and
+                                            sur.Id = su.Id and
+                                            sur.Height = (select max(sur1.Height) from Ratings sur1 where sur1.Type = 1 and sur1.Id = su.Id and sur1.Height <= s.Height) and
+                                            sur.Value > 100
+                        where s.Type in (300)
+                            and s.Last in (0, 1)
+                            and s.Height is not null
+                            and s.String2 = p.String2
+                            and s.Int1 in (1, 5)
+                        group by s.String1
+                    ))
+                    from Transactions p indexed by Transactions_Type_Last_String1_Height
+                    where p.Type in )sql" + contentTypesWhere + R"sql(
+                        and p.Last = 1
+                        and p.String1 = t.String1
+                        and p.Height < torig.Height
+                        and p.Height > (torig.Height - ?)
+                    order by p.Height desc
+                    limit ?
+                )
+                ,0)LastScores
+
+            from Transactions t
+
+            join Payload p on p.TxHash = t.Hash
+
+            join Transactions torig indexed by Transactions_Id on torig.Height is not null and torig.Id = t.Id and torig.Hash = torig.String2
+
+            left join Ratings pr indexed by Ratings_Type_Id_Last
+                on pr.Type = 2 and pr.Last = 1 and pr.Id = t.Id
+
+            join Transactions u indexed by Transactions_Type_Last_String1_Height
+                on u.Type in (100) and u.Last = 1 and u.Height is not null and u.String1 = t.String1
+
+            left join Ratings ur indexed by Ratings_Type_Id_Last
+                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+
+            where t.Type in )sql" + contentTypesWhere + R"sql(
+                and t.Last = 1
+                and t.Height is not null
+                and t.Height <= ?
+                and t.Height > ?
+        )sql";
+
+        if (!lang.empty()) sql += " and p.String1 = ? ";
+        if (!tags.empty()) sql += " and t.id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!tagsExcluded.empty()) sql += " and t.id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
+
+        // ---------------------------------------------
+        map<int64_t, map<PostRanks, double>> postsRanks;
+        double dekay = (contentTypes.size() == 1 && contentTypes[0] == CONTENT_VIDEO) ? dekayVideo : dekayContent;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+            TryBindStatementInt(stmt, i++, durationBlocksForPrevPosts);
+            TryBindStatementInt(stmt, i++, cntPrevPosts);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+            TryBindStatementInt(stmt, i++, topHeight);
+            TryBindStatementInt(stmt, i++, topHeight - cntBlocksForResult);
+            
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+
+            if (!tags.empty())
+                for (const auto& tag: tags)
+                    TryBindStatementText(stmt, i++, tag);
+
+            if (!txidsExcluded.empty())
+                for (const auto& extxid: txidsExcluded)
+                    TryBindStatementText(stmt, i++, extxid);
+            
+            if (!adrsExcluded.empty())
+                for (const auto& exadr: adrsExcluded)
+                    TryBindStatementText(stmt, i++, exadr);
+            
+            if (!tagsExcluded.empty())
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, i++, extag);
+            
+            // Get results
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
+                auto[ok1, contentRating] = TryGetColumnInt(*stmt, 1);
+                auto[ok2, accountRating] = TryGetColumnInt(*stmt, 2);
+                auto[ok3, contentOrigHeight] = TryGetColumnInt(*stmt, 3);
+                auto[ok4, contentScores] = TryGetColumnInt(*stmt, 4);
+
+                postsRanks[contentId][LAST5] = 1.0 * contentScores;
+                postsRanks[contentId][UREP] = accountRating;
+                postsRanks[contentId][PREP] = contentRating;
+                postsRanks[contentId][DREP] = pow(dekayRep, (topHeight - contentOrigHeight));
+                postsRanks[contentId][DPOST] = pow(dekay, (topHeight - contentOrigHeight));
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // ---------------------------------------------
+        // Calculate content ratings
+        map<PostRanks, int> count;
+        int nElements = postsRanks.size();
+        for (auto& iPostRank : postsRanks) {
+            count[LAST5R] = 0;
+            count[UREPR] = 0;
+            count[PREPR] = 0;
+            double boost = 0;
+            if (nElements > 1)
+            {
+                for (auto jPostRank : postsRanks)
+                {
+                    if (iPostRank.second[LAST5] > jPostRank.second[LAST5])
+                        count[LAST5R] += 1;
+                    if (iPostRank.second[UREP] > jPostRank.second[UREP])
+                        count[UREPR] += 1;
+                    if (iPostRank.second[PREP] > jPostRank.second[PREP])
+                        count[PREPR] += 1;
+                }
+
+                iPostRank.second[LAST5R] = 1.0 * (count[LAST5R] * 100) / (nElements - 1);
+                iPostRank.second[UREPR] = min(iPostRank.second[UREP], 1.0 * (count[UREPR] * 100) / (nElements - 1)) * (iPostRank.second[UREP] < 0 ? 2.0 : 1.0);
+                iPostRank.second[PREPR] = min(iPostRank.second[PREP], 1.0 * (count[PREPR] * 100) / (nElements - 1)) * (iPostRank.second[PREP] < 0 ? 2.0 : 1.0);
+            }
+            else
+            {
+                iPostRank.second[LAST5R] = 100;
+                iPostRank.second[UREPR] = 100;
+                iPostRank.second[PREPR] = 100;
+            }
+
+            iPostRank.second[POSTRF] = 0.4 * (0.75 * (iPostRank.second[LAST5R] + boost) + 0.25 * iPostRank.second[UREPR]) *
+                                                      iPostRank.second[DREP] + 0.6 * iPostRank.second[PREPR] * iPostRank.second[DPOST];
+        }
+
+        // ---------------------------------------------
+        // Sort results
+        // TODO (brangr): change to vector with class for sort by field
+        vector<pair<double, int64_t>> postsRaited;
+
+        UniValue oPost(UniValue::VOBJ);
+        for (auto iPostRank : postsRanks)
+            postsRaited.push_back(make_pair(iPostRank.second[POSTRF], iPostRank.first));
+
+        sort(postsRaited.begin(), postsRaited.end(), greater{});
+
+        vector<int64_t> txidsHierarchical;
+        for (auto v : postsRaited)
+            txidsHierarchical.push_back(v.second);
+
+        // ---------------------------------------------
+        // Build result list
+        // If ended - request historical data
+
+        if (!txidsHierarchical.empty())
+        {
+
+        }
+
+
+       
+
+        
+
+
+
     }
 
 }

@@ -6,6 +6,25 @@
 
 namespace PocketWeb::PocketWebRpc
 {
+    void ParseRequestContentType(const UniValue& value, vector<int>& types)
+    {
+        if (value.isNum())
+        {
+            types.push_back(value.get_int());
+        }
+        else if (value.isStr())
+        {
+            if (TransactionHelper::TxIntType(value.get_str()) != TxType::NOT_SUPPORTED)
+                types.push_back(TransactionHelper::TxIntType(value.get_str()));
+        }
+        else if (value.isArray())
+        {
+            UniValue cntntTps = value.get_array();
+            for (unsigned int idx = 0; idx < cntntTps.size(); idx++)
+                ParseRequestContentType(cntntTps[idx], types);
+        }
+    }
+
     UniValue GetContents(const JSONRPCRequest& request)
     {
         if (request.fHelp || request.params.size() < 1)
@@ -81,11 +100,18 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 3)
             lang = request.params[3].get_str();
 
-        string address = "";
+        vector<int> contentTypes{CONTENT_POST, CONTENT_VIDEO};
         if (request.params.size() > 4)
-            address = request.params[4].get_str();
+        {
+            contentTypes.clear();
+            ParseRequestContentType(request.params[4], contentTypes);
+        }
 
-        return request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, address);
+        string address = "";
+        if (request.params.size() > 5)
+            address = request.params[5].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, contentTypes, address);
     }
 
     UniValue GetHistoricalStrip(const JSONRPCRequest& request)
@@ -674,4 +700,5 @@ namespace PocketWeb::PocketWebRpc
 
         return GetHistoricalStrip(request);
     }
+
 }
