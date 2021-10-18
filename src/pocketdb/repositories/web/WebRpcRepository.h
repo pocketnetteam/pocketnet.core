@@ -88,6 +88,8 @@ namespace PocketDb
 
         map<string, UniValue> GetTags(const string& addresses, const int nHeight, const int from, const string& lang);
 
+        tuple<bool, int64_t> GetContentId(const string& txHash);
+
         map<string, UniValue> GetContentsData(const vector<string>& txHashes, const string& address);
         map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
 

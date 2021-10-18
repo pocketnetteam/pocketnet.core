@@ -57,8 +57,10 @@ static const CRPCCommand commands[] =
     // Contents
     {"contents",        "gethotposts",                      &GetHotPosts,                   {"count", "depth", "height", "lang", "contenttypes"}},
     // {"contents",        "getcontents",                      &GetContents,                   {"address"}},
-    { "contents",       "gethistoricalstrip",               &GetHistoricalStrip,            {"endTime", "depth"}},
-    { "contents",       "gethierarchicalstrip",             &GetHierarchicalStrip,          {"endTime", "depth"}},
+    { "contents",       "gethistoricalfeed",                &GetHistoricalFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
+    { "contents",       "gethistoricalstrip",               &GetHistoricalFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
+    { "contents",       "gethierarchicalfeed",              &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
+    { "contents",       "gethierarchicalstrip",             &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},

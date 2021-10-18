@@ -1133,6 +1133,32 @@ namespace PocketDb
         return result;
     }
 
+    tuple<bool, int64_t> WebRpcRepository::GetContentId(const string& txHash)
+    {
+        int64_t resultId = 0;
+
+        string sql = R"sql(
+            select Id
+            from Transactions
+            where Hash = ?
+              and Height is not null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, txHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    resultId = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {resultId != 0, resultId};
+    }
+
     vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetContentsData(const vector<string>& txHashes, const vector<int64_t>& ids, const string& address)
     {
         vector<tuple<string, int64_t, UniValue>> result{};
