@@ -1916,7 +1916,91 @@ namespace PocketDb
     UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
         const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
     {
-        // TODO (brangr): implement
+        UniValue result(UniValue::VARR);
+
+        if (contentTypes.empty())
+            return result;
+
+        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
+
+        string contentIdWhere;
+        if (topContentId > 0)
+            contentIdWhere = " and t.Id < ? ";
+
+        string sql = R"sql(
+            select t.Id
+            from Transactions t
+            join Payload p on p.TxHash = t.Hash
+            where t.Type in )sql" + contentTypesWhere + R"sql(
+                and t.Last = 1
+                and t.Height is not null
+                and t.Height <= ?
+                )sql" + contentIdWhere + R"sql(
+        )sql";
+
+        if (!lang.empty()) sql += " and p.String1 = ? ";
+        if (!tags.empty()) sql += " and t.id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!tagsExcluded.empty()) sql += " and t.id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
+
+        sql += " limit ? ";
+        sql += " order by t.Id desc ";
+
+        // ---------------------------------------------
+
+        vector<int64_t> ids;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+            TryBindStatementInt(stmt, i++, topHeight);
+            if (topContentId > 0)
+                TryBindStatementInt(stmt, i++, topContentId);
+
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+
+            if (!tags.empty())
+                for (const auto& tag: tags)
+                    TryBindStatementText(stmt, i++, tag);
+
+            if (!txidsExcluded.empty())
+                for (const auto& extxid: txidsExcluded)
+                    TryBindStatementText(stmt, i++, extxid);
+            
+            if (!adrsExcluded.empty())
+                for (const auto& exadr: adrsExcluded)
+                    TryBindStatementText(stmt, i++, exadr);
+            
+            if (!tagsExcluded.empty())
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, i++, extag);
+                    
+            TryBindStatementInt(stmt, i++, countOut);
+            
+            // Get results
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
+                ids.push_back(contentId);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // Get content data
+        if (!ids.empty())
+        {
+            auto contents = GetContentsData(ids, address);
+            for (const auto& content : contents)
+                result.push_back(content.second);
+        }
+
+        // Complete!
+        return result;
     }
 
     UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
@@ -2111,16 +2195,22 @@ namespace PocketDb
         }
 
         // Get content data
-        auto contents = GetContentsData(resultIds, address);
-        for (const auto& content : contents)
-            result.push_back(content.second);
+        if (!resultIds.empty())
+        {
+            auto contents = GetContentsData(resultIds, address);
+            for (const auto& content : contents)
+                result.push_back(content.second);
+        }
 
         // ---------------------------------------------
         // If not completed - request historical data
         int lack = countOut - (int)resultIds.size();
         if (lack > 0)
         {
-            auto _topContentId = min_element(postsRanks.begin(), postsRanks.end(), HierarchicalRecord::ById())->Id; 
+            auto _topContentId = 0;
+            if (!postsRanks.empty())
+                _topContentId = min_element(postsRanks.begin(), postsRanks.end(), HierarchicalRecord::ById())->Id;
+
             UniValue histContents = GetHistoricalFeed(countOut, _topContentId, topHeight, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
             result.push_backV(histContents.getValues());
         }
