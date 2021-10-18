@@ -67,19 +67,9 @@ namespace PocketWeb::PocketWebRpc
 
         std::string address;
         if (request.params[0].isStr())
-        {
             address = request.params[0].get_str();
-        }
 
-        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
-
-        UniValue aResult(UniValue::VARR);
-
-        for (auto& c: contents)
-        {
-            aResult.push_back(c.second);
-        }
-        return aResult;
+        return request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
     }
 
     UniValue GetHotPosts(const JSONRPCRequest& request)
@@ -382,9 +372,10 @@ namespace PocketWeb::PocketWebRpc
         UniValue oResult(UniValue::VOBJ);
         UniValue aContents(UniValue::VARR);
 
-        int totalcount = 0;
-        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContents(countOut, nHeight, 0,
-            start_txid, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
+        // int totalcount = 0;
+        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContents(
+            countOut, nHeight, 0, start_txid, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
+
         for (auto& c: contents)
         {
             aContents.push_back(c.second);
@@ -392,7 +383,7 @@ namespace PocketWeb::PocketWebRpc
 
         oResult.pushKV("height", nHeight);
         oResult.pushKV("contents", aContents);
-        oResult.pushKV("contentsTotal", totalcount);
+        // oResult.pushKV("contentsTotal", totalcount);
         return oResult;
     }
 
@@ -623,8 +614,8 @@ namespace PocketWeb::PocketWebRpc
 
         std::map<std::string, std::map<PostRanks, double>> postsRanks;
 
-        map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContents(
-            0, nHeight, nHeight - cntBlocksForResult, "", lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, "");
+        // map<string, UniValue> contents = request.DbConnection()->WebRpcRepoInst->GetContents(
+        //     0, nHeight, nHeight - cntBlocksForResult, "", lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, "");
 
             
         //for (auto& c : contents)

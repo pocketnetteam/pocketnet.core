@@ -57,7 +57,6 @@ static const CRPCCommand commands[] =
     // Contents
     {"contents",        "gethotposts",                      &GetHotPosts,                   {"count", "depth", "height", "lang", "contenttypes"}},
     {"contents",        "getcontents",                      &GetContents,                   {"address"}},
-    //{ "contents",       "getcontentsdata",                  &GetContentsData,               {"ids"}},
     { "contents",       "gethistoricalstrip",               &GetHistoricalStrip,            {"endTime", "depth"}},
     { "contents",       "gethierarchicalstrip",             &GetHierarchicalStrip,          {"endTime", "depth"}},
 
