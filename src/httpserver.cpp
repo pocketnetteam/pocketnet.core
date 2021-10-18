@@ -620,7 +620,7 @@ static void httpevent_callback_fn(evutil_socket_t, short, void *data)
 }
 
 HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, bool publicAccess):
-    m_http(nullptr), m_eventHTTP(nullptr), m_workQueue(nullptr), m_publicAccess(publicAccess)
+    m_http(nullptr), m_eventHTTP(nullptr), m_publicAccess(publicAccess)
 {
     /* Create a new evhttp object to handle requests. */
     raii_evhttp http_ctr = obtain_evhttp(base);
@@ -802,7 +802,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
             // array of requests
         } else {
             if (valRequest.isArray()) {
-                strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), m_table_rpc);
+                strReply = JSONRPCExecBatch(jreq, valRequest.get_array());
             } else {
                 throw JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
             }

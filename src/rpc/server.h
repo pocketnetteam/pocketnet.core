@@ -8,6 +8,7 @@
 
 #include <amount.h>
 #include <rpc/protocol.h>
+#include <rpc/cache.h>
 #include <uint256.h>
 #include <list>
 #include <map>
@@ -15,6 +16,8 @@
 #include <string>
 #include <univalue.h>
 #include "pocketdb/SQLiteConnection.h"
+#include "statistic.hpp"
+#include "init.h"
 
 static const unsigned int DEFAULT_RPC_SERIALIZE_VERSION = 1;
 
@@ -148,6 +151,7 @@ class CRPCTable
 {
 private:
     std::map<std::string, const CRPCCommand*> mapCommands;
+    std::unique_ptr<RPCCache> cache {new RPCCache()};
 public:
     CRPCTable();
     const CRPCCommand* operator[](const std::string& name) const;
@@ -159,7 +163,7 @@ public:
      * @returns Result of the call.
      * @throws an exception (UniValue) when an error happens.
      */
-    UniValue execute(const JSONRPCRequest &request) const;
+    UniValue execute(const JSONRPCRequest &request);
 
     /**
     * Returns a list of registered commands
@@ -187,6 +191,8 @@ public:
 
 bool IsDeprecatedRPCEnabled(const std::string& method);
 
+extern CRPCTable tableRPC;
+
 /**
  * Utilities: convert hex-encoded Values
  * (throws error if not hex).
@@ -203,7 +209,7 @@ extern std::string HelpExampleRpc(const std::string& methodname, const std::stri
 void StartRPC();
 void InterruptRPC();
 void StopRPC();
-std::string JSONRPCExecBatch(const JSONRPCRequest& jreq, const UniValue& vReq, const CRPCTable& tableRPC);
+std::string JSONRPCExecBatch(const JSONRPCRequest& jreq, const UniValue& vReq);
 
 // Retrieves any serialization flags requested in command line argument
 int RPCSerializationFlags();

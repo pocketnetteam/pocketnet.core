@@ -331,6 +331,7 @@ POCKETCOIN_CORE_H = \
     reverse_iterator.h \
     reverselock.h \
     rpc/blockchain.h \
+    rpc/cache.h \
     rpc/client.h \
     rpc/mining.h \
     rpc/protocol.h \
@@ -431,6 +432,7 @@ libpocketcoin_server_a_SOURCES = \
     pow.cpp \
     rest.cpp \
     rpc/blockchain.cpp \
+    rpc/cache.cpp \
     rpc/mining.cpp \
     rpc/misc.cpp \
     rpc/net.cpp \
