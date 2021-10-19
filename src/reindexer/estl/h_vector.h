@@ -274,8 +274,8 @@ public:
 		size_ = sz;
 	}
 	void reserve(size_type sz) {
-		if (sz > capacity()) {
-			assert(sz > holdSize);
+		if (sz > capacity() && sz > holdSize) {
+			//assert(sz > holdSize);
 			pointer new_data = static_cast<pointer>(operator new(sz * sizeof(T)));  // ?? dynamic
 			pointer oold_data = ptr();
 			pointer old_data = ptr();
