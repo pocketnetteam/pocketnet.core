@@ -527,5 +527,3 @@ int RPCSerializationFlags()
         flag |= SERIALIZE_TRANSACTION_NO_WITNESS;
     return flag;
 }
-
-CRPCTable tableRPC;
