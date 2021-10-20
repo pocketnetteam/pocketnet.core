@@ -49,11 +49,11 @@ namespace PocketDb
         int GetUserReputation(const string& addressId);
         int GetUserReputation(int addressId);
         int GetAccountRegistrationHeight(int addressId);
+        int64_t GetAccountRegistrationTime(int addressId);
 
-        shared_ptr<ScoreDataDto> GetScoreData(const string& txHash);
+        ScoreDataDtoRef GetScoreData(const string& txHash);
         shared_ptr<map<string, string>> GetReferrers(const vector<string>& addresses, int minHeight);
-        shared_ptr<string> GetReferrer(const string& address);
-        shared_ptr<string> GetReferrer(const string& address, int64_t minTime);
+        tuple<bool, string> GetReferrer(const string& address);
         int GetUserLikersCount(int addressId);
 
         int GetScoreContentCount(

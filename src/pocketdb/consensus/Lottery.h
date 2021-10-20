@@ -32,7 +32,7 @@ namespace PocketConsensus
         virtual int64_t MaxWinnersCount() { return 25; }
 
         void SortWinners(map<string, int>& candidates, CDataStream& hashProofOfStakeSource, vector<string>& winners);
-        virtual void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map<string, string>& refs);
+        virtual void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs);
         virtual void ExtendReferrers();
 
     public:
@@ -53,7 +53,7 @@ namespace PocketConsensus
         void ExtendWinnerTypes(opcodetype type, std::vector<opcodetype>& winner_types) override;
         CAmount RatingReward(CAmount nCredit, opcodetype code) override;
     protected:
-        void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map<string, string>& refs) override;
+        void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) override;
     };
 
     // ---------------------------------------
@@ -63,7 +63,7 @@ namespace PocketConsensus
     public:
         explicit LotteryConsensus_checkpoint_1035000(int height) : LotteryConsensus_checkpoint_514185(height) {}
     protected:
-        void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map<string, string>& refs) override;
+        void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) override;
     };
 
     // ---------------------------------------
@@ -91,7 +91,7 @@ namespace PocketConsensus
     public:
         explicit LotteryConsensus_checkpoint_(int height) : LotteryConsensus_checkpoint_1180000(height) {}
     protected:
-        void ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map<string, string>& refs) override;
+        void ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs) override;
         void ExtendReferrers() override;
     };
 

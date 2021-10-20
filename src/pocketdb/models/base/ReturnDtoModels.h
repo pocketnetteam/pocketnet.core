@@ -104,6 +104,8 @@ namespace PocketTx
         }
     };
 
+    typedef shared_ptr<ScoreDataDto> ScoreDataDtoRef;
+
 } // namespace PocketTx
 
 #endif //POCKETTX_RETURN_DTO_H

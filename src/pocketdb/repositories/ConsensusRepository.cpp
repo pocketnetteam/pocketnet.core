@@ -439,8 +439,37 @@ namespace PocketDb
         return result;
     }
 
+    int64_t ConsensusRepository::GetAccountRegistrationTime(int addressId)
+    {
+        int64_t result = 0;
+
+        string sql = R"sql(
+            select Time
+            from Transactions indexed by Transactions_Id
+            where Type in (100)
+              and Height is not null
+              and Id = ?
+            order by Height asc
+            limit 1
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, addressId);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     // Selects for get models data
-    shared_ptr<ScoreDataDto> ConsensusRepository::GetScoreData(const string& txHash)
+    ScoreDataDtoRef ConsensusRepository::GetScoreData(const string& txHash)
     {
         shared_ptr<ScoreDataDto> result = nullptr;
 
@@ -460,11 +489,11 @@ namespace PocketDb
                 ca.String1 caHash
             from Transactions s
                 -- Score Address
-                join Transactions sa on sa.Type in (100, 101, 102) and sa.Height is not null and sa.String1=s.String1
+                join Transactions sa on sa.Type in (100, 101, 102) and sa.Height is not null and sa.String1 = s.String1 and sa.Last = 1
                 -- Content
-                join Transactions c on c.Type in (200, 201, 202, 203, 204, 205, 206) and c.Height is not null and c.Hash=s.String2
+                join Transactions c on c.Type in (200, 201, 202, 203, 204, 205, 206) and c.Height is not null and c.Hash = s.String2
                 -- Content Address
-                join Transactions ca on ca.Type in (100, 101, 102) and ca.Height is not null and ca.String1=c.String1
+                join Transactions ca on ca.Type in (100, 101, 102) and ca.Height is not null and ca.String1=c.String1 and ca.Last = 1
             where s.Hash = ?
         )sql";
 
@@ -546,9 +575,10 @@ namespace PocketDb
     }
 
     // Select referrer for one account
-    shared_ptr<string> ConsensusRepository::GetReferrer(const string& address)
+    tuple<bool, string> ConsensusRepository::GetReferrer(const string& address)
     {
-        shared_ptr<string> result;
+        bool result = false;
+        string referrer;
 
         string sql = R"sql(
             select String2
@@ -568,46 +598,16 @@ namespace PocketDb
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
-                    result = make_shared<string>(value);
+                {
+                    result = true;
+                    referrer = value;
+                }
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        return result;
-    }
-
-    shared_ptr<string> ConsensusRepository::GetReferrer(const string& address, int64_t minTime)
-    {
-        shared_ptr<string> result;
-
-        string sql = R"sql(
-            select String2
-            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-            where Type in (100)
-              and Height is not null
-              and Time >= ?
-              and String1 = ?
-            order by Height asc
-            limit 1
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, minTime);
-            TryBindStatementText(stmt, 2, address);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
-                    result = make_shared<string>(value);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
+        return {result, referrer};
     }
 
     int ConsensusRepository::GetUserLikersCount(int addressId)
