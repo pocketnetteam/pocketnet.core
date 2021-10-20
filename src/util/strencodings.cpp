@@ -1,9 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2020 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
+#include <util/string.h>
 
 #include <tinyformat.h>
 
@@ -20,6 +21,7 @@ static const std::string SAFE_CHARS[] =
     CHARS_ALPHA_NUM + " .,;-_/:?@()", // SAFE_CHARS_DEFAULT
     CHARS_ALPHA_NUM + " .,;-_?@", // SAFE_CHARS_UA_COMMENT
     CHARS_ALPHA_NUM + ".-_", // SAFE_CHARS_FILENAME
+    CHARS_ALPHA_NUM + "!*'();:@&=+$,/?#[]-_.~%", // SAFE_CHARS_URI
 };
 
 std::string SanitizeString(const std::string& str, int rule)
@@ -85,7 +87,7 @@ std::vector<unsigned char> ParseHex(const char* psz)
     std::vector<unsigned char> vch;
     while (true)
     {
-        while (isspace(*psz))
+        while (IsSpace(*psz))
             psz++;
         signed char c = HexDigit(*psz++);
         if (c == (signed char)-1)
@@ -124,23 +126,23 @@ void SplitHostPort(std::string in, int &portOut, std::string &hostOut) {
         hostOut = in;
 }
 
-std::string EncodeBase64(const unsigned char* pch, size_t len)
+std::string EncodeBase64(Span<const unsigned char> input)
 {
     static const char *pbase64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
     std::string str;
-    str.reserve(((len + 2) / 3) * 4);
-    ConvertBits<8, 6, true>([&](int v) { str += pbase64[v]; }, pch, pch + len);
+    str.reserve(((input.size() + 2) / 3) * 4);
+    ConvertBits<8, 6, true>([&](int v) { str += pbase64[v]; }, input.begin(), input.end());
     while (str.size() % 4) str += '=';
     return str;
 }
 
 std::string EncodeBase64(const std::string& str)
 {
-    return EncodeBase64((const unsigned char*)str.c_str(), str.size());
+    return EncodeBase64(MakeUCharSpan(str));
 }
 
-std::vector<unsigned char> DecodeBase64(const char* p, bool* pfInvalid)
+std::vector<unsigned char> DecodeBase64(const char* p, bool* pf_invalid)
 {
     static const int decode64_table[256] =
     {
@@ -182,34 +184,44 @@ std::vector<unsigned char> DecodeBase64(const char* p, bool* pfInvalid)
         ++p;
     }
     valid = valid && (p - e) % 4 == 0 && p - q < 4;
-    if (pfInvalid) *pfInvalid = !valid;
+    if (pf_invalid) *pf_invalid = !valid;
 
     return ret;
 }
 
-std::string DecodeBase64(const std::string& str)
+std::string DecodeBase64(const std::string& str, bool* pf_invalid)
 {
-    std::vector<unsigned char> vchRet = DecodeBase64(str.c_str());
+    if (!ValidAsCString(str)) {
+        if (pf_invalid) {
+            *pf_invalid = true;
+        }
+        return {};
+    }
+    std::vector<unsigned char> vchRet = DecodeBase64(str.c_str(), pf_invalid);
     return std::string((const char*)vchRet.data(), vchRet.size());
 }
 
-std::string EncodeBase32(const unsigned char* pch, size_t len)
+std::string EncodeBase32(Span<const unsigned char> input, bool pad)
 {
     static const char *pbase32 = "abcdefghijklmnopqrstuvwxyz234567";
 
     std::string str;
-    str.reserve(((len + 4) / 5) * 8);
-    ConvertBits<8, 5, true>([&](int v) { str += pbase32[v]; }, pch, pch + len);
-    while (str.size() % 8) str += '=';
+    str.reserve(((input.size() + 4) / 5) * 8);
+    ConvertBits<8, 5, true>([&](int v) { str += pbase32[v]; }, input.begin(), input.end());
+    if (pad) {
+        while (str.size() % 8) {
+            str += '=';
+        }
+    }
     return str;
 }
 
-std::string EncodeBase32(const std::string& str)
+std::string EncodeBase32(const std::string& str, bool pad)
 {
-    return EncodeBase32((const unsigned char*)str.c_str(), str.size());
+    return EncodeBase32(MakeUCharSpan(str), pad);
 }
 
-std::vector<unsigned char> DecodeBase32(const char* p, bool* pfInvalid)
+std::vector<unsigned char> DecodeBase32(const char* p, bool* pf_invalid)
 {
     static const int decode32_table[256] =
     {
@@ -251,24 +263,30 @@ std::vector<unsigned char> DecodeBase32(const char* p, bool* pfInvalid)
         ++p;
     }
     valid = valid && (p - e) % 8 == 0 && p - q < 8;
-    if (pfInvalid) *pfInvalid = !valid;
+    if (pf_invalid) *pf_invalid = !valid;
 
     return ret;
 }
 
-std::string DecodeBase32(const std::string& str)
+std::string DecodeBase32(const std::string& str, bool* pf_invalid)
 {
-    std::vector<unsigned char> vchRet = DecodeBase32(str.c_str());
+    if (!ValidAsCString(str)) {
+        if (pf_invalid) {
+            *pf_invalid = true;
+        }
+        return {};
+    }
+    std::vector<unsigned char> vchRet = DecodeBase32(str.c_str(), pf_invalid);
     return std::string((const char*)vchRet.data(), vchRet.size());
 }
 
-static bool ParsePrechecks(const std::string& str)
+NODISCARD static bool ParsePrechecks(const std::string& str)
 {
     if (str.empty()) // No empty string allowed
         return false;
-    if (str.size() >= 1 && (isspace(str[0]) || isspace(str[str.size()-1]))) // No padding allowed
+    if (str.size() >= 1 && (IsSpace(str[0]) || IsSpace(str[str.size()-1]))) // No padding allowed
         return false;
-    if (str.size() != strlen(str.c_str())) // No embedded NUL characters allowed
+    if (!ValidAsCString(str)) // No embedded NUL characters allowed
         return false;
     return true;
 }
@@ -302,6 +320,18 @@ bool ParseInt64(const std::string& str, int64_t *out)
     return endp && *endp == 0 && !errno &&
         n >= std::numeric_limits<int64_t>::min() &&
         n <= std::numeric_limits<int64_t>::max();
+}
+
+bool ParseUInt8(const std::string& str, uint8_t *out)
+{
+    uint32_t u32;
+    if (!ParseUInt32(str, &u32) || u32 > std::numeric_limits<uint8_t>::max()) {
+        return false;
+    }
+    if (out != nullptr) {
+        *out = static_cast<uint8_t>(u32);
+    }
+    return true;
 }
 
 bool ParseUInt32(const std::string& str, uint32_t *out)
@@ -391,25 +421,6 @@ std::string FormatParagraph(const std::string& in, size_t width, size_t indent)
         }
     }
     return out.str();
-}
-
-std::string i64tostr(int64_t n)
-{
-    return strprintf("%d", n);
-}
-
-std::string itostr(int n)
-{
-    return strprintf("%d", n);
-}
-
-int64_t atoi64(const char* psz)
-{
-#ifdef _MSC_VER
-    return _atoi64(psz);
-#else
-    return strtoll(psz, nullptr, 10);
-#endif
 }
 
 int64_t atoi64(const std::string& str)
@@ -545,50 +556,18 @@ bool ParseFixedPoint(const std::string &val, int decimals, int64_t *amount_out)
     return true;
 }
 
-bool ParseHDKeypath(const std::string& keypath_str, std::vector<uint32_t>& keypath)
+std::string ToLower(const std::string& str)
 {
-    std::stringstream ss(keypath_str);
-    std::string item;
-    bool first = true;
-    while (std::getline(ss, item, '/')) {
-        if (item.compare("m") == 0) {
-            if (first) {
-                first = false;
-                continue;
-            }
-            return false;
-        }
-        // Finds whether it is hardened
-        uint32_t path = 0;
-        size_t pos = item.find("'");
-        if (pos != std::string::npos) {
-            // The hardened tick can only be in the last index of the string
-            if (pos != item.size() - 1) {
-                return false;
-            }
-            path |= 0x80000000;
-            item = item.substr(0, item.size() - 1); // Drop the last character which is the hardened tick
-        }
-
-        // Ensure this is only numbers
-        if (item.find_first_not_of( "0123456789" ) != std::string::npos) {
-            return false;
-        }
-        uint32_t number;
-        if (!ParseUInt32(item, &number)) {
-            return false;
-        }
-        path |= number;
-
-        keypath.push_back(path);
-        first = false;
-    }
-    return true;
+    std::string r;
+    for (auto ch : str) r += ToLower((unsigned char)ch);
+    return r;
 }
 
-void Downcase(std::string& str)
+std::string ToUpper(const std::string& str)
 {
-    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){return ToLower(c);});
+    std::string r;
+    for (auto ch : str) r += ToUpper((unsigned char)ch);
+    return r;
 }
 
 std::string Capitalize(std::string str)
@@ -596,4 +575,17 @@ std::string Capitalize(std::string str)
     if (str.empty()) return str;
     str[0] = ToUpper(str.front());
     return str;
+}
+
+std::string HexStr(const Span<const uint8_t> s)
+{
+    std::string rv;
+    static constexpr char hexmap[16] = { '0', '1', '2', '3', '4', '5', '6', '7',
+                                         '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+    rv.reserve(s.size() * 2);
+    for (uint8_t v: s) {
+        rv.push_back(hexmap[v >> 4]);
+        rv.push_back(hexmap[v & 15]);
+    }
+    return rv;
 }
