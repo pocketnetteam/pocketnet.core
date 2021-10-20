@@ -345,7 +345,7 @@ POCKETCOIN_CORE_H = \
     util/system.h \
     util/memory.h \
     util/moneystr.h \
-    utiltime.h \
+    util/time.h \
     validation.h \
     validationinterface.h \
     versionbits.h \
@@ -597,7 +597,7 @@ libpocketcoin_util_a_SOURCES = \
   util/system.cpp \
   util/moneystr.cpp \
   utilstrencodings.cpp \
-  utiltime.cpp \
+  util/time.cpp \
   $(POCKETCOIN_CORE_H)
 
 if GLIBC_BACK_COMPAT

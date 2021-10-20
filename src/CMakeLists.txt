@@ -239,6 +239,22 @@ elseif (ENABLE_REDUCE_EXPORTS)
     message(FATAL_ERROR "Cannot find a working visibility attribute. Use -DENABLE_REDUCE_EXPORTS=OFF.")
 endif ()
 
+check_cxx_source_compiles("#include <ctime>
+                            int main() {
+                                gmtime_r((const time_t *) nullptr, (struct tm *) nullptr);
+                            }" HAVE_GMTIME_R)
+if(HAVE_GMTIME_R)
+    add_compile_definitions(HAVE_GMTIME_R=1)
+else()
+    check_cxx_source_compiles("#include <ctime>
+                                int main() {
+                                    gmtime_s((struct tm *) nullptr, (const time_t *) nullptr);
+                                }" HAVE_GMTIME_S)
+    if(NOT HAVE_GMTIME_S)
+        message(FATAL_ERROR "Both gmtime_r and gmtime_s are unavailable")
+    endif()
+endif()
+
 check_cxx_source_compiles(" #include <thread>
                             static thread_local int foo = 0;
                             static void run_thread() { foo++;}
@@ -442,8 +458,8 @@ add_library(${POCKETCOIN_UTIL}
                 util/memory.h
                 util/moneystr.h
                 util/moneystr.cpp
-                utiltime.h
-                utiltime.cpp
+                util/time.h
+                util/time.cpp
                 util/html.h
                 util/html.cpp
                 random.h
