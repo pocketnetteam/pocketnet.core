@@ -343,8 +343,8 @@ POCKETCOIN_CORE_H = \
     ui_interface.h \
     undo.h \
     util/system.h \
-    utilmemory.h \
-    utilmoneystr.h \
+    util/memory.h \
+    util/moneystr.h \
     utiltime.h \
     validation.h \
     validationinterface.h \
@@ -546,8 +546,8 @@ libpocketcoin_consensus_a_SOURCES = \
   tinyformat.h \
   uint256.cpp \
   uint256.h \
-  utilstrencodings.cpp \
-  utilstrencodings.h \
+  util/strencodings.cpp \
+  util/strencodings.h \
   version.h
 
 # common: shared between pocketcoind, and pocketcoin-qt and non-server tools
@@ -595,7 +595,7 @@ libpocketcoin_util_a_SOURCES = \
   sync.cpp \
   threadinterrupt.cpp \
   util/system.cpp \
-  utilmoneystr.cpp \
+  util/moneystr.cpp \
   utilstrencodings.cpp \
   utiltime.cpp \
   $(POCKETCOIN_CORE_H)

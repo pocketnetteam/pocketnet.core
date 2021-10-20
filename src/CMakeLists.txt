@@ -439,9 +439,9 @@ add_library(${POCKETCOIN_UTIL}
                 threadsafety.h
                 threadinterrupt.h
                 threadinterrupt.cpp
-                utilmemory.h
-                utilmoneystr.h
-                utilmoneystr.cpp
+                util/memory.h
+                util/moneystr.h
+                util/moneystr.cpp
                 utiltime.h
                 utiltime.cpp
                 util/html.h
@@ -505,8 +505,8 @@ add_library(${POCKETCOIN_CRYPTO}
         serialize.h
         arith_uint256.cpp
         arith_uint256.h
-        utilstrencodings.h
-        utilstrencodings.cpp
+        util/strencodings.h # TODO maybe move to utils
+        util/strencodings.cpp
         )
 target_link_libraries(${POCKETCOIN_CRYPTO} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_SUPPORT} secp256k1)
 if (ENABLE_SSE41)
