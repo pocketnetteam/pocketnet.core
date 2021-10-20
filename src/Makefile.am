@@ -346,6 +346,25 @@ POCKETCOIN_CORE_H = \
     util/memory.h \
     util/moneystr.h \
     util/time.h \
+    util/url.h \
+    util/vector.h \
+    util/threadnames.h \
+    util/translation.h \
+    util/ui_change_type.h \
+    util/string.h \
+    util/spanparsing.h \
+    util/settings.h \
+    util/rbf.h \
+    util/ref.h \
+    util/message.h \
+    util/fees.h \
+    util/golombrice.h \
+    util/macros.h \
+    util/error.h \
+    util/check.h \
+    util/bytevectorhash.h \
+    util/bip32.h \
+    util/asmap.h \
     validation.h \
     validationinterface.h \
     versionbits.h \
@@ -598,6 +617,18 @@ libpocketcoin_util_a_SOURCES = \
   util/moneystr.cpp \
   utilstrencodings.cpp \
   util/time.cpp \
+  util/asmap.cpp \
+  util/bip32.cpp \
+  util/bytevectorhash.cpp \
+  util/error.cpp \
+  util/fees.cpp \
+  util/message.cpp \
+  util/rbf.cpp \
+  util/settings.cpp \
+  util/spanparsing.cpp \
+  util/string.cpp \
+  util/threadnames.cpp \
+  util/url.cpp \
   $(POCKETCOIN_CORE_H)
 
 if GLIBC_BACK_COMPAT

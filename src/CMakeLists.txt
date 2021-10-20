@@ -462,6 +462,37 @@ add_library(${POCKETCOIN_UTIL}
                 util/time.cpp
                 util/html.h
                 util/html.cpp
+                util/asmap.cpp
+                util/asmap.h
+                util/bip32.cpp
+                util/bip32.h
+                util/bytevectorhash.cpp
+                util/bytevectorhash.h
+                util/check.h
+                util/error.cpp
+                util/error.h
+                util/fees.cpp
+                util/fees.h
+                util/golombrice.h
+                util/macros.h
+                util/message.cpp
+                util/message.h
+                util/rbf.cpp
+                util/rbf.h
+                util/ref.h
+                util/settings.cpp
+                util/settings.h
+                util/spanparsing.cpp
+                util/spanparsing.h
+                util/string.cpp
+                util/string.h
+                util/threadnames.cpp
+                util/threadnames.h
+                util/translation.h
+                util/ui_change_type.h
+                util/url.cpp
+                util/url.h
+                util/vector.h
                 random.h
                 random.cpp
                 timedata.h
