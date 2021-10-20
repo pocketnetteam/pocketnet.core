@@ -29,7 +29,7 @@ namespace PocketWeb::PocketWebRpc
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address)
     {
         topHeight = chainActive.Height();
-        if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int())
+        if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int() > 0)
             topHeight = request.params[0].get_int();
 
         if (request.params.size() > 1 && request.params[1].isStr())
@@ -43,9 +43,11 @@ namespace PocketWeb::PocketWebRpc
                 countOut = 10;
         }
 
+        lang = "en";
         if (request.params.size() > 3 && request.params[3].isStr())
             lang = request.params[3].get_str();
 
+        // tags
         if (request.params.size() > 4)
         {
             if (request.params[4].isStr())
@@ -69,13 +71,15 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
+        // content types
         contentTypes = {CONTENT_POST, CONTENT_VIDEO};
-        if (request.params.size() > 4)
+        if (request.params.size() > 5 && !request.params[5].empty())
         {
             contentTypes.clear();
-            ParseRequestContentType(request.params[4], contentTypes);
+            ParseRequestContentType(request.params[5], contentTypes);
         }
 
+        // exclude ids
         if (request.params.size() > 6)
         {
             if (request.params[6].isStr())
@@ -97,6 +101,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
+        // exclude addresses
         if (request.params.size() > 7)
         {
             if (request.params[7].isStr())
@@ -118,6 +123,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
+        // exclude tags
         if (request.params.size() > 8)
         {
             if (request.params[8].isStr())
@@ -139,6 +145,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
+        // address for person output
         if (request.params.size() > 9)
         {
             RPCTypeCheckArgument(request.params[9], UniValue::VSTR);

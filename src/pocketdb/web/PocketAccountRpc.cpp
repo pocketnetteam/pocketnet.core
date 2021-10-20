@@ -172,7 +172,7 @@ namespace PocketWeb::PocketWebRpc
         // Read general account info and current state
         auto result = request.DbConnection()->WebRpcRepoInst->GetAccountState(address, chainActive.Height() - windowDepth);
         if (result["address"].isNull())
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Pocketcoin address not found"));
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
         // Calculate additional fields
         auto accountMode = reputationConsensus->GetAccountMode(result["reputation"].get_int(), result["balance"].get_int64());

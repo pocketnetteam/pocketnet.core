@@ -90,8 +90,7 @@ namespace PocketDb
 
         tuple<bool, int64_t> GetContentId(const string& txHash);
 
-        map<string, UniValue> GetContentsData(const vector<string>& txHashes, const string& address);
-        map<int64_t, UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
+        vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
 
         UniValue GetContentsForAddress(const string& address);
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address);
@@ -123,7 +122,6 @@ namespace PocketDb
 
         UniValue ParseCommentRow(sqlite3_stmt* stmt);
         vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm);
-        vector<tuple<string, int64_t, UniValue>> GetContentsData(const vector<string>& txHashes, const vector<int64_t>& ids, const string& address);
     };
 
     typedef shared_ptr<WebRpcRepository> WebRpcRepositoryRef;

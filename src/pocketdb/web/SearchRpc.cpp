@@ -107,8 +107,7 @@ namespace PocketWeb::PocketWebRpc
             auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, searchRequest.Address);
             
             UniValue data(UniValue::VARR);
-            for (const auto& content : contents)
-                data.push_back(content.second);
+            data.push_backV(contents);
 
             result.pushKV("posts", UniValue(UniValue::VOBJ));
             result.At("posts").pushKV("data", data);
@@ -127,8 +126,7 @@ namespace PocketWeb::PocketWebRpc
             auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, searchRequest.Address);
 
             UniValue data(UniValue::VARR);
-            for (const auto& content : contents)
-                data.push_back(content.second);
+            data.push_backV(contents);
 
             result.pushKV("videos", UniValue(UniValue::VOBJ));
             result.At("videos").pushKV("data", data);
