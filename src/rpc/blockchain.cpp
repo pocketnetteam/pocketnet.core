@@ -143,6 +143,8 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     CBlockIndex* pnext = chainActive.Next(blockindex);
     if (pnext)
         result.pushKV("nextblockhash", pnext->GetBlockHash().GetHex());
+    result.pushKV("blocksignature", HexStr(block.vchBlockSig));
+
     return result;
 }
 

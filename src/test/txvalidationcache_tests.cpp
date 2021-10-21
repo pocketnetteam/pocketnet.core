@@ -29,8 +29,13 @@ ToMemPool(const CMutableTransaction& tx)
     LOCK(cs_main);
 
     CValidationState state;
-    return AcceptToMemoryPool(mempool, state, MakeTransactionRef(tx), nullptr /* pfMissingInputs */,
-                              nullptr /* plTxnReplaced */, true /* bypass_limits */, 0 /* nAbsurdFee */);
+    return AcceptToMemoryPool(mempool, state, MakeTransactionRef(tx), 
+                              nullptr /* pocketTx */,
+                              nullptr /* pfMissingInputs */,
+                              nullptr /* plTxnReplaced */,
+                              true /* bypass_limits */,
+                              0 /* nAbsurdFee */,
+                              false /* test_accept */);
 }
 
 BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)

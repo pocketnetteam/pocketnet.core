@@ -14,6 +14,8 @@
 #include <validation.h>
 #include <validationinterface.h>
 
+#include "pocketdb/services/Accessor.hpp"
+
 struct RegtestingSetup : public TestingSetup {
     RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
 };
@@ -138,6 +140,16 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 
     // Connect the genesis block and drain any outstanding events
     ProcessNewBlock(Params(), std::make_shared<CBlock>(Params().GenesisBlock()), true, &ignored);
+
+    CBlock& block = const_cast<CBlock&>(Params().GenesisBlock());
+
+    auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(block);
+    BOOST_CHECK(deserializeOk);
+
+    auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
+ 
+    ProcessNewBlock(state, Params(), std::make_shared<CBlock>(block), pocketBlockRef, true, true, &ignored);
+
     SyncWithValidationInterfaceQueue();
 
     // subscribe to events (this subscriber will validate event ordering)
@@ -153,18 +165,30 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     // this will create parallelism and randomness inside validation - the ValidationInterface
     // will subscribe to events generated during block validation and assert on ordering invariance
     boost::thread_group threads;
+
     for (int i = 0; i < 10; i++) {
         threads.create_thread([&blocks]() {
             bool ignored;
+            CValidationState state;
+
             for (int i = 0; i < 1000; i++) {
                 auto block = blocks[GetRand(blocks.size() - 1)];
-                ProcessNewBlock(Params(), block, true, &ignored);
+                auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(block);
+                assert(deserializeOk);
+
+                auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
+                ProcessNewBlock(state, Params(), block, pocketBlockRef, true, true, &ignored);
             }
 
             // to make sure that eventually we process the full chain - do it here
             for (auto block : blocks) {
                 if (block->vtx.size() == 1) {
-                    bool processed = ProcessNewBlock(Params(), block, true, &ignored);
+                    auto[deserializeOk, pocketBlock] = PocketServices::TransactionSerializer::DeserializeBlock(block);
+                    assert(deserializeOk);
+
+                    auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
+
+                    bool processed = ProcessNewBlock(state, Params(), block, pocketBlockRef, true, true, &ignored);
                     assert(processed);
                 }
             }
