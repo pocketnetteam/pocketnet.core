@@ -41,8 +41,6 @@ static const CRPCCommand commands[] =
     {"debug", "debugweb", &debug, {}},
 
     // Old methods
-    {"artifacts", "getrawtransactionwithmessagebyid", &getrawtransactionwithmessagebyid,  {"ids"}},
-    {"artifacts", "getrawtransactionwithmessage",     &gettemplate,                       {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
     {"artifacts", "searchlinks",                      &gettemplate,                       {"search_request", "contenttypes", "height", "count"}},
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
@@ -56,11 +54,14 @@ static const CRPCCommand commands[] =
 
     // Contents
     {"contents",        "gethotposts",                      &GetHotPosts,                   {"count", "depth", "height", "lang", "contenttypes"}},
-    // {"contents",        "getcontents",                      &GetContents,                   {"address"}},
     { "contents",       "gethistoricalfeed",                &GetHistoricalFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     { "contents",       "gethistoricalstrip",               &GetHistoricalFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     { "contents",       "gethierarchicalfeed",              &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     { "contents",       "gethierarchicalstrip",             &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
+    {"contents",        "getrawtransactionwithmessagebyid", &GetContent,                    {"ids", "address"}},
+    {"contents",        "getcontent",                       &GetContent,                    {"ids", "address"}},
+    {"contents",        "getrawtransactionwithmessage",     &GetProfileFeed,                {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
+    {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},

@@ -1110,337 +1110,36 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetContentsForAddress(const string& address)
+    vector<int64_t> WebRpcRepository::GetContentIds(const vector<string>& txHashes)
     {
-        UniValue result(UniValue::VARR);
+        vector<int64_t> result;
 
-        if (address.empty())
-        return result;
-
-        string sql = R"sql(
-            select t.Id
-            from Transactions t indexed by Transactions_Type_Last_String1_Height
-            where t.Type in (200, 201)
-                and t.Last = 1
-                and t.String1 = ?
-            order by t.Height desc
-        )sql";
-
-        vector<int64_t> ids;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, address);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
-                    ids.push_back(value);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        if (ids.empty())
+        if (txHashes.empty())
             return result;
-
-        auto contents = GetContentsData(ids, "");
-        result.push_backV(contents);
-
-        return result;
-    }
-
-    tuple<bool, int64_t> WebRpcRepository::GetContentId(const string& txHash)
-    {
-        int64_t resultId = 0;
 
         string sql = R"sql(
             select Id
             from Transactions
-            where Hash = ?
+            where Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
               and Height is not null
         )sql";
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, txHash);
+            
+            int i = 1;
+            for (const string& txHash : txHashes)
+                TryBindStatementText(stmt, i++, txHash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
-                    resultId = value;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return {resultId != 0, resultId};
-    }
-
-    vector<UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
-    {
-        vector<UniValue> result{};
-
-        if (ids.empty())
-            return result;
-
-        string sql = R"sql(
-            select
-                t.String2 as RootTxHash,
-                t.Id,
-                case when t.Hash != t.String2 then 'true' else null end edit,
-                t.String3 as RelayTxHash,
-                t.String1 as AddressHash,
-                t.Time,
-                p.String1 as Lang,
-                t.Type,
-                p.String2 as Caption,
-                p.String3 as Message,
-                p.String7 as Url,
-                p.String4 as Tags,
-                p.String5 as Images,
-                p.String6 as Settings,
-
-                (select count(*) from Transactions scr indexed by Transactions_Type_Last_String2_Height
-                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2) as ScoresCount,
-
-                ifnull((select sum(scr.Int1) from Transactions scr indexed by Transactions_Type_Last_String2_Height
-                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2),0) as ScoresSum,
-
-                (select count(*) from Transactions rep indexed by Transactions_Type_Last_String3_Height
-                    where rep.Type in (200,201) and rep.Last = 1 and rep.Height is not null and rep.String3 = t.String2) as Reposted,
-
-                (select count(*) from Transactions com indexed by Transactions_Type_Last_String3_Height
-                    where com.Type in (204,205) and com.Last = 1 and com.Height is not null and com.String3 = t.String2) as CommentsCount,
-                
-                ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
-                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore
-
-            from Transactions t
-            join Payload p on t.Hash = p.TxHash
-            where t.Type in (200, 201, 207)
-              and t.Height is not null
-              and t.Last = 1
-              and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-        )sql";
-
-        // Get posts
-        unordered_map<int64_t, UniValue> tmpResult{};
-        vector<string> authors;
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            int i = 1;
-
-            TryBindStatementText(stmt, i++, address);
-
-            for (int64_t id : ids)
-                TryBindStatementInt64(stmt, i++, id);
-
-            // ---------------------------
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                auto[okHash, txHash] = TryGetColumnString(*stmt, 0);
-                auto[okId, txId] = TryGetColumnInt64(*stmt, 1);
-                record.pushKV("txid", txHash);
-                record.pushKV("id", txId);
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("edit", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("repost", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok)
-                {
-                    authors.emplace_back(value);
-                    record.pushKV("address", value);
-                }
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("l", value); // lang
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("c", value); // caption
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("m", value); // message
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("u", value); // url
-                
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok)
-                {
-                    record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
-                    if ((TxType)value == CONTENT_DELETE)
-                        record.pushKV("deleted", "true");
-                }
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
-                {
-                    UniValue t(UniValue::VARR);
-                    t.read(value);
-                    record.pushKV("t", t);
-                }
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
-                {
-                    UniValue ii(UniValue::VARR);
-                    ii.read(value);
-                    record.pushKV("i", ii);
-                }
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok)
-                {
-                    UniValue s(UniValue::VOBJ);
-                    s.read(value);
-                    record.pushKV("s", s);
-                }
-
-                if (auto [ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("scoreCnt", value);
-                if (auto [ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("scoreSum", value);
-                if (auto [ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("reposted", value);
-                if (auto [ok, value] = TryGetColumnInt(*stmt, 17); ok) record.pushKV("comments", value);
-
-                if (!address.empty())
-                {
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, 18); ok)
-                        record.pushKV("myVal", value);
-                }
-
-                tmpResult[txId] = record;                
+                    result.push_back(value);
             }
 
             FinalizeSqlStatement(*stmt);
         });
-
-        // ---------------------------------------------
-        // Get last comments for all posts
-        map<int64_t, UniValue> lastComments;
-        string sqlLastComments = R"sql(
-            select
-                cmnt.contentId,
-                cmnt.commentId,
-                c.Type,
-                c.String2 as RootTxHash,
-                c.String3 as PostTxHash,
-                c.String1 as AddressHash,
-                corig.Time,
-                c.Time as TimeUpdate,
-                c.Height,
-                p.String1 as Message,
-                c.String4 as ParentTxHash,
-                c.String5 as AnswerTxHash,
-
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1) as ScoreUp,
-
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
-
-                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Id = c.Id AND r.Type=3 and r.Last=1) as Reputation,
-
-                (select count(*) from Transactions ch indexed by Transactions_Type_Last_String4_Height
-                    where ch.Type in (204,205,206) and ch.Last = 1 and ch.Height is not null and ch.String4 = c.String2) as ChildrensCount,
-
-                ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
-                    where scr.Type = 301 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = c.String2),0) as MyScore,
-
-                (
-                    select sum(o.Value)
-                    from Transactions cc indexed by Transactions_Id
-                    join TxOutputs o on o.TxHash = cc.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != cc.String1
-                    where cc.Id = c.Id and cc.Height is not null
-                ) as Donate
-
-            from (
-                select (t.Id)contentId, (t.String1)ContentAddressHash, (c.Id)commentId
-                from Transactions t
-                left join Transactions c indexed by Transactions_Type_Last_Height_String3
-                    on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.String3 = t.String2 and c.String4 is null
-                where t.Type in (200,201,207)
-                    and t.Last = 1
-                    and t.Height is not null
-                    and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-                    and c.Id = (
-                    select q.Id from (
-                        select c1.Id, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
-                        from Transactions c1
-                        where c1.Type in (204,205)
-                        and c1.Height is not null
-                        and c1.String3 = t.String2
-                        and c1.String4 is null
-                    )q
-                    order by q.Donate desc, q.Id desc
-                    limit 1
-                    )
-            ) cmnt
-
-            join Transactions c indexed by Transactions_Last_Id_Height
-                on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.Id = cmnt.commentId
-            join Transactions corig
-                on corig.Hash = c.String2
-            join Payload p on p.TxHash = c.Hash
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sqlLastComments);
-            int i = 1;
-
-            TryBindStatementText(stmt, i++, address);
-
-            for (int64_t id : ids)
-                TryBindStatementInt64(stmt, i++, id);
-
-            // ---------------------------
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                auto[okContentId, contentId] = TryGetColumnInt(*stmt, 0);
-                auto[okCommentId, commentId] = TryGetColumnInt(*stmt, 1);
-                auto[okType, txType] = TryGetColumnInt(*stmt, 2);
-                auto[okRoot, rootTxHash] = TryGetColumnString(*stmt, 3);
-
-                record.pushKV("id", rootTxHash);
-                record.pushKV("cid", commentId);
-                record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
-                record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("myScore", value);
-                
-                if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok)
-                {
-                    record.pushKV("donation", "true");
-                    record.pushKV("amount", value);
-                }
-                                
-                lastComments.emplace(contentId, record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-        
-        // ---------------------------------------------
-
-        // Extend posts
-        for (auto& record : tmpResult)
-            record.second.pushKV("lastComment", lastComments[record.first]);
-
-        // ---------------------------------------------
-        // Get profiles for posts
-        auto profiles = GetAccountProfiles(authors, true);
-        for (auto& record : tmpResult)
-            record.second.pushKV("userprofile", profiles[record.second["address"].get_str()]);
-
-        // ---------------------------------------------
-        // Place in result data with source sorting
-        for (auto& id : ids)
-            result.push_back(tmpResult[id]);
 
         return result;
     }
@@ -1947,6 +1646,347 @@ namespace PocketDb
 
     // ------------------------------------------------------
     // Feeds
+
+    vector<UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
+    {
+        vector<UniValue> result{};
+
+        if (ids.empty())
+            return result;
+
+        string sql = R"sql(
+            select
+                t.String2 as RootTxHash,
+                t.Id,
+                case when t.Hash != t.String2 then 'true' else null end edit,
+                t.String3 as RelayTxHash,
+                t.String1 as AddressHash,
+                t.Time,
+                p.String1 as Lang,
+                t.Type,
+                p.String2 as Caption,
+                p.String3 as Message,
+                p.String7 as Url,
+                p.String4 as Tags,
+                p.String5 as Images,
+                p.String6 as Settings,
+
+                (select count(*) from Transactions scr indexed by Transactions_Type_Last_String2_Height
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2) as ScoresCount,
+
+                ifnull((select sum(scr.Int1) from Transactions scr indexed by Transactions_Type_Last_String2_Height
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2),0) as ScoresSum,
+
+                (select count(*) from Transactions rep indexed by Transactions_Type_Last_String3_Height
+                    where rep.Type in (200,201) and rep.Last = 1 and rep.Height is not null and rep.String3 = t.String2) as Reposted,
+
+                (select count(*) from Transactions com indexed by Transactions_Type_Last_String3_Height
+                    where com.Type in (204,205) and com.Last = 1 and com.Height is not null and com.String3 = t.String2) as CommentsCount,
+                
+                ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore
+
+            from Transactions t
+            join Payload p on t.Hash = p.TxHash
+            where t.Type in (200, 201, 207)
+              and t.Height is not null
+              and t.Last = 1
+              and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+        )sql";
+
+        // Get posts
+        unordered_map<int64_t, UniValue> tmpResult{};
+        vector<string> authors;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+
+            TryBindStatementText(stmt, i++, address);
+
+            for (int64_t id : ids)
+                TryBindStatementInt64(stmt, i++, id);
+
+            // ---------------------------
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                auto[okHash, txHash] = TryGetColumnString(*stmt, 0);
+                auto[okId, txId] = TryGetColumnInt64(*stmt, 1);
+                record.pushKV("txid", txHash);
+                record.pushKV("id", txId);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("edit", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("repost", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok)
+                {
+                    authors.emplace_back(value);
+                    record.pushKV("address", value);
+                }
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("l", value); // lang
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("c", value); // caption
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("m", value); // message
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("u", value); // url
+                
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok)
+                {
+                    record.pushKV("type", TransactionHelper::TxStringType((TxType) value));
+                    if ((TxType)value == CONTENT_DELETE)
+                        record.pushKV("deleted", "true");
+                }
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
+                {
+                    UniValue t(UniValue::VARR);
+                    t.read(value);
+                    record.pushKV("t", t);
+                }
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
+                {
+                    UniValue ii(UniValue::VARR);
+                    ii.read(value);
+                    record.pushKV("i", ii);
+                }
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok)
+                {
+                    UniValue s(UniValue::VOBJ);
+                    s.read(value);
+                    record.pushKV("s", s);
+                }
+
+                if (auto [ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("scoreCnt", value);
+                if (auto [ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("scoreSum", value);
+                if (auto [ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("reposted", value);
+                if (auto [ok, value] = TryGetColumnInt(*stmt, 17); ok) record.pushKV("comments", value);
+
+                if (!address.empty())
+                {
+                    if (auto [ok, value] = TryGetColumnInt(*stmt, 18); ok)
+                        record.pushKV("myVal", value);
+                }
+
+                tmpResult[txId] = record;                
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // ---------------------------------------------
+        // Get last comments for all posts
+        map<int64_t, UniValue> lastComments;
+        string sqlLastComments = R"sql(
+            select
+                cmnt.contentId,
+                cmnt.commentId,
+                c.Type,
+                c.String2 as RootTxHash,
+                c.String3 as PostTxHash,
+                c.String1 as AddressHash,
+                corig.Time,
+                c.Time as TimeUpdate,
+                c.Height,
+                p.String1 as Message,
+                c.String4 as ParentTxHash,
+                c.String5 as AnswerTxHash,
+
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1) as ScoreUp,
+
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
+
+                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
+                    where r.Id = c.Id AND r.Type=3 and r.Last=1) as Reputation,
+
+                (select count(*) from Transactions ch indexed by Transactions_Type_Last_String4_Height
+                    where ch.Type in (204,205,206) and ch.Last = 1 and ch.Height is not null and ch.String4 = c.String2) as ChildrensCount,
+
+                ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
+                    where scr.Type = 301 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = c.String2),0) as MyScore,
+
+                (
+                    select sum(o.Value)
+                    from Transactions cc indexed by Transactions_Id
+                    join TxOutputs o on o.TxHash = cc.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != cc.String1
+                    where cc.Id = c.Id and cc.Height is not null
+                ) as Donate
+
+            from (
+                select (t.Id)contentId, (t.String1)ContentAddressHash, (c.Id)commentId
+                from Transactions t
+                left join Transactions c indexed by Transactions_Type_Last_Height_String3
+                    on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.String3 = t.String2 and c.String4 is null
+                where t.Type in (200,201,207)
+                    and t.Last = 1
+                    and t.Height is not null
+                    and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+                    and c.Id = (
+                    select q.Id from (
+                        select c1.Id, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
+                        from Transactions c1
+                        where c1.Type in (204,205)
+                        and c1.Height is not null
+                        and c1.String3 = t.String2
+                        and c1.String4 is null
+                    )q
+                    order by q.Donate desc, q.Id desc
+                    limit 1
+                    )
+            ) cmnt
+
+            join Transactions c indexed by Transactions_Last_Id_Height
+                on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.Id = cmnt.commentId
+            join Transactions corig
+                on corig.Hash = c.String2
+            join Payload p on p.TxHash = c.Hash
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sqlLastComments);
+            int i = 1;
+
+            TryBindStatementText(stmt, i++, address);
+
+            for (int64_t id : ids)
+                TryBindStatementInt64(stmt, i++, id);
+
+            // ---------------------------
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                auto[okContentId, contentId] = TryGetColumnInt(*stmt, 0);
+                auto[okCommentId, commentId] = TryGetColumnInt(*stmt, 1);
+                auto[okType, txType] = TryGetColumnInt(*stmt, 2);
+                auto[okRoot, rootTxHash] = TryGetColumnString(*stmt, 3);
+
+                record.pushKV("id", rootTxHash);
+                record.pushKV("cid", commentId);
+                record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
+                record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("myScore", value);
+                
+                if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok)
+                {
+                    record.pushKV("donation", "true");
+                    record.pushKV("amount", value);
+                }
+                                
+                lastComments.emplace(contentId, record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+        
+        // ---------------------------------------------
+
+        // Extend posts
+        for (auto& record : tmpResult)
+            record.second.pushKV("lastComment", lastComments[record.first]);
+
+        // ---------------------------------------------
+        // Get profiles for posts
+        auto profiles = GetAccountProfiles(authors, true);
+        for (auto& record : tmpResult)
+            record.second.pushKV("userprofile", profiles[record.second["address"].get_str()]);
+
+        // ---------------------------------------------
+        // Place in result data with source sorting
+        for (auto& id : ids)
+            result.push_back(tmpResult[id]);
+
+        return result;
+    }
+
+    UniValue WebRpcRepository::GetProfileFeed(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang,
+        const vector<string>& tags, const vector<int>& contentTypes)
+    {
+        UniValue result(UniValue::VARR);
+
+        if (addressTo.empty())
+            return result;
+
+        string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string contentIdWhere;
+        if (topContentId > 0)
+            contentIdWhere = " and t.Id < ? ";
+
+        string sql = R"sql(
+            select t.Id
+            from Transactions t indexed by Transactions_Last_Id_Height
+            join Payload p on p.TxHash = t.Hash
+            where t.Type in ( )sql" + contentTypesWhere + R"sql( )
+                and t.Height is not null
+                and t.Last = 1
+                and t.String1 = ?
+                )sql" + contentIdWhere + R"sql(
+        )sql";
+
+        if (!lang.empty()) sql += " and p.String1 = ? ";
+        if (!tags.empty()) sql += " and t.Id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+        
+        sql += " order by t.Id desc ";
+        sql += " limit ? ";
+
+        vector<int64_t> ids;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+            
+            TryBindStatementText(stmt, i++, addressTo);
+
+            if (topContentId > 0)
+                TryBindStatementInt(stmt, i++, topContentId);
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            if (!tags.empty())
+                for (const auto& tag: tags)
+                    TryBindStatementText(stmt, i++, tag);
+
+            TryBindStatementInt(stmt, i++, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        if (ids.empty())
+            return result;
+
+        auto contents = GetContentsData(ids, addressFrom);
+        result.push_backV(contents);
+
+        return result;
+    }
 
     UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
         const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)

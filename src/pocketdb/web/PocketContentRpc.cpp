@@ -157,26 +157,120 @@ namespace PocketWeb::PocketWebRpc
         }
     }
 
-    UniValue GetContents(const JSONRPCRequest& request)
+    UniValue GetContent(const JSONRPCRequest& request)
     {
         if (request.fHelp || request.params.size() < 1)
         {
             throw runtime_error(
-                "getcontents address\n"
-                "\nReturns contents for address.\n"
-                "\nArguments:\n"
-                "1. address            (string) A pocketcoin addresses to filter\n"
-                "\nResult\n"
-                "[                     (array of contents)\n"
-                "  ...\n"
-                "]");
+                "getcontent ids[]\n"
+                "\nReturns contents for list of ids");
+        }
+
+        vector<string> hashes;
+        if (request.params.size() > 0)
+        {
+            if (request.params[0].isStr())
+            {
+                hashes.push_back(request.params[0].get_str());
+            }
+            else if (request.params[0].isArray())
+            {
+                UniValue txids = request.params[0].get_array();
+                for (unsigned int idx = 0; idx < txids.size(); idx++)
+                {
+                    string txidEx = boost::trim_copy(txids[idx].get_str());
+                    if (!txidEx.empty())
+                        hashes.push_back(txidEx);
+
+                    if (hashes.size() > 100)
+                        break;
+                }
+            }
         }
 
         string address;
-        if (request.params[0].isStr())
-            address = request.params[0].get_str();
+        if (request.params.size() > 1 && request.params[1].isStr())
+            address = request.params[1].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
+        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds(hashes);
+        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, address);
+
+        UniValue result(UniValue::VARR);
+        result.push_backV(content);
+        return result;
+    }
+
+    UniValue GetProfileFeed(const JSONRPCRequest& request)
+    {
+        if (request.fHelp || request.params.size() < 1)
+        {
+            throw runtime_error(
+                "getprofilefeed address\n"
+                "\nReturns contents for list of ids");
+        }
+
+        string addressFrom;
+        if (request.params.size() > 0 && request.params[0].isStr())
+            addressFrom = request.params[0].get_str();
+            
+        string addressTo;
+        if (request.params.size() > 1 && request.params[1].isStr())
+            addressTo = request.params[1].get_str();
+
+        string topContentHash;
+        if (request.params.size() > 2 && request.params[2].isStr())
+            topContentHash = request.params[2].get_str();
+
+        int count = 10;
+        if (request.params.size() > 3 && request.params[3].isNum())
+        {
+            count = request.params[3].get_int();
+            if (count > 10)
+                count = 10;
+        }
+
+        string lang = "";
+        if (request.params.size() > 4 && request.params[4].isStr())
+            lang = request.params[4].get_str();
+
+        vector<string> tags;
+        if (request.params.size() > 5)
+        {
+            if (request.params[5].isStr())
+            {
+                string tag = boost::trim_copy(request.params[5].get_str());
+                if (!tag.empty())
+                    tags.push_back(tag);
+            }
+            else if (request.params[5].isArray())
+            {
+                UniValue tgs = request.params[5].get_array();
+                for (unsigned int idx = 0; idx < tgs.size(); idx++)
+                {
+                    string tag = boost::trim_copy(tgs[idx].get_str());
+                    if (!tag.empty())
+                        tags.push_back(tag);
+
+                    if (tags.size() >= 10)
+                        break;
+                }
+            }
+        }
+
+        // content types
+        vector<int> contentTypes = {CONTENT_POST, CONTENT_VIDEO};
+        if (request.params.size() > 6 && !request.params[6].empty())
+        {
+            contentTypes.clear();
+            ParseRequestContentType(request.params[6], contentTypes);
+        }
+
+        int64_t topContentId = 0;
+        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
+        if (!ids.empty())
+            topContentId = ids[0];
+
+        return request.DbConnection()->WebRpcRepoInst->GetProfileFeed(addressFrom, addressTo, topContentId, count, lang, tags, contentTypes);
     }
 
     UniValue GetHotPosts(const JSONRPCRequest& request)
@@ -275,7 +369,10 @@ namespace PocketWeb::PocketWebRpc
         string address;
         ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
 
-        auto[topContentOk, topContentId] = request.DbConnection()->WebRpcRepoInst->GetContentId(topContentHash);
+        int64_t topContentId = 0;
+        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
+        if (!ids.empty())
+            topContentId = ids[0];
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetHistoricalFeed(
@@ -315,7 +412,10 @@ namespace PocketWeb::PocketWebRpc
         string address;
         ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
 
-        auto[topContentOk, topContentId] = request.DbConnection()->WebRpcRepoInst->GetContentId(topContentHash);
+        int64_t topContentId = 0;
+        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
+        if (!ids.empty())
+            topContentId = ids[0];
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetHierarchicalFeed(

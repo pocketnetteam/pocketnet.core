@@ -13,10 +13,11 @@ namespace PocketWeb::PocketWebRpc
 {
     using namespace PocketHelpers;
 
-    UniValue GetContents(const JSONRPCRequest& request);
+    UniValue GetContent(const JSONRPCRequest& request);
     UniValue GetHotPosts(const JSONRPCRequest& request);
     UniValue GetHistoricalFeed(const JSONRPCRequest& request);
     UniValue GetHierarchicalFeed(const JSONRPCRequest& request);
+    UniValue GetProfileFeed(const JSONRPCRequest& request);
     
 }
 

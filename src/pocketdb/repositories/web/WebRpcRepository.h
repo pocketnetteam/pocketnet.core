@@ -85,13 +85,8 @@ namespace PocketDb
 
         map<string, UniValue> GetTags(const string& addresses, const int nHeight, const int from, const string& lang);
 
-        tuple<bool, int64_t> GetContentId(const string& txHash);
+        vector<int64_t> GetContentIds(const vector<string>& txHashes);
 
-        vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
-
-        UniValue GetContentsForAddress(const string& address);
-        UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address);
-        
         UniValue GetUnspents(vector<string>& addresses, int height);
 
         tuple<int, UniValue> GetContentLanguages(int height);
@@ -104,8 +99,16 @@ namespace PocketDb
         vector<UniValue> GetMissedCommentAnswers(const string& address, int height, int count);
         vector<UniValue> GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count);
 
+
+        vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
+        
+        UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address);
+        
+        UniValue GetProfileFeed(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
+        
         UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
             const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
+
         UniValue GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
             const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
 
