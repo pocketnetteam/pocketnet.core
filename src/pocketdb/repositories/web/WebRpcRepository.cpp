@@ -520,10 +520,13 @@ namespace PocketDb
         return result;
     }
 
-    UniValue
-    WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
+    UniValue WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
         auto result = UniValue(UniValue::VARR);
+
+        string parentWhere = " and c.String4 is null ";
+        if (!parentHash.empty())
+            parentWhere = " and c.String4 = ? ";
 
         auto sql = R"sql(
             SELECT
@@ -535,38 +538,49 @@ namespace PocketDb
                 r.Time AS RootTime,
                 c.Time,
                 c.Height,
-                pl.String2 AS Msg,
+                pl.String1 AS Msg,
                 c.String4 as ParentTxHash,
                 c.String5 as AnswerTxHash,
+
                 (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
+
                 (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
+
                 (SELECT r.Value FROM Ratings r WHERE r.Id=c.Id AND r.Type=3 and r.Last=1) as Reputation,
+
                 IFNULL(sc.Int1, 0) AS MyScore,
+
                 (SELECT COUNT(1) FROM Transactions s WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
-                (SELECT sum(o1.Value) Amount FROM Transactions c1 JOIN Transactions p1 ON p1.Hash = c1.String3 JOIN TxOutputs o1 ON o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 WHERE c1.String2 = c.String2) as Amount
-            FROM Transactions c
-            JOIN Transactions r ON c.String2 = r.Hash
-            JOIN Payload pl ON pl.TxHash = c.Hash
-            LEFT JOIN Transactions sc ON sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
-            WHERE c.Type in (204, 205)
+
+                (select sum(o1.Value) Amount
+                 from Transactions c1 indexed by Transactions_Type_Last_String2_Height
+                 join Transactions p1 on p1.Hash = c1.String3
+                 join TxOutputs o1 on o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 and o1.AddressHash != c1.String1
+                 where c1.Type in (204,205) and c1.Last in (0,1) and c1.Height is not null and c1.String2 = c.String2
+                ) as Amount
+
+            from Transactions c indexed by Transactions_Type_Last_Height_Time_String3_String4
+            join Transactions r ON c.String2 = r.Hash
+            join Payload pl ON pl.TxHash = c.Hash
+            left join Transactions sc indexed by Transactions_Type_String1_String2_Height
+                on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
+            where c.Type in (204, 205)
                 and c.Height is not null
                 and c.Last = 1
                 and c.String3 = ?
-                AND (? = '' or c.String4 = ?)
-                AND c.Time < ?
+                )sql" + parentWhere + R"sql(
+                and c.Time < ?
         )sql";
-
-        //TODO add donate amount
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-
-            TryBindStatementText(stmt, 1, addressHash);
-            TryBindStatementText(stmt, 2, postHash);
-            TryBindStatementText(stmt, 3, parentHash);
-            TryBindStatementText(stmt, 4, parentHash);
-            TryBindStatementInt64(stmt, 5, GetAdjustedTime());
+            int i = 1;
+            TryBindStatementText(stmt, i++, addressHash);
+            TryBindStatementText(stmt, i++, postHash);
+            if (!parentHash.empty())
+                TryBindStatementText(stmt, i++, parentHash);
+            TryBindStatementInt64(stmt, i++, GetAdjustedTime());
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -885,8 +899,7 @@ namespace PocketDb
         return record;
     }
 
-    map<string, UniValue>
-    WebRpcRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<TxType>& types)
+    map<string, UniValue> WebRpcRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<TxType>& types)
     {
         auto result = map<string, UniValue>();
         for (const auto& address: addresses)
@@ -931,8 +944,7 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue>
-    WebRpcRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<TxType>& types)
+    map<string, UniValue> WebRpcRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<TxType>& types)
     {
         string sql = R"sql(
             select
@@ -1198,7 +1210,7 @@ namespace PocketDb
                     where rep.Type in (200,201) and rep.Last = 1 and rep.Height is not null and rep.String3 = t.String2) as Reposted,
 
                 (select count(*) from Transactions com indexed by Transactions_Type_Last_String3_Height
-                    where com.Type in (204,205,206) and com.Last = 1 and com.Height is not null and com.String3 = t.String2) as CommentsCount,
+                    where com.Type in (204,205) and com.Last = 1 and com.Height is not null and com.String3 = t.String2) as CommentsCount,
                 
                 ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore
@@ -1297,7 +1309,8 @@ namespace PocketDb
         map<int64_t, UniValue> lastComments;
         string sqlLastComments = R"sql(
             select
-                cmnt.Id,
+                cmnt.contentId,
+                cmnt.commentId,
                 c.Type,
                 c.String2 as RootTxHash,
                 c.String3 as PostTxHash,
@@ -1327,24 +1340,35 @@ namespace PocketDb
                 (
                     select sum(o.Value)
                     from Transactions cc indexed by Transactions_Id
-                    join TxOutputs o on o.TxHash = cc.Hash and o.AddressHash = cmnt.ContentAddressHash
+                    join TxOutputs o on o.TxHash = cc.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != cc.String1
                     where cc.Id = c.Id and cc.Height is not null
                 ) as Donate
 
             from (
-                select t.Id, (t.String1)ContentAddressHash, max(c.Id)cmntId
+                select (t.Id)contentId, (t.String1)ContentAddressHash, (c.Id)commentId
                 from Transactions t
                 left join Transactions c indexed by Transactions_Type_Last_Height_String3
-                    on c.Type in (204,205,206) and c.Last = 1 and c.Height is not null and c.String3 = t.String2
+                    on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.String3 = t.String2 and c.String4 is null
                 where t.Type in (200,201,207)
                     and t.Last = 1
                     and t.Height is not null
                     and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-                group by t.Id, t.String1
+                    and c.Id = (
+                    select q.Id from (
+                        select c1.Id, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
+                        from Transactions c1
+                        where c1.Type in (204,205)
+                        and c1.Height is not null
+                        and c1.String3 = t.String2
+                        and c1.String4 is null
+                    )q
+                    order by q.Donate desc, q.Id desc
+                    limit 1
+                    )
             ) cmnt
 
             join Transactions c indexed by Transactions_Last_Id_Height
-                on c.Type in (204,205,206) and c.Last = 1 and c.Height is not null and c.Id = cmnt.cmntId
+                on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.Id = cmnt.commentId
             join Transactions corig
                 on corig.Hash = c.String2
             join Payload p on p.TxHash = c.Hash
@@ -1366,28 +1390,30 @@ namespace PocketDb
                 UniValue record(UniValue::VOBJ);
 
                 auto[okContentId, contentId] = TryGetColumnInt(*stmt, 0);
-                auto[okType, txType] = TryGetColumnInt(*stmt, 1);
-                auto[okRoot, rootTxHash] = TryGetColumnString(*stmt, 2);
+                auto[okCommentId, commentId] = TryGetColumnInt(*stmt, 1);
+                auto[okType, txType] = TryGetColumnInt(*stmt, 2);
+                auto[okRoot, rootTxHash] = TryGetColumnString(*stmt, 3);
 
                 record.pushKV("id", rootTxHash);
+                record.pushKV("cid", commentId);
                 record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
                 record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("children", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 15); ok) record.pushKV("myScore", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("myScore", value);
                 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
@@ -1991,8 +2017,7 @@ namespace PocketDb
                     
             TryBindStatementInt(stmt, i++, countOut);
 
-            
-            LogPrintf("--- GetHistoricalFeed: %s\n", sqlite3_expanded_sql(*stmt));
+            //LogPrintf("--- GetHistoricalFeed: %s\n", sqlite3_expanded_sql(*stmt));
             
             // Get results
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -2128,7 +2153,7 @@ namespace PocketDb
                 for (const auto& extag: tagsExcluded)
                     TryBindStatementText(stmt, i++, extag);
 
-            LogPrintf("--- GetHierarchicalFeed: topContentId=%d sql=%s\n", topContentId, sqlite3_expanded_sql(*stmt));
+            //LogPrintf("--- GetHierarchicalFeed: topContentId=%d sql=%s\n", topContentId, sqlite3_expanded_sql(*stmt));
             
             // Get results
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -2192,14 +2217,20 @@ namespace PocketDb
 
         // Sort results
         sort(postsRanks.begin(), postsRanks.end(), greater<HierarchicalRecord>());
+        
+        //LogPrintf("--- postsRanks.size()=%d\n", postsRanks.size());
 
         // Build result list
         bool found = false;
+        int64_t minPostRank = topContentId;
         vector<int64_t> resultIds;
         for(auto iter = postsRanks.begin(); iter < postsRanks.end() && (int)resultIds.size() < countOut; iter++)
         {
+            if (iter->Id < minPostRank || minPostRank == 0)
+                minPostRank = iter->Id;
+
             // Find start position
-            if (!found)
+            if (!found && topContentId > 0)
             {
                 if (iter->Id == topContentId)
                     found = true;
@@ -2217,19 +2248,17 @@ namespace PocketDb
             auto contents = GetContentsData(resultIds, address);
             result.push_backV(contents);
         }
+        
+        //LogPrintf("--- resultIds.size()=%d result.size()=%d\n", resultIds.size(), result.size());
 
         // ---------------------------------------------
         // If not completed - request historical data
         int lack = countOut - (int)resultIds.size();
         if (lack > 0)
         {
-            auto _topContentId = topContentId;
-            if (!postsRanks.empty())
-                _topContentId = min_element(postsRanks.begin(), postsRanks.end(), HierarchicalRecord::ById())->Id;
+            //LogPrintf("--- lack=%d minPostRank=%d postsRanks.size()=%d\n", lack, minPostRank, postsRanks.size());
 
-            LogPrintf("--- lack=%d _topContentId=%d\n", lack, _topContentId);
-
-            UniValue histContents = GetHistoricalFeed(countOut, _topContentId, topHeight, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
+            UniValue histContents = GetHistoricalFeed(lack, minPostRank, topHeight, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
             result.push_backV(histContents.getValues());
         }
 

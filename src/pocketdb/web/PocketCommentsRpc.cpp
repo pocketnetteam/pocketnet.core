@@ -9,11 +9,11 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetComments(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getcomments (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
                 "\nGet Pocketnet comments.\n");
 
-        std::vector<std::string> cmnIds;
+        vector<string> cmnIds;
         if (request.params.size() > 3)
         {
             if (request.params[3].isArray())
@@ -31,28 +31,24 @@ namespace PocketWeb::PocketWebRpc
         }
 
         if (!cmnIds.empty())
-        {
             return GetCommentsByIds(request);
-        }
         else
-        {
             return GetCommentsByPost(request);
-        }
     }
 
     UniValue GetCommentsByIds(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getcommentsbyids (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
                 "\nGet Pocketnet comments.\n");
 
-        std::string addressHash;
+        string addressHash;
         if (request.params.size() > 2) {
             addressHash = request.params[2].get_str();
         }
 
-        std::vector<std::string> cmnIds;
+        vector<string> cmnIds;
         if (request.params.size() > 3)
         {
             if (request.params[3].isArray())
@@ -75,26 +71,24 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetCommentsByPost(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getcomments (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
                 "\nGet Pocketnet comments.\n");
 
-        std::string postHash;
+        string postHash;
         if (!request.params.empty()) {
             postHash = request.params[0].get_str();
             if (postHash.length() == 0 && request.params.size() < 3)
                 throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid postid");
         }
 
-        std::string parentHash;
-        if (request.params.size() > 1) {
+        string parentHash;
+        if (request.params.size() > 1)
             parentHash = request.params[1].get_str();
-        }
 
-        std::string addressHash;
-        if (request.params.size() > 2) {
+        string addressHash;
+        if (request.params.size() > 2)
             addressHash = request.params[2].get_str();
-        }
 
         return request.DbConnection()->WebRpcRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
     }
@@ -102,7 +96,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetLastComments(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getlastcomments (count)\n"
                 "\nGet Pocketnet last comments.\n");
 
@@ -113,12 +107,12 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        std::string address;
+        string address;
         if (request.params.size() > 1) {
             address = request.params[1].get_str();
         }
 
-        std::string lang;
+        string lang;
         if (request.params.size() > 2) {
             lang = request.params[2].get_str();
         }

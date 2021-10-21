@@ -42,13 +42,10 @@ namespace PocketDb
             return (POSTRF > b.POSTRF);
         }
 
-        struct ById
+        bool operator < (const HierarchicalRecord& b) const
         {
-            bool operator ()( const HierarchicalRecord &a, const HierarchicalRecord &b ) const
-            { 
-                return a.Id < b.Id;
-            }
-        };
+            return (POSTRF < b.POSTRF);
+        }
     };
 
     class WebRpcRepository : public BaseRepository

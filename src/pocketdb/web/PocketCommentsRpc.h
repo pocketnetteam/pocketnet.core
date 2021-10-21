@@ -11,6 +11,8 @@
 
 namespace PocketWeb::PocketWebRpc
 {
+    using namespace std;
+    
     UniValue GetComments(const JSONRPCRequest& request);
     UniValue GetCommentsByPost(const JSONRPCRequest& request);
     UniValue GetCommentsByIds(const JSONRPCRequest& request);
