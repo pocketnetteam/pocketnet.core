@@ -320,8 +320,8 @@ namespace PocketDb
                 ifnull((select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height
                     where po.Type in (200) and po.Last=1 and po.Height is not null and po.String1=u.String1),0) as PostsCount,
 
-                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Type=0 and r.Id=u.Id and r.Last=1),0) / 10 as Reputation,
+                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last
+                    where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
 
                 (select count(*) from Transactions subs indexed by Transactions_Type_Last_String2_Height
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1) as SubscribersCount,
@@ -1048,15 +1048,22 @@ namespace PocketDb
 
         string sql = R"sql(
             select t.Id
+
             from Transactions t indexed by Transactions_Type_Last_String3_Height
+            
             join Payload p indexed by Payload_String1_TxHash
                 on p.String1 = ? and t.Hash = p.TxHash
+            
+            join Ratings r indexed by Ratings_Type_Id_Last
+                on r.Type = 2 and r.Last = 1 and r.Id = t.Id and r.Value > 0
+
             where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
                 and t.Last = 1
+                and t.Height is not null
                 and t.Height <= ?
                 and t.Height > ?
                 and t.String3 is null
-            order by t.Height desc
+            order by r.Value desc
             limit ?
         )sql";
 
@@ -1202,9 +1209,10 @@ namespace PocketDb
               and t.Height is not null
               and t.Last = 1
               and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-            order by t.Id desc
         )sql";
 
+        // Get posts
+        unordered_map<int64_t, UniValue> tmpResult{};
         vector<string> authors;
         TryTransactionStep(__func__, [&]()
         {
@@ -1278,7 +1286,7 @@ namespace PocketDb
                         record.pushKV("myVal", value);
                 }
 
-                result.push_back(record);
+                tmpResult[txId] = record;                
             }
 
             FinalizeSqlStatement(*stmt);
@@ -1323,17 +1331,17 @@ namespace PocketDb
                     where cc.Id = c.Id and cc.Height is not null
                 ) as Donate
 
-                from (
-                    select t.Id, (t.String1)ContentAddressHash, max(c.Id)cmntId
-                    from Transactions t
-                    left join Transactions c indexed by Transactions_Type_Last_Height_String3
-                        on c.Type in (204,205,206) and c.Last = 1 and c.Height is not null and c.String3 = t.String2
-                    where t.Type in (200,201,207)
-                        and t.Last = 1
-                        and t.Height is not null
-                        and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-                    group by t.Id, t.String1
-                ) cmnt
+            from (
+                select t.Id, (t.String1)ContentAddressHash, max(c.Id)cmntId
+                from Transactions t
+                left join Transactions c indexed by Transactions_Type_Last_Height_String3
+                    on c.Type in (204,205,206) and c.Last = 1 and c.Height is not null and c.String3 = t.String2
+                where t.Type in (200,201,207)
+                    and t.Last = 1
+                    and t.Height is not null
+                    and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+                group by t.Id, t.String1
+            ) cmnt
 
             join Transactions c indexed by Transactions_Last_Id_Height
                 on c.Type in (204,205,206) and c.Last = 1 and c.Height is not null and c.Id = cmnt.cmntId
@@ -1390,16 +1398,23 @@ namespace PocketDb
 
             FinalizeSqlStatement(*stmt);
         });
+        
+        // ---------------------------------------------
 
         // Extend posts
-        for (auto& record : result)
-            record.pushKV("lastComment", lastComments[record["id"].get_int64()]);
+        for (auto& record : tmpResult)
+            record.second.pushKV("lastComment", lastComments[record.first]);
 
         // ---------------------------------------------
         // Get profiles for posts
         auto profiles = GetAccountProfiles(authors, true);
-        for (auto& record : result)
-            record.pushKV("userprofile", profiles[record["address"].get_str()]);
+        for (auto& record : tmpResult)
+            record.second.pushKV("userprofile", profiles[record.second["address"].get_str()]);
+
+        // ---------------------------------------------
+        // Place in result data with source sorting
+        for (auto& id : ids)
+            result.push_back(tmpResult[id]);
 
         return result;
     }
