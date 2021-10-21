@@ -25,7 +25,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Ratings
+                from Ratings indexed by Ratings_Type_Id_Value
                 where Type = ?
                   and Id = ?
                   and Value = ?
@@ -60,7 +60,7 @@ namespace PocketDb
                 ) SELECT ?,1,?,?,
                     ifnull((
                         select r.Value
-                        from Ratings r
+                        from Ratings r indexed by Ratings_Type_Id_Last_Height
                         where r.Type = ?
                             and r.Last = 1
                             and r.Id = ?
@@ -79,7 +79,7 @@ namespace PocketDb
 
             // Clear old Last record
             auto stmtUpdate = SetupSqlStatement(R"sql(
-                update Ratings
+                update Ratings indexed by Ratings_Type_Id_Last_Height
                     set Last = 0
                 where Type = ?
                   and Last = 1
@@ -107,7 +107,7 @@ namespace PocketDb
                 ) SELECT ?,1,?,?,?
                 WHERE NOT EXISTS (
                     select 1
-                    from Ratings r
+                    from Ratings r indexed by Ratings_Type_Id_Value
                     where r.Type=?
                       and r.Id=?
                       and r.Value=?

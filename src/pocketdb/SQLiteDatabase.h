@@ -57,6 +57,7 @@ namespace PocketDb
         void DetachDatabase(const string& dbName);
         void AttachDatabase(const string& dbName);
 
+        void RebuildIndexes();
     };
 
     typedef shared_ptr<SQLiteDatabase> SQLiteDatabaseRef;

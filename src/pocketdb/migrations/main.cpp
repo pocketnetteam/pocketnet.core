@@ -181,8 +181,8 @@ namespace PocketDb
             create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
 
             create index if not exists Ratings_Height on Ratings (Height);
-            create index if not exists Ratings_Type_Id_Last on Ratings (Type, Id, Last);
-            create index if not exists Ratings_Last_Id_Height on Ratings (Last, Id, Height);
+            create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
+            create index if not exists Ratings_Type_Id_Last_Height on Ratings (Type, Id, Last, Height);
 
             create index if not exists Payload_String2 on Payload (String2);
             create index if not exists Payload_String1_TxHash on Payload (String1, TxHash);

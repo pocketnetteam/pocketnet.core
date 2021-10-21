@@ -193,13 +193,13 @@ namespace PocketDb
                 (select reg.Time from Transactions reg indexed by Transactions_Id
                     where reg.Id=u.Id and reg.Height=(select min(reg1.Height) from Transactions reg1 indexed by Transactions_Id where reg1.Id=reg.Id)) as RegistrationDate,
 
-                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last
+                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
 
                 ifnull((select b.Value from Balances b indexed by Balances_AddressHash_Last
                     where b.AddressHash=u.String1 and b.Last=1),0) as Balance,
 
-                (select count(1) from Ratings r indexed by Ratings_Type_Id_Last
+                (select count(1) from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Type=1 and r.Id=u.Id) as Likers,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
@@ -320,13 +320,13 @@ namespace PocketDb
                 ifnull((select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height
                     where po.Type in (200) and po.Last=1 and po.Height is not null and po.String1=u.String1),0) as PostsCount,
 
-                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last
+                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Type=0 and r.Id=u.Id and r.Last=1),0) / 10 as Reputation,
 
                 (select count(*) from Transactions subs indexed by Transactions_Type_Last_String2_Height
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1) as SubscribersCount,
 
-                (select count(*) from Ratings lkr indexed by Ratings_Type_Id_Last
+                (select count(*) from Ratings lkr indexed by Ratings_Type_Id_Last_Height
                     where lkr.Type = 1 and lkr.Id = u.Id) as Likers
 
                 )sql" + fullProfileSql + R"sql(
@@ -1307,7 +1307,7 @@ namespace PocketDb
                 (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
                     where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
 
-                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last
+                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Id = c.Id AND r.Type=3 and r.Last=1) as Reputation,
 
                 (select count(*) from Transactions ch indexed by Transactions_Type_Last_String4_Height
@@ -2053,13 +2053,13 @@ namespace PocketDb
 
             join Transactions torig indexed by Transactions_Id on torig.Height is not null and torig.Id = t.Id and torig.Hash = torig.String2
 
-            left join Ratings pr indexed by Ratings_Type_Id_Last
+            left join Ratings pr indexed by Ratings_Type_Id_Last_Height
                 on pr.Type = 2 and pr.Last = 1 and pr.Id = t.Id
 
             join Transactions u indexed by Transactions_Type_Last_String1_Height
                 on u.Type in (100) and u.Last = 1 and u.Height is not null and u.String1 = t.String1
 
-            left join Ratings ur indexed by Ratings_Type_Id_Last
+            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
                 on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
 
             where t.Type in )sql" + contentTypesWhere + R"sql(

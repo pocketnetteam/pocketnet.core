@@ -464,6 +464,7 @@ void SetupServerArgs()
         MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024),
         false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-rebuildindexes", "Rebuild all sqlite indexes", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
 
@@ -783,6 +784,11 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             LogPrintf("Reindexing finished\n");
             // To avoid ending up in a situation without genesis block, re-try initializing (no-op if reindexing worked):
             LoadGenesisBlock(chainparams);
+        }
+
+        if (gArgs.GetBoolArg("-rebuildindexes", false))
+        {
+            PocketDb::SQLiteDbInst.RebuildIndexes();
         }
 
         // hardcoded $DATADIR/bootstrap.dat

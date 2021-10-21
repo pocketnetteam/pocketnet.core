@@ -277,5 +277,14 @@ namespace PocketDb
             throw std::runtime_error("Failed detach database " + dbName);
     }
 
+    void SQLiteDatabase::RebuildIndexes()
+    {
+        LogPrintf("Deleting database indexes..\n");
+        DropIndexes();
+
+        LogPrintf("Creating database indexes..\n");
+        CreateStructure();
+    }
+
 } // namespace PocketDb
 
