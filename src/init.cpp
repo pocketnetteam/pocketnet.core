@@ -786,11 +786,6 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             LoadGenesisBlock(chainparams);
         }
 
-        if (gArgs.GetBoolArg("-rebuildindexes", false))
-        {
-            PocketDb::SQLiteDbInst.RebuildIndexes();
-        }
-
         // hardcoded $DATADIR/bootstrap.dat
         fs::path pathBootstrap = GetDataDir() / "bootstrap.dat";
         if (fs::exists(pathBootstrap))
@@ -1620,6 +1615,11 @@ bool AppInitMain()
     PocketDb::SQLiteDbCheckpointInst.Init(checkpointDbPath.string(), checkpointDbName);
 
     PocketWeb::PocketFrontendInst.Init();
+
+    // ********************************************************* Step 4b: Additional settings
+
+    if (gArgs.GetBoolArg("-rebuildindexes", false))
+        PocketDb::SQLiteDbInst.RebuildIndexes();
 
     // ********************************************************* Step 4b: Start servers
 
