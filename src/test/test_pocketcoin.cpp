@@ -22,6 +22,8 @@
 
 const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
 
+void ShutdownPocketServices();
+
 void CConnmanTest::AddNode(CNode& node)
 {
     LOCK(g_connman->cs_vNodes);
@@ -85,9 +87,32 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
     // Ideally we'd move all the RPC tests to the functional testing framework
     // instead of unit tests, but for now we need these here.
 
-    AppInitMain();
-    //PocketDb::IntitializeSqlite();
-    //InitHTTPServer();
+    InitHTTPServer();
+
+    auto dbBasePath = (GetDataDir() / "pocketdb").string();
+    PocketDb::IntitializeSqlite();
+
+    PocketDb::PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDb::PocketDbMainMigration>();
+    PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
+    PocketDb::SQLiteDbInst.CreateStructure();
+
+    PocketDb::TransRepoInst.Init();
+    PocketDb::ChainRepoInst.Init();
+    PocketDb::RatingsRepoInst.Init();
+    PocketDb::ConsensusRepoInst.Init();
+    PocketDb::NotifierRepoInst.Init();
+
+    // Open, create structure and close `web` db
+    PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
+    PocketDb::SQLiteDatabase sqliteDbWebInst(false);
+    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration);
+    sqliteDbWebInst.CreateStructure();
+    sqliteDbWebInst.m_connection_mutex.lock();
+    sqliteDbWebInst.Close();
+    sqliteDbWebInst.m_connection_mutex.unlock();
+
+    // Attach `web` db to `main` db
+    PocketDb::SQLiteDbInst.AttachDatabase("web");
 
     ClearDatadirCache();
 
@@ -119,17 +144,18 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
 
 TestingSetup::~TestingSetup()
 {
-        threadGroup.interrupt_all();
-        threadGroup.join_all();
-        GetMainSignals().FlushBackgroundCallbacks();
-        GetMainSignals().UnregisterBackgroundSignalScheduler();
-        g_connman.reset();
-        peerLogic.reset();
-        UnloadBlockIndex();
-        pcoinsTip.reset();
-        pcoinsdbview.reset();
-        pblocktree.reset();
-        Shutdown();
+    threadGroup.interrupt_all();
+    threadGroup.join_all();
+    GetMainSignals().FlushBackgroundCallbacks();
+    GetMainSignals().UnregisterBackgroundSignalScheduler();
+    g_connman.reset();
+    peerLogic.reset();
+    UnloadBlockIndex();
+    pcoinsTip.reset();
+    pcoinsdbview.reset();
+    pblocktree.reset();
+    ShutdownPocketServices();
+    PocketDb::SQLiteDbInst.Cleanup();
 }
 
 TestChain100Setup::TestChain100Setup() : TestingSetup(CBaseChainParams::REGTEST)

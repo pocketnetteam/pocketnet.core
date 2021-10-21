@@ -31,7 +31,6 @@ namespace PocketDb
         string m_db_path;
         bool isReadOnlyConnect;
 
-        void Cleanup() noexcept;
         bool BulkExecute(string sql);
 
     public:
@@ -45,6 +44,8 @@ namespace PocketDb
         void CreateStructure();
 
         void DropIndexes();
+
+        void Cleanup() noexcept;
 
         void Close();
 
