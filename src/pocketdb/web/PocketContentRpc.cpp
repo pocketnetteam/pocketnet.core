@@ -426,4 +426,81 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
+    UniValue GetSubscribersFeed(const JSONRPCRequest& request)
+    {
+        if (request.fHelp || request.params.size() < 1)
+        {
+            throw runtime_error(
+                "getsubscribersfeed\n"
+                "\nReturns contents from subscribers");
+        }
+
+        string addressFrom;
+        if (request.params.size() > 0 && request.params[0].isStr())
+            addressFrom = request.params[0].get_str();
+
+        string topContentHash;
+        if (request.params.size() > 2 && request.params[2].isStr())
+            topContentHash = request.params[2].get_str();
+
+        int count = 10;
+        if (request.params.size() > 3 && request.params[3].isNum())
+        {
+            count = request.params[3].get_int();
+            if (count > 10)
+                count = 10;
+        }
+
+        string lang = "";
+        if (request.params.size() > 4 && request.params[4].isStr())
+            lang = request.params[4].get_str();
+
+        vector<string> tags;
+        if (request.params.size() > 5)
+        {
+            if (request.params[5].isStr())
+            {
+                string tag = boost::trim_copy(request.params[5].get_str());
+                if (!tag.empty())
+                    tags.push_back(tag);
+            }
+            else if (request.params[5].isArray())
+            {
+                UniValue tgs = request.params[5].get_array();
+                for (unsigned int idx = 0; idx < tgs.size(); idx++)
+                {
+                    string tag = boost::trim_copy(tgs[idx].get_str());
+                    if (!tag.empty())
+                        tags.push_back(tag);
+
+                    if (tags.size() >= 10)
+                        break;
+                }
+            }
+        }
+
+        // content types
+        vector<int> contentTypes = {CONTENT_POST, CONTENT_VIDEO};
+        if (request.params.size() > 6 && !request.params[6].empty())
+        {
+            contentTypes.clear();
+            ParseRequestContentType(request.params[6], contentTypes);
+        }
+
+        int64_t topContentId = 0;
+        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
+        if (!ids.empty())
+            topContentId = ids[0];
+
+        // return request.DbConnection()->WebRpcRepoInst->GetProfileFeed(addressFrom, addressTo, topContentId, count, lang, tags, contentTypes);
+        return UniValue(UniValue::VARR);
+    }
+
+    UniValue FeedSelector(const JSONRPCRequest& request)
+    {
+        if (request.params.size() > 1 && request.params[1].isStr() && request.params[1].get_str() == "1")
+            return GetSubscribersFeed(request);
+
+        return GetProfileFeed(request);
+    }
 }

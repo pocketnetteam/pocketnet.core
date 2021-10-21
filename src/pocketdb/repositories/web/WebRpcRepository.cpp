@@ -385,6 +385,8 @@ namespace PocketDb
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribes", subscribes);
+
+                        LogPrintf("--- %s", subscribes.write());
                     }
 
                     if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
@@ -2151,10 +2153,10 @@ namespace PocketDb
         )sql";
 
         if (!lang.empty()) sql += " and p.String1 = ? ";
-        if (!tags.empty()) sql += " and t.id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+        if (!tags.empty()) sql += " and t.Id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
         if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
         if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
-        if (!tagsExcluded.empty()) sql += " and t.id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
+        if (!tagsExcluded.empty()) sql += " and t.Id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
 
         // ---------------------------------------------
         vector<HierarchicalRecord> postsRanks;
