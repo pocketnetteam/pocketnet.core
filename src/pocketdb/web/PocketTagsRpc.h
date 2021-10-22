@@ -6,12 +6,10 @@
 #define SRC_POCKETTAGSRPC_H
 
 #include "rpc/server.h"
-#include "rpc/rawtransaction.h"
-#include "pocketdb/helpers/TransactionHelper.h"
 
 namespace PocketWeb::PocketWebRpc
 {
-    //using namespace PocketHelpers;
+    using namespace std;
 
     UniValue GetTags(const JSONRPCRequest& request);
 }

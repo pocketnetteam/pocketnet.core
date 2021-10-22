@@ -83,7 +83,7 @@ namespace PocketDb
 
         map<string, UniValue> GetBlockingToAddresses(const vector<string>& addresses);
 
-        map<string, UniValue> GetTags(const string& addresses, const int nHeight, const int from, const string& lang);
+        UniValue GetTags(const string& lang, int pageSize, int pageStart);
 
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
 

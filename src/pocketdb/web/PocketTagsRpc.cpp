@@ -8,35 +8,24 @@ namespace PocketWeb::PocketWebRpc
 {
     UniValue GetTags(const JSONRPCRequest& request)
     {
-        std::string address = "";
-        if (!request.params[0].isNull() && request.params[0].get_str().length() > 0) {
-            RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
-            CTxDestination dest = DecodeDestination(request.params[0].get_str());
+        if (request.fHelp)
+            throw std::runtime_error(
+                "gettags\n"
+                "\nReturn N top used tags for language\n");
 
-            if (!IsValidDestination(dest)) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + request.params[0].get_str());
-            }
+        int pageSize = 50;
+        if (request.params.size() > 1)
+            ParseInt32(request.params[1].get_str(), &pageSize);
 
-            address = request.params[0].get_str();
-        }
+        int pageStart = 0;
+        // if (request.params.size() > 2)
+        //     ParseInt32(request.params[2].get_str(), &pageStart);
 
-        int count = 50;
-        if (request.params.size() > 1) {
-            ParseInt32(request.params[1].get_str(), &count);
-        }
-
-        int from = 0;
-        if (request.params.size() > 2) {
-            ParseInt32(request.params[2].get_str(), &from);
-        }
-
-        std::string lang = "";
+        string lang = "en";
         if (request.params.size() > 3) {
             lang = request.params[3].get_str();
         }
 
-        std::map<std::string, int> mapTags;
-
-        return UniValue(UniValue::VARR);
+        return request.DbConnection()->WebRpcRepoInst->GetTags(lang, pageSize, pageStart);
     }
 }

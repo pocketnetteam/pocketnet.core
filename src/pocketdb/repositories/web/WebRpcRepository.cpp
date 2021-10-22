@@ -1021,38 +1021,48 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRpcRepository::GetTags(const string& addresses, const int countOut, const int nHeight, const string& lang)
+    UniValue WebRpcRepository::GetTags(const string& lang, int pageSize, int pageStart)
     {
-        // TODO (brangr): implement
-        /*string sql = R"sql(
-            SELECT
-                t.String2 as RootTxHash,
-                case when t.Hash != t.String2 then 'true' else null end edit,
-                t.String3 as RelayTxHash,
-                t.String1 as AddressHash,
-                t.Time,
-                p.String1 as Lang,
-                t.Type,
-                p.String2 as Caption,
-                p.String3 as Message,
-                p.String7 as Url,
-                p.String4 as Tags,
-                p.String5 as Images,
-                p.String6 as Settings
-            FROM web.Tags t
-            JOIN web.TagsMap tm
-            JOIN web.TagsMap tm
-            where t.Last = 1
-                and t.Height <= ?
-                and t.Height > ?
-                and t.Time <= ?
-                and t.String3 is null
-                and p.String1 = ?
-                and t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-            order by t.Height desc, t.Time desc
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select q.Lang, q.Value, q.cnt
+            from (
+                select t.Lang, t.Value, (select count(1) from web.TagsMap tm where tm.TagId = t.Id)cnt
+                from web.Tags t indexed by Tags_Lang_Id
+                where t.Lang = ?
+            )q
+            order by cnt desc
             limit ?
-        )sql";*/
-        map<string, UniValue> result{};
+            offset ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            TryBindStatementText(stmt, i++, lang);
+            TryBindStatementInt(stmt, i++, pageSize);
+            TryBindStatementInt(stmt, i++, pageStart);
+                
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[ok, lang] = TryGetColumnString(*stmt, 0);
+                auto[ok, value] = TryGetColumnString(*stmt, 1);
+                auto[ok, count] = TryGetColumnInt(*stmt, 2);
+
+                UniValue record(UniValue::VOBJ);
+                record.pushKV("tag", value);
+                record.pushKV("count", count);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
         return result;
     }
 
