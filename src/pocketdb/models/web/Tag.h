@@ -16,11 +16,13 @@ namespace PocketDbWeb
     struct Tag
     {
         int64_t ContentId;
+        string Lang;
         string Value;
 
-        Tag(int64_t contentId, const string& value)
+        Tag(int64_t contentId, const string& lang, const string& value)
         {
             ContentId = contentId;
+            Lang = lang;
             Value = value;
         }
     };

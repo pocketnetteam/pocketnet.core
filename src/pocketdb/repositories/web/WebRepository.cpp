@@ -15,7 +15,7 @@ namespace PocketDb
         vector<Tag> result;
 
         string sql = R"sql(
-            select distinct p.Id, json_each.value
+            select distinct p.Id, p.String1, json_each.value
             from Transactions p indexed by Transactions_BlockHash
             join Payload pp on pp.TxHash = p.Hash
             join json_each(pp.String4)
@@ -34,10 +34,13 @@ namespace PocketDb
                 auto[okId, id] = TryGetColumnInt64(*stmt, 0);
                 if (!okId) continue;
 
-                auto[okValue, value] = TryGetColumnString(*stmt, 1);
+                auto[okLang, lang] = TryGetColumnString(*stmt, 1);
+                if (!okLang) continue;
+
+                auto[okValue, value] = TryGetColumnString(*stmt, 2);
                 if (!okValue) continue;
 
-                result.emplace_back(Tag(id, value));
+                result.emplace_back(Tag(id, lang, value));
             }
 
             FinalizeSqlStatement(*stmt);
@@ -49,13 +52,9 @@ namespace PocketDb
     void WebRepository::UpsertContentTags(const vector<Tag>& contentTags)
     {
         // build distinct lists
-        vector<string> tags;
         vector<int> ids;
         for (auto& contentTag : contentTags)
         {
-            if (find(tags.begin(), tags.end(), contentTag.Value) == tags.end())
-                tags.emplace_back(contentTag.Value);
-
             if (find(ids.begin(), ids.end(), contentTag.ContentId) == ids.end())
                 ids.emplace_back(contentTag.ContentId);
         }
@@ -63,14 +62,18 @@ namespace PocketDb
         // Next work in transaction
         TryTransactionStep(__func__, [&]()
         {
-            // Insert new tags and ignore exists
+            // Insert new tags and ignore exists with unique index Lang+Value
             int i = 1;
             auto tagsStmt = SetupSqlStatement(R"sql(
                 insert or ignore
-                into web.Tags (Value)
-                values )sql" + join(vector<string>(tags.size(), "(?)"), ",") + R"sql(
+                into web.Tags (Lang, Value)
+                values )sql" + join(vector<string>(contentTags.size(), "(?,?)"), ",") + R"sql(
             )sql");
-            for (const auto& tag: tags) TryBindStatementText(tagsStmt, i++, tag);
+            for (const auto& tag: contentTags)
+            {
+                TryBindStatementText(tagsStmt, i++, tag.Lang);
+                TryBindStatementText(tagsStmt, i++, tag.Value);
+            }
             TryStepStatement(tagsStmt);
 
             // Delete exists mappings ContentId <-> TagId
