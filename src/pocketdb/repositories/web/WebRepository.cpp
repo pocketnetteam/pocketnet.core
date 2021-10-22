@@ -15,7 +15,7 @@ namespace PocketDb
         vector<Tag> result;
 
         string sql = R"sql(
-            select distinct p.Id, p.String1, json_each.value
+            select distinct p.Id, pp.String1, json_each.value
             from Transactions p indexed by Transactions_BlockHash
             join Payload pp on pp.TxHash = p.Hash
             join json_each(pp.String4)

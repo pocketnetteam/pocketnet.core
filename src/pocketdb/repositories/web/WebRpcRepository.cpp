@@ -1050,8 +1050,8 @@ namespace PocketDb
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto[ok, lang] = TryGetColumnString(*stmt, 0);
-                auto[ok, value] = TryGetColumnString(*stmt, 1);
-                auto[ok, count] = TryGetColumnInt(*stmt, 2);
+                auto[ok1, value] = TryGetColumnString(*stmt, 1);
+                auto[ok2, count] = TryGetColumnInt(*stmt, 2);
 
                 UniValue record(UniValue::VOBJ);
                 record.pushKV("tag", value);
