@@ -219,7 +219,7 @@ static RPCHelpMan generatetodescriptor()
         "\nMine blocks immediately to a specified descriptor (before the RPC call returns)\n",
         {
             {"num_blocks", RPCArg::Type::NUM, RPCArg::Optional::NO, "How many blocks are generated immediately."},
-            {"descriptor", RPCArg::Type::STR, RPCArg::Optional::NO, "The descriptor to send the newly generated bitcoin to."},
+            {"descriptor", RPCArg::Type::STR, RPCArg::Optional::NO, "The descriptor to send the newly generated pocketcoin to."},
             {"maxtries", RPCArg::Type::NUM, /* default */ ToString(DEFAULT_MAX_TRIES), "How many iterations to try."},
         },
         RPCResult{
