@@ -1049,7 +1049,7 @@ namespace PocketDb
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto[ok, lang] = TryGetColumnString(*stmt, 0);
+                auto[ok0, lang] = TryGetColumnString(*stmt, 0);
                 auto[ok1, value] = TryGetColumnString(*stmt, 1);
                 auto[ok2, count] = TryGetColumnInt(*stmt, 2);
 
