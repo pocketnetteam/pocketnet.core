@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2021 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <compressor.h>
 
-#include <hash.h>
 #include <pubkey.h>
 #include <script/standard.h>
 
@@ -19,7 +19,9 @@
 
 static bool IsToKeyID(const CScript& script, CKeyID &hash)
 {
-    if (script.size() == 25 && script[0] == OP_DUP && script[1] == OP_HASH160 && script[2] == 20 && script[23] == OP_EQUALVERIFY && script[24] == OP_CHECKSIG) {
+    if (script.size() == 25 && script[0] == OP_DUP && script[1] == OP_HASH160
+                            && script[2] == 20 && script[23] == OP_EQUALVERIFY
+                            && script[24] == OP_CHECKSIG) {
         memcpy(&hash, &script[3], 20);
         return true;
     }
@@ -51,7 +53,7 @@ static bool IsToPubKey(const CScript& script, CPubKey &pubkey)
     return false;
 }
 
-bool CompressScript(const CScript& script, std::vector<unsigned char> &out)
+bool CompressScript(const CScript& script, CompressedScript& out)
 {
     CKeyID keyID;
     if (IsToKeyID(script, keyID)) {
@@ -91,7 +93,7 @@ unsigned int GetSpecialScriptSize(unsigned int nSize)
     return 0;
 }
 
-bool DecompressScript(CScript& script, unsigned int nSize, const std::vector<unsigned char> &in)
+bool DecompressScript(CScript& script, unsigned int nSize, const CompressedScript& in)
 {
     switch(nSize) {
     case 0x00:

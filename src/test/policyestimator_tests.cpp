@@ -7,6 +7,7 @@
 #include <txmempool.h>
 #include <uint256.h>
 #include <util.h>
+#include <pocketdb/pocketdb.h>
 
 #include <test/test_pocketcoin.h>
 
@@ -23,6 +24,8 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     CAmount basefee(2000);
     CAmount deltaFee(100);
     std::vector<CAmount> feeV;
+    g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
+    g_pocketdb->Init();
 
     // Populate vectors of increasing fees
     for (int j = 0; j < 10; j++) {

@@ -249,6 +249,12 @@ bool AntiBot::check_item_size(const UniValue& oitm, CHECKTYPE _type, int height,
 
     if (_data_size > _limit)
     {
+        if (_type == User)
+        {
+            LogPrintf("--- %s 17 users %d > %d\n", oitm["txid"].get_str(), _data_size, _limit);
+            return true;
+        }
+
         result = ANTIBOTRESULT::ContentSizeLimit;
         return false;
     }
