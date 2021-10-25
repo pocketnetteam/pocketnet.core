@@ -161,4 +161,50 @@ namespace PocketWeb::PocketWebRpc
         
         return result;
     }
+
+    UniValue SearchLinks(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "searchlinks [\"links\", ...], \"contenttypes\", height, count\n"
+                "\nSearch links in DB.\n"
+                "\nArguments:\n"
+                "1. \"links\" (Array of strings) String for search\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "4. \"count\" (int, optional) Number of resulting records. Default 10\n"
+            );
+
+        RPCTypeCheck(request.params, {UniValue::VARR});
+
+        std::vector<std::string> vLinks;
+        UniValue lnks = request.params[0].get_array();
+        if (lnks.size() > 100)
+            throw JSONRPCError(RPC_INVALID_PARAMS, "The array is too large");
+        else if (lnks.size() > 0)
+            for (unsigned int idx = 0; idx < lnks.size(); idx++)
+                vLinks.emplace_back(lnks[idx].get_str());
+
+        vector<int> contentTypes = {TxType::CONTENT_POST, TxType::CONTENT_VIDEO};
+        if (request.params.size() > 1)
+            ParseRequestContentType(request.params[1], contentTypes);
+
+        int nHeight = chainActive.Height();
+        if (request.params.size() > 2)
+        {
+            RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
+            if (request.params[2].get_int() > 0)
+                nHeight = request.params[2].get_int();
+        }
+
+        int countOut = 10;
+        if (request.params.size() > 3)
+        {
+            RPCTypeCheckArgument(request.params[3], UniValue::VNUM);
+            if (request.params[3].get_int() > 0)
+                countOut = request.params[3].get_int();
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->SearchLinks(vLinks, contentTypes, nHeight, countOut);
+    }
 }

@@ -1656,6 +1656,60 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut)
+    {
+        UniValue result(UniValue::VARR);
+
+        if (links.empty())
+            return result;
+
+        string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
+        string  linksWhere = join(vector<string>(links.size(), "?"), ",");
+
+        string sql = R"sql(
+            select t.Id
+            from Transactions t indexed by Transactions_Type_Last_String1_Height
+            join Payload p indexed by Payload_String7 on p.TxHash = t.Hash
+            where t.Type in ( )sql" + contentTypesWhere + R"sql( )
+                and t.Height <= ?
+                and t.Last = 1
+                and p.String7 in ( )sql" + linksWhere + R"sql( )
+            limit ?
+        )sql";
+
+        vector<int64_t> ids;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementInt(stmt, i++, nHeight);
+
+            for (const auto& link: links)
+                TryBindStatementText(stmt, i++, link);
+
+            TryBindStatementInt(stmt, i++, countOut);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        if (ids.empty())
+            return result;
+
+        auto contents = GetContentsData(ids, "");
+        result.push_backV(contents);
+
+        return result;
+    }
     // ------------------------------------------------------
     // Feeds
 

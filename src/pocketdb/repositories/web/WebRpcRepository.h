@@ -99,6 +99,7 @@ namespace PocketDb
         vector<UniValue> GetMissedCommentAnswers(const string& address, int height, int count);
         vector<UniValue> GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count);
 
+        UniValue SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut);
 
         vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
         

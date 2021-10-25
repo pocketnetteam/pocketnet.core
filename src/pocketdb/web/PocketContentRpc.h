@@ -13,6 +13,8 @@ namespace PocketWeb::PocketWebRpc
 {
     using namespace PocketHelpers;
 
+    void ParseRequestContentType(const UniValue& value, vector<int>& types);
+
     UniValue GetContent(const JSONRPCRequest& request);
     UniValue GetHotPosts(const JSONRPCRequest& request);
     UniValue GetHistoricalFeed(const JSONRPCRequest& request);
