@@ -48,24 +48,17 @@ static const struct
     {RetFormat::JSON,   "json"},
 };
 
-struct CCoin
-{
+struct CCoin {
     uint32_t nHeight;
     CTxOut out;
 
-    ADD_SERIALIZE_METHODS;
-
     CCoin() : nHeight(0) {}
-
     explicit CCoin(Coin&& in) : nHeight(in.nHeight), out(std::move(in.out)) {}
 
-    template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CCoin, obj)
     {
         uint32_t nTxVerDummy = 0;
-        READWRITE(nTxVerDummy);
-        READWRITE(nHeight);
-        READWRITE(out);
+        READWRITE(nTxVerDummy, obj.nHeight, obj.out);
     }
 };
 
@@ -163,15 +156,6 @@ static std::string AvailableDataFormatsString()
         return formats.substr(0, formats.length() - 2);
 
     return formats;
-}
-
-static bool ParseHashStr(const std::string& strReq, uint256& v)
-{
-    if (!IsHex(strReq) || (strReq.size() != 64))
-        return false;
-
-    v.SetHex(strReq);
-    return true;
 }
 
 static bool CheckWarmup(HTTPRequest* req)

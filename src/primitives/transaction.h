@@ -16,6 +16,14 @@
 
 #include "pocketdb/models/base/Transaction.h"
 
+#include <tuple>
+
+/**
+ * A flag that is ORed into the protocol version to designate that a transaction
+ * should be (un)serialized without witness data.
+ * Make sure that this does not collide with any of the values in `version.h`
+ * or with `ADDRV2_FORMAT`.
+ */
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
@@ -25,24 +33,21 @@ public:
     uint256 hash;
     uint32_t n;
 
-    COutPoint() : n((uint32_t) -1) {}
-    COutPoint(const uint256& hashIn, uint32_t nIn) : hash(hashIn), n(nIn) {}
+   static constexpr uint32_t NULL_INDEX = std::numeric_limits<uint32_t>::max();
 
-    ADD_SERIALIZE_METHODS;
+    COutPoint(): n((uint32_t) -1) { }
+    COutPoint(const uint256& hashIn, uint32_t nIn): hash(hashIn), n(nIn) { }
 
-    template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
+    SERIALIZE_METHODS(COutPoint, obj) { READWRITE(obj.hash, obj.n); }
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(hash);
         READWRITE(n);
     }
 
-    void SetNull()
-    {
-        hash.SetNull();
-        n = (uint32_t) -1;
-    }
-    bool IsNull() const { return (hash.IsNull() && n == (uint32_t) -1); }
+    void SetNull() { hash.SetNull(); n = NULL_INDEX; }
+    bool IsNull() const { return (hash.IsNull() && n == NULL_INDEX); }
 
     friend bool operator<(const COutPoint& a, const COutPoint& b)
     {
@@ -82,7 +87,7 @@ public:
     /* Below flags apply in the context of BIP 68*/
     /* If this flag set, CTxIn::nSequence is NOT interpreted as a
      * relative lock-time. */
-    static const uint32_t SEQUENCE_LOCKTIME_DISABLE_FLAG = (1 << 31);
+    static const uint32_t SEQUENCE_LOCKTIME_DISABLE_FLAG = (1U << 31);
 
     /* If CTxIn::nSequence encodes a relative lock-time and this flag
      * is set, the relative lock-time has units of 512 seconds,
@@ -107,18 +112,10 @@ public:
         nSequence = SEQUENCE_FINAL;
     }
 
-    explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn = CScript(), uint32_t nSequenceIn = SEQUENCE_FINAL);
-    CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn = CScript(), uint32_t nSequenceIn = SEQUENCE_FINAL);
+    explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
+    CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
 
-    ADD_SERIALIZE_METHODS;
-
-    template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(prevout);
-        READWRITE(scriptSig);
-        READWRITE(nSequence);
-    }
+    SERIALIZE_METHODS(CTxIn, obj) { READWRITE(obj.prevout, obj.scriptSig, obj.nSequence); }
 
     friend bool operator==(const CTxIn& a, const CTxIn& b)
     {
@@ -151,14 +148,7 @@ public:
 
     CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
 
-    ADD_SERIALIZE_METHODS;
-
-    template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
-    {
-        READWRITE(nValue);
-        READWRITE(scriptPubKey);
-    }
+    SERIALIZE_METHODS(CTxOut, obj) { READWRITE(obj.nValue, obj.scriptPubKey); }
 
     void SetNull()
     {
@@ -183,8 +173,7 @@ public:
         while (pc < scriptPubKey.end())
         {
             opcodetype opcode;
-            if (!scriptPubKey.GetOp(pc, opcode))
-            {
+            if (!scriptPubKey.GetOp(pc, opcode)) {
                 winners = false;
                 break;
             }
