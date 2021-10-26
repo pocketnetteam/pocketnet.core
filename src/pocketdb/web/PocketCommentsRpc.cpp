@@ -6,68 +6,6 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetComments(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw runtime_error(
-                "getcomments (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
-                "\nGet Pocketnet comments.\n");
-
-        vector<string> cmnIds;
-        if (request.params.size() > 3)
-        {
-            if (request.params[3].isArray())
-            {
-                UniValue cmntid = request.params[3].get_array();
-                for (unsigned int id = 0; id < cmntid.size(); id++)
-                {
-                    cmnIds.push_back(cmntid[id].get_str());
-                }
-            }
-            else
-            {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
-            }
-        }
-
-        if (!cmnIds.empty())
-            return GetCommentsByIds(request);
-        else
-            return GetCommentsByPost(request);
-    }
-
-    UniValue GetCommentsByIds(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw runtime_error(
-                "getcommentsbyids (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
-                "\nGet Pocketnet comments.\n");
-
-        string addressHash;
-        if (request.params.size() > 2) {
-            addressHash = request.params[2].get_str();
-        }
-
-        vector<string> cmnIds;
-        if (request.params.size() > 3)
-        {
-            if (request.params[3].isArray())
-            {
-                UniValue cmntid = request.params[3].get_array();
-                for (unsigned int id = 0; id < cmntid.size(); id++)
-                {
-                    cmnIds.push_back(cmntid[id].get_str());
-                }
-            }
-            else
-            {
-                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
-            }
-        }
-
-        return request.DbConnection()->WebRpcRepoInst->GetCommentsByIds(addressHash, cmnIds);
-    }
-
     UniValue GetCommentsByPost(const JSONRPCRequest& request)
     {
         if (request.fHelp)

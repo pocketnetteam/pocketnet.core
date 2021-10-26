@@ -55,7 +55,6 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue GetPostScores(const JSONRPCRequest& request)
     {
-        //TODO mb add count param
         if (request.fHelp)
             throw std::runtime_error(
                 "getpostscores\n"
@@ -89,7 +88,10 @@ namespace PocketWeb::PocketWebRpc
             address = request.params[1].get_str();
         }
 
-        return request.DbConnection()->WebRpcRepoInst->GetPostScores(postHashes, address);
+        auto postScores = request.DbConnection()->WebRpcRepoInst->GetPostScores(postHashes, address);
+        UniValue result(UniValue::VARR);
+        result.push_backV(postScores);
+        return result;
     }
 
     UniValue GetPageScores(const JSONRPCRequest& request)
@@ -112,10 +114,17 @@ namespace PocketWeb::PocketWebRpc
         string address = request.params[1].get_str();
 
         vector<string> commentIds;
-        UniValue commentTxIds = request.params[0].get_array();
+        UniValue commentTxIds = request.params[2].get_array();
         for (unsigned int idx = 0; idx < commentTxIds.size(); idx++)
             commentIds.push_back(commentTxIds[idx].get_str());
 
-        return request.DbConnection()->WebRpcRepoInst->GetPageScores(postIds, commentIds, address, chainActive.Height());
+        auto postScores =  request.DbConnection()->WebRpcRepoInst->GetPostScores(postIds, address);
+        auto commentScores =  request.DbConnection()->WebRpcRepoInst->GetCommentScores(commentIds, address);
+
+        UniValue result(UniValue::VARR);
+        result.push_backV(postScores);
+        result.push_backV(commentScores);
+
+        return result;
     }
 }

@@ -69,11 +69,8 @@ static const CRPCCommand commands[] =
     { "tags",           "gettags",                          &GetTags,                       {"address", "count", "height", "lang"}},
 
     // Comments
-    {"comments",        "getcomments",                      &GetComments,                   {"postid", "parentid", "address", "ids"}},
+    {"comments",        "getcomments",                      &GetCommentsByPost,             {"postid", "parentid", "address", "ids"}},
     {"comments",        "getlastcomments",                  &GetLastComments,               {"count", "address"}},
-    // TODO (only1question): implement
-    // GetCommentsByPost
-    // GetCommentsByIds
 
     // Accounts
     { "accounts",       "getuserprofile",                   &GetAccountProfiles,            {"addresses", "short"}},

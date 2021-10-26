@@ -64,12 +64,11 @@ namespace PocketDb
         UniValue GetAccountState(const string& address, int heightWindow);
 
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
-        UniValue GetCommentsByIds(const string& addressHash, const vector<string>& commentHashes);
         UniValue GetLastComments(int count, int height, const string& lang);
         map<int64_t, UniValue> GetLastComments(const vector<int64_t>& ids, const string& address);
 
-        UniValue GetPostScores(const vector<string>& postHashes, const string& address);
-        UniValue GetPageScores(const vector<string>& postHashes, const vector<string>& commentHashes, const string& address, int height);
+        vector<UniValue> GetPostScores(const vector<string>& postHashes, const string& address);
+        vector<UniValue> GetCommentScores(const vector<string>& commentHashes, const string& address);
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
 
@@ -122,7 +121,6 @@ namespace PocketDb
         double dekayVideo = 0.99;
         double dekayContent =  0.96;
 
-        UniValue ParseCommentRow(sqlite3_stmt* stmt);
         vector<tuple<string, int64_t, UniValue>> GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm);
     };
 
