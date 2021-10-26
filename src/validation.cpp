@@ -3074,8 +3074,6 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 typedef std::map<std::string, std::string> custom_fields;
 void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 {
-     // TODO (brangr): Implement send notifies
-     // <address, [messages]>
      std::map<std::string, std::vector<UniValue>> messages;
      uint256 _block_hash = block.GetHash();
      int sharesCnt = 0;
@@ -3084,7 +3082,6 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
      std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
 
      for (const auto& tx : block.vtx) {
-         // std::vector<std::pair<std::string, std::pair<int,int64_t>>> addrs;
          std::map<std::string, std::pair<int, int64_t>> addrs;
          int64_t txtime = tx->nTime;
          std::string txid = tx->GetHash().GetHex();
