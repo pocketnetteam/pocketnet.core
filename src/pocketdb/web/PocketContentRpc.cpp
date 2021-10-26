@@ -426,12 +426,12 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetSubscribersFeed(const JSONRPCRequest& request)
+    UniValue GetSubscribesFeed(const JSONRPCRequest& request)
     {
         if (request.fHelp || request.params.size() < 1)
         {
             throw runtime_error(
-                "getsubscribersfeed\n"
+                "getsubscribesfeed\n"
                 "\nReturns contents from subscribers");
         }
 
@@ -492,14 +492,13 @@ namespace PocketWeb::PocketWebRpc
         if (!ids.empty())
             topContentId = ids[0];
 
-        // return request.DbConnection()->WebRpcRepoInst->GetProfileFeed(addressFrom, addressTo, topContentId, count, lang, tags, contentTypes);
-        return UniValue(UniValue::VARR);
+        return request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(addressFrom, topContentId, count, lang, tags, contentTypes);
     }
 
     UniValue FeedSelector(const JSONRPCRequest& request)
     {
         if (request.params.size() > 1 && request.params[1].isStr() && request.params[1].get_str() == "1")
-            return GetSubscribersFeed(request);
+            return GetSubscribesFeed(request);
 
         return GetProfileFeed(request);
     }

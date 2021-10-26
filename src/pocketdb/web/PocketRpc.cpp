@@ -4,26 +4,6 @@
 
 #include "pocketdb/web/PocketRpc.h"
 
-UniValue debug(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "debug\n"
-            "\n.\n");
-
-    return UniValue();// GetContentsData(request);
-}
-
-UniValue getrawtransactionwithmessagebyid(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "getrawtransactionwithmessagebyid\n"
-            "\nReturn Pocketnet posts.\n");
-
-    return UniValue();// GetContentsData(request);
-}
-
 UniValue gettemplate(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -38,8 +18,6 @@ UniValue gettemplate(const JSONRPCRequest& request)
 // @formatter:off
 static const CRPCCommand commands[] =
 {
-    {"debug", "debugweb", &debug, {}},
-
     // Old methods
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
@@ -62,7 +40,7 @@ static const CRPCCommand commands[] =
     {"contents",        "getcontent",                       &GetContent,                    {"ids", "address"}},
     {"contents",        "getrawtransactionwithmessage",     &FeedSelector,                  {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
-    {"contents",        "getsubscribersfeed",               &GetSubscribersFeed,            {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
+    {"contents",        "getsubscribesfeed",                &GetSubscribesFeed,             {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},

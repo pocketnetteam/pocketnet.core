@@ -1829,7 +1829,7 @@ namespace PocketDb
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore
 
             from Transactions t
-            join Payload p on t.Hash = p.TxHash
+            left join Payload p on t.Hash = p.TxHash
             where t.Type in (200, 201, 207)
               and t.Height is not null
               and t.Last = 1
@@ -1848,6 +1848,8 @@ namespace PocketDb
 
             for (int64_t id : ids)
                 TryBindStatementInt64(stmt, i++, id);
+
+            // LogPrintf(" GetContentsData: %s\n", sqlite3_expanded_sql(*stmt));
 
             // ---------------------------
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -1902,12 +1904,12 @@ namespace PocketDb
 
                 if (auto [ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("scoreCnt", value);
                 if (auto [ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("scoreSum", value);
-                if (auto [ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("reposted", value);
+                if (auto [ok, value] = TryGetColumnInt(*stmt, 16); ok && value > 0) record.pushKV("reposted", value);
                 if (auto [ok, value] = TryGetColumnInt(*stmt, 17); ok) record.pushKV("comments", value);
 
                 if (!address.empty())
                 {
-                    if (auto [ok, value] = TryGetColumnInt(*stmt, 18); ok)
+                    if (auto [ok, value] = TryGetColumnString(*stmt, 18); ok)
                         record.pushKV("myVal", value);
                 }
 
@@ -1990,6 +1992,80 @@ namespace PocketDb
                     TryBindStatementText(stmt, i++, tag);
 
             TryBindStatementInt(stmt, i++, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        if (ids.empty())
+            return result;
+
+        auto contents = GetContentsData(ids, addressFrom);
+        result.push_backV(contents);
+
+        return result;
+    }
+
+    UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
+    {
+        // TODO (brangr): add blockings
+        // TODO (brangr): min reputation
+
+        UniValue result(UniValue::VARR);
+
+        string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string contentIdWhere;
+        if (topContentId > 0)
+            contentIdWhere = " and cnt.Id < ? ";
+
+        string sql = R"sql(
+            select cnt.Id
+            from Transactions subs indexed by Transactions_Type_Last_String1_String2_Height
+            join Transactions cnt indexed by Transactions_Last_Id_Height
+                on cnt.Type in ( )sql" + contentTypesWhere + R"sql( ) and cnt.Last = 1 and cnt.Height is not null and cnt.String1 = subs.String2 )sql" + contentIdWhere + R"sql(
+            join Payload pld on pld.TxHash = cnt.Hash
+            where subs.Type in (302,303)
+                and subs.Last = 1
+                and subs.Height is not null
+                and subs.String1 = ?
+        )sql";
+
+        if (!lang.empty()) sql += " and pld.String1 = ? ";
+        if (!tags.empty()) sql += " and cnt.Id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+        
+        sql += " order by cnt.Id desc ";
+        sql += " limit ? ";
+
+        vector<int64_t> ids;
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+                            
+            if (topContentId > 0)
+                TryBindStatementInt(stmt, i++, topContentId);
+                
+            TryBindStatementText(stmt, i++, addressFrom);
+
+            if (!lang.empty())
+                TryBindStatementText(stmt, i++, lang);
+
+            if (!tags.empty())
+                for (const auto& tag: tags)
+                    TryBindStatementText(stmt, i++, tag);
+
+            TryBindStatementInt(stmt, i++, count);
+
+            // LogPrintf(" --- %s\n", sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
