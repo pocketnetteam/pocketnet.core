@@ -48,11 +48,11 @@
     wsport=8087
     
     # Settings for the number of RPC command processing threads and message queue size
-    rpcthreads=1
-    rpcworkqueue=1    
-    rpcpostthreads=3
+    rpcthreads=2
+    rpcworkqueue=5    
+    rpcpostthreads=5
     rpcpostworkqueue=100
-    rpcpublicthreads=5
+    rpcpublicthreads=10
     rpcpublicworkqueue=100
     
     # ! These opens access to the node management interface from external network
