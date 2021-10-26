@@ -320,7 +320,7 @@ namespace PocketDb
                 ifnull((select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height
                     where po.Type in (200) and po.Last=1 and po.Height is not null and po.String1=u.String1),0) as PostsCount,
 
-                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last
+                ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
 
                 (select count(*) from Transactions subs indexed by Transactions_Type_Last_String2_Height
@@ -386,7 +386,7 @@ namespace PocketDb
                         subscribes.read(value);
                         record.pushKV("subscribes", subscribes);
 
-                        LogPrintf("--- %s", subscribes.write());
+                        // LogPrintf("--- %s", subscribes.write());
                     }
 
                     if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
@@ -514,6 +514,131 @@ namespace PocketDb
                 record.pushKV("edit", txHash != rootTxHash);
 
                 result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    map<int64_t, UniValue> WebRpcRepository::GetLastComments(const vector<int64_t>& ids, const string& address)
+    {
+        map<int64_t, UniValue> result;
+
+        string sql = R"sql(
+            select
+                cmnt.contentId,
+                cmnt.commentId,
+                c.Type,
+                c.String2 as RootTxHash,
+                c.String3 as PostTxHash,
+                c.String1 as AddressHash,
+                corig.Time,
+                c.Time as TimeUpdate,
+                c.Height,
+                p.String1 as Message,
+                c.String4 as ParentTxHash,
+                c.String5 as AnswerTxHash,
+
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1) as ScoreUp,
+
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
+
+                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
+                    where r.Id = c.Id AND r.Type=3 and r.Last=1) as Reputation,
+
+                (select count(*) from Transactions ch indexed by Transactions_Type_Last_String4_Height
+                    where ch.Type in (204,205,206) and ch.Last = 1 and ch.Height is not null and ch.String4 = c.String2) as ChildrensCount,
+
+                ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
+                    where scr.Type = 301 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = c.String2),0) as MyScore,
+
+                (
+                    select sum(o.Value)
+                    from Transactions cc indexed by Transactions_Id
+                    join TxOutputs o on o.TxHash = cc.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != cc.String1
+                    where cc.Id = c.Id and cc.Height is not null
+                ) as Donate
+
+            from (
+                select (t.Id)contentId, (t.String1)ContentAddressHash, (c.Id)commentId
+                from Transactions t
+                left join Transactions c indexed by Transactions_Type_Last_String3_Height
+                    on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.String3 = t.String2 and c.String4 is null
+                where t.Type in (200,201,207)
+                    and t.Last = 1
+                    and t.Height is not null
+                    and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+                    and c.Id = (
+                    select q.Id from (
+                        select c1.Id, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
+                        from Transactions c1
+                        where c1.Type in (204,205)
+                        and c1.Height is not null
+                        and c1.String3 = t.String2
+                        and c1.String4 is null
+                    )q
+                    order by q.Donate desc, q.Id desc
+                    limit 1
+                    )
+            ) cmnt
+
+            join Transactions c indexed by Transactions_Last_Id_Height
+                on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.Id = cmnt.commentId
+            join Transactions corig
+                on corig.Hash = c.String2
+            join Payload p on p.TxHash = c.Hash
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+
+            TryBindStatementText(stmt, i++, address);
+
+            for (int64_t id : ids)
+                TryBindStatementInt64(stmt, i++, id);
+
+            // ---------------------------
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                auto[okContentId, contentId] = TryGetColumnInt(*stmt, 0);
+                auto[okCommentId, commentId] = TryGetColumnInt(*stmt, 1);
+                auto[okType, txType] = TryGetColumnInt(*stmt, 2);
+                auto[okRoot, rootTxHash] = TryGetColumnString(*stmt, 3);
+
+                record.pushKV("id", rootTxHash);
+                record.pushKV("cid", commentId);
+                record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
+                record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("myScore", value);
+                
+                if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok)
+                {
+                    record.pushKV("donation", "true");
+                    record.pushKV("amount", value);
+                }
+                                
+                result.emplace(contentId, record);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -1078,7 +1203,7 @@ namespace PocketDb
             join Payload p indexed by Payload_String1_TxHash
                 on p.String1 = ? and t.Hash = p.TxHash
             
-            join Ratings r indexed by Ratings_Type_Id_Last
+            join Ratings r indexed by Ratings_Type_Id_Last_Height
                 on r.Type = 2 and r.Last = 1 and r.Id = t.Id and r.Value > 0
 
             where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
@@ -1167,11 +1292,14 @@ namespace PocketDb
                 o.AddressHash,
                 o.Value,
                 o.ScriptPubKey,
-                t.Type
-            from TxOutputs o
+                t.Type,
+                o.TxHeight
+            from TxOutputs o indexed by TxOutputs_SpentHeight_AddressHash
             join Transactions t on t.Hash=o.TxHash
             where o.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                and o.SpentHeight is null
+              and o.TxHeight is not null
+              and o.SpentHeight is null
+            order by o.TxHeight asc
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -1191,11 +1319,15 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("amount", ValueFromAmount(value));
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("scriptPubKey", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok) record.pushKV("confirmations", height - value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok)
                 {
                     record.pushKV("coinbase", value == 2 || value == 3);
                     record.pushKV("pockettx", value > 3);
+                }
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok)
+                {
+                    record.pushKV("confirmations", height - value);
+                    record.pushKV("height", value);
                 }
 
                 result.push_back(record);
@@ -1843,128 +1975,7 @@ namespace PocketDb
 
         // ---------------------------------------------
         // Get last comments for all posts
-        map<int64_t, UniValue> lastComments;
-        string sqlLastComments = R"sql(
-            select
-                cmnt.contentId,
-                cmnt.commentId,
-                c.Type,
-                c.String2 as RootTxHash,
-                c.String3 as PostTxHash,
-                c.String1 as AddressHash,
-                corig.Time,
-                c.Time as TimeUpdate,
-                c.Height,
-                p.String1 as Message,
-                c.String4 as ParentTxHash,
-                c.String5 as AnswerTxHash,
-
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1) as ScoreUp,
-
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
-
-                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Id = c.Id AND r.Type=3 and r.Last=1) as Reputation,
-
-                (select count(*) from Transactions ch indexed by Transactions_Type_Last_String4_Height
-                    where ch.Type in (204,205,206) and ch.Last = 1 and ch.Height is not null and ch.String4 = c.String2) as ChildrensCount,
-
-                ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
-                    where scr.Type = 301 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = c.String2),0) as MyScore,
-
-                (
-                    select sum(o.Value)
-                    from Transactions cc indexed by Transactions_Id
-                    join TxOutputs o on o.TxHash = cc.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != cc.String1
-                    where cc.Id = c.Id and cc.Height is not null
-                ) as Donate
-
-            from (
-                select (t.Id)contentId, (t.String1)ContentAddressHash, (c.Id)commentId
-                from Transactions t
-                left join Transactions c indexed by Transactions_Type_Last_Height_String3
-                    on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.String3 = t.String2 and c.String4 is null
-                where t.Type in (200,201,207)
-                    and t.Last = 1
-                    and t.Height is not null
-                    and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-                    and c.Id = (
-                    select q.Id from (
-                        select c1.Id, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
-                        from Transactions c1
-                        where c1.Type in (204,205)
-                        and c1.Height is not null
-                        and c1.String3 = t.String2
-                        and c1.String4 is null
-                    )q
-                    order by q.Donate desc, q.Id desc
-                    limit 1
-                    )
-            ) cmnt
-
-            join Transactions c indexed by Transactions_Last_Id_Height
-                on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.Id = cmnt.commentId
-            join Transactions corig
-                on corig.Hash = c.String2
-            join Payload p on p.TxHash = c.Hash
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sqlLastComments);
-            int i = 1;
-
-            TryBindStatementText(stmt, i++, address);
-
-            for (int64_t id : ids)
-                TryBindStatementInt64(stmt, i++, id);
-
-            // ---------------------------
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                auto[okContentId, contentId] = TryGetColumnInt(*stmt, 0);
-                auto[okCommentId, commentId] = TryGetColumnInt(*stmt, 1);
-                auto[okType, txType] = TryGetColumnInt(*stmt, 2);
-                auto[okRoot, rootTxHash] = TryGetColumnString(*stmt, 3);
-
-                record.pushKV("id", rootTxHash);
-                record.pushKV("cid", commentId);
-                record.pushKV("edit", (TxType)txType == CONTENT_COMMENT_EDIT);
-                record.pushKV("deleted", (TxType)txType == CONTENT_COMMENT_DELETE);
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("postid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("msg", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("myScore", value);
-                
-                if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok)
-                {
-                    record.pushKV("donation", "true");
-                    record.pushKV("amount", value);
-                }
-                                
-                lastComments.emplace(contentId, record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-        
-        // ---------------------------------------------
-
-        // Extend posts
+        auto lastComments = GetLastComments(ids, address);
         for (auto& record : tmpResult)
             record.second.pushKV("lastComment", lastComments[record.first]);
 

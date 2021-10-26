@@ -65,7 +65,8 @@ namespace PocketDb
 
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
         UniValue GetCommentsByIds(const string& addressHash, const vector<string>& commentHashes);
-        UniValue GetLastComments(int count, int height, const string& lang = "");
+        UniValue GetLastComments(int count, int height, const string& lang);
+        map<int64_t, UniValue> GetLastComments(const vector<int64_t>& ids, const string& address);
 
         UniValue GetPostScores(const vector<string>& postHashes, const string& address);
         UniValue GetPageScores(const vector<string>& postHashes, const vector<string>& commentHashes, const string& address, int height);

@@ -13,6 +13,7 @@
 #include <chain.h>
 #include <coins.h>
 #include <utilmoneystr.h>
+#include "logging.h"
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -220,6 +221,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         assert(!coin.IsSpent());
 
         // If prev is pocketnet, check that it's matured
+        LogPrintf("--- coin.IsPocketTX():%d tx:%s out:%s n:%d\n", coin.IsPocketTX() ? 1 : 0, tx.GetHash().GetHex(), prevout.hash.GetHex(), prevout.n);
         if (nSpendHeight > chainparams.GetConsensus().nHeight_version_1_0_0 && coin.IsPocketTX() && nSpendHeight - coin.nHeight < POCKETNET_MATURITY) {
             return state.Invalid(false, 261, "bad-txns-premature-spend-of-pocketnet",
                 strprintf("tried to spend %s at depth %d - %d = %d", "pocketnet", nSpendHeight, coin.nHeight, nSpendHeight - coin.nHeight));
