@@ -276,8 +276,6 @@ UtxoData::iterator FindRandomFrom(const std::set<COutPoint> &utxoSet) {
 // random txs are created and UpdateCoins is used to update the cache stack
 // In particular it is tested that spending a duplicate coinbase tx
 // has the expected effect (the other duplicate is overwritten at all cache levels)
-
-#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 {
     bool spent_a_duplicate_coinbase = false;
@@ -374,7 +372,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             // Update the expected result to know about the new output coins
             assert(tx.vout.size() == 1);
             const COutPoint outpoint(tx.GetHash(), 0);
-            result[outpoint] = Coin(tx.vout[0], height, CTransaction(tx).IsCoinBase(), CTransaction(tx).IsCoinStake());
+            result[outpoint] = Coin(tx.vout[0], height, CTransaction(tx).IsCoinBase(), CTransaction(tx).IsCoinStake(), false);
 
             // Call UpdateCoins on the top cache
             CTxUndo undo;
@@ -474,7 +472,6 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
     // Verify coverage.
     BOOST_CHECK(spent_a_duplicate_coinbase);
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(ccoins_serialization)
 {

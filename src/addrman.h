@@ -55,14 +55,11 @@ private:
 
 public:
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITEAS(CAddress, *this);
-        READWRITE(source);
-        READWRITE(nLastSuccess);
-        READWRITE(nAttempts);
+    SERIALIZE_METHODS(CAddrInfo, obj) {
+        READWRITEAS(CAddress, obj);
+        READWRITE(obj.source);
+        READWRITE(obj.nLastSuccess);
+        READWRITE(obj.nAttempts);
     }
 
     void Init()

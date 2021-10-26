@@ -6,6 +6,7 @@
 #ifndef POCKETCOIN_SCRIPT_SCRIPT_H
 #define POCKETCOIN_SCRIPT_SCRIPT_H
 
+#include <attributes.h>
 #include <crypto/common.h>
 #include <prevector.h>
 #include <serialize.h>
@@ -418,37 +419,21 @@ public:
     CScript(std::vector<unsigned char>::const_iterator pbegin, std::vector<unsigned char>::const_iterator pend) : CScriptBase(pbegin, pend) { }
     CScript(const unsigned char* pbegin, const unsigned char* pend) : CScriptBase(pbegin, pend) { }
 
-    ADD_SERIALIZE_METHODS;
+    SERIALIZE_METHODS(CScript, obj) { READWRITEAS(CScriptBase, obj); }
 
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITEAS(CScriptBase, *this);
-    }
-
-    CScript& operator+=(const CScript& b)
-    {
-        reserve(size() + b.size());
-        insert(end(), b.begin(), b.end());
-        return *this;
-    }
-
-    friend CScript operator+(const CScript& a, const CScript& b)
-    {
-        CScript ret = a;
-        ret += b;
-        return ret;
-    }
-
-    CScript(int64_t b)        { operator<<(b); }
-
+    explicit CScript(int64_t b) { operator<<(b); }
     explicit CScript(opcodetype b)     { operator<<(b); }
     explicit CScript(const CScriptNum& b) { operator<<(b); }
-    explicit CScript(const std::vector<unsigned char>& b) { operator<<(b); }
+    // delete non-existent constructor to defend against future introduction
+    // e.g. via prevector
+    explicit CScript(const std::vector<unsigned char>& b) = delete;
 
+    /** Delete non-existent operator to defend against future introduction */
+    CScript& operator<<(const CScript& b) = delete;
 
-    CScript& operator<<(int64_t b) { return push_int64(b); }
+    CScript& operator<<(int64_t b) LIFETIMEBOUND { return push_int64(b); }
 
-    CScript& operator<<(opcodetype opcode)
+    CScript& operator<<(opcodetype opcode) LIFETIMEBOUND
     {
         if (opcode < 0 || opcode > 0xff)
             throw std::runtime_error("CScript::operator<<(): invalid opcode");
@@ -456,13 +441,13 @@ public:
         return *this;
     }
 
-    CScript& operator<<(const CScriptNum& b)
+    CScript& operator<<(const CScriptNum& b) LIFETIMEBOUND
     {
         *this << b.getvch();
         return *this;
     }
 
-    CScript& operator<<(const std::vector<unsigned char>& b)
+    CScript& operator<<(const std::vector<unsigned char>& b) LIFETIMEBOUND
     {
         if (b.size() < OP_PUSHDATA1)
         {
@@ -491,15 +476,6 @@ public:
         return *this;
     }
 
-    CScript& operator<<(const CScript& b)
-    {
-        // I'm not sure if this should push the script or concatenate scripts.
-        // If there's ever a use for pushing a script onto a script, delete this member fn
-        assert(!"Warning: Pushing a CScript onto a CScript with << is probably not intended, use + to concatenate!");
-        return *this;
-    }
-
-
     bool GetOp(const_iterator& pc, opcodetype& opcodeRet, std::vector<unsigned char>& vchRet) const
     {
         return GetScriptOp(pc, end(), opcodeRet, &vchRet);
@@ -509,7 +485,6 @@ public:
     {
         return GetScriptOp(pc, end(), opcodeRet, nullptr);
     }
-
 
     /** Encode/decode small integers: */
     static int DecodeOP_N(opcodetype opcode)
@@ -568,29 +543,6 @@ public:
         // The default prevector::clear() does not release memory
         CScriptBase::clear();
         shrink_to_fit();
-    }
-
-    std::string ToString(bool fShort=false) const
-    {
-        std::string str;
-        opcodetype opcode;
-        std::vector<unsigned char> vch;
-        const_iterator pc = begin();
-        while (pc < end())
-        {
-            if (!str.empty())
-                str += " ";
-            if (!GetOp(pc, opcode, vch))
-            {
-                str += "[error]";
-                return str;
-            }
-            if (0 <= opcode && opcode <= OP_PUSHDATA4)
-                str += fShort? ValueString(vch).substr(0, 10) : ValueString(vch);
-            else
-                str += GetOpName(opcode);
-        }
-        return str;
     }
 };
 

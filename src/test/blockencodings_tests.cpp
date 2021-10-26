@@ -12,7 +12,6 @@
 #include <keystore.h>
 
 #include <test/test_pocketcoin.h>
-//#include <pocketdb/pocketdb.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -84,8 +83,6 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
     CTxMemPool pool;
     TestMemPoolEntryHelper entry;
     CBlock block(BuildBlockTestCase());
-    //g_pocketdb = std::unique_ptr<PocketDB>(new PocketDB());
-    //g_pocketdb->Init();
 
     CValidationState state;
     BOOST_CHECK_MESSAGE(CheckBlock(block, state, Params().GetConsensus()), "CheckBlock of initial block failed!");
@@ -178,25 +175,7 @@ public:
         return base.GetShortID(txhash);
     }
 
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(header);
-        READWRITE(nonce);
-        size_t shorttxids_size = shorttxids.size();
-        READWRITE(VARINT(shorttxids_size));
-        shorttxids.resize(shorttxids_size);
-        for (size_t i = 0; i < shorttxids.size(); i++) {
-            uint32_t lsb = shorttxids[i] & 0xffffffff;
-            uint16_t msb = (shorttxids[i] >> 32) & 0xffff;
-            READWRITE(lsb);
-            READWRITE(msb);
-            shorttxids[i] = (uint64_t(msb) << 32) | uint64_t(lsb);
-        }
-        READWRITE(prefilledtxn);
-        READWRITE(vchBlockSig);
-    }
+    SERIALIZE_METHODS(TestHeaderAndShortIDs, obj) { READWRITE(obj.header, obj.nonce, Using<VectorFormatter<CustomUintFormatter<CBlockHeaderAndShortTxIDs::SHORTTXIDS_LENGTH>>>(obj.shorttxids), obj.prefilledtxn, obj.vchBlockSig); }
 };
 
 BOOST_AUTO_TEST_CASE(NonCoinbasePreforwardRTTest)
@@ -208,12 +187,12 @@ BOOST_AUTO_TEST_CASE(NonCoinbasePreforwardRTTest)
     LOCK(pool.cs);
     pool.addUnchecked(entry.FromTx(block.vtx[2]));
     BOOST_CHECK_EQUAL(pool.mapTx.find(block.vtx[2]->GetHash())->GetSharedTx().use_count(), SHARED_TX_OFFSET + 0);
-
     uint256 txhash;
 
     // Test with pre-forwarding tx 1, but not coinbase
     {
         TestHeaderAndShortIDs shortIDs(block);
+
         shortIDs.prefilledtxn.resize(1);
         shortIDs.prefilledtxn[0] = {1, block.vtx[1]};
         shortIDs.shorttxids.resize(2);
