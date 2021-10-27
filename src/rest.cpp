@@ -910,7 +910,7 @@ static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
         if (!PocketServices::Accessor::GetBlock(block, pocketBlock) || !pocketBlock)
             return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
-        if (PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock))
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock); ok)
         {
             LogPrintf("SocialConsensusHelper::Check at height %d - SUCCESS\n", current);
             current += 1;
