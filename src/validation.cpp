@@ -2488,7 +2488,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     // TODO (brangr): DEBUG!
     if (pindex->nHeight > skipValidation)
     {
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight); !ok || true)
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight); !ok)
         {
             LogPrintf("ERROR: SocialConsensus validating failed with result %d for block %s\n",
                 (int)result, pindex->GetBlockHash().GetHex());
