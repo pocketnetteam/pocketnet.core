@@ -858,9 +858,9 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
                 }
             }
 
-            if (!PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pblockindex->nHeight))
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pblockindex->nHeight); !ok)
             {
-                LogPrintf("failed at %d heaihgt\n", pblockindex->nHeight);
+                LogPrintf("failed at %d heaihgt with result %d\n", pblockindex->nHeight, (int)result);
                 // return RESTERR(req, HTTP_BAD_REQUEST, "Validate failed");
             }
 

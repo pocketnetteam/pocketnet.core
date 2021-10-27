@@ -2486,12 +2486,17 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // TODO (brangr): DEBUG!
-    if (pindex->nHeight > skipValidation && !PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight))
+    if (pindex->nHeight > skipValidation)
     {
-        LogPrintf("SocialConsensusHelper::Validate failed for height %d\n", pindex->nHeight);
-        //StartShutdown();
-        //return false;
-        //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight); !ok || true)
+        {
+            LogPrintf("ERROR: SocialConsensus validating failed with result %d for block %s\n",
+                (int)result, pindex->GetBlockHash().GetHex());
+
+            //StartShutdown();
+            //return false;
+            return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
+        }
     }
 
     int64_t nTime5 = GetTimeMicros();
@@ -4836,10 +4841,8 @@ bool ProcessNewBlock(CValidationState& state,
         // Also check pocket block with general pocketnet consensus rules
         if (ret)
         {
-            ret = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock);
-            // TODO (brangr): DEBUG
-            if (!ret)
-                StartShutdown();
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock); !ok)
+                ret = false;
         }
 
         int64_t nTime4 = GetTimeMicros();
@@ -5468,8 +5471,6 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
             PocketBlockRef pocketBlock;
             if (!PocketServices::Accessor::GetBlock(block, pocketBlock))
             {
-                LogPrintf("\nWarning: found lost payload data (block: %s) - continue work from this height: %d\n",
-                    block.GetHash().GetHex(), pindex->nHeight);
                 return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s", pindex->nHeight,
                     pindex->GetBlockHash().ToString());
             }

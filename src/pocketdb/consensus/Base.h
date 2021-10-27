@@ -70,7 +70,7 @@ namespace PocketConsensus
         SocialConsensusResult_CommentDeletedContent = 51,
         SocialConsensusResult_RepostDeletedContent = 52,
         SocialConsensusResult_AlreadyExists = 53,
-        SocialConsensusResult_PayloadORNotFound = 54,
+        SocialConsensusResult_PayloadNotFound = 54,
         SocialConsensusResult_TxORNotFound = 55,
         SocialConsensusResult_ComplainDeletedContent = 56,
         SocialConsensusResult_ScoreDeletedContent = 57,
@@ -133,8 +133,7 @@ namespace PocketConsensus
             case (SocialConsensusResult_CommentDeletedContent): return "CommentDeletedContent";
             case (SocialConsensusResult_RepostDeletedContent): return "RepostDeletedContent";
             case (SocialConsensusResult_AlreadyExists): return "AlreadyExists";
-            case (SocialConsensusResult_PayloadORNotFound): return "PayloadORNotFound";
-            case (SocialConsensusResult_TxORNotFound): return "TxORNotFound";
+            case (SocialConsensusResult_PayloadNotFound): return "PayloadORNotFound";
             default: return "Unknown";
         }
     }

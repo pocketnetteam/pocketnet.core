@@ -58,6 +58,7 @@ namespace BCLog {
         SYNC          = (1 << 23),
         STATDETAIL    = (1 << 24),
         RESTFRONTEND  = (1 << 25),
+        CONSENSUS     = (1 << 26),
         ALL           = ~(uint32_t)0,
     };
 

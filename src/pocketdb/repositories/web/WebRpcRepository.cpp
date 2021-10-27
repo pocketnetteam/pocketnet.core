@@ -81,7 +81,7 @@ namespace PocketDb
             FROM Transactions u
             JOIN Payload p on u.Hash = p.TxHash
             WHERE   u.Type in (100, 101, 102)
-                and p.String2 = ?
+                and p.String2 like ?
             LIMIT 1
         )sql";
 

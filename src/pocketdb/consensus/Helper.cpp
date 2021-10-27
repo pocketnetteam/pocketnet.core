@@ -23,15 +23,15 @@ namespace PocketConsensus
     ComplainConsensusFactory SocialConsensusHelper::m_complainFactory;
     ContentDeleteConsensusFactory SocialConsensusHelper::m_contentDeleteFactory;
 
-    bool SocialConsensusHelper::Validate(const PocketBlockRef& block, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PocketBlockRef& block, int height)
     {
         for (const auto& ptx : *block)
         {
             if (auto[ok, result] = validate(ptx, block, height); !ok)
-                return false;
+                return {ok, result};
         }
 
-        return true;
+        return {true, SocialConsensusResult_Success};
     }
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& tx, int height)
@@ -45,7 +45,7 @@ namespace PocketConsensus
     }
 
     // Проверяет блок транзакций без привязки к цепи
-    bool SocialConsensusHelper::Check(const CBlock& block, const PocketBlockRef& pBlock)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Check(const CBlock& block, const PocketBlockRef& pBlock)
     {
         auto coinstakeBlock = find_if(block.vtx.begin(), block.vtx.end(), [&](CTransactionRef const& tx)
         {
@@ -65,14 +65,14 @@ namespace PocketConsensus
             auto txHash = tx->GetHash().GetHex();
             auto it = find_if(pBlock->begin(), pBlock->end(), [&](PTransactionRef const& ptx) { return *ptx == txHash; });
             if (it == pBlock->end())
-                return false;
+                return {false, SocialConsensusResult_PayloadNotFound};
 
             // Check founded payload
             if (auto[ok, result] = check(tx, *it); !ok)
-                return false;
+                return {false, SocialConsensusResult_PayloadNotFound};
         }
 
-        return true;
+        return {true, SocialConsensusResult_Success};
     }
 
     // Проверяет транзакцию без привязки к цепи
@@ -152,7 +152,7 @@ namespace PocketConsensus
 
         if (auto[ok, code] = result; !ok)
         {
-            LogPrintf("Warning: SocialConsensus %d check failed with result %d for transaction %s\n",
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d check failed with result %d for transaction %s\n",
                 (int)*ptx->GetType(), (int) code, *ptx->GetHash());
 
             return {false, code};
@@ -242,7 +242,7 @@ namespace PocketConsensus
 
         if (auto[ok, code] = result; !ok)
         {
-            LogPrintf("Warning: SocialConsensus %d validate failed with result %d for transaction %s with block at height %d\n",
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d validate failed with result %d for transaction %s with block at height %d\n",
                 (int)*ptx->GetType(), (int) code, *ptx->GetHash(), height);
 
             return {false, code};

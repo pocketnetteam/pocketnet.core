@@ -2369,22 +2369,16 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         if (!deserializeOk)
             state.Invalid(false, 0, "Deserialize");
 
-        // Antibot checked transaction with pocketnet consensus rules
+        // Check transaction with pocketnet base rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(txRef, pocketTx); !ok)
-        {
-            LogPrintf("WARNING! Received transaction check failed (SocialConsensusHelper::Check) %s\n",
-                *pocketTx->GetHash());
-
             state.Invalid(false, result, "SocialConsensusHelper::Check");
-        }
 
-        int height = chainActive.Height() + 1;
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketTx, height); !ok)
+        // Check transaction with pocketnet consensus rules
+        if (!state.IsInvalid())
         {
-            LogPrintf("WARNING! Received transaction validate failed (SocialConsensusHelper::Validate): %d %s\n",
-                result, *pocketTx->GetHash());
-
-            state.Invalid(false, result, "SocialConsensusHelper::Validate");
+            int height = chainActive.Height() + 1;
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketTx, height); !ok)
+                state.Invalid(false, result, "SocialConsensusHelper::Validate");
         }
 
         if (!state.IsInvalid() && !AlreadyHave(inv) && AcceptToMemoryPool(mempool, state, txRef, pocketTx,
