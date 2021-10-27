@@ -28,14 +28,14 @@ static const CRPCCommand commands[] =
     {"search",          "searchlinks",                      &SearchLinks,                   {"links", "contenttypes", "height", "count"}},
 
     // WebSocket
-    { "websocket",      "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},
+    {"websocket",      "getmissedinfo",                    &GetMissedInfo,                  {"address", "blocknumber"}},
 
     // Contents
     {"contents",        "gethotposts",                      &GetHotPosts,                   {"count", "depth", "height", "lang", "contenttypes", "address"}},
-    { "contents",       "gethistoricalfeed",                &GetHistoricalFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
-    { "contents",       "gethistoricalstrip",               &GetHistoricalFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
-    { "contents",       "gethierarchicalfeed",              &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
-    { "contents",       "gethierarchicalstrip",             &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
+    {"contents",       "gethistoricalfeed",                &GetHistoricalFeed,              {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
+    {"contents",       "gethistoricalstrip",               &GetHistoricalFeed,              {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
+    {"contents",       "gethierarchicalfeed",              &GetHierarchicalFeed,            {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
+    {"contents",       "gethierarchicalstrip",             &GetHierarchicalFeed,            {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     {"contents",        "getrawtransactionwithmessagebyid", &GetContent,                    {"ids", "address"}},
     {"contents",        "getcontent",                       &GetContent,                    {"ids", "address"}},
     {"contents",        "getrawtransactionwithmessage",     &FeedSelector,                  {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
@@ -44,19 +44,20 @@ static const CRPCCommand commands[] =
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
-    { "tags",           "gettags",                          &GetTags,                       {"address", "count", "height", "lang"}},
+    {"tags",           "gettags",                          &GetTags,                        {"address", "count", "height", "lang"}},
 
     // Comments
     {"comments",        "getcomments",                      &GetCommentsByPost,             {"postid", "parentid", "address", "ids"}},
     {"comments",        "getlastcomments",                  &GetLastComments,               {"count", "address"}},
 
     // Accounts
-    { "accounts",       "getuserprofile",                   &GetAccountProfiles,            {"addresses", "short"}},
-    { "accounts",       "getuseraddress",                   &GetUserAddress,                {"name"}},
-    { "accounts",       "getaddressregistration",           &GetAddressRegistration,        {"addresses"}},
-    { "accounts",       "getuserstate",                     &GetUserState,                  {"address"}},
-    { "accounts",       "txunspent",                        &GetUnspents,                   {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
-    { "accounts",       "getaddressid",                     &GetAddressId,                  {"address_or_id"}},
+    {"accounts",       "getuserprofile",                   &GetAccountProfiles,             {"addresses", "short"}},
+    {"accounts",       "getuseraddress",                   &GetUserAddress,                 {"name"}},
+    {"accounts",       "getaddressregistration",           &GetAddressRegistration,         {"addresses"}},
+    {"accounts",       "getuserstate",                     &GetUserState,                   {"address"}},
+    {"accounts",       "txunspent",                        &GetUnspents,                    {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
+    {"accounts",       "getaddressid",                     &GetAddressId,                   {"address_or_id"}},
+    {"accounts",       "getaccountsetting",                &GetAccountSetting,              {"address"}},
 
     // Scores
     {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},
@@ -64,23 +65,23 @@ static const CRPCCommand commands[] =
     {"scores",          "getpagescores",                    &GetPageScores,                 {"txs", "address", "cmntids"}},
 
     // Explorer
-    { "explorer",       "getstatistic",                     &GetStatistic,                  {"endTime", "depth"}},
-    { "explorer",       "getaddressspent",                  &GetAddressSpent,               {"address"}},
-    { "explorer",       "getcompactblock",                  &GetCompactBlock,               {"blockHash"}},
-    { "explorer",       "getlastblocks",                    &GetLastBlocks,                 {"count", "lastHeight", "verbose"}},
-    { "explorer",       "searchbyhash",                     &SearchByHash,                  {"value"}},
-    { "explorer",       "gettransactions",                  &GetTransactions,               {"transactions"}},
-    { "explorer",       "getaddresstransactions",           &GetAddressTransactions,        {"address"}},
-    { "explorer",       "getblocktransactions",             &GetBlockTransactions,          {"blockHash"}},
+    {"explorer",       "getstatistic",                     &GetStatistic,                   {"endTime", "depth"}},
+    {"explorer",       "getaddressspent",                  &GetAddressSpent,                {"address"}},
+    {"explorer",       "getcompactblock",                  &GetCompactBlock,                {"blockHash"}},
+    {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
+    {"explorer",       "searchbyhash",                     &SearchByHash,                   {"value"}},
+    {"explorer",       "gettransactions",                  &GetTransactions,                {"transactions"}},
+    {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address"}},
+    {"explorer",       "getblocktransactions",             &GetBlockTransactions,           {"blockHash"}},
 
     // System
-    { "system",         "getpeerinfo",                      &GetPeerInfo,                   {}},
-    { "system",         "getnodeinfo",                      &GetNodeInfo,                   {}},
-    { "system",         "gettime",                          &GetTime,                       {}},
+    {"system",         "getpeerinfo",                      &GetPeerInfo,                    {}},
+    {"system",         "getnodeinfo",                      &GetNodeInfo,                    {}},
+    {"system",         "gettime",                          &GetTime,                        {}},
 
-    { "transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                {"hexstring", "message", "type"}},
-    { "transaction",    "addtransaction",                   &AddTransaction,                {"hexstring", "message", "type"}},
-    { "transaction",    "getrawtransaction",                &GetTransaction,                {"txid"}},
+    {"transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                 {"hexstring", "message", "type"}},
+    {"transaction",    "addtransaction",                   &AddTransaction,                 {"hexstring", "message", "type"}},
+    {"transaction",    "getrawtransaction",                &GetTransaction,                 {"txid"}},
 };
 // @formatter:on
 

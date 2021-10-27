@@ -62,6 +62,7 @@ namespace PocketDb
         UniValue GetAddressesRegistrationDates(const vector<string>& addresses);
         UniValue GetTopAddresses(int count);
         UniValue GetAccountState(const string& address, int heightWindow);
+        UniValue GetAccountSetting(const string& address);
 
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
         UniValue GetLastComments(int count, int height, const string& lang);

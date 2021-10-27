@@ -268,6 +268,39 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetAccountSetting(const string& address)
+    {
+        string result;
+
+        string sql = R"sql(
+            select p.String1
+            from Transactions t indexed by Transactions_Type_Last_String1_Height
+            join Payload p on p.TxHash = t.Hash
+            where t.Type in (103)
+              and t.Last = 1
+              and t.Height is not null
+              and t.String1 = ?
+            limit 1
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    result = value;
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm)
     {
         vector<tuple<string, int64_t, UniValue>> result{};

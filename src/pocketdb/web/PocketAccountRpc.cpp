@@ -237,6 +237,8 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue GetUnspents(const JSONRPCRequest& request)
     {
+        // TODO (brangr): add pagination
+
         if (request.fHelp)
             throw runtime_error(
                 "txunspent ( minconf maxconf  [\"addresses\",...] [include_unsafe] [query_options])\n"
@@ -336,6 +338,20 @@ namespace PocketWeb::PocketWebRpc
         // }
 
         return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, chainActive.Height());
+    }
+
+    UniValue GetAccountSetting(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                    "getaccountsetting \"address\"\n"
+                    "\nReturn account settings object.\n");
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetAccountSetting(address);
     }
 
 }
