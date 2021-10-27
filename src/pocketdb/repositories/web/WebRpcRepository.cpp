@@ -1845,7 +1845,6 @@ namespace PocketDb
                      and scr.Height <= ? and cntnt.Height <= ? and cntnt.Type in ( )sql" + contentTypesWhere + R"sql( )) as countLikers
 
             from Transactions t indexed by Transactions_Type_Last_String1_Height
-            join Payload p indexed by Payload_String7 on p.TxHash = t.Hash
             where t.Type in ( )sql" + contentTypesWhere + R"sql( )
                 and t.Height <= ?
                 and t.Height > ?
