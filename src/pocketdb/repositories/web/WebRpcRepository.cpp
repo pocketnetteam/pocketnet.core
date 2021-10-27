@@ -1819,6 +1819,82 @@ namespace PocketDb
 
         return result;
     }
+
+    UniValue WebRpcRepository::GetContentsStatistic(const string& address, const vector<int>& contentTypes, const int nHeight, const int depth)
+    {
+        UniValue result(UniValue::VARR);
+
+        if (address.empty())
+            return result;
+
+        string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string sql = R"sql(
+            select t.String1 as address,
+
+                sum(ifnull((select sum(scr.Int1) from Transactions scr indexed by Transactions_Type_Last_String2_Height
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height <= ? and scr.String2 = t.String2),0)) as scoreSum,
+
+                sum((select count(*) from Transactions scr indexed by Transactions_Type_Last_String2_Height
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height <= ? and scr.String2 = t.String2)) as scoreCnt,
+
+                (select count(distinct scr.String1)
+                 from Transactions cntnt indexed by Transactions_Type_Last_String1_Height
+                 join Transactions scr indexed by Transactions_Type_Last_String2_Height on cntnt.String2 = scr.String2
+                 where cntnt.String1 = t.String1 and scr.Type = 300 and scr.Last in (0, 1) and cntnt.Last = 1
+                     and scr.Height <= ? and cntnt.Height <= ? and cntnt.Type in ( )sql" + contentTypesWhere + R"sql( )) as countLikers
+
+            from Transactions t indexed by Transactions_Type_Last_String1_Height
+            join Payload p indexed by Payload_String7 on p.TxHash = t.Hash
+            where t.Type in ( )sql" + contentTypesWhere + R"sql( )
+                and t.Height <= ?
+                and t.Height > ?
+                and t.Last = 1
+                and t.String1 = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            TryBindStatementInt(stmt, i++, nHeight);
+            TryBindStatementInt(stmt, i++, nHeight);
+            TryBindStatementInt(stmt, i++, nHeight);
+            TryBindStatementInt(stmt, i++, nHeight);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementInt(stmt, i++, nHeight);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
+
+            TryBindStatementText(stmt, i++, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+                auto[ok0, address] = TryGetColumnString(*stmt, 0);
+                auto[ok1, scoreSum] = TryGetColumnInt(*stmt, 1);
+                auto[ok2, scoreCnt] = TryGetColumnInt(*stmt, 2);
+                auto[ok3, countLikers] = TryGetColumnInt(*stmt, 3);
+
+                record.pushKV("address",address);
+                record.pushKV("scoreSum",scoreSum);
+                record.pushKV("scoreCnt",scoreCnt);
+                record.pushKV("countLikers",countLikers);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
     // ------------------------------------------------------
     // Feeds
 

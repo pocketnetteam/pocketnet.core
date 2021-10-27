@@ -502,4 +502,48 @@ namespace PocketWeb::PocketWebRpc
 
         return GetProfileFeed(request);
     }
+
+    UniValue GetContentsStatistic(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "getcontentsstatistic \"address\", \"contenttypes\", height, depth\n"
+                "\nGet contents statistic.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address - сontent author\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"height\"  (int, optional) Maximum content height. Default is current chain height\n"
+                "4. \"depth\" (int, optional) Depth of content history for statistics. Default is all history\n"
+            );
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+        }
+
+        vector<int> contentTypes = {TxType::CONTENT_POST, TxType::CONTENT_VIDEO};
+        if (request.params.size() > 1)
+            ParseRequestContentType(request.params[1], contentTypes);
+
+        int nHeight = chainActive.Height();
+        if (request.params.size() > 2)
+        {
+            RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
+            if (request.params[2].get_int() > 0)
+                nHeight = request.params[2].get_int();
+        }
+
+        int depth = chainActive.Height();
+        if (request.params.size() > 3)
+        {
+            RPCTypeCheckArgument(request.params[3], UniValue::VNUM);
+            if (request.params[3].get_int() > 0)
+                depth = request.params[3].get_int();
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->GetContentsStatistic(address, contentTypes, nHeight, depth);
+    }
 }

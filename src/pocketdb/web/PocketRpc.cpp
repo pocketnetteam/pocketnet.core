@@ -41,6 +41,7 @@ static const CRPCCommand commands[] =
     {"contents",        "getrawtransactionwithmessage",     &FeedSelector,                  {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"contents",        "getprofilefeed",                   &GetProfileFeed,                {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"contents",        "getsubscribesfeed",                &GetSubscribesFeed,             {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
+    {"contents",        "getcontentsstatistic",             &GetContentsStatistic,          {"addresses", "contentTypes", "height", "depth"}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
