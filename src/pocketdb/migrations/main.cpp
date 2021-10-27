@@ -176,12 +176,13 @@ namespace PocketDb
             create index if not exists Transactions_Type_Time_Height on Transactions (Type, Time, Height);
             create index if not exists Transactions_BlockHash on Transactions (BlockHash);
             create index if not exists Transactions_Type_Last_Height_Time_String3_String4 on Transactions (Type, Last, Height, Time, String3, String4);
+            create index if not exists Transactions_Height_Time on Transactions (Height, Time);
 
             create index if not exists TxOutputs_SpentHeight_AddressHash on TxOutputs (SpentHeight, AddressHash);
             create index if not exists TxOutputs_TxHeight_AddressHash on TxOutputs (TxHeight, AddressHash);
             create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
 
-            create index if not exists Ratings_Height on Ratings (Height);
+            create index if not exists Ratings_Height_Last on Ratings (Height, Last);
             create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
             create index if not exists Ratings_Type_Id_Last_Height on Ratings (Type, Id, Last, Height);
 
@@ -193,9 +194,6 @@ namespace PocketDb
             create index if not exists Balances_AddressHash_Height_Last on Balances (AddressHash, Height, Last);
             create index if not exists Balances_Last_Value on Balances (Last, Value);
             create index if not exists Balances_AddressHash_Last on Balances (AddressHash, Last);
-
-            -----------------------------------WEB-----------------------------------
-            create index if not exists Transactions_Height_Time on Transactions (Height, Time);
         )sql";
     }
 }
