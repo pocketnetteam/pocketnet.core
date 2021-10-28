@@ -2385,10 +2385,13 @@ namespace PocketDb
                                su.Height is not null and
                                su.String1 = s.String1 and
                                su.Last = 1
-                        join Ratings sur on sur.Type = 1 and
-                                            sur.Id = su.Id and
-                                            sur.Height = (select max(sur1.Height) from Ratings sur1 where sur1.Type = 1 and sur1.Id = su.Id and sur1.Height <= s.Height) and
-                                            sur.Value > 100
+                        join Ratings sur indexed by Ratings_Type_Id_Height_Value
+                            on sur.Type = 1
+                                and sur.Id = su.Id
+                                and sur.Height = (select max(sur1.Height)
+                                                  from Ratings sur1 indexed by Ratings_Type_Id_Height_Value
+                                                  where sur1.Type = 1 and sur1.Id = su.Id and sur1.Height <= s.Height)
+                                and sur.Value > 100
                         where s.Type in (300)
                             and s.Last in (0, 1)
                             and s.Height is not null

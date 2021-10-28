@@ -186,6 +186,7 @@ namespace PocketDb
             create index if not exists Ratings_Height_Last on Ratings (Height, Last);
             create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
             create index if not exists Ratings_Type_Id_Last_Height on Ratings (Type, Id, Last, Height);
+            create index if not exists Ratings_Type_Id_Height_Value on Ratings (Type, Id, Height, Value);
 
             create index if not exists Payload_String2 on Payload (String2);
             create index if not exists Payload_String7 on Payload (String7);
