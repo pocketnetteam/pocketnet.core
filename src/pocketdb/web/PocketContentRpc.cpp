@@ -516,12 +516,32 @@ namespace PocketWeb::PocketWebRpc
                 "4. \"depth\" (int, optional) Depth of content history for statistics. Default is all history\n"
             );
 
-        RPCTypeCheck(request.params, {UniValue::VSTR});
-
-        string address = request.params[0].get_str();
-        CTxDestination dest = DecodeDestination(address);
-        if (!IsValidDestination(dest)) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+        string address;
+        vector<string> addresses;
+        if (request.params.size() > 0) {
+            if (request.params[0].isStr()) {
+                address = request.params[0].get_str();
+                CTxDestination dest = DecodeDestination(address);
+                if (!IsValidDestination(dest)) {
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketnet address: ") + address);
+                }
+                addresses.emplace_back(address);
+            } else if (request.params[0].isArray()) {
+                UniValue addrs = request.params[0].get_array();
+                if (addrs.size() > 10) {
+                    throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array");
+                }
+                if(addrs.size() > 0) {
+                    for (unsigned int idx = 0; idx < addrs.size(); idx++) {
+                        address = addrs[idx].get_str();
+                        CTxDestination dest = DecodeDestination(address);
+                        if (!IsValidDestination(dest)) {
+                            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketnet address: ") + address);
+                        }
+                        addresses.emplace_back(address);
+                    }
+                }
+            }
         }
 
         vector<int> contentTypes = {TxType::CONTENT_POST, TxType::CONTENT_VIDEO};
@@ -547,6 +567,6 @@ namespace PocketWeb::PocketWebRpc
                 depth = request.params[3].get_int();
         }
 
-        return request.DbConnection()->WebRpcRepoInst->GetContentsStatistic(address, contentTypes, nHeight, depth);
+        return request.DbConnection()->WebRpcRepoInst->GetContentsStatistic(addresses, contentTypes, nHeight, depth);
     }
 }

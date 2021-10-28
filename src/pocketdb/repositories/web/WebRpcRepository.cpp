@@ -1820,13 +1820,14 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetContentsStatistic(const string& address, const vector<int>& contentTypes, const int nHeight, const int depth)
+    UniValue WebRpcRepository::GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes, const int nHeight, const int depth)
     {
         UniValue result(UniValue::VARR);
 
-        if (address.empty())
+        if (addresses.empty())
             return result;
 
+        string addressesWhere = join(vector<string>(addresses.size(), "?"), ",");
         string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
 
         string sql = R"sql(
@@ -1849,7 +1850,7 @@ namespace PocketDb
                 and t.Height <= ?
                 and t.Height > ?
                 and t.Last = 1
-                and t.String1 = ?
+                and t.String1 in ( )sql" + addressesWhere + R"sql( )
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -1871,7 +1872,8 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, nHeight);
             TryBindStatementInt(stmt, i++, nHeight - depth);
 
-            TryBindStatementText(stmt, i++, address);
+            for (const auto& address: addresses)
+                TryBindStatementText(stmt, i++, address);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
