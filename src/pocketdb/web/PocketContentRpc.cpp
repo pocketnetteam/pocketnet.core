@@ -200,6 +200,28 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
+    UniValue GetContents(const JSONRPCRequest& request)
+    {
+        if (request.fHelp || request.params.size() < 1)
+        {
+            throw runtime_error(
+                "getcontents address\n"
+                "\nReturns contents for address.\n"
+                "\nArguments:\n"
+                "1. address            (string) A pocketcoin addresses to filter\n"
+                "\nResult\n"
+                "[                     (array of contents)\n"
+                "  ...\n"
+                "]");
+        }
+
+        string address;
+        if (request.params[0].isStr())
+            address = request.params[0].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
+    }
+
     UniValue GetProfileFeed(const JSONRPCRequest& request)
     {
         if (request.fHelp || request.params.size() < 1)

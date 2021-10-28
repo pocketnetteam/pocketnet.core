@@ -13,6 +13,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <timedata.h>
 #include "core_io.h"
+#include "utils/html.h"
 
 namespace PocketDb
 {
@@ -92,6 +93,7 @@ namespace PocketDb
 
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
+        UniValue GetContentsForAddress(const string& address);
 
         vector<UniValue> GetMissedRelayedContent(const string& address, int height);
         vector<UniValue> GetMissedContentsScores(const string& address, int height, int limit);

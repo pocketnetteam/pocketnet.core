@@ -351,7 +351,7 @@ namespace PocketDb
                     where ru.Type in (100,101,102) and ru.Last=1 and ru.Height is not null and ru.String2=u.String1),0) as ReferralsCount,
 
                 ifnull((select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height
-                    where po.Type in (200) and po.Last=1 and po.Height is not null and po.String1=u.String1),0) as PostsCount,
+                    where po.Type in (200,201) and po.Last=1 and po.Height is not null and po.String1=u.String1),0) as PostsCount,
 
                 ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation,
@@ -1435,6 +1435,79 @@ namespace PocketDb
         }
 
         return {resultCount, resultData};
+    }
+    
+    UniValue WebRpcRepository::GetContentsForAddress(const string& address)
+    {
+        UniValue result(UniValue::VARR);
+
+        if (address.empty())
+            return result;
+
+        string sql = R"sql(
+            select
+
+                t.Id,
+                t.String2 as RootTxHash,
+                t.Time,
+                p.String2 as Caption,
+                p.String3 as Message,
+                p.String6 as Settings,
+                ifnull(r.Value,0) as Reputation,
+
+                (select count(*) from Transactions scr indexed by Transactions_Type_Last_String2_Height
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2) as ScoresCount,
+
+                ifnull((select sum(scr.Int1) from Transactions scr indexed by Transactions_Type_Last_String2_Height
+                    where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2),0) as ScoresSum
+
+            from Transactions t indexed by Transactions_Type_Last_String1_Height
+            left join Payload p on t.Hash = p.TxHash
+            left join Ratings r indexed by Ratings_Type_Id_Last_Height
+                on r.Type = 2 and r.Last = 1 and r.Id = t.Id
+
+            where t.Type in (200, 201)
+                and t.Last = 1
+                and t.String1 = ?
+            order by t.Height desc
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, address);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                auto[ok0, id] = TryGetColumnInt64(*stmt, 0);
+                auto[ok1, hash] = TryGetColumnString(*stmt, 1);
+                auto[ok2, time] = TryGetColumnString(*stmt, 2);
+                auto[ok3, caption] = TryGetColumnString(*stmt, 3);
+                auto[ok4, message] = TryGetColumnString(*stmt, 4);
+                auto[ok5, settings] = TryGetColumnString(*stmt, 5);
+                auto[ok6, reputation] = TryGetColumnString(*stmt, 6);
+                auto[ok7, scoreCnt] = TryGetColumnString(*stmt, 7);
+                auto[ok8, scoreSum] = TryGetColumnString(*stmt, 8);
+                
+                if (ok3) record.pushKV("content", HtmlUtils::UrlDecode(caption));
+                else record.pushKV("content", HtmlUtils::UrlDecode(message).substr(0, 100));
+
+                record.pushKV("txid", hash);
+                record.pushKV("time", time);
+                record.pushKV("reputation", reputation);
+                record.pushKV("settings", settings);
+                record.pushKV("scoreSum", scoreSum);
+                record.pushKV("scoreCnt", scoreCnt);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     vector<UniValue> WebRpcRepository::GetMissedRelayedContent(const string& address, int height)
