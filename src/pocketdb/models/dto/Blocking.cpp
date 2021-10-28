@@ -38,15 +38,14 @@ namespace PocketTx
 
     void Blocking::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddressTo(val);
     }
 
     shared_ptr <string> Blocking::GetAddress() const { return m_string1; }
-    void Blocking::SetAddress(string value) { m_string1 = make_shared<string>(value); }
+    void Blocking::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
     shared_ptr <string> Blocking::GetAddressTo() const { return m_string2; }
-    void Blocking::SetAddressTo(string value) { m_string2 = make_shared<string>(value); }
+    void Blocking::SetAddressTo(const string& value) { m_string2 = make_shared<string>(value); }
 
     void Blocking::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {

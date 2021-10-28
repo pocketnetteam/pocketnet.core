@@ -18,10 +18,10 @@ namespace PocketTx
     }
 
     shared_ptr <string> ContentDelete::GetAddress() const { return m_string1; }
-    void ContentDelete::SetAddress(string value) { m_string1 = make_shared<string>(value); }
+    void ContentDelete::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
     shared_ptr<string> ContentDelete::GetRootTxHash() const { return m_string2; }
-    void ContentDelete::SetRootTxHash(string value) { m_string2 = make_shared<string>(value); }
+    void ContentDelete::SetRootTxHash(const string& value) { m_string2 = make_shared<string>(value); }
 
 
     shared_ptr <UniValue> ContentDelete::Serialize() const
@@ -53,7 +53,6 @@ namespace PocketTx
 
     void ContentDelete::DeserializeRpc(const UniValue& src, const CTransactionRef& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
 
         GeneratePayload();

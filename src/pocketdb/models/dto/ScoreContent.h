@@ -23,10 +23,10 @@ namespace PocketTx
         void DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
 
         shared_ptr <string> GetAddress() const;
-        void SetAddress(string value);
+        void SetAddress(const string& value) override;
 
         shared_ptr<string> GetContentTxHash() const;
-        void SetContentTxHash(string value);
+        void SetContentTxHash(const string& value);
 
         shared_ptr<int64_t> GetValue() const;
         void SetValue(int64_t value);

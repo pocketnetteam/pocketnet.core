@@ -30,12 +30,13 @@ namespace PocketWeb::PocketWebRpc
         if (!txOutput) throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid address");
         string address = *txOutput->GetAddressHash();
 
-        auto data = request.params[1];
-        data.pushKV("txAddress", address);
-
-        auto[deserializeOk, ptx] = PocketServices::Serializer::DeserializeTransactionRpc(tx, data);
+        // Deserialize incoming data
+        auto[deserializeOk, ptx] = PocketServices::Serializer::DeserializeTransactionRpc(tx, request.params[1]);
         if (!deserializeOk)
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX deserialize failed");
+
+        // Set required fields
+        ptx->SetAddress(address);
 
         // Antibot checked transaction with pocketnet consensus rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(tx, ptx); !ok)

@@ -21,7 +21,7 @@ namespace PocketTx
         void DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
 
         shared_ptr <string> GetAddress() const;
-        void SetAddress(const string& value);
+        void SetAddress(const string& value) override;
 
         shared_ptr <string> GetReferrerAddress() const;
         void SetReferrerAddress(const string& value);

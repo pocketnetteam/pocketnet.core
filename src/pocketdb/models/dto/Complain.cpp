@@ -38,16 +38,15 @@ namespace PocketTx
 
     void Complain::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "share"); ok) SetPostTxHash(val);
         if (auto[ok, val] = TryGetInt64(src, "reason"); ok) SetReason(val);
     }
 
     shared_ptr <string> Complain::GetAddress() const { return m_string1; }
-    void Complain::SetAddress(string value) { m_string1 = make_shared<string>(value); }
+    void Complain::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
 
     shared_ptr <string> Complain::GetPostTxHash() const { return m_string2; }
-    void Complain::SetPostTxHash(string value) { m_string2 = make_shared<string>(value); }
+    void Complain::SetPostTxHash(const string& value) { m_string2 = make_shared<string>(value); }
 
     shared_ptr <int64_t> Complain::GetReason() const { return m_int1; }
     void Complain::SetReason(int64_t value) { m_int1 = make_shared<int64_t>(value); }

@@ -52,7 +52,6 @@ namespace PocketTx
 
     void Comment::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
         if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxHash(val);
         if (auto[ok, val] = TryGetStr(src, "answerid"); ok) SetAnswerTxHash(val);

@@ -48,11 +48,11 @@ namespace PocketTx
 
     void AccountSetting::DeserializeRpc(const UniValue& src, const CTransactionRef& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
-
         GeneratePayload();
         if (auto[ok, val] = TryGetStr(src, "d"); ok) m_payload->SetString1(val);
     }
+
+    
 
     string AccountSetting::BuildHash()
     {
