@@ -29,6 +29,9 @@ namespace PocketServices
         void Stop();
 
         void Enqueue(const string& blockHash);
+                
+        void ProcessTags(const string& blockHash);
+        void ProcessSearchContent(const string& blockHash);
 
     private:
         SQLiteDatabaseRef sqliteDbInst;
@@ -44,8 +47,6 @@ namespace PocketServices
 
         void Worker();
 
-        void ProcessTags(const string& blockHash);
-        void ProcessSearchContent(const string& blockHash);
     };
 
 } // PocketServices

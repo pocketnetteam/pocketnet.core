@@ -89,10 +89,11 @@ namespace PocketDb
         return true;
     }
 
-    void SQLiteDatabase::Init(const std::string& dbBasePath, const std::string& dbName, const PocketDbMigrationRef& migration)
+    void SQLiteDatabase::Init(const std::string& dbBasePath, const std::string& dbName, const PocketDbMigrationRef& migration, bool drop)
     {
         m_db_migration = migration;
         m_db_path = dbBasePath;
+        fs::path dbPath(m_db_path);
         m_file_path = dbName + ".sqlite3";
 
         // Create directory structure
@@ -107,6 +108,25 @@ namespace PocketDb
                 throw;
         }
 
+        if (drop)
+        {
+            try
+            {
+                if (fs::exists(dbPath / (dbName + ".sqlite3")))
+                    fs::remove(dbPath / (dbName + ".sqlite3"));
+
+                if (fs::exists(dbPath / (dbName + ".sqlite3-shm")))
+                    fs::remove(dbPath / (dbName + ".sqlite3-shm"));
+
+                if (fs::exists(dbPath / (dbName + ".sqlite3-wal")))
+                    fs::remove(dbPath / (dbName + ".sqlite3-wal"));
+            }
+            catch (const fs::filesystem_error& e)
+            {
+                throw std::runtime_error(strprintf("Database remove file error: %s", e.what()));
+            }
+        }
+
         try
         {
             int flags = SQLITE_OPEN_READWRITE |
@@ -117,7 +137,6 @@ namespace PocketDb
 
             if (m_db == nullptr)
             {
-                fs::path dbPath(m_db_path);
                 int ret = sqlite3_open_v2((dbPath / m_file_path).string().c_str(), &m_db, flags, nullptr);
                 if (ret != SQLITE_OK)
                     throw std::runtime_error(strprintf("%s: %d; Failed to open database: %s\n",

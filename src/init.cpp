@@ -464,7 +464,8 @@ void SetupServerArgs()
         MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024),
         false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-rebuildindexes", "Rebuild all sqlite indexes", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-rebuildindexes", "(Re)Build all sqlite indexes", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-rebuildwebdb", "(Re)Build Web database", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
 
@@ -829,6 +830,40 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             LogPrintf("Error\n");
             StartShutdown();
             return;
+        }
+
+        // Rebuild web DB
+        if (gArgs.GetBoolArg("-rebuildwebdb", false))
+        {
+            LogPrintf("Building a Web database: 0%%\n");
+
+            int current = 0;
+            int percent = chainActive.Height() / 100;
+            int64_t startTime = GetTimeMicros();
+            while (++current <= chainActive.Height())
+            {
+                CBlockIndex* pblockindex = chainActive[current];
+                if (!pblockindex)
+                    break;
+
+                try
+                {
+                    PocketServices::WebPostProcessorInst.ProcessTags(pblockindex->GetBlockHash().GetHex());
+                    PocketServices::WebPostProcessorInst.ProcessSearchContent(pblockindex->GetBlockHash().GetHex());
+                }
+                catch (std::exception& ex)
+                {
+                    LogPrintf("Process web db building failed - block:%s height:%d what:%s\n", pblockindex->GetBlockHash().GetHex(), pblockindex->nHeight, ex.what());
+                    StartShutdown();
+                    return;
+                }
+
+                if (current % percent == 0)
+                {
+                    int64_t time = GetTimeMicros();
+                    LogPrintf("Building a Web database: %d%% (%.2fm)\n", (current / percent), (0.000001 * (time - startTime)) / 60.0);
+                }
+            }
         }
 
         // scan for better chains in the block chain database, that are not yet connected in the active best chain
@@ -1590,11 +1625,9 @@ bool AppInitMain()
     // Open, create structure and close `web` db
     PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
     PocketDb::SQLiteDatabase sqliteDbWebInst(false);
-    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration);
+    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, gArgs.GetBoolArg("-rebuildwebdb", false));
     sqliteDbWebInst.CreateStructure();
-    sqliteDbWebInst.m_connection_mutex.lock();
     sqliteDbWebInst.Close();
-    sqliteDbWebInst.m_connection_mutex.unlock();
 
     // Attach `web` db to `main` db
     PocketDb::SQLiteDbInst.AttachDatabase("web");
@@ -1626,18 +1659,6 @@ bool AppInitMain()
     GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
     GetMainSignals().RegisterWithMempoolSignals(mempool);
 
-    /* Start the RPC server already.  It will be started in "warmup" mode
-     * and not really process calls already (but it will signify connections
-     * that the server is there and will be ready later).  Warmup mode will
-     * be disabled when initialisation is finished.
-     */
-    if (gArgs.GetBoolArg("-server", false))
-    {
-        uiInterface.InitMessage_connect(SetRPCWarmupStatus);
-        if (!AppInitServers())
-            return InitError(_("Unable to start HTTP server. See debug log for details."));
-    }
-
     // ********************************************************* Step 5: verify wallet database integrity
     if (!g_wallet_init_interface.Verify()) return false;
 
@@ -1648,12 +1669,10 @@ bool AppInitMain()
     // need to reindex later.
 
     assert(!g_connman);
-    g_connman = std::unique_ptr<CConnman>(
-        new CConnman(GetRand(std::numeric_limits<uint64_t>::max()), GetRand(std::numeric_limits<uint64_t>::max())));
+    g_connman = std::unique_ptr<CConnman>(new CConnman(GetRand(std::numeric_limits<uint64_t>::max()), GetRand(std::numeric_limits<uint64_t>::max())));
     CConnman& connman = *g_connman;
 
-    peerLogic.reset(
-        new PeerLogicValidation(&connman, scheduler, gArgs.GetBoolArg("-enablebip61", DEFAULT_ENABLE_BIP61)));
+    peerLogic.reset(new PeerLogicValidation(&connman, scheduler, gArgs.GetBoolArg("-enablebip61", DEFAULT_ENABLE_BIP61)));
     RegisterValidationInterface(peerLogic.get());
 
     // sanitize comments per BIP-0014, format user agent and check total size
@@ -2177,6 +2196,18 @@ bool AppInitMain()
     Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
     Staker::getInstance()->startWorkers(threadGroup, chainparams);
 #endif
+
+    /* Start the RPC server already.  It will be started in "warmup" mode
+     * and not really process calls already (but it will signify connections
+     * that the server is there and will be ready later).  Warmup mode will
+     * be disabled when initialisation is finished.
+     */
+    if (gArgs.GetBoolArg("-server", false))
+    {
+        uiInterface.InitMessage_connect(SetRPCWarmupStatus);
+        if (!AppInitServers())
+            return InitError(_("Unable to start HTTP server. See debug log for details."));
+    }
 
     // Start WebSocket server
     if (gArgs.GetBoolArg("-wsuse", false)) InitWS();

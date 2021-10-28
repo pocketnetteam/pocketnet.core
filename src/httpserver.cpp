@@ -546,6 +546,9 @@ void StartHTTPServer()
 
 void InterruptHTTPServer()
 {
+    if (!g_socket)
+        return;
+        
     LogPrint(BCLog::HTTP, "Interrupting HTTP server\n");
     g_socket->InterruptHTTPSocket();
     g_pubSocket->InterruptHTTPSocket();

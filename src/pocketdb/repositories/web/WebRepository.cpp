@@ -203,6 +203,8 @@ namespace PocketDb
 
         TryTransactionStep(__func__, [&]()
         {
+            int64_t nTime1 = GetTimeMicros();
+
             int i = 1;
             auto idsStmt = SetupSqlStatement(R"sql(
                 delete from web.Content
@@ -210,6 +212,8 @@ namespace PocketDb
             )sql");
             for (const auto& id: ids) TryBindStatementInt64(idsStmt, i++, id);
             TryStepStatement(idsStmt);
+
+            int64_t nTime2 = GetTimeMicros();
             
             for (const auto& contentItm : contentList)
             {
@@ -223,6 +227,15 @@ namespace PocketDb
                 TryBindStatementText(stmt, 3, contentItm.Value);
                 TryStepStatement(stmt);
             }
+
+            int64_t nTime3 = GetTimeMicros();
+
+            LogPrint(BCLog::BENCH, "        - TryTransactionStep (%s): %.2fms + %.2fms = %.2fms\n",
+                __func__,
+                0.001 * (nTime2 - nTime1),
+                0.001 * (nTime3 - nTime2),
+                0.001 * (nTime3 - nTime1)
+            );
         });
     }
 }
