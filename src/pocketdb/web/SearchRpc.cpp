@@ -187,8 +187,10 @@ namespace PocketWeb::PocketWebRpc
 
         vector<int> contentTypes = {TxType::CONTENT_POST, TxType::CONTENT_VIDEO};
         if (request.params.size() > 1)
+        {
             contentTypes.clear();
             ParseRequestContentType(request.params[1], contentTypes);
+        }
 
         int nHeight = chainActive.Height();
         if (request.params.size() > 2)
@@ -208,4 +210,5 @@ namespace PocketWeb::PocketWebRpc
 
         return request.DbConnection()->WebRpcRepoInst->SearchLinks(vLinks, contentTypes, nHeight, countOut);
     }
+
 }
