@@ -220,7 +220,7 @@ namespace PocketDb
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (307) and p.String1=u.String1 and p.Height>=?) as ComplainSpent
 
-            from Transactions u indexed by Transactions_Type_Last_String1_Height
+            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             join Payload up on up.TxHash=u.Hash
 
             where u.Type in (100, 102, 102)
@@ -274,7 +274,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select p.String1
-            from Transactions t indexed by Transactions_Type_Last_String1_Height
+            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
             join Payload p on p.TxHash = t.Hash
             where t.Type in (103)
               and t.Last = 1
@@ -327,13 +327,13 @@ namespace PocketDb
                 ,(select reg.Time from Transactions reg indexed by Transactions_Id
                     where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1) as RegistrationDate
                 
-                ,(select json_group_array(json_object('address', subs.String1, 'private', case when subs.Type == 303 then 'true' else 'false' end)) from Transactions subs indexed by Transactions_Type_Last_String1_Height
+                ,(select json_group_array(json_object('address', subs.String1, 'private', case when subs.Type == 303 then 'true' else 'false' end)) from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1) as Subscribes
                 
                 ,(select json_group_array(subs.String1) from Transactions subs indexed by Transactions_Type_Last_String2_Height
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1) as Subscribers
 
-                ,(select json_group_array(blck.String2) from Transactions blck indexed by Transactions_Type_Last_String1_Height
+                ,(select json_group_array(blck.String2) from Transactions blck indexed by Transactions_Type_Last_String1_Height_Id
                     where blck.Type in (305) and blck.Height is not null and blck.Last = 1 and blck.String1 = u.String1) as Blockings
             )sql";
         }
@@ -350,7 +350,7 @@ namespace PocketDb
                 ifnull((select count(1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
                     where ru.Type in (100,101,102) and ru.Last=1 and ru.Height is not null and ru.String2=u.String1),0) as ReferralsCount,
 
-                ifnull((select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height
+                ifnull((select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
                     where po.Type in (200,201) and po.Last=1 and po.Height is not null and po.String1=u.String1),0) as PostsCount,
 
                 ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
@@ -364,7 +364,7 @@ namespace PocketDb
 
                 )sql" + fullProfileSql + R"sql(
 
-            from Transactions u indexed by Transactions_Type_Last_String1_Height
+            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             join Payload p on p.TxHash=u.Hash
 
             where u.Type in (100,101,102)
@@ -1461,7 +1461,7 @@ namespace PocketDb
                 ifnull((select sum(scr.Int1) from Transactions scr indexed by Transactions_Type_Last_String2_Height
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2),0) as ScoresSum
 
-            from Transactions t indexed by Transactions_Type_Last_String1_Height
+            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
             left join Payload p on t.Hash = p.TxHash
             left join Ratings r indexed by Ratings_Type_Id_Last_Height
                 on r.Type = 2 and r.Last = 1 and r.Id = t.Id
@@ -1621,7 +1621,7 @@ namespace PocketDb
                 s.String2 as commenttxid,
                 s.Int1 as value,
                 s.Height
-            from Transactions c indexed by Transactions_Type_Last_String1_Height
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions s indexed by Transactions_Type_Last_String2_Height
                 on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
             where c.Type in (204, 205)
@@ -1850,7 +1850,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select t.Id
-            from Transactions t indexed by Transactions_Type_Last_String1_Height
+            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
             join Payload p indexed by Payload_String7 on p.TxHash = t.Hash
             where t.Type in ( )sql" + contentTypesWhere + R"sql( )
                 and t.Height <= ?
@@ -1913,12 +1913,12 @@ namespace PocketDb
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height <= ? and scr.String2 = t.String2)) as scoreCnt,
 
                 (select count(distinct scr.String1)
-                 from Transactions cntnt indexed by Transactions_Type_Last_String1_Height
+                 from Transactions cntnt indexed by Transactions_Type_Last_String1_Height_Id
                  join Transactions scr indexed by Transactions_Type_Last_String2_Height on cntnt.String2 = scr.String2
                  where cntnt.String1 = t.String1 and scr.Type = 300 and scr.Last in (0, 1) and cntnt.Last = 1
                      and scr.Height <= ? and cntnt.Height <= ? and cntnt.Type in ( )sql" + contentTypesWhere + R"sql( )) as countLikers
 
-            from Transactions t indexed by Transactions_Type_Last_String1_Height
+            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
             where t.Type in ( )sql" + contentTypesWhere + R"sql( )
                 and t.Height <= ?
                 and t.Height > ?
@@ -2380,7 +2380,7 @@ namespace PocketDb
                     select sum((
                         select case when s.Int1 = 5 then 1 else -1 end
                         from Transactions s indexed by Transactions_Type_Last_String2_Height
-                        join Transactions su indexed by Transactions_Type_Last_String1_Height
+                        join Transactions su indexed by Transactions_Type_Last_String1_Height_Id
                             on su.Type in (100) and
                                su.Height is not null and
                                su.String1 = s.String1 and
@@ -2399,7 +2399,7 @@ namespace PocketDb
                             and s.Int1 in (1, 5)
                         group by s.String1
                     ))
-                    from Transactions p indexed by Transactions_Type_Last_String1_Height
+                    from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
                     where p.Type in )sql" + contentTypesWhere + R"sql(
                         and p.Last = 1
                         and p.String1 = t.String1
@@ -2419,7 +2419,7 @@ namespace PocketDb
             left join Ratings pr indexed by Ratings_Type_Id_Last_Height
                 on pr.Type = 2 and pr.Last = 1 and pr.Id = t.Id
 
-            join Transactions u indexed by Transactions_Type_Last_String1_Height
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 on u.Type in (100) and u.Last = 1 and u.Height is not null and u.String1 = t.String1
 
             left join Ratings ur indexed by Ratings_Type_Id_Last_Height

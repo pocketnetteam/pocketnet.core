@@ -67,7 +67,7 @@ namespace PocketDb
                     p.String5 pString5,
                     p.String6 pString6,
                     p.String7 pString7
-                FROM Transactions t indexed by Transactions_Type_Last_String1_Height
+                FROM Transactions t indexed by Transactions_Type_Last_String1_Height_Id
                 LEFT JOIN Payload p on t.Hash = p.TxHash
                 WHERE t.Type in (100, 101, 102)
                     and t.String1 = ?
@@ -704,7 +704,7 @@ namespace PocketDb
         // Build sql string
         string sql = R"sql(
             select count(1)
-            from Transactions c indexed by Transactions_Type_Last_String1_Height
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions s indexed by Transactions_Type_String1_String2_Height
                 on  s.String2 = c.String2
                 and s.Type in (301)

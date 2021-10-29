@@ -55,13 +55,14 @@ namespace PocketDb
 
         string sql = R"sql(
             select t.Id
-            from Transactions t indexed by Transactions_Type_String1_Height_Time_Int1
-            join web.Content c on c.FieldType in ( )sql" + fieldTypes + R"sql( ) and c.Value like ? and c.ContentId = t.Id
+            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
             where t.Type in ( )sql" + txTypes + R"sql( )
+                and t.Last = 1
                 and t.Height is not null
                 )sql" + heightWhere + R"sql(
                 )sql" + addressWhere + R"sql(
-            order by t.Height desc
+                and t.Id in (select c.ContentId from web.Content c where c.FieldType in ( )sql" + fieldTypes + R"sql( ) and c.Value like ?)
+            order by t.Id desc
             limit ?
             offset ?
         )sql";
@@ -69,15 +70,13 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-            int i = 1;
-            TryBindStatementText(stmt, i++, keyword);
 
+            int i = 1;
             if (request.TopBlock > 0)
                 TryBindStatementInt(stmt, i++, request.TopBlock);
-
             if (!request.Address.empty())
                 TryBindStatementText(stmt, i++, request.Address);
-
+            TryBindStatementText(stmt, i++, keyword);
             TryBindStatementInt(stmt, i++, request.PageSize);
             TryBindStatementInt(stmt, i++, request.PageStart);
 

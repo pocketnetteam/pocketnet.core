@@ -199,7 +199,7 @@ namespace PocketDb
                     -- copy self Id
                     (
                         select a.Id
-                        from Transactions a indexed by Transactions_Type_Last_String1_Height
+                        from Transactions a indexed by Transactions_Type_Last_String1_Height_Id
                         where a.Type in (Transactions.Type)
                             and a.Last = 1
                             -- String1 = AddressHash

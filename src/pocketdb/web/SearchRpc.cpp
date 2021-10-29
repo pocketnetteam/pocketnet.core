@@ -96,8 +96,8 @@ namespace PocketWeb::PocketWebRpc
                 ContentFieldType_ContentVideoCaption,
                 ContentFieldType_ContentPostMessage,
                 ContentFieldType_ContentVideoMessage,
-                ContentFieldType_ContentPostUrl,
-                ContentFieldType_ContentVideoUrl
+                // ContentFieldType_ContentPostUrl,
+                // ContentFieldType_ContentVideoUrl,
             };
 
             // Search
