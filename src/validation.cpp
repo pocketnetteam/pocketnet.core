@@ -2490,12 +2490,14 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     {
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight); !ok)
         {
-            LogPrintf("ERROR: SocialConsensus validating failed with result %d for block %s\n",
+            LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
                 (int)result, pindex->GetBlockHash().GetHex());
 
-            //StartShutdown();
-            //return false;
-            return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
+            // TODO (team): We do not mark the block invalid for situations where the chain can be rebuilt.
+            // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
+            // we need to think about marking the block incomplete and requesting it from the network again.
+            return false;
+            //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
         }
     }
 

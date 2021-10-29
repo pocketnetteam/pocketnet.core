@@ -1659,6 +1659,18 @@ bool AppInitMain()
     GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
     GetMainSignals().RegisterWithMempoolSignals(mempool);
 
+    /* Start the RPC server already.  It will be started in "warmup" mode
+     * and not really process calls already (but it will signify connections
+     * that the server is there and will be ready later).  Warmup mode will
+     * be disabled when initialisation is finished.
+     */
+    if (gArgs.GetBoolArg("-server", false))
+    {
+        uiInterface.InitMessage_connect(SetRPCWarmupStatus);
+        if (!AppInitServers())
+            return InitError(_("Unable to start HTTP server. See debug log for details."));
+    }
+
     // ********************************************************* Step 5: verify wallet database integrity
     if (!g_wallet_init_interface.Verify()) return false;
 
@@ -2196,18 +2208,6 @@ bool AppInitMain()
     Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
     Staker::getInstance()->startWorkers(threadGroup, chainparams);
 #endif
-
-    /* Start the RPC server already.  It will be started in "warmup" mode
-     * and not really process calls already (but it will signify connections
-     * that the server is there and will be ready later).  Warmup mode will
-     * be disabled when initialisation is finished.
-     */
-    if (gArgs.GetBoolArg("-server", false))
-    {
-        uiInterface.InitMessage_connect(SetRPCWarmupStatus);
-        if (!AppInitServers())
-            return InitError(_("Unable to start HTTP server. See debug log for details."));
-    }
 
     // Start WebSocket server
     if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
