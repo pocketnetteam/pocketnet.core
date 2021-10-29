@@ -151,8 +151,8 @@ namespace PocketDb
                 if (sqlite3_exec(m_db, "PRAGMA journal_mode = wal;", nullptr, nullptr, nullptr) != 0)
                     throw std::runtime_error("Failed apply journal_mode = wal");
 
-                if (sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)
-                    throw std::runtime_error("Failed apply temp_store = memory");
+                // if (sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)
+                //     throw std::runtime_error("Failed apply temp_store = memory");
             }
         }
         catch (const std::runtime_error&)
