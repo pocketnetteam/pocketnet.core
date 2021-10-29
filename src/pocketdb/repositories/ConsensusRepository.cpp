@@ -704,7 +704,7 @@ namespace PocketDb
         // Build sql string
         string sql = R"sql(
             select count(1)
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            from Transactions c indexed by Transactions_Type_Last_String1_Height
             join Transactions s indexed by Transactions_Type_String1_String2_Height
                 on  s.String2 = c.String2
                 and s.Type in (301)
@@ -715,6 +715,7 @@ namespace PocketDb
                 and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
                 and s.Hash != ?
             where c.Type in (204, 205, 206)
+              and c.Height is not null
               and c.String1 = ?
               and c.Last = 1
         )sql";
