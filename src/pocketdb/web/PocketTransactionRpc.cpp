@@ -50,6 +50,16 @@ namespace PocketWeb::PocketWebRpc
         return _accept_transaction(tx, ptx);
     }
     
+    UniValue AddNativeTransaction(const JSONRPCRequest& request)
+    {
+        return SendRawTransaction(request);
+    }
+
+    UniValue EstimateSmartFee(const JSONRPCRequest& request)
+    {
+        return estimatesmartfee(request);
+    }
+
     UniValue GetTransaction(const JSONRPCRequest& request)
     {
         if (request.fHelp)

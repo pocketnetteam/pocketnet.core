@@ -372,9 +372,7 @@ static UniValue verifytxoutproof(const JSONRPCRequest& request)
     return res;
 }
 
-CMutableTransaction
-ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime,
-                     const UniValue& rbf)
+CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, const UniValue& rbf)
 {
     if (inputs_in.isNull() || outputs_in.isNull())
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, arguments 1 and 2 must be non-null");
@@ -1102,7 +1100,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
                                               "Clients should transition to using signrawtransactionwithkey and signrawtransactionwithwallet");
 }
 
-static UniValue sendrawtransaction(const JSONRPCRequest& request)
+UniValue SendRawTransaction(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
@@ -1901,7 +1899,7 @@ static const CRPCCommand commands[] =
     {   "rawtransactions",    "createrawtransaction",                 &createrawtransaction,              {"inputs", "outputs", "locktime", "replaceable"}},
     {   "rawtransactions",    "decoderawtransaction",                 &decoderawtransaction,              {"hexstring", "iswitness"}},
     {   "rawtransactions",    "decodescript",                         &decodescript,                      {"hexstring"}},
-    {   "rawtransactions",    "sendrawtransaction",                   &sendrawtransaction,                {"hexstring", "allowhighfees"}},
+    {   "rawtransactions",    "sendrawtransaction",                   &SendRawTransaction,                {"hexstring", "allowhighfees"}},
     {   "rawtransactions",    "combinerawtransaction",                &combinerawtransaction,             {"txs"}},
     {   "hidden",             "signrawtransaction",                   &signrawtransaction,                {"hexstring", "prevtxs", "privkeys", "sighashtype"}},
     {   "rawtransactions",    "signrawtransactionwithkey",            &signrawtransactionwithkey,         {"hexstring", "privkeys", "prevtxs",  "sighashtype"}},

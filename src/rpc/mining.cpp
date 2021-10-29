@@ -806,7 +806,7 @@ static UniValue estimatefee(const JSONRPCRequest& request)
                                               "Clients should use estimatesmartfee.");
 }
 
-static UniValue estimatesmartfee(const JSONRPCRequest& request)
+UniValue estimatesmartfee(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(

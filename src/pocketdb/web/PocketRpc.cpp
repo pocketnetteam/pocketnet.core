@@ -84,6 +84,8 @@ static const CRPCCommand commands[] =
     {"transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                 {"hexstring", "message", "type"}},
     {"transaction",    "addtransaction",                   &AddTransaction,                 {"hexstring", "message", "type"}},
     {"transaction",    "getrawtransaction",                &GetTransaction,                 {"txid"}},
+    {"transaction",    "sendrawtransaction",               &SendRawTransaction,             {"hexstring", "allowhighfees"}},
+    {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },
 };
 // @formatter:on
 

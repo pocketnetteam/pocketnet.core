@@ -44,4 +44,7 @@ UniValue SignTransaction(CMutableTransaction& mtx, const UniValue& prevTxs, CBas
 /** Create a transaction from univalue parameters */
 CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniValue& outputs_in, const UniValue& locktime, const UniValue& rbf);
 
+/** Submits raw transaction (serialized, hex-encoded) to local node and network */
+UniValue SendRawTransaction(const JSONRPCRequest& request);
+
 #endif // POCKETCOIN_RPC_RAWTRANSACTION_H
