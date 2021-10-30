@@ -58,7 +58,7 @@ namespace PocketTx
     {
         std::string data;
 
-        data += m_payload->GetString1() ? *m_payload->GetString1() : "";
+        data += m_payload && m_payload->GetString1() ? *m_payload->GetString1() : "";
 
         return Transaction::GenerateHash(data);
     }

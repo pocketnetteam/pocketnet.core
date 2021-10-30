@@ -88,7 +88,7 @@ static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUserna
 
 static bool HTTPReq_JSONRPC_Anonymous(HTTPRequest* req, const std::string&)
 {
-    return g_pubSocket->HTTPReq(req);
+    return g_webSocket->HTTPReq(req);
 }
 
 static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
@@ -148,9 +148,9 @@ bool StartHTTPRPC()
         return false;
 
     g_socket->RegisterHTTPHandler("/", true, HTTPReq_JSONRPC);
-    g_pubSocket->RegisterHTTPHandler("/", false, HTTPReq_JSONRPC_Anonymous);
-    g_pubSocket->RegisterHTTPHandler("/post/", false, HTTPReq_JSONRPC_Anonymous);
-    g_pubSocket->RegisterHTTPHandler("/public/", false, HTTPReq_JSONRPC_Anonymous);
+    g_webSocket->RegisterHTTPHandler("/", false, HTTPReq_JSONRPC_Anonymous);
+    g_webSocket->RegisterHTTPHandler("/post/", false, HTTPReq_JSONRPC_Anonymous);
+    g_webSocket->RegisterHTTPHandler("/public/", false, HTTPReq_JSONRPC_Anonymous);
     if (g_wallet_init_interface.HasWalletSupport()) {
         g_socket->RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC);
     }
@@ -170,8 +170,8 @@ void StopHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
     g_socket->UnregisterHTTPHandler("/", true);
-    g_pubSocket->UnregisterHTTPHandler("/post/", true);
-    g_pubSocket->UnregisterHTTPHandler("/public/", false);
+    g_webSocket->UnregisterHTTPHandler("/post/", true);
+    g_webSocket->UnregisterHTTPHandler("/public/", false);
     if (g_wallet_init_interface.HasWalletSupport()) {
         g_socket->UnregisterHTTPHandler("/wallet/", false);
     }

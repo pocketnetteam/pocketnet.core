@@ -94,7 +94,7 @@ namespace PocketTx
         std::string data;
 
         data += GetPostTxHash() ? *GetPostTxHash() : "";
-        data += m_payload->GetString1() ? *m_payload->GetString1() : "";
+        data += m_payload && m_payload->GetString1() ? *m_payload->GetString1() : "";
         data += GetParentTxHash() ? *GetParentTxHash() : "";
         data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
 

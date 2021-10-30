@@ -38,49 +38,6 @@
 /** Maximum size of http request (request line + headers) */
 static const size_t MAX_HEADERS_SIZE = 8192;
 
-/** HTTP request work item */
-class HTTPWorkItem final : public HTTPClosure
-{
-public:
-    HTTPWorkItem(std::unique_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
-        req(std::move(_req)), path(_path), func(_func)
-    {
-    }
-    void operator()(DbConnectionRef& dbConnection) override
-    {
-        auto log = g_logger->WillLogCategory(BCLog::STAT);
-        auto jreq = req.get();
-        jreq->SetDbConnection(dbConnection);
-
-        auto uri = jreq->GetURI();
-        auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
-
-        auto start = gStatEngineInstance.GetCurrentSystemTime();
-        func(jreq, path);
-        auto stop = gStatEngineInstance.GetCurrentSystemTime();
-
-        if (log)
-        {
-            gStatEngineInstance.AddSample(
-                Statistic::RequestSample{
-                    uri,
-                    start,
-                    stop,
-                    peer,
-                    0,
-                    0
-                }
-            );
-        }
-    }
-
-    std::unique_ptr<HTTPRequest> req;
-
-private:
-    std::string path;
-    HTTPRequestHandler func;
-};
-
 /** Simple work queue for distributing work over multiple threads.
  * Work items are simply callable objects.
  */
@@ -176,7 +133,7 @@ static std::vector<CSubNet> rpc_allow_subnets;
 
 //! HTTP socket objects to handle requests on different routes
 HTTPSocket *g_socket;
-HTTPSocket *g_pubSocket;
+HTTPWebSocket *g_webSocket;
 HTTPSocket *g_staticSocket;
 HTTPSocket *g_restSocket;
 
@@ -319,9 +276,10 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     {
         std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
 
-        assert(httpSock->m_workQueue);
-        if (httpSock->m_workQueue->Enqueue(item.get()))
+        if (httpSock->EnqueueTask(item))
+        {
             item.release();
+        }
         else
         {
             LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue depth exceeded.\n");
@@ -392,15 +350,15 @@ static bool HTTPBindAddresses()
     // TODO (team): add parameter web={0|1} for enable|disable web features
     if (true)
     {
-        g_pubSocket->BindAddress("::", publicPort);
-        g_pubSocket->BindAddress("0.0.0.0", publicPort);
+        g_webSocket->BindAddress("::", publicPort);
+        g_webSocket->BindAddress("0.0.0.0", publicPort);
         g_staticSocket->BindAddress("::", staticPort);
         g_staticSocket->BindAddress("0.0.0.0", staticPort);
         g_restSocket->BindAddress("::", restPort);
         g_restSocket->BindAddress("0.0.0.0", restPort);
     }
 
-    return (g_pubSocket->GetAddressCount());
+    return (g_webSocket->GetAddressCount());
 }
 
 /** Simple wrapper to set thread name and run work queue */
@@ -484,8 +442,8 @@ bool InitHTTPServer()
 #endif
 
     // Additional pocketnet seocket
-    g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth, true);
-    RegisterPocketnetWebRPCCommands(g_pubSocket->m_table_rpc);
+    g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, true);
+    RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
 
     // Additional pocketnet static files socket
     g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
@@ -538,7 +496,7 @@ void StartHTTPServer()
 
     // The same worker threads will service POST and PUBLIC RPC requests
     LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
-    g_pubSocket->StartHTTPSocket(rpcPublicThreads, true);
+    g_webSocket->StartHTTPSocket(rpcPublicThreads, true);
 
     g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
     g_restSocket->StartHTTPSocket(rpcRestThreads, true);
@@ -551,7 +509,7 @@ void InterruptHTTPServer()
         
     LogPrint(BCLog::HTTP, "Interrupting HTTP server\n");
     g_socket->InterruptHTTPSocket();
-    g_pubSocket->InterruptHTTPSocket();
+    g_webSocket->InterruptHTTPSocket();
     g_staticSocket->InterruptHTTPSocket();
     g_restSocket->InterruptHTTPSocket();
 }
@@ -562,7 +520,7 @@ void StopHTTPServer()
 
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
     g_socket->StopHTTPSocket();
-    g_pubSocket->StopHTTPSocket();
+    g_webSocket->StopHTTPSocket();
     g_staticSocket->StopHTTPSocket();
     g_restSocket->StopHTTPSocket();
 
@@ -591,8 +549,8 @@ void StopHTTPServer()
     delete g_socket;
     g_socket = nullptr;
 
-    delete g_pubSocket;
-    g_pubSocket = nullptr;
+    delete g_webSocket;
+    g_webSocket = nullptr;
 
     delete g_staticSocket;
     g_staticSocket = nullptr;
@@ -663,25 +621,33 @@ HTTPSocket::~HTTPSocket()
     }
 }
 
-void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
+void HTTPSocket::StartThreads(WorkQueue<HTTPClosure>*& queue, int threadCount, bool selfDbConnection)
 {
     for (int i = 0; i < threadCount; i++)
-    {
-        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, m_workQueue, selfDbConnection);
-    }
+        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, queue, selfDbConnection);
+}
+
+void HTTPSocket::StopThreads(WorkQueue<HTTPClosure>*& queue)
+{
+    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
+
+    for (auto &thread: m_thread_http_workers)
+        thread.join();
+
+    m_thread_http_workers.clear();
+
+    delete queue;
+    queue = nullptr;
+}
+
+void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
+{
+    StartThreads(m_workQueue, threadCount, selfDbConnection);
 }
 
 void HTTPSocket::StopHTTPSocket()
 {
-    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-    for (auto &thread: m_thread_http_workers)
-    {
-        thread.join();
-    }
-    m_thread_http_workers.clear();
-
-    delete m_workQueue;
-    m_workQueue = nullptr;
+    StopThreads(m_workQueue);
 }
 
 void HTTPSocket::InterruptHTTPSocket()
@@ -760,6 +726,11 @@ static inline std::string gen_random(const int len) {
 
 }
 
+UniValue HTTPSocket::RPCTableExecute(JSONRPCRequest& jreq)
+{
+    return m_table_rpc.execute(jreq);
+}
+
 bool HTTPSocket::HTTPReq(HTTPRequest* req)
 {
     // JSONRPC handles only POST
@@ -794,35 +765,96 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
                 uri, method, rpcKey, jreq.params.write(0, 0));
 
             int64_t nTime1 = GetTimeMicros();
-            UniValue result = m_table_rpc.execute(jreq);
+
+            UniValue result = RPCTableExecute(jreq);
+            
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
                 uri, method, rpcKey, 0.001 * (nTime2 - nTime1));
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
-
-            // array of requests
-        } else {
-            if (valRequest.isArray()) {
+        }
+        else
+        {
+            if (valRequest.isArray())
+            {
                 strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), m_table_rpc);
-            } else {
+            }
+            else
+            {
                 throw JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
             }
         }
 
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strReply);
-    } catch (const UniValue& objError) {
+    }
+    catch (const UniValue& objError)
+    {
         LogPrint(BCLog::RPC, "Exception %s\n", objError.write());
         JSONErrorReply(req, objError, jreq.id);
         return false;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         LogPrint(BCLog::RPC, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
         JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
         return false;
     }
+
     return true;
+}
+
+bool HTTPSocket::EnqueueTask(std::unique_ptr<HTTPWorkItem>& task)
+{
+    return m_workQueue->Enqueue(task.get());
+}
+
+/** WebSocket for public API */
+HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess)
+    : HTTPSocket(base, timeout, queueDepth, publicAccess)
+{
+
+}
+
+HTTPWebSocket::~HTTPWebSocket()
+{
+
+}
+
+void HTTPWebSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
+{
+    HTTPSocket::StartHTTPSocket(threadCount, selfDbConnection);
+    StartThreads(m_workPostQueue, threadCount, selfDbConnection);
+}
+
+void HTTPWebSocket::StopHTTPSocket()
+{   
+    HTTPSocket::StopHTTPSocket();
+    StopThreads(m_workPostQueue);
+}
+
+bool HTTPWebSocket::EnqueueTask(std::unique_ptr<HTTPWorkItem>& task)
+{
+    UniValue requestBody;
+    if (requestBody.read(task->req->ReadBody()) && requestBody.isObject())
+    {
+        UniValue valMethod = find_value(requestBody, "method");
+        if (valMethod.isStr())
+        {
+            std::string method = valMethod.get_str();
+
+            bool post = method == "sendrawtransactionwithmessage" ||
+                        method == "addtransaction" ||
+                        method == "sendrawtransaction";
+
+            if (post)
+                return m_workPostQueue->Enqueue(task.get());
+        }
+    }
+
+    return m_workQueue->Enqueue(task.get());
 }
 
 HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, std::function<void()> _handler) :

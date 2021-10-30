@@ -133,11 +133,11 @@ namespace PocketTx
     {
         std::string data;
 
-        data += m_payload->GetString7() ? *m_payload->GetString7() : "";
-        data += m_payload->GetString2() ? *m_payload->GetString2() : "";
-        data += m_payload->GetString3() ? *m_payload->GetString3() : "";
+        data += m_payload && m_payload->GetString7() ? *m_payload->GetString7() : "";
+        data += m_payload && m_payload->GetString2() ? *m_payload->GetString2() : "";
+        data += m_payload && m_payload->GetString3() ? *m_payload->GetString3() : "";
 
-        if (m_payload->GetString4() && !(*m_payload->GetString4()).empty())
+        if (m_payload && m_payload->GetString4() && !(*m_payload->GetString4()).empty())
         {
             UniValue tags(UniValue::VARR);
             tags.read(*m_payload->GetString4());
@@ -148,7 +148,7 @@ namespace PocketTx
             }
         }
 
-        if (m_payload->GetString5() && !(*m_payload->GetString5()).empty())
+        if (m_payload && m_payload->GetString5() && !(*m_payload->GetString5()).empty())
         {
             UniValue images(UniValue::VARR);
             images.read(*m_payload->GetString5());

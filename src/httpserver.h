@@ -208,6 +208,49 @@ private:
     struct event_base* base;
 };
 
+/** HTTP request work item */
+class HTTPWorkItem final : public HTTPClosure
+{
+public:
+    HTTPWorkItem(std::unique_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
+        req(std::move(_req)), path(_path), func(_func)
+    {
+    }
+    void operator()(DbConnectionRef& dbConnection) override
+    {
+        auto log = g_logger->WillLogCategory(BCLog::STAT);
+        auto jreq = req.get();
+        jreq->SetDbConnection(dbConnection);
+
+        auto uri = jreq->GetURI();
+        auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
+
+        auto start = gStatEngineInstance.GetCurrentSystemTime();
+        func(jreq, path);
+        auto stop = gStatEngineInstance.GetCurrentSystemTime();
+
+        if (log)
+        {
+            gStatEngineInstance.AddSample(
+                Statistic::RequestSample{
+                    uri,
+                    start,
+                    stop,
+                    peer,
+                    0,
+                    0
+                }
+            );
+        }
+    }
+
+    std::unique_ptr<HTTPRequest> req;
+
+private:
+    std::string path;
+    HTTPRequestHandler func;
+};
+
 class HTTPSocket
 {
 private:
@@ -216,6 +259,11 @@ private:
     std::vector<evhttp_bound_socket*> m_boundSockets;
     std::vector<std::thread> m_thread_http_workers;
 
+protected:
+    void StartThreads(WorkQueue<HTTPClosure>*& queue, int threadCount, bool selfDbConnection);
+    void StopThreads(WorkQueue<HTTPClosure>*& queue);
+    virtual UniValue RPCTableExecute(JSONRPCRequest& jreq);
+
 public:
     HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
     ~HTTPSocket();
@@ -223,16 +271,17 @@ public:
     /** Sets the need to check the request source. For public APIs,
       * we do not need to restrict the source of the request. */
     bool m_publicAccess;
-
+    
     /** Work queue for handling longer requests off the event loop thread */
     CRPCTable m_table_rpc;
     WorkQueue<HTTPClosure>* m_workQueue;
     std::vector<HTTPPathHandler> m_pathHandlers;
 
     /** Start worker threads to listen on bound http sockets */
-    void StartHTTPSocket(int threadCount, bool selfDbConnection);
+    virtual void StartHTTPSocket(int threadCount, bool selfDbConnection);
     /** Stop worker threads on all bound http sockets */
-    void StopHTTPSocket();
+    virtual void StopHTTPSocket();
+
     /** Acquire a http socket handle for a provided IP address and port number */
     void BindAddress(std::string ipAddr, int port);
     /** Get number of bound IP sockets */
@@ -248,13 +297,34 @@ public:
     void UnregisterHTTPHandler(const std::string& prefix, bool exactMatch);
 
     bool HTTPReq(HTTPRequest* req);
+
+    virtual bool EnqueueTask(std::unique_ptr<HTTPWorkItem>& task);
+};
+
+class HTTPWebSocket: public HTTPSocket
+{
+private:
+    std::vector<std::thread> m_thread_http_post_workers;
+protected:
+    UniValue RPCTableExecute(JSONRPCRequest& jreq) override;
+public:
+    CRPCTable m_table_post_rpc;
+    WorkQueue<HTTPClosure>* m_workPostQueue;
+
+    HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
+    ~HTTPWebSocket();
+
+    void StartHTTPSocket(int threadCount, bool selfDbConnection) override;
+    void StopHTTPSocket() override;
+
+    bool EnqueueTask(std::unique_ptr<HTTPWorkItem>& task) override;
 };
 
 std::string urlDecode(const std::string& urlEncoded);
 
 extern HTTPSocket* g_socket;
-extern HTTPSocket* g_pubSocket;
 extern HTTPSocket* g_staticSocket;
 extern HTTPSocket* g_restSocket;
+extern HTTPWebSocket* g_webSocket;
 
 #endif // POCKETCOIN_HTTPSERVER_H

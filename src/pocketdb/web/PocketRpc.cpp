@@ -81,16 +81,26 @@ static const CRPCCommand commands[] =
     {"system",         "getnodeinfo",                      &GetNodeInfo,                    {}},
     {"system",         "gettime",                          &GetTime,                        {}},
 
-    {"transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                 {"hexstring", "message", "type"}},
-    {"transaction",    "addtransaction",                   &AddTransaction,                 {"hexstring", "message", "type"}},
+    // Transactions
     {"transaction",    "getrawtransaction",                &GetTransaction,                 {"txid"}},
-    {"transaction",    "sendrawtransaction",               &SendRawTransaction,             {"hexstring", "allowhighfees"}},
     {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },
 };
 // @formatter:on
 
-void RegisterPocketnetWebRPCCommands(CRPCTable& t)
+// @formatter:off
+static const CRPCCommand commands_post[] =
+{
+    {"transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                 {"hexstring", "message", "type"}},
+    {"transaction",    "addtransaction",                   &AddTransaction,                 {"hexstring", "message", "type"}},
+    {"transaction",    "sendrawtransaction",               &SendRawTransaction,             {"hexstring", "allowhighfees"}},
+};
+// @formatter:on
+
+void RegisterPocketnetWebRPCCommands(CRPCTable &tableRPC, CRPCTable &tablePostRPC)
 {
     for (const auto& command : commands)
-        t.appendCommand(command.name, &command);
+        tableRPC.appendCommand(command.name, &command);
+
+    for (const auto& command : commands_post)
+        tablePostRPC.appendCommand(command.name, &command);
 }

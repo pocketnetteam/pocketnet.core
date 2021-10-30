@@ -20,6 +20,6 @@ void RegisterMiningRPCCommands(CRPCTable &tableRPC);
 /** Register raw transaction RPC commands */
 void RegisterRawTransactionRPCCommands(CRPCTable &tableRPC);
 
-void RegisterPocketnetWebRPCCommands(CRPCTable &tableRPC);
+void RegisterPocketnetWebRPCCommands(CRPCTable &tableRPC, CRPCTable &tablePostRPC);
 
 #endif // POCKETCOIN_RPC_REGISTER_H
