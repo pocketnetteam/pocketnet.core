@@ -84,11 +84,6 @@ static const CRPCCommand commands[] =
     // Transactions
     {"transaction",    "getrawtransaction",                &GetTransaction,                 {"txid"}},
     {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },
-
-    // For old client compatible
-    {"transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                 {"hexstring", "message", "type"}},
-    {"transaction",    "addtransaction",                   &AddTransaction,                 {"hexstring", "message", "type"}},
-    {"transaction",    "sendrawtransaction",               &SendRawTransaction,             {"hexstring", "allowhighfees"}},
 };
 // @formatter:on
 
