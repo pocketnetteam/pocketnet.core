@@ -90,9 +90,9 @@ static const CRPCCommand commands[] =
 // @formatter:off
 static const CRPCCommand commands_post[] =
 {
-    {"transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                 {"hexstring", "message", "type"}},
-    {"transaction",    "addtransaction",                   &AddTransaction,                 {"hexstring", "message", "type"}},
-    {"transaction",    "sendrawtransaction",               &SendRawTransaction,             {"hexstring", "allowhighfees"}},
+    {"transaction",    "sendrawtransactionwithmessage",    &AddTransaction,                 {"hexstring", "message"}},
+    {"transaction",    "addtransaction",                   &AddTransaction,                 {"hexstring", "message"}},
+    {"transaction",    "sendrawtransaction",               &AddTransaction,                 {"hexstring", "message"}},
 };
 // @formatter:on
 

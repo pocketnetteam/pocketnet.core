@@ -1100,118 +1100,6 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
                                               "Clients should transition to using signrawtransactionwithkey and signrawtransactionwithwallet");
 }
 
-UniValue SendRawTransaction(const JSONRPCRequest& request)
-{
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
-        throw std::runtime_error(
-            "sendrawtransaction \"hexstring\" ( allowhighfees )\n"
-            "\nSubmits raw transaction (serialized, hex-encoded) to local node and network.\n"
-            "\nAlso see createrawtransaction and signrawtransactionwithkey calls.\n"
-            "\nArguments:\n"
-            "1. \"hexstring\"    (string, required) The hex string of the raw transaction)\n"
-            "2. allowhighfees    (boolean, optional, default=false) Allow high fees\n"
-            "\nResult:\n"
-            "\"hex\"             (string) The transaction hash in hex\n"
-            "\nExamples:\n"
-            "\nCreate a transaction\n" +
-            HelpExampleCli("createrawtransaction",
-                "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"vout\\\":0}]\" \"{\\\"myaddress\\\":0.01}\"") +
-            "Sign the transaction, and get back the hex\n" +
-            HelpExampleCli("signrawtransactionwithwallet", "\"myhex\"") +
-            "\nSend the transaction (signed hex)\n" + HelpExampleCli("sendrawtransaction", "\"signedhex\"") +
-            "\nAs a json rpc call\n" + HelpExampleRpc("sendrawtransaction", "\"signedhex\""));
-
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VBOOL});
-
-    // parse hex string from parameter
-    CMutableTransaction mtx;
-    if (!DecodeHexTx(mtx, request.params[0].get_str()))
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
-    CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
-
-    const uint256& hashTx = tx->GetHash();
-
-    std::promise<void> promise;
-    CAmount nMaxRawTxFee = maxTxFee;
-
-    { // cs_main scope
-        LOCK(cs_main);
-        CCoinsViewCache& view = *pcoinsTip;
-        bool fHaveChain = false;
-        for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++)
-        {
-            const Coin& existingCoin = view.AccessCoin(COutPoint(hashTx, o));
-            fHaveChain = !existingCoin.IsSpent();
-        }
-        bool fHaveMempool = mempool.exists(hashTx);
-        if (!fHaveMempool && !fHaveChain)
-        {
-            // push to local node and sync with wallets
-            CValidationState state;
-            bool fMissingInputs;
-            if (!AcceptToMemoryPool(mempool, state, tx, nullptr /* pocket payload here not allowed */, &fMissingInputs,
-                nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee))
-            {
-                if (state.IsInvalid())
-                {
-                    throw JSONRPCError(RPC_TRANSACTION_REJECTED, FormatStateMessage(state));
-                }
-                else
-                {
-                    if (state.GetRejectCode() == RPC_POCKETTX_MATURITY)
-                    {
-                        throw JSONRPCError(RPC_POCKETTX_MATURITY, FormatStateMessage(state));
-                    }
-                    else
-                    {
-                        if (fMissingInputs)
-                        {
-                            throw JSONRPCError(RPC_TRANSACTION_ERROR, "Missing inputs");
-                        }
-                        throw JSONRPCError(RPC_TRANSACTION_ERROR, FormatStateMessage(state));
-                    }
-                }
-            }
-            else
-            {
-                // If wallet is enabled, ensure that the wallet has been made aware
-                // of the new transaction prior to returning. This prevents a race
-                // where a user might call sendrawtransaction with a transaction
-                // to/from their wallet, immediately call some wallet RPC, and get
-                // a stale result because callbacks have not yet been processed.
-                CallFunctionInValidationInterfaceQueue([&promise]
-                {
-                    promise.set_value();
-                });
-            }
-        }
-        else if (fHaveChain)
-        {
-            throw JSONRPCError(RPC_TRANSACTION_ALREADY_IN_CHAIN, "transaction already in block chain");
-        }
-        else
-        {
-            // Make sure we don't block forever if re-sending
-            // a transaction already in mempool.
-            promise.set_value();
-        }
-
-    } // cs_main
-
-    promise.get_future().wait();
-
-    if (!g_connman)
-        throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
-
-    CInv inv(MSG_TX, hashTx);
-    g_connman->ForEachNode([&inv](CNode *pnode)
-    {
-        pnode->PushInventory(inv);
-    });
-
-    return hashTx.GetHex();
-}
-
 static UniValue testmempoolaccept(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
@@ -1899,7 +1787,6 @@ static const CRPCCommand commands[] =
     {   "rawtransactions",    "createrawtransaction",                 &createrawtransaction,              {"inputs", "outputs", "locktime", "replaceable"}},
     {   "rawtransactions",    "decoderawtransaction",                 &decoderawtransaction,              {"hexstring", "iswitness"}},
     {   "rawtransactions",    "decodescript",                         &decodescript,                      {"hexstring"}},
-    {   "rawtransactions",    "sendrawtransaction",                   &SendRawTransaction,                {"hexstring", "allowhighfees"}},
     {   "rawtransactions",    "combinerawtransaction",                &combinerawtransaction,             {"txs"}},
     {   "hidden",             "signrawtransaction",                   &signrawtransaction,                {"hexstring", "prevtxs", "privkeys", "sighashtype"}},
     {   "rawtransactions",    "signrawtransactionwithkey",            &signrawtransactionwithkey,         {"hexstring", "privkeys", "prevtxs",  "sighashtype"}},
