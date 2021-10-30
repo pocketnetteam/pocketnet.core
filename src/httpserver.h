@@ -17,13 +17,16 @@
 #include <event2/keyvalq_struct.h>
 #include <support/events.h>
 #include "rpc/server.h"
+#include "init.h"
 #include "pocketdb/SQLiteConnection.h"
 
 static const int DEFAULT_HTTP_THREADS = 4;
+static const int DEFAULT_HTTP_POST_THREADS = 4;
 static const int DEFAULT_HTTP_PUBLIC_THREADS = 4;
 static const int DEFAULT_HTTP_STATIC_THREADS = 4;
 static const int DEFAULT_HTTP_REST_THREADS = 4;
 static const int DEFAULT_HTTP_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_POST_WORKQUEUE = 16;
 static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE = 16;
 static const int DEFAULT_HTTP_STATIC_WORKQUEUE = 16;
 static const int DEFAULT_HTTP_REST_WORKQUEUE = 16;
@@ -260,9 +263,8 @@ private:
     std::vector<std::thread> m_thread_http_workers;
 
 protected:
-    void StartThreads(WorkQueue<HTTPClosure>*& queue, int threadCount, bool selfDbConnection);
-    void StopThreads(WorkQueue<HTTPClosure>*& queue);
-    virtual UniValue RPCTableExecute(JSONRPCRequest& jreq);
+    void StartThreads(WorkQueue<HTTPClosure>* queue, int threadCount, bool selfDbConnection);
+    void StopThreads(WorkQueue<HTTPClosure>* queue);
 
 public:
     HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
@@ -292,32 +294,26 @@ public:
      * If multiple handlers match a prefix, the first-registered one will
      * be invoked.
      */
-    void RegisterHTTPHandler(const std::string& prefix, bool exactMatch, const HTTPRequestHandler& handler);
+    void RegisterHTTPHandler(const std::string& prefix, bool exactMatch,
+        const HTTPRequestHandler& handler, WorkQueue<HTTPClosure>* _queue);
+
     /** Unregister handler for prefix */
     void UnregisterHTTPHandler(const std::string& prefix, bool exactMatch);
 
-    bool HTTPReq(HTTPRequest* req);
-
-    virtual bool EnqueueTask(std::unique_ptr<HTTPWorkItem>& task);
+    bool HTTPReq(HTTPRequest* req, CRPCTable& table);
 };
 
 class HTTPWebSocket: public HTTPSocket
 {
-private:
-    std::vector<std::thread> m_thread_http_post_workers;
-protected:
-    UniValue RPCTableExecute(JSONRPCRequest& jreq) override;
 public:
     CRPCTable m_table_post_rpc;
     WorkQueue<HTTPClosure>* m_workPostQueue;
 
-    HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
+    HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess);
     ~HTTPWebSocket();
 
-    void StartHTTPSocket(int threadCount, bool selfDbConnection) override;
+    void StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection);
     void StopHTTPSocket() override;
-
-    bool EnqueueTask(std::unique_ptr<HTTPWorkItem>& task) override;
 };
 
 std::string urlDecode(const std::string& urlEncoded);

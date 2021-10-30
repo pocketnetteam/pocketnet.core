@@ -605,12 +605,16 @@ void SetupServerArgs()
     gArgs.AddArg("-rpcthreads=<n>", strprintf("Set the number of threads to service RPC (MAIN) calls (default: %d)", DEFAULT_HTTP_THREADS), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcpublicthreads=<n>", strprintf("Set the number of threads to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_THREADS), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcstaticthreads=<n>", strprintf("Set the number of threads to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_THREADS), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpostthreads=<n>", strprintf("Set the number of threads to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_THREADS), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcrestthreads=<n>", strprintf("Set the number of threads to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_THREADS), false, OptionsCategory::RPC);
 
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::RPC);
 
     gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcworkpublicqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcworkstaticqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpublicworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcstaticworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpostworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcrestworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_WORKQUEUE), false, OptionsCategory::RPC);
 
     gArgs.AddArg("-statdepth=<n>", strprintf("Set the depth of the work queue for statistic in seconds (default: %ds)", 60), false, OptionsCategory::RPC);
 

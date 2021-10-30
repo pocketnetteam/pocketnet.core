@@ -14,13 +14,6 @@
 #include <cstdlib>
 #include <deque>
 #include <future>
-#include <event2/thread.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-#include <event2/util.h>
-#include <event2/keyvalq_struct.h>
-#include <support/events.h>
-#include "init.h"
 #include <rpc/register.h>
 #include <walletinitinterface.h>
 
@@ -112,14 +105,16 @@ public:
 
 struct HTTPPathHandler
 {
-    HTTPPathHandler() {}
-    HTTPPathHandler(std::string _prefix, bool _exactMatch, HTTPRequestHandler _handler) :
-        prefix(_prefix), exactMatch(_exactMatch), handler(_handler)
+    HTTPPathHandler(std::string _prefix, bool _exactMatch, HTTPRequestHandler _handler,
+                    WorkQueue<HTTPClosure>* _queue) :
+        prefix(_prefix), exactMatch(_exactMatch), handler(_handler), queue(_queue)
     {
     }
+
     std::string prefix;
     bool exactMatch;
     HTTPRequestHandler handler;
+    WorkQueue<HTTPClosure>* queue;
 };
 
 /** HTTP module state */
@@ -276,7 +271,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     {
         std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
 
-        if (httpSock->EnqueueTask(item))
+        if (i->queue->Enqueue(item.get()))
         {
             item.release();
         }
@@ -423,8 +418,10 @@ bool InitHTTPServer()
     
     int timeout = gArgs.GetArg("-rpcservertimeout", DEFAULT_HTTP_SERVER_TIMEOUT);
     int workQueueMainDepth = std::max((long) gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
+    int workQueuePostDepth = std::max((long) gArgs.GetArg("-rpcpostworkqueue", DEFAULT_HTTP_POST_WORKQUEUE), 1L);
     int workQueuePublicDepth = std::max((long) gArgs.GetArg("-rpcpublicworkqueue", DEFAULT_HTTP_PUBLIC_WORKQUEUE), 1L);
     int workQueueStaticDepth = std::max((long) gArgs.GetArg("-rpcstaticworkqueue", DEFAULT_HTTP_STATIC_WORKQUEUE), 1L);
+    int workQueueRestDepth = std::max((long) gArgs.GetArg("-rpcrestworkqueue", DEFAULT_HTTP_REST_WORKQUEUE), 1L);
 
     raii_event_base base_ctr = obtain_event_base();
     eventBase = base_ctr.get();
@@ -442,12 +439,12 @@ bool InitHTTPServer()
 #endif
 
     // Additional pocketnet seocket
-    g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, true);
+    g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
     RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
 
     // Additional pocketnet static files socket
     g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
-    g_restSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
+    g_restSocket = new HTTPSocket(eventBase, timeout, workQueueRestDepth, true);
  
     if (!HTTPBindAddresses())
     {
@@ -483,6 +480,7 @@ void StartHTTPServer()
 {
     LogPrint(BCLog::HTTP, "Starting HTTP server\n");
     int rpcMainThreads = std::max((long) gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
+    int rpcPostThreads = std::max((long) gArgs.GetArg("-rpcpostthreads", DEFAULT_HTTP_POST_THREADS), 1L);
     int rpcPublicThreads = std::max((long) gArgs.GetArg("-rpcpublicthreads", DEFAULT_HTTP_PUBLIC_THREADS), 1L);
     int rpcStaticThreads = std::max((long) gArgs.GetArg("-rpcstaticthreads", DEFAULT_HTTP_STATIC_THREADS), 1L);
     int rpcRestThreads = std::max((long) gArgs.GetArg("-rpcrestthreads", DEFAULT_HTTP_REST_THREADS), 1L);
@@ -496,7 +494,7 @@ void StartHTTPServer()
 
     // The same worker threads will service POST and PUBLIC RPC requests
     LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
-    g_webSocket->StartHTTPSocket(rpcPublicThreads, true);
+    g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
 
     g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
     g_restSocket->StartHTTPSocket(rpcRestThreads, true);
@@ -621,13 +619,13 @@ HTTPSocket::~HTTPSocket()
     }
 }
 
-void HTTPSocket::StartThreads(WorkQueue<HTTPClosure>*& queue, int threadCount, bool selfDbConnection)
+void HTTPSocket::StartThreads(WorkQueue<HTTPClosure>* queue, int threadCount, bool selfDbConnection)
 {
     for (int i = 0; i < threadCount; i++)
         m_thread_http_workers.emplace_back(HTTPWorkQueueRun, queue, selfDbConnection);
 }
 
-void HTTPSocket::StopThreads(WorkQueue<HTTPClosure>*& queue)
+void HTTPSocket::StopThreads(WorkQueue<HTTPClosure>* queue)
 {
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
 
@@ -686,10 +684,11 @@ int HTTPSocket::GetAddressCount()
     return (int)m_boundSockets.size();
 }
 
-void HTTPSocket::RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler)
+void HTTPSocket::RegisterHTTPHandler(const std::string &prefix, bool exactMatch,
+                                     const HTTPRequestHandler &handler, WorkQueue<HTTPClosure>* _queue)
 {
     LogPrint(BCLog::HTTP, "Registering HTTP handler for %s (exactmatch %d)\n", prefix, exactMatch);
-    m_pathHandlers.emplace_back(prefix, exactMatch, handler);
+    m_pathHandlers.emplace_back(prefix, exactMatch, handler, _queue);
 }
 
 void HTTPSocket::UnregisterHTTPHandler(const std::string &prefix, bool exactMatch)
@@ -726,12 +725,7 @@ static inline std::string gen_random(const int len) {
 
 }
 
-UniValue HTTPSocket::RPCTableExecute(JSONRPCRequest& jreq)
-{
-    return m_table_rpc.execute(jreq);
-}
-
-bool HTTPSocket::HTTPReq(HTTPRequest* req)
+bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 {
     // JSONRPC handles only POST
     if (req->GetRequestMethod() != HTTPRequest::POST) {
@@ -766,7 +760,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
 
             int64_t nTime1 = GetTimeMicros();
 
-            UniValue result = RPCTableExecute(jreq);
+            UniValue result = table.execute(jreq);
             
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
@@ -806,27 +800,20 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
     return true;
 }
 
-bool HTTPSocket::EnqueueTask(std::unique_ptr<HTTPWorkItem>& task)
-{
-    return m_workQueue->Enqueue(task.get());
-}
-
 /** WebSocket for public API */
-HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess)
+HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess)
     : HTTPSocket(base, timeout, queueDepth, publicAccess)
 {
-
+    m_workPostQueue = new WorkQueue<HTTPClosure>(queuePostDepth);
+    LogPrintf("HTTP: creating work post queue of depth %d\n", queuePostDepth);
 }
 
-HTTPWebSocket::~HTTPWebSocket()
-{
+HTTPWebSocket::~HTTPWebSocket() = default;
 
-}
-
-void HTTPWebSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
+void HTTPWebSocket::StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection)
 {
     HTTPSocket::StartHTTPSocket(threadCount, selfDbConnection);
-    StartThreads(m_workPostQueue, threadCount, selfDbConnection);
+    StartThreads(m_workPostQueue, threadPostCount, selfDbConnection);
 }
 
 void HTTPWebSocket::StopHTTPSocket()
@@ -835,38 +822,18 @@ void HTTPWebSocket::StopHTTPSocket()
     StopThreads(m_workPostQueue);
 }
 
-bool HTTPWebSocket::EnqueueTask(std::unique_ptr<HTTPWorkItem>& task)
-{
-    UniValue requestBody;
-    if (requestBody.read(task->req->ReadBody()) && requestBody.isObject())
-    {
-        UniValue valMethod = find_value(requestBody, "method");
-        if (valMethod.isStr())
-        {
-            std::string method = valMethod.get_str();
-
-            bool post = method == "sendrawtransactionwithmessage" ||
-                        method == "addtransaction" ||
-                        method == "sendrawtransaction";
-
-            if (post)
-                return m_workPostQueue->Enqueue(task.get());
-        }
-    }
-
-    return m_workQueue->Enqueue(task.get());
-}
-
 HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, std::function<void()> _handler) :
     deleteWhenTriggered(_deleteWhenTriggered), handler(std::move(_handler))
 {
     ev = event_new(base, -1, 0, httpevent_callback_fn, this);
     assert(ev);
 }
+
 HTTPEvent::~HTTPEvent()
 {
     event_free(ev);
 }
+
 void HTTPEvent::trigger(struct timeval *tv)
 {
     if (tv == nullptr)
@@ -874,6 +841,7 @@ void HTTPEvent::trigger(struct timeval *tv)
     else
         evtimer_add(ev, tv); // trigger after timeval passed
 }
+
 HTTPRequest::HTTPRequest(struct evhttp_request *_req) : req(_req),
                                                         replySent(false)
 {

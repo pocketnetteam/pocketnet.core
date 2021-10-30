@@ -88,7 +88,12 @@ static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUserna
 
 static bool HTTPReq_JSONRPC_Anonymous(HTTPRequest* req, const std::string&)
 {
-    return g_webSocket->HTTPReq(req);
+    return g_webSocket->HTTPReq(req, g_webSocket->m_table_rpc);
+}
+
+static bool HTTPReq_JSONRPC_Post_Anonymous(HTTPRequest* req, const std::string&)
+{
+    return g_webSocket->HTTPReq(req, g_webSocket->m_table_post_rpc);
 }
 
 static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
@@ -118,7 +123,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
         return false;
     }
 
-    return g_socket->HTTPReq(req);
+    return g_socket->HTTPReq(req, g_socket->m_table_rpc);
 }
 
 static bool InitRPCAuthentication()
@@ -147,13 +152,15 @@ bool StartHTTPRPC()
     if (!InitRPCAuthentication())
         return false;
 
-    g_socket->RegisterHTTPHandler("/", true, HTTPReq_JSONRPC);
-    g_webSocket->RegisterHTTPHandler("/", false, HTTPReq_JSONRPC_Anonymous);
-    g_webSocket->RegisterHTTPHandler("/post/", false, HTTPReq_JSONRPC_Anonymous);
-    g_webSocket->RegisterHTTPHandler("/public/", false, HTTPReq_JSONRPC_Anonymous);
+    g_socket->RegisterHTTPHandler("/", true, HTTPReq_JSONRPC, g_socket->m_workQueue);
+
+    g_webSocket->RegisterHTTPHandler("/post/", false, HTTPReq_JSONRPC_Post_Anonymous, g_webSocket->m_workPostQueue);
+    g_webSocket->RegisterHTTPHandler("/", false, HTTPReq_JSONRPC_Anonymous, g_webSocket->m_workQueue);
+
     if (g_wallet_init_interface.HasWalletSupport()) {
-        g_socket->RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC);
+        g_socket->RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC, g_socket->m_workQueue);
     }
+
     struct event_base* eventBase = EventBase();
     assert(eventBase);
     httpRPCTimerInterface = MakeUnique<HTTPRPCTimerInterface>(eventBase);
