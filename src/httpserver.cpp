@@ -625,19 +625,6 @@ void HTTPSocket::StartThreads(WorkQueue<HTTPClosure>* queue, int threadCount, bo
         m_thread_http_workers.emplace_back(HTTPWorkQueueRun, queue, selfDbConnection);
 }
 
-void HTTPSocket::StopThreads(WorkQueue<HTTPClosure>* queue)
-{
-    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-
-    for (auto &thread: m_thread_http_workers)
-        thread.join();
-
-    m_thread_http_workers.clear();
-
-    delete queue;
-    queue = nullptr;
-}
-
 void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
 {
     StartThreads(m_workQueue, threadCount, selfDbConnection);
@@ -645,7 +632,15 @@ void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
 
 void HTTPSocket::StopHTTPSocket()
 {
-    StopThreads(m_workQueue);
+    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
+
+    for (auto &thread: m_thread_http_workers)
+        thread.join();
+
+    m_thread_http_workers.clear();
+    
+    delete m_workQueue;
+    m_workQueue = nullptr;
 }
 
 void HTTPSocket::InterruptHTTPSocket()
@@ -812,14 +807,24 @@ HTTPWebSocket::~HTTPWebSocket() = default;
 
 void HTTPWebSocket::StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection)
 {
-    HTTPSocket::StartHTTPSocket(threadCount, selfDbConnection);
+    StartThreads(m_workQueue, threadCount, selfDbConnection);
     StartThreads(m_workPostQueue, threadPostCount, selfDbConnection);
 }
 
 void HTTPWebSocket::StopHTTPSocket()
 {   
     HTTPSocket::StopHTTPSocket();
-    StopThreads(m_workPostQueue);
+
+    delete m_workPostQueue;
+    m_workPostQueue = nullptr;
+}
+
+void HTTPWebSocket::InterruptHTTPSocket()
+{
+    HTTPSocket::InterruptHTTPSocket();
+
+    if (m_workPostQueue)
+        m_workPostQueue->Interrupt();
 }
 
 HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, std::function<void()> _handler) :

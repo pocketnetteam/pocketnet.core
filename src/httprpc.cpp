@@ -176,12 +176,16 @@ void InterruptHTTPRPC()
 void StopHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
+    
     g_socket->UnregisterHTTPHandler("/", true);
-    g_webSocket->UnregisterHTTPHandler("/post/", true);
-    g_webSocket->UnregisterHTTPHandler("/public/", false);
+    
+    g_webSocket->UnregisterHTTPHandler("/post/", false);
+    g_webSocket->UnregisterHTTPHandler("/", false);
+
     if (g_wallet_init_interface.HasWalletSupport()) {
         g_socket->UnregisterHTTPHandler("/wallet/", false);
     }
+    
     if (httpRPCTimerInterface) {
         RPCUnsetTimerInterface(httpRPCTimerInterface.get());
         httpRPCTimerInterface.reset();

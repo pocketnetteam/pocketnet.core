@@ -264,7 +264,6 @@ private:
 
 protected:
     void StartThreads(WorkQueue<HTTPClosure>* queue, int threadCount, bool selfDbConnection);
-    void StopThreads(WorkQueue<HTTPClosure>* queue);
 
 public:
     HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
@@ -280,9 +279,9 @@ public:
     std::vector<HTTPPathHandler> m_pathHandlers;
 
     /** Start worker threads to listen on bound http sockets */
-    virtual void StartHTTPSocket(int threadCount, bool selfDbConnection);
+    void StartHTTPSocket(int threadCount, bool selfDbConnection);
     /** Stop worker threads on all bound http sockets */
-    virtual void StopHTTPSocket();
+    void StopHTTPSocket();
 
     /** Acquire a http socket handle for a provided IP address and port number */
     void BindAddress(std::string ipAddr, int port);
@@ -313,7 +312,8 @@ public:
     ~HTTPWebSocket();
 
     void StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection);
-    void StopHTTPSocket() override;
+    void StopHTTPSocket();
+    void InterruptHTTPSocket();
 };
 
 std::string urlDecode(const std::string& urlEncoded);

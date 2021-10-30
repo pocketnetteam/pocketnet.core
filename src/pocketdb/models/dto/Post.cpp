@@ -74,11 +74,10 @@ namespace PocketTx
 
     void Post::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
         if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
 
         SetRootTxHash(*GetHash());
-        if (auto[ok, val] = TryGetStr(src, "id"); ok)
+        if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok)
             SetRootTxHash(val);
 
         GeneratePayload();
