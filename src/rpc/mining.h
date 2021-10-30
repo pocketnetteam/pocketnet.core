@@ -15,6 +15,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
 /** Check bounds on a command line confirm target */
 unsigned int ParseConfirmTarget(const UniValue& value);
 
+class JSONRPCRequest;
 UniValue estimatesmartfee(const JSONRPCRequest& request);
 
 #endif
