@@ -243,7 +243,7 @@ namespace PocketConsensus
         if (auto[ok, code] = result; !ok)
         {
             LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d validate failed with result %d for transaction %s for block count:%d at height:%d\n",
-                (int)*ptx->GetType(), (int) code, *ptx->GetHash(), block->size(), height);
+                (int)*ptx->GetType(), (int) code, *ptx->GetHash(), block ? block->size() : -1, height);
 
             return {false, code};
         }
