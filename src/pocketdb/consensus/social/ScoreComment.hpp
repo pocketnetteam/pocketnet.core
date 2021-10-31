@@ -89,7 +89,7 @@ namespace PocketConsensus
             if (value != 1 && value != -1)
                 return {false, SocialConsensusResult_Failed};
 
-            // TODO (brangr): DEBUG!
+            // TODO (brangr): implement check opreturn data
             // по сути нужно пробрасывать хэш из транзакции всегда
             // Check OP_RETURN with Payload
             //if (IsEmpty(ptx->GetOPRAddress()) || *ptx->GetOPRAddress() != *ptx->GetAddress())

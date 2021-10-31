@@ -26,6 +26,7 @@ namespace PocketServices
 
     bool ChainPostProcessing::Rollback(int height)
     {
+        LogPrint(BCLog::CONSENSUS, "Rollback current block to prev at height:%d\n", height - 1);
         return PocketDb::ChainRepoInst.Rollback(height);
     }
 

@@ -152,7 +152,7 @@ namespace PocketConsensus
 
         if (auto[ok, code] = result; !ok)
         {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d check failed with result %d for transaction %s\n",
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d check transaction failed with result %d for transaction %s\n",
                 (int)*ptx->GetType(), (int) code, *ptx->GetHash());
 
             return {false, code};
@@ -242,8 +242,8 @@ namespace PocketConsensus
 
         if (auto[ok, code] = result; !ok)
         {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d validate failed with result %d for transaction %s with block at height %d\n",
-                (int)*ptx->GetType(), (int) code, *ptx->GetHash(), height);
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d validate failed with result %d for transaction %s for block count:%d at height:%d\n",
+                (int)*ptx->GetType(), (int) code, *ptx->GetHash(), block->size(), height);
 
             return {false, code};
         }
