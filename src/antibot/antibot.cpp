@@ -943,7 +943,7 @@ bool AntiBot::check_score(const UniValue& oitm, BlockVTX& blockVtx, bool checkMe
                 if (mtx["txid"].get_str() == _post)
                 {
                     _post_address = mtx["address"].get_str();
-                    postType = mtx["type"].get_int();
+                    postType = mtx["contentType"].get_int();
                     not_found = false;
                     break;
                 }
@@ -1123,7 +1123,7 @@ bool AntiBot::check_complain(const UniValue& oitm, BlockVTX& blockVtx, bool chec
             {
                 if (mtx["txid"].get_str() == _post)
                 {
-                    postType = mtx["type"].get_int();
+                    postType = mtx["contentType"].get_int();
                     not_found = false;
                     break;
                 }
