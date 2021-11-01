@@ -1,10 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2020 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLET_LOAD_H
-#define BITCOIN_WALLET_LOAD_H
+#ifndef POCKETCOIN_WALLET_LOAD_H
+#define POCKETCOIN_WALLET_LOAD_H
 
 #include <string>
 #include <vector>
@@ -34,4 +35,4 @@ void StopWallets();
 //! Close all wallets.
 void UnloadWallets();
 
-#endif // BITCOIN_WALLET_LOAD_H
+#endif // POCKETCOIN_WALLET_LOAD_H

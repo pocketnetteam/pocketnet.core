@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2020 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2814,7 +2815,7 @@ bool CWallet::CreateTransactionInternal(
 
 			// Create change script that will be used if we need change
 			// TODO: pass in scriptChange instead of reservedest so
-			// change transaction isn't always pay-to-bitcoin-address
+			// change transaction isn't always pay-to-pocketcoin-address
 			CScript scriptChange;
 
 			// coin control: send change to custom address
