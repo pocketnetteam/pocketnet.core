@@ -59,7 +59,7 @@ namespace PocketServices
             return true;
 
         PTransactionRef pocketTx;
-        if (!GetTransaction(tx, pocketTx) && pocketTx)
+        if (!GetTransaction(tx, pocketTx) || !pocketTx)
             return false;
             
         auto dataPtr = PocketServices::Serializer::SerializeTransaction(*pocketTx);

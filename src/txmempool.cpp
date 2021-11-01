@@ -476,7 +476,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     try
     {
         PocketDb::TransRepoInst.RemoveNotInChain(hash.GetHex());
-        LogPrint(BCLog::CONSENSUS, "Note: Removed transaction:%s with reason:%d\n", hash.GetHex(), (int)reason);
     }
     catch (const std::exception& e)
     {
