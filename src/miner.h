@@ -31,7 +31,7 @@ static const bool DEFAULT_PRINTPRIORITY = false;
 struct CBlockTemplate
 {
     CBlock block;
-    PocketBlock pocketBlock;
+    PocketBlockRef pocketBlock;
     std::vector<CAmount> vTxFees;
     std::vector<int64_t> vTxSigOpsCost;
     std::vector<unsigned char> vchCoinbaseCommitment;
@@ -135,9 +135,6 @@ private:
 
     // A convenience pointer that always refers to the CBlock in pblocktemplate
     CBlock* pblock;
-
-    // Pocketnet social payload block
-    PocketBlock* pocketBlock;
 
     // Configuration parameters for the block size
     bool fIncludeWitness;

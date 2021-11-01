@@ -113,7 +113,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         return nullptr;
 
     pblock = &pblocktemplate->block; // pointer for convenience
-    pocketBlock = &pblocktemplate->pocketBlock;
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.emplace_back();
@@ -198,8 +197,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
-    PocketBlockRef sharedPocketBlock(pocketBlock);
-    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, sharedPocketBlock, pindexPrev, false, false))
+    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, pblocktemplate->pocketBlock, pindexPrev, false, false))
     {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
@@ -257,8 +255,7 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     }
 
     // Validate consensus
-    PocketBlockRef sharedPocketBlock(pocketBlock);
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, sharedPocketBlock, chainActive.Height() + 1); !ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pblocktemplate->pocketBlock, chainActive.Height() + 1); !ok)
     {
         LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with validate result %d\n",
             tx->GetHash().GetHex(), (int) result);
@@ -266,8 +263,8 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
         return false;
     }
 
-    // Al is good - save for descendants
-    pocketBlock->push_back(ptx);
+    // All is good - save for descendants
+    pblocktemplate->pocketBlock->push_back(ptx);
     return true;
 }
 

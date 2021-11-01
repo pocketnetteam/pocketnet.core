@@ -155,9 +155,7 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
                 MilliSleep(1000);
             }
 
-            while (
-                chainparams.GetConsensus().nPosFirstBlock > chainActive.Tip()->nHeight
-                )
+            while (chainparams.GetConsensus().nPosFirstBlock > chainActive.Tip()->nHeight)
             {
                 MilliSleep(30000);
             }
@@ -169,15 +167,14 @@ void Staker::worker(CChainParams const& chainparams, std::string const& walletNa
             );
 
             auto block = std::make_shared<CBlock>(blocktemplate->block);
-            auto pocketBlock = std::make_shared<PocketBlock>(blocktemplate->pocketBlock);
 
             if (signBlock(block, wallet, nFees))
             {
                 // Extend pocketBlock with coinStake transaction
                 if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
-                    pocketBlock->emplace_back(ptx);
+                    blocktemplate->pocketBlock->emplace_back(ptx);
 
-                CheckStake(block, pocketBlock, wallet, chainparams);
+                CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams);
                 MilliSleep(500);
             }
             else

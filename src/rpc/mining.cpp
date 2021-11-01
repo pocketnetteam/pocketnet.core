@@ -143,12 +143,11 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         auto shared_pblock = std::make_shared<const CBlock>(*pblock);
 
         // Extend pocketblock with coinbase transaction
-        auto pocketBlock = std::make_shared<PocketBlock>(pblocktemplate->pocketBlock);
         if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(pblock->vtx[0]); ok)
-            pocketBlock->emplace_back(ptx);
+            pblocktemplate->pocketBlock->emplace_back(ptx);
 
         CValidationState state;
-        if (!ProcessNewBlock(state, Params(), shared_pblock, pocketBlock, true, /* fReceived */ false, nullptr))
+        if (!ProcessNewBlock(state, Params(), shared_pblock, pblocktemplate->pocketBlock, true, /* fReceived */ false, nullptr))
             throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
         ++nHeight;
         blockHashes.push_back(pblock->GetHash().GetHex());
