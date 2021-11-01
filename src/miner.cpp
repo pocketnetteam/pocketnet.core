@@ -363,10 +363,10 @@ int BlockAssembler::UpdatePackagesForAdded(const CTxMemPool::setEntries& already
 // failedTx and avoid re-evaluation, since the re-evaluation would be using
 // cached size/sigops/fee values that are not actually correct.
 bool BlockAssembler::SkipMapTxEntry(CTxMemPool::txiter it, indexed_modified_transaction_set& mapModifiedTx,
-    CTxMemPool::setEntries& failedTx, CTxMemPool::setEntries& consensusFailedTx)
+    CTxMemPool::setEntries& failedTx)
 {
     assert(it != mempool.mapTx.end());
-    return mapModifiedTx.count(it) || inBlock.count(it) || failedTx.count(it) || consensusFailedTx.count(it);
+    return mapModifiedTx.count(it) || inBlock.count(it) || failedTx.count(it);
 }
 
 void BlockAssembler::SortForBlock(const CTxMemPool::setEntries& package, std::vector<CTxMemPool::txiter>& sortedEntries)
@@ -398,7 +398,7 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
     // Keep track of entries that failed inclusion, to avoid duplicate work
     CTxMemPool::setEntries failedTx;
     // Candidates for removed from mempool
-    CTxMemPool::setEntries consensusFailedTx;
+    // CTxMemPool::setEntries consensusFailedTx;
 
     // Start by adding all descendants of previously added txs to mapModifiedTx
     // and modifying them for their already included ancestors
@@ -417,7 +417,7 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
     {
         // First try to find a new transaction in mapTx to evaluate.
         if (mi != mempool.mapTx.get<ancestor_score>().end() &&
-            SkipMapTxEntry(mempool.mapTx.project<0>(mi), mapModifiedTx, failedTx, consensusFailedTx))
+            SkipMapTxEntry(mempool.mapTx.project<0>(mi), mapModifiedTx, failedTx))
         {
             ++mi;
             continue;
@@ -504,7 +504,13 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
 
         if (!TestTransaction(tx))
         {
-            consensusFailedTx.insert(iter);
+            //consensusFailedTx.insert(iter);
+
+            failedTx.insert(iter);
+            ++nConsecutiveFailed;
+            if (nConsecutiveFailed > MAX_CONSECUTIVE_FAILURES && nBlockWeight > nBlockMaxWeight - 4000)
+                break;
+
             continue;
         }
 
@@ -548,8 +554,8 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
     }
 
     // Bad transaction should be removed from mempool
-    for (const auto& entry : consensusFailedTx)
-        mempool.removeRecursive(entry->GetTx(), MemPoolRemovalReason::CONSENSUS);
+    // for (const auto& entry : consensusFailedTx)
+    //     mempool.removeRecursive(entry->GetTx(), MemPoolRemovalReason::CONSENSUS);
 
 }
 

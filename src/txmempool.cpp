@@ -473,14 +473,14 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     mapLinks.erase(it);
     mapTx.erase(it);
 
-    try
-    {
-        PocketDb::TransRepoInst.RemoveNotInChain(hash.GetHex());
-    }
-    catch (const std::exception& e)
-    {
-        LogPrintf("Warning: failed remove pocket transaction from sqlite db with error: %s\n", e.what());
-    }
+    // try
+    // {
+    //     PocketDb::TransRepoInst.RemoveNotInChain(hash.GetHex());
+    // }
+    // catch (const std::exception& e)
+    // {
+    //     LogPrintf("Warning: failed remove pocket transaction from sqlite db with error: %s\n", e.what());
+    // }
 
     nTransactionsUpdated++;
     if (minerPolicyEstimator) { minerPolicyEstimator->removeTx(hash, false); }
