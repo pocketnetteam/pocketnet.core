@@ -363,10 +363,10 @@ int BlockAssembler::UpdatePackagesForAdded(const CTxMemPool::setEntries& already
 // failedTx and avoid re-evaluation, since the re-evaluation would be using
 // cached size/sigops/fee values that are not actually correct.
 bool BlockAssembler::SkipMapTxEntry(CTxMemPool::txiter it, indexed_modified_transaction_set& mapModifiedTx,
-    CTxMemPool::setEntries& failedTx)
+    CTxMemPool::setEntries& failedTx, CTxMemPool::setEntries& consensusFailedTx)
 {
     assert(it != mempool.mapTx.end());
-    return mapModifiedTx.count(it) || inBlock.count(it) || failedTx.count(it);
+    return mapModifiedTx.count(it) || inBlock.count(it) || failedTx.count(it) || consensusFailedTx.count(it);
 }
 
 void BlockAssembler::SortForBlock(const CTxMemPool::setEntries& package, std::vector<CTxMemPool::txiter>& sortedEntries)
@@ -417,7 +417,7 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
     {
         // First try to find a new transaction in mapTx to evaluate.
         if (mi != mempool.mapTx.get<ancestor_score>().end() &&
-            SkipMapTxEntry(mempool.mapTx.project<0>(mi), mapModifiedTx, failedTx))
+            SkipMapTxEntry(mempool.mapTx.project<0>(mi), mapModifiedTx, failedTx, consensusFailedTx))
         {
             ++mi;
             continue;
