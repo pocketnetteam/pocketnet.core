@@ -5,16 +5,22 @@
 #ifndef POCKETCOIN_WALLET_RPCWALLET_H
 #define POCKETCOIN_WALLET_RPCWALLET_H
 
-#include <string>
+#include <span.h>
 
-class CRPCTable;
+#include <memory>
+#include <string>
+#include <vector>
+
+class CRPCCommand;
 class CWallet;
 class JSONRPCRequest;
+class LegacyScriptPubKeyMan;
 class UniValue;
-struct PartiallySignedTransaction;
 class CTransaction;
+struct PartiallySignedTransaction;
+struct WalletContext;
 
-void RegisterWalletRPCCommands(CRPCTable &t);
+Span<const CRPCCommand> GetWalletRPCCommands();
 
 /**
  * Figures out what wallet, if any, to use for a JSONRPCRequest.
@@ -24,11 +30,10 @@ void RegisterWalletRPCCommands(CRPCTable &t);
  */
 std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& request);
 
-std::string HelpRequiringPassphrase(CWallet *);
-void EnsureWalletIsUnlocked(CWallet *);
-bool EnsureWalletIsAvailable(CWallet *, bool avoidException);
+void EnsureWalletIsUnlocked(const CWallet*);
+WalletContext& EnsureWalletContext(const util::Ref& context);
+LegacyScriptPubKeyMan& EnsureLegacyScriptPubKeyMan(CWallet& wallet, bool also_create = false);
 
-UniValue getaddressinfo(const JSONRPCRequest& request);
-UniValue signrawtransactionwithwallet(const JSONRPCRequest& request);
-bool FillPSBT(const CWallet* pwallet, PartiallySignedTransaction& psbtx, const CTransaction* txConst, int sighash_type = 1, bool sign = true, bool bip32derivs = false);
+RPCHelpMan getaddressinfo();
+RPCHelpMan signrawtransactionwithwallet();
 #endif //POCKETCOIN_WALLET_RPCWALLET_H
