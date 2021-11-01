@@ -1088,7 +1088,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // At this point, we believe that all the checks have been carried 
         // out and we can safely save the transaction to the database for 
         // subsequent verification of the consensus and inclusion in the block.
-        if (!pocketTx && !PocketServices::Accessor::ExistsTransaction(tx))
+        if (!pocketTx && !PocketDb::TransRepoInst.ExistsByHash(tx.GetHash().GetHex(), false))
             return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
         
         if (pocketTx)

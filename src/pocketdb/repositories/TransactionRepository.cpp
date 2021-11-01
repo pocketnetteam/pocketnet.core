@@ -122,17 +122,22 @@ namespace PocketDb
         return result;
     }
 
-    bool TransactionRepository::ExistsByHash(const string& hash)
+    bool TransactionRepository::ExistsByHash(const string& hash, bool inBlock)
     {
         bool result = false;
 
+        string sql = R"sql(
+            select count(*)
+            from Transactions
+            where Hash = ?
+        )sql";
+
+        if (inBlock)
+            sql += " and Height is not null ";
+
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
-                SELECT count(*)
-                FROM Transactions
-                WHERE Hash = ?
-            )sql");
+            auto stmt = SetupSqlStatement(sql);
 
             TryBindStatementText(stmt, 1, hash);
 

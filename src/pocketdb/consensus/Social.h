@@ -32,6 +32,12 @@ namespace PocketConsensus
         // Validate transaction in block for miner & network full block sync
         virtual ConsensusValidateResult Validate(const shared_ptr<T>& ptx, const PocketBlockRef& block)
         {
+            // If transaction already exists in DB and block - check not needed
+            // If block not empty = check for building chain
+            bool checkInChain = (block != nullptr);
+            if (AlreadyExists(ptx, checkInChain))
+                return Success;
+
             // Account must be registered
             vector<string> addressesForCheck;
             vector<string> addresses = GetAddressesForCheckRegistration(ptx);
@@ -68,6 +74,10 @@ namespace PocketConsensus
         // Generic transactions validating
         virtual ConsensusValidateResult Check(const CTransactionRef& tx, const shared_ptr<T>& ptx)
         {
+            // If transaction already exists in DB - check not needed
+            if (AlreadyExists(ptx, false))
+                return Success;
+
             if (auto[ok, result] = CheckOpReturnHash(tx, ptx); !ok)
                 return {false, result};
 
@@ -105,9 +115,9 @@ namespace PocketConsensus
         }
 
         // If transaction already in DB - skip next checks
-        virtual bool AlreadyExists(const shared_ptr<T>& ptx)
+        virtual bool AlreadyExists(const shared_ptr<T>& ptx, bool inBlock)
         {
-            return TransRepoInst.ExistsByHash(*ptx->GetHash());
+            return TransRepoInst.ExistsByHash(*ptx->GetHash(), inBlock);
         }
 
         // Get addresses from transaction for check registration

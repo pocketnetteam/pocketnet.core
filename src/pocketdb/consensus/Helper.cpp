@@ -81,6 +81,8 @@ namespace PocketConsensus
         return check(tx, ptx);
     }
 
+    // -----------------------------------------------------------------
+
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::check(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
         // TODO (brangr): implement base check for base transactions
@@ -161,19 +163,6 @@ namespace PocketConsensus
         return {true, SocialConsensusResult_Success};
     }
 
-    bool SocialConsensusHelper::isConsensusable(TxType txType)
-    {
-        switch (txType)
-        {
-            case TX_COINBASE:
-            case TX_COINSTAKE:
-            case TX_DEFAULT:
-                return false;
-            default:
-                return true;
-        }
-    }
-
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::validate(const PTransactionRef& ptx, const PocketBlockRef& block, int height)
     {
         if (!isConsensusable(*ptx->GetType()))
@@ -242,12 +231,26 @@ namespace PocketConsensus
 
         if (auto[ok, code] = result; !ok)
         {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d validate failed with result %d for transaction %s for block count:%d at height:%d\n",
-                (int)*ptx->GetType(), (int) code, *ptx->GetHash(), block ? block->size() : -1, height);
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d validate failed with result %d for transaction %s at height:%d\n",
+                (int)*ptx->GetType(), (int) code, *ptx->GetHash(), height);
 
             return {false, code};
         }
 
         return {true, SocialConsensusResult_Success};
     }
+
+    bool SocialConsensusHelper::isConsensusable(TxType txType)
+    {
+        switch (txType)
+        {
+            case TX_COINBASE:
+            case TX_COINSTAKE:
+            case TX_DEFAULT:
+                return false;
+            default:
+                return true;
+        }
+    }
+
 }

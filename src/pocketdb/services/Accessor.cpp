@@ -69,9 +69,4 @@ namespace PocketServices
         return true;
     }
 
-    bool Accessor::ExistsTransaction(const CTransaction& tx)
-    {
-        return PocketDb::TransRepoInst.ExistsByHash(tx.GetHash().GetHex());
-    }
-
 } // namespace PocketServices

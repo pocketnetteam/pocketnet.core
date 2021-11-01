@@ -44,7 +44,7 @@ namespace PocketDb
 
         shared_ptr<TransactionOutput> GetTxOutput(const string& txHash, int number);
 
-        bool ExistsByHash(const string& hash);
+        bool ExistsByHash(const string& hash, bool inBlock);
 
     private:
 

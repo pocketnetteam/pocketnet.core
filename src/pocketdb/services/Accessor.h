@@ -30,7 +30,6 @@ namespace PocketServices
         static bool GetBlock(const CBlock& block, string& data);
         static bool GetTransaction(const CTransaction& tx, PTransactionRef& pocketTx);
         static bool GetTransaction(const CTransaction& tx, string& data);
-        static bool ExistsTransaction(const CTransaction& tx);
     };
 } // namespace PocketServices
 
