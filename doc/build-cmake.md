@@ -96,7 +96,12 @@ Configure Clion with VisualStudio toolchain
 6) In Settings -> Build, Execution, Deployment -> Toolchains - add VisualStuio Toolchain
 7) In Settings -> Build, Execution, Deployment -> CMake - create debug profile
 8) In debug profile -> CMake options - should be something like this:
-   - -DCMAKE_CXX_STANDARD=17
-   - -DBOOST_ROOT="C:\dev\boost\boost_1_77_0\stage\lib\cmake"
-   - -DCMAKE_PREFIX_PATH="C:\dev\vcpkg\installed\x64-windows-static"
+```
+-DDISABLE_ZMQ=1
+-DCMAKE_CXX_STANDARD=17
+-DCMAKE_TOOLCHAIN_FILE=d:/work/.tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+-DVCPKG_TARGET_TRIPLET=x64-windows-static
+-DWITHOUT_QR_ENCODE=ON
+-DBoost_NO_WARN_NEW_VERSIONS=1
+```
 9) Profit
