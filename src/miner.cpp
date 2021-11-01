@@ -113,6 +113,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         return nullptr;
 
     pblock = &pblocktemplate->block; // pointer for convenience
+    pblocktemplate->pocketBlock = make_shared<PocketBlock>(PocketBlock{});
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.emplace_back();
