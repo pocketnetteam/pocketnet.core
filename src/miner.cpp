@@ -240,7 +240,9 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     // Payload should be in operative table Transactions
     if (!ptx)
     {
-        LogPrintf("Warning: build block skip transaction %s with result 'NOT FOUND'\n", tx->GetHash().GetHex());
+        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with result 'NOT FOUND'\n",
+            tx->GetHash().GetHex());
+
         return false;
     }
 
@@ -248,7 +250,9 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlock, chainActive.Height() + 1);
     if (!ok)
     {
-        LogPrintf("Warning: build block skip transaction %s with result %d\n", tx->GetHash().GetHex(), (int) result);
+        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with result %d\n",
+            tx->GetHash().GetHex(), (int) result);
+
         return false;
     }
 
@@ -385,6 +389,8 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
     indexed_modified_transaction_set mapModifiedTx;
     // Keep track of entries that failed inclusion, to avoid duplicate work
     CTxMemPool::setEntries failedTx;
+    // Candidates for removed from mempool
+    CTxMemPool::setEntries consensusFailedTx;
 
     // Start by adding all descendants of previously added txs to mapModifiedTx
     // and modifying them for their already included ancestors
@@ -466,7 +472,7 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         }
 
         CTransactionRef tx = iter->GetSharedTx();
-        if (!TestPackage(packageSize, packageSigOpsCost) || !TestTransaction(tx))
+        if (!TestPackage(packageSize, packageSigOpsCost))
         {
             if (fUsingModified)
             {
@@ -474,9 +480,9 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
                 // we must erase failed entries so that we can consider the
                 // next best entry on the next loop iteration
                 mapModifiedTx.get<ancestor_score>().erase(modit);
+                failedTx.insert(iter);
             }
 
-            failedTx.insert(iter);
             ++nConsecutiveFailed;
 
             if (nConsecutiveFailed > MAX_CONSECUTIVE_FAILURES && nBlockWeight > nBlockMaxWeight - 4000)
@@ -485,6 +491,12 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
                 break;
             }
 
+            continue;
+        }
+
+        if (!TestTransaction(tx))
+        {
+            consensusFailedTx.insert(iter);
             continue;
         }
 
@@ -526,6 +538,11 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         // Update transactions that depend on each of these
         nDescendantsUpdated += UpdatePackagesForAdded(ancestors, mapModifiedTx);
     }
+
+    // Bad transaction should be removed from mempool
+    for (const auto& entry : consensusFailedTx)
+        mempool.removeRecursive(entry->GetTx(), MemPoolRemovalReason::CONSENSUS);
+
 }
 
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)

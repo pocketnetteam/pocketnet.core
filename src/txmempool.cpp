@@ -18,7 +18,7 @@
 #include <utilmoneystr.h>
 #include <utiltime.h>
 
-#include "pocketdb/helpers/TransactionHelper.h"
+#include "pocketdb/pocketnet.h"
 
 CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
                                  int64_t _nTime, unsigned int _entryHeight,
@@ -473,7 +473,15 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     mapLinks.erase(it);
     mapTx.erase(it);
 
-    // TODO (brangr) (v0.21.0): clear "mempool" transactions in sqlite db
+    try
+    {
+        PocketDb::TransRepoInst.RemoveNotInChain(hash.GetHex());
+        LogPrint(BCLog::CONSENSUS, "Note: Removed transaction:%s with reason:%d\n", hash.GetHex(), reason);
+    }
+    catch (const std::exception& e)
+    {
+        LogPrintf("Warning: failed remove pocket transaction from sqlite db with error: %s\n", e.what());
+    }
 
     nTransactionsUpdated++;
     if (minerPolicyEstimator) { minerPolicyEstimator->removeTx(hash, false); }

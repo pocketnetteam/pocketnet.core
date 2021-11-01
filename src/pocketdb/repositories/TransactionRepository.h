@@ -46,6 +46,8 @@ namespace PocketDb
 
         bool ExistsByHash(const string& hash, bool inBlock);
 
+        void RemoveNotInChain(const string& hash);
+
     private:
 
         void InsertTransactionOutputs(const PTransactionRef& ptx);
