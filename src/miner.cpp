@@ -113,7 +113,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         return nullptr;
 
     pblock = &pblocktemplate->block; // pointer for convenience
-    pocketBlock = make_shared<PocketBlock>(pblocktemplate->pocketBlock);
+    pocketBlock = &pblocktemplate->pocketBlock;
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.emplace_back();
@@ -198,7 +198,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
-    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, pocketBlock, pindexPrev, false, false))
+    PocketBlockRef sharedPocketBlock(pocketBlock);
+    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, sharedPocketBlock, pindexPrev, false, false))
     {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
@@ -247,10 +248,19 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     }
 
     // Check consensus
-    auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlock, chainActive.Height() + 1);
-    if (!ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(tx, ptx); !ok)
     {
-        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with result %d\n",
+        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with check result %d\n",
+            tx->GetHash().GetHex(), (int) result);
+
+        return false;
+    }
+
+    // Validate consensus
+    PocketBlockRef sharedPocketBlock(pocketBlock);
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, sharedPocketBlock, chainActive.Height() + 1); !ok)
+    {
+        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with validate result %d\n",
             tx->GetHash().GetHex(), (int) result);
 
         return false;

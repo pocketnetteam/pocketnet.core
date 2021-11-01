@@ -65,11 +65,16 @@ namespace PocketConsensus
             auto txHash = tx->GetHash().GetHex();
             auto it = find_if(pBlock->begin(), pBlock->end(), [&](PTransactionRef const& ptx) { return *ptx == txHash; });
             if (it == pBlock->end())
-                return {false, SocialConsensusResult_PayloadNotFound};
+            {
+                LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus check transaction with type:%d failed with result %d for transaction %s\n",
+                    (int)txType, (int)SocialConsensusResult_PocketDataNotFound, tx->GetHash().GetHex());
+
+                return {false, SocialConsensusResult_PocketDataNotFound};
+            }
 
             // Check founded payload
             if (auto[ok, result] = check(tx, *it); !ok)
-                return {false, SocialConsensusResult_PayloadNotFound};
+                return {false, result};
         }
 
         return {true, SocialConsensusResult_Success};

@@ -99,18 +99,14 @@ void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGro
     }
 }
 
-void Staker::worker(
-    CChainParams const& chainparams, std::string const& walletName
-)
+void Staker::worker(CChainParams const& chainparams, std::string const& walletName)
 {
     LogPrintf("Staker thread started for %s\n", walletName);
 
     RenameThread("coin-staker");
 
     bool running = true;
-
     int nLastCoinStakeSearchInterval = 0;
-
     auto coinbaseScript = std::make_shared<CReserveScript>();
 
     auto wallet = GetWallet(walletName);
@@ -119,7 +115,6 @@ void Staker::worker(
 
     try
     {
-
         if (!coinbaseScript || coinbaseScript->reserveScript.empty())
             throw std::runtime_error("No coinbase script available (staking requires a wallet)");
 

@@ -137,7 +137,7 @@ private:
     CBlock* pblock;
 
     // Pocketnet social payload block
-    PocketBlockRef pocketBlock;
+    PocketBlock* pocketBlock;
 
     // Configuration parameters for the block size
     bool fIncludeWitness;
