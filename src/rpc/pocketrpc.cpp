@@ -4556,7 +4556,7 @@ UniValue getuserstatistic(const JSONRPCRequest& request)
 
     query = reindexer::Query("UsersView");
     query = query.Where("address", CondSet, addresses);
-    query = query.LeftJoin("address", "referrer", CondEq, reindexer::Query("Users").Where("block", CondLe, nHeight).Where("block", CondGt, nHeight - depth).Sort("block", false).Distinct("address").ReqTotal());
+    query = query.LeftJoin("address", "referrer", CondEq, reindexer::Query("Users").Where("block", CondLe, nHeight).Where("block", CondGt, nHeight - depth));
 
     UniValue aResult(UniValue::VARR);
 
@@ -4565,13 +4565,19 @@ UniValue getuserstatistic(const JSONRPCRequest& request)
         for (auto& item : queryResults) {
             Item _itm = item.GetItem();
             std::string adr = _itm["address"].As<string>();
-            int cntReferals = 0;
+            std::vector<std::string> adrreferals;
             if (item.GetJoined().size() > 0 && item.GetJoined()[0].Count() > 0) {
-                cntReferals = item.GetJoined()[0].totalCount;
+                for (auto &jitem : item.GetJoined()[0]) {
+                    Item _jitm = jitem.GetItem();
+                    std::string adrreferal = _jitm["address"].As<string>();
+                    if (std::find(adrreferals.begin(), adrreferals.end(), adrreferal) == adrreferals.end()) {
+                        adrreferals.emplace_back(adrreferal);
+                    }
+                }
             }
             UniValue record(UniValue::VOBJ);
             record.pushKV("address", adr);
-            record.pushKV("histreferals", cntReferals);
+            record.pushKV("histreferals", (int)adrreferals.size());
             aResult.push_back(record);
         }
     }
