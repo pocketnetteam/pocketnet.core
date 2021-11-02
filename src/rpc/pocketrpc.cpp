@@ -4361,8 +4361,14 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
 {
     if (request.fHelp)
         throw std::runtime_error(
-                "getcontentsstatistic ...\n"
-                "\nGet contents statistic.\n");
+                "getcontentsstatistic [\"addresses\", ...], \"contenttypes\", height, depth\n"
+                "\nGet contents statistic.\n"
+                "\nArguments:\n"
+                "1. \"addresses\" (Array of strings) Addresses for statistic\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "4. \"depth\" (int, optional) Depth of statistic. Default - whole history\n"
+        );
 
     std::string address;
     std::vector<std::string> addresses;
@@ -4504,6 +4510,16 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
 
 UniValue getuserstatistic(const JSONRPCRequest& request)
 {
+    if (request.fHelp)
+        throw std::runtime_error(
+                "getuserstatistic [\"addresses\", ...], height, depth\n"
+                "\nGet user statistic.\n"
+                "\nArguments:\n"
+                "1. \"addresses\" (Array of strings) Addresses for statistic\n"
+                "2. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "3. \"depth\" (int, optional) Depth of statistic. Default - whole history\n"
+        );
+
     std::string address;
     std::vector<std::string> addresses;
     if (request.params.size() > 0) {
