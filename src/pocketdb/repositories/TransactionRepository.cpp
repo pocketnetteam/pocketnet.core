@@ -175,16 +175,16 @@ namespace PocketDb
         return result;
     }
 
-    void TransactionRepository::RemoveNotInChain(const string& hash)
+    void TransactionRepository::Clean()
     {
-        auto stmt = SetupSqlStatement(R"sql(
-            delete from Transactions
-            where Hash = ?
-              and Height is null
-        )sql");
-
-        TryBindStatementText(stmt, 1, hash);
-        TryStepStatement(stmt);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                delete from Transactions
+                where Height is null
+            )sql");
+            TryStepStatement(stmt);
+        });
     }
 
     void TransactionRepository::InsertTransactionOutputs(const PTransactionRef& ptx)

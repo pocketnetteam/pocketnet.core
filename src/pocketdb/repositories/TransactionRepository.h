@@ -41,7 +41,7 @@ namespace PocketDb
         shared_ptr<TransactionOutput> GetTxOutput(const string& txHash, int number);
         bool Exists(const string& hash);
         bool ExistsInChain(const string& hash);
-        void RemoveNotInChain(const string& hash);
+        void Clean();
 
     private:
         void InsertTransactionOutputs(const PTransactionRef& ptx);

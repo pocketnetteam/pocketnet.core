@@ -465,6 +465,7 @@ void SetupServerArgs()
         MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024),
         false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-rebuildindexes", "(Re)Build all sqlite indexes", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-rebuildwebdb", "(Re)Build Web database", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
@@ -826,10 +827,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             }
         }
 
-        LogPrintf("Started rollback SQLite DB to height %d...\n", chainActive.Height());
         if (PocketDb::ChainRepoInst.Rollback(chainActive.Height() + 1))
         {
-            LogPrintf("Rollback SQLite DB to height %d completed\n", chainActive.Height());
+            LogPrint(BCLog::SYNC, "Best block in sqlite db: %s (%d)\n",
+                chainActive.Tip()->GetBlockHash().GetHex(), chainActive.Height());
         }
         else
         {
@@ -877,8 +878,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (!ActivateBestChain(state, chainparams))
         {
             LogPrintf("Failed to connect best block (%s)\n", FormatStateMessage(state));
-            //StartShutdown();
-            //return;
+            StartShutdown();
+            return;
         }
 
         if (gArgs.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT))
@@ -889,7 +890,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         }
     } // End scope of CImportingNow
 
-    if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL))
+    if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL) && !gArgs.GetArg("-mempoolclean", false))
     {
         LoadMempool();
     }
@@ -1657,6 +1658,12 @@ bool AppInitMain()
 
     // ********************************************************* Step 4b: Additional settings
 
+    if (gArgs.GetBoolArg("-mempoolclean", false))
+    {
+        PocketDb::TransRepoInst.Clean();
+        LogPrintf("The sqlite db is cleared according to the -mempoolclean parameter\n");
+    }
+
     if (gArgs.GetBoolArg("-rebuildindexes", false))
         PocketDb::SQLiteDbInst.RebuildIndexes();
 
@@ -2125,12 +2132,14 @@ bool AppInitMain()
 
     // ********************************************************* Step 12: start node
     int chain_active_height;
+    uint256 chain_active_hash;
     {
         LOCK(cs_main);
         LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
         chain_active_height = chainActive.Height();
+        chain_active_hash = chainActive.Tip()->GetBlockHash();
     }
-    LogPrintf("nBestHeight = %d\n", chain_active_height);
+    LogPrintf("Best block: %s (%d)\n", chain_active_hash.GetHex(), chain_active_height);
 
     if (gArgs.GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION))
         StartTorControl();
