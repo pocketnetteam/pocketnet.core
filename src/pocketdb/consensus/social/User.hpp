@@ -83,8 +83,7 @@ namespace PocketConsensus
                 ptxORHash = ptx->BuildHash(false);
                 if (ptxORHash != txORHash)
                 {
-                    // TODO (brangr): disable temporary
-                    LogPrintf("--- FailedOpReturn for USER %s\n", *ptx->GetHash());
+                    LogPrint(BCLog::CONSENSUS, "Warning: FailedOpReturn for USER %s\n", *ptx->GetHash());
                     //if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
                     //    return {false, SocialConsensusResult_FailedOpReturn};
                 }
@@ -165,7 +164,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx)
         {
-            int64_t dataSize =
+            size_t dataSize =
                 (ptx->GetPayloadName() ? ptx->GetPayloadName()->size() : 0) +
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0) +
