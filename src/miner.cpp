@@ -397,6 +397,8 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
     indexed_modified_transaction_set mapModifiedTx;
     // Keep track of entries that failed inclusion, to avoid duplicate work
     CTxMemPool::setEntries failedTx;
+    // Candidates for remove bad transactions
+    CTxMemPool::setEntries consensusFailedTx;
 
     // Start by adding all descendants of previously added txs to mapModifiedTx
     // and modifying them for their already included ancestors
@@ -478,7 +480,9 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         }
 
         CTransactionRef tx = iter->GetSharedTx();
-        if (!TestPackage(packageSize, packageSigOpsCost) || !TestTransaction(tx))
+        bool genericTest = TestPackage(packageSize, packageSigOpsCost);
+        bool consensusTest = TestTransaction(tx);
+        if (!genericTest || !consensusTest)
         {
             if (fUsingModified)
             {
@@ -486,9 +490,12 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
                 // we must erase failed entries so that we can consider the
                 // next best entry on the next loop iteration
                 mapModifiedTx.get<ancestor_score>().erase(modit);
+                failedTx.insert(iter);
             }
 
-            failedTx.insert(iter);
+            if (!consensusTest)
+                consensusFailedTx.insert(iter);
+
             ++nConsecutiveFailed;
 
             if (nConsecutiveFailed > MAX_CONSECUTIVE_FAILURES && nBlockWeight > nBlockMaxWeight - 4000)
@@ -539,6 +546,9 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         nDescendantsUpdated += UpdatePackagesForAdded(ancestors, mapModifiedTx);
     }
 
+    // Bad transaction should be removed from mempool
+    for (const auto& entry : consensusFailedTx)
+        mempool.removeRecursive(entry->GetTx(), MemPoolRemovalReason::CONSENSUS);
 }
 
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)
