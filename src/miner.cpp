@@ -493,8 +493,8 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
                 failedTx.insert(iter);
             }
 
-            if (!consensusTest)
-                consensusFailedTx.insert(iter);
+            // if (!consensusTest)
+            //     consensusFailedTx.insert(iter);
 
             ++nConsecutiveFailed;
 
@@ -547,8 +547,8 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
     }
 
     // Bad transaction should be removed from mempool
-    for (const auto& entry : consensusFailedTx)
-        mempool.removeRecursive(entry->GetTx(), MemPoolRemovalReason::CONSENSUS);
+    // for (const auto& entry : consensusFailedTx)
+    //     mempool.removeRecursive(entry->GetTx(), MemPoolRemovalReason::CONSENSUS);
 }
 
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)
