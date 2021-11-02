@@ -28,7 +28,6 @@ namespace PocketConsensus
         virtual AccountMode GetAccountMode(int reputation, int64_t balance);
         virtual tuple<AccountMode, int, int64_t> GetAccountMode(string& address);
         virtual bool AllowModifyReputation(shared_ptr<ScoreDataDto>& scoreData, const CTransactionRef& tx, bool lottery);
-        // TODO (brangr) v0.21.0: we need to limit the depth for all content types
         virtual bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType);
         virtual void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers);
     };

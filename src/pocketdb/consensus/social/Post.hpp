@@ -37,10 +37,6 @@ namespace PocketConsensus
                 {
                     if (*relayTx->GetType() == CONTENT_DELETE)
                         return {false, SocialConsensusResult_RepostDeletedContent};
-
-                    // TODO (brangr): enable in future if needed
-                    // if (*relayTx->GetType() != CONTENT_POST)
-                    //     return {false, SocialConsensusResult_NotAllowed};
                 }
                 else
                 {

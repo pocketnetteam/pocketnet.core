@@ -99,9 +99,6 @@ namespace PocketConsensus
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::check(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
-        // TODO (brangr): implement base check for base transactions
-        // check outputs maybe?
-
         if (!isConsensusable(*ptx->GetType()))
             return {true, SocialConsensusResult_Success};
 

@@ -172,23 +172,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getaddressregistration",        0, "addresses"},
         {"getuserprofile",                0, "addresses"},
         {"getuserstate",                  1, "time"},
-
-        // Explorer
-        {"getlastblocks",                 0, "count"},
-        {"getlastblocks",                 1, "last_height"},
-        {"getlastblocks",                 2, "verbose"},
-        {"getstatistic",                  0, "end_time"},
-        {"getstatistic",                  1, "depth"},
-
-        {"getrawtransactionwithmessage",  3, "count"},
-        {"getrawtransactionwithmessage",  5, "tags"},
-        // TODO (brangr): contentTypes ???
-        //{ "getrawtransactionwithmessage", 6, "contenttypes" },
-
-        {"gethotposts",                   4, "count"},
-        //{ "gethotposts", 5, "contenttypes" },
-
-        {"getcoininfo",                   0, "height"},
     };
 // clang-format on
 

@@ -89,8 +89,9 @@ namespace PocketConsensus
             if (value != 1 && value != -1)
                 return {false, SocialConsensusResult_Failed};
 
-            // TODO (brangr): implement check opreturn data
-            // по сути нужно пробрасывать хэш из транзакции всегда
+            // TODO (brangr): сверить адрес и значение лайка с данными в транзакции
+            // + добавить чекпойнт с принудительным включением проверки данные по автору поста и значению лайка
+            
             // Check OP_RETURN with Payload
             //if (IsEmpty(ptx->GetOPRAddress()) || *ptx->GetOPRAddress() != *ptx->GetAddress())
             //    LogPrintf("000 CHECKPOINT 11 %s\n", *ptx->GetHash());

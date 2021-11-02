@@ -199,7 +199,7 @@ namespace PocketServices
                 pocketBlock.push_back(ptx);
         }
 
-        // TODO (brangr): check deserialize success
+        // TODO (brangr): check deserialize success ?
         //bool resultCheck = pocketBlock.size() == (block.vtx.size() - 1);
         return {true, pocketBlock};
     }

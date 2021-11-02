@@ -132,6 +132,8 @@ namespace PocketConsensus
 
     bool ReputationConsensus::AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType)
     {
+        // TODO (brangr) v0.21.0: we need to limit the depth for all content types
+        
         if (contentType == TxType::CONTENT_POST)
             return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
 

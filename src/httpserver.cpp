@@ -342,8 +342,7 @@ static bool HTTPBindAddresses()
     }
 
     // Public sockets always bind to any IPs
-    // TODO (team): add parameter web={0|1} for enable|disable web features
-    if (true)
+    if (gArgs.GetBoolArg("-api", false))
     {
         g_webSocket->BindAddress("::", publicPort);
         g_webSocket->BindAddress("0.0.0.0", publicPort);

@@ -470,7 +470,8 @@ namespace PocketDb
     {
         auto result = UniValue(UniValue::VARR);
         return result;
-        // TODO (team): need refactor
+        
+        // TODO (team): The method is no longer needed? 
 
         auto sql = R"sql(
             WITH RowIds AS (
@@ -2196,8 +2197,8 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
     {
-        // TODO (brangr): add blockings
-        // TODO (brangr): min reputation
+        // TODO (brangr): add filter by blockings
+        // TODO (brangr): add filter by min reputation
 
         UniValue result(UniValue::VARR);
 

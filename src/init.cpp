@@ -2220,9 +2220,8 @@ bool AppInitMain()
 
     gStatEngineInstance.Run(threadGroup);
 
-    // TODO (brangr): implement
-    //if (gArgs.GetBoolArg("-wsuse", false))
-    PocketServices::WebPostProcessorInst.Start(threadGroup);
+    if (gArgs.GetBoolArg("-api", false))
+        PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));
