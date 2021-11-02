@@ -31,33 +31,22 @@ namespace PocketDb
     {
     public:
         explicit TransactionRepository(SQLiteDatabase& db) : BaseRepository(db) {}
-
         void Init() override {}
         void Destroy() override {}
 
         //  Base transaction operations
         void InsertTransactions(PocketBlock& pocketBlock);
-
         shared_ptr<PocketBlock> List(const vector<string>& txHashes, bool includePayload = false);
-
         shared_ptr<Transaction> Get(const string& hash, bool includePayload = false);
-
         shared_ptr<TransactionOutput> GetTxOutput(const string& txHash, int number);
-
-        bool ExistsByHash(const string& hash, bool inBlock);
-
-        void RemoveNotInChain(const string& hash);
+        bool ExistsByHash(const string& hash);
 
     private:
-
         void InsertTransactionOutputs(const PTransactionRef& ptx);
-
         void InsertTransactionPayload(const PTransactionRef& ptx);
-
         void InsertTransactionModel(const PTransactionRef& ptx);
 
     protected:
-
         tuple<bool, PTransactionRef> CreateTransactionFromListRow(
             const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload);
 

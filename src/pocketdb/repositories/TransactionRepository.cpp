@@ -122,7 +122,7 @@ namespace PocketDb
         return result;
     }
 
-    bool TransactionRepository::ExistsByHash(const string& hash, bool inBlock)
+    bool TransactionRepository::ExistsByHash(const string& hash)
     {
         bool result = false;
 
@@ -131,9 +131,6 @@ namespace PocketDb
             from Transactions
             where Hash = ?
         )sql";
-
-        if (inBlock)
-            sql += " and Height is not null ";
 
         TryTransactionStep(__func__, [&]()
         {
@@ -149,18 +146,6 @@ namespace PocketDb
         });
 
         return result;
-    }
-
-    void TransactionRepository::RemoveNotInChain(const string& hash)
-    {
-        auto stmt = SetupSqlStatement(R"sql(
-            delete from Transactions
-            where Hash = ?
-              and Height is null
-        )sql");
-
-        TryBindStatementText(stmt, 1, hash);
-        TryStepStatement(stmt);
     }
 
     void TransactionRepository::InsertTransactionOutputs(const PTransactionRef& ptx)

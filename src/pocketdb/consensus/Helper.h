@@ -37,8 +37,8 @@ namespace PocketConsensus
     {
     public:
         static tuple<bool, SocialConsensusResult> Validate(const PocketBlockRef& block, int height);
-        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, int height);
-        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, PocketBlockRef& block, int height);
+        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& ptx, int height);
+        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& ptx, PocketBlockRef& block, int height);
         // Проверяет блок транзакций без привязки к цепи
         static tuple<bool, SocialConsensusResult> Check(const CBlock& block, const PocketBlockRef& pBlock);
         // Проверяет транзакцию без привязки к цепи

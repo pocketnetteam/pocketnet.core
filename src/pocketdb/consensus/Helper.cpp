@@ -27,6 +27,7 @@ namespace PocketConsensus
     {
         for (const auto& ptx : *block)
         {
+            // Not double validate for already in DB
             if (auto[ok, result] = validate(ptx, block, height); !ok)
                 return {ok, result};
         }
@@ -34,14 +35,18 @@ namespace PocketConsensus
         return {true, SocialConsensusResult_Success};
     }
 
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& tx, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& ptx, int height)
     {
-        return validate(tx, nullptr, height);
+        // Not double validate for already in DB
+        if (TransRepoInst.ExistsByHash(*ptx->GetHash()))
+            return {true, SocialConsensusResult_Success};
+
+        return validate(ptx, nullptr, height);
     }
 
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& tx, PocketBlockRef& block, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& ptx, PocketBlockRef& block, int height)
     {
-        return validate(tx, block, height);
+        return validate(ptx, block, height);
     }
 
     // Проверяет блок транзакций без привязки к цепи
@@ -83,6 +88,10 @@ namespace PocketConsensus
     // Проверяет транзакцию без привязки к цепи
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Check(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
+        // Not double check for already in DB
+        if (TransRepoInst.ExistsByHash(*ptx->GetHash()))
+            return {true, SocialConsensusResult_Success};
+
         return check(tx, ptx);
     }
 
@@ -96,6 +105,7 @@ namespace PocketConsensus
         if (!isConsensusable(*ptx->GetType()))
             return {true, SocialConsensusResult_Success};
 
+        // Check transactions with consensus logic
         tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
@@ -173,6 +183,7 @@ namespace PocketConsensus
         if (!isConsensusable(*ptx->GetType()))
             return {true, SocialConsensusResult_Success};
 
+        // Validate transactions with consensus logic
         tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
