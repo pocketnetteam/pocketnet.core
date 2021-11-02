@@ -122,7 +122,7 @@ namespace PocketDb
         return result;
     }
 
-    bool TransactionRepository::ExistsByHash(const string& hash)
+    bool TransactionRepository::Exists(const string& hash)
     {
         bool result = false;
 
@@ -130,6 +130,33 @@ namespace PocketDb
             select count(*)
             from Transactions
             where Hash = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, hash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = (value >= 1);
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    bool TransactionRepository::ExistsInChain(const string& hash)
+    {
+        bool result = false;
+
+        string sql = R"sql(
+            select count(*)
+            from Transactions
+            where Hash = ?
+              and Height is not null
         )sql";
 
         TryTransactionStep(__func__, [&]()

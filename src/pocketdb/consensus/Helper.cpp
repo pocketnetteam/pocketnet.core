@@ -38,7 +38,7 @@ namespace PocketConsensus
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& ptx, int height)
     {
         // Not double validate for already in DB
-        if (TransRepoInst.ExistsByHash(*ptx->GetHash()))
+        if (TransRepoInst.Exists(*ptx->GetHash()))
             return {true, SocialConsensusResult_Success};
 
         return validate(ptx, nullptr, height);
@@ -89,7 +89,7 @@ namespace PocketConsensus
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Check(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
         // Not double check for already in DB
-        if (TransRepoInst.ExistsByHash(*ptx->GetHash()))
+        if (TransRepoInst.Exists(*ptx->GetHash()))
             return {true, SocialConsensusResult_Success};
 
         return check(tx, ptx);

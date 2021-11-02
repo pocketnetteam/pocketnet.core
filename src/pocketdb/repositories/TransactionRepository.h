@@ -39,7 +39,8 @@ namespace PocketDb
         shared_ptr<PocketBlock> List(const vector<string>& txHashes, bool includePayload = false);
         shared_ptr<Transaction> Get(const string& hash, bool includePayload = false);
         shared_ptr<TransactionOutput> GetTxOutput(const string& txHash, int number);
-        bool ExistsByHash(const string& hash);
+        bool Exists(const string& hash);
+        bool ExistsInChain(const string& hash);
 
     private:
         void InsertTransactionOutputs(const PTransactionRef& ptx);

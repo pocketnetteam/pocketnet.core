@@ -1088,7 +1088,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // At this point, we believe that all the checks have been carried 
         // out and we can safely save the transaction to the database for 
         // subsequent verification of the consensus and inclusion in the block.
-        if (!pocketTx && !PocketDb::TransRepoInst.ExistsByHash(tx.GetHash().GetHex(), false))
+        if (!pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
             return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
         
         if (pocketTx)
@@ -1116,8 +1116,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             {
                 return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "mempool full");
             }
-
-            // TODO (brangr) (v0.21.0): clear "mempool" transactions in sqlite db
         }
     }
 
