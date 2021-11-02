@@ -478,7 +478,7 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         }
 
         CTransactionRef tx = iter->GetSharedTx();
-        if (!TestPackage(packageSize, packageSigOpsCost) && !TestTransaction(tx))
+        if (!TestPackage(packageSize, packageSigOpsCost) || !TestTransaction(tx))
         {
             if (fUsingModified)
             {
