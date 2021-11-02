@@ -64,11 +64,11 @@ public:
     bool IsPocketTX() const {
         return fPockettx;
     }
-
+    // TAWMAZ: Not serializing 
     template<typename Stream>
     void Serialize(Stream &s) const {
         assert(!IsSpent());
-        uint32_t code = nHeight * 2 + fCoinBase;
+        uint32_t code = nHeight * uint32_t{2} + fCoinBase;
         ::Serialize(s, VARINT(code));
         ::Serialize(s, Using<TxOutCompression>(out));
     }

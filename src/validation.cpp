@@ -1495,27 +1495,66 @@ namespace {
 
 bool UndoWriteToDisk(const CBlockUndo& blockundo, CDiskBlockPos& pos, const uint256& hashBlock, const CMessageHeader::MessageStartChars& messageStart)
 {
-    // Open history file to append
-    CAutoFile fileout(OpenUndoFile(pos), SER_DISK, CLIENT_VERSION);
-    if (fileout.IsNull())
+    uint256 hashChecksum;
+    {
+        // Open history file to append
+        CAutoFile fileout(OpenUndoFile(pos), SER_DISK, CLIENT_VERSION);
+        if (fileout.IsNull())
+            return error("%s: OpenUndoFile failed", __func__);
+
+        // Write index header
+        unsigned int nSize = GetSerializeSize(blockundo, fileout.GetVersion());
+        fileout << messageStart << nSize;
+
+        // Write undo data
+        long fileOutPos = ftell(fileout.Get());
+        if (fileOutPos < 0)
+            return error("%s: ftell failed", __func__);
+        pos.nPos = (unsigned int)fileOutPos;
+        fileout << blockundo;
+
+        // calculate & write checksum
+        CHashWriter hasher(SER_GETHASH, PROTOCOL_VERSION);
+        hasher << hashBlock;
+        hasher << blockundo;
+        fileout << hasher.GetHash();
+    }
+    // TAWMAZ: verify deserialization of block from file, break debugger if it breaks!
+    CBlockUndo blockundo2;
+    CAutoFile filein(OpenUndoFile(pos, true), SER_DISK, CLIENT_VERSION);
+    if (filein.IsNull())
         return error("%s: OpenUndoFile failed", __func__);
 
-    // Write index header
-    unsigned int nSize = GetSerializeSize(blockundo, fileout.GetVersion());
-    fileout << messageStart << nSize;
+    CHashVerifier<CAutoFile> verifier(&filein); // We need a CHashVerifier as reserializing may lose data
+    try {
+        verifier << hashBlock;
+    } catch (const std::exception& e) {
+        LogPrintf("%s: Deserialize or I/O error 1 (%d) - %s", __func__, pos.nFile, e.what());
+        raise(SIGTRAP);
+    }
+    try {
+        verifier >> blockundo2;
+    } catch (const std::exception& e) {
+        LogPrintf("%s: Deserialize or I/O error 2 (%d) - %s", __func__, pos.nFile, e.what());
+        raise(SIGTRAP);
+    }
+    try {
+        filein >> hashChecksum;
+    } catch (const std::exception& e) {
+        LogPrintf("%s: Deserialize or I/O error 3 (%d) - %s", __func__, pos.nFile, e.what());
+        raise(SIGTRAP);
+    }
+    // Verify checksum
+    if (hashChecksum != verifier.GetHash()) {
+        LogPrintf("%s: Checksum mismatch", __func__);
+        raise(SIGTRAP);
+    }
 
-    // Write undo data
-    long fileOutPos = ftell(fileout.Get());
-    if (fileOutPos < 0)
-        return error("%s: ftell failed", __func__);
-    pos.nPos = (unsigned int)fileOutPos;
-    fileout << blockundo;
-
-    // calculate & write checksum
-    CHashWriter hasher(SER_GETHASH, PROTOCOL_VERSION);
-    hasher << hashBlock;
-    hasher << blockundo;
-    fileout << hasher.GetHash();
+    if (blockundo.vtxundo.size() != blockundo2.vtxundo.size()) {
+        LogPrintf("DisconnectBlock(): block and undo data inconsistent");
+        raise(SIGTRAP);
+    }
+    
 
     return true;
 }
@@ -1599,6 +1638,7 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
         if (!alternate.IsSpent()) {
             undo.nHeight = alternate.nHeight;
             undo.fCoinBase = alternate.fCoinBase;
+            // TAWMAZ: value not deserialized + coinbase missing
             undo.fPockettx = alternate.fPockettx;
         } else {
             return DISCONNECT_FAILED; // adding output for transaction without known metadata
@@ -2129,7 +2169,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST)
             return state.DoS(100, error("ConnectBlock(): too many sigops"),
                 REJECT_INVALID, "bad-blk-sigops");
-
+        // TAWMAZ: check
         txdata.emplace_back(tx);
         if (!tx.IsCoinBase()) {
             if (!tx.IsCoinStake()) {
