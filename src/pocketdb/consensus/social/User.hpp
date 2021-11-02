@@ -83,8 +83,10 @@ namespace PocketConsensus
                 ptxORHash = ptx->BuildHash(false);
                 if (ptxORHash != txORHash)
                 {
-                    if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                        return {false, SocialConsensusResult_FailedOpReturn};
+                    // TODO (brangr): disable temporary
+                    LogPrintf("--- FailedOpReturn for USER %s\n", *ptx->GetHash());
+                    //if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
+                    //    return {false, SocialConsensusResult_FailedOpReturn};
                 }
             }
 
