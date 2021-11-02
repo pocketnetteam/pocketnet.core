@@ -352,7 +352,7 @@ static bool HTTPBindAddresses()
         g_restSocket->BindAddress("0.0.0.0", restPort);
     }
 
-    return (g_webSocket->GetAddressCount());
+    return (g_socket->GetAddressCount());
 }
 
 /** Simple wrapper to set thread name and run work queue */
