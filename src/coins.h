@@ -64,7 +64,7 @@ public:
     bool IsPocketTX() const {
         return fPockettx;
     }
-
+    // TAWMAZ: Not serializing 
     template<typename Stream>
     void Serialize(Stream &s) const {
         assert(!IsSpent());
