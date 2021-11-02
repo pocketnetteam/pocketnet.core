@@ -419,52 +419,6 @@ static UniValue echo(const JSONRPCRequest& request)
     return request.params;
 }
 
-static UniValue getcoininfo(const JSONRPCRequest& request)
-{
-    if (request.fHelp)
-        throw std::runtime_error(
-            "getcoininfo height\n"
-            "\n Returns current Pocketcoin emission for any given block\n"
-            "\nArguments:\n"
-            "1. height (integer optional) to calculate emission as of that block number\n"
-            "   if arguments are empty or non-numeric, then returns as of the current block number");
-
-    UniValue entry(UniValue::VOBJ);
-    int height;
-    if (request.params.size() == 0 || !request.params[0].isNum()) {
-        height = chainActive.Height();
-    } else {
-        height = request.params[0].get_int();
-    }
-
-    int first75 = 3750000;
-    int halvblocks = 2'100'000;
-    double emission = 0;
-    int nratio = height / halvblocks;
-    double mult;
-
-    for (int i = 0; i <= nratio; ++i) {
-        mult = 5. / pow(2., static_cast<double>(i));
-        if (i < nratio || nratio == 0) {
-            if (i == 0 && height < 75'000)
-                emission += height * 50;
-            else if (i == 0) {
-                emission += first75 + (std::min(height, halvblocks) - 75000) * 5;
-            } else {
-                emission += 2'100'000 * mult;
-            }
-        }
-
-        if (i == nratio && nratio != 0) {
-            emission += (height % halvblocks) * mult;
-        }
-    }
-
-    entry.pushKV("emission", emission);
-    entry.pushKV("height", height);
-    return entry;
-}
-
 UniValue stop(const JSONRPCRequest& jsonRequest)
 {
     // Accept the deprecated and ignored 'detach' boolean argument
@@ -507,8 +461,6 @@ static const CRPCCommand commands[] =
     { "util",               "createmultisig",         &createmultisig,         {"nrequired","keys"}},
     { "util",               "verifymessage",          &verifymessage,          {"address","signature","message"}},
     { "util",               "signmessagewithprivkey", &signmessagewithprivkey, {"privkey","message"}},
-    // TODO (brangr): move to system RPC
-    { "util",               "getcoininfo",            &getcoininfo,            {"height"}},
 
     /* Not shown in help */
     { "hidden",             "setmocktime",            &setmocktime,            {"timestamp"}},

@@ -80,6 +80,7 @@ static const CRPCCommand commands[] =
     {"system",         "getpeerinfo",                      &GetPeerInfo,                    {}},
     {"system",         "getnodeinfo",                      &GetNodeInfo,                    {}},
     {"system",         "gettime",                          &GetTime,                        {}},
+    {"system",         "getcoininfo",                      &GetCoinInfo,                    {"height"}},
 
     // Transactions
     {"transaction",    "getrawtransaction",                &GetTransaction,                 {"txid"}},

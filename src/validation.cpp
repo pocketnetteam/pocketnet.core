@@ -2463,10 +2463,11 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
         int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
-        // TODO (brangr): DEBUG!
         if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
         {
             LogPrintf("@@@ Checkpoint for %d %s\n", pindex->nHeight, block.GetHash().GetHex());
+
+            // TODO (brangr): shutdown for debug
             StartShutdown();
             return false;
             //return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
@@ -2483,7 +2484,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
 
     // -----------------------------------------------------------------------------------------------------------------
-    // TODO (brangr): DEBUG!
     if (pindex->nHeight > skipValidation)
     {
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight); !ok)
@@ -6347,8 +6347,6 @@ bool LoadMempool()
         {
             mempool.PrioritiseTransaction(i.first, i.second);
         }
-
-        // TODO (brangr) (v0.21.0): clear sqlite "mempool" transactions
     }
     catch (const std::exception& e)
     {
