@@ -4501,6 +4501,84 @@ UniValue getcontentsstatistic(const JSONRPCRequest& request)
     }
     return aResult;
 }
+
+UniValue getuserstatistic(const JSONRPCRequest& request)
+{
+    std::string address;
+    std::vector<std::string> addresses;
+    if (request.params.size() > 0) {
+        if (request.params[0].isStr()) {
+            address = request.params[0].get_str();
+            CTxDestination dest = DecodeDestination(address);
+            if (!IsValidDestination(dest)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+            }
+            addresses.emplace_back(address);
+        } else if (request.params[0].isArray()) {
+            UniValue addrs = request.params[0].get_array();
+            if (addrs.size() > 10) {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array");
+            }
+            if(addrs.size() > 0) {
+                for (unsigned int idx = 0; idx < addrs.size(); idx++) {
+                    address = addrs[idx].get_str();
+                    CTxDestination dest = DecodeDestination(address);
+                    if (!IsValidDestination(dest)) {
+                        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+                    }
+                    addresses.emplace_back(address);
+                }
+            }
+        }
+    }
+
+    int nHeight = chainActive.Height();
+    if (request.params.size() > 1) {
+        if (request.params[1].isNum()) {
+            if (request.params[1].get_int() > 0) {
+                nHeight = request.params[1].get_int();
+            }
+        }
+    }
+
+    int depth = chainActive.Height();
+    if (request.params.size() > 2) {
+        if (request.params[2].isNum()) {
+            if (request.params[2].get_int() > 0) {
+                depth = request.params[2].get_int();
+            }
+        }
+    }
+
+    reindexer::Error err;
+    reindexer::Query query;
+    reindexer::QueryResults queryResults;
+
+    query = reindexer::Query("UsersView");
+    query = query.Where("address", CondSet, addresses);
+    query = query.LeftJoin("address", "referrer", CondEq, reindexer::Query("Users").Where("block", CondLe, nHeight).Where("block", CondGt, nHeight - depth).Sort("block", false).Distinct("address").ReqTotal());
+
+    UniValue aResult(UniValue::VARR);
+
+    err = g_pocketdb->DB()->Select(query, queryResults);
+    if (err.ok()) {
+        for (auto& item : queryResults) {
+            Item _itm = item.GetItem();
+            std::string adr = _itm["address"].As<string>();
+            int cntReferals = 0;
+            if (item.GetJoined().size() > 0 && item.GetJoined()[0].Count() > 0) {
+                cntReferals = item.GetJoined()[0].totalCount;
+            }
+            UniValue record(UniValue::VOBJ);
+            record.pushKV("address", adr);
+            record.pushKV("histreferals", cntReferals);
+            aResult.push_back(record);
+        }
+    }
+
+
+    return aResult;
+}
 //----------------------------------------------------------
 
 static const CRPCCommand commands[] =
@@ -4540,7 +4618,8 @@ static const CRPCCommand commands[] =
     {"pocketnetrpc", "converttxidaddress",                &converttxidaddress,                {"txid", "address"},                                                                   false},
     {"pocketnetrpc", "gethistoricalstrip",                &gethistoricalstrip,                {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},
     {"pocketnetrpc", "gethierarchicalstrip",              &gethierarchicalstrip,              {"height", "start_txid", "count", "lang", "tags", "contenttypes", "txids_exclude", "adrs_exclude"}, false},
-    {"pocketnetrpc", "getcontentsstatistic",              &getcontentsstatistic,              {"addresses", "contenttypes", "height", "depth"},                                                         false},
+    {"pocketnetrpc", "getcontentsstatistic",              &getcontentsstatistic,              {"addresses", "contenttypes", "height", "depth"},                                      false},
+    {"pocketnetrpc", "getuserstatistic",                  &getuserstatistic,                  {"addresses", "height", "depth"},                                                      false},
 
     {"pocketnetrpc", "getusercontents",                   &getusercontents,                   {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"},          false},
     {"pocketnetrpc", "getrecomendedsubscriptionsforuser", &getrecomendedsubscriptionsforuser, {"address", "count"},                                                                  false},
