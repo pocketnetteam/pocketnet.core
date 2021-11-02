@@ -83,6 +83,8 @@ namespace PocketConsensus
                 auto ptxORHashRef = ptx->BuildHash(false);
                 if (ptxORHashRef != txORHash)
                 {
+                    auto data = ptx->PreBuildHash();
+                    LogPrint(BCLog::CONSENSUS, "--- %s\n", data);
                     LogPrint(BCLog::CONSENSUS, "Warning: FailedOpReturn for USER %s: %s | %s != %s\n",
                         *ptx->GetHash(), ptxORHash, ptxORHashRef, txORHash);
                     //if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))

@@ -37,6 +37,7 @@ namespace PocketTx
 
         string BuildHash() override;
         string BuildHash(bool includeReferrer);
+        string PreBuildHash();
 
     protected:
         void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
