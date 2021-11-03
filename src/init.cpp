@@ -2219,10 +2219,10 @@ bool AppInitMain()
 
     // ********************************************************* Step 13: finished
 
-#ifdef ENABLE_WALLET
-    Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
-    Staker::getInstance()->startWorkers(threadGroup, chainparams);
-#endif
+// #ifdef ENABLE_WALLET
+//     Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
+//     Staker::getInstance()->startWorkers(threadGroup, chainparams);
+// #endif
 
     // Start WebSocket server
     if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
