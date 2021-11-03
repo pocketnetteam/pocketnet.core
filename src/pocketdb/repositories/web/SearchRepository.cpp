@@ -92,4 +92,43 @@ namespace PocketDb
         return ids;
     }
 
+    UniValue SearchRepository::SearchUsers(const string& searchstr, const vector<ContentFieldType> fieldTypes, bool orderbyrank)
+    {
+        string fieldTypesWhere = join(vector<string>(fieldTypes.size(), "?"), ",");
+        string sql = R"sql(
+            select
+                t.Id,
+                f.Value,
+                f.FieldType
+            from web.Content f
+            inner join Transactions t on f.ContentId = t.Id
+            inner join Payload p on p.TxHash=t.Hash
+            where t.Last = 1
+                and t.Type = 100
+                and t.Height is not null
+                and f.FieldType in ( )sql" + fieldTypesWhere + R"sql( )
+                and f.Value match ?
+        )sql";
+        if (orderbyrank)
+            sql += " order by rank";
+
+        UniValue result(UniValue::VARR);
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+            for (const auto& fieldtype: fieldTypes)
+                TryBindStatementInt(stmt, i++, fieldtype);
+            TryBindStatementText(stmt, i++, searchstr);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                //if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                //    result.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+    }
+
 }

@@ -60,6 +60,7 @@ static const CRPCCommand commands[] =
     {"accounts",       "txunspent",                        &GetUnspents,                    {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
     {"accounts",       "getaddressid",                     &GetAddressId,                   {"address_or_id"}},
     {"accounts",       "getaccountsetting",                &GetAccountSetting,              {"address"}},
+    {"accounts",       "getuserstatistic",                 &GetUserStatistic,               {"addresses", "height", "depth"}},
 
     // Scores
     {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},

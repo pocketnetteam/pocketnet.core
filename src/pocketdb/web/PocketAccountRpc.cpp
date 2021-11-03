@@ -354,4 +354,65 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->WebRpcRepoInst->GetAccountSetting(address);
     }
 
+    UniValue GetUserStatistic(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getuserstatistic [\"addresses\", ...], height, depth\n"
+                "\nGet user statistic.\n"
+                "\nArguments:\n"
+                "1. \"addresses\" (Array of strings) Addresses for statistic\n"
+                "2. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "3. \"depth\" (int, optional) Depth of statistic. Default - whole history\n"
+            );
+
+        std::string address;
+        std::vector<std::string> addresses;
+        if (request.params.size() > 0) {
+            if (request.params[0].isStr()) {
+                address = request.params[0].get_str();
+                CTxDestination dest = DecodeDestination(address);
+                if (!IsValidDestination(dest)) {
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+                }
+                addresses.emplace_back(address);
+            } else if (request.params[0].isArray()) {
+                UniValue addrs = request.params[0].get_array();
+                if (addrs.size() > 10) {
+                    throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array");
+                }
+                if(addrs.size() > 0) {
+                    for (unsigned int idx = 0; idx < addrs.size(); idx++) {
+                        address = addrs[idx].get_str();
+                        CTxDestination dest = DecodeDestination(address);
+                        if (!IsValidDestination(dest)) {
+                            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+                        }
+                        addresses.emplace_back(address);
+                    }
+                }
+            }
+        }
+
+        int nHeight = chainActive.Height();
+        if (request.params.size() > 1) {
+            if (request.params[1].isNum()) {
+                if (request.params[1].get_int() > 0) {
+                    nHeight = request.params[1].get_int();
+                }
+            }
+        }
+
+        int depth = chainActive.Height();
+        if (request.params.size() > 2) {
+            if (request.params[2].isNum()) {
+                if (request.params[2].get_int() > 0) {
+                    depth = request.params[2].get_int();
+                }
+            }
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depth);
+    }
+
 }

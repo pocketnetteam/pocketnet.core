@@ -301,6 +301,55 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetUserStatistic(const vector<string>& addresses, const int nHeight, const int depth)
+    {
+        UniValue result(UniValue::VARR);
+
+        if (!addresses.empty())
+            return  result;
+
+        string addressesWhere = join(vector<string>(addresses.size(), "?"), ",");
+
+        // TODO (o1q): Change ReferralsCountHist calculation from last to hist
+        string sql = R"sql(
+            select
+                u.String1 as Address,
+                ifnull((select count(1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
+                    where ru.Type in (100,101,102) and ru.Last=1 and ru.Height is not null and ru.String2=u.String1),0) as ReferralsCountHist,
+            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+            join Payload up on up.TxHash=u.Hash
+
+            where u.Type in (100, 102, 102)
+            and u.Height is not null
+            and u.String1 in ( )sql" + addressesWhere + R"sql( )
+            and u.Last = 1
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& address: addresses)
+                TryBindStatementText(stmt, i++, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+                auto[ok0, address] = TryGetColumnString(*stmt, 0);
+                auto[ok1, ReferralsCountHist] = TryGetColumnInt(*stmt, 1);
+
+                record.pushKV("address", address);
+                record.pushKV("histreferals", ReferralsCountHist);
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     vector<tuple<string, int64_t, UniValue>> WebRpcRepository::GetAccountProfiles(const vector<string>& addresses, const vector<int64_t>& ids, bool shortForm)
     {
         vector<tuple<string, int64_t, UniValue>> result{};

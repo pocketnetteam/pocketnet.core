@@ -162,6 +162,11 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
+    UniValue SearchUsers(const JSONRPCRequest& request)
+    {
+        return UniValue();
+    }
+
     UniValue SearchLinks(const JSONRPCRequest& request)
     {
         if (request.fHelp)

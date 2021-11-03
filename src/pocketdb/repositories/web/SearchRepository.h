@@ -30,6 +30,8 @@ namespace PocketDb
 
         UniValue SearchTags(const SearchRequest& request);
         vector<int64_t> SearchIds(const SearchRequest& request);
+
+        UniValue SearchUsers(const string& searchstr, const vector<ContentFieldType> fieldTypes, bool orderbyrank = false);
     };
 
     typedef shared_ptr<SearchRepository> SearchRepositoryRef;

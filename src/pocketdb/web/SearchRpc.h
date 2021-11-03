@@ -18,6 +18,7 @@ namespace PocketWeb::PocketWebRpc
     using namespace PocketTx;
 
     UniValue Search(const JSONRPCRequest& request);
+    UniValue SearchUsers(const JSONRPCRequest& request);
     UniValue SearchLinks(const JSONRPCRequest& request);
 }
 
