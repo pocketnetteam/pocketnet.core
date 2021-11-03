@@ -32,6 +32,7 @@ namespace PocketConsensus
         // Validate transaction in block for miner & network full block sync
         virtual ConsensusValidateResult Validate(const shared_ptr<T>& ptx, const PocketBlockRef& block)
         {
+            // TODO (team): optimize algorithm
             // Account must be registered
             vector<string> addressesForCheck;
             vector<string> addresses = GetAddressesForCheckRegistration(ptx);
@@ -49,12 +50,19 @@ namespace PocketConsensus
                                 continue;
 
                             if (*blockTx->GetString1() == address)
+                            {
                                 inBlock = true;
+                                break;
+                            }
                         }
 
                         if (!inBlock)
                             addressesForCheck.push_back(address);
                     }
+                }
+                else
+                {
+                    addressesForCheck = addresses;
                 }
 
                 if (!addressesForCheck.empty() &&

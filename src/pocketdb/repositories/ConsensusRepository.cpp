@@ -145,9 +145,9 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            SELECT count(distinct(String1))
-            FROM Transactions
-            WHERE Type in (100, 101, 102)
+            select count(distinct(String1))
+            from Transactions
+            where Type in (100, 101, 102)
               and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
               )sql" + (mempool ? "" : " and Height is not null ") + R"sql(
         )sql";
@@ -304,11 +304,11 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
-            SELECT count(*)
-            FROM Transactions
-            WHERE   String1 = ?
-                and String2 = ?
-                and Type = ?
+            select count(*)
+            from Transactions
+            where String1 = ?
+              and String2 = ?
+              and Type = ?
         )sql";
 
         if (!mempool)
