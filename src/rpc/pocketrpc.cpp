@@ -258,9 +258,12 @@ std::map<std::string, UniValue> getUsersProfiles(std::vector<std::string> addres
     return result;
 }
 //----------------------------------------------------------
-UniValue getPostData(reindexer::Item& itm, std::string address)
+std::tuple<bool, UniValue> getPostData(reindexer::Item& itm, std::string address)
 {
     UniValue entry(UniValue::VOBJ);
+
+    if (!itm.Status().ok())
+        return {false, entry};
 
     entry.pushKV("txid", itm["txid"].As<string>());
     if (itm["txidEdit"].As<string>() != "") entry.pushKV("edit", "true");
@@ -372,8 +375,7 @@ UniValue getPostData(reindexer::Item& itm, std::string address)
     if (profile.size() > 0)
         entry.pushKV("userprofile", profile.begin()->second);
 
-
-    return entry;
+    return {true, entry};
 }
 //----------------------------------------------------------
 void getFastSearchString(std::string search, std::string str, std::map<std::string, int>& mFastSearch)
@@ -1243,9 +1245,13 @@ UniValue getrawtransactionwithmessage(const JSONRPCRequest& request)
         reindexer::QueryResults queryResUpv;
         err = g_pocketdb->DB()->Select(reindexer::Query("Scores").Where("posttxid", CondEq, itm["txid"].As<string>()).Where("value", CondGt, 3), queryResUpv);
 
-        if (queryResComp.Count() <= 7 || queryResComp.Count() / (queryResUpv.Count() == 0 ? 1 : queryResUpv.Count() == 0 ? 1 : queryResUpv.Count()) <= 0.1) {
-            a.push_back(getPostData(itm, address_from));
-            resultCount -= 1;
+        if (queryResComp.Count() <= 7 || queryResComp.Count() / (queryResUpv.Count() == 0 ? 1 : queryResUpv.Count() == 0 ? 1 : queryResUpv.Count()) <= 0.1)
+        {
+            if (auto[ok, postDataItm] = getPostData(itm, address_from); ok)
+            {
+                a.push_back(postDataItm);
+                resultCount -= 1;
+            }
         }
         iQuery += 1;
         it = queryRes[iQuery];
@@ -1295,7 +1301,8 @@ UniValue getrawtransactionwithmessagebyid(const JSONRPCRequest& request)
 
     for (auto it : queryRes) {
         reindexer::Item itm(it.GetItem());
-        a.push_back(getPostData(itm, address));
+        if (auto[ok, postDataItm] = getPostData(itm, address); ok)
+            a.push_back(postDataItm);
     }
     return a;
 }
@@ -2229,7 +2236,9 @@ UniValue search(const JSONRPCRequest& request)
                 if (fs) getFastSearchString(search_string, _caption, mFastSearch);
                 if (fs) getFastSearchString(search_string, _message, mFastSearch);
 
-                if (all || type == "posts") aPosts.push_back(getPostData(_itm, ""));
+                if (all || type == "posts")
+                    if (auto[ok, postDataItm] = getPostData(_itm, ""); ok)
+                        aPosts.push_back(postDataItm);
             }
 
             if (all || type == "posts") {
@@ -2259,7 +2268,8 @@ UniValue search(const JSONRPCRequest& request)
                 Item _itm = it.GetItem();
                 std::string _txid = _itm["txid"].As<string>();
 
-                aPosts.push_back(getPostData(_itm, ""));
+                if (auto[ok, postDataItm] = getPostData(_itm, ""); ok)
+                    aPosts.push_back(postDataItm);
             }
 
             UniValue oPosts(UniValue::VOBJ);
@@ -2453,7 +2463,8 @@ UniValue gethotposts(const JSONRPCRequest& request)
         reindexer::Item postItm = p.GetItem();
 
         if (postItm["reputation"].As<int>() > 0) {
-            result.push_back(getPostData(postItm, ""));
+            if (auto[ok, postDataItm] = getPostData(postItm, ""); ok)
+                result.push_back(postDataItm);
         }
     }
 
@@ -3373,10 +3384,10 @@ UniValue getquerycontentsforstrips(std::map<std::string, int> qcondints,
         for (auto it : queryResults) {
             reindexer::Item contentItm(it.GetItem());
 
-            if (onOutput) {
-                UniValue entry(UniValue::VOBJ);
-                entry = getPostData(contentItm, "");
-                contents.push_back(entry);
+            if (onOutput)
+            {
+                if (auto[ok, postDataItm] = getPostData(contentItm, ""); ok)
+                    contents.push_back(postDataItm);
             }
 
             if (!startTxid.empty()) {
@@ -3602,10 +3613,10 @@ UniValue gethistoricalstrip(const JSONRPCRequest& request)
         for (auto it : queryResults) {
             reindexer::Item postItm(it.GetItem());
 
-            if (onOutput) {
-                UniValue entry(UniValue::VOBJ);
-                entry = getPostData(postItm, "");
-                contents.push_back(entry);
+            if (onOutput)
+            {
+                if (auto[ok, postDataItm] = getPostData(postItm, ""); ok)
+                    contents.push_back(postDataItm);
             }
 
             if (!start_txid.empty()) {
@@ -4005,8 +4016,10 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
         for(; itVec != txidsHierarchical.end() && countOut > 0; ++itVec, countOut--) {
             reindexer::Item postItm;
             reindexer::Error errS = g_pocketdb->SelectOne(reindexer::Query("Posts").Where("txid", CondEq, *itVec), postItm);
-            UniValue entry(UniValue::VOBJ);
-            entry = getPostData(postItm, "");
+
+            if (auto[ok, postDataItm] = getPostData(postItm, ""); ok)
+                contents.push_back(postDataItm);
+
             /*
             if(postsRanks.find(*itVec) != postsRanks.end()) {
                 UniValue entryRanks(UniValue::VOBJ); // DEBUGINFO
@@ -4046,7 +4059,7 @@ UniValue gethierarchicalstrip(const JSONRPCRequest& request)
                 entry.pushKV("ranks", entryRanks); // DEBUGINFO
             }
              */
-            contents.push_back(entry);
+            
             uvTxidsExcluded.push_back(*itVec);
         }
     }
@@ -4346,7 +4359,8 @@ UniValue searchlinks(const JSONRPCRequest& request)
     if(err.ok()){
         for (auto& it : queryResults) {
             Item _itm = it.GetItem();
-            contents.push_back(getPostData(_itm, ""));
+            if (auto[ok, postDataItm] = getPostData(_itm, ""); ok)
+                contents.push_back(postDataItm);
         }
     }
 
