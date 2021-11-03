@@ -981,11 +981,13 @@ static const struct
 
 void StartREST()
 {
-    for (auto uri_prefixe: uri_prefixes)
-        g_restSocket->RegisterHTTPHandler(uri_prefixe.prefix, false, uri_prefixe.handler, g_restSocket->m_workQueue);
+    if (g_restSocket)
+        for (auto uri_prefixe: uri_prefixes)
+            g_restSocket->RegisterHTTPHandler(uri_prefixe.prefix, false, uri_prefixe.handler, g_restSocket->m_workQueue);
 
     // Register web content route
-    g_staticSocket->RegisterHTTPHandler("/", false, get_static_web, g_staticSocket->m_workQueue);
+    if (g_staticSocket)
+        g_staticSocket->RegisterHTTPHandler("/", false, get_static_web, g_staticSocket->m_workQueue);
 }
 
 void InterruptREST()
@@ -994,8 +996,10 @@ void InterruptREST()
 
 void StopREST()
 {
-    for (auto uri_prefixe: uri_prefixes)
-        g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
+    if (g_restSocket)
+        for (auto uri_prefixe: uri_prefixes)
+            g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
 
-    g_staticSocket->UnregisterHTTPHandler("/", false);
+    if (g_staticSocket)
+        g_staticSocket->UnregisterHTTPHandler("/", false);
 }

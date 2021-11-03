@@ -152,13 +152,18 @@ bool StartHTTPRPC()
     if (!InitRPCAuthentication())
         return false;
 
-    g_socket->RegisterHTTPHandler("/", true, HTTPReq_JSONRPC, g_socket->m_workQueue);
+    if (g_socket)
+    {
+        g_socket->RegisterHTTPHandler("/", true, HTTPReq_JSONRPC, g_socket->m_workQueue);
 
-    g_webSocket->RegisterHTTPHandler("/post/", false, HTTPReq_JSONRPC_Post_Anonymous, g_webSocket->m_workPostQueue);
-    g_webSocket->RegisterHTTPHandler("/", false, HTTPReq_JSONRPC_Anonymous, g_webSocket->m_workQueue);
+        if (g_wallet_init_interface.HasWalletSupport())
+            g_socket->RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC, g_socket->m_workQueue);
+    }
 
-    if (g_wallet_init_interface.HasWalletSupport()) {
-        g_socket->RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC, g_socket->m_workQueue);
+    if (g_webSocket)
+    {
+        g_webSocket->RegisterHTTPHandler("/post/", false, HTTPReq_JSONRPC_Post_Anonymous, g_webSocket->m_workPostQueue);
+        g_webSocket->RegisterHTTPHandler("/", false, HTTPReq_JSONRPC_Anonymous, g_webSocket->m_workQueue);
     }
 
     struct event_base* eventBase = EventBase();
@@ -178,9 +183,12 @@ void StopHTTPRPC()
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
     
     g_socket->UnregisterHTTPHandler("/", true);
-    
-    g_webSocket->UnregisterHTTPHandler("/post/", false);
-    g_webSocket->UnregisterHTTPHandler("/", false);
+
+    if (g_webSocket)
+    {
+        g_webSocket->UnregisterHTTPHandler("/post/", false);
+        g_webSocket->UnregisterHTTPHandler("/", false);
+    }
 
     if (g_wallet_init_interface.HasWalletSupport()) {
         g_socket->UnregisterHTTPHandler("/wallet/", false);

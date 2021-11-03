@@ -313,46 +313,58 @@ static bool HTTPBindAddresses()
     int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
     int staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
     int restPort = gArgs.GetArg("-restport", BaseParams().RestPort());
+    int bindAddresses = 0;
 
     // Determine what addresses to bind to
-    if (!gArgs.IsArgSet("-rpcallowip"))
-    { // Default to loopback if not allowing external IPs
-        g_socket->BindAddress("::1", securePort);
-        g_socket->BindAddress("127.0.0.1", securePort);
-        if (gArgs.IsArgSet("-rpcbind"))
-        {
-            LogPrintf(
-                "WARNING: option -rpcbind was ignored because -rpcallowip was not specified, refusing to allow everyone to connect\n");
+    if (g_socket)
+    {
+        if (!gArgs.IsArgSet("-rpcallowip"))
+        { // Default to loopback if not allowing external IPs
+            g_socket->BindAddress("::1", securePort);
+            g_socket->BindAddress("127.0.0.1", securePort);
+            if (gArgs.IsArgSet("-rpcbind"))
+            {
+                LogPrintf(
+                    "WARNING: option -rpcbind was ignored because -rpcallowip was not specified, refusing to allow everyone to connect\n");
+            }
         }
-    }
-    else if (gArgs.IsArgSet("-rpcbind"))
-    { // Specific bind address
-        for (const std::string &strRPCBind : gArgs.GetArgs("-rpcbind"))
-        {
-            std::string host;
-            int port = securePort;
-            SplitHostPort(strRPCBind, port, host);
-            g_socket->BindAddress(host, port);
+        else if (gArgs.IsArgSet("-rpcbind"))
+        { // Specific bind address
+            for (const std::string& strRPCBind: gArgs.GetArgs("-rpcbind"))
+            {
+                std::string host;
+                int port = securePort;
+                SplitHostPort(strRPCBind, port, host);
+                g_socket->BindAddress(host, port);
+            }
         }
-    }
-    else
-    { // No specific bind address specified, bind to any
-        g_socket->BindAddress("::", securePort);
-        g_socket->BindAddress("0.0.0.0", securePort);
+        else
+        { // No specific bind address specified, bind to any
+            g_socket->BindAddress("::", securePort);
+            g_socket->BindAddress("0.0.0.0", securePort);
+        }
+
+        bindAddresses += g_socket->GetAddressCount();
     }
 
     // Public sockets always bind to any IPs
-    if (gArgs.GetBoolArg("-api", false))
+    if (g_webSocket)
     {
         g_webSocket->BindAddress("::", publicPort);
         g_webSocket->BindAddress("0.0.0.0", publicPort);
+    }
+    if (g_staticSocket)
+    {
         g_staticSocket->BindAddress("::", staticPort);
         g_staticSocket->BindAddress("0.0.0.0", staticPort);
+    }
+    if (g_restSocket)
+    {
         g_restSocket->BindAddress("::", restPort);
         g_restSocket->BindAddress("0.0.0.0", restPort);
     }
 
-    return (g_socket->GetAddressCount());
+    return bindAddresses;
 }
 
 /** Simple wrapper to set thread name and run work queue */
@@ -438,12 +450,15 @@ bool InitHTTPServer()
 #endif
 
     // Additional pocketnet seocket
-    g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
-    RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
+    if (gArgs.GetBoolArg("-api", false))
+    {
+        g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
+        RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
 
-    // Additional pocketnet static files socket
-    g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
-    g_restSocket = new HTTPSocket(eventBase, timeout, workQueueRestDepth, true);
+        // Additional pocketnet static files socket
+        g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
+        g_restSocket = new HTTPSocket(eventBase, timeout, workQueueRestDepth, true);
+    }
  
     if (!HTTPBindAddresses())
     {
@@ -489,26 +504,22 @@ void StartHTTPServer()
     threadHTTP = std::thread(std::move(task), eventBase);
 
     LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
-    g_socket->StartHTTPSocket(rpcMainThreads, false);
+    if (g_socket) g_socket->StartHTTPSocket(rpcMainThreads, false);
 
     // The same worker threads will service POST and PUBLIC RPC requests
     LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
-    g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
-
-    g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
-    g_restSocket->StartHTTPSocket(rpcRestThreads, true);
+    if (g_webSocket) g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
+    if (g_staticSocket) g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
+    if (g_restSocket) g_restSocket->StartHTTPSocket(rpcRestThreads, true);
 }
 
 void InterruptHTTPServer()
 {
-    if (!g_socket)
-        return;
-        
     LogPrint(BCLog::HTTP, "Interrupting HTTP server\n");
-    g_socket->InterruptHTTPSocket();
-    g_webSocket->InterruptHTTPSocket();
-    g_staticSocket->InterruptHTTPSocket();
-    g_restSocket->InterruptHTTPSocket();
+    if (g_socket) g_socket->InterruptHTTPSocket();
+    if (g_webSocket) g_webSocket->InterruptHTTPSocket();
+    if (g_staticSocket) g_staticSocket->InterruptHTTPSocket();
+    if (g_restSocket) g_restSocket->InterruptHTTPSocket();
 }
 
 void StopHTTPServer()
@@ -516,10 +527,10 @@ void StopHTTPServer()
     LogPrint(BCLog::HTTP, "Stopping HTTP server\n");
 
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-    g_socket->StopHTTPSocket();
-    g_webSocket->StopHTTPSocket();
-    g_staticSocket->StopHTTPSocket();
-    g_restSocket->StopHTTPSocket();
+    if (g_socket) g_socket->StopHTTPSocket();
+    if (g_webSocket) g_webSocket->StopHTTPSocket();
+    if (g_staticSocket) g_staticSocket->StopHTTPSocket();
+    if (g_restSocket) g_restSocket->StopHTTPSocket();
 
     if (eventBase)
     {
