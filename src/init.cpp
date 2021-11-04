@@ -468,6 +468,7 @@ void SetupServerArgs()
     gArgs.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-rebuildindexes", "(Re)Build all sqlite indexes", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-rebuildwebdb", "(Re)Build Web database", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-index", "Reindexing pocketnet part with start block N (default off = -1)", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
 
@@ -837,6 +838,38 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             LogPrintf("Error\n");
             StartShutdown();
             return;
+        }
+
+        // Reindex only pocket part
+        if (gArgs.GetArg("-index", -1) >= 0)
+        {
+            int i = gArgs.GetArg("-index", -1);
+            PocketServices::ChainPostProcessing::Rollback(i);
+
+            while (i++ <= chainActive.Height())
+            {
+                try
+                {
+                    CBlockIndex* pblockindex = chainActive[i];
+                    CBlock block;
+                    if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+                    {
+                        LogPrintf("Stopping after failed index pocket part\n");
+                        StartShutdown();
+                        return;
+                    }
+
+                    PocketServices::ChainPostProcessing::Index(block, pblockindex->nHeight);
+
+                    LogPrint(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
+                }
+                catch (std::exception& e)
+                {
+                    LogPrintf("Stopping after failed index pocket part: %s\n", e.what());
+                    StartShutdown();
+                    return;
+                }
+            }
         }
 
         // Rebuild web DB
