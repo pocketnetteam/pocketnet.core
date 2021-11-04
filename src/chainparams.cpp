@@ -130,10 +130,10 @@ public:
         consensus.checkpoint_fix_size_payload = 1381841; // ~ 20211011
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000002d67e3e94463f9e082"); // 1420565
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000002d85d35c2f300d613d"); // 1424753
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x1858f70f35fed01bff53a99eeb82aa2f81f3c15463e8e03ea5ea2f3b3b13a204"); // 1420565
+        consensus.defaultAssumeValid = uint256S("0x485b5866ffeed034da04617b04c3ec5fad926a6b5b24edb8f5170ac4941cc131"); // 1424753
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
