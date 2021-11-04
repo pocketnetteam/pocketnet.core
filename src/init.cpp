@@ -878,8 +878,9 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (!ActivateBestChain(state, chainparams))
         {
             LogPrintf("Failed to connect best block (%s)\n", FormatStateMessage(state));
-            StartShutdown();
-            return;
+            // TODO (brangr): Should we stop the node in case of such errors?
+            //StartShutdown();
+            //return;
         }
 
         if (gArgs.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT))
