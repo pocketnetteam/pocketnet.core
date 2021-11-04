@@ -1089,13 +1089,13 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // out and we can safely save the transaction to the database for 
         // subsequent verification of the consensus and inclusion in the block.
         PTransactionRef _pocketTx = pocketTx;
-        if (!pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
+        if (!_pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
         {
             // Deserialize default money transaction
             if (auto[ok, val] = PocketServices::Serializer::DeserializeTransaction(ptx); ok && val)
                 _pocketTx = val;
-
-            return state.DoS(0, false, REJECT_INTERNAL, "error restore pocketnet payload data");
+            else
+                return state.DoS(0, false, REJECT_INTERNAL, "error restore pocketnet payload data");
         }
         
         if (_pocketTx)
