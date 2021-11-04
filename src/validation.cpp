@@ -2472,12 +2472,9 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
         if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
         {
-            LogPrintf("@@@ Checkpoint for %d %s\n", pindex->nHeight, block.GetHash().GetHex());
-
-            // TODO (brangr): shutdown for debug
-            StartShutdown();
+            // We do not accept blocks that do not meet the consensus conditions,
+            // but we should not mark them invalid for cases when the block is processed after the orphan.
             return false;
-            //return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
         }
     }
 
