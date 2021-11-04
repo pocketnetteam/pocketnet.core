@@ -117,7 +117,7 @@ namespace PocketDb
                     p.String7 pString7
                 FROM Transactions t indexed by Transactions_Type_Last_String2_Height
                 LEFT JOIN Payload p on t.Hash = p.TxHash
-                WHERE t.Type in (200, 201, 202, 203, 204, 205, 206, 207)
+                WHERE t.Type in (200,201,202,203,204,205,206,207)
                     and t.String2 = ?
                     and t.Last = 1
                     and t.Height is not null
@@ -250,8 +250,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 SELECT String1
                 FROM Transactions
-                WHERE   Type in (200, 201, 202, 203)
-                    and Hash = ?
+                WHERE   Hash = ?
                     and Height is not null
             )sql");
 
@@ -488,12 +487,12 @@ namespace PocketDb
                 ca.Id caId,
                 ca.String1 caHash
             from Transactions s
-                -- Score Address
-                join Transactions sa on sa.Type in (100, 101, 102) and sa.Height is not null and sa.String1 = s.String1 and sa.Last = 1
-                -- Content
-                join Transactions c on c.Type in (200, 201, 202, 203, 204, 205, 206) and c.Height is not null and c.Hash = s.String2
-                -- Content Address
-                join Transactions ca on ca.Type in (100, 101, 102) and ca.Height is not null and ca.String1=c.String1 and ca.Last = 1
+            -- Score Address
+            join Transactions sa on sa.Type in (100,101,102) and sa.Height is not null and sa.String1 = s.String1 and sa.Last = 1
+            -- Content
+            join Transactions c on c.Type in (200,201,202,203,204,205,206,207) and c.Height is not null and c.Hash = s.String2
+            -- Content Address
+            join Transactions ca on ca.Type in (100,101,102) and ca.Height is not null and ca.String1=c.String1 and ca.Last = 1
             where s.Hash = ?
         )sql";
 
@@ -662,7 +661,7 @@ namespace PocketDb
                 and s.Time >= ?
                 and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
                 and s.Hash != ?
-            where c.Type in (200, 201)
+            where c.Type in (200,201,207)
               and c.String1 = ?
               and c.Last = 1
         )sql";
