@@ -846,7 +846,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             int i = (int)gArgs.GetArg("-index", -1);
             PocketServices::ChainPostProcessing::Rollback(i);
 
-            while (i <= chainActive.Height())
+            while (i <= chainActive.Height() && !ShutdownRequested())
             {
                 try
                 {

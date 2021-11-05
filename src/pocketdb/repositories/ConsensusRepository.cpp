@@ -639,7 +639,6 @@ namespace PocketDb
     int ConsensusRepository::GetScoreContentCount(
         int height,
         const shared_ptr<ScoreDataDto>& scoreData,
-        const CTransactionRef& tx,
         const std::vector<int>& values,
         int64_t scoresOneToOneDepth)
     {
@@ -673,8 +672,8 @@ namespace PocketDb
 
             TryBindStatementText(stmt, 1, scoreData->ScoreAddressHash);
             TryBindStatementInt(stmt, 2, height);
-            TryBindStatementInt64(stmt, 3, tx->nTime);
-            TryBindStatementInt64(stmt, 4, (int64_t) tx->nTime - scoresOneToOneDepth);
+            TryBindStatementInt64(stmt, 3, scoreData->ScoreTime);
+            TryBindStatementInt64(stmt, 4, scoreData->ScoreTime - scoresOneToOneDepth);
             TryBindStatementText(stmt, 5, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, 6, scoreData->ContentAddressHash);
 
@@ -691,7 +690,6 @@ namespace PocketDb
     int ConsensusRepository::GetScoreCommentCount(
         int height,
         const shared_ptr<ScoreDataDto>& scoreData,
-        const CTransactionRef& tx,
         const std::vector<int>& values,
         int64_t scoresOneToOneDepth)
     {
@@ -726,8 +724,8 @@ namespace PocketDb
 
             TryBindStatementText(stmt, 1, scoreData->ScoreAddressHash);
             TryBindStatementInt(stmt, 2, height);
-            TryBindStatementInt64(stmt, 3, tx->nTime);
-            TryBindStatementInt64(stmt, 4, (int64_t) tx->nTime - scoresOneToOneDepth);
+            TryBindStatementInt64(stmt, 3, scoreData->ScoreTime);
+            TryBindStatementInt64(stmt, 4, (int64_t) scoreData->ScoreTime - scoresOneToOneDepth);
             TryBindStatementText(stmt, 5, scoreData->ScoreTxHash);
             TryBindStatementText(stmt, 6, scoreData->ContentAddressHash);
 

@@ -18,7 +18,7 @@ namespace PocketServices
         int64_t nTime2 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexChain: %.2fms _ %d\n", 0.001 * (double)(nTime2 - nTime1), height);
 
-        IndexRatings(height, block);
+        IndexRatings(height, txs);
 
         int64_t nTime3 = GetTimeMicros();
         LogPrint(BCLog::BENCH, "    - IndexRatings: %.2fms _ %d\n", 0.001 * (double)(nTime3 - nTime2), height);
@@ -42,6 +42,7 @@ namespace PocketServices
                 TransactionIndexingInfo txInfo;
                 txInfo.Hash = tx->GetHash().GetHex();
                 txInfo.BlockNumber = (int) i;
+                txInfo.Time = tx->nTime;
                 txInfo.Type = txType;
 
                 if (!tx->IsCoinBase())
@@ -56,12 +57,12 @@ namespace PocketServices
     }
 
     // Set block height for all transactions in block
-    void ChainPostProcessing::IndexChain(const string& blockHash, int height, vector <TransactionIndexingInfo>& txs)
+    void ChainPostProcessing::IndexChain(const string& blockHash, int height, vector<TransactionIndexingInfo>& txs)
     {
         PocketDb::ChainRepoInst.IndexBlock(blockHash, height, txs);
     }
 
-    void ChainPostProcessing::IndexRatings(int height, const CBlock& block)
+    void ChainPostProcessing::IndexRatings(int height, vector<TransactionIndexingInfo>& txs)
     {
         map <RatingType, map<int, int>> ratingValues;
         map<int, vector<int>> accountLikersSrc;
@@ -70,20 +71,16 @@ namespace PocketServices
         auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(height);
 
         // Loop all transactions for find scores and increase ratings for accounts and contents
-        for (const auto& tx : block.vtx)
+        for (const auto& txInfo : txs)
         {
-            auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
-
             // Only scores allowed in calculating ratings
-            if (txType != TxType::ACTION_SCORE_CONTENT &&
-                txType != TxType::ACTION_SCORE_COMMENT)
+            if (!txInfo.IsActionScore())
                 continue;
 
             // Need select content id for saving rating
-            auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(tx->GetHash().GetHex());
+            auto scoreData = PocketDb::ConsensusRepoInst.GetScoreData(txInfo.Hash);
             if (!scoreData)
-                throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n",
-                    __func__, tx->GetHash().GetHex()));
+                throw std::runtime_error(strprintf("%s: Failed get score data for tx: %s\n", __func__, txInfo.Hash));
 
             // Old posts denied change reputation
             auto allowModifyOldPosts = reputationConsensus->AllowModifyOldPosts(
@@ -97,7 +94,6 @@ namespace PocketServices
             // Check whether the current rating has the right to change the recipient's reputation
             auto allowModifyReputation = reputationConsensus->AllowModifyReputation(
                 scoreData,
-                tx,
                 false);
 
             if (!allowModifyReputation)
