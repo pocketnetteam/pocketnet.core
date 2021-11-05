@@ -1,5 +1,5 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -102,7 +102,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"signrawtransactionwithkey",     1, "privkeys"},
         {"signrawtransactionwithkey",     2, "prevtxs"},
         {"signrawtransactionwithwallet",  1, "prevtxs"},
-        {"sendrawtransaction",            1, "maxfeerate"},
         {"testmempoolaccept",             0, "rawtxs"},
         {"testmempoolaccept",             1, "maxfeerate"},
         {"combinerawtransaction",         0, "txs"},
@@ -198,23 +197,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getaddressregistration",        0, "addresses"},
         {"getuserprofile",                0, "addresses"},
         {"getuserstate",                  1, "time"},
-
-        // Explorer
-        {"getlastblocks",                 0, "count"},
-        {"getlastblocks",                 1, "last_height"},
-        {"getlastblocks",                 2, "verbose"},
-        {"getstatistic",                  0, "end_time"},
-        {"getstatistic",                  1, "depth"},
-
-        {"getrawtransactionwithmessage",  3, "count"},
-        {"getrawtransactionwithmessage",  5, "tags"},
-        // TODO (brangr): contentTypes ???
-        //{ "getrawtransactionwithmessage", 6, "contenttypes" },
-
-        {"gethotposts",                   4, "count"},
-        //{ "gethotposts", 5, "contenttypes" },
-
-        {"getcoininfo",                   0, "height"},
     };
 // clang-format on
 

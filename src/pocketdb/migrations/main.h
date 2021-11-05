@@ -4,19 +4,14 @@
 #include <string>
 #include <vector>
 
+#include "pocketdb/migrations/base.h"
+
 namespace PocketDb
 {
-    class PocketDbMigration
+    class PocketDbMainMigration : public PocketDbMigration
     {
-
     public:
-
-        PocketDbMigration();
-
-        std::vector<std::string> Tables;
-        std::vector<std::string> Views;
-        std::string Indexes;
-
+        PocketDbMainMigration();
     };
 }
 

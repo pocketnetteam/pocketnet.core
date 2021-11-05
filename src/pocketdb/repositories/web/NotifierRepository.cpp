@@ -15,9 +15,11 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            select p.String1 Lang from Transactions t
-            inner join Payload p on t.Hash = p.TxHash
-            where Type in (200, 201, 202, 203) and t.Hash = ?
+            select p.String1 Lang
+            from Transactions t
+            join Payload p on p.TxHash = t.Hash
+            where t.Type in (200, 201, 202, 203)
+              and t.Hash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -42,10 +44,12 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            SELECT t.Hash, t.String1 Address
-            FROM Transactions t
-            INNER JOIN Transactions tRepost ON t.Hash = tRepost.String3 --RelayTxHash
-            where tRepost.Type in (200, 201, 202, 203) and tRepost.Hash = ?
+            select t.Hash,
+                   t.String1 Address
+            from Transactions t
+            join Transactions tRepost on tRepost.String3 = t.Hash
+            where tRepost.Type in (200, 201, 202, 203)
+              and tRepost.Hash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -71,9 +75,12 @@ namespace PocketDb
         UniValue result(UniValue::VARR);
 
         string sql = R"sql(
-            SELECT t.String1 Address
-            FROM Transactions t
-            WHERE t.Type = 303 and t.String2 = ?
+            select String1 as Address
+            from Transactions indexed by Transactions_Type_Last_String2_Height
+            where Type in (303)
+              and Last = 1
+              and Height is not null
+              and String2 = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -104,9 +111,11 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            SELECT t.String2 as ReferrerAddress
-            FROM Transactions t
-            WHERE t.Type = 100 and t.String2 is not null and t.Hash = ?
+            select String2 as ReferrerAddress
+            from Transactions
+            where Type in (100)
+              and String2 is not null
+              and Hash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -131,10 +140,13 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            SELECT score.String2 PostTxHash, score.Int1 Value, post.String1 PostAddress
-            FROM Transactions score
-            INNER JOIN Transactions post ON post.Hash = score.String2
-            WHERE score.Type IN (300) and score.Hash = ?
+            select score.String2 PostTxHash,
+                   score.Int1 Value,
+                   post.String1 PostAddress
+            from Transactions score
+            join Transactions post on post.Hash = score.String2
+            where score.Type in (300)
+              and score.Hash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -161,9 +173,10 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            SELECT t.String2 AddressTo
-            FROM Transactions t
-            WHERE t.Type IN (302, 303, 304) AND t.Hash = ?
+            select String2 AddressTo
+            from Transactions
+            where Type in (302, 303, 304)
+              and Hash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -188,16 +201,18 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            SELECT score.String2 CommentHash, score.Int1 Value, comment.String1 CommentAddress
-            FROM Transactions score
-            INNER JOIN Transactions comment ON score.String2 = comment.String2
-            WHERE score.Type = 301 and comment.Last = 1 and score.Hash = ?
+            select
+                score.String2 CommentHash,
+                score.Int1 Value,
+                comment.String1 CommentAddress
+            from Transactions score
+            join Transactions comment on score.String2 = comment.Hash
+            where score.Hash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
-
             TryBindStatementText(stmt, 1, commentScoreHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -218,11 +233,20 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            SELECT comment.String3 PostHash, comment.String4 ParentHash, comment.String5 AnswerHash, comment.String2 RootHash, post.String1 PostAddress, answer.String1 AnswerAddress
-            FROM Transactions comment
-            INNER JOIN Transactions post ON comment.String3 = post.Hash
-            LEFT JOIN Transactions answer ON comment.String5 = answer.String2 and answer.Last = 1
-            WHERE comment.Type IN (204, 205, 206) and comment.Hash = ?
+            select
+                comment.String3 PostHash,
+                comment.String4 ParentHash,
+                comment.String5 AnswerHash,
+                comment.String2 RootHash,
+                content.String1 ContentAddress,
+                answer.String1 AnswerAddress
+            from Transactions comment -- sqlite_autoindex_Transactions_1 (Hash)
+            join Transactions content -- sqlite_autoindex_Transactions_1 (Hash)
+                on content.Type in (200, 201) and content.Hash = comment.String3
+            left join Transactions answer indexed by Transactions_Type_Last_String2_Height
+                on answer.Type in (204, 205) and answer.Last = 1 and answer.String2 = comment.String5
+            WHERE comment.Type in (204, 205)
+              and comment.Hash = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -252,10 +276,14 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            SELECT COUNT(1) Count
-            FROM Transactions sub
-            INNER JOIN Transactions post ON post.String1 = sub.String2 and post.Type IN (200, 201, 202, 203) and post.Last = 1
-            WHERE sub.Type IN (302, 303) AND sub.Last = 1 and post.Height = ? and sub.String1 = ?
+            select count(1)
+            from Transactions sub
+            join Transactions post
+                on post.String1 = sub.String2 and post.Type in (200, 201, 202, 203) and post.Last = 1
+            where sub.Type in (302, 303)
+              and sub.Last = 1
+              and post.Height = ?
+              and sub.String1 = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()

@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-DIST_SUBDIRS = secp256k1 univalue
+DIST_SUBDIRS = sqlite secp256k1 univalue
 
 AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
 AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS)
@@ -21,6 +21,7 @@ endif
 
 POCKETCOIN_INCLUDES=-I$(builddir) $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
 POCKETCOIN_INCLUDES += -I$(srcdir)/secp256k1/include
+POCKETCOIN_INCLUDES += -I$(srcdir)/sqlite/include
 POCKETCOIN_INCLUDES += $(UNIVALUE_CFLAGS)
 
 LIBPOCKETCOIN_SERVER=libpocketcoin_server.a
@@ -31,7 +32,7 @@ LIBPOCKETCOIN_UTIL=libpocketcoin_util.a
 LIBPOCKETCOIN_CRYPTO_BASE=crypto/libpocketcoin_crypto_base.a
 LIBPOCKETCOINQT=qt/libpocketcoinqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
-LIBSQLITE3=-lsqlite3
+LIBSQLITE3=sqlite/libsqlite3.la
 
 if ENABLE_ZMQ
 LIBPOCKETCOIN_ZMQ=libpocketcoin_zmq.a
@@ -58,6 +59,9 @@ LIBPOCKETCOIN_CRYPTO += $(LIBPOCKETCOIN_CRYPTO_SHANI)
 endif
 
 $(LIBSECP256K1): $(wildcard secp256k1/src/*.h) $(wildcard secp256k1/src/*.c) $(wildcard secp256k1/include/*)
+	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
+
+$(LIBSQLITE3): $(wildcard sqlite/include/*.h) sqlite/sqlite3.c sqlite/shell.c
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
@@ -95,10 +99,12 @@ POCKETDB_H = \
     pocketdb/SQLiteDatabase.h \
     pocketdb/SQLiteConnection.h \
     \
+    pocketdb/migrations/base.h \
     pocketdb/migrations/main.h \
+    pocketdb/migrations/web.h \
     \
+    pocketdb/helpers/PocketnetHelper.h \
     pocketdb/helpers/TransactionHelper.h \
-    pocketdb/helpers/CheckpointHelper.h \
     \
     pocketdb/web/PocketContentRpc.h \
     pocketdb/web/PocketCommentsRpc.h \
@@ -109,6 +115,8 @@ POCKETDB_H = \
     pocketdb/web/PocketExplorerRpc.h \
     pocketdb/web/PocketTransactionRpc.h \
     pocketdb/web/WebSocketRpc.h \
+    pocketdb/web/SearchRpc.h \
+    pocketdb/web/PocketTagsRpc.h \
     pocketdb/web/PocketRpc.h \
     \
     pocketdb/repositories/BaseRepository.h \
@@ -116,13 +124,17 @@ POCKETDB_H = \
     pocketdb/repositories/ChainRepository.h \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/RatingsRepository.h \
+    pocketdb/repositories/CheckpointRepository.h \
     pocketdb/repositories/web/WebRepository.h \
+    pocketdb/repositories/web/WebRpcRepository.h \
     pocketdb/repositories/web/NotifierRepository.h \
     pocketdb/repositories/web/ExplorerRepository.h \
+    pocketdb/repositories/web/SearchRepository.h \
     \
     pocketdb/services/WsNotifier.h \
     pocketdb/services/b/services/Serializer.h \
-    pocketdb/services/b/services/PostProcessing.h \
+    pocketdb/services/b/services/ChainPostProcessing.h \
+    pocketdb/services/b/services/WebPostProcessing.h \
     pocketdb/services/Accessor.h \
     \
     pocketdb/consensus/Base.h \
@@ -175,7 +187,11 @@ POCKETDB_H = \
     pocketdb/models/dto/SubscribePrivate.h \
     pocketdb/models/dto/SubscribeCancel.h \
     pocketdb/models/dto/Complain.h \
-    pocketdb/models/dto/Video.h
+    pocketdb/models/dto/Video.h \
+    \
+    pocketdb/models/web/Tag.h \
+    pocketdb/models/web/Content.h \
+    pocketdb/models/web/SearchRequest.h
 
 # PocketDb CPP
 POCKETDB_CPP = \
@@ -184,24 +200,26 @@ POCKETDB_CPP = \
     pocketdb/pocketnet.cpp \
     \
     pocketdb/migrations/main.cpp \
+    pocketdb/migrations/web.cpp \
     \
     pocketdb/helpers/TransactionHelper.cpp \
-    pocketdb/helpers/LotteryCheckpointHelper.cpp \
-    pocketdb/helpers/SocialCheckpointHelper.cpp \
-    pocketdb/helpers/OpReturnCheckpointHelper.cpp \
     \
     pocketdb/services/WsNotifier.cpp \
     pocketdb/services/Serializer.cpp \
-    pocketdb/services/PostProcessing.cpp \
+    pocketdb/services/ChainPostProcessing.cpp \
+    pocketdb/services/WebPostProcessing.cpp \
     pocketdb/services/Accessor.cpp \
     \
     pocketdb/repositories/ConsensusRepository.cpp \
     pocketdb/repositories/ChainRepository.cpp \
     pocketdb/repositories/TransactionRepository.cpp \
     pocketdb/repositories/RatingsRepository.cpp \
+    pocketdb/repositories/CheckpointRepository.cpp \
     pocketdb/repositories/web/WebRepository.cpp \
+    pocketdb/repositories/web/WebRpcRepository.cpp \
     pocketdb/repositories/web/NotifierRepository.cpp \
     pocketdb/repositories/web/ExplorerRepository.cpp \
+    pocketdb/repositories/web/SearchRepository.cpp \
     \
     pocketdb/consensus/Helper.cpp \
     pocketdb/consensus/Base.cpp \
@@ -224,6 +242,8 @@ POCKETDB_CPP = \
     pocketdb/web/PocketExplorerRpc.cpp \
     pocketdb/web/PocketTransactionRpc.cpp \
     pocketdb/web/WebSocketRpc.cpp \
+    pocketdb/web/SearchRpc.cpp \
+    pocketdb/web/PocketTagsRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
     \
     pocketdb/models/dto/Default.cpp \
@@ -250,6 +270,7 @@ POCKETDB_CPP = \
 POCKETCOIN_CORE_H = \
     addrdb.h \
     addrman.h \
+    attributes.h \
     base58.h \
     bech32.h \
     bloom.h \
@@ -793,9 +814,9 @@ if EMBEDDED_LEVELDB
 include Makefile.leveldb.include
 endif
 
-# if ENABLE_TESTS
-# include Makefile.test.include
-# endif
+if ENABLE_TESTS
+include Makefile.test.include
+endif
 
 # if ENABLE_BENCH
 # include Makefile.bench.include

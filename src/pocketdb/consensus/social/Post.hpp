@@ -37,15 +37,10 @@ namespace PocketConsensus
                 {
                     if (*relayTx->GetType() == CONTENT_DELETE)
                         return {false, SocialConsensusResult_RepostDeletedContent};
-
-                    // TODO (brangr): enable in future if needed
-                    // if (*relayTx->GetType() != CONTENT_POST)
-                    //     return {false, SocialConsensusResult_NotAllowed};
                 }
                 else
                 {
-                    PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
+                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
                         return {false, SocialConsensusResult_RelayContentNotFound};
                 }
             }
@@ -169,8 +164,7 @@ namespace PocketConsensus
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
             if (count >= GetLimit(mode))
             {
-                PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ContentLimit))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ContentLimit))
                     return {false, SocialConsensusResult_ContentLimit};
             }
 
@@ -229,7 +223,7 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidatePayloadSize(const PostRef& ptx)
         {
-            int64_t dataSize =
+            size_t dataSize =
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
                 (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
@@ -254,7 +248,7 @@ namespace PocketConsensus
                     dataSize += images[i].get_str().size();
             }
 
-            if (dataSize > GetConsensusLimit(ConsensusLimit_max_post_size))
+            if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_post_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};
 
             return Success;

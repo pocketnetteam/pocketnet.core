@@ -113,7 +113,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         return nullptr;
 
     pblock = &pblocktemplate->block; // pointer for convenience
-    pocketBlock = make_shared<PocketBlock>(pblocktemplate->pocketBlock);
+    pblocktemplate->pocketBlock = make_shared<PocketBlock>(PocketBlock{});
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.emplace_back();
@@ -198,7 +198,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
-    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, pocketBlock, pindexPrev, false, false))
+    if (!fProofOfStake && !TestBlockValidity(state, chainparams, *pblock, pblocktemplate->pocketBlock, pindexPrev, false, false))
     {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
@@ -240,20 +240,32 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     // Payload should be in operative table Transactions
     if (!ptx)
     {
-        LogPrintf("Warning: build block skip transaction %s with result 'NOT FOUND'\n", tx->GetHash().GetHex());
+        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with result 'NOT FOUND'\n",
+            tx->GetHash().GetHex());
+
         return false;
     }
 
     // Check consensus
-    auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pocketBlock, chainActive.Height() + 1);
-    if (!ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(tx, ptx); !ok)
     {
-        LogPrintf("Warning: build block skip transaction %s with result %d\n", tx->GetHash().GetHex(), (int) result);
+        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with check result %d\n",
+            tx->GetHash().GetHex(), (int) result);
+
         return false;
     }
 
-    // Al is good - save for descendants
-    pocketBlock->push_back(ptx);
+    // Validate consensus
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pblocktemplate->pocketBlock, chainActive.Height() + 1); !ok)
+    {
+        LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with validate result %d\n",
+            tx->GetHash().GetHex(), (int) result);
+
+        return false;
+    }
+
+    // All is good - save for descendants
+    pblocktemplate->pocketBlock->push_back(ptx);
     return true;
 }
 
@@ -385,6 +397,8 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
     indexed_modified_transaction_set mapModifiedTx;
     // Keep track of entries that failed inclusion, to avoid duplicate work
     CTxMemPool::setEntries failedTx;
+    // Candidates for remove bad transactions
+    CTxMemPool::setEntries consensusFailedTx;
 
     // Start by adding all descendants of previously added txs to mapModifiedTx
     // and modifying them for their already included ancestors
@@ -466,7 +480,9 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         }
 
         CTransactionRef tx = iter->GetSharedTx();
-        if (!TestPackage(packageSize, packageSigOpsCost) || !TestTransaction(tx))
+        bool genericTest = TestPackage(packageSize, packageSigOpsCost);
+        bool consensusTest = TestTransaction(tx);
+        if (!genericTest || !consensusTest)
         {
             if (fUsingModified)
             {
@@ -476,6 +492,9 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
                 mapModifiedTx.get<ancestor_score>().erase(modit);
                 failedTx.insert(iter);
             }
+
+            // if (!consensusTest)
+            //     consensusFailedTx.insert(iter);
 
             ++nConsecutiveFailed;
 
@@ -526,6 +545,10 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         // Update transactions that depend on each of these
         nDescendantsUpdated += UpdatePackagesForAdded(ancestors, mapModifiedTx);
     }
+
+    // Bad transaction should be removed from mempool
+    // for (const auto& entry : consensusFailedTx)
+    //     mempool.removeRecursive(entry->GetTx(), MemPoolRemovalReason::CONSENSUS);
 }
 
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)

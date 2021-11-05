@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The Bitcoin Core developers
+// Copyright (c) 2017-2017 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -172,7 +172,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
         // If prev is pocketnet, check that it's matured
         if (nSpendHeight > chainparams.GetConsensus().nHeight_version_1_0_0 && coin.IsPocketTX() && nSpendHeight - coin.nHeight < POCKETNET_MATURITY) {
-            // TODO probably change TX_PREMATURE_SPEND to something else
+            // TODO (team): probably change TX_PREMATURE_SPEND to something else
             return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "bad-txns-premature-spend-of-pocketnet",
                 strprintf("tried to spend %s at depth %d - %d = %d", "pocketnet", nSpendHeight, coin.nHeight, nSpendHeight - coin.nHeight));
         }

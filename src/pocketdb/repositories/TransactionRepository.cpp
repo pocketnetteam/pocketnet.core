@@ -122,17 +122,19 @@ namespace PocketDb
         return result;
     }
 
-    bool TransactionRepository::ExistsByHash(const string& hash)
+    bool TransactionRepository::Exists(const string& hash)
     {
         bool result = false;
 
+        string sql = R"sql(
+            select count(*)
+            from Transactions
+            where Hash = ?
+        )sql";
+
         TryTransactionStep(__func__, [&]()
         {
-            auto stmt = SetupSqlStatement(R"sql(
-                SELECT count(*)
-                FROM Transactions
-                WHERE Hash = ?
-            )sql");
+            auto stmt = SetupSqlStatement(sql);
 
             TryBindStatementText(stmt, 1, hash);
 
@@ -144,6 +146,45 @@ namespace PocketDb
         });
 
         return result;
+    }
+
+    bool TransactionRepository::ExistsInChain(const string& hash)
+    {
+        bool result = false;
+
+        string sql = R"sql(
+            select count(*)
+            from Transactions
+            where Hash = ?
+              and Height is not null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, hash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = (value >= 1);
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    void TransactionRepository::Clean()
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                delete from Transactions
+                where Height is null
+            )sql");
+            TryStepStatement(stmt);
+        });
     }
 
     void TransactionRepository::InsertTransactionOutputs(const PTransactionRef& ptx)
@@ -228,7 +269,7 @@ namespace PocketDb
             WHERE not exists (select 1 from Transactions t where t.Hash=?)
         )sql");
 
-        TryBindStatementInt(stmt, 1, ptx->GetTypeInt());
+        TryBindStatementInt(stmt, 1, (int)*ptx->GetType());
         TryBindStatementText(stmt, 2, ptx->GetHash());
         TryBindStatementInt64(stmt, 3, ptx->GetTime());
         TryBindStatementText(stmt, 4, ptx->GetString1());
@@ -252,7 +293,7 @@ namespace PocketDb
         if (!ok0 || !ok1 || !ok2)
             return make_tuple(false, nullptr);
 
-        auto ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<PocketTxType>(txType));
+        auto ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<TxType>(txType));
         ptx->SetTime(nTime);
         ptx->SetHash(txHash);
 

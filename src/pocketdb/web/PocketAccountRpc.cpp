@@ -17,23 +17,23 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
 
         if (request.params[0].isNum())
-            return request.DbConnection()->WebRepoInst->GetAddressId(request.params[0].get_int64());
+            return request.DbConnection()->WebRpcRepoInst->GetAddressId(request.params[0].get_int64());
         else if (request.params[0].isStr())
-            return request.DbConnection()->WebRepoInst->GetAddressId(request.params[0].get_str());
+            return request.DbConnection()->WebRpcRepoInst->GetAddressId(request.params[0].get_str());
 
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
     }
 
-    map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm, int option)
+    map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm)
     {
-        auto result = dbCon->WebRepoInst->GetUserProfile(addresses, shortForm, option);
+        auto result = dbCon->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm);
 
         if (shortForm)
             return result;
 
-        auto subscribes = dbCon->WebRepoInst->GetSubscribesAddresses(addresses);
-        auto subscribers = dbCon->WebRepoInst->GetSubscribersAddresses(addresses);
-        auto blocking = dbCon->WebRepoInst->GetBlockingToAddresses(addresses);
+        auto subscribes = dbCon->WebRpcRepoInst->GetSubscribesAddresses(addresses);
+        auto subscribers = dbCon->WebRpcRepoInst->GetSubscribersAddresses(addresses);
+        auto blocking = dbCon->WebRpcRepoInst->GetBlockingToAddresses(addresses);
 
         for (auto& i : result)
         {
@@ -50,15 +50,17 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetUserProfile(const JSONRPCRequest& request)
+    UniValue GetAccountProfiles(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
                 "getuserprofile \"address\" ( shortForm )\n"
                 "\nReturn Pocketnet user profile.\n");
 
+        UniValue result(UniValue::VARR);
+
         if (request.params.empty())
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
+            return result;
 
         vector<string> addresses;
         if (request.params[0].isStr())
@@ -67,26 +69,23 @@ namespace PocketWeb::PocketWebRpc
         {
             UniValue addr = request.params[0].get_array();
             for (unsigned int idx = 0; idx < addr.size(); idx++)
-            {
                 addresses.push_back(addr[idx].get_str());
-            }
         }
 
         if (addresses.empty())
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no address");
+            return result;
 
         // Short profile form is: address, b, i, name
         bool shortForm = false;
         if (request.params.size() > 1)
             shortForm = request.params[1].get_str() == "1";
 
-        UniValue aResult(UniValue::VARR);
-
+        // Get data
         map<string, UniValue> profiles = GetUsersProfiles(request.DbConnection(), addresses, shortForm);
         for (auto& p : profiles)
-            aResult.push_back(p.second);
+            result.push_back(p.second);
 
-        return aResult;
+        return result;
     }
 
     UniValue GetUserAddress(const JSONRPCRequest& request)
@@ -99,7 +98,7 @@ namespace PocketWeb::PocketWebRpc
         RPCTypeCheck(request.params, {UniValue::VSTR});
 
         string userName = request.params[0].get_str();
-        return request.DbConnection()->WebRepoInst->GetUserAddress(userName);
+        return request.DbConnection()->WebRpcRepoInst->GetUserAddress(userName);
     }
 
     UniValue GetAddressRegistration(const JSONRPCRequest& request)
@@ -147,7 +146,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        return request.DbConnection()->WebRepoInst->GetAddressesRegistrationDates(addresses);
+        return request.DbConnection()->WebRpcRepoInst->GetAddressesRegistrationDates(addresses);
     }
 
     UniValue GetUserState(const JSONRPCRequest& request)
@@ -168,11 +167,12 @@ namespace PocketWeb::PocketWebRpc
         auto address = request.params[0].get_str();
 
         auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto windowDepth = reputationConsensus->GetConsensusLimit(ConsensusLimit_depth);
 
         // Read general account info and current state
-        auto result = request.DbConnection()->WebRepoInst->GetAccountState(address, chainActive.Height());
+        auto result = request.DbConnection()->WebRpcRepoInst->GetAccountState(address, chainActive.Height() - windowDepth);
         if (result["address"].isNull())
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Pocketcoin address not found"));
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
         // Calculate additional fields
         auto accountMode = reputationConsensus->GetAccountMode(result["reputation"].get_int(), result["balance"].get_int64());
@@ -237,6 +237,8 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue GetUnspents(const JSONRPCRequest& request)
     {
+        // TODO (brangr): add pagination
+
         if (request.fHelp)
             throw runtime_error(
                 "txunspent ( minconf maxconf  [\"addresses\",...] [include_unsafe] [query_options])\n"
@@ -335,7 +337,82 @@ namespace PocketWeb::PocketWebRpc
         //     }
         // }
 
-        return request.DbConnection()->WebRepoInst->GetUnspents(destinations, chainActive.Height());
+        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, chainActive.Height());
+    }
+
+    UniValue GetAccountSetting(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                    "getaccountsetting \"address\"\n"
+                    "\nReturn account settings object.\n");
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetAccountSetting(address);
+    }
+
+    UniValue GetUserStatistic(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getuserstatistic [\"addresses\", ...], height, depth\n"
+                "\nGet user statistic.\n"
+                "\nArguments:\n"
+                "1. \"addresses\" (Array of strings) Addresses for statistic\n"
+                "2. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "3. \"depth\" (int, optional) Depth of statistic. Default - whole history\n"
+            );
+
+        std::string address;
+        std::vector<std::string> addresses;
+        if (request.params.size() > 0) {
+            if (request.params[0].isStr()) {
+                address = request.params[0].get_str();
+                CTxDestination dest = DecodeDestination(address);
+                if (!IsValidDestination(dest)) {
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+                }
+                addresses.emplace_back(address);
+            } else if (request.params[0].isArray()) {
+                UniValue addrs = request.params[0].get_array();
+                if (addrs.size() > 10) {
+                    throw JSONRPCError(RPC_INVALID_PARAMS, "Too large array");
+                }
+                if(addrs.size() > 0) {
+                    for (unsigned int idx = 0; idx < addrs.size(); idx++) {
+                        address = addrs[idx].get_str();
+                        CTxDestination dest = DecodeDestination(address);
+                        if (!IsValidDestination(dest)) {
+                            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketnet address: ") + address);
+                        }
+                        addresses.emplace_back(address);
+                    }
+                }
+            }
+        }
+
+        int nHeight = chainActive.Height();
+        if (request.params.size() > 1) {
+            if (request.params[1].isNum()) {
+                if (request.params[1].get_int() > 0) {
+                    nHeight = request.params[1].get_int();
+                }
+            }
+        }
+
+        int depth = chainActive.Height();
+        if (request.params.size() > 2) {
+            if (request.params[2].isNum()) {
+                if (request.params[2].get_int() > 0) {
+                    depth = request.params[2].get_int();
+                }
+            }
+        }
+
+        return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depth);
     }
 
 }

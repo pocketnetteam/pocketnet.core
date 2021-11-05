@@ -25,7 +25,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Ratings
+                from Ratings indexed by Ratings_Type_Id_Value
                 where Type = ?
                   and Id = ?
                   and Value = ?
@@ -60,7 +60,7 @@ namespace PocketDb
                 ) SELECT ?,1,?,?,
                     ifnull((
                         select r.Value
-                        from Ratings r
+                        from Ratings r indexed by Ratings_Type_Id_Last_Height
                         where r.Type = ?
                             and r.Last = 1
                             and r.Id = ?
@@ -68,10 +68,10 @@ namespace PocketDb
                         limit 1
                     ), 0) + ?
             )sql");
-            TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+            TryBindStatementInt(stmt, 1, *rating.GetType());
             TryBindStatementInt(stmt, 2, rating.GetHeight());
             TryBindStatementInt64(stmt, 3, rating.GetId());
-            TryBindStatementInt(stmt, 4, rating.GetTypeInt());
+            TryBindStatementInt(stmt, 4, *rating.GetType());
             TryBindStatementInt64(stmt, 5, rating.GetId());
             TryBindStatementInt(stmt, 6, rating.GetHeight());
             TryBindStatementInt64(stmt, 7, rating.GetValue());
@@ -79,14 +79,14 @@ namespace PocketDb
 
             // Clear old Last record
             auto stmtUpdate = SetupSqlStatement(R"sql(
-                update Ratings
+                update Ratings indexed by Ratings_Type_Id_Last_Height
                     set Last = 0
                 where Type = ?
                   and Last = 1
                   and Id = ?
                   and Height < ?
             )sql");
-            TryBindStatementInt(stmtUpdate, 1, rating.GetTypeInt());
+            TryBindStatementInt(stmtUpdate, 1, *rating.GetType());
             TryBindStatementInt64(stmtUpdate, 2, rating.GetId());
             TryBindStatementInt(stmtUpdate, 3, rating.GetHeight());
             TryStepStatement(stmtUpdate);
@@ -107,18 +107,18 @@ namespace PocketDb
                 ) SELECT ?,1,?,?,?
                 WHERE NOT EXISTS (
                     select 1
-                    from Ratings r
+                    from Ratings r indexed by Ratings_Type_Id_Value
                     where r.Type=?
                       and r.Id=?
                       and r.Value=?
                 )
             )sql");
 
-            TryBindStatementInt(stmt, 1, rating.GetTypeInt());
+            TryBindStatementInt(stmt, 1, (int)*rating.GetType());
             TryBindStatementInt(stmt, 2, rating.GetHeight());
             TryBindStatementInt64(stmt, 3, rating.GetId());
             TryBindStatementInt64(stmt, 4, rating.GetValue());
-            TryBindStatementInt(stmt, 5, rating.GetTypeInt());
+            TryBindStatementInt(stmt, 5, (int)*rating.GetType());
             TryBindStatementInt64(stmt, 6, rating.GetId());
             TryBindStatementInt64(stmt, 7, rating.GetValue());
 

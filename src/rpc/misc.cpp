@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2018 PocketNet developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -59,8 +60,7 @@ static RPCHelpMan validateaddress()
 
     UniValue ret(UniValue::VOBJ);
     ret.pushKV("isvalid", isValid);
-    if (isValid)
-    {
+    if (isValid) {
         std::string currentAddress = EncodeDestination(dest);
         ret.pushKV("address", currentAddress);
 
@@ -447,9 +447,9 @@ static UniValue RPCLockedMemoryInfo()
 #ifdef HAVE_MALLOC_INFO
 static std::string RPCMallocInfo()
 {
-    char *ptr = nullptr;
+    char* ptr = nullptr;
     size_t size = 0;
-    FILE *f = open_memstream(&ptr, &size);
+    FILE* f = open_memstream(&ptr, &size);
     if (f) {
         malloc_info(0, f);
         fclose(f);
@@ -642,68 +642,7 @@ static RPCHelpMan echo(const std::string& name)
 static RPCHelpMan echo() { return echo("echo"); }
 static RPCHelpMan echojson() { return echo("echojson"); }
 
-static RPCHelpMan getcoininfo()
-{
-    // TODO (team) validate nothing became brokent here
-    return RPCHelpMan{"getcoininfo",
-                "\nReturns current Pocketcoin emission for any given block.\n",
-                {
-                    {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Height to calculate emission as of that block number.\n"
-                                                                                       "if arguments are empty or non-numeric, then returns as of the current block number."},
-                },
-                RPCResult{
-                    RPCResult::Type::OBJ, "", "", {
-                        {
-                            {RPCResult::Type::STR_AMOUNT, "emission", "Emission of the block with number height."},
-                            {RPCResult::Type::NUM, "height", "Number of the block."},
-                        },
-                    },
-                },
-                RPCExamples{
-                    HelpExampleCli("getcoininfo", "")
-                  + HelpExampleRpc("getcoininfo", "")
-                  + HelpExampleCli("getcoininfo", "3")
-                  + HelpExampleRpc("getcoininfo", "3")
-                },
-                [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-{
-    UniValue entry(UniValue::VOBJ);
-    int height;
-    if (request.params.size() == 0 || !request.params[0].isNum()) {
-        height = chainActive.Height();
-    } else {
-        height = request.params[0].get_int();
-    }
 
-    int first75 = 3750000;
-    int halvblocks = 2'100'000;
-    double emission = 0;
-    int nratio = height / halvblocks;
-    double mult;
-
-    for (int i = 0; i <= nratio; ++i) {
-        mult = 5. / pow(2., static_cast<double>(i));
-        if (i < nratio || nratio == 0) {
-            if (i == 0 && height < 75'000)
-                emission += height * 50;
-            else if (i == 0) {
-                emission += first75 + (std::min(height, halvblocks) - 75000) * 5;
-            } else {
-                emission += 2'100'000 * mult;
-            }
-        }
-
-        if (i == nratio && nratio != 0) {
-            emission += (height % halvblocks) * mult;
-        }
-    }
-
-    entry.pushKV("emission", emission);
-    entry.pushKV("height", height);
-    return entry;
-},
-    };
-}
 
 static RPCHelpMan stop()
 {
@@ -722,10 +661,6 @@ static RPCHelpMan stop()
                 [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     // Accept the deprecated and ignored 'detach' boolean argument
-    if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
-        throw std::runtime_error(
-            "stop\n"
-            "\nStop Pocketcoin server.");
     // Event loop will exit after current HTTP requests have been handled, so
     // this reply will get back to the client.
     StartShutdown();
@@ -818,7 +753,7 @@ static const CRPCCommand commands[] =
     { "control",            "stop",                   &stop,                   {}},
     { "control",            "getmemoryinfo",          &getmemoryinfo,          {"mode"}},
     { "control",            "logging",                &logging,                {"include", "exclude"}},
-    { "control",            "uptime",                 &uptime,                 {}}
+    { "control",            "uptime",                 &uptime,                 {}},
     { "util",               "validateaddress",        &validateaddress,        {"address"}},
     { "util",               "createmultisig",         &createmultisig,         {"nrequired","keys","address_type"}},
     { "util",               "deriveaddresses",        &deriveaddresses,        {"descriptor", "range"}},
@@ -826,8 +761,7 @@ static const CRPCCommand commands[] =
     { "util",               "verifymessage",          &verifymessage,          {"address","signature","message"}},
     { "util",               "signmessagewithprivkey", &signmessagewithprivkey, {"privkey","message"}},
     { "util",               "getindexinfo",           &getindexinfo,           {"index_name"}},
-    // TODO (brangr): move to system RPC
-    { "util",               "getcoininfo",            &getcoininfo,            {"height"}},
+
 
     /* Not shown in help */
     { "hidden",             "setmocktime",            &setmocktime,            {"timestamp"}},

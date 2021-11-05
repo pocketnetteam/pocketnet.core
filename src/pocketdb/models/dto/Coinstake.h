@@ -5,20 +5,15 @@
 #ifndef POCKETTX_COINSTAKE_H
 #define POCKETTX_COINSTAKE_H
 
-#include "pocketdb/models/base/Transaction.h"
+#include "pocketdb/models/dto/Default.h"
 
 namespace PocketTx
 {
-    class Coinstake : public Transaction
+    class Coinstake : public Default
     {
     public:
         Coinstake();
         Coinstake(const std::shared_ptr<const CTransaction>& tx);
-
-        void Deserialize(const UniValue& src) override;
-    protected:
-        void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
-        void BuildHash() override;
     };
 } // namespace PocketTx
 

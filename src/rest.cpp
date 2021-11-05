@@ -22,7 +22,7 @@
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
 
-#include "pocketdb/services/PostProcessing.h"
+#include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/consensus/Helper.h"
 #include "pocketdb/services/Accessor.h"
 #include "pocketdb/web/PocketFrontend.h"
@@ -48,24 +48,17 @@ static const struct
     {RetFormat::JSON,   "json"},
 };
 
-struct CCoin
-{
+struct CCoin {
     uint32_t nHeight;
     CTxOut out;
 
-    ADD_SERIALIZE_METHODS;
-
     CCoin() : nHeight(0) {}
-
     explicit CCoin(Coin&& in) : nHeight(in.nHeight), out(std::move(in.out)) {}
 
-    template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action)
+    SERIALIZE_METHODS(CCoin, obj)
     {
         uint32_t nTxVerDummy = 0;
-        READWRITE(nTxVerDummy);
-        READWRITE(nHeight);
-        READWRITE(out);
+        READWRITE(nTxVerDummy, obj.nHeight, obj.out);
     }
 };
 
@@ -163,15 +156,6 @@ static std::string AvailableDataFormatsString()
         return formats.substr(0, formats.length() - 2);
 
     return formats;
-}
-
-static bool ParseHashStr(const std::string& strReq, uint256& v)
-{
-    if (!IsHex(strReq) || (strReq.size() != 64))
-        return false;
-
-    v.SetHex(strReq);
-    return true;
 }
 
 static bool CheckWarmup(HTTPRequest* req)
@@ -750,7 +734,7 @@ static bool rest_topaddresses(HTTPRequest* req, const std::string& strURIPart)
             count = 1000;
     }
 
-    auto result = req->DbConnection()->WebRepoInst->GetTopAddresses(count);
+    auto result = req->DbConnection()->WebRpcRepoInst->GetTopAddresses(count);
     req->WriteHeader("Content-Type", "application/json");
     req->WriteReply(HTTP_OK, result.write() + "\n");
     return true;
@@ -856,7 +840,7 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
             if (!PocketServices::Accessor::GetBlock(block, pocketBlock) || !pocketBlock)
                 return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
 
-            PocketServices::PostProcessing::Rollback(pblockindex->nHeight);
+            PocketServices::ChainPostProcessing::Rollback(pblockindex->nHeight);
 
             CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
             if (pblockindex->nHeight > 100000 && block.IsProofOfStake())
@@ -874,13 +858,13 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
                 }
             }
 
-            if (!PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pblockindex->nHeight))
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pblockindex->nHeight); !ok)
             {
-                LogPrintf("failed at %d heaihgt\n", pblockindex->nHeight);
+                LogPrintf("failed at %d heaihgt with result %d\n", pblockindex->nHeight, (int)result);
                 // return RESTERR(req, HTTP_BAD_REQUEST, "Validate failed");
             }
 
-            PocketServices::PostProcessing::Index(block, pblockindex->nHeight);
+            PocketServices::ChainPostProcessing::Index(block, pblockindex->nHeight);
         }
         catch (std::exception& ex)
         {
@@ -889,6 +873,53 @@ static bool debug_index_block(HTTPRequest* req, const std::string& strURIPart)
 
         LogPrintf("TransactionPostProcessing::Index at height %d\n", current);
         current += 1;
+    }
+
+    req->WriteHeader("Content-Type", "text/plain");
+    req->WriteReply(HTTP_OK, "Success\n");
+    return true;
+}
+
+static bool debug_check_block(HTTPRequest* req, const std::string& strURIPart)
+{
+    if (!CheckWarmup(req))
+        return false;
+
+    auto[rf, uriParts] = ParseParams(strURIPart);
+    int start = 0;
+    int height = 1;
+
+    if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
+        start = result;
+
+    if (auto[ok, result] = TryGetParamInt(uriParts, 1); ok)
+        height = result;
+
+    int current = start;
+    while (current <= height)
+    {
+        CBlockIndex* pblockindex = chainActive[current];
+        if (!pblockindex)
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
+
+        CBlock block;
+        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on disk");
+
+        std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr;
+        if (!PocketServices::Accessor::GetBlock(block, pocketBlock) || !pocketBlock)
+            return RESTERR(req, HTTP_BAD_REQUEST, "Block not found on sqlite db");
+
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock); ok)
+        {
+            LogPrintf("SocialConsensusHelper::Check at height %d - SUCCESS\n", current);
+            current += 1;
+        }
+        else
+        {
+            LogPrintf("SocialConsensusHelper::Check at height %d - FAILED\n", current);
+            return false;
+        }
     }
 
     req->WriteHeader("Content-Type", "text/plain");
@@ -943,16 +974,20 @@ static const struct
     {"/rest/blockhash",          rest_blockhash},
 
     // Debug
-    {"/rest/pindexblock",        debug_index_block},
+    {"/rest/debugindex",        debug_index_block},
+    {"/rest/debugcheck",        debug_check_block},
+
 };
 
 void StartREST()
 {
-    for (auto uri_prefixe: uri_prefixes)
-        g_restSocket->RegisterHTTPHandler(uri_prefixe.prefix, false, uri_prefixe.handler);
+    if (g_restSocket)
+        for (auto uri_prefixe: uri_prefixes)
+            g_restSocket->RegisterHTTPHandler(uri_prefixe.prefix, false, uri_prefixe.handler, g_restSocket->m_workQueue);
 
     // Register web content route
-    g_staticSocket->RegisterHTTPHandler("/", false, get_static_web);
+    if (g_staticSocket)
+        g_staticSocket->RegisterHTTPHandler("/", false, get_static_web, g_staticSocket->m_workQueue);
 }
 
 void InterruptREST()
@@ -961,8 +996,10 @@ void InterruptREST()
 
 void StopREST()
 {
-    for (auto uri_prefixe: uri_prefixes)
-        g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
+    if (g_restSocket)
+        for (auto uri_prefixe: uri_prefixes)
+            g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
 
-    g_staticSocket->UnregisterHTTPHandler("/", false);
+    if (g_staticSocket)
+        g_staticSocket->UnregisterHTTPHandler("/", false);
 }

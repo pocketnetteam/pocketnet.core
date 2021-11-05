@@ -1,5 +1,5 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -126,6 +126,7 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
             strRet += strHelp + "\n";
         }
     }
+
     if (strRet.empty())
         strRet = strprintf("help: unknown command: %s\n", strCommand);
 
@@ -151,12 +152,12 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
 //     std::string strCommand;
 //     if (jsonRequest.params.size() > 0)
 //         strCommand = jsonRequest.params[0].get_str();
-// 
+//
 //     return tableRPC.help(strCommand, jsonRequest);
 // },
 //     };
 // }
-// 
+//
 // static RPCHelpMan getrpcinfo()
 // {
 //     return RPCHelpMan{"getrpcinfo",
@@ -189,19 +190,19 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
 //         entry.pushKV("duration", GetTimeMicros() - info.start);
 //         active_commands.push_back(entry);
 //     }
-// 
+//
 //     UniValue result(UniValue::VOBJ);
 //     result.pushKV("active_commands", active_commands);
-// 
+//
 //     const std::string path = LogInstance().m_file_path.string();
 //     UniValue log_path(UniValue::VSTR, path);
 //     result.pushKV("logpath", log_path);
-// 
+//
 //     return result;
 // }
 //     };
 // }
-// 
+//
 // clang-format off
 // static const CRPCCommand vRPCCommands[] =
 // { //  category              name                      actor (function)         argNames
@@ -389,6 +390,7 @@ static inline JSONRPCRequest transformNamedArguments(const JSONRPCRequest& in, c
     if (!argsIn.empty()) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown named parameter " + argsIn.begin()->first);
     }
+    
     // Return request with named arguments transformed to positional arguments
     return out;
 }

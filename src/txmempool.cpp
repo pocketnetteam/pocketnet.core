@@ -18,7 +18,7 @@
 #include <utilmoneystr.h>
 #include <utiltime.h>
 
-#include "pocketdb/helpers/TransactionHelper.h"
+#include "pocketdb/pocketnet.h"
 
 CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
                                  int64_t _nTime, unsigned int _entryHeight,
@@ -473,8 +473,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     mapLinks.erase(it);
     mapTx.erase(it);
 
-    // TODO (brangr) (v0.21.0): clear "mempool" transactions in sqlite db
-
     nTransactionsUpdated++;
     if (minerPolicyEstimator) { minerPolicyEstimator->removeTx(hash, false); }
 }
@@ -664,8 +662,7 @@ void CTxMemPool::clear()
     _clear();
 }
 
-static void
-CheckInputsAndUpdateCoins(const CTransaction& tx, CCoinsViewCache& mempoolDuplicate, const int64_t spendheight)
+static void CheckInputsAndUpdateCoins(const CTransaction& tx, CCoinsViewCache& mempoolDuplicate, const int64_t spendheight)
 {
     CValidationState state;
     CAmount txfee = 0;

@@ -17,13 +17,16 @@
 #include <event2/keyvalq_struct.h>
 #include <support/events.h>
 #include "rpc/server.h"
+#include "init.h"
 #include "pocketdb/SQLiteConnection.h"
 
 static const int DEFAULT_HTTP_THREADS = 4;
+static const int DEFAULT_HTTP_POST_THREADS = 4;
 static const int DEFAULT_HTTP_PUBLIC_THREADS = 4;
 static const int DEFAULT_HTTP_STATIC_THREADS = 4;
 static const int DEFAULT_HTTP_REST_THREADS = 4;
 static const int DEFAULT_HTTP_WORKQUEUE = 16;
+static const int DEFAULT_HTTP_POST_WORKQUEUE = 16;
 static const int DEFAULT_HTTP_PUBLIC_WORKQUEUE = 16;
 static const int DEFAULT_HTTP_STATIC_WORKQUEUE = 16;
 static const int DEFAULT_HTTP_REST_WORKQUEUE = 16;
@@ -208,6 +211,49 @@ private:
     struct event_base* base;
 };
 
+/** HTTP request work item */
+class HTTPWorkItem final : public HTTPClosure
+{
+public:
+    HTTPWorkItem(std::unique_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
+        req(std::move(_req)), path(_path), func(_func)
+    {
+    }
+    void operator()(DbConnectionRef& dbConnection) override
+    {
+        auto log = g_logger->WillLogCategory(BCLog::STAT);
+        auto jreq = req.get();
+        jreq->SetDbConnection(dbConnection);
+
+        auto uri = jreq->GetURI();
+        auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
+
+        auto start = gStatEngineInstance.GetCurrentSystemTime();
+        func(jreq, path);
+        auto stop = gStatEngineInstance.GetCurrentSystemTime();
+
+        if (log)
+        {
+            gStatEngineInstance.AddSample(
+                Statistic::RequestSample{
+                    uri,
+                    start,
+                    stop,
+                    peer,
+                    0,
+                    0
+                }
+            );
+        }
+    }
+
+    std::unique_ptr<HTTPRequest> req;
+
+private:
+    std::string path;
+    HTTPRequestHandler func;
+};
+
 class HTTPSocket
 {
 private:
@@ -216,6 +262,9 @@ private:
     std::vector<evhttp_bound_socket*> m_boundSockets;
     std::vector<std::thread> m_thread_http_workers;
 
+protected:
+    void StartThreads(WorkQueue<HTTPClosure>* queue, int threadCount, bool selfDbConnection);
+
 public:
     HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
     ~HTTPSocket();
@@ -223,7 +272,7 @@ public:
     /** Sets the need to check the request source. For public APIs,
       * we do not need to restrict the source of the request. */
     bool m_publicAccess;
-
+    
     /** Work queue for handling longer requests off the event loop thread */
     CRPCTable m_table_rpc;
     WorkQueue<HTTPClosure>* m_workQueue;
@@ -233,6 +282,7 @@ public:
     void StartHTTPSocket(int threadCount, bool selfDbConnection);
     /** Stop worker threads on all bound http sockets */
     void StopHTTPSocket();
+
     /** Acquire a http socket handle for a provided IP address and port number */
     void BindAddress(std::string ipAddr, int port);
     /** Get number of bound IP sockets */
@@ -243,18 +293,34 @@ public:
      * If multiple handlers match a prefix, the first-registered one will
      * be invoked.
      */
-    void RegisterHTTPHandler(const std::string& prefix, bool exactMatch, const HTTPRequestHandler& handler);
+    void RegisterHTTPHandler(const std::string& prefix, bool exactMatch,
+        const HTTPRequestHandler& handler, WorkQueue<HTTPClosure>* _queue);
+
     /** Unregister handler for prefix */
     void UnregisterHTTPHandler(const std::string& prefix, bool exactMatch);
 
-    bool HTTPReq(HTTPRequest* req);
+    bool HTTPReq(HTTPRequest* req, CRPCTable& table);
+};
+
+class HTTPWebSocket: public HTTPSocket
+{
+public:
+    CRPCTable m_table_post_rpc;
+    WorkQueue<HTTPClosure>* m_workPostQueue;
+
+    HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess);
+    ~HTTPWebSocket();
+
+    void StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection);
+    void StopHTTPSocket();
+    void InterruptHTTPSocket();
 };
 
 std::string urlDecode(const std::string& urlEncoded);
 
 extern HTTPSocket* g_socket;
-extern HTTPSocket* g_pubSocket;
 extern HTTPSocket* g_staticSocket;
 extern HTTPSocket* g_restSocket;
+extern HTTPWebSocket* g_webSocket;
 
 #endif // POCKETCOIN_HTTPSERVER_H

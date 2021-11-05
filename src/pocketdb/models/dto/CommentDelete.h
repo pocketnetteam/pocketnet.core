@@ -16,9 +16,11 @@ namespace PocketTx
         CommentDelete(const std::shared_ptr<const CTransaction>& tx);
 
         void DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
+
+        string BuildHash() override;
+
     protected:
         void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
-        void BuildHash() override;
     };
 
 } // namespace PocketTx

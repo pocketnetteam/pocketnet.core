@@ -9,12 +9,12 @@ namespace PocketTx
 {
     CommentDelete::CommentDelete() : Comment()
     {
-        SetType(PocketTxType::CONTENT_COMMENT_DELETE);
+        SetType(TxType::CONTENT_COMMENT_DELETE);
     }
 
     CommentDelete::CommentDelete(const std::shared_ptr<const CTransaction>& tx) : Comment(tx)
     {
-        SetType(PocketTxType::CONTENT_COMMENT_DELETE);
+        SetType(TxType::CONTENT_COMMENT_DELETE);
     }
 
     void CommentDelete::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
@@ -28,7 +28,7 @@ namespace PocketTx
 
     }
 
-    void CommentDelete::BuildHash()
+    string CommentDelete::BuildHash()
     {
         std::string data;
 
@@ -37,6 +37,6 @@ namespace PocketTx
         data += GetParentTxHash() ? *GetParentTxHash() : "";
         data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 } // namespace PocketTx

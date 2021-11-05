@@ -2,9 +2,9 @@
 
 namespace PocketDb
 {
-    PocketDbMigration::PocketDbMigration()
+    PocketDbMainMigration::PocketDbMainMigration() : PocketDbMigration()
     {
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists Transactions
             (
                 Type      int    not null,
@@ -72,7 +72,7 @@ namespace PocketDb
             );
         )sql");
 
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists Payload
             (
                 TxHash  text   primary key, -- Transactions.Hash
@@ -119,7 +119,7 @@ namespace PocketDb
             );
         )sql");
 
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists TxOutputs
             (
                 TxHash          text   not null, -- Transactions.Hash
@@ -134,7 +134,7 @@ namespace PocketDb
             );
         )sql");
 
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists Ratings
             (
                 Type   int not null,
@@ -146,7 +146,7 @@ namespace PocketDb
             );
         )sql");
 
-        Tables.emplace_back(R"sql(
+        _tables.emplace_back(R"sql(
             create table if not exists Balances
             (
                 AddressHash     text    not null,
@@ -157,152 +157,16 @@ namespace PocketDb
             );
         )sql");
 
-
-        Views.emplace_back(R"sql(
-            drop view if exists vWebUsers;
-            create view vWebUsers as
-            select t.Hash,
-                t.Id,
-                t.Time,
-                t.BlockHash,
-                t.Height,
-                t.String1 as AddressHash,
-                t.String2 as ReferrerAddressHash,
-                t.Int1    as Registration,
-                p.String1 as Lang,
-                p.String2 as Name,
-                p.String3 as Avatar,
-                p.String4 as About,
-                p.String5 as Url,
-                p.String6 as Pubkey,
-                p.String7 as Donations
-            from Transactions t
-                    join Payload p on t.Hash = p.TxHash
-            where t.Last = 1
-            and t.Type = 100;
-        )sql");
-
-        Views.emplace_back(R"sql(
-            drop view if exists vWebContents;
-            create view vWebContents as
-            select t.Hash,
-                t.Time,
-                t.BlockHash,
-                t.Height,
-                t.String1 as AddressHash,
-                t.String2 as RootTxHash,
-                t.String3 as RelayTxHash,
-                t.Type,
-                p.String1 as Lang,
-                p.String2 as Caption,
-                p.String3 as Message,
-                p.String4 as Tags,
-                p.String5 as Images,
-                p.String6 as Settings,
-                p.String7 as Url
-            from Transactions t
-                    join Payload p on t.Hash = p.TxHash
-            where t.Last = 1;
-        )sql");
-
-        Views.emplace_back(R"sql(
-            drop view if exists vWebPosts;
-            create view vWebPosts as
-            select t.Hash,
-                t.Time,
-                t.BlockHash,
-                t.Height,
-                t.String1 as AddressHash,
-                t.String2 as RootTxHash,
-                p.String1 as Lang,
-                p.String2 as Caption,
-                p.String3 as Message,
-                p.String4 as Tags,
-                p.String5 as Images,
-                p.String6 as Settings,
-                p.String7 as Url
-            from Transactions t
-                    join Payload p on t.Hash = p.TxHash
-            where t.Height = (
-                select max(t_.Height)
-                from Transactions t_
-                where t_.String2 = t.String2
-                and t_.Type = t.Type)
-            and t.Type = 200;
-        )sql");
-
-        Views.emplace_back(R"sql(
-            drop view if exists vWebComments;
-            create view vWebComments as
-            select t.Hash,
-                t.Time,
-                t.BlockHash,
-                t.Height,
-                t.String1 as AddressHash,
-                t.String2 as RootTxHash,
-                t.String3 as PostTxId,
-                t.String4 as ParentTxHash,
-                t.String5 as AnswerTxHash,
-                p.String1 as Lang,
-                p.String2 as Message
-            from Transactions t
-                    join Payload p on t.Hash = p.TxHash
-            where t.Height = (
-                select max(t_.Height)
-                from Transactions t_
-                where t_.String2 = t.String2
-                and t_.Type = t.Type)
-            and t.Type = 204;
-        )sql");
-
-        Views.emplace_back(R"sql(
-            drop view if exists vWebScorePosts;
-            create view vWebScorePosts as
-            select String1 as AddressHash,
-                String2 as PostTxHash,
-                Int1    as Value
-            from Transactions
-            where Type in (300);
-        )sql");
-
-        Views.emplace_back(R"sql(
-            drop view if exists vWebScoreComments;
-            create view vWebScoreComments as
-            select String1 as AddressHash,
-                String2 as CommentTxHash,
-                Int1    as Value
-            from Transactions
-            where Type in (301);
-        )sql");
-
-        Views.emplace_back(R"sql(
-            drop view if exists vWebScoresPosts;
-            create view vWebScoresPosts as
-            select count(*) as cnt, avg(Int1) as average, String2 as PostTxHash
-            from Transactions
-            where Type = 300
-            group by String2;
-        )sql");
-
-        Views.emplace_back(R"sql(
-            drop view if exists vWebScoresComments;
-            create view vWebScoresComments as
-            select count(*) as cnt, avg(Int1) as average, String2 as CommentTxHash
-            from Transactions
-            where Type = 301
-            group by String2;
-        )sql");
-
-
-        Indexes = R"sql(
+        _indexes = R"sql(
             create index if not exists Transactions_Id on Transactions (Id);
             create index if not exists Transactions_Id_Last on Transactions (Id, Last);
             create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
             create index if not exists Transactions_Height_Type on Transactions (Height, Type);
-            create index if not exists Transactions_Type_Last_String1_Height on Transactions (Type, Last, String1, Height);
+            create index if not exists Transactions_Type_Last_String1_Height_Id on Transactions (Type, Last, String1, Height, Id);
             create index if not exists Transactions_Type_Last_String2_Height on Transactions (Type, Last, String2, Height);
+            create index if not exists Transactions_Type_Last_String3_Height on Transactions (Type, Last, String3, Height);
+            create index if not exists Transactions_Type_Last_String4_Height on Transactions (Type, Last, String4, Height);
             create index if not exists Transactions_Type_Last_String1_String2_Height on Transactions (Type, Last, String1, String2, Height);
-            create index if not exists Transactions_Type_Last_Height_String3 on Transactions (Type, Last, Height, String3);
             create index if not exists Transactions_Type_Last_Height_String5_String1 on Transactions (Type, Last, Height, String5, String1);
             create index if not exists Transactions_Type_String1_String2_Height on Transactions (Type, String1, String2, Height);
             create index if not exists Transactions_Type_String1_Height_Time_Int1 on Transactions (Type, String1, Height, Time, Int1);
@@ -311,28 +175,28 @@ namespace PocketDb
             create index if not exists Transactions_Time_Type_Height on Transactions (Time, Type, Height);
             create index if not exists Transactions_Type_Time_Height on Transactions (Type, Time, Height);
             create index if not exists Transactions_BlockHash on Transactions (BlockHash);
+            create index if not exists Transactions_Type_Last_Height_Time_String3_String4 on Transactions (Type, Last, Height, Time, String3, String4);
+            create index if not exists Transactions_Height_Time on Transactions (Height, Time);
+            create index if not exists Transactions_Height_Id on Transactions (Height, Id);
 
-            create index if not exists TxOutputs_TxHeight on TxOutputs (TxHeight);
-            create index if not exists TxOutputs_SpentHeight on TxOutputs (SpentHeight);
-            create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
-            create index if not exists TxOutputs_Value on TxOutputs (Value);
-            create index if not exists TxOutputs_AddressHash_SpentHeight_TxHeight on TxOutputs (AddressHash, SpentHeight, TxHeight);
+            create index if not exists TxOutputs_SpentHeight_AddressHash on TxOutputs (SpentHeight, AddressHash);
             create index if not exists TxOutputs_TxHeight_AddressHash on TxOutputs (TxHeight, AddressHash);
-            create index if not exists TxOutputs_AddressHash_TxHeight on TxOutputs (AddressHash, TxHeight);
+            create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
 
-            create index if not exists Ratings_Height on Ratings (Height);
-            create index if not exists Ratings_Type_Id_Last on Ratings (Type, Id, Last);
             create index if not exists Ratings_Last_Id_Height on Ratings (Last, Id, Height);
+            create index if not exists Ratings_Height_Last on Ratings (Height, Last);
+            create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
+            create index if not exists Ratings_Type_Id_Last_Height on Ratings (Type, Id, Last, Height);
+            create index if not exists Ratings_Type_Id_Height_Value on Ratings (Type, Id, Height, Value);
 
             create index if not exists Payload_String2 on Payload (String2);
+            create index if not exists Payload_String7 on Payload (String7);
+            create index if not exists Payload_String1_TxHash on Payload (String1, TxHash);
 
             create index if not exists Balances_Height on Balances (Height);
-            create index if not exists Balances_AddressHash_Height_Last on Balances (AddressHash, Height, Last);
+            create index if not exists Balances_AddressHash_Last_Height on Balances (AddressHash, Last, Height);
             create index if not exists Balances_Last_Value on Balances (Last, Value);
             create index if not exists Balances_AddressHash_Last on Balances (AddressHash, Last);
-
-            -----------------------------------WEB-----------------------------------
-            create index if not exists Transactions_Height_Time on Transactions (Height, Time);
         )sql";
     }
 }

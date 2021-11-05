@@ -80,8 +80,7 @@ namespace PocketConsensus
                     // Maybe in block
                     if (*ptx->GetPostTxHash() == *blockPtx->GetPostTxHash())
                     {
-                        PocketHelpers::SocialCheckpoints socialCheckpoints;
-                        if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleComplain))
+                        if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleComplain))
                             return {false, SocialConsensusResult_DoubleComplain};
                     }
                 }

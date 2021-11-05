@@ -34,7 +34,7 @@ namespace PocketConsensus
         }
     }
 
-    void LotteryConsensus::ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime, map <string, string>& refs)
+    void LotteryConsensus::ExtendReferrer(const ScoreDataDtoRef& scoreData, map <string, string>& refs)
     {
 
     }
@@ -64,11 +64,11 @@ namespace PocketConsensus
             if (!parseScoreOk)
                 continue;
 
-            if (scoreTxData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT
+            if (scoreTxData->ScoreType == PocketTx::TxType::ACTION_SCORE_COMMENT
                 && scoreTxData->ScoreValue != 1)
                 continue;
 
-            if (scoreTxData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_CONTENT
+            if (scoreTxData->ScoreType == PocketTx::TxType::ACTION_SCORE_CONTENT
                 && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
                 continue;
 
@@ -86,18 +86,16 @@ namespace PocketConsensus
             ))
                 continue;
 
-            if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_CONTENT)
+            if (scoreData->ScoreType == PocketTx::TxType::ACTION_SCORE_CONTENT)
             {
                 postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
-                ExtendReferrer(scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
-                    (int64_t) tx->nTime, postReferrersCandidates);
+                ExtendReferrer(scoreData, postReferrersCandidates);
             }
 
-            if (scoreData->ScoreType == PocketTx::PocketTxType::ACTION_SCORE_COMMENT)
+            if (scoreData->ScoreType == PocketTx::TxType::ACTION_SCORE_COMMENT)
             {
                 commentCandidates[scoreData->ContentAddressHash] += scoreData->ScoreValue;
-                ExtendReferrer(scoreData->ScoreAddressHash, scoreData->ContentAddressHash,
-                    (int64_t) tx->nTime, commentReferrersCandidates);
+                ExtendReferrer(scoreData, commentReferrersCandidates);
             }
         }
 
@@ -138,16 +136,15 @@ namespace PocketConsensus
 
     // ----------------------------------------
     // Lottery checkpoint at 514185 block
-    void LotteryConsensus_checkpoint_514185::ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
-        map <string, string>& refs)
+    void LotteryConsensus_checkpoint_514185::ExtendReferrer(const ScoreDataDtoRef& scoreData, map <string, string>& refs)
     {
-        if (refs.find(contentAddress) != refs.end())
+        if (refs.find(scoreData->ContentAddressHash) != refs.end())
             return;
 
-        auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress);
-        if (!referrer || *referrer == scoreAddress) return;
+        auto[ok, referrer] = PocketDb::ConsensusRepoInst.GetReferrer(scoreData->ContentAddressHash);
+        if (!ok || referrer == scoreData->ScoreAddressHash) return;
 
-        refs.emplace(contentAddress, *referrer);
+        refs.emplace(scoreData->ContentAddressHash, referrer);
     }
     void LotteryConsensus_checkpoint_514185::ExtendWinnerTypes(opcodetype type, std::vector <opcodetype>& winner_types)
     {
@@ -166,16 +163,18 @@ namespace PocketConsensus
 
     // ----------------------------------------
     // Lottery checkpoint at 1035000 block
-    void LotteryConsensus_checkpoint_1035000::ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
-        map <string, string>& refs)
+    void LotteryConsensus_checkpoint_1035000::ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs)
     {
-        if (refs.find(contentAddress) != refs.end())
+        if (refs.find(scoreData->ContentAddressHash) != refs.end())
             return;
 
-        auto referrer = PocketDb::ConsensusRepoInst.GetReferrer(contentAddress, txTime - GetConsensusLimit(ConsensusLimit_lottery_referral_depth));
-        if (!referrer || *referrer == scoreAddress) return;
+        auto regTime = PocketDb::ConsensusRepoInst.GetAccountRegistrationTime(scoreData->ContentAddressId);
+        if (regTime < (scoreData->ScoreTime - GetConsensusLimit(ConsensusLimit_lottery_referral_depth))) return;
 
-        refs.emplace(contentAddress, *referrer);
+        auto[ok, referrer] = PocketDb::ConsensusRepoInst.GetReferrer(scoreData->ContentAddressHash);
+        if (!ok || referrer == scoreData->ScoreAddressHash) return;
+
+        refs.emplace(scoreData->ContentAddressHash, referrer);
     }
 
     // ----------------------------------------
@@ -206,8 +205,7 @@ namespace PocketConsensus
 
     // ----------------------------------------
     // Lottery checkpoint at _ block
-    void LotteryConsensus_checkpoint_::ExtendReferrer(const string& scoreAddress, const string& contentAddress, int64_t txTime,
-        map <string, string>& refs)
+    void LotteryConsensus_checkpoint_::ExtendReferrer(const ScoreDataDtoRef& scoreData, map<string, string>& refs)
     {
         // This logic replaced with ExtendReferrers()
     }

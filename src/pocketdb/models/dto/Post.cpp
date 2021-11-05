@@ -9,12 +9,12 @@ namespace PocketTx
 {
     Post::Post() : Transaction()
     {
-        SetType(PocketTxType::CONTENT_POST);
+        SetType(TxType::CONTENT_POST);
     }
 
     Post::Post(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::CONTENT_POST);
+        SetType(TxType::CONTENT_POST);
     }
 
     shared_ptr<UniValue> Post::Serialize() const
@@ -27,12 +27,8 @@ namespace PocketTx
         // For olf protocol edited content
         // txid     - original content hash
         // txidEdit - actual transaction hash
-        if (*GetRootTxHash() == *GetHash())
-        {
-            result->pushKV("txid", *GetHash());
             result->pushKV("txidEdit", "");
-        }
-        else
+        if (*GetRootTxHash() != *GetHash())
         {
             result->pushKV("txid", *GetRootTxHash());
             result->pushKV("txidEdit", *GetHash());
@@ -78,12 +74,10 @@ namespace PocketTx
 
     void Post::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
-        if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
         if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
 
         SetRootTxHash(*GetHash());
-        if (auto[ok, val] = TryGetStr(src, "id"); ok)
+        if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok)
             SetRootTxHash(val);
 
         GeneratePayload();
@@ -134,15 +128,15 @@ namespace PocketTx
     shared_ptr<string> Post::GetPayloadImages() const { return GetPayload() ? GetPayload()->GetString5() : nullptr; }
     shared_ptr<string> Post::GetPayloadSettings() const { return GetPayload() ? GetPayload()->GetString6() : nullptr; }
 
-    void Post::BuildHash()
+    string Post::BuildHash()
     {
         std::string data;
 
-        data += m_payload->GetString7() ? *m_payload->GetString7() : "";
-        data += m_payload->GetString2() ? *m_payload->GetString2() : "";
-        data += m_payload->GetString3() ? *m_payload->GetString3() : "";
+        data += m_payload && m_payload->GetString7() ? *m_payload->GetString7() : "";
+        data += m_payload && m_payload->GetString2() ? *m_payload->GetString2() : "";
+        data += m_payload && m_payload->GetString3() ? *m_payload->GetString3() : "";
 
-        if (m_payload->GetString4() && !(*m_payload->GetString4()).empty())
+        if (m_payload && m_payload->GetString4() && !(*m_payload->GetString4()).empty())
         {
             UniValue tags(UniValue::VARR);
             tags.read(*m_payload->GetString4());
@@ -153,7 +147,7 @@ namespace PocketTx
             }
         }
 
-        if (m_payload->GetString5() && !(*m_payload->GetString5()).empty())
+        if (m_payload && m_payload->GetString5() && !(*m_payload->GetString5()).empty())
         {
             UniValue images(UniValue::VARR);
             images.read(*m_payload->GetString5());
@@ -169,6 +163,6 @@ namespace PocketTx
 
         data += GetRelayTxHash() ? *GetRelayTxHash() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 } // namespace PocketTx

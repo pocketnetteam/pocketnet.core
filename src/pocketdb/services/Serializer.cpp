@@ -74,7 +74,7 @@ namespace PocketServices
 
     shared_ptr <Transaction> Serializer::buildInstance(const CTransactionRef& tx, const UniValue& src)
     {
-        PocketTxType txType;
+        TxType txType;
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
             return nullptr;
 
@@ -110,7 +110,7 @@ namespace PocketServices
 
     shared_ptr <Transaction> Serializer::buildInstanceRpc(const CTransactionRef& tx, const UniValue& src)
     {
-        PocketTxType txType;
+        TxType txType;
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
             return nullptr;
 
@@ -199,7 +199,7 @@ namespace PocketServices
                 pocketBlock.push_back(ptx);
         }
 
-        // TODO (brangr): check deserialize success
+        // TODO (brangr): check deserialize success ?
         //bool resultCheck = pocketBlock.size() == (block.vtx.size() - 1);
         return {true, pocketBlock};
     }

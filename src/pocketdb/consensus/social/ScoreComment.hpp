@@ -56,10 +56,9 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_NotFound};
 
             // Scores to deleted comments not allowed
-            if (*lastContent->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
+            if (*lastContent->GetType() == TxType::CONTENT_COMMENT_DELETE)
             {
-                PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NotFound))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NotFound))
                     return {false, SocialConsensusResult_NotFound};
             }
 
@@ -90,8 +89,9 @@ namespace PocketConsensus
             if (value != 1 && value != -1)
                 return {false, SocialConsensusResult_Failed};
 
-            // TODO (brangr): DEBUG!
-            // по сути нужно пробрасывать хэш из транзакции всегда
+            // TODO (brangr): сверить адрес и значение лайка с данными в транзакции
+            // + добавить чекпойнт с принудительным включением проверки данные по автору поста и значению лайка
+            
             // Check OP_RETURN with Payload
             //if (IsEmpty(ptx->GetOPRAddress()) || *ptx->GetOPRAddress() != *ptx->GetAddress())
             //    LogPrintf("000 CHECKPOINT 11 %s\n", *ptx->GetHash());

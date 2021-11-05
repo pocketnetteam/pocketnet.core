@@ -67,7 +67,7 @@ namespace PocketDb
                     p.String5 pString5,
                     p.String6 pString6,
                     p.String7 pString7
-                FROM Transactions t indexed by Transactions_Type_Last_String1_Height
+                FROM Transactions t indexed by Transactions_Type_Last_String1_Height_Id
                 LEFT JOIN Payload p on t.Hash = p.TxHash
                 WHERE t.Type in (100, 101, 102)
                     and t.String1 = ?
@@ -117,7 +117,7 @@ namespace PocketDb
                     p.String7 pString7
                 FROM Transactions t indexed by Transactions_Type_Last_String2_Height
                 LEFT JOIN Payload p on t.Hash = p.TxHash
-                WHERE t.Type in (200, 201, 202, 203, 204, 205, 206)
+                WHERE t.Type in (200, 201, 202, 203, 204, 205, 206, 207)
                     and t.String2 = ?
                     and t.Last = 1
                     and t.Height is not null
@@ -145,9 +145,9 @@ namespace PocketDb
 
         // Build sql string
         string sql = R"sql(
-            SELECT count(distinct(String1))
-            FROM Transactions
-            WHERE Type in (100, 101, 102)
+            select count(distinct(String1))
+            from Transactions
+            where Type in (100, 101, 102)
               and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
               )sql" + (mempool ? "" : " and Height is not null ") + R"sql(
         )sql";
@@ -170,10 +170,10 @@ namespace PocketDb
         return result;
     }
 
-    tuple<bool, PocketTxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
+    tuple<bool, TxType> ConsensusRepository::GetLastBlockingType(const string& address, const string& addressTo)
     {
         bool blockingExists = false;
-        PocketTxType blockingType = PocketTxType::NOT_SUPPORTED;
+        TxType blockingType = TxType::NOT_SUPPORTED;
 
         TryTransactionStep(__func__, [&]()
         {
@@ -195,7 +195,7 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                 {
                     blockingExists = true;
-                    blockingType = (PocketTxType) value;
+                    blockingType = (TxType) value;
                 }
             }
 
@@ -205,11 +205,11 @@ namespace PocketDb
         return {blockingExists, blockingType};
     }
 
-    tuple<bool, PocketTxType> ConsensusRepository::GetLastSubscribeType(const string& address,
+    tuple<bool, TxType> ConsensusRepository::GetLastSubscribeType(const string& address,
         const string& addressTo)
     {
         bool subscribeExists = false;
-        PocketTxType subscribeType = PocketTxType::NOT_SUPPORTED;
+        TxType subscribeType = TxType::NOT_SUPPORTED;
 
         TryTransactionStep(__func__, [&]()
         {
@@ -231,7 +231,7 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                 {
                     subscribeExists = true;
-                    subscribeType = (PocketTxType) value;
+                    subscribeType = (TxType) value;
                 }
             }
 
@@ -299,16 +299,16 @@ namespace PocketDb
 
 
     bool ConsensusRepository::ExistsScore(const string& address, const string& contentHash,
-        PocketTxType type, bool mempool)
+        TxType type, bool mempool)
     {
         bool result = false;
 
         string sql = R"sql(
-            SELECT count(*)
-            FROM Transactions
-            WHERE   String1 = ?
-                and String2 = ?
-                and Type = ?
+            select count(*)
+            from Transactions
+            where String1 = ?
+              and String2 = ?
+              and Type = ?
         )sql";
 
         if (!mempool)
@@ -439,8 +439,37 @@ namespace PocketDb
         return result;
     }
 
+    int64_t ConsensusRepository::GetAccountRegistrationTime(int addressId)
+    {
+        int64_t result = 0;
+
+        string sql = R"sql(
+            select Time
+            from Transactions indexed by Transactions_Id
+            where Type in (100)
+              and Height is not null
+              and Id = ?
+            order by Height asc
+            limit 1
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementInt(stmt, 1, addressId);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     // Selects for get models data
-    shared_ptr<ScoreDataDto> ConsensusRepository::GetScoreData(const string& txHash)
+    ScoreDataDtoRef ConsensusRepository::GetScoreData(const string& txHash)
     {
         shared_ptr<ScoreDataDto> result = nullptr;
 
@@ -460,11 +489,11 @@ namespace PocketDb
                 ca.String1 caHash
             from Transactions s
                 -- Score Address
-                join Transactions sa on sa.Type in (100, 101, 102) and sa.Height is not null and sa.String1=s.String1
+                join Transactions sa on sa.Type in (100, 101, 102) and sa.Height is not null and sa.String1 = s.String1 and sa.Last = 1
                 -- Content
-                join Transactions c on c.Type in (200, 201, 202, 203, 204, 205, 206) and c.Height is not null and c.Hash=s.String2
+                join Transactions c on c.Type in (200, 201, 202, 203, 204, 205, 206) and c.Height is not null and c.Hash = s.String2
                 -- Content Address
-                join Transactions ca on ca.Type in (100, 101, 102) and ca.Height is not null and ca.String1=c.String1
+                join Transactions ca on ca.Type in (100, 101, 102) and ca.Height is not null and ca.String1=c.String1 and ca.Last = 1
             where s.Hash = ?
         )sql";
 
@@ -478,14 +507,14 @@ namespace PocketDb
                 ScoreDataDto data;
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) data.ScoreTxHash = value;
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) data.ScoreType = (PocketTxType) value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) data.ScoreType = (TxType) value;
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) data.ScoreTime = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) data.ScoreValue = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) data.ScoreAddressId = value;
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) data.ScoreAddressHash = value;
 
                 if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) data.ContentTxHash = value;
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) data.ContentType = (PocketTxType) value;
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) data.ContentType = (TxType) value;
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) data.ContentTime = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) data.ContentId = value;
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) data.ContentAddressId = value;
@@ -546,9 +575,10 @@ namespace PocketDb
     }
 
     // Select referrer for one account
-    shared_ptr<string> ConsensusRepository::GetReferrer(const string& address)
+    tuple<bool, string> ConsensusRepository::GetReferrer(const string& address)
     {
-        shared_ptr<string> result;
+        bool result = false;
+        string referrer;
 
         string sql = R"sql(
             select String2
@@ -568,46 +598,16 @@ namespace PocketDb
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
-                    result = make_shared<string>(value);
+                {
+                    result = true;
+                    referrer = value;
+                }
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        return result;
-    }
-
-    shared_ptr<string> ConsensusRepository::GetReferrer(const string& address, int64_t minTime)
-    {
-        shared_ptr<string> result;
-
-        string sql = R"sql(
-            select String2
-            from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-            where Type in (100)
-              and Height is not null
-              and Time >= ?
-              and String1 = ?
-            order by Height asc
-            limit 1
-        )sql";
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementInt64(stmt, 1, minTime);
-            TryBindStatementText(stmt, 2, address);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok && !value.empty())
-                    result = make_shared<string>(value);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
+        return {result, referrer};
     }
 
     int ConsensusRepository::GetUserLikersCount(int addressId)
@@ -704,7 +704,7 @@ namespace PocketDb
         // Build sql string
         string sql = R"sql(
             select count(1)
-            from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions s indexed by Transactions_Type_String1_String2_Height
                 on  s.String2 = c.String2
                 and s.Type in (301)
@@ -715,6 +715,7 @@ namespace PocketDb
                 and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
                 and s.Hash != ?
             where c.Type in (204, 205, 206)
+              and c.Height is not null
               and c.String1 = ?
               and c.Last = 1
         )sql";
@@ -1393,7 +1394,7 @@ namespace PocketDb
         return result;
     }
 
-    int ConsensusRepository::CountChainAccount(PocketTxType txType, const string& address, int height)
+    int ConsensusRepository::CountChainAccount(TxType txType, const string& address, int height)
     {
         int result = 0;
 

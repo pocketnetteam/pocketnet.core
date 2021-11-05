@@ -23,29 +23,34 @@ namespace PocketConsensus
     ComplainConsensusFactory SocialConsensusHelper::m_complainFactory;
     ContentDeleteConsensusFactory SocialConsensusHelper::m_contentDeleteFactory;
 
-    bool SocialConsensusHelper::Validate(const PocketBlockRef& block, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PocketBlockRef& block, int height)
     {
         for (const auto& ptx : *block)
         {
+            // Not double validate for already in DB
             if (auto[ok, result] = validate(ptx, block, height); !ok)
-                return false;
+                return {ok, result};
         }
 
-        return true;
+        return {true, SocialConsensusResult_Success};
     }
 
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& tx, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& ptx, int height)
     {
-        return validate(tx, nullptr, height);
+        // Not double validate for already in DB
+        if (TransRepoInst.Exists(*ptx->GetHash()))
+            return {true, SocialConsensusResult_Success};
+
+        return validate(ptx, nullptr, height);
     }
 
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& tx, PocketBlockRef& block, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& ptx, PocketBlockRef& block, int height)
     {
-        return validate(tx, block, height);
+        return validate(ptx, block, height);
     }
 
     // Проверяет блок транзакций без привязки к цепи
-    bool SocialConsensusHelper::Check(const CBlock& block, const PocketBlockRef& pBlock)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Check(const CBlock& block, const PocketBlockRef& pBlock)
     {
         auto coinstakeBlock = find_if(block.vtx.begin(), block.vtx.end(), [&](CTransactionRef const& tx)
         {
@@ -56,39 +61,48 @@ namespace PocketConsensus
         {
             // NOT_SUPPORTED transactions not checked
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
-            if (txType == PocketTxType::NOT_SUPPORTED)
+            if (txType == TxType::NOT_SUPPORTED)
                 continue;
-            if (coinstakeBlock && txType == PocketTxType::TX_COINBASE)
+            if (coinstakeBlock && txType == TxType::TX_COINBASE)
                 continue;
 
             // Maybe payload not exists?
             auto txHash = tx->GetHash().GetHex();
             auto it = find_if(pBlock->begin(), pBlock->end(), [&](PTransactionRef const& ptx) { return *ptx == txHash; });
             if (it == pBlock->end())
-                return false;
+            {
+                LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus check transaction with type:%d failed with result %d for transaction %s\n",
+                    (int)txType, (int)SocialConsensusResult_PocketDataNotFound, tx->GetHash().GetHex());
+
+                return {false, SocialConsensusResult_PocketDataNotFound};
+            }
 
             // Check founded payload
             if (auto[ok, result] = check(tx, *it); !ok)
-                return false;
+                return {false, result};
         }
 
-        return true;
+        return {true, SocialConsensusResult_Success};
     }
 
     // Проверяет транзакцию без привязки к цепи
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Check(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
+        // Not double check for already in DB
+        if (TransRepoInst.Exists(*ptx->GetHash()))
+            return {true, SocialConsensusResult_Success};
+
         return check(tx, ptx);
     }
 
+    // -----------------------------------------------------------------
+
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::check(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
-        // TODO (brangr): implement base check for base transactions
-        // check outputs maybe?
-
         if (!isConsensusable(*ptx->GetType()))
             return {true, SocialConsensusResult_Success};
 
+        // Check transactions with consensus logic
         tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
@@ -152,8 +166,8 @@ namespace PocketConsensus
 
         if (auto[ok, code] = result; !ok)
         {
-            LogPrintf("Warning: SocialConsensus %d check failed with result %d for transaction %s\n",
-                *ptx->GetTypeInt(), (int) code, *ptx->GetHash());
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d check transaction failed with result %d for transaction %s\n",
+                (int)*ptx->GetType(), (int) code, *ptx->GetHash());
 
             return {false, code};
         }
@@ -161,24 +175,12 @@ namespace PocketConsensus
         return {true, SocialConsensusResult_Success};
     }
 
-    bool SocialConsensusHelper::isConsensusable(PocketTxType txType)
-    {
-        switch (txType)
-        {
-            case TX_COINBASE:
-            case TX_COINSTAKE:
-            case TX_DEFAULT:
-                return false;
-            default:
-                return true;
-        }
-    }
-
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::validate(const PTransactionRef& ptx, const PocketBlockRef& block, int height)
     {
         if (!isConsensusable(*ptx->GetType()))
             return {true, SocialConsensusResult_Success};
 
+        // Validate transactions with consensus logic
         tuple<bool, SocialConsensusResult> result;
         switch (*ptx->GetType())
         {
@@ -242,12 +244,26 @@ namespace PocketConsensus
 
         if (auto[ok, code] = result; !ok)
         {
-            LogPrintf("Warning: SocialConsensus %d validate failed with result %d for transaction %s with block at height %d\n",
-                *ptx->GetTypeInt(), (int) code, *ptx->GetHash(), height);
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d validate failed with result %d for transaction %s at height:%d\n",
+                (int)*ptx->GetType(), (int) code, *ptx->GetHash(), height);
 
             return {false, code};
         }
 
         return {true, SocialConsensusResult_Success};
     }
+
+    bool SocialConsensusHelper::isConsensusable(TxType txType)
+    {
+        switch (txType)
+        {
+            case TX_COINBASE:
+            case TX_COINSTAKE:
+            case TX_DEFAULT:
+                return false;
+            default:
+                return true;
+        }
+    }
+
 }

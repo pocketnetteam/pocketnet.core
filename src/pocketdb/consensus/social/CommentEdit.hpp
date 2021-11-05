@@ -30,7 +30,7 @@ namespace PocketConsensus
 
             // Actual comment not deleted
             if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
-                !ok || *actuallTx->GetType() == PocketTxType::CONTENT_COMMENT_DELETE)
+                !ok || *actuallTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
                 return {false, SocialConsensusResult_CommentDeletedEdit};
 
             // Original comment exists
@@ -49,7 +49,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_InvalidParentComment};
 
                 if (!IsEmpty(originalPtx->GetParentTxHash()))
-                    if (!PocketDb::TransRepoInst.ExistsByHash(origParentTxHash))
+                    if (!PocketDb::TransRepoInst.ExistsInChain(origParentTxHash))
                         return {false, SocialConsensusResult_InvalidParentComment};
             }
 

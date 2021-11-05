@@ -9,12 +9,12 @@ namespace PocketTx
 {
     BlockingCancel::BlockingCancel() : Blocking()
     {
-        SetType(PocketTxType::ACTION_BLOCKING_CANCEL);
+        SetType(TxType::ACTION_BLOCKING_CANCEL);
     }
 
     BlockingCancel::BlockingCancel(const std::shared_ptr<const CTransaction>& tx) : Blocking(tx)
     {
-        SetType(PocketTxType::ACTION_BLOCKING_CANCEL);
+        SetType(TxType::ACTION_BLOCKING_CANCEL);
     }
 
     shared_ptr <UniValue> BlockingCancel::Serialize() const

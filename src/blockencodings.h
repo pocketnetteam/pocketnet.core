@@ -100,6 +100,7 @@ public:
     static constexpr int SHORTTXIDS_LENGTH = 6;
 
     CBlockHeader header;
+    std::vector<unsigned char> vchBlockSig;
 
     // Dummy for deserialization
     CBlockHeaderAndShortTxIDs() {}
@@ -119,6 +120,7 @@ public:
             }
             obj.FillShortTxIDSelector();
         }
+        READWRITE(obj.vchBlockSig);
     }
 };
 
@@ -129,6 +131,7 @@ protected:
     const CTxMemPool* pool;
 public:
     CBlockHeader header;
+    std::vector<unsigned char> vchBlockSig;
     explicit PartiallyDownloadedBlock(CTxMemPool* poolIn) : pool(poolIn) {}
 
     // extra_txn is a list of extra transactions to look at, in <witness hash, reference> form

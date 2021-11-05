@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_PRIMITIVES_BLOCK_H
-#define BITCOIN_PRIMITIVES_BLOCK_H
+#ifndef POCKETCOIN_PRIMITIVES_BLOCK_H
+#define POCKETCOIN_PRIMITIVES_BLOCK_H
 
 #include <primitives/transaction.h>
 #include <serialize.h>
@@ -94,22 +94,23 @@ public:
     {
         READWRITEAS(CBlockHeader, obj);
         READWRITE(obj.vtx);
+        READWRITE(obj.vchBlockSig);
     }
 
     void SetNull()
     {
         CBlockHeader::SetNull();
         vtx.clear();
-        vchBlockSig.clear(); // Pocketcoin addition
+        vchBlockSig.clear();
         fChecked = false;
     }
 
-    bool IsProofOfStake() const // Pocketcoin addition
+    bool IsProofOfStake() const
     {
         return (vtx.size() > 1 && vtx[1]->IsCoinStake());
     }
 
-    bool IsProofOfWork() const // Pocketcoin addition
+    bool IsProofOfWork() const
     {
         return !IsProofOfStake();
     }
@@ -160,4 +161,4 @@ struct CBlockLocator
     }
 };
 
-#endif // BITCOIN_PRIMITIVES_BLOCK_H
+#endif // POCKETCOIN_PRIMITIVES_BLOCK_H

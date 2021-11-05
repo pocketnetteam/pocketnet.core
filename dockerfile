@@ -3,9 +3,9 @@ FROM ubuntu:20.04
 ENV POCKETCORE_HOME=/home/pocketcore
 ENV POCKETCOIN_DATA=${POCKETCORE_HOME}/.pocketcoin
 
-EXPOSE 37070 37071 37072
+EXPOSE 37070 37071 38081 8087 36060 36061 39091 39092 6067
 
-RUN groupadd --gid 10000 pocketcore && useradd --uid 10000 --gid pocketcore --shell /bin/bash --create-home pocketcore
+RUN groupadd --gid 1000 pocketcore && useradd --uid 1000 --gid pocketcore --shell /bin/bash --create-home pocketcore
 RUN apt-get update -y && apt-get install -y sqlite3
 
 RUN mkdir -p ${POCKETCOIN_DATA}

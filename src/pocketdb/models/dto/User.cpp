@@ -9,12 +9,12 @@ namespace PocketTx
 {
     User::User() : Transaction()
     {
-        SetType(PocketTxType::ACCOUNT_USER);
+        SetType(TxType::ACCOUNT_USER);
     }
 
     User::User(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::ACCOUNT_USER);
+        SetType(TxType::ACCOUNT_USER);
     }
 
     shared_ptr <UniValue> User::Serialize() const
@@ -49,7 +49,6 @@ namespace PocketTx
 
     void User::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "r"); ok) SetReferrerAddress(val);
 
         GeneratePayload();
@@ -91,20 +90,41 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "donations"); ok) m_payload->SetString7(val);
     }
 
-    void User::BuildHash()
+    string User::BuildHash()
+    {
+        return BuildHash(true);
+    }
+
+    string User::BuildHash(bool includeReferrer)
     {
         std::string data;
 
-        data += m_payload->GetString2() ? *m_payload->GetString2() : "";
-        data += m_payload->GetString5() ? *m_payload->GetString5() : "";
-        data += m_payload->GetString1() ? *m_payload->GetString1() : "";
-        data += m_payload->GetString4() ? *m_payload->GetString4() : "";
-        data += m_payload->GetString3() ? *m_payload->GetString3() : "";
-        data += m_payload->GetString7() ? *m_payload->GetString7() : "";
-        data += GetReferrerAddress() ? *GetReferrerAddress() : "";
-        data += m_payload->GetString6() ? *m_payload->GetString6() : "";
+        data += m_payload && m_payload->GetString2() ? *m_payload->GetString2() : "";
+        data += m_payload && m_payload->GetString5() ? *m_payload->GetString5() : "";
+        data += m_payload && m_payload->GetString1() ? *m_payload->GetString1() : "";
+        data += m_payload && m_payload->GetString4() ? *m_payload->GetString4() : "";
+        data += m_payload && m_payload->GetString3() ? *m_payload->GetString3() : "";
+        data += m_payload && m_payload->GetString7() ? *m_payload->GetString7() : "";
+        data += includeReferrer && GetReferrerAddress() ? *GetReferrerAddress() : "";
+        data += m_payload && m_payload->GetString6() ? *m_payload->GetString6() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
+    }
+
+    string User::PreBuildHash()
+    {
+        std::string data;
+
+        data += m_payload && m_payload->GetString2() ? *m_payload->GetString2() : "";
+        data += m_payload && m_payload->GetString5() ? *m_payload->GetString5() : "";
+        data += m_payload && m_payload->GetString1() ? *m_payload->GetString1() : "";
+        data += m_payload && m_payload->GetString4() ? *m_payload->GetString4() : "";
+        data += m_payload && m_payload->GetString3() ? *m_payload->GetString3() : "";
+        data += m_payload && m_payload->GetString7() ? *m_payload->GetString7() : "";
+        data += GetReferrerAddress() ? *GetReferrerAddress() : "";
+        data += m_payload && m_payload->GetString6() ? *m_payload->GetString6() : "";
+
+        return data;
     }
 
 } // namespace PocketTx

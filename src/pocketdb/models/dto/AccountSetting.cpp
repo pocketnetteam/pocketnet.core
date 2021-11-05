@@ -9,12 +9,12 @@ namespace PocketTx
 {
     AccountSetting::AccountSetting() : Transaction()
     {
-        SetType(PocketTxType::ACCOUNT_SETTING);
+        SetType(TxType::ACCOUNT_SETTING);
     }
 
     AccountSetting::AccountSetting(const CTransactionRef& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::ACCOUNT_SETTING);
+        SetType(TxType::ACCOUNT_SETTING);
     }
 
     
@@ -48,19 +48,19 @@ namespace PocketTx
 
     void AccountSetting::DeserializeRpc(const UniValue& src, const CTransactionRef& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
-
         GeneratePayload();
         if (auto[ok, val] = TryGetStr(src, "d"); ok) m_payload->SetString1(val);
     }
 
-    void AccountSetting::BuildHash()
+    
+
+    string AccountSetting::BuildHash()
     {
         std::string data;
 
-        data += m_payload->GetString1() ? *m_payload->GetString1() : "";
+        data += m_payload && m_payload->GetString1() ? *m_payload->GetString1() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 
 } // namespace PocketTx

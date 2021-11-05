@@ -74,13 +74,11 @@ Build requirements:
 
 BerkeleyDB is required for the wallet.
 
-**For Ubuntu only:** db4.8 packages are available [here](https://launchpad.net/~pocketcoin/+archive/pocketcoin).
-You can add the repository and install using the following commands:
+**For Ubuntu only:** db4.8 packages are not available for Ubuntu. It is recommended to use Berkeley DB 4.8 for wallet compatibility. [The installation script included in contrib/](/contrib/install_db4.sh) folder of the root repository. To download and build it run:
 
-    sudo apt-get install software-properties-common
-    sudo add-apt-repository ppa:pocketcoin/pocketcoin
-    sudo apt-get update
-    sudo apt-get install libdb4.8-dev libdb4.8++-dev
+    ./contrib/install_db4.sh `pwd`
+
+from the root of the repository.
 
 Ubuntu and Debian have their own libdb-dev and libdb++-dev packages, but these will install
 BerkeleyDB 5.1 or later, which break binary wallet compatibility with the distributed executables which

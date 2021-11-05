@@ -1,5 +1,5 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -190,7 +190,8 @@ static RPCHelpMan getrawtransaction()
     }
 
     bool f_txindex_ready = false;
-    if (g_txindex && !blockindex) {
+    if (g_txindex && !blockindex)
+    {
         f_txindex_ready = g_txindex->BlockUntilSyncedToCurrentChain();
     }
 
@@ -377,8 +378,10 @@ static RPCHelpMan verifytxoutproof()
     }
 
     // Check if proof is valid, only add results if so
-    if (pindex->nTx == merkleBlock.txn.GetNumTransactions()) {
-        for (const uint256& hash : vMatch) {
+    if (pindex->nTx == merkleBlock.txn.GetNumTransactions())
+    {
+        for (const uint256& hash : vMatch)
+        {
             res.push_back(hash.GetHex());
         }
     }
@@ -630,7 +633,7 @@ static RPCHelpMan decodescript()
             // If the script contains an uncompressed pubkey, skip encoding of a segwit program.
             if ((which_type == TxoutType::PUBKEY) || (which_type == TxoutType::MULTISIG))
             {
-                for (const auto& solution : solutions_data) 
+                for (const auto& solution : solutions_data)
                 {
                     if ((solution.size() != 1) && !CPubKey(solution).IsCompressed())
                     {
@@ -861,66 +864,7 @@ static RPCHelpMan signrawtransactionwithkey()
     };
 }
 
-static RPCHelpMan sendrawtransaction()
-{
-    return RPCHelpMan{"sendrawtransaction",
-                "\nSubmit a raw transaction (serialized, hex-encoded) to local node and network.\n"
-                "\nNote that the transaction will be sent unconditionally to all peers, so using this\n"
-                "for manual rebroadcast may degrade privacy by leaking the transaction's origin, as\n"
-                "nodes will normally not rebroadcast non-wallet transactions already in their mempool.\n"
-                "\nAlso see createrawtransaction and signrawtransactionwithkey calls.\n",
-                {
-                    {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"},
-                    {"maxfeerate", RPCArg::Type::AMOUNT, /* default */ FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK()),
-                        "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
-                            "/kB.\nSet to 0 to accept any fee rate.\n"},
-                },
-                RPCResult{
-                    RPCResult::Type::STR_HEX, "", "The transaction hash in hex"
-                },
-                RPCExamples{
-            "\nCreate a transaction\n"
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"vout\\\":0}]\" \"{\\\"myaddress\\\":0.01}\"") +
-            "Sign the transaction, and get back the hex\n"
-            + HelpExampleCli("signrawtransactionwithwallet", "\"myhex\"") +
-            "\nSend the transaction (signed hex)\n"
-            + HelpExampleCli("sendrawtransaction", "\"signedhex\"") +
-            "\nAs a JSON-RPC call\n"
-            + HelpExampleRpc("sendrawtransaction", "\"signedhex\"")
-                },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-{
-    RPCTypeCheck(request.params, {
-        UniValue::VSTR,
-        UniValueType(), // VNUM or VSTR, checked inside AmountFromValue()
-    });
-
-    CMutableTransaction mtx;
-    if (!DecodeHexTx(mtx, request.params[0].get_str()))
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
-    CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
-
-    const CFeeRate max_raw_tx_fee_rate = request.params[1].isNull() ?
-                                             DEFAULT_MAX_RAW_TX_FEE_RATE :
-                                             CFeeRate(AmountFromValue(request.params[1]));
-
-    int64_t virtual_size = GetVirtualTransactionSize(*tx);
-    CAmount max_raw_tx_fee = max_raw_tx_fee_rate.GetFee(virtual_size);
-
-    std::string err_string;
-    AssertLockNotHeld(cs_main);
-    NodeContext& node = EnsureNodeContext(request.context);
-    const TransactionError err = BroadcastTransaction(node, tx, err_string, max_raw_tx_fee, /*relay*/ true, /*wait_callback*/ true);
-    if (TransactionError::OK != err) {
-        throw JSONRPCTransactionError(err, err_string);
-    }
-
-    return tx->GetHash().GetHex();
-},
-    };
-}
-
-static RPCHelpMan testmempoolaccept()
+static UniValue testmempoolaccept(const JSONRPCRequest& request)
 {
     return RPCHelpMan{"testmempoolaccept",
                 "\nReturns result of mempool acceptance tests indicating if raw transaction (serialized, hex-encoded) would be accepted by mempool.\n"
@@ -954,7 +898,8 @@ static RPCHelpMan testmempoolaccept()
                 },
                 RPCExamples{
             "\nCreate a transaction\n"
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"vout\\\":0}]\" \"{\\\"myaddress\\\":0.01}\"") +
+            + HelpExampleCli("createrawtransaction",
+                "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"vout\\\":0}]\" \"{\\\"myaddress\\\":0.01}\"") +
             "Sign the transaction, and get back the hex\n"
             + HelpExampleCli("signrawtransactionwithwallet", "\"myhex\"") +
             "\nTest acceptance of the transaction (signed hex)\n"
@@ -1975,7 +1920,6 @@ static const CRPCCommand commands[] =
     {   "rawtransactions",    "createrawtransaction",                 &createrawtransaction,              {"inputs", "outputs", "locktime", "replaceable"}},
     {   "rawtransactions",    "decoderawtransaction",                 &decoderawtransaction,              {"hexstring", "iswitness"}},
     {   "rawtransactions",    "decodescript",                         &decodescript,                      {"hexstring"}},
-    {   "rawtransactions",    "sendrawtransaction",                   &sendrawtransaction,                {"hexstring", "maxfeerate"}},
     {   "rawtransactions",    "combinerawtransaction",                &combinerawtransaction,             {"txs"}},
     {   "rawtransactions",    "signrawtransactionwithkey",            &signrawtransactionwithkey,         {"hexstring", "privkeys", "prevtxs",  "sighashtype"}},
     {   "rawtransactions",    "testmempoolaccept",                    &testmempoolaccept,                 {"rawtxs", "maxfeerate"}},

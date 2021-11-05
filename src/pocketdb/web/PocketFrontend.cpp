@@ -100,8 +100,6 @@ namespace PocketWeb
 
     void PocketFrontend::CacheEmplace(const string& path, shared_ptr <StaticFile>& content)
     {
-        // TODO (brangr): check content cacheable
-
         LOCK(CacheMutex);
         if (Cache.find(path) == Cache.end())
         {

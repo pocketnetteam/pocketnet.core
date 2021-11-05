@@ -40,7 +40,7 @@
 #include <boost/thread.hpp>
 #include <univalue.h>
 
-#include "pocketdb/services/PostProcessing.h"
+#include "pocketdb/services/ChainPostProcessing.h"
 #include "pocketdb/services/Accessor.h"
 #include "pocketdb/consensus/Helper.h"
 
@@ -1088,17 +1088,20 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // At this point, we believe that all the checks have been carried 
         // out and we can safely save the transaction to the database for 
         // subsequent verification of the consensus and inclusion in the block.
-        if (!pocketTx && !PocketServices::Accessor::ExistsTransaction(tx))
+        if (!pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
             return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
-                
-        try
+        
+        if (pocketTx)
         {
-            PocketBlock pocketBlock{pocketTx};
-            PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
-        }
-        catch (const std::exception& e)
-        {
-            return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
+            try
+            {
+                PocketBlock pocketBlock{pocketTx};
+                PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+            }
+            catch (const std::exception& e)
+            {
+                return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
+            }
         }
 
         // Store transaction in memory
@@ -1113,8 +1116,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             {
                 return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "mempool full");
             }
-
-            // TODO (brangr) (v0.21.0): clear "mempool" transactions in sqlite db
         }
     }
 
@@ -2125,7 +2126,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             view.SetBestBlock(pindex->GetBlockHash());
 
             // Also indexing pocketdb
-            PocketServices::PostProcessing::Index(block, pindex->nHeight);
+            PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
         }
 
         return true;
@@ -2443,8 +2444,10 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     }
 
     // -----------------------------------------------------------------------------------------------------------------
+    auto skipValidation = gArgs.GetArg("-skip-validation", 0);
+
     // Checks PoS logic
-    if (  pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
+    if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
     {
         if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
         {
@@ -2456,18 +2459,17 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     {
         int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
         if (nStakeReward > nCalculatedStakeReward)
-        {
-            return state.DoS(100,
-                error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward,
-                    nCalculatedStakeReward));
-        }
+            return state.DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward));
 
         int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
-        // TODO (brangr): DEBUG!
         if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
         {
             LogPrintf("@@@ Checkpoint for %d %s\n", pindex->nHeight, block.GetHash().GetHex());
+
+            // TODO (brangr): shutdown for debug
+            StartShutdown();
+            return false;
             //return state.DoS(100, error("ConnectBlock() : incorrect rating rewards paid out"));
         }
     }
@@ -2482,16 +2484,24 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
 
     // -----------------------------------------------------------------------------------------------------------------
-    // TODO (brangr): DEBUG!
-    if (!PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight))
+    if (pindex->nHeight > skipValidation)
     {
-        LogPrintf("SocialConsensusHelper::Validate failed for height %d\n", pindex->nHeight);
-        //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight); !ok)
+        {
+            LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
+                (int)result, pindex->GetBlockHash().GetHex());
+
+            // TODO (team): We do not mark the block invalid for situations where the chain can be rebuilt.
+            // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
+            // we need to think about marking the block incomplete and requesting it from the network again.
+            return false;
+            //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
+        }
     }
 
     int64_t nTime5 = GetTimeMicros();
     nTimeVerify += nTime5 - nTime4;
-    LogPrint(BCLog::BENCH, "    - Pocket consensus: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+    LogPrint(BCLog::BENCH, "    - Consensus validation: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
         MILLI * (nTime5 - nTime4), nInputs <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (nInputs - 1), nTimeVerify * MICRO,
         nTimeVerify * MILLI / nBlocksTotal);
 
@@ -2504,7 +2514,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
     try
     {
-        PocketServices::PostProcessing::Index(block, pindex->nHeight);
+        PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
     }
     catch (const std::exception& e)
     {
@@ -2512,9 +2522,14 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         return false;
     }
 
+    // -----------------------------------------------------------------------------------------------------------------
+    // Extend WEB database
+    PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
+
+    // -----------------------------------------------------------------------------------------------------------------
     int64_t nTime6 = GetTimeMicros();
     nTimeVerify += nTime6 - nTime5;
-    LogPrint(BCLog::BENCH, "    - Sqlite index writing: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+    LogPrint(BCLog::BENCH, "    - SQLite indexing: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
         MILLI * (nTime6 - nTime5), nInputs <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (nInputs - 1), nTimeVerify * MICRO,
         nTimeVerify * MILLI / nBlocksTotal);
 
@@ -2809,7 +2824,7 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
 
-        if (!PocketServices::PostProcessing::Rollback(chainActive.Height()))
+        if (!PocketServices::ChainPostProcessing::Rollback(chainActive.Height()))
             return error("DisconnectTip(): DisconnectBlock (Pocketnet part) %s failed", pindexDelete->GetBlockHash().ToString());
 
         bool flushed = view.Flush();
@@ -3064,8 +3079,6 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 typedef std::map<std::string, std::string> custom_fields;
 void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
 {
-     // TODO (brangr): Implement send notifies
-     // <address, [messages]>
      std::map<std::string, std::vector<UniValue>> messages;
      uint256 _block_hash = block.GetHash();
      int sharesCnt = 0;
@@ -3074,7 +3087,6 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
      std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
 
      for (const auto& tx : block.vtx) {
-         // std::vector<std::pair<std::string, std::pair<int,int64_t>>> addrs;
          std::map<std::string, std::pair<int, int64_t>> addrs;
          int64_t txtime = tx->nTime;
          std::string txid = tx->GetHash().GetHex();
@@ -3146,7 +3158,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  {"amount", std::to_string(addr.second.second)},
              };
 
-             if (optype != "") cTrFields.emplace("type", optype);
+             if (!optype.empty()) cTrFields.emplace("type", optype);
              PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
              // Event for new PocketNET transaction
@@ -3187,7 +3199,6 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
              }
              else if (optype == "userInfo")
              {
-                 //TODO check if (_user_itm["time"].As<int64_t>() == _user_itm["regdate"].As<int64_t>())
                  auto response = PocketDb::NotifierRepoInst.GetUserReferrerAddress(txid);
                  if (response.exists("referrerAddress"))
                  {
@@ -4267,8 +4278,7 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
     // Check hardcoded checkpoints
     if (!valid)
     {
-        PocketHelpers::LotteryCheckpoints lotteryCheckpoints;
-        if (lotteryCheckpoints.IsCheckpoint(pindexPrev->nHeight + 1, block.GetHash().GetHex()))
+        if (CheckpointRepoInst.IsLotteryCheckpoint(pindexPrev->nHeight + 1, block.GetHash().GetHex()))
             valid = true;
     }
 
@@ -4814,8 +4824,8 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime2 = GetTimeMicros();
         nTimeVerify += nTime2 - nTime1;
         LogPrint(BCLog::BENCH, " -- Lock cs_main: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime2 - nTime1),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime2 - nTime1) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime2 - nTime1),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime2 - nTime1) / (double)(pocketBlock->size() - 1));
 
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
@@ -4824,19 +4834,22 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime3 = GetTimeMicros();
         nTimeVerify += nTime3 - nTime2;
         LogPrint(BCLog::BENCH, " -- Check block: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime3 - nTime2),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime3 - nTime2),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime3 - nTime2) / (double)(pocketBlock->size() - 1));
 
         // It is necessary to check that block and pocket Black contain an equal number of transactions
         // Also check pocket block with general pocketnet consensus rules
         if (ret)
-            ret = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock);
+        {
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock); !ok)
+                ret = false;
+        }
 
         int64_t nTime4 = GetTimeMicros();
         nTimeVerify += nTime4 - nTime3;
         LogPrint(BCLog::BENCH, " -- Social check block: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime4 - nTime3),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime4 - nTime3),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime4 - nTime3) / (double)(pocketBlock->size() - 1));
 
         // Store generic block to disk
         if (ret)
@@ -4845,8 +4858,8 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
         LogPrint(BCLog::BENCH, " -- Accept LeveDb: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime5 - nTime4),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime5 - nTime4),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime5 - nTime4) / (double)(pocketBlock->size() - 1));
 
         // Store pocketnet block to disk
         if (ret)
@@ -4866,8 +4879,8 @@ bool ProcessNewBlock(CValidationState& state,
         int64_t nTime6 = GetTimeMicros();
         nTimeVerify += nTime6 - nTime5;
         LogPrint(BCLog::BENCH, " -- Accept SQLite: %.2fms (%.3fms/txin)\n",
-            MILLI * (nTime6 - nTime5),
-            pocketBlock->size() <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (pocketBlock->size() - 1));
+            MILLI * (double)(nTime6 - nTime5),
+            pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime6 - nTime5) / (double)(pocketBlock->size() - 1));
 
         // Check FAILED
         if (!ret)
@@ -5458,8 +5471,6 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
             PocketBlockRef pocketBlock;
             if (!PocketServices::Accessor::GetBlock(block, pocketBlock))
             {
-                LogPrintf("\nWarning: found lost payload data (block: %s) - continue work from this height: %d\n",
-                    block.GetHash().GetHex(), pindex->nHeight);
                 return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s", pindex->nHeight,
                     pindex->GetBlockHash().ToString());
             }
@@ -5467,7 +5478,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
             if (pindex->nStatus & BLOCK_FAILED_MASK)
                 ResetBlockFailureFlags(pindex);
 
-            if (!PocketServices::PostProcessing::Rollback(pindex->nHeight))
+            if (!PocketServices::ChainPostProcessing::Rollback(pindex->nHeight))
                 return error("VerifyDB(): failed rollback sqlite database for %s block", pindex->GetBlockHash().ToString());
 
             if (!g_chainstate.ConnectBlock(block, pocketBlock, state, pindex, coins, chainparams))
@@ -6336,8 +6347,6 @@ bool LoadMempool()
         {
             mempool.PrioritiseTransaction(i.first, i.second);
         }
-
-        // TODO (brangr) (v0.21.0): clear sqlite "mempool" transactions
     }
     catch (const std::exception& e)
     {

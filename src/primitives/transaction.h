@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_PRIMITIVES_TRANSACTION_H
-#define BITCOIN_PRIMITIVES_TRANSACTION_H
+#ifndef POCKETCOIN_PRIMITIVES_TRANSACTION_H
+#define POCKETCOIN_PRIMITIVES_TRANSACTION_H
 
 #include <stdint.h>
 #include <amount.h>
@@ -220,7 +220,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s)
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s >> tx.nVersion;
-    s >> tx.nTime; // Pocketnet addition
+    s >> tx.nTime;
     unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();
@@ -268,7 +268,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s)
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s << tx.nVersion;
-    s << tx.nTime; // Pocketnet addition
+    s << tx.nTime;
     unsigned char flags = 0;
     // Consistency check
     if (fAllowWitness)
@@ -321,7 +321,7 @@ public:
     const std::vector<CTxIn> vin;
     const std::vector<CTxOut> vout;
     const int32_t nVersion;
-    const uint32_t nTime; // Pocketnet addition
+    const uint32_t nTime;
     const uint32_t nLockTime;
 
 private:
@@ -374,7 +374,7 @@ public:
         return (vin.size() == 1 && vin[0].prevout.IsNull());
     }
 
-    bool IsCoinStake() const // Pocketnet addition
+    bool IsCoinStake() const
     {
         return (vin.size() > 0 && (!vin[0].prevout.IsNull()) && vout.size() >= 2 && vout[0].IsEmptyOrWinners());
     }
@@ -410,7 +410,7 @@ struct CMutableTransaction
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
     int32_t nVersion;
-    uint32_t nTime; // Pocketnet addition
+    uint32_t nTime;
     uint32_t nLockTime;
 
     CMutableTransaction();
@@ -452,7 +452,7 @@ struct CMutableTransaction
         return false;
     }
 
-    void SetTime(uint32_t nTime) // Pocketnet addition
+    void SetTime(uint32_t nTime)
     {
         this->nTime = nTime;
     }

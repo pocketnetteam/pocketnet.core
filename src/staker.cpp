@@ -99,18 +99,14 @@ void Staker::run(CChainParams const& chainparams, boost::thread_group& threadGro
     }
 }
 
-void Staker::worker(
-    CChainParams const& chainparams, std::string const& walletName
-)
+void Staker::worker(CChainParams const& chainparams, std::string const& walletName)
 {
     LogPrintf("Staker thread started for %s\n", walletName);
 
     RenameThread("coin-staker");
 
     bool running = true;
-
     int nLastCoinStakeSearchInterval = 0;
-
     auto coinbaseScript = std::make_shared<CReserveScript>();
 
     auto wallet = GetWallet(walletName);
@@ -119,7 +115,6 @@ void Staker::worker(
 
     try
     {
-
         if (!coinbaseScript || coinbaseScript->reserveScript.empty())
             throw std::runtime_error("No coinbase script available (staking requires a wallet)");
 
@@ -160,9 +155,7 @@ void Staker::worker(
                 MilliSleep(1000);
             }
 
-            while (
-                chainparams.GetConsensus().nPosFirstBlock > chainActive.Tip()->nHeight
-                )
+            while (chainparams.GetConsensus().nPosFirstBlock > chainActive.Tip()->nHeight)
             {
                 MilliSleep(30000);
             }
@@ -174,15 +167,14 @@ void Staker::worker(
             );
 
             auto block = std::make_shared<CBlock>(blocktemplate->block);
-            auto pocketBlock = std::make_shared<PocketBlock>(blocktemplate->pocketBlock);
 
             if (signBlock(block, wallet, nFees))
             {
                 // Extend pocketBlock with coinStake transaction
                 if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
-                    pocketBlock->emplace_back(ptx);
+                    blocktemplate->pocketBlock->emplace_back(ptx);
 
-                CheckStake(block, pocketBlock, wallet, chainparams);
+                CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams);
                 MilliSleep(500);
             }
             else

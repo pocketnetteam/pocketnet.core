@@ -8,14 +8,15 @@ namespace PocketDb
 {
     SQLiteConnection::SQLiteConnection()
     {
-        SQLiteDbInst = make_shared<SQLiteDatabase>(false, true);
-        SQLiteDbInst->Init(
-            (GetDataDir() / "pocketdb").string(),
-            (GetDataDir() / "pocketdb" / "main.sqlite3").string()
-        );
+        auto dbBasePath = (GetDataDir() / "pocketdb").string();
 
-        WebRepoInst = make_shared<WebRepository>(*SQLiteDbInst);
+        SQLiteDbInst = make_shared<SQLiteDatabase>(true);
+        SQLiteDbInst->Init(dbBasePath, "main");
+        SQLiteDbInst->AttachDatabase("web");
+
+        WebRpcRepoInst = make_shared<WebRpcRepository>(*SQLiteDbInst);
         ExplorerRepoInst = make_shared<ExplorerRepository>(*SQLiteDbInst);
+        SearchRepoInst = make_shared<SearchRepository>(*SQLiteDbInst);
         TransactionRepoInst = make_shared<TransactionRepository>(*SQLiteDbInst);
     }
 
@@ -23,12 +24,15 @@ namespace PocketDb
     {
         SQLiteDbInst->m_connection_mutex.lock();
 
-        WebRepoInst->Destroy();
+        WebRpcRepoInst->Destroy();
         ExplorerRepoInst->Destroy();
+        SearchRepoInst->Destroy();
         TransactionRepoInst->Destroy();
 
-        SQLiteDbInst->m_connection_mutex.unlock();
+        SQLiteDbInst->DetachDatabase("web");
         SQLiteDbInst->Close();
+
+        SQLiteDbInst->m_connection_mutex.unlock();
     }
 
 

@@ -36,17 +36,17 @@ namespace PocketConsensus
     class SocialConsensusHelper
     {
     public:
-        static bool Validate(const PocketBlockRef& block, int height);
-        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, int height);
-        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& tx, PocketBlockRef& block, int height);
+        static tuple<bool, SocialConsensusResult> Validate(const PocketBlockRef& block, int height);
+        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& ptx, int height);
+        static tuple<bool, SocialConsensusResult> Validate(const PTransactionRef& ptx, PocketBlockRef& block, int height);
         // Проверяет блок транзакций без привязки к цепи
-        static bool Check(const CBlock& block, const PocketBlockRef& pBlock);
+        static tuple<bool, SocialConsensusResult> Check(const CBlock& block, const PocketBlockRef& pBlock);
         // Проверяет транзакцию без привязки к цепи
         static tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PTransactionRef& ptx);
     protected:
         static tuple<bool, SocialConsensusResult> validate(const PTransactionRef& ptx, const PocketBlockRef& block, int height);
         static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx);
-        static bool isConsensusable(PocketTxType txType);
+        static bool isConsensusable(TxType txType);
     private:
         static PostConsensusFactory m_postFactory;
         static UserConsensusFactory m_userFactory;

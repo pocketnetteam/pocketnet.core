@@ -11,6 +11,7 @@
 #include <util.h>
 
 #include "pocketdb/services/Accessor.h"
+#include "pocketdb/services/WebPostProcessing.h"
 #include "statistic.hpp"
 extern Statistic::RequestStatEngine gStatEngineInstance;
 

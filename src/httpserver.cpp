@@ -14,13 +14,6 @@
 #include <cstdlib>
 #include <deque>
 #include <future>
-#include <event2/thread.h>
-#include <event2/buffer.h>
-#include <event2/bufferevent.h>
-#include <event2/util.h>
-#include <event2/keyvalq_struct.h>
-#include <support/events.h>
-#include "init.h"
 #include <rpc/register.h>
 #include <walletinitinterface.h>
 
@@ -37,49 +30,6 @@
 
 /** Maximum size of http request (request line + headers) */
 static const size_t MAX_HEADERS_SIZE = 8192;
-
-/** HTTP request work item */
-class HTTPWorkItem final : public HTTPClosure
-{
-public:
-    HTTPWorkItem(std::unique_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
-        req(std::move(_req)), path(_path), func(_func)
-    {
-    }
-    void operator()(DbConnectionRef& dbConnection) override
-    {
-        auto log = g_logger->WillLogCategory(BCLog::STAT);
-        auto jreq = req.get();
-        jreq->SetDbConnection(dbConnection);
-
-        auto uri = jreq->GetURI();
-        auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
-
-        auto start = gStatEngineInstance.GetCurrentSystemTime();
-        func(jreq, path);
-        auto stop = gStatEngineInstance.GetCurrentSystemTime();
-
-        if (log)
-        {
-            gStatEngineInstance.AddSample(
-                Statistic::RequestSample{
-                    uri,
-                    start,
-                    stop,
-                    peer,
-                    0,
-                    0
-                }
-            );
-        }
-    }
-
-    std::unique_ptr<HTTPRequest> req;
-
-private:
-    std::string path;
-    HTTPRequestHandler func;
-};
 
 /** Simple work queue for distributing work over multiple threads.
  * Work items are simply callable objects.
@@ -155,14 +105,16 @@ public:
 
 struct HTTPPathHandler
 {
-    HTTPPathHandler() {}
-    HTTPPathHandler(std::string _prefix, bool _exactMatch, HTTPRequestHandler _handler) :
-        prefix(_prefix), exactMatch(_exactMatch), handler(_handler)
+    HTTPPathHandler(std::string _prefix, bool _exactMatch, HTTPRequestHandler _handler,
+                    WorkQueue<HTTPClosure>* _queue) :
+        prefix(_prefix), exactMatch(_exactMatch), handler(_handler), queue(_queue)
     {
     }
+
     std::string prefix;
     bool exactMatch;
     HTTPRequestHandler handler;
+    WorkQueue<HTTPClosure>* queue;
 };
 
 /** HTTP module state */
@@ -176,7 +128,7 @@ static std::vector<CSubNet> rpc_allow_subnets;
 
 //! HTTP socket objects to handle requests on different routes
 HTTPSocket *g_socket;
-HTTPSocket *g_pubSocket;
+HTTPWebSocket *g_webSocket;
 HTTPSocket *g_staticSocket;
 HTTPSocket *g_restSocket;
 
@@ -319,9 +271,10 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     {
         std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
 
-        assert(httpSock->m_workQueue);
-        if (httpSock->m_workQueue->Enqueue(item.get()))
+        if (i->queue->Enqueue(item.get()))
+        {
             item.release();
+        }
         else
         {
             LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue depth exceeded.\n");
@@ -360,47 +313,58 @@ static bool HTTPBindAddresses()
     int publicPort = gArgs.GetArg("-publicrpcport", BaseParams().PublicRPCPort());
     int staticPort = gArgs.GetArg("-staticrpcport", BaseParams().StaticRPCPort());
     int restPort = gArgs.GetArg("-restport", BaseParams().RestPort());
+    int bindAddresses = 0;
 
     // Determine what addresses to bind to
-    if (!gArgs.IsArgSet("-rpcallowip"))
-    { // Default to loopback if not allowing external IPs
-        g_socket->BindAddress("::1", securePort);
-        g_socket->BindAddress("127.0.0.1", securePort);
-        if (gArgs.IsArgSet("-rpcbind"))
-        {
-            LogPrintf(
-                "WARNING: option -rpcbind was ignored because -rpcallowip was not specified, refusing to allow everyone to connect\n");
+    if (g_socket)
+    {
+        if (!gArgs.IsArgSet("-rpcallowip"))
+        { // Default to loopback if not allowing external IPs
+            g_socket->BindAddress("::1", securePort);
+            g_socket->BindAddress("127.0.0.1", securePort);
+            if (gArgs.IsArgSet("-rpcbind"))
+            {
+                LogPrintf(
+                    "WARNING: option -rpcbind was ignored because -rpcallowip was not specified, refusing to allow everyone to connect\n");
+            }
         }
-    }
-    else if (gArgs.IsArgSet("-rpcbind"))
-    { // Specific bind address
-        for (const std::string &strRPCBind : gArgs.GetArgs("-rpcbind"))
-        {
-            std::string host;
-            int port = securePort;
-            SplitHostPort(strRPCBind, port, host);
-            g_socket->BindAddress(host, port);
+        else if (gArgs.IsArgSet("-rpcbind"))
+        { // Specific bind address
+            for (const std::string& strRPCBind: gArgs.GetArgs("-rpcbind"))
+            {
+                std::string host;
+                int port = securePort;
+                SplitHostPort(strRPCBind, port, host);
+                g_socket->BindAddress(host, port);
+            }
         }
-    }
-    else
-    { // No specific bind address specified, bind to any
-        g_socket->BindAddress("::", securePort);
-        g_socket->BindAddress("0.0.0.0", securePort);
+        else
+        { // No specific bind address specified, bind to any
+            g_socket->BindAddress("::", securePort);
+            g_socket->BindAddress("0.0.0.0", securePort);
+        }
+
+        bindAddresses += g_socket->GetAddressCount();
     }
 
     // Public sockets always bind to any IPs
-    // TODO (team): add parameter web={0|1} for enable|disable web features
-    if (true)
+    if (g_webSocket)
     {
-        g_pubSocket->BindAddress("::", publicPort);
-        g_pubSocket->BindAddress("0.0.0.0", publicPort);
+        g_webSocket->BindAddress("::", publicPort);
+        g_webSocket->BindAddress("0.0.0.0", publicPort);
+    }
+    if (g_staticSocket)
+    {
         g_staticSocket->BindAddress("::", staticPort);
         g_staticSocket->BindAddress("0.0.0.0", staticPort);
+    }
+    if (g_restSocket)
+    {
         g_restSocket->BindAddress("::", restPort);
         g_restSocket->BindAddress("0.0.0.0", restPort);
     }
 
-    return (g_pubSocket->GetAddressCount());
+    return bindAddresses;
 }
 
 /** Simple wrapper to set thread name and run work queue */
@@ -465,8 +429,10 @@ bool InitHTTPServer()
     
     int timeout = gArgs.GetArg("-rpcservertimeout", DEFAULT_HTTP_SERVER_TIMEOUT);
     int workQueueMainDepth = std::max((long) gArgs.GetArg("-rpcworkqueue", DEFAULT_HTTP_WORKQUEUE), 1L);
+    int workQueuePostDepth = std::max((long) gArgs.GetArg("-rpcpostworkqueue", DEFAULT_HTTP_POST_WORKQUEUE), 1L);
     int workQueuePublicDepth = std::max((long) gArgs.GetArg("-rpcpublicworkqueue", DEFAULT_HTTP_PUBLIC_WORKQUEUE), 1L);
     int workQueueStaticDepth = std::max((long) gArgs.GetArg("-rpcstaticworkqueue", DEFAULT_HTTP_STATIC_WORKQUEUE), 1L);
+    int workQueueRestDepth = std::max((long) gArgs.GetArg("-rpcrestworkqueue", DEFAULT_HTTP_REST_WORKQUEUE), 1L);
 
     raii_event_base base_ctr = obtain_event_base();
     eventBase = base_ctr.get();
@@ -484,12 +450,15 @@ bool InitHTTPServer()
 #endif
 
     // Additional pocketnet seocket
-    g_pubSocket = new HTTPSocket(eventBase, timeout, workQueuePublicDepth, true);
-    RegisterPocketnetWebRPCCommands(g_pubSocket->m_table_rpc);
+    if (gArgs.GetBoolArg("-api", false))
+    {
+        g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
+        RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
 
-    // Additional pocketnet static files socket
-    g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
-    g_restSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
+        // Additional pocketnet static files socket
+        g_staticSocket = new HTTPSocket(eventBase, timeout, workQueueStaticDepth, true);
+        g_restSocket = new HTTPSocket(eventBase, timeout, workQueueRestDepth, true);
+    }
  
     if (!HTTPBindAddresses())
     {
@@ -525,6 +494,7 @@ void StartHTTPServer()
 {
     LogPrint(BCLog::HTTP, "Starting HTTP server\n");
     int rpcMainThreads = std::max((long) gArgs.GetArg("-rpcthreads", DEFAULT_HTTP_THREADS), 1L);
+    int rpcPostThreads = std::max((long) gArgs.GetArg("-rpcpostthreads", DEFAULT_HTTP_POST_THREADS), 1L);
     int rpcPublicThreads = std::max((long) gArgs.GetArg("-rpcpublicthreads", DEFAULT_HTTP_PUBLIC_THREADS), 1L);
     int rpcStaticThreads = std::max((long) gArgs.GetArg("-rpcstaticthreads", DEFAULT_HTTP_STATIC_THREADS), 1L);
     int rpcRestThreads = std::max((long) gArgs.GetArg("-rpcrestthreads", DEFAULT_HTTP_REST_THREADS), 1L);
@@ -534,23 +504,22 @@ void StartHTTPServer()
     threadHTTP = std::thread(std::move(task), eventBase);
 
     LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
-    g_socket->StartHTTPSocket(rpcMainThreads, false);
+    if (g_socket) g_socket->StartHTTPSocket(rpcMainThreads, false);
 
     // The same worker threads will service POST and PUBLIC RPC requests
     LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
-    g_pubSocket->StartHTTPSocket(rpcPublicThreads, true);
-
-    g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
-    g_restSocket->StartHTTPSocket(rpcRestThreads, true);
+    if (g_webSocket) g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
+    if (g_staticSocket) g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
+    if (g_restSocket) g_restSocket->StartHTTPSocket(rpcRestThreads, true);
 }
 
 void InterruptHTTPServer()
 {
     LogPrint(BCLog::HTTP, "Interrupting HTTP server\n");
-    g_socket->InterruptHTTPSocket();
-    g_pubSocket->InterruptHTTPSocket();
-    g_staticSocket->InterruptHTTPSocket();
-    g_restSocket->InterruptHTTPSocket();
+    if (g_socket) g_socket->InterruptHTTPSocket();
+    if (g_webSocket) g_webSocket->InterruptHTTPSocket();
+    if (g_staticSocket) g_staticSocket->InterruptHTTPSocket();
+    if (g_restSocket) g_restSocket->InterruptHTTPSocket();
 }
 
 void StopHTTPServer()
@@ -558,10 +527,10 @@ void StopHTTPServer()
     LogPrint(BCLog::HTTP, "Stopping HTTP server\n");
 
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-    g_socket->StopHTTPSocket();
-    g_pubSocket->StopHTTPSocket();
-    g_staticSocket->StopHTTPSocket();
-    g_restSocket->StopHTTPSocket();
+    if (g_socket) g_socket->StopHTTPSocket();
+    if (g_webSocket) g_webSocket->StopHTTPSocket();
+    if (g_staticSocket) g_staticSocket->StopHTTPSocket();
+    if (g_restSocket) g_restSocket->StopHTTPSocket();
 
     if (eventBase)
     {
@@ -588,8 +557,8 @@ void StopHTTPServer()
     delete g_socket;
     g_socket = nullptr;
 
-    delete g_pubSocket;
-    g_pubSocket = nullptr;
+    delete g_webSocket;
+    g_webSocket = nullptr;
 
     delete g_staticSocket;
     g_staticSocket = nullptr;
@@ -660,23 +629,26 @@ HTTPSocket::~HTTPSocket()
     }
 }
 
-void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
+void HTTPSocket::StartThreads(WorkQueue<HTTPClosure>* queue, int threadCount, bool selfDbConnection)
 {
     for (int i = 0; i < threadCount; i++)
-    {
-        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, m_workQueue, selfDbConnection);
-    }
+        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, queue, selfDbConnection);
+}
+
+void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
+{
+    StartThreads(m_workQueue, threadCount, selfDbConnection);
 }
 
 void HTTPSocket::StopHTTPSocket()
 {
     LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-    for (auto &thread: m_thread_http_workers)
-    {
-        thread.join();
-    }
-    m_thread_http_workers.clear();
 
+    for (auto &thread: m_thread_http_workers)
+        thread.join();
+
+    m_thread_http_workers.clear();
+    
     delete m_workQueue;
     m_workQueue = nullptr;
 }
@@ -717,10 +689,11 @@ int HTTPSocket::GetAddressCount()
     return (int)m_boundSockets.size();
 }
 
-void HTTPSocket::RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler)
+void HTTPSocket::RegisterHTTPHandler(const std::string &prefix, bool exactMatch,
+                                     const HTTPRequestHandler &handler, WorkQueue<HTTPClosure>* _queue)
 {
     LogPrint(BCLog::HTTP, "Registering HTTP handler for %s (exactmatch %d)\n", prefix, exactMatch);
-    m_pathHandlers.emplace_back(prefix, exactMatch, handler);
+    m_pathHandlers.emplace_back(prefix, exactMatch, handler, _queue);
 }
 
 void HTTPSocket::UnregisterHTTPHandler(const std::string &prefix, bool exactMatch)
@@ -737,7 +710,27 @@ void HTTPSocket::UnregisterHTTPHandler(const std::string &prefix, bool exactMatc
     }
 }
 
-bool HTTPSocket::HTTPReq(HTTPRequest* req)
+static inline std::string gen_random(const int len) {
+
+    std::string tmp_s;
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+
+    srand( (unsigned) time(NULL) * getpid());
+
+    tmp_s.reserve(len);
+
+    for (int i = 0; i < len; ++i)
+        tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+
+
+    return tmp_s;
+
+}
+
+bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 {
     // JSONRPC handles only POST
     if (req->GetRequestMethod() != HTTPRequest::POST) {
@@ -763,32 +756,85 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req)
             jreq.parse(valRequest);
             jreq.SetDbConnection(req->DbConnection());
 
-            UniValue result = m_table_rpc.execute(jreq);
+            string uri = jreq.URI;
+            string method = jreq.strMethod;
+
+            auto rpcKey = gen_random(15);
+            LogPrint(BCLog::RPC, "RPC started method %s%s (%s) with params: %s\n",
+                uri, method, rpcKey, jreq.params.write(0, 0));
+
+            int64_t nTime1 = GetTimeMicros();
+
+            UniValue result = table.execute(jreq);
+            
+            int64_t nTime2 = GetTimeMicros();
+            LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
+                uri, method, rpcKey, 0.001 * (nTime2 - nTime1));
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
-
-            // array of requests
-        } else {
-            if (valRequest.isArray()) {
+        }
+        else
+        {
+            if (valRequest.isArray())
+            {
                 strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), m_table_rpc);
-            } else {
+            }
+            else
+            {
                 throw JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
             }
         }
 
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strReply);
-    } catch (const UniValue& objError) {
+    }
+    catch (const UniValue& objError)
+    {
         LogPrint(BCLog::RPC, "Exception %s\n", objError.write());
         JSONErrorReply(req, objError, jreq.id);
         return false;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         LogPrint(BCLog::RPC, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
         JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
         return false;
     }
+
     return true;
+}
+
+/** WebSocket for public API */
+HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess)
+    : HTTPSocket(base, timeout, queueDepth, publicAccess)
+{
+    m_workPostQueue = new WorkQueue<HTTPClosure>(queuePostDepth);
+    LogPrintf("HTTP: creating work post queue of depth %d\n", queuePostDepth);
+}
+
+HTTPWebSocket::~HTTPWebSocket() = default;
+
+void HTTPWebSocket::StartHTTPSocket(int threadCount, int threadPostCount, bool selfDbConnection)
+{
+    StartThreads(m_workQueue, threadCount, selfDbConnection);
+    StartThreads(m_workPostQueue, threadPostCount, selfDbConnection);
+}
+
+void HTTPWebSocket::StopHTTPSocket()
+{   
+    HTTPSocket::StopHTTPSocket();
+
+    delete m_workPostQueue;
+    m_workPostQueue = nullptr;
+}
+
+void HTTPWebSocket::InterruptHTTPSocket()
+{
+    HTTPSocket::InterruptHTTPSocket();
+
+    if (m_workPostQueue)
+        m_workPostQueue->Interrupt();
 }
 
 HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, std::function<void()> _handler) :
@@ -797,10 +843,12 @@ HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, std::fu
     ev = event_new(base, -1, 0, httpevent_callback_fn, this);
     assert(ev);
 }
+
 HTTPEvent::~HTTPEvent()
 {
     event_free(ev);
 }
+
 void HTTPEvent::trigger(struct timeval *tv)
 {
     if (tv == nullptr)
@@ -808,6 +856,7 @@ void HTTPEvent::trigger(struct timeval *tv)
     else
         evtimer_add(ev, tv); // trigger after timeval passed
 }
+
 HTTPRequest::HTTPRequest(struct evhttp_request *_req) : req(_req),
                                                         replySent(false)
 {

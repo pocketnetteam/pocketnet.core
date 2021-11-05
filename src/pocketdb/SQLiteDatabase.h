@@ -13,39 +13,39 @@
 #include <sqlite3.h>
 #include <iostream>
 
+#include "pocketdb/migrations/base.h"
 #include "pocketdb/migrations/main.h"
+#include "pocketdb/migrations/web.h"
 
 namespace PocketDb
 {
+    using namespace std;
+
+    void IntitializeSqlite();
+
     class SQLiteDatabase
     {
     private:
-        std::string m_dir_path;
-        std::string m_file_path;
-
-        bool isGeneralConnect;
+        PocketDbMigrationRef m_db_migration;
+        string m_file_path;
+        string m_db_path;
         bool isReadOnlyConnect;
 
-        void Cleanup() noexcept;
-
-        bool TryCreateDbIfNotExists();
-
-        bool BulkExecute(std::string sql);
+        bool BulkExecute(string sql);
 
     public:
-
         sqlite3* m_db{nullptr};
-        std::mutex m_connection_mutex;
+        mutex m_connection_mutex;
 
-        SQLiteDatabase(bool general, bool readOnly);
+        explicit SQLiteDatabase(bool readOnly);
 
-        void Init(const std::string& dir_path, const std::string& file_path);
+        void Init(const std::string& dbBasePath, const string& dbName, const PocketDbMigrationRef& migration = nullptr, bool drop = false);
 
         void CreateStructure();
 
         void DropIndexes();
 
-        void Open();
+        void Cleanup() noexcept;
 
         void Close();
 
@@ -55,9 +55,13 @@ namespace PocketDb
 
         bool AbortTransaction();
 
+        void DetachDatabase(const string& dbName);
+        void AttachDatabase(const string& dbName);
+
+        void RebuildIndexes();
     };
 
-    typedef std::shared_ptr<SQLiteDatabase> SQLiteDatabaseRef;
+    typedef shared_ptr<SQLiteDatabase> SQLiteDatabaseRef;
 
 } // namespace PocketDb
 

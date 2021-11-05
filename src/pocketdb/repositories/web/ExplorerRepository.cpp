@@ -222,7 +222,7 @@ namespace PocketDb {
         {
             string sql = R"sql(
                 select SpentTxHash, TxHash, Number, AddressHash, Value
-                from TxOutputs
+                from TxOutputs indexed by TxOutputs_SpentTxHash
                 where SpentTxHash in ( )sql" + join(vector<string>(txs.size(), "?"), ",") + R"sql( ) )sql";
 
             TryTransactionStep(__func__, [&]()

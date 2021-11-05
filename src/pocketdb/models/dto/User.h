@@ -9,10 +9,9 @@
 
 namespace PocketTx
 {
-    class User : public PocketTx::Transaction
+    class User : public Transaction
     {
     public:
-
         User();
         User(const std::shared_ptr<const CTransaction>& tx);
 
@@ -22,7 +21,7 @@ namespace PocketTx
         void DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
 
         shared_ptr <string> GetAddress() const;
-        void SetAddress(const string& value);
+        void SetAddress(const string& value) override;
 
         shared_ptr <string> GetReferrerAddress() const;
         void SetReferrerAddress(const string& value);
@@ -36,9 +35,12 @@ namespace PocketTx
         shared_ptr <string> GetPayloadDonations() const;
         shared_ptr <string> GetPayloadPubkey() const;
 
+        string BuildHash() override;
+        string BuildHash(bool includeReferrer);
+        string PreBuildHash();
+
     protected:
         void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
-        void BuildHash() override;
     }; // class User
 
 } // namespace PocketTx

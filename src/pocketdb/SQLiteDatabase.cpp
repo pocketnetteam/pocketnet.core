@@ -17,37 +17,43 @@ namespace PocketDb
         LogPrintf("%s: %d; Message: %s\n", __func__, code, msg);
     }
 
-    SQLiteDatabase::SQLiteDatabase(bool general, bool readOnly) : isGeneralConnect(general), isReadOnlyConnect(readOnly)
+    void IntitializeSqlite()
     {
+        LogPrintf("SQLite usage version: %d\n", (int)sqlite3_libversion_number());
 
+        int ret = sqlite3_config(SQLITE_CONFIG_LOG, ErrorLogCallback, nullptr);
+        if (ret != SQLITE_OK)
+            throw std::runtime_error(
+                strprintf("%s: %sd Failed to setup error log: %s\n", __func__, ret, sqlite3_errstr(ret)));
+
+        // Force serialized threading mode
+        ret = sqlite3_config(SQLITE_CONFIG_SERIALIZED);
+        if (ret != SQLITE_OK)
+        {
+            throw std::runtime_error(
+                strprintf("%s: %d; Failed to configure serialized threading mode: %s\n",
+                    __func__, ret, sqlite3_errstr(ret)));
+        }
+
+        // Initialize
+        ret = sqlite3_initialize();
+        if (ret != SQLITE_OK)
+            throw std::runtime_error(
+                strprintf("%s: %d; Failed to initialize SQLite: %s\n", __func__, ret, sqlite3_errstr(ret)));
+    }
+
+    SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)
+    {
     }
 
     void SQLiteDatabase::Cleanup() noexcept
     {
         Close();
 
-        if (isGeneralConnect)
+        int ret = sqlite3_shutdown();
+        if (ret != SQLITE_OK)
         {
-            int ret = sqlite3_shutdown();
-            if (ret != SQLITE_OK)
-            {
-                LogPrintf("%s: %d; Failed to shutdown SQLite: %s\n", __func__, ret, sqlite3_errstr(ret));
-            }
-        }
-    }
-
-    bool SQLiteDatabase::TryCreateDbIfNotExists()
-    {
-        try
-        {
-            return fs::create_directories(m_dir_path);
-        }
-        catch (const fs::filesystem_error&)
-        {
-            if (!fs::exists(m_dir_path) || !fs::is_directory(m_dir_path))
-                throw;
-
-            return false;
+            LogPrintf("%s: %d; Failed to shutdown SQLite: %s\n", __func__, ret, sqlite3_errstr(ret));
         }
     }
 
@@ -83,44 +89,71 @@ namespace PocketDb
         return true;
     }
 
-    void SQLiteDatabase::Init(const std::string& dir_path, const std::string& file_path)
+    void SQLiteDatabase::Init(const std::string& dbBasePath, const std::string& dbName, const PocketDbMigrationRef& migration, bool drop)
     {
-        m_dir_path = dir_path;
-        m_file_path = file_path;
+        m_db_migration = migration;
+        m_db_path = dbBasePath;
+        fs::path dbPath(m_db_path);
+        m_file_path = dbName + ".sqlite3";
 
-        if (isGeneralConnect)
+        // Create directory structure
+        try
         {
-            LogPrintf("SQLite usage version: %d\n", (int) sqlite3_libversion_number());
+            if (!m_db_path.empty())
+                fs::create_directories(m_db_path);
+        }
+        catch (const fs::filesystem_error&)
+        {
+            if (!fs::exists(m_db_path) || !fs::is_directory(m_db_path))
+                throw;
+        }
 
-            // Setup logging
-            int ret = sqlite3_config(SQLITE_CONFIG_LOG, ErrorLogCallback, nullptr);
-            if (ret != SQLITE_OK)
+        if (drop)
+        {
+            try
             {
-                throw std::runtime_error(
-                    strprintf("%s: %sd Failed to setup error log: %s\n", __func__, ret, sqlite3_errstr(ret)));
+                if (fs::exists(dbPath / (dbName + ".sqlite3")))
+                    fs::remove(dbPath / (dbName + ".sqlite3"));
+
+                if (fs::exists(dbPath / (dbName + ".sqlite3-shm")))
+                    fs::remove(dbPath / (dbName + ".sqlite3-shm"));
+
+                if (fs::exists(dbPath / (dbName + ".sqlite3-wal")))
+                    fs::remove(dbPath / (dbName + ".sqlite3-wal"));
             }
-            // Force serialized threading mode
-            ret = sqlite3_config(SQLITE_CONFIG_SERIALIZED);
-            if (ret != SQLITE_OK)
+            catch (const fs::filesystem_error& e)
             {
-                throw std::runtime_error(
-                    strprintf("%s: %d; Failed to configure serialized threading mode: %s\n",
-                        __func__, ret, sqlite3_errstr(ret)));
-            }
-
-            TryCreateDbIfNotExists();
-
-            ret = sqlite3_initialize();
-            if (ret != SQLITE_OK)
-            {
-                throw std::runtime_error(
-                    strprintf("%s: %d; Failed to initialize SQLite: %s\n", __func__, ret, sqlite3_errstr(ret)));
+                throw std::runtime_error(strprintf("Database remove file error: %s", e.what()));
             }
         }
 
         try
         {
-            Open();
+            int flags = SQLITE_OPEN_READWRITE |
+                        SQLITE_OPEN_CREATE;
+
+            if (isReadOnlyConnect)
+                flags = SQLITE_OPEN_READONLY;
+
+            if (m_db == nullptr)
+            {
+                int ret = sqlite3_open_v2((dbPath / m_file_path).string().c_str(), &m_db, flags, nullptr);
+                if (ret != SQLITE_OK)
+                    throw std::runtime_error(strprintf("%s: %d; Failed to open database: %s\n",
+                        __func__, ret, sqlite3_errstr(ret)));
+            }
+
+            if (!isReadOnlyConnect && sqlite3_db_readonly(m_db, dbName.c_str()) == 1)
+                throw std::runtime_error("Database opened in readonly");
+
+            if (!isReadOnlyConnect)
+            {
+                if (sqlite3_exec(m_db, "PRAGMA journal_mode = wal;", nullptr, nullptr, nullptr) != 0)
+                    throw std::runtime_error("Failed apply journal_mode = wal");
+
+                // if (sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)
+                //     throw std::runtime_error("Failed apply temp_store = memory");
+            }
         }
         catch (const std::runtime_error&)
         {
@@ -132,29 +165,29 @@ namespace PocketDb
 
     void SQLiteDatabase::CreateStructure()
     {
+        assert(m_db && m_db_migration);
+
         try
         {
-            LogPrintf("Creating Sqlite database structure..\n");
+            LogPrintf("Creating Sqlite database `%s` structure..\n", m_file_path);
 
-            if (!m_db || sqlite3_get_autocommit(m_db) == 0)
-                throw std::runtime_error(strprintf("%s: Database not opened?\n", __func__));
-
-            PocketDbMigration migration;
+            if (sqlite3_get_autocommit(m_db) == 0)
+                throw std::runtime_error(strprintf("%s: Database `%s` not opened?\n", __func__, m_file_path));
 
             std::string tables;
-            for (const auto& tbl : migration.Tables)
+            for (const auto& tbl : m_db_migration->Tables())
                 tables += tbl + "\n";
             if (!BulkExecute(tables))
-                throw std::runtime_error(strprintf("%s: Failed to create database structure\n", __func__));
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure\n", __func__, m_file_path));
 
             std::string views;
-            for (const auto& vw : migration.Views)
+            for (const auto& vw : m_db_migration->Views())
                 views += vw + "\n";
             if (!BulkExecute(views))
-                throw std::runtime_error(strprintf("%s: Failed to create database structure\n", __func__));
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure\n", __func__, m_file_path));
 
-            if (!BulkExecute(migration.Indexes))
-                throw std::runtime_error(strprintf("%s: Failed to create database structure\n", __func__));
+            if (!BulkExecute(m_db_migration->Indexes()))
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure\n", __func__, m_file_path));
         }
         catch (const std::exception& ex)
         {
@@ -198,61 +231,11 @@ namespace PocketDb
             throw std::runtime_error(strprintf("%s: Failed drop indexes\n", __func__));
     }
 
-    void SQLiteDatabase::Open()
-    {
-        int flags = SQLITE_OPEN_READWRITE |
-                    SQLITE_OPEN_CREATE;
-
-        if (isReadOnlyConnect)
-            flags = SQLITE_OPEN_READONLY;
-
-        if (m_db == nullptr)
-        {
-            int ret = sqlite3_open_v2(m_file_path.c_str(), &m_db, flags, nullptr);
-            if (ret != SQLITE_OK)
-                throw std::runtime_error(strprintf("%s: %d; Failed to open database: %s\n",
-                    __func__, ret, sqlite3_errstr(ret)));
-
-            if (isGeneralConnect)
-                CreateStructure();
-        }
-
-        if (!isReadOnlyConnect && sqlite3_db_readonly(m_db, "main") != 0)
-            throw std::runtime_error("Database opened in readonly");
-
-        if (isGeneralConnect && sqlite3_exec(m_db, "PRAGMA journal_mode = wal;", nullptr, nullptr, nullptr) != 0)
-            throw std::runtime_error("Failed apply journal_mode = wal");
-
-        if (isGeneralConnect && sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)
-            throw std::runtime_error("Failed apply temp_store = memory");
-
-        //    // Acquire an exclusive lock on the database
-        //    // First change the locking mode to exclusive
-        //    int ret = sqlite3_exec(m_db, "PRAGMA locking_mode = exclusive", nullptr, nullptr, nullptr);
-        //    if (ret != SQLITE_OK) {
-        //        throw std::runtime_error(strprintf("SQLiteDatabase: Unable to change database locking mode to exclusive: %s\n", sqlite3_errstr(ret)));
-        //    }
-
-        //    // Enable fullfsync for the platforms that use it
-        //    ret = sqlite3_exec(m_db, "PRAGMA fullfsync = true", nullptr, nullptr, nullptr);
-        //    if (ret != SQLITE_OK) {
-        //        throw std::runtime_error(strprintf("SQLiteDatabase: Failed to enable fullfsync: %s\n", sqlite3_errstr(ret)));
-        //    }
-
-        // Set the user version
-        //        std::string set_user_ver = strprintf("PRAGMA user_version = %d", WALLET_SCHEMA_VERSION);
-        //        ret = sqlite3_exec(m_db, set_user_ver.c_str(), nullptr, nullptr, nullptr);
-        //        if (ret != SQLITE_OK) {
-        //            throw std::runtime_error(strprintf("SQLiteDatabase: Failed to set the wallet schema version: %s\n", sqlite3_errstr(ret)));
-        //        }
-        //    }
-    }
-
     void SQLiteDatabase::Close()
     {
         int res = sqlite3_close(m_db);
         if (res != SQLITE_OK)
-            LogPrintf("Error: %s: %d; Failed to close database: %s\n", __func__, res, sqlite3_errstr(res));
+            LogPrintf("Error: %s: %d; Failed to close database %s: %s\n", __func__, res, m_file_path, sqlite3_errstr(res));
 
         m_db = nullptr;
     }
@@ -291,6 +274,35 @@ namespace PocketDb
         m_connection_mutex.unlock();
 
         return res == SQLITE_OK;
+    }
+
+    void SQLiteDatabase::AttachDatabase(const string& dbName)
+    {
+        assert(m_db);
+
+        fs::path dbPath(m_db_path);
+        string cmnd = "attach database '" + (dbPath / (dbName + ".sqlite3")).string() + "' as " + dbName + ";";
+        if (sqlite3_exec(m_db, cmnd.c_str(), nullptr, nullptr, nullptr) != 0)
+            throw std::runtime_error("Failed attach database " + dbName);
+    }
+
+    void SQLiteDatabase::DetachDatabase(const string& dbName)
+    {
+        assert(m_db);
+
+        fs::path dbPath(m_db_path);
+        string cmnd = "detach " + dbName + ";";
+        if (sqlite3_exec(m_db, cmnd.c_str(), nullptr, nullptr, nullptr) != 0)
+            throw std::runtime_error("Failed detach database " + dbName);
+    }
+
+    void SQLiteDatabase::RebuildIndexes()
+    {
+        LogPrintf("Deleting database indexes..\n");
+        DropIndexes();
+
+        LogPrintf("Creating database indexes..\n");
+        CreateStructure();
     }
 
 } // namespace PocketDb

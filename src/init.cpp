@@ -53,8 +53,12 @@
 #include <warnings.h>
 
 #include <websocket/ws.h>
+#include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/pocketnet.h"
-#include "pocketdb/services/PostProcessing.h"
+#include "pocketdb/services/ChainPostProcessing.h"
+#include "pocketdb/migrations/base.h"
+#include "pocketdb/migrations/main.h"
+#include "pocketdb/migrations/web.h"
 
 #ifndef WIN32
 
@@ -76,6 +80,7 @@
 
 bool fFeeEstimatesInitialized = false;
 static const bool DEFAULT_PROXYRANDOMIZE = true;
+static const bool DEFAULT_API_ENABLE = false;
 static const bool DEFAULT_REST_ENABLE = false;
 static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
@@ -158,22 +163,23 @@ static CScheduler scheduler;
 
 void ShutdownPocketServices()
 {
-    // Before close database we must stop all repositories
     PocketDb::SQLiteDbInst.m_connection_mutex.lock();
-    PocketDb::SQLiteDbWebInst.m_connection_mutex.lock();
 
     PocketDb::TransRepoInst.Destroy();
     PocketDb::ChainRepoInst.Destroy();
     PocketDb::RatingsRepoInst.Destroy();
     PocketDb::ConsensusRepoInst.Destroy();
-    PocketDb::WebRepoInst.Destroy();
+    PocketDb::NotifierRepoInst.Destroy();
 
-    // Now we must close database connect
+    PocketDb::SQLiteDbInst.DetachDatabase("web");
     PocketDb::SQLiteDbInst.Close();
-    PocketDb::SQLiteDbWebInst.Close();
 
     PocketDb::SQLiteDbInst.m_connection_mutex.unlock();
-    PocketDb::SQLiteDbWebInst.m_connection_mutex.unlock();
+
+    PocketDb::SQLiteDbCheckpointInst.m_connection_mutex.lock();
+    PocketDb::CheckpointRepoInst.Destroy();
+    PocketDb::SQLiteDbCheckpointInst.Close();
+    PocketDb::SQLiteDbCheckpointInst.m_connection_mutex.unlock();
 }
 
 void Interrupt()
@@ -198,6 +204,7 @@ void Shutdown()
     if (!lockShutdown)
         return;
 
+    PocketServices::WebPostProcessorInst.Stop();
     gStatEngineInstance.Stop();
 
     StopHTTPRPC();
@@ -457,117 +464,60 @@ void SetupServerArgs()
         "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)",
         MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024),
         false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false,
-        OptionsCategory::OPTIONS);
-    gArgs.AddArg("-reindex-chainstate",
-        "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.",
-        false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-rebuildindexes", "(Re)Build all sqlite indexes", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-rebuildwebdb", "(Re)Build Web database", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
+
 #ifndef WIN32
-    gArgs.AddArg("-sysperms",
-        "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)",
-        false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-sysperms", "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)", false, OptionsCategory::OPTIONS);
 #else
     hidden_args.emplace_back("-sysperms");
 #endif
-    gArgs.AddArg("-txindex",
-        strprintf("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)",
-            DEFAULT_TXINDEX), false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-txindex", strprintf("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)", DEFAULT_TXINDEX), false, OptionsCategory::OPTIONS);
 
-    gArgs.AddArg("-addnode=<ip>",
-        "Add a node to connect to and attempt to keep the connection open (see the `addnode` RPC command help for more info). This option can be specified multiple times to add multiple nodes.",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-banscore=<n>",
-        strprintf("Threshold for disconnecting misbehaving peers (default: %u)", DEFAULT_BANSCORE_THRESHOLD), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-bantime=<n>",
-        strprintf("Number of seconds to keep misbehaving peers from reconnecting (default: %u)",
-            DEFAULT_MISBEHAVING_BANTIME), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-bind=<addr>", "Bind to given address and always listen on it. Use [host]:port notation for IPv6",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-connect=<ip>",
-        "Connect only to the specified node; -noconnect disables automatic connections (the rules for this peer are the same as for -addnode). This option can be specified multiple times to connect to multiple nodes.",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-discover", "Discover own IP addresses (default: 1 when listening and no -externalip or -proxy)",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-dns",
-        strprintf("Allow DNS lookups for -addnode, -seednode and -connect (default: %u)", DEFAULT_NAME_LOOKUP), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-dnsseed",
-        "Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used)", false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-enablebip61", strprintf("Send reject messages per BIP61 (default: %u)", DEFAULT_ENABLE_BIP61), false,
-        OptionsCategory::CONNECTION);
+    gArgs.AddArg("-addnode=<ip>", "Add a node to connect to and attempt to keep the connection open (see the `addnode` RPC command help for more info). This option can be specified multiple times to add multiple nodes.", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-banscore=<n>", strprintf("Threshold for disconnecting misbehaving peers (default: %u)", DEFAULT_BANSCORE_THRESHOLD), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-bantime=<n>", strprintf("Number of seconds to keep misbehaving peers from reconnecting (default: %u)", DEFAULT_MISBEHAVING_BANTIME), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-bind=<addr>", "Bind to given address and always listen on it. Use [host]:port notation for IPv6", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-connect=<ip>", "Connect only to the specified node; -noconnect disables automatic connections (the rules for this peer are the same as for -addnode). This option can be specified multiple times to connect to multiple nodes.", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-discover", "Discover own IP addresses (default: 1 when listening and no -externalip or -proxy)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-dns", strprintf("Allow DNS lookups for -addnode, -seednode and -connect (default: %u)", DEFAULT_NAME_LOOKUP), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-dnsseed", "Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-enablebip61", strprintf("Send reject messages per BIP61 (default: %u)", DEFAULT_ENABLE_BIP61), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-externalip=<ip>", "Specify your own public address", false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-forcednsseed",
-        strprintf("Always query for peer addresses via DNS lookup (default: %u)", DEFAULT_FORCEDNSSEED), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-listen", "Accept connections from outside (default: 1 if no -proxy or -connect)", false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-listenonion",
-        strprintf("Automatically create Tor hidden service (default: %d)", DEFAULT_LISTEN_ONION), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxconnections=<n>",
-        strprintf("Maintain at most <n> connections to peers (default: %u)", DEFAULT_MAX_PEER_CONNECTIONS), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxreceivebuffer=<n>",
-        strprintf("Maximum per-connection receive buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXRECEIVEBUFFER),
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxsendbuffer=<n>",
-        strprintf("Maximum per-connection send buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXSENDBUFFER), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxtimeadjustment", strprintf(
-        "Maximum allowed median peer time offset adjustment. Local perspective of time may be influenced by peers forward or backward by this amount. (default: %u seconds)",
-        DEFAULT_MAX_TIME_ADJUSTMENT), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-maxuploadtarget=<n>",
-        strprintf("Tries to keep outbound traffic under the given target (in MiB per 24h), 0 = no limit (default: %d)",
-            DEFAULT_MAX_UPLOAD_TARGET), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-onion=<ip:port>",
-        "Use separate SOCKS5 proxy to reach peers via Tor hidden services, set -noonion to disable (default: -proxy)",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-onlynet=<net>",
-        "Make outgoing connections only through network <net> (ipv4, ipv6 or onion). Incoming connections are not affected by this option. This option can be specified multiple times to allow multiple networks.",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-peerbloomfilters",
-        strprintf("Support filtering of blocks and transaction with bloom filters (default: %u)",
-            DEFAULT_PEERBLOOMFILTERS), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-permitbaremultisig", strprintf("Relay non-P2SH multisig (default: %u)", DEFAULT_PERMIT_BAREMULTISIG),
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-port=<port>", strprintf("Listen for connections on <port> (default: %u, testnet: %u, regtest: %u)",
-        defaultChainParams->GetDefaultPort(), testnetChainParams->GetDefaultPort(),
-        regtestChainParams->GetDefaultPort()), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-proxy=<ip:port>", "Connect through SOCKS5 proxy, set -noproxy to disable (default: disabled)", false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-proxyrandomize",
-        strprintf("Randomize credentials for every proxy connection. This enables Tor stream isolation (default: %u)",
-            DEFAULT_PROXYRANDOMIZE), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-seednode=<ip>",
-        "Connect to a node to retrieve peer addresses, and disconnect. This option can be specified multiple times to connect to multiple nodes.",
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-timeout=<n>",
-        strprintf("Specify connection timeout in milliseconds (minimum: 1, default: %d)", DEFAULT_CONNECT_TIMEOUT),
-        false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-torcontrol=<ip>:<port>",
-        strprintf("Tor control port to use if onion listening enabled (default: %s)", DEFAULT_TOR_CONTROL), false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-torpassword=<pass>", "Tor control port password (default: empty)", false,
-        OptionsCategory::CONNECTION);
+    gArgs.AddArg("-forcednsseed", strprintf("Always query for peer addresses via DNS lookup (default: %u)", DEFAULT_FORCEDNSSEED), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-listen", "Accept connections from outside (default: 1 if no -proxy or -connect)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-listenonion", strprintf("Automatically create Tor hidden service (default: %d)", DEFAULT_LISTEN_ONION), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxconnections=<n>", strprintf("Maintain at most <n> connections to peers (default: %u)", DEFAULT_MAX_PEER_CONNECTIONS), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxreceivebuffer=<n>", strprintf("Maximum per-connection receive buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXRECEIVEBUFFER), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxsendbuffer=<n>", strprintf("Maximum per-connection send buffer, <n>*1000 bytes (default: %u)", DEFAULT_MAXSENDBUFFER), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxtimeadjustment", strprintf("Maximum allowed median peer time offset adjustment. Local perspective of time may be influenced by peers forward or backward by this amount. (default: %u seconds)", DEFAULT_MAX_TIME_ADJUSTMENT), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-maxuploadtarget=<n>", strprintf("Tries to keep outbound traffic under the given target (in MiB per 24h), 0 = no limit (default: %d)", DEFAULT_MAX_UPLOAD_TARGET), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-onion=<ip:port>", "Use separate SOCKS5 proxy to reach peers via Tor hidden services, set -noonion to disable (default: -proxy)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-onlynet=<net>", "Make outgoing connections only through network <net> (ipv4, ipv6 or onion). Incoming connections are not affected by this option. This option can be specified multiple times to allow multiple networks.", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-peerbloomfilters", strprintf("Support filtering of blocks and transaction with bloom filters (default: %u)", DEFAULT_PEERBLOOMFILTERS), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-permitbaremultisig", strprintf("Relay non-P2SH multisig (default: %u)", DEFAULT_PERMIT_BAREMULTISIG), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-port=<port>", strprintf("Listen for connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultChainParams->GetDefaultPort(), testnetChainParams->GetDefaultPort(), regtestChainParams->GetDefaultPort()), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-proxy=<ip:port>", "Connect through SOCKS5 proxy, set -noproxy to disable (default: disabled)", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-proxyrandomize", strprintf("Randomize credentials for every proxy connection. This enables Tor stream isolation (default: %u)", DEFAULT_PROXYRANDOMIZE), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-seednode=<ip>", "Connect to a node to retrieve peer addresses, and disconnect. This option can be specified multiple times to connect to multiple nodes.", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-timeout=<n>", strprintf("Specify connection timeout in milliseconds (minimum: 1, default: %d)", DEFAULT_CONNECT_TIMEOUT), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-torcontrol=<ip>:<port>", strprintf("Tor control port to use if onion listening enabled (default: %s)", DEFAULT_TOR_CONTROL), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-torpassword=<pass>", "Tor control port password (default: empty)", false, OptionsCategory::CONNECTION);
 #ifdef USE_UPNP
 #if USE_UPNP
     gArgs.AddArg("-upnp", "Use UPnP to map the listening port (default: 1 when listening and no -proxy)", false, OptionsCategory::CONNECTION);
 #else
-    gArgs.AddArg("-upnp", strprintf("Use UPnP to map the listening port (default: %u)", 0), false,
-        OptionsCategory::CONNECTION);
+    gArgs.AddArg("-upnp", strprintf("Use UPnP to map the listening port (default: %u)", 0), false, OptionsCategory::CONNECTION);
 #endif
 #else
     hidden_args.emplace_back("-upnp");
 #endif
-    gArgs.AddArg("-whitebind=<addr>",
-        "Bind to given address and whitelist peers connecting to it. Use [host]:port notation for IPv6", false,
-        OptionsCategory::CONNECTION);
-    gArgs.AddArg("-whitelist=<IP address or network>",
-        "Whitelist peers connecting from the given IP address (e.g. 1.2.3.4) or CIDR notated network (e.g. 1.2.3.0/24). Can be specified multiple times."
-        " Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway",
-        false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-whitebind=<addr>", "Bind to given address and whitelist peers connecting to it. Use [host]:port notation for IPv6", false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-whitelist=<IP address or network>", "Whitelist peers connecting from the given IP address (e.g. 1.2.3.4) or CIDR notated network (e.g. 1.2.3.0/24). Can be specified multiple times. Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway", false, OptionsCategory::CONNECTION);
 
     g_wallet_init_interface.AddWalletOptions();
 
@@ -641,6 +591,7 @@ void SetupServerArgs()
     gArgs.AddArg("-blockmintxfee=<amt>", strprintf("Set lowest fee rate (in %s/kB) for transactions to be included in block creation. (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_BLOCK_MIN_TX_FEE)), false, OptionsCategory::BLOCK_CREATION);
     gArgs.AddArg("-blockversion=<n>", "Override block version to test forking scenarios", true, OptionsCategory::BLOCK_CREATION);
 
+    gArgs.AddArg("-api", strprintf("Enable Public RPC api server (default: %u)", DEFAULT_API_ENABLE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rest", strprintf("Accept public REST requests (default: %u)", DEFAULT_REST_ENABLE), true, OptionsCategory::RPC);
     gArgs.AddArg("-rpcallowip=<ip>", "Allow JSON-RPC connections from specified source. Valid for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24). This option can be specified multiple times", false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcauth=<userpw>", "Username and hashed password for JSON-RPC connections. The field <userpw> comes in the format: <USERNAME>:<SALT>$<HASH>. A canonical python script is included in share/rpcauth. The client then connects normally using the rpcuser=<USERNAME>/rpcpassword=<PASSWORD> pair of arguments. This option can be specified multiple times", false, OptionsCategory::RPC);
@@ -657,12 +608,16 @@ void SetupServerArgs()
     gArgs.AddArg("-rpcthreads=<n>", strprintf("Set the number of threads to service RPC (MAIN) calls (default: %d)", DEFAULT_HTTP_THREADS), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcpublicthreads=<n>", strprintf("Set the number of threads to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_THREADS), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcstaticthreads=<n>", strprintf("Set the number of threads to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_THREADS), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpostthreads=<n>", strprintf("Set the number of threads to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_THREADS), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcrestthreads=<n>", strprintf("Set the number of threads to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_THREADS), false, OptionsCategory::RPC);
 
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::RPC);
 
     gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcworkpublicqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), false, OptionsCategory::RPC);
-    gArgs.AddArg("-rpcworkstaticqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpublicworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcstaticworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcpostworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpcrestworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_WORKQUEUE), false, OptionsCategory::RPC);
 
     gArgs.AddArg("-statdepth=<n>", strprintf("Set the depth of the work queue for statistic in seconds (default: %ds)", 60), false, OptionsCategory::RPC);
 
@@ -872,16 +827,50 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             }
         }
 
-        LogPrintf("Started rollback SQLite DB to height %d...\n", chainActive.Height());
         if (PocketDb::ChainRepoInst.Rollback(chainActive.Height() + 1))
         {
-            LogPrintf("Rollback SQLite DB to height %d completed\n", chainActive.Height());
+            LogPrint(BCLog::SYNC, "Best block in sqlite db: %s (%d)\n",
+                chainActive.Tip()->GetBlockHash().GetHex(), chainActive.Height());
         }
         else
         {
             LogPrintf("Error\n");
             StartShutdown();
             return;
+        }
+
+        // Rebuild web DB
+        if (gArgs.GetBoolArg("-rebuildwebdb", false))
+        {
+            LogPrintf("Building a Web database: 0%%\n");
+
+            int current = 0;
+            int percent = chainActive.Height() / 100;
+            int64_t startTime = GetTimeMicros();
+            while (++current <= chainActive.Height())
+            {
+                CBlockIndex* pblockindex = chainActive[current];
+                if (!pblockindex)
+                    break;
+
+                try
+                {
+                    PocketServices::WebPostProcessorInst.ProcessTags(pblockindex->GetBlockHash().GetHex());
+                    PocketServices::WebPostProcessorInst.ProcessSearchContent(pblockindex->GetBlockHash().GetHex());
+                }
+                catch (std::exception& ex)
+                {
+                    LogPrintf("Process web db building failed - block:%s height:%d what:%s\n", pblockindex->GetBlockHash().GetHex(), pblockindex->nHeight, ex.what());
+                    StartShutdown();
+                    return;
+                }
+
+                if (current % percent == 0)
+                {
+                    int64_t time = GetTimeMicros();
+                    LogPrintf("Building a Web database: %d%% (%.2fm)\n", (current / percent), (0.000001 * (time - startTime)) / 60.0);
+                }
+            }
         }
 
         // scan for better chains in the block chain database, that are not yet connected in the active best chain
@@ -901,7 +890,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         }
     } // End scope of CImportingNow
 
-    if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL))
+    if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL) && !gArgs.GetArg("-mempoolclean", false))
     {
         LoadMempool();
     }
@@ -1626,23 +1615,57 @@ bool AppInitMain()
 
     // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB..."));
+    auto dbBasePath = (GetDataDir() / "pocketdb").string();
 
-    PocketDb::SQLiteDbInst.Init(
-        (GetDataDir() / "pocketdb").string(),
-        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
+    PocketDb::IntitializeSqlite();
+
+    PocketDb::PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDb::PocketDbMainMigration>();
+    PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
+    PocketDb::SQLiteDbInst.CreateStructure();
 
     PocketDb::TransRepoInst.Init();
     PocketDb::ChainRepoInst.Init();
     PocketDb::RatingsRepoInst.Init();
     PocketDb::ConsensusRepoInst.Init();
+    PocketDb::NotifierRepoInst.Init();
 
-    PocketDb::SQLiteDbWebInst.Init(
-        (GetDataDir() / "pocketdb").string(),
-        (GetDataDir() / "pocketdb" / "main.sqlite3").string());
+    // Open, create structure and close `web` db
+    PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
+    PocketDb::SQLiteDatabase sqliteDbWebInst(false);
+    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, gArgs.GetBoolArg("-rebuildwebdb", false));
+    sqliteDbWebInst.CreateStructure();
+    sqliteDbWebInst.Close();
 
-    PocketDb::WebRepoInst.Init();
+    // Attach `web` db to `main` db
+    PocketDb::SQLiteDbInst.AttachDatabase("web");
+
+    // Intialize Checkpoints DB
+    auto checkpointDbName = Params().NetworkIDString();
+    auto checkpointDbPath = (GetDataDir() / "checkpoints");
+    if (!fs::exists((checkpointDbPath / (checkpointDbName + ".sqlite3")).string()))
+    {
+        LogPrintf("Checkpoint DB %s not found!\nDownload actual DB file from %s and place to %s directory.\n",
+            (checkpointDbPath / (checkpointDbName + ".sqlite3")).string(),
+            "https://github.com/pocketnetteam/pocketnet.core/tree/master/checkpoints/" + checkpointDbName + ".sqlite3",
+            checkpointDbPath.string()
+        );
+
+        return InitError(_("Unable to start server. Checkpoints DB not found. See debug log for details."));
+    }
+    PocketDb::SQLiteDbCheckpointInst.Init(checkpointDbPath.string(), checkpointDbName);
 
     PocketWeb::PocketFrontendInst.Init();
+
+    // ********************************************************* Step 4b: Additional settings
+
+    if (gArgs.GetBoolArg("-mempoolclean", false))
+    {
+        PocketDb::TransRepoInst.Clean();
+        LogPrintf("The sqlite db is cleared according to the -mempoolclean parameter\n");
+    }
+
+    if (gArgs.GetBoolArg("-rebuildindexes", false))
+        PocketDb::SQLiteDbInst.RebuildIndexes();
 
     // ********************************************************* Step 4b: Start servers
 
@@ -1671,12 +1694,10 @@ bool AppInitMain()
     // need to reindex later.
 
     assert(!g_connman);
-    g_connman = std::unique_ptr<CConnman>(
-        new CConnman(GetRand(std::numeric_limits<uint64_t>::max()), GetRand(std::numeric_limits<uint64_t>::max())));
+    g_connman = std::unique_ptr<CConnman>(new CConnman(GetRand(std::numeric_limits<uint64_t>::max()), GetRand(std::numeric_limits<uint64_t>::max())));
     CConnman& connman = *g_connman;
 
-    peerLogic.reset(
-        new PeerLogicValidation(&connman, scheduler, gArgs.GetBoolArg("-enablebip61", DEFAULT_ENABLE_BIP61)));
+    peerLogic.reset(new PeerLogicValidation(&connman, scheduler, gArgs.GetBoolArg("-enablebip61", DEFAULT_ENABLE_BIP61)));
     RegisterValidationInterface(peerLogic.get());
 
     // sanitize comments per BIP-0014, format user agent and check total size
@@ -2111,12 +2132,14 @@ bool AppInitMain()
 
     // ********************************************************* Step 12: start node
     int chain_active_height;
+    uint256 chain_active_hash;
     {
         LOCK(cs_main);
         LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
         chain_active_height = chainActive.Height();
+        chain_active_hash = chainActive.Tip()->GetBlockHash();
     }
-    LogPrintf("nBestHeight = %d\n", chain_active_height);
+    LogPrintf("Best block: %s (%d)\n", chain_active_hash.GetHex(), chain_active_height);
 
     if (gArgs.GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION))
         StartTorControl();
@@ -2197,14 +2220,21 @@ bool AppInitMain()
     // ********************************************************* Step 13: finished
 
 #ifdef ENABLE_WALLET
-    Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
-    Staker::getInstance()->startWorkers(threadGroup, chainparams);
+    // TODO (brangr): DEBUG!
+    if (chainparams.NetworkID() == NetworkTest)
+    {
+        Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
+        Staker::getInstance()->startWorkers(threadGroup, chainparams);
+    }
 #endif
 
     // Start WebSocket server
     if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
 
     gStatEngineInstance.Run(threadGroup);
+
+    if (gArgs.GetBoolArg("-api", false))
+        PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));

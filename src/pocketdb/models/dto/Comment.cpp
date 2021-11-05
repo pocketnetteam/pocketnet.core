@@ -9,12 +9,12 @@ namespace PocketTx
 {
     Comment::Comment() : Transaction()
     {
-        SetType(PocketTxType::CONTENT_COMMENT);
+        SetType(TxType::CONTENT_COMMENT);
     }
 
     Comment::Comment(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
     {
-        SetType(PocketTxType::CONTENT_COMMENT);
+        SetType(TxType::CONTENT_COMMENT);
     }
 
     shared_ptr <UniValue> Comment::Serialize() const
@@ -27,9 +27,9 @@ namespace PocketTx
         result->pushKV("parentid", GetParentTxHash() ? *GetParentTxHash() : "");
         result->pushKV("answerid", GetAnswerTxHash() ? *GetAnswerTxHash() : "");
 
-        result->pushKV("lang", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "en");
-        result->pushKV("msg", (m_payload && m_payload->GetString2()) ? *m_payload->GetString2() : "");
+        result->pushKV("msg", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "");
 
+        result->pushKV("last", false);
         result->pushKV("scoreUp", 0);
         result->pushKV("scoreDown", 0);
         result->pushKV("reputation", 0);
@@ -52,7 +52,6 @@ namespace PocketTx
 
     void Comment::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
     {
-        if (auto[ok, val] = TryGetStr(src, "txAddress"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "postid"); ok) SetPostTxHash(val);
         if (auto[ok, val] = TryGetStr(src, "parentid"); ok) SetParentTxHash(val);
         if (auto[ok, val] = TryGetStr(src, "answerid"); ok) SetAnswerTxHash(val);
@@ -90,16 +89,16 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "msg"); ok) SetPayloadMsg(val);
     }
 
-    void Comment::BuildHash()
+    string Comment::BuildHash()
     {
         std::string data;
 
         data += GetPostTxHash() ? *GetPostTxHash() : "";
-        data += m_payload->GetString1() ? *m_payload->GetString1() : "";
+        data += m_payload && m_payload->GetString1() ? *m_payload->GetString1() : "";
         data += GetParentTxHash() ? *GetParentTxHash() : "";
         data += GetAnswerTxHash() ? *GetAnswerTxHash() : "";
 
-        Transaction::GenerateHash(data);
+        return Transaction::GenerateHash(data);
     }
 
 } // namespace PocketTx

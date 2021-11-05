@@ -29,9 +29,7 @@ namespace PocketConsensus
             // Duplicate name
             if (ConsensusRepoInst.ExistsAnotherByName(*ptx->GetAddress(), *ptx->GetPayloadName()))
             {
-                PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(),
-                    SocialConsensusResult_NicknameDouble))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameDouble))
                     return {false, SocialConsensusResult_NicknameDouble};
             }
 
@@ -61,18 +59,37 @@ namespace PocketConsensus
             auto name = *ptx->GetPayloadName();
             if (name.empty() || name.size() > 35)
             {
-                PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(),
-                    SocialConsensusResult_NicknameLong))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
                     return {false, SocialConsensusResult_NicknameLong};
             }
 
             // Trim spaces
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
             {
-                PocketHelpers::SocialCheckpoints socialCheckpoints;
-                if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_Failed))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_Failed))
                     return {false, SocialConsensusResult_Failed};
+            }
+
+            return Success;
+        }
+
+        ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
+        {
+            auto ptxORHash = ptx->BuildHash();
+            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
+
+            if (ptxORHash != txORHash)
+            {
+                auto ptxORHashRef = ptx->BuildHash(false);
+                if (ptxORHashRef != txORHash)
+                {
+                    auto data = ptx->PreBuildHash();
+                    LogPrint(BCLog::CONSENSUS, "--- %s\n", data);
+                    LogPrint(BCLog::CONSENSUS, "Warning: FailedOpReturn for USER %s: %s | %s != %s\n",
+                        *ptx->GetHash(), ptxORHash, ptxORHashRef, txORHash);
+                    //if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
+                    //    return {false, SocialConsensusResult_FailedOpReturn};
+                }
             }
 
             return Success;
@@ -94,9 +111,7 @@ namespace PocketConsensus
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
-                    PocketHelpers::SocialCheckpoints socialCheckpoints;
-                    if (!socialCheckpoints.IsCheckpoint(*ptx->GetHash(), *ptx->GetType(),
-                        SocialConsensusResult_ChangeInfoDoubleInBlock))
+                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoDoubleInBlock))
                         return {false, SocialConsensusResult_ChangeInfoDoubleInBlock};
                 }
             }
@@ -128,10 +143,6 @@ namespace PocketConsensus
             if (auto[ok, code] = ValidateEditLimit(ptx); !ok)
                 return {false, code};
 
-            // For edit user profile referrer not allowed
-            if (ptx->GetReferrerAddress() != nullptr)
-                return {false, SocialConsensusResult_ReferrerAfterRegistration};
-
             return Success;
         }
 
@@ -156,7 +167,7 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidatePayloadSize(const UserRef& ptx)
         {
-            int64_t dataSize =
+            size_t dataSize =
                 (ptx->GetPayloadName() ? ptx->GetPayloadName()->size() : 0) +
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0) +
@@ -196,13 +207,12 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *  Start checkpoint at 9999999 block
+    *  Start checkpoint at 1381841 block
     *******************************************************************************************************************/
-    // TODO (brangr): set checkpoint after v0.19.14
-    class UserConsensus_checkpoint_9999999 : public UserConsensus_checkpoint_1180000
+    class UserConsensus_checkpoint_1381841 : public UserConsensus_checkpoint_1180000
     {
     public:
-        UserConsensus_checkpoint_9999999(int height) : UserConsensus_checkpoint_1180000(height) {}
+        UserConsensus_checkpoint_1381841(int height) : UserConsensus_checkpoint_1180000(height) {}
     protected:
         ConsensusValidateResult ValidateEditLimit(const UserRef& ptx) override
         {
@@ -227,7 +237,7 @@ namespace PocketConsensus
         const vector<ConsensusCheckpoint < UserConsensus>> m_rules = {
             { 0, -1, [](int height) { return make_shared<UserConsensus>(height); }},
             { 1180000, 0, [](int height) { return make_shared<UserConsensus_checkpoint_1180000>(height); }},
-            { 9999999, 162000, [](int height) { return make_shared<UserConsensus_checkpoint_9999999>(height); }},
+            { 1381841, 162000, [](int height) { return make_shared<UserConsensus_checkpoint_1381841>(height); }},
         };
     public:
         shared_ptr<UserConsensus> Instance(int height)

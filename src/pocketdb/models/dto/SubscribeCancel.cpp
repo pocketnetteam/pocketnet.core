@@ -9,12 +9,12 @@ namespace PocketTx
 {
     SubscribeCancel::SubscribeCancel() : Subscribe()
     {
-        SetType(PocketTxType::ACTION_SUBSCRIBE_CANCEL);
+        SetType(TxType::ACTION_SUBSCRIBE_CANCEL);
     }
 
     SubscribeCancel::SubscribeCancel(const std::shared_ptr<const CTransaction>& tx) : Subscribe(tx)
     {
-        SetType(PocketTxType::ACTION_SUBSCRIBE_CANCEL);
+        SetType(TxType::ACTION_SUBSCRIBE_CANCEL);
     }
 
     shared_ptr <UniValue> SubscribeCancel::Serialize() const

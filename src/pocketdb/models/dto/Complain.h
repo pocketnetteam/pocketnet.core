@@ -22,17 +22,18 @@ namespace PocketTx
         void DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
 
         shared_ptr<string> GetAddress() const;
-        void SetAddress(string value);
+        void SetAddress(const string& value) override;
 
         shared_ptr<string> GetPostTxHash() const;
-        void SetPostTxHash(string value);
+        void SetPostTxHash(const string& value);
 
         shared_ptr <int64_t> GetReason() const;
         void SetReason(int64_t value);
 
+        string BuildHash() override;
+
     protected:
         void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) override;
-        void BuildHash() override;
     };
 
 } // namespace PocketTx

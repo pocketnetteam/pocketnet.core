@@ -28,8 +28,7 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Check already scored content
-            if (PocketDb::ConsensusRepoInst.ExistsScore(
-                *ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, false))
+            if (PocketDb::ConsensusRepoInst.ExistsScore(*ptx->GetAddress(), *ptx->GetContentTxHash(), ACTION_SCORE_CONTENT, false))
                 return {false, SocialConsensusResult_DoubleScore};
 
             // Content should be exists in chain
@@ -59,7 +58,7 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_SelfScore};
 
             // Scores for deleted contents not allowed
-            if (*lastContent->GetType() == PocketTxType::CONTENT_DELETE)
+            if (*lastContent->GetType() == TxType::CONTENT_DELETE)
                 return {false, SocialConsensusResult_ScoreDeletedContent};
 
             // Check Blocking
@@ -83,9 +82,9 @@ namespace PocketConsensus
             if (value < 1 || value > 5)
                 return {false, SocialConsensusResult_Failed};
 
-            // TODO (brangr): implement - пробросить сюда исходную транзакцию для сверки хешей
+            // TODO (brangr): сверить адрес и значение лайка с данными в транзакции
             // + добавить чекпойнт с принудительным включением проверки данные по автору поста и значению лайка
-            // по сути нужно пробрасывать хэш из транзакции всегда
+            
             // Check OP_RETURN with Payload
             //if (IsEmpty(ptx->GetOPRAddress()) || *ptx->GetOPRAddress() != *ptx->GetAddress())
             //    LogPrintf("000 CHECKPOINT 1 %s\n", *ptx->GetHash());

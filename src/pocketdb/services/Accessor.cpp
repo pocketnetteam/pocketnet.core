@@ -59,7 +59,7 @@ namespace PocketServices
             return true;
 
         PTransactionRef pocketTx;
-        if (!GetTransaction(tx, pocketTx) && pocketTx)
+        if (!GetTransaction(tx, pocketTx) || !pocketTx)
             return false;
             
         auto dataPtr = PocketServices::Serializer::SerializeTransaction(*pocketTx);
@@ -67,11 +67,6 @@ namespace PocketServices
             data = dataPtr->write();
 
         return true;
-    }
-
-    bool Accessor::ExistsTransaction(const CTransaction& tx)
-    {
-        return PocketDb::TransRepoInst.ExistsByHash(tx.GetHash().GetHex());
     }
 
 } // namespace PocketServices

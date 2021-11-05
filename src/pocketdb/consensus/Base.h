@@ -60,7 +60,6 @@ namespace PocketConsensus
         SocialConsensusResult_DoubleCommentScore = 40,
         SocialConsensusResult_OpReturnFailed = 41,
         SocialConsensusResult_CommentDeletedEdit = 42,
-        SocialConsensusResult_ReferrerAfterRegistration = 43,
         SocialConsensusResult_NotAllowed = 44,
         SocialConsensusResult_ChangeTxType = 45,
         SocialConsensusResult_ContentDeleteUnauthorized = 46,
@@ -71,11 +70,12 @@ namespace PocketConsensus
         SocialConsensusResult_CommentDeletedContent = 51,
         SocialConsensusResult_RepostDeletedContent = 52,
         SocialConsensusResult_AlreadyExists = 53,
-        SocialConsensusResult_PayloadORNotFound = 54,
+        SocialConsensusResult_PocketDataNotFound = 54,
         SocialConsensusResult_TxORNotFound = 55,
         SocialConsensusResult_ComplainDeletedContent = 56,
         SocialConsensusResult_ScoreDeletedContent = 57,
         SocialConsensusResult_RelayContentNotFound = 58,
+        SocialConsensusResult_BadPayload = 59,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
@@ -124,7 +124,6 @@ namespace PocketConsensus
             case (SocialConsensusResult_DoubleCommentScore): return "DoubleCommentScore";
             case (SocialConsensusResult_OpReturnFailed): return "OpReturnFailed";
             case (SocialConsensusResult_CommentDeletedEdit): return "CommentDeletedEdit";
-            case (SocialConsensusResult_ReferrerAfterRegistration): return "ReferrerAfterRegistration";
             case (SocialConsensusResult_NotAllowed): return "NotAllowed";
             case (SocialConsensusResult_ChangeTxType): return "ChangeTxType";
             case (SocialConsensusResult_ContentDeleteUnauthorized): return "ContentDeleteUnauthorized";
@@ -135,8 +134,7 @@ namespace PocketConsensus
             case (SocialConsensusResult_CommentDeletedContent): return "CommentDeletedContent";
             case (SocialConsensusResult_RepostDeletedContent): return "RepostDeletedContent";
             case (SocialConsensusResult_AlreadyExists): return "AlreadyExists";
-            case (SocialConsensusResult_PayloadORNotFound): return "PayloadORNotFound";
-            case (SocialConsensusResult_TxORNotFound): return "TxORNotFound";
+            case (SocialConsensusResult_PocketDataNotFound): return "PocketDataNotFound";
             default: return "Unknown";
         }
     }

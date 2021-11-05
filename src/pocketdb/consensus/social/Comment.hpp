@@ -30,12 +30,12 @@ namespace PocketConsensus
 
             // Parent comment
             if (!IsEmpty(ptx->GetParentTxHash()))
-                if (!PocketDb::TransRepoInst.ExistsByHash(*ptx->GetParentTxHash()))
+                if (!PocketDb::TransRepoInst.ExistsInChain(*ptx->GetParentTxHash()))
                     return {false, SocialConsensusResult_InvalidParentComment};
 
             // Answer comment
             if (!IsEmpty(ptx->GetAnswerTxHash()))
-                if (!PocketDb::TransRepoInst.ExistsByHash(*ptx->GetAnswerTxHash()))
+                if (!PocketDb::TransRepoInst.ExistsInChain(*ptx->GetAnswerTxHash()))
                     return {false, SocialConsensusResult_InvalidAnswerComment};
 
             // Check exists content transaction
