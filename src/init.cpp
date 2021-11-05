@@ -843,10 +843,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         // Reindex only pocket part
         if (gArgs.GetArg("-index", -1) >= 0)
         {
-            int i = gArgs.GetArg("-index", -1);
+            int i = (int)gArgs.GetArg("-index", -1);
             PocketServices::ChainPostProcessing::Rollback(i);
 
-            while (i++ <= chainActive.Height())
+            while (i <= chainActive.Height())
             {
                 try
                 {
@@ -862,6 +862,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
                     PocketServices::ChainPostProcessing::Index(block, pblockindex->nHeight);
 
                     LogPrint(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
+                    i += 1;
                 }
                 catch (std::exception& e)
                 {
