@@ -637,6 +637,7 @@ namespace PocketDb
     }
 
     int ConsensusRepository::GetScoreContentCount(
+        int height,
         const shared_ptr<ScoreDataDto>& scoreData,
         const std::vector<int>& values,
         int64_t scoresOneToOneDepth)
@@ -653,7 +654,7 @@ namespace PocketDb
             join Transactions s indexed by Transactions_Type_String1_String2_Height
                 on  s.String2 = c.String2
                 and s.Type in (300)
-                and s.Height is not null
+                and s.Height <= ?
                 and s.String1 = ?
                 and s.Time < ?
                 and s.Time >= ?
@@ -671,6 +672,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
+            TryBindStatementInt(stmt, i++, height);
             TryBindStatementText(stmt, i++, scoreData->ScoreAddressHash);
             TryBindStatementInt64(stmt, i++, scoreData->ScoreTime);
             TryBindStatementInt64(stmt, i++, scoreData->ScoreTime - scoresOneToOneDepth);
@@ -688,6 +690,7 @@ namespace PocketDb
     }
 
     int ConsensusRepository::GetScoreCommentCount(
+        int height,
         const shared_ptr<ScoreDataDto>& scoreData,
         const std::vector<int>& values,
         int64_t scoresOneToOneDepth)
@@ -704,6 +707,7 @@ namespace PocketDb
             join Transactions s indexed by Transactions_Type_String1_String2_Height
                 on  s.String2 = c.String2
                 and s.Type in (301)
+                and s.Height <= ?
                 and s.String1 = ?
                 and s.Height is not null
                 and s.Time < ?
@@ -722,6 +726,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
+            TryBindStatementInt(stmt, i++, height);
             TryBindStatementText(stmt, i++, scoreData->ScoreAddressHash);
             TryBindStatementInt64(stmt, i++, scoreData->ScoreTime);
             TryBindStatementInt64(stmt, i++, (int64_t) scoreData->ScoreTime - scoresOneToOneDepth);

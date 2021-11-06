@@ -67,7 +67,7 @@ namespace PocketConsensus
         }
 
         auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreContentCount(
-            scoreData, values, _scores_one_to_one_depth);
+            Height, scoreData, values, _scores_one_to_one_depth);
 
         if (scores_one_to_one_count >= _max_scores_one_to_one)
             return false;
@@ -98,7 +98,7 @@ namespace PocketConsensus
         }
 
         auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreCommentCount(
-            scoreData, values, _scores_one_to_one_depth);
+            Height, scoreData, values, _scores_one_to_one_depth);
 
         if (scores_one_to_one_count >= _max_scores_one_to_one)
             return false;
