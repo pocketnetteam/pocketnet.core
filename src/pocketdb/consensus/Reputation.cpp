@@ -136,7 +136,16 @@ namespace PocketConsensus
 
     bool ReputationConsensus::AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType)
     {
-        return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
+        switch (contentType)
+        {
+            case CONTENT_POST:
+            case CONTENT_VIDEO:
+            case CONTENT_TRANSLATE:
+            case CONTENT_SERVERPING:
+                return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
+            default:
+                return true;
+        }
     }
 
     void ReputationConsensus::PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)
