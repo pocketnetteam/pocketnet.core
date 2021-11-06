@@ -27,7 +27,9 @@ bool operator==(const Coin &a, const Coin &b) {
     if (a.IsSpent() && b.IsSpent()) return true;
     return a.fCoinBase == b.fCoinBase &&
            a.nHeight == b.nHeight &&
-           a.out == b.out;
+           a.out == b.out &&
+           a.fCoinStake == b.fCoinStake &&
+           a.fPockettx == b.fPockettx;
 }
 
 class CCoinsViewTest : public CCoinsView
@@ -476,28 +478,34 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 BOOST_AUTO_TEST_CASE(ccoins_serialization)
 {
     // Good example
-    CDataStream ss1(ParseHex("97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35"), SER_DISK, CLIENT_VERSION);
+    CDataStream ss1(ParseHex("97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d350200"), SER_DISK, CLIENT_VERSION);
     Coin cc1;
     ss1 >> cc1;
     BOOST_CHECK_EQUAL(cc1.fCoinBase, false);
+    BOOST_CHECK_EQUAL(cc1.fPockettx, true);
+    BOOST_CHECK_EQUAL(cc1.fCoinStake, false);
     BOOST_CHECK_EQUAL(cc1.nHeight, 203998U);
     BOOST_CHECK_EQUAL(cc1.out.nValue, CAmount{60000000000});
     BOOST_CHECK_EQUAL(HexStr(cc1.out.scriptPubKey), HexStr(GetScriptForDestination(CKeyID(uint160(ParseHex("816115944e077fe7c803cfa57f29b36bf87c1d35"))))));
 
     // Good example
-    CDataStream ss2(ParseHex("8ddf77bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa4"), SER_DISK, CLIENT_VERSION);
+    CDataStream ss2(ParseHex("8ddf77bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa40100"), SER_DISK, CLIENT_VERSION);
     Coin cc2;
     ss2 >> cc2;
     BOOST_CHECK_EQUAL(cc2.fCoinBase, true);
+    BOOST_CHECK_EQUAL(cc2.fPockettx, false);
+    BOOST_CHECK_EQUAL(cc2.fCoinStake, true);
     BOOST_CHECK_EQUAL(cc2.nHeight, 120891U);
     BOOST_CHECK_EQUAL(cc2.out.nValue, 110397);
     BOOST_CHECK_EQUAL(HexStr(cc2.out.scriptPubKey), HexStr(GetScriptForDestination(CKeyID(uint160(ParseHex("8c988f1a4a4de2161e0f50aac7f17e7f9555caa4"))))));
 
     // Smallest possible example
-    CDataStream ss3(ParseHex("000006"), SER_DISK, CLIENT_VERSION);
+    CDataStream ss3(ParseHex("0000060000"), SER_DISK, CLIENT_VERSION);
     Coin cc3;
     ss3 >> cc3;
     BOOST_CHECK_EQUAL(cc3.fCoinBase, false);
+    BOOST_CHECK_EQUAL(cc3.fPockettx, false);
+    BOOST_CHECK_EQUAL(cc3.fCoinStake, false);
     BOOST_CHECK_EQUAL(cc3.nHeight, 0U);
     BOOST_CHECK_EQUAL(cc3.out.nValue, 0);
     BOOST_CHECK_EQUAL(cc3.out.scriptPubKey.size(), 0U);
@@ -523,6 +531,35 @@ BOOST_AUTO_TEST_CASE(ccoins_serialization)
         BOOST_CHECK_MESSAGE(false, "We should have thrown");
     } catch (const std::ios_base::failure&) {
     }
+}
+
+BOOST_AUTO_TEST_CASE(ccoins_pocketnet_serialization)
+{
+    CDataStream ss1(ParseHex("97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d350200"), SER_DISK, CLIENT_VERSION);
+    Coin cc1;
+    ss1 >> cc1;
+
+    // Verify PocketNet coinstake and PoccketTx fields are set correctly
+    BOOST_CHECK(cc1.fCoinStake == false);
+    BOOST_CHECK(cc1.fPockettx == true);
+
+    // Set them to the opposite values for serializaion
+    cc1.fPockettx = false;
+    cc1.fCoinStake = true;
+
+    size_t coinsize = GetSerializeSize(cc1);
+    CDataStream ss2(SER_DISK, CLIENT_VERSION);
+    ss2.reserve(coinsize);
+
+    ss2 << cc1;
+
+    std:string ss2_string = ss2.str();
+    Coin cc2;
+    ss2 >> cc2;
+
+    // Verify the deserialized copy matches original
+    BOOST_CHECK(cc1 == cc2);
+
 }
 
 const static COutPoint OUTPOINT;

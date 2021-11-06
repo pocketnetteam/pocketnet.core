@@ -49,6 +49,7 @@ POCKETCOIN_TEST_SUITE = \
 #  test/validation_block_tests.cpp
 #  test/versionbits_tests.cpp
 
+
 POCKETCOIN_TESTS =\
   test/arith_uint256_tests.cpp \
   test/scriptnum10.h \
