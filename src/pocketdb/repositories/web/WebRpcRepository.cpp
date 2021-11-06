@@ -310,12 +310,11 @@ namespace PocketDb
 
         string addressesWhere = join(vector<string>(addresses.size(), "?"), ",");
 
-        // TODO (o1q): Change ReferralsCountHist calculation from last to hist
         string sql = R"sql(
             select
                 u.String1 as Address,
-                ifnull((select count(1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
-                    where ru.Type in (100,101,102) and ru.Last=1 and ru.Height is not null and ru.String2=u.String1),0) as ReferralsCountHist,
+                ifnull((select count(distinct ru.String1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
+                    where ru.Type in (100,101,102) and ru.Last=1 and ru.Height <= ? and ru.Height > ? and ru.String2=u.String1),0) as ReferralsCountHist
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             join Payload up on up.TxHash=u.Hash
 
@@ -330,6 +329,8 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
+            TryBindStatementInt(stmt, i++, nHeight);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
             for (const auto& address: addresses)
                 TryBindStatementText(stmt, i++, address);
 
