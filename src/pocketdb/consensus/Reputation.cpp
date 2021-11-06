@@ -67,7 +67,7 @@ namespace PocketConsensus
         }
 
         auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreContentCount(
-            Height, scoreData, values, _scores_one_to_one_depth);
+            scoreData, values, _scores_one_to_one_depth);
 
         if (scores_one_to_one_count >= _max_scores_one_to_one)
             return false;
@@ -98,7 +98,7 @@ namespace PocketConsensus
         }
 
         auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreCommentCount(
-            Height, scoreData, values, _scores_one_to_one_depth);
+            scoreData, values, _scores_one_to_one_depth);
 
         if (scores_one_to_one_count >= _max_scores_one_to_one)
             return false;
@@ -136,12 +136,7 @@ namespace PocketConsensus
 
     bool ReputationConsensus::AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType)
     {
-        // TODO (brangr) v0.21.0: we need to limit the depth for all content types
-        
-        if (contentType == TxType::CONTENT_POST)
-            return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
-
-        return true;
+        return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
     }
 
     void ReputationConsensus::PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)

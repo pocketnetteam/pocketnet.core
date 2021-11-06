@@ -57,13 +57,11 @@ namespace PocketDb
         int GetUserLikersCount(int addressId);
 
         int GetScoreContentCount(
-            int height,
             const shared_ptr<ScoreDataDto>& scoreData,
             const std::vector<int>& values,
             int64_t scoresOneToOneDepth);
 
         int GetScoreCommentCount(
-            int height,
             const shared_ptr<ScoreDataDto>& scoreData,
             const std::vector<int>& values,
             int64_t scoresOneToOneDepth);
