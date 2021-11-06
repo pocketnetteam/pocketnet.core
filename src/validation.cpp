@@ -1088,14 +1088,21 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // At this point, we believe that all the checks have been carried 
         // out and we can safely save the transaction to the database for 
         // subsequent verification of the consensus and inclusion in the block.
-        if (!pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
-            return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db");
+        PTransactionRef _pocketTx = pocketTx;
+        if (!_pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
+        {
+            // Deserialize default money transaction
+            if (auto[ok, val] = PocketServices::Serializer::DeserializeTransaction(ptx); ok && val)
+                _pocketTx = val;
+            else
+                return state.DoS(0, false, REJECT_INTERNAL, "error restore pocketnet payload data");
+        }
         
-        if (pocketTx)
+        if (_pocketTx)
         {
             try
             {
-                PocketBlock pocketBlock{pocketTx};
+                PocketBlock pocketBlock{_pocketTx};
                 PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
             }
             catch (const std::exception& e)

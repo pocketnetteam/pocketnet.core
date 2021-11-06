@@ -829,8 +829,15 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
 
         if (PocketDb::ChainRepoInst.Rollback(chainActive.Height() + 1))
         {
-            LogPrint(BCLog::SYNC, "Best block in sqlite db: %s (%d)\n",
-                chainActive.Tip()->GetBlockHash().GetHex(), chainActive.Height());
+            if (chainActive.Tip())
+            {
+                LogPrint(BCLog::SYNC, "Best block in sqlite db: %s (%d)\n",
+                    chainActive.Tip()->GetBlockHash().GetHex(), chainActive.Height());
+            }
+            else
+            {
+                LogPrint(BCLog::SYNC, "No existing blockchain found on disk\n");
+            }
         }
         else
         {

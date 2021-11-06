@@ -19,6 +19,9 @@
 #include <validation.h>
 #include "httpserver.h"
 #include <init.h>
+#include "pocketdb/helpers/TransactionHelper.h"
+
+using namespace PocketHelpers;
 
 const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
 
@@ -201,16 +204,17 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
     CValidationState state;
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
-    auto pocketBlockRef = std::make_shared<PocketBlock>(pblocktemplate->pocketBlock);
+    //auto pocketBlockRef = std::make_shared<PocketBlock>(pblocktemplate->pocketBlock);
     bool fNewBlock = false;
  
-    ProcessNewBlock(state, chainparams, pblock, pocketBlockRef, true, true, &fNewBlock);
+    //ProcessNewBlock(state, chainparams, pblock, pocketBlockRef, true, true, &fNewBlock);
     CBlock result = block;
     return result;
 }
 
 TestChain100Setup::~TestChain100Setup()
 {
+
 }
 
 
