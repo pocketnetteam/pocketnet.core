@@ -341,9 +341,9 @@ static void EnableOrDisableLogCategories(UniValue cats, bool enable)
 
 UniValue logging(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 2) {
+    if (request.fHelp) {
         throw std::runtime_error(
-            "logging ( <include> <exclude> )\n"
+            "logging ( +category -category )\n"
             "Gets and sets the logging configuration.\n"
             "When called without an argument, returns the list of categories with status that are currently being debug logged or not.\n"
             "When called with arguments, adds or removes categories from debug logging and return the lists above.\n"
@@ -355,32 +355,39 @@ UniValue logging(const JSONRPCRequest& request)
                                   "  - \"all\",  \"1\" : represent all logging categories.\n"
                                   "  - \"none\", \"0\" : even if other logging categories are specified, ignore all of them.\n"
                                   "\nArguments:\n"
-                                  "1. \"include\"        (array of strings, optional) A json array of categories to add debug logging\n"
-                                  "     [\n"
-                                  "       \"category\"   (string) the valid logging category\n"
-                                  "       ,...\n"
-                                  "     ]\n"
-                                  "2. \"exclude\"        (array of strings, optional) A json array of categories to remove debug logging\n"
-                                  "     [\n"
-                                  "       \"category\"   (string) the valid logging category\n"
-                                  "       ,...\n"
-                                  "     ]\n"
+                                  "  \"+include\"        (string, optional) Category to add debug logging\n"
+                                  "  \"-exclude\"       (string, optional) Category to remove debug logging\n"
                                   "\nResult:\n"
                                   "{                   (json object where keys are the logging categories, and values indicates its status\n"
                                   "  \"category\": 0|1,  (numeric) if being debug logged or not. 0:inactive, 1:active\n"
                                   "  ...\n"
                                   "}\n"
                                   "\nExamples:\n" +
-            HelpExampleCli("logging", "\"[\\\"all\\\"]\" \"[\\\"http\\\"]\"") + HelpExampleRpc("logging", "[\"all\"], \"[libevent]\""));
+            HelpExampleCli("logging", "sync +stat -http") + HelpExampleRpc("logging", "+all -libevent"));
     }
 
     uint32_t original_log_categories = g_logger->GetCategoryMask();
-    if (request.params[0].isArray()) {
-        EnableOrDisableLogCategories(request.params[0], true);
+
+    UniValue enable(UniValue::VARR);
+    UniValue disable(UniValue::VARR);
+    size_t i = 0;
+    while (i < request.params.size())
+    {
+        auto prm = request.params[i].get_str();
+        if (prm.substr(0, 1) == "-")
+            disable.push_back(prm.substr(1));
+        else if (prm.substr(0, 1) == "+")
+            enable.push_back(prm.substr(1));
+        else
+            enable.push_back(prm);
     }
-    if (request.params[1].isArray()) {
-        EnableOrDisableLogCategories(request.params[1], false);
-    }
+
+    if (!enable.empty())
+        EnableOrDisableLogCategories(enable, true);
+
+    if (!disable.empty())
+        EnableOrDisableLogCategories(disable, false);
+
     uint32_t updated_log_categories = g_logger->GetCategoryMask();
     uint32_t changed_log_categories = original_log_categories ^ updated_log_categories;
 

@@ -470,7 +470,7 @@ void SetupServerArgs()
     gArgs.AddArg("-rebuildwebdb", "(Re)Build Web database", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-index", "Reindexing pocketnet part with start block N (default off = -1)", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-skipvalidation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
 
 #ifndef WIN32
     gArgs.AddArg("-sysperms", "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)", false, OptionsCategory::OPTIONS);

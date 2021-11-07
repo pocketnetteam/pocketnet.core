@@ -144,8 +144,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getmempoolancestors",           1, "verbose"},
         {"getmempooldescendants",         1, "verbose"},
         {"bumpfee",                       1, "options"},
-        {"logging",                       0, "include"},
-        {"logging",                       1, "exclude"},
         {"disconnectnode",                1, "nodeid"},
         {"addwitnessaddress",             1, "p2sh"},
         // Echo with conversion (For testing only)

@@ -2451,7 +2451,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     }
 
     // -----------------------------------------------------------------------------------------------------------------
-    auto skipValidation = gArgs.GetArg("-skip-validation", 0);
+    auto skipValidation = gArgs.GetArg("-skipvalidation", 0);
 
     // Checks PoS logic
     if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
