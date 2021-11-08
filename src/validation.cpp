@@ -2525,6 +2525,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
             //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
         }
+        
+        LogPrint(BCLog::CONSENSUS, "--- Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
 
         nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
@@ -2545,6 +2547,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         try
         {
             PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
+            LogPrint(BCLog::SYNC, "--- Block indexed: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
         }
         catch (const std::exception& e)
         {
@@ -3099,7 +3102,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
         NotifyWSClients(blockConnecting, pindexNew);
     }
 
-    LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH:%s\n", pindexNew->nHeight,
+    LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH: %s\n", pindexNew->nHeight,
         pindexNew->GetBlockHash().GetHex());
 
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
