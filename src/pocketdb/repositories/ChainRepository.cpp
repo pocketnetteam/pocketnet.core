@@ -91,6 +91,39 @@ namespace PocketDb
         }
     }
 
+    tuple<bool, bool> ChainRepository::ExistsBlock(const string& blockHash, int height)
+    {
+        bool exists = false;
+        bool last = true;
+
+        string sql = R"sql(
+            select
+                ifnull((select 1 from Transactions where BlockHash = ? and Height = ? limit 1), 0)current,
+                ifnull((select 1 from Transactions where Height = ? limit 1), 0)next
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, blockHash);
+            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 3, height + 1);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok && value == 1)
+                    exists = true;
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok && value == 1)
+                    last = false;
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {exists, last};
+    }
+
     void ChainRepository::UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash)
     {
         auto stmt = SetupSqlStatement(R"sql(
@@ -236,7 +269,7 @@ namespace PocketDb
                     (
                         select c.Id
                         from Transactions c indexed by Transactions_Type_Last_String2_Height
-                        where c.Type in (200, 201, 207)
+                        where c.Type in (200,201,207)
                             and c.Last = 1
                             -- String2 = RootTxHash
                             and c.String2 = Transactions.String2

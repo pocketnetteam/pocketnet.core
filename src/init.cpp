@@ -464,12 +464,13 @@ void SetupServerArgs()
         "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)",
         MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024),
         false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk (Default: 0)."
+        "Available 0 (Disabled), 1 (Full), 2 (Only chain), 3 (Only pocket), 4 (Only pocket indexes), 5 (Only pocket WEB part)",
+        false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-reindex-start", "Start block for -reindex logic (Deafult: 0)", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-rebuildindexes", "(Re)Build all sqlite indexes", false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-rebuildwebdb", "(Re)Build Web database", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-skipvalidation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
 
 #ifndef WIN32
     gArgs.AddArg("-sysperms", "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)", false, OptionsCategory::OPTIONS);
@@ -763,10 +764,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         CImportingNow imp;
 
         // -reindex
-        if (fReindex)
+        if (IsChainReindex())
         {
             // Rollback to first block
-            if (!PocketDb::ChainRepoInst.ClearDatabase())
+            if (fReindex == 1 && !PocketDb::ChainRepoInst.ClearDatabase())
             {
                 LogPrintf("Failed clear pocket database\n");
                 StartShutdown();
@@ -788,7 +789,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
                 nFile++;
             }
             pblocktree->WriteReindexing(false);
-            fReindex = false;
+            fReindex = 0;
             LogPrintf("Reindexing finished\n");
             // To avoid ending up in a situation without genesis block, re-try initializing (no-op if reindexing worked):
             LoadGenesisBlock(chainparams);
@@ -827,27 +828,66 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             }
         }
 
-        if (PocketDb::ChainRepoInst.Rollback(chainActive.Height() + 1))
+        // TODO (brangr): in testing!
+        // The idea is to roll back SQLITE data at the chain connection level
+
+        // if (!IsChainReindex())
+        // {
+        //     if (PocketDb::ChainRepoInst.Rollback(chainActive.Height() + 1))
+        //     {
+        //         if (chainActive.Tip())
+        //         {
+        //             LogPrint(BCLog::SYNC, "Best block in sqlite db: %s (%d)\n",
+        //                 chainActive.Tip()->GetBlockHash().GetHex(), chainActive.Height());
+        //         }
+        //         else
+        //         {
+        //             LogPrint(BCLog::SYNC, "No existing blockchain found on disk\n");
+        //         }
+        //     }
+        //     else
+        //     {
+        //         LogPrintf("Error\n");
+        //         StartShutdown();
+        //         return;
+        //     }
+        // }
+
+        // Reindex only pocket part
+        if (fReindex == 3)
         {
-            if (chainActive.Tip())
+            int i = (int)gArgs.GetArg("-reindex-start", 0);
+            PocketServices::ChainPostProcessing::Rollback(i);
+
+            while (i <= chainActive.Height() && !ShutdownRequested())
             {
-                LogPrint(BCLog::SYNC, "Best block in sqlite db: %s (%d)\n",
-                    chainActive.Tip()->GetBlockHash().GetHex(), chainActive.Height());
+                try
+                {
+                    CBlockIndex* pblockindex = chainActive[i];
+                    CBlock block;
+                    if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+                    {
+                        LogPrintf("Stopping after failed index pocket part\n");
+                        StartShutdown();
+                        return;
+                    }
+
+                    PocketServices::ChainPostProcessing::Index(block, pblockindex->nHeight);
+
+                    LogPrint(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
+                    i += 1;
+                }
+                catch (std::exception& e)
+                {
+                    LogPrintf("Stopping after failed index pocket part: %s\n", e.what());
+                    StartShutdown();
+                    return;
+                }
             }
-            else
-            {
-                LogPrint(BCLog::SYNC, "No existing blockchain found on disk\n");
-            }
-        }
-        else
-        {
-            LogPrintf("Error\n");
-            StartShutdown();
-            return;
         }
 
         // Rebuild web DB
-        if (gArgs.GetBoolArg("-rebuildwebdb", false))
+        if (fReindex == 5)
         {
             LogPrintf("Building a Web database: 0%%\n");
 
@@ -1639,7 +1679,7 @@ bool AppInitMain()
     // Open, create structure and close `web` db
     PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
     PocketDb::SQLiteDatabase sqliteDbWebInst(false);
-    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, gArgs.GetBoolArg("-rebuildwebdb", false));
+    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, gArgs.GetArg("-reindex", 0) == 5);
     sqliteDbWebInst.CreateStructure();
     sqliteDbWebInst.Close();
 
@@ -1671,7 +1711,7 @@ bool AppInitMain()
         LogPrintf("The sqlite db is cleared according to the -mempoolclean parameter\n");
     }
 
-    if (gArgs.GetBoolArg("-rebuildindexes", false))
+    if (gArgs.GetArg("-reindex", 0) == 4)
         PocketDb::SQLiteDbInst.RebuildIndexes();
 
     // ********************************************************* Step 4b: Start servers
@@ -1824,7 +1864,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 7: load block chain
 
-    fReindex = gArgs.GetBoolArg("-reindex", false);
+    fReindex = gArgs.GetArg("-reindex", 0);
     bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
 
     // cache size calculations
@@ -1860,7 +1900,7 @@ bool AppInitMain()
     bool fLoaded = false;
     while (!fLoaded && !ShutdownRequested())
     {
-        bool fReset = fReindex;
+        bool fReset = IsChainReindex();
         std::string strLoadError;
 
         uiInterface.InitMessage(_("Loading block index..."));
@@ -1921,7 +1961,7 @@ bool AppInitMain()
                 // If we're not mid-reindex (based on disk + args), add a genesis block on disk
                 // (otherwise we use the one already on disk).
                 // This is called again in ThreadImport after the reindex completes.
-                if (!fReindex && !LoadGenesisBlock(chainparams))
+                if (!IsChainReindex() && !LoadGenesisBlock(chainparams))
                 {
                     strLoadError = _("Error initializing block database");
                     break;
@@ -2024,11 +2064,11 @@ bool AppInitMain()
             {
                 bool fRet = uiInterface.ThreadSafeQuestion(
                     strLoadError + ".\n\n" + _("Do you want to rebuild the block database now?"),
-                    strLoadError + ".\nPlease restart with -reindex or -reindex-chainstate to recover.",
+                    strLoadError + ".\nPlease restart with -reindex=N or -reindex-chainstate to recover.",
                     "", CClientUIInterface::MSG_ERROR | CClientUIInterface::BTN_ABORT);
                 if (fRet)
                 {
-                    fReindex = true;
+                    fReindex = 1;
                     AbortShutdown();
                 }
                 else
@@ -2062,7 +2102,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 8: start indexers
     // TXIndex need! Force enabled!
-    g_txindex = MakeUnique<TxIndex>(nTxIndexCache, false, fReindex);
+    g_txindex = MakeUnique<TxIndex>(nTxIndexCache, false, IsChainReindex());
     g_txindex->Start();
     // ********************************************************* Step 9: load wallet
     if (!g_wallet_init_interface.Open()) return false;
@@ -2075,7 +2115,7 @@ bool AppInitMain()
     {
         LogPrintf("Unsetting NODE_NETWORK on prune mode\n");
         nLocalServices = ServiceFlags(nLocalServices & ~NODE_NETWORK);
-        if (!fReindex)
+        if (!IsChainReindex())
         {
             uiInterface.InitMessage(_("Pruning blockstore..."));
             PruneAndFlush();

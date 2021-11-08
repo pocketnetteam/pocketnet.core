@@ -112,6 +112,7 @@ namespace PocketTx
     {
         string Hash;
         int BlockNumber;
+        int64_t Time;
         TxType Type;
         vector<pair<string, int>> Inputs;
 

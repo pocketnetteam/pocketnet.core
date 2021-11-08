@@ -1538,8 +1538,8 @@ bool static ProcessHeadersMessage(CNode* pfrom, CConnman* connman, const std::ve
             if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
                 Misbehaving(pfrom->GetId(), 20, "non-continuous headers sequence");
                 return false;
-                hashLastBlock = header.GetHash();
             }
+            hashLastBlock = header.GetHash();
         }
         // if (valid) {
         //     uint256 hashLastBlock;

@@ -294,9 +294,9 @@ static RPCHelpMan verifymessage()
 {
     LOCK(cs_main);
 
-    std::string strAddress  = request.params[0].get_str();
-    std::string strSign     = request.params[1].get_str();
-    std::string strMessage  = request.params[2].get_str();
+    std::string strAddress = request.params[0].get_str();
+    std::string strSign = request.params[1].get_str();
+    std::string strMessage = request.params[2].get_str();
 
     switch (MessageVerify(strAddress, strSign, strMessage)) {
     case MessageVerificationResult::ERR_INVALID_ADDRESS:
@@ -538,31 +538,26 @@ static void EnableOrDisableLogCategories(UniValue cats, bool enable) {
 
 static RPCHelpMan logging()
 {
-    return RPCHelpMan{"logging",
+    return RPCHelpMan{"logging ( +category -category )",
             "Gets and sets the logging configuration.\n"
             "When called without an argument, returns the list of categories with status that are currently being debug logged or not.\n"
             "When called with arguments, adds or removes categories from debug logging and return the lists above.\n"
             "The arguments are evaluated in order \"include\", \"exclude\".\n"
             "If an item is both included and excluded, it will thus end up being excluded.\n"
-            "The valid logging categories are: " + LogInstance().LogCategoriesString() + "\n"
+            "The valid logging categories are: " +
+            LogInstance().LogCategoriesString() + "\n"
             "In addition, the following are available as category names with special meanings:\n"
             "  - \"all\",  \"1\" : represent all logging categories.\n"
             "  - \"none\", \"0\" : even if other logging categories are specified, ignore all of them.\n"
             ,
                 {
-                    {"include", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "The categories to add to debug logging",
-                        {
-                            {"include_category", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the valid logging category"},
-                        }},
-                    {"exclude", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "The categories to remove from debug logging",
-                        {
-                            {"exclude_category", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the valid logging category"},
-                        }},
+                    {"include", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Category to add debug logging"},
+                    {"exclude", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Category to remove debug logging"},
                 },
                 RPCResult{
-                    RPCResult::Type::OBJ_DYN, "", "keys are the logging categories, and values indicates its status",
+                    RPCResult::Type::OBJ_DYN, "", "json object where keys are the logging categories, and values indicates its status",
                     {
-                        {RPCResult::Type::BOOL, "category", "if being debug logged or not. false:inactive, true:active"},
+                        {RPCResult::Type::NUM, "category", "if being debug logged or not. 0:inactive, 1:active"},
                     }
                 },
                 RPCExamples{
@@ -572,12 +567,27 @@ static RPCHelpMan logging()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     uint32_t original_log_categories = LogInstance().GetCategoryMask();
-    if (request.params[0].isArray()) {
-        EnableOrDisableLogCategories(request.params[0], true);
+
+    UniValue enable(UniValue::VARR);
+    UniValue disable(UniValue::VARR);
+    size_t i = 0;
+    while (i < request.params.size())
+    {
+        auto prm = request.params[i].get_str();
+        if (prm.substr(0, 1) == "-")
+            disable.push_back(prm.substr(1));
+        else if (prm.substr(0, 1) == "+")
+            enable.push_back(prm.substr(1));
+        else
+            enable.push_back(prm);
     }
-    if (request.params[1].isArray()) {
-        EnableOrDisableLogCategories(request.params[1], false);
-    }
+
+    if (!enable.empty())
+        EnableOrDisableLogCategories(enable, true);
+
+    if (!disable.empty())
+        EnableOrDisableLogCategories(disable, false);
+
     uint32_t updated_log_categories = LogInstance().GetCategoryMask();
     uint32_t changed_log_categories = original_log_categories ^ updated_log_categories;
 
@@ -590,7 +600,7 @@ static RPCHelpMan logging()
         if (!UpdateHTTPServerLogging(LogInstance().WillLogCategory(BCLog::LIBEVENT))) {
             LogInstance().DisableCategory(BCLog::LIBEVENT);
             if (changed_log_categories == BCLog::LIBEVENT) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "libevent logging cannot be updated when using libevent before v2.1.1.");
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "libevent logging cannot be updated when using libevent before v2.1.1.");
             }
         }
     }

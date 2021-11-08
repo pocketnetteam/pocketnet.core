@@ -503,14 +503,28 @@ void StartHTTPServer()
     threadResult = task.get_future();
     threadHTTP = std::thread(std::move(task), eventBase);
 
-    LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
-    if (g_socket) g_socket->StartHTTPSocket(rpcMainThreads, false);
+    if (g_socket)
+    {
+        g_socket->StartHTTPSocket(rpcMainThreads, false);
+        LogPrintf("HTTP: starting %d Main worker threads\n", rpcMainThreads);
+    }
 
     // The same worker threads will service POST and PUBLIC RPC requests
-    LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
-    if (g_webSocket) g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
-    if (g_staticSocket) g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
-    if (g_restSocket) g_restSocket->StartHTTPSocket(rpcRestThreads, true);
+    if (g_webSocket)
+    {
+        g_webSocket->StartHTTPSocket(rpcPublicThreads, rpcPostThreads, true);
+        LogPrintf("HTTP: starting %d Public worker threads\n", rpcPublicThreads);
+    }
+    if (g_staticSocket)
+    {
+        g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
+        LogPrintf("HTTP: starting %d Static worker threads\n", rpcPublicThreads);
+    }
+    if (g_restSocket)
+    {
+        g_restSocket->StartHTTPSocket(rpcRestThreads, true);
+        LogPrintf("HTTP: starting %d Rest worker threads\n", rpcPublicThreads);
+    }
 }
 
 void InterruptHTTPServer()

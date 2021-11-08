@@ -39,7 +39,7 @@ namespace PocketConsensus
         return make_tuple(scoreData->ContentAddressId, scoreData->ContentAddressHash);
     }
 
-    bool ReputationConsensus::AllowModifyReputationOverPost(shared_ptr<ScoreDataDto>& scoreData, const CTransactionRef& tx, bool lottery)
+    bool ReputationConsensus::AllowModifyReputationOverPost(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
     {
         auto[checkScoreAddressId, checkScoreAddressHash] = SelectAddressScoreContent(scoreData, lottery);
 
@@ -66,7 +66,9 @@ namespace PocketConsensus
             values.push_back(5);
         }
 
-        auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreContentCount(Height, scoreData, tx, values, _scores_one_to_one_depth);
+        auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreContentCount(
+            Height, scoreData, values, _scores_one_to_one_depth);
+
         if (scores_one_to_one_count >= _max_scores_one_to_one)
             return false;
 
@@ -74,7 +76,7 @@ namespace PocketConsensus
         return true;
     }
 
-    bool ReputationConsensus::AllowModifyReputationOverComment(shared_ptr<ScoreDataDto>& scoreData, const CTransactionRef& tx, bool lottery)
+    bool ReputationConsensus::AllowModifyReputationOverComment(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
     {
         // Check user reputation
         if (!AllowModifyReputation(scoreData->ScoreAddressId))
@@ -95,7 +97,9 @@ namespace PocketConsensus
             values.push_back(1);
         }
 
-        auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreCommentCount(Height, scoreData, tx, values, _scores_one_to_one_depth);
+        auto scores_one_to_one_count = PocketDb::ConsensusRepoInst.GetScoreCommentCount(
+            Height, scoreData, values, _scores_one_to_one_depth);
+
         if (scores_one_to_one_count >= _max_scores_one_to_one)
             return false;
 
@@ -119,25 +123,29 @@ namespace PocketConsensus
         return {GetAccountMode(reputation, balance), reputation, balance};
     }
 
-    bool ReputationConsensus::AllowModifyReputation(shared_ptr<ScoreDataDto>& scoreData, const CTransactionRef& tx, bool lottery)
+    bool ReputationConsensus::AllowModifyReputation(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
     {
         if (scoreData->ScoreType == TxType::ACTION_SCORE_CONTENT)
-            return AllowModifyReputationOverPost(scoreData, tx, lottery);
+            return AllowModifyReputationOverPost(scoreData, lottery);
 
         if (scoreData->ScoreType == TxType::ACTION_SCORE_COMMENT)
-            return AllowModifyReputationOverComment(scoreData, tx, lottery);
+            return AllowModifyReputationOverComment(scoreData, lottery);
 
         return false;
     }
 
     bool ReputationConsensus::AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType)
     {
-        // TODO (brangr) v0.21.0: we need to limit the depth for all content types
-        
-        if (contentType == TxType::CONTENT_POST)
-            return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
-
-        return true;
+        switch (contentType)
+        {
+            case CONTENT_POST:
+            case CONTENT_VIDEO:
+            case CONTENT_TRANSLATE:
+            case CONTENT_SERVERPING:
+                return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
+            default:
+                return true;
+        }
     }
 
     void ReputationConsensus::PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)

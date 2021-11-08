@@ -129,6 +129,8 @@ namespace PocketDb
 
             FinalizeSqlStatement(*stmt);
         });
+
+        return result;
     }
 
 }

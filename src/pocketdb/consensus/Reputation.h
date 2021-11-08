@@ -19,15 +19,15 @@ namespace PocketConsensus
         virtual int64_t GetMinLikers(int addressId);
         virtual bool AllowModifyReputation(int addressId);
         virtual tuple<int, string> SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
-        virtual bool AllowModifyReputationOverPost(shared_ptr<ScoreDataDto>& scoreData, const CTransactionRef& tx, bool lottery);
-        virtual bool AllowModifyReputationOverComment(shared_ptr<ScoreDataDto>& scoreData, const CTransactionRef& tx, bool lottery);
+        virtual bool AllowModifyReputationOverPost(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
+        virtual bool AllowModifyReputationOverComment(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
 
     public:
         explicit ReputationConsensus(int height) : BaseConsensus(height) {}
 
         virtual AccountMode GetAccountMode(int reputation, int64_t balance);
         virtual tuple<AccountMode, int, int64_t> GetAccountMode(string& address);
-        virtual bool AllowModifyReputation(shared_ptr<ScoreDataDto>& scoreData, const CTransactionRef& tx, bool lottery);
+        virtual bool AllowModifyReputation(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
         virtual bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType);
         virtual void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers);
     };

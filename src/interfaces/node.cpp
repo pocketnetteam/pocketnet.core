@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 The Bitcoin Core developers
+// Copyright (c) 2018 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -35,7 +35,7 @@
 #include <warnings.h>
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/pocketcoin-config.h>
 #endif
 
 #include <univalue.h>
@@ -196,7 +196,7 @@ public:
         return GuessVerificationProgress(Params().TxData(), tip);
     }
     bool isInitialBlockDownload() override { return ::ChainstateActive().IsInitialBlockDownload(); }
-    bool getReindex() override { return ::fReindex; }
+    bool getReindex() override { return ::fReindex > 0; }
     bool getImporting() override { return ::fImporting; }
     void setNetworkActive(bool active) override
     {

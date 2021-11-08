@@ -81,7 +81,6 @@ namespace PocketConsensus
 
             if (!reputationConsensus->AllowModifyReputation(
                 scoreData,
-                tx,
                 true
             ))
                 continue;
