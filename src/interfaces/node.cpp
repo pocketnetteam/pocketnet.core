@@ -183,7 +183,7 @@ class NodeImpl : public Node
         return GuessVerificationProgress(Params().TxData(), tip);
     }
     bool isInitialBlockDownload() override { return IsInitialBlockDownload(); }
-    bool getReindex() override { return ::fReindex; }
+    bool getReindex() override { return ::fReindex > 0; }
     bool getImporting() override { return ::fImporting; }
     void setNetworkActive(bool active) override
     {

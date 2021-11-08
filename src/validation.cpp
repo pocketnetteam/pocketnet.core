@@ -265,7 +265,8 @@ std::condition_variable g_best_block_cv;
 uint256 g_best_block;
 int nScriptCheckThreads = 0;
 std::atomic_bool fImporting(false);
-std::atomic_bool fReindex(false);
+int fReindex = 0;
+bool IsChainReindex() { return fReindex == 1 || fReindex == 2; }
 bool fHavePruned = false;
 bool fPruneMode = false;
 bool fIsBareMultisigStd = DEFAULT_PERMIT_BAREMULTISIG;
@@ -1371,7 +1372,7 @@ bool IsInitialBlockDownload()
     LOCK(cs_main);
     if (latchToFalse.load(std::memory_order_relaxed))
         return false;
-    if (fImporting || fReindex)
+    if (fImporting || IsChainReindex())
         return true;
     if (chainActive.Tip() == nullptr)
         return true;
@@ -2132,8 +2133,16 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         {
             view.SetBestBlock(pindex->GetBlockHash());
 
-            // Also indexing pocketdb
-            PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
+            // We must clear all traces of the block if it is the last in the chain,
+            // since the previous transaction may not have completed completely.
+            auto[blockExists, blockLast] = PocketDb::ChainRepoInst.ExistsBlock(block.GetHash().GetHex(), pindex->nHeight);
+            
+            if ((blockExists && blockLast) || (!blockExists && !blockLast))
+                if (!PocketServices::ChainPostProcessing::Rollback(pindex->nHeight))
+                    return error("Disconnect Genesis Block (Pocketnet part) %s failed", pindex->GetBlockHash().ToString());
+
+            if (!blockExists || blockLast)
+                PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
         }
 
         return true;
@@ -2450,46 +2459,60 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
                 REJECT_INVALID, "bad-cb-amount");
     }
 
-    // -----------------------------------------------------------------------------------------------------------------
-    auto skipValidation = gArgs.GetArg("-skipvalidation", 0);
-
-    // Checks PoS logic
-    if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
-    {
-        if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
-        {
-            return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
-        }
-    }
-
-    if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
-    {
-        int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
-        if (nStakeReward > nCalculatedStakeReward)
-            return state.DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward));
-
-        int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
-
-        if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
-        {
-            // We do not accept blocks that do not meet the consensus conditions,
-            // but we should not mark them invalid for cases when the block is processed after the orphan.
-            return false;
-        }
-    }
-
-    int64_t nTime4 = GetTimeMicros();
-    nTimeVerify += nTime4 - nTime3;
-    LogPrint(BCLog::BENCH, "    - Checking rewards: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
-        MILLI * (nTime4 - nTime3), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (nInputs - 1), nTimeVerify * MICRO,
-        nTimeVerify * MILLI / nBlocksTotal);
-
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
 
     // -----------------------------------------------------------------------------------------------------------------
-    if (pindex->nHeight > skipValidation)
+    // We can skip some of the on-demand checks or partial reindexing
+    int64_t nTime5 = GetTimeMicros();
+
+    // We can skip checking and indexing existing data to avoid duplication of work.
+    auto[blockExists, blockLast] = PocketDb::ChainRepoInst.ExistsBlock(block.GetHash().GetHex(), pindex->nHeight);
+
+    // Rollback db if need
+    if ((blockExists && blockLast) || (!blockExists && !blockLast))
     {
+        if (!PocketServices::ChainPostProcessing::Rollback(pindex->nHeight))
+            return error("ConnectBlock: Rollback (Pocketnet part) %s failed", pindex->GetBlockHash().ToString());
+    }
+
+    // If the block is not in the database or it is the last one, we have to check and index
+    bool enablePocketConnect = (!blockExists || blockLast);
+    if (enablePocketConnect)
+    {
+        // Checks PoS logic
+        if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
+        {
+            if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
+            {
+                return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
+            }
+        }
+
+        if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
+        {
+            int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
+            if (nStakeReward > nCalculatedStakeReward)
+                return state.DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward));
+
+            int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
+
+            if (!CheckBlockRatingRewards(block, pindex->pprev, nReward, hashProofOfStakeSource))
+            {
+                // We do not accept blocks that do not meet the consensus conditions,
+                // but we should not mark them invalid for cases when the block is processed after the orphan.
+                return false;
+            }
+        }
+
+        int64_t nTime4 = GetTimeMicros();
+        nTimeVerify += nTime4 - nTime3;
+        LogPrint(BCLog::BENCH, "    - Checking rewards: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+            MILLI * (nTime4 - nTime3), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime3) / (nInputs - 1), nTimeVerify * MICRO,
+            nTimeVerify * MILLI / nBlocksTotal);
+
+        // -----------------------------------------------------------------------------------------------------------------
+        // Pocketnet Consensus rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight); !ok)
         {
             LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
@@ -2499,15 +2522,16 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
             // we need to think about marking the block incomplete and requesting it from the network again.
             return false;
+
             //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
         }
-    }
 
-    int64_t nTime5 = GetTimeMicros();
-    nTimeVerify += nTime5 - nTime4;
-    LogPrint(BCLog::BENCH, "    - Consensus validation: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
-        MILLI * (nTime5 - nTime4), nInputs <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (nInputs - 1), nTimeVerify * MICRO,
-        nTimeVerify * MILLI / nBlocksTotal);
+        nTime5 = GetTimeMicros();
+        nTimeVerify += nTime5 - nTime4;
+        LogPrint(BCLog::BENCH, "    - Consensus validation: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
+            MILLI * (nTime5 - nTime4), nInputs <= 1 ? 0 : MILLI * (nTime5 - nTime4) / (nInputs - 1), nTimeVerify * MICRO,
+            nTimeVerify * MILLI / nBlocksTotal);
+    }
 
     // -----------------------------------------------------------------------------------------------------------------
     // Finalize connect
@@ -2516,26 +2540,29 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Block indexing (Utxo, Ratings, setting block & txout for transactions)
-    try
+    if (enablePocketConnect)
     {
-        PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
-    }
-    catch (const std::exception& e)
-    {
-        LogPrintf("Error indexing social data: %s\n", e.what());
-        return false;
+        try
+        {
+            PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
+        }
+        catch (const std::exception& e)
+        {
+            LogPrintf("Error indexing social data: %s\n", e.what());
+            return false;
+        }
     }
 
-    // -----------------------------------------------------------------------------------------------------------------
-    // Extend WEB database
-    PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
-
-    // -----------------------------------------------------------------------------------------------------------------
     int64_t nTime6 = GetTimeMicros();
     nTimeVerify += nTime6 - nTime5;
     LogPrint(BCLog::BENCH, "    - SQLite indexing: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n",
         MILLI * (nTime6 - nTime5), nInputs <= 1 ? 0 : MILLI * (nTime6 - nTime5) / (nInputs - 1), nTimeVerify * MICRO,
         nTimeVerify * MILLI / nBlocksTotal);
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Extend WEB database
+    if (gArgs.GetBoolArg("-api", false) && enablePocketConnect)
+        PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
 
     // -----------------------------------------------------------------------------------------------------------------
     if (!WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
@@ -2568,8 +2595,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
  * If FlushStateMode::NONE is used, then FlushStateToDisk(...) won't do anything
  * besides checking if we need to prune.
  */
-bool static
-FlushStateToDisk(const CChainParams& chainparams, CValidationState& state, FlushStateMode mode, int nManualPruneHeight)
+bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState& state, FlushStateMode mode, int nManualPruneHeight)
 {
     int64_t nMempoolUsage = mempool.DynamicMemoryUsage();
     LOCK(cs_main);
@@ -2583,7 +2609,7 @@ FlushStateToDisk(const CChainParams& chainparams, CValidationState& state, Flush
             bool fFlushForPrune = false;
             bool fDoFullFlush = false;
             LOCK(cs_LastBlockFile);
-            if (fPruneMode && (fCheckForPruning || nManualPruneHeight > 0) && !fReindex)
+            if (fPruneMode && (fCheckForPruning || nManualPruneHeight > 0) && !IsChainReindex())
             {
                 if (nManualPruneHeight > 0)
                 {
@@ -5313,7 +5339,7 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams) EXCLUSIVE_LOCKS_RE
     // Check whether we need to continue reindexing
     bool fReindexing = false;
     pblocktree->ReadReindexing(fReindexing);
-    if (fReindexing) fReindex = true;
+    if (fReindexing) fReindex = 2;
 
     return true;
 }
@@ -5780,8 +5806,8 @@ void UnloadBlockIndex()
 bool LoadBlockIndex(const CChainParams& chainparams)
 {
     // Load block index from databases
-    bool needs_init = fReindex;
-    if (!fReindex)
+    bool needs_init = IsChainReindex();
+    if (!IsChainReindex())
     {
         bool ret = LoadBlockIndexDB(chainparams);
         if (!ret) return false;
