@@ -4473,7 +4473,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
 	std::vector<COutput> vCoins;
 	AvailableCoinsForStaking(vCoins, nSpendTime);
 
-	LogPrintf("Available coins count %d BestHeader: %d %s\n", vCoins.size(), chainActive.Tip()->nHeight, chainActive.Tip()->GetBlockHash().GetHex());
+	LogPrint(BCLog::WALLET, "Available coins count %d BestHeader: %d %s\n", vCoins.size(), chainActive.Tip()->nHeight, chainActive.Tip()->GetBlockHash().GetHex());
 	setCoinsRet.clear();
 	nValueRet = 0;
 

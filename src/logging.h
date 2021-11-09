@@ -59,6 +59,7 @@ namespace BCLog {
         STATDETAIL    = (1 << 24),
         RESTFRONTEND  = (1 << 25),
         CONSENSUS     = (1 << 26),
+        WALLET        = (1 << 27),
         ALL           = ~(uint32_t)0,
     };
 
