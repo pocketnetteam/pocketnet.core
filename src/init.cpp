@@ -887,7 +887,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         }
 
         // Rebuild web DB
-        if (fReindex == 5)
+        if (fReindex == 5 && gArgs.GetBoolArg("-api", false))
         {
             LogPrintf("Building a Web database: 0%%\n");
 
@@ -1703,6 +1703,9 @@ bool AppInitMain()
 
     PocketWeb::PocketFrontendInst.Init();
 
+    if (gArgs.GetBoolArg("-api", false))
+        PocketServices::WebPostProcessorInst.Start(threadGroup);
+
     // ********************************************************* Step 4b: Additional settings
 
     if (gArgs.GetBoolArg("-mempoolclean", false))
@@ -2268,7 +2271,7 @@ bool AppInitMain()
 
 #ifdef ENABLE_WALLET
     // TODO (brangr): DEBUG!
-    if (chainparams.NetworkID() == NetworkTest)
+    //if (chainparams.NetworkID() == NetworkTest)
     {
         Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
         Staker::getInstance()->startWorkers(threadGroup, chainparams);
@@ -2279,9 +2282,6 @@ bool AppInitMain()
     if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
 
     gStatEngineInstance.Run(threadGroup);
-
-    if (gArgs.GetBoolArg("-api", false))
-        PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));
