@@ -2478,7 +2478,9 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // If the block is not in the database or it is the last one, we have to check and index
     bool enablePocketConnect = (!blockExists || blockLast);
-    if (enablePocketConnect)
+    int skipValidation = gArgs.GetArg("-skip-validation", -1);
+    
+    if (enablePocketConnect && pindex->nHeight > skipValidation)
     {
         // Checks PoS logic
         if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
