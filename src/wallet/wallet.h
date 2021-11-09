@@ -1124,7 +1124,7 @@ public:
     /** Prepends the wallet name in logging output to ease debugging in multi-wallet use cases */
     template<typename... Params>
     void WalletLogPrintf(std::string fmt, Params... parameters) const {
-        LogPrintf(("%s " + fmt).c_str(), GetDisplayName(), parameters...);
+        LogPrint(BCLog::WALLET, ("%s " + fmt).c_str(), GetDisplayName(), parameters...);
     };
 
     /** Implement lookup of key origin information through wallet key metadata. */
