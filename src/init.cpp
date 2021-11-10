@@ -853,72 +853,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         //     }
         // }
 
-        // Reindex only pocket part
-        if (fReindex == 3)
-        {
-            int i = (int)gArgs.GetArg("-reindex-start", 0);
-            PocketServices::ChainPostProcessing::Rollback(i);
-
-            while (i <= chainActive.Height() && !ShutdownRequested())
-            {
-                try
-                {
-                    CBlockIndex* pblockindex = chainActive[i];
-                    CBlock block;
-                    if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-                    {
-                        LogPrintf("Stopping after failed index pocket part\n");
-                        StartShutdown();
-                        return;
-                    }
-
-                    PocketServices::ChainPostProcessing::Index(block, pblockindex->nHeight);
-
-                    LogPrint(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
-                    i += 1;
-                }
-                catch (std::exception& e)
-                {
-                    LogPrintf("Stopping after failed index pocket part: %s\n", e.what());
-                    StartShutdown();
-                    return;
-                }
-            }
-        }
-
-        // Rebuild web DB
-        if (fReindex == 5 && gArgs.GetBoolArg("-api", false))
-        {
-            LogPrintf("Building a Web database: 0%%\n");
-
-            int current = 0;
-            int percent = chainActive.Height() / 100;
-            int64_t startTime = GetTimeMicros();
-            while (++current <= chainActive.Height())
-            {
-                CBlockIndex* pblockindex = chainActive[current];
-                if (!pblockindex)
-                    break;
-
-                try
-                {
-                    PocketServices::WebPostProcessorInst.ProcessTags(pblockindex->GetBlockHash().GetHex());
-                    PocketServices::WebPostProcessorInst.ProcessSearchContent(pblockindex->GetBlockHash().GetHex());
-                }
-                catch (std::exception& ex)
-                {
-                    LogPrintf("Process web db building failed - block:%s height:%d what:%s\n", pblockindex->GetBlockHash().GetHex(), pblockindex->nHeight, ex.what());
-                    StartShutdown();
-                    return;
-                }
-
-                if (current % percent == 0)
-                {
-                    int64_t time = GetTimeMicros();
-                    LogPrintf("Building a Web database: %d%% (%.2fm)\n", (current / percent), (0.000001 * (time - startTime)) / 60.0);
-                }
-            }
-        }
+        if (ShutdownRequested())
+            return;
 
         // scan for better chains in the block chain database, that are not yet connected in the active best chain
         CValidationState state;
@@ -2087,6 +2023,80 @@ bool AppInitMain()
         }
     }
 
+    // Reindex requests
+    // .. only pocket part
+    if (fReindex == 3)
+    {
+        int i = (int)gArgs.GetArg("-reindex-start", 0);
+        PocketServices::ChainPostProcessing::Rollback(i);
+
+        while (i <= chainActive.Height() && !ShutdownRequested())
+        {
+            try
+            {
+                CBlockIndex* pblockindex = chainActive[i];
+                CBlock block;
+                if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+                {
+                    LogPrintf("Stopping after failed index pocket part\n");
+                    StartShutdown();
+                    return false;
+                }
+
+                PocketServices::ChainPostProcessing::Index(block, pblockindex->nHeight);
+
+                LogPrint(BCLog::SYNC, "Indexing pocketnet part at height %d\n", pblockindex->nHeight);
+                i += 1;
+            }
+            catch (std::exception& e)
+            {
+                LogPrintf("Stopping after failed index pocket part: %s\n", e.what());
+                StartShutdown();
+                return false;
+            }
+        }
+    }
+
+    // .. only web DB
+    if (fReindex == 5 && gArgs.GetBoolArg("-api", false))
+    {
+        LogPrintf("Building a Web database: 0%%\n");
+
+        int i = 0;
+        int percent = chainActive.Height() / 100;
+        int64_t startTime = GetTimeMicros();
+        while (i <= chainActive.Height() && !ShutdownRequested())
+        {
+            CBlockIndex* pblockindex = chainActive[i];
+            if (!pblockindex)
+            {
+                LogPrintf("ERROR: Block not found in chainActive[%d]\n", i);
+                StartShutdown();
+                return false;
+            }
+
+            try
+            {
+                PocketServices::WebPostProcessorInst.ProcessTags(pblockindex->GetBlockHash().GetHex());
+                PocketServices::WebPostProcessorInst.ProcessSearchContent(pblockindex->GetBlockHash().GetHex());
+            }
+            catch (std::exception& ex)
+            {
+                LogPrintf("ERROR: Process web db building failed - block:%s height:%d what:%s\n", pblockindex->GetBlockHash().GetHex(), pblockindex->nHeight, ex.what());
+                StartShutdown();
+                return false;
+            }
+
+            if (i % percent == 0)
+            {
+                int64_t time = GetTimeMicros();
+                LogPrintf("Building a Web database: %d%% (%.2fm)\n", (i / percent), (0.000001 * (time - startTime)) / 60.0);
+            }
+
+            i += 1;
+        }
+    }
+
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
     // As the program has not fully started yet, Shutdown() is possibly overkill.
@@ -2271,7 +2281,7 @@ bool AppInitMain()
 
 #ifdef ENABLE_WALLET
     // TODO (brangr): DEBUG!
-    //if (chainparams.NetworkID() == NetworkTest)
+    if (chainparams.NetworkID() == NetworkTest)
     {
         Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
         Staker::getInstance()->startWorkers(threadGroup, chainparams);

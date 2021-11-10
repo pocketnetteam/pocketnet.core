@@ -5344,7 +5344,7 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams) EXCLUSIVE_LOCKS_RE
     // Check whether we need to continue reindexing
     bool fReindexing = false;
     pblocktree->ReadReindexing(fReindexing);
-    if (fReindexing) fReindex = 2;
+    if (fReindexing) fReindex = 1;
 
     return true;
 }
