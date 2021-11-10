@@ -171,7 +171,12 @@ namespace PocketDb
                    : make_tuple(true, sqlite3_column_int(stmt, index));
         }
 
-        int64_t LastInsertRowId()
+        void SetLastInsertRowId(int64_t value)
+        {
+            sqlite3_set_last_insert_rowid(m_database.m_db, value);
+        }
+
+        int64_t GetLastInsertRowId()
         {
             return sqlite3_last_insert_rowid(m_database.m_db);
         }

@@ -242,8 +242,10 @@ namespace PocketDb
 
             for (const auto& contentItm : contentList)
             {
+                SetLastInsertRowId(0);
+
                 auto stmtMap = SetupSqlStatement(R"sql(
-                    insert into ContentMap (ContentId, FieldType) values (?,?)
+                    insert or ignore into ContentMap (ContentId, FieldType) values (?,?)
                 )sql");
                 TryBindStatementInt64(stmtMap, 1, contentItm.ContentId);
                 TryBindStatementInt(stmtMap, 2, (int)contentItm.FieldType);
@@ -251,12 +253,21 @@ namespace PocketDb
 
                 // ---------------------------------------------------------
 
-                auto stmtContent = SetupSqlStatement(R"sql(
-                    replace into web.Content (ROWID, Value) values (?,?)
-                )sql");
-                TryBindStatementInt64(stmtContent, 1, LastInsertRowId());
-                TryBindStatementText(stmtContent, 2, contentItm.Value);
-                TryStepStatement(stmtContent);
+                auto lastRowId = GetLastInsertRowId();
+                if (lastRowId > 0)
+                {
+                    auto stmtContent = SetupSqlStatement(R"sql(
+                        replace into web.Content (ROWID, Value) values (?,?)
+                    )sql");
+                    TryBindStatementInt64(stmtContent, 1, lastRowId);
+                    TryBindStatementText(stmtContent, 2, contentItm.Value);
+                    TryStepStatement(stmtContent);
+                }
+                else
+                {
+                    LogPrintf("Warning: content (%d) field (%d) not indexed in search db\n",
+                        contentItm.ContentId, (int)contentItm.FieldType);
+                }
             }
 
             // ---------------------------------------------------------
