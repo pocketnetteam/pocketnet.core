@@ -60,6 +60,7 @@ namespace BCLog {
         RESTFRONTEND  = (1 << 25),
         CONSENSUS     = (1 << 26),
         WALLET        = (1 << 27),
+        SQL           = (1 << 28),
         ALL           = ~(uint32_t)0,
     };
 

@@ -18,7 +18,7 @@ namespace PocketDb
         string sql = R"sql(
             select Value
             from Tags t indexed by Tags_Value
-            where t.Value like ?
+            where t.Value match ?
             limit ?
             offset ?
         )sql";
@@ -44,10 +44,13 @@ namespace PocketDb
 
     vector<int64_t> SearchRepository::SearchIds(const SearchRequest& request)
     {
+        auto func = __func__;
         vector<int64_t> ids;
 
+        if (request.Keyword.empty())
+            return ids;
+
         // First search request
-        string keyword = "%" + request.Keyword + "%";
         string fieldTypes = join(request.FieldTypes | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
         string txTypes = join(request.TxTypes | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
         string heightWhere = request.TopBlock > 0 ? " and t.Height <= ? " : "";
@@ -61,13 +64,19 @@ namespace PocketDb
                 and t.Height is not null
                 )sql" + heightWhere + R"sql(
                 )sql" + addressWhere + R"sql(
-                and t.Id in (select c.ContentId from web.Content c where c.FieldType in ( )sql" + fieldTypes + R"sql( ) and c.Value like ?)
+                and t.Id in (
+                    select cm.ContentId
+                    from web.Content c, web.ContentMap cm
+                    where c.ROWID = cm.ROWID
+                        and cm.FieldType in ( )sql" + fieldTypes + R"sql( )
+                        and c.Value match ?
+                    )
             order by t.Id desc
             limit ?
             offset ?
         )sql";
         
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
@@ -76,9 +85,11 @@ namespace PocketDb
                 TryBindStatementInt(stmt, i++, request.TopBlock);
             if (!request.Address.empty())
                 TryBindStatementText(stmt, i++, request.Address);
-            TryBindStatementText(stmt, i++, keyword);
+            TryBindStatementText(stmt, i++, request.Keyword);
             TryBindStatementInt(stmt, i++, request.PageSize);
             TryBindStatementInt(stmt, i++, request.PageStart);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -99,18 +110,19 @@ namespace PocketDb
             select
                 t.Id,
                 f.Value,
-                f.FieldType
+                fm.FieldType
             from web.Content f
-            inner join Transactions t on f.ContentId = t.Id
-            inner join Payload p on p.TxHash=t.Hash
+            join web.ContentMap fm on fm.ROWID = f.ROWID
+            join Transactions t on t.Id = fm.ContentId
+            join Payload p on p.TxHash=t.Hash
             where t.Last = 1
                 and t.Type = 100
                 and t.Height is not null
-                and f.FieldType in ( )sql" + fieldTypesWhere + R"sql( )
+                and fm.FieldType in ( )sql" + fieldTypesWhere + R"sql( )
                 and f.Value match ?
         )sql";
-        //if (orderbyrank)
-            sql += " order by rank";
+        if (orderbyrank)
+            sql += " order by rank ";
 
         map<int, string> result;
 

@@ -2025,6 +2025,7 @@ namespace PocketDb
 
     vector<UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
     {
+        auto func = __func__;
         vector<UniValue> result{};
 
         if (ids.empty())
@@ -2073,7 +2074,7 @@ namespace PocketDb
         // Get posts
         unordered_map<int64_t, UniValue> tmpResult{};
         vector<string> authors;
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
@@ -2083,7 +2084,7 @@ namespace PocketDb
             for (int64_t id : ids)
                 TryBindStatementInt64(stmt, i++, id);
 
-            // LogPrintf(" GetContentsData: %s\n", sqlite3_expanded_sql(*stmt));
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             // ---------------------------
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -2250,6 +2251,7 @@ namespace PocketDb
         // TODO (brangr): add filter by blockings
         // TODO (brangr): add filter by min reputation
 
+        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
@@ -2277,7 +2279,7 @@ namespace PocketDb
         sql += " limit ? ";
 
         vector<int64_t> ids;
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             
@@ -2299,7 +2301,7 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, i++, count);
 
-            // LogPrintf(" --- %s\n", sqlite3_expanded_sql(*stmt));
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -2322,6 +2324,7 @@ namespace PocketDb
     UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
         const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
     {
+        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (contentTypes.empty())
@@ -2357,7 +2360,7 @@ namespace PocketDb
         // ---------------------------------------------
 
         vector<int64_t> ids;
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
@@ -2388,7 +2391,7 @@ namespace PocketDb
                     
             TryBindStatementInt(stmt, i++, countOut);
 
-            //LogPrintf("--- GetHistoricalFeed: %s\n", sqlite3_expanded_sql(*stmt));
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
             
             // Get results
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -2414,6 +2417,7 @@ namespace PocketDb
     UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
         const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
     {
+        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (contentTypes.empty())
@@ -2494,7 +2498,7 @@ namespace PocketDb
         vector<HierarchicalRecord> postsRanks;
         double dekay = (contentTypes.size() == 1 && contentTypes[0] == CONTENT_VIDEO) ? dekayVideo : dekayContent;
 
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
@@ -2527,7 +2531,7 @@ namespace PocketDb
                 for (const auto& extag: tagsExcluded)
                     TryBindStatementText(stmt, i++, extag);
 
-            //LogPrintf("--- GetHierarchicalFeed: topContentId=%d sql=%s\n", topContentId, sqlite3_expanded_sql(*stmt));
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
             
             // Get results
             while (sqlite3_step(*stmt) == SQLITE_ROW)
