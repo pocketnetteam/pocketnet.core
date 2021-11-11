@@ -1058,11 +1058,28 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 __func__, hash.ToString(), FormatStateMessage(state));
         }
 
+        // Restore and validate pocketnet part
+        PTransactionRef _pocketTx = pocketTx;
+        if (!_pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
+        {
+            // Try deserialize transaction
+            if (auto[ok, val] = PocketServices::Serializer::DeserializeTransaction(ptx); ok && val)
+                _pocketTx = val;
+            else
+                return state.DoS(0, false, REJECT_INTERNAL, "error restore pocketnet payload data");
+        }
+
+        // TODO (brangr): implement pocketnet consensus validation
+
         if (test_accept)
         {
             // Tx was accepted, but not added
             return true;
         }
+
+        // At this point, we believe that all the checks have been carried
+        // out and we can safely save the transaction to the database for
+        // subsequent verification of the consensus and inclusion in the block.
 
         // Remove conflicting transactions from the mempool
         for (CTxMemPool::txiter it : allConflicting)
@@ -1086,19 +1103,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                                      pool.HasNoInputsOf(tx);
 
         // Write payload part to sqlite db
-        // At this point, we believe that all the checks have been carried 
-        // out and we can safely save the transaction to the database for 
-        // subsequent verification of the consensus and inclusion in the block.
-        PTransactionRef _pocketTx = pocketTx;
-        if (!_pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
-        {
-            // Deserialize default money transaction
-            if (auto[ok, val] = PocketServices::Serializer::DeserializeTransaction(ptx); ok && val)
-                _pocketTx = val;
-            else
-                return state.DoS(0, false, REJECT_INTERNAL, "error restore pocketnet payload data");
-        }
-        
         if (_pocketTx)
         {
             try

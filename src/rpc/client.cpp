@@ -161,7 +161,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"rescanblockchain",              1, "stop_height"},
         {"createwallet",                  1, "disable_private_keys"},
         {"getnodeaddresses",              0, "count"},
-        {"sendrawtransactionwithmessage", 1, "message"},
         {"txunspent",                     0, "addresses"},
         {"txunspent",                     1, "minconf"},
         {"txunspent",                     2, "maxconf"},

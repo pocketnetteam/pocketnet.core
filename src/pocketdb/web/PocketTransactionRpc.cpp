@@ -80,7 +80,8 @@ namespace PocketWeb::PocketWebRpc
 
             CCoinsViewCache& view = *pcoinsTip;
             bool fHaveChain = false;
-            for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++) {
+            for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++)
+            {
                 const Coin& existingCoin = view.AccessCoin(COutPoint(txid, o));
                 fHaveChain = !existingCoin.IsSpent();
             }
@@ -92,16 +93,26 @@ namespace PocketWeb::PocketWebRpc
                 // push to local node and sync with wallets
                 CValidationState state;
                 bool fMissingInputs;
-                if (!AcceptToMemoryPool(mempool, state, tx, ptx, &fMissingInputs, nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee)) {
-                    if (state.IsInvalid()) {
+                if (!AcceptToMemoryPool(mempool, state, tx, ptx, &fMissingInputs,
+                    nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee))
+                {
+                    if (state.IsInvalid())
+                    {
                         throw JSONRPCError(RPC_TRANSACTION_REJECTED, FormatStateMessage(state));
-                    } else {
-                        if (state.GetRejectCode() == RPC_POCKETTX_MATURITY) {
+                    }
+                    else
+                    {
+                        if (state.GetRejectCode() == RPC_POCKETTX_MATURITY)
+                        {
                             throw JSONRPCError(RPC_POCKETTX_MATURITY, FormatStateMessage(state));
-                        } else {
-                            if (fMissingInputs) {
+                        }
+                        else
+                        {
+                            if (fMissingInputs)
+                            {
                                 throw JSONRPCError(RPC_TRANSACTION_ERROR, "Missing inputs");
                             }
+
                             throw JSONRPCError(RPC_TRANSACTION_ERROR, FormatStateMessage(state));
                         }
                     }
@@ -117,7 +128,8 @@ namespace PocketWeb::PocketWebRpc
                         promise.set_value();
                     });
                 }
-            } else if (fHaveChain)
+            }
+            else if (fHaveChain)
             {
                 throw JSONRPCError(RPC_TRANSACTION_ALREADY_IN_CHAIN, "transaction already in block chain");
             }
@@ -127,7 +139,6 @@ namespace PocketWeb::PocketWebRpc
                 // a transaction already in mempool.
                 promise.set_value();
             }
-
         } // cs_main
 
         promise.get_future().wait();
