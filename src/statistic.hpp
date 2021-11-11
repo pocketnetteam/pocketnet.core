@@ -85,7 +85,7 @@ namespace Statistic
 
             for (auto& sample : _samples)
             {
-                if (sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
+                if (sample.TimestampEnd.count() > 0 && sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
                 {
                     sum += sample.TimestampEnd - sample.TimestampBegin;
                     count++;
@@ -108,7 +108,7 @@ namespace Statistic
 
             for (auto& sample : _samples)
             {
-                if (sample.TimestampCreated >= since && sample.Key != "WorkQueue::Enqueue")
+                if (sample.TimestampEnd.count() > 0 && sample.TimestampCreated >= since && sample.Key != "WorkQueue::Enqueue")
                 {
                     sum += sample.TimestampEnd - sample.TimestampCreated;
                     count++;

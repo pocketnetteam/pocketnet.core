@@ -35,5 +35,11 @@ namespace PocketDb
         SQLiteDbInst->m_connection_mutex.unlock();
     }
 
+    void SQLiteConnection::InterruptQuery()
+    {
+        if (SQLiteDbInst->m_db)
+            sqlite3_interrupt(SQLiteDbInst->m_db);
+    }
+
 
 } // namespace PocketDb

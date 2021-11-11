@@ -231,7 +231,9 @@ public:
         auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
 
         auto start = gStatEngineInstance.GetCurrentSystemTime();
+
         func(jreq, path);
+
         auto finish = gStatEngineInstance.GetCurrentSystemTime();
 
         if (log)

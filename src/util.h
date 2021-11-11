@@ -31,6 +31,11 @@
 #include <unordered_set>
 #include <vector>
 
+#include <chrono>
+#include <future>
+#include <iostream>
+#include <thread>
+
 #include <boost/thread/condition_variable.hpp> // for boost::thread_interrupted
 
 // Application startup time (used for uptime calculation)
@@ -337,6 +342,42 @@ template <typename Callable> void TraceThread(const char* name,  Callable func)
         throw;
     }
 }
+
+/**
+ * Runs an arbitrary function TF in an independent thread 
+ * and interrupts the execution of the function if 
+ * the execution time exceeds the specified timeout TDuration
+ */
+
+struct TimeoutException : public std::exception
+{
+	const char * what () const throw ()
+    {
+    	return "Timeout Exception";
+    }
+};
+
+using namespace std::chrono_literals;
+
+template <typename TF, typename TDuration, class... TArgs>
+std::result_of_t<TF&&(TArgs&&...)> run_with_timeout(TF&& f, TDuration timeout, TArgs&&... args)
+{
+    using R = std::result_of_t<TF&&(TArgs&&...)>;
+    std::packaged_task<R(TArgs...)> task(f);
+    auto future = task.get_future();
+    std::thread thr(std::move(task), std::forward<TArgs>(args)...);
+    if (future.wait_for(timeout) != std::future_status::timeout)
+    {
+       thr.join();
+       return future.get(); // this will propagate exception from f() if any
+    }
+    else
+    {
+       thr.detach(); // we leave the thread still running
+       throw TimeoutException();
+    }
+}
+
 
 std::string CopyrightHolders(const std::string& strPrefix);
 

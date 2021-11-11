@@ -744,6 +744,11 @@ static inline std::string gen_random(const int len) {
 
 }
 
+UniValue rpcTableExecute(CRPCTable& table, JSONRPCRequest& jreq)
+{
+    return table.execute(jreq);
+}
+
 bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 {
     // JSONRPC handles only POST
@@ -754,7 +759,8 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
     }
 
     JSONRPCRequest jreq;
-    try {
+    try
+    {
         UniValue valRequest;
 
         if (!valRequest.read(req->ReadBody()))
@@ -776,10 +782,32 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
             auto rpcKey = gen_random(15);
             LogPrint(BCLog::RPC, "RPC started method %s%s (%s) with params: %s\n",
                 uri, method, rpcKey, jreq.params.write(0, 0));
-
+                
+            UniValue result;
             int64_t nTime1 = GetTimeMicros();
 
-            UniValue result = table.execute(jreq);
+            // We are running a separate thread to detect timeout only for public queries related to sqlite db
+            if (m_publicAccess)
+            {
+                // Try launch rpc table method with timeout 3 seconds
+                try
+                {
+                    result = run_with_timeout(rpcTableExecute, 3s, std::ref(table), std::ref(jreq));
+                }
+                catch (const TimeoutException& e)
+                {
+                    if (req->DbConnection())
+                        req->DbConnection()->InterruptQuery();
+
+                    LogPrint(BCLog::RPC, "Exception timeout %s\n", JSONRPCError(HTTP_TIMEOUT, e.what()).write());
+                    JSONErrorReply(req, JSONRPCError(HTTP_TIMEOUT, "Performing the function for more than 3 seconds"), jreq.id);
+                    return false;
+                }
+            }
+            else
+            {
+                result = table.execute(jreq);
+            }
             
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
