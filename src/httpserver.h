@@ -218,10 +218,12 @@ public:
     HTTPWorkItem(std::unique_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
         req(std::move(_req)), path(_path), func(_func)
     {
+        log = g_logger->WillLogCategory(BCLog::STAT);
+        created = gStatEngineInstance.GetCurrentSystemTime();
     }
+
     void operator()(DbConnectionRef& dbConnection) override
     {
-        auto log = g_logger->WillLogCategory(BCLog::STAT);
         auto jreq = req.get();
         jreq->SetDbConnection(dbConnection);
 
@@ -230,15 +232,16 @@ public:
 
         auto start = gStatEngineInstance.GetCurrentSystemTime();
         func(jreq, path);
-        auto stop = gStatEngineInstance.GetCurrentSystemTime();
+        auto finish = gStatEngineInstance.GetCurrentSystemTime();
 
         if (log)
         {
             gStatEngineInstance.AddSample(
                 Statistic::RequestSample{
                     uri,
+                    created,
                     start,
-                    stop,
+                    finish,
                     peer,
                     0,
                     0
@@ -252,6 +255,8 @@ public:
 private:
     std::string path;
     HTTPRequestHandler func;
+    bool log;
+    Statistic::RequestTime created;
 };
 
 class HTTPSocket

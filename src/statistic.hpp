@@ -23,6 +23,7 @@ namespace Statistic
     struct RequestSample
     {
         RequestKey Key;
+        RequestTime TimestampCreated;
         RequestTime TimestampBegin;
         RequestTime TimestampEnd;
         RequestIP SourceIP;
@@ -87,6 +88,29 @@ namespace Statistic
                 if (sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
                 {
                     sum += sample.TimestampEnd - sample.TimestampBegin;
+                    count++;
+                }
+            }
+
+            if (count <= 0) return {};
+            return sum / count;
+        }
+
+        RequestTime GetAvgExecuteTimeSince(RequestTime since)
+        {
+            LOCK(_samplesLock);
+
+            if (_samples.empty())
+                return {};
+
+            RequestTime sum{};
+            std::size_t count{};
+
+            for (auto& sample : _samples)
+            {
+                if (sample.TimestampCreated >= since && sample.Key != "WorkQueue::Enqueue")
+                {
+                    sum += sample.TimestampEnd - sample.TimestampCreated;
                     count++;
                 }
             }
@@ -222,6 +246,7 @@ namespace Statistic
             UniValue rpcStat(UniValue::VOBJ);
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
+            rpcStat.pushKV("AvgExecTime", GetAvgExecuteTimeSince(since).count());
             rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
             if (g_logger->WillLogCategory(BCLog::STATDETAIL))
             {
