@@ -38,14 +38,6 @@ namespace PocketWeb::PocketWebRpc
         // Set required fields
         ptx->SetAddress(address);
 
-        // Antibot checked transaction with pocketnet consensus rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(tx, ptx); !ok)
-            throw JSONRPCError(result, PocketConsensus::SocialConsensusResultString(result));
-
-        // And validating
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, chainActive.Height() + 1); !ok)
-            throw JSONRPCError(result, PocketConsensus::SocialConsensusResultString(result));
-
         // Insert into mempool
         return _accept_transaction(tx, ptx);
     }

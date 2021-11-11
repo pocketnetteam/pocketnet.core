@@ -1069,7 +1069,13 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 return state.DoS(0, false, REJECT_INTERNAL, "error restore pocketnet payload data");
         }
 
-        // TODO (brangr): implement pocketnet consensus validation
+        // Check transaction with pocketnet base rules
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx); !ok)
+            return state.DoS(0, false, REJECT_INTERNAL, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
+
+        // Check transaction with pocketnet consensus rules
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketTx, chainActive.Height() + 1); !ok)
+            return state.DoS(0, false, REJECT_INTERNAL, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result));
 
         if (test_accept)
         {

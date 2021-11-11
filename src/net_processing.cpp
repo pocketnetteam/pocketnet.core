@@ -29,7 +29,6 @@
 #include <univalue.h>
 #include <memory>
 
-#include "pocketdb/consensus/Helper.h"
 #include "pocketdb/services/Accessor.h"
 
 #if defined(NDEBUG)
@@ -2368,18 +2367,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         auto[deserializeOk, pocketTx] = PocketServices::Serializer::DeserializeTransaction(ptx, vRecv);
         if (!deserializeOk)
             state.Invalid(false, 0, "Deserialize");
-
-        // Check transaction with pocketnet base rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(txRef, pocketTx); !ok)
-            state.Invalid(false, result, "SocialConsensusHelper::Check");
-
-        // Check transaction with pocketnet consensus rules
-        if (!state.IsInvalid())
-        {
-            int height = chainActive.Height() + 1;
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketTx, height); !ok)
-                state.Invalid(false, result, "SocialConsensusHelper::Validate");
-        }
 
         if (!state.IsInvalid() && !AlreadyHave(inv) && AcceptToMemoryPool(mempool, state, txRef, pocketTx,
             &fMissingInputs, &lRemovedTxn, false /* bypass_limits */, 0 /* nAbsurdFee */))
