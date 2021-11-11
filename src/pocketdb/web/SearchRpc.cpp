@@ -164,7 +164,37 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue SearchUsers(const JSONRPCRequest& request)
     {
-        return UniValue();
+        if (request.fHelp)
+            throw runtime_error(
+                "search \"keyword\", \"fieldtype\", orderbyrank\n"
+                "\nSearch users in DB.\n"
+                "\nArguments:\n"
+                "1. \"keyword\"     (string) String for search\n"
+                "2. \"fieldtype\"        (string, optional)\n"
+                "3. \"orderbyrank\"  (int, optional)\n"
+            );
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+        string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
+
+        vector<int> fieldTypes = { ContentFieldType::ContentFieldType_AccountUserName };
+        // ContentFieldType::ContentFieldType_AccountUserAbout, ContentFieldType::ContentFieldType_AccountUserUrl
+        auto users = request.DbConnection()->SearchRepoInst->SearchUsers(keyword, fieldTypes, false);
+
+        vector<int64_t> usersIds;
+        for (const auto &user : users)
+            usersIds.emplace_back(user.first);
+
+        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(usersIds);
+
+        UniValue result(UniValue::VARR);
+        for (auto &profile : usersProfiles)
+        {
+            profile.second.pushKV("searchResult",users[profile.first]);
+            result.push_back(profile.second);
+        }
+
+        return result;
     }
 
     UniValue SearchLinks(const JSONRPCRequest& request)

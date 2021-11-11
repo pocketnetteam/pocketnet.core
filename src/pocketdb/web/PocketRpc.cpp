@@ -26,6 +26,7 @@ static const CRPCCommand commands[] =
     // Search
     {"search",          "search",                           &Search,                        {"keyword", "type", "topBlock", "pageStart", "pageSize", "address"}},
     {"search",          "searchlinks",                      &SearchLinks,                   {"links", "contenttypes", "height", "count"}},
+    {"search",          "searchusers",                      &SearchUsers,                   {"keyword", "fieldtypes", "orderbyrank"}},
 
     // WebSocket
     {"websocket",       "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},

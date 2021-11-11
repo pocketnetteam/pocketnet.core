@@ -92,7 +92,7 @@ namespace PocketDb
         return ids;
     }
 
-    UniValue SearchRepository::SearchUsers(const string& searchstr, const vector<ContentFieldType> fieldTypes, bool orderbyrank)
+    map<int, string> SearchRepository::SearchUsers(const string& searchstr, const vector<int> fieldTypes, bool orderbyrank)
     {
         string fieldTypesWhere = join(vector<string>(fieldTypes.size(), "?"), ",");
         string sql = R"sql(
@@ -109,22 +109,24 @@ namespace PocketDb
                 and f.FieldType in ( )sql" + fieldTypesWhere + R"sql( )
                 and f.Value match ?
         )sql";
-        if (orderbyrank)
+        //if (orderbyrank)
             sql += " order by rank";
 
-        UniValue result(UniValue::VARR);
+        map<int, string> result;
+
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
             for (const auto& fieldtype: fieldTypes)
                 TryBindStatementInt(stmt, i++, fieldtype);
-            TryBindStatementText(stmt, i++, searchstr);
+            TryBindStatementText(stmt, i++, "\"" + searchstr + "\"" + " OR " + searchstr + "*");
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                //if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
-                //    result.push_back(value);
+                auto[ok0, id] = TryGetColumnInt(*stmt, 0);
+                auto[ok, value] = TryGetColumnString(*stmt, 1);
+                result[id] = value;
             }
 
             FinalizeSqlStatement(*stmt);
