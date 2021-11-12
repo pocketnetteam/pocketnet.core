@@ -232,6 +232,37 @@ namespace Statistic
             }
             result.pushKV("RPC", rpcStat);
 
+            UniValue sqlStats(UniValue::VOBJ);
+            sqlite3_int64 current64 = 0, highWater64 = 0; 
+            sqlite3_status64(SQLITE_STATUS_MEMORY_USED, &current64, &highWater64, false);
+            sqlStats.pushKV("MemoryUsed", (int64_t) current64);
+            sqlStats.pushKV("MemoryUsedMax", (int64_t) highWater64);
+            sqlite3_status64(SQLITE_STATUS_PAGECACHE_USED, &current64, &highWater64, false);
+            sqlStats.pushKV("PageCacheUsed", (int64_t) current64);
+            sqlStats.pushKV("PageCacheUsedMax", (int64_t) highWater64);
+            sqlite3_status64(SQLITE_STATUS_PAGECACHE_SIZE, &current64, &highWater64, false);
+            sqlStats.pushKV("PageCacheSize", (int64_t) current64);
+            sqlStats.pushKV("PageCacheSizeMax", (int64_t) highWater64);
+            sqlite3 *db = PocketDb::SQLiteDbInst.m_db;
+
+            int current = 0, highWater = 0; 
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &current, &highWater, false);
+            sqlStats.pushKV("CacheUsed", current);
+
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED_SHARED, &current, &highWater, false);
+            sqlStats.pushKV("SharedCacheUsed", current);
+
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_HIT, &current, &highWater, true);
+            sqlStats.pushKV("CacheHit", current);
+
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &current, &highWater, true);
+            sqlStats.pushKV("CacheMiss", current);
+
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_SPILL, &current, &highWater, true);
+            sqlStats.pushKV("CacheSpill", current);
+
+            result.pushKV("SQL", sqlStats);
+
             return result;
         }
 
