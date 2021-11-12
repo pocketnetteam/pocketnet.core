@@ -609,6 +609,7 @@ namespace PocketDb
     map<int64_t, UniValue> WebRpcRepository::GetLastComments(const vector<int64_t>& ids, const string& address)
     {
         map<int64_t, UniValue> result;
+        return result;
 
         string sql = R"sql(
             select
@@ -2426,11 +2427,12 @@ namespace PocketDb
         string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
 
         string sql = R"sql(
-            select (t.Id)ContentId,
+            select
+                (t.Id)ContentId,
                 ifnull(pr.Value,0)ContentRating,
                 ifnull(ur.Value,0)AccountRating,
-                torig.Height,
-
+                torig.Height
+                /*
                 ifnull( (
                     select sum((
                         select case when s.Int1 = 5 then 1 else -1 end
@@ -2464,7 +2466,7 @@ namespace PocketDb
                     limit ?
                 )
                 ,0)LastScores
-
+                */
             from Transactions t
 
             join Payload p on p.TxHash = t.Hash

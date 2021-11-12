@@ -799,7 +799,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
                     if (req->DbConnection())
                         req->DbConnection()->InterruptQuery();
 
-                    LogPrint(BCLog::RPC, "Exception timeout %s\n", JSONRPCError(HTTP_TIMEOUT, e.what()).write());
+                    LogPrint(BCLog::RPC, "RPC exception timeout (%s): %s\n", method, JSONRPCError(HTTP_TIMEOUT, e.what()).write());
                     JSONErrorReply(req, JSONRPCError(HTTP_TIMEOUT, "Performing the function for more than 3 seconds"), jreq.id);
                     return false;
                 }
