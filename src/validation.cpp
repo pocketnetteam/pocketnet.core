@@ -1069,6 +1069,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 return state.DoS(0, false, REJECT_INTERNAL, "error deserialize pocketnet payload data");
         }
 
+        // For supported transactions payload must be exists
+        if (!_pocketTx && PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
+            return state.DoS(0, false, REJECT_INTERNAL, "pocketnet payload data not found");
+
         // Check consensus if transaction payload exists
         if (_pocketTx)
         {

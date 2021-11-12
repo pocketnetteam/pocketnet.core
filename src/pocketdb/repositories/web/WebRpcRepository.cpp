@@ -734,6 +734,7 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash)
     {
+        auto func = __func__;
         auto result = UniValue(UniValue::VARR);
 
         string parentWhere = " and c.String4 is null ";
@@ -784,7 +785,7 @@ namespace PocketDb
                 and c.Time < ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
@@ -793,6 +794,8 @@ namespace PocketDb
             if (!parentHash.empty())
                 TryBindStatementText(stmt, i++, parentHash);
             TryBindStatementInt64(stmt, i++, GetAdjustedTime());
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
