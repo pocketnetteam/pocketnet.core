@@ -2064,7 +2064,7 @@ namespace PocketDb
                 ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore
 
-            from Transactions t
+            from Transactions t indexed by Transactions_Last_Id_Height
             left join Payload p on t.Hash = p.TxHash
             where t.Type in (200, 201, 207)
               and t.Height is not null
@@ -2424,49 +2424,32 @@ namespace PocketDb
         if (contentTypes.empty())
             return result;
 
-        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
+        string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
 
         string sql = R"sql(
             select
                 (t.Id)ContentId,
                 ifnull(pr.Value,0)ContentRating,
                 ifnull(ur.Value,0)AccountRating,
-                torig.Height
-                /*
-                ifnull( (
-                    select sum((
-                        select case when s.Int1 = 5 then 1 else -1 end
-                        from Transactions s indexed by Transactions_Type_Last_String2_Height
-                        join Transactions su indexed by Transactions_Type_Last_String1_Height_Id
-                            on su.Type in (100) and
-                               su.Height is not null and
-                               su.String1 = s.String1 and
-                               su.Last = 1
-                        join Ratings sur indexed by Ratings_Type_Id_Height_Value
-                            on sur.Type = 1
-                                and sur.Id = su.Id
-                                and sur.Height = (select max(sur1.Height)
-                                                  from Ratings sur1 indexed by Ratings_Type_Id_Height_Value
-                                                  where sur1.Type = 1 and sur1.Id = su.Id and sur1.Height <= s.Height)
-                                and sur.Value > 100
-                        where s.Type in (300)
-                            and s.Last in (0, 1)
-                            and s.Height is not null
-                            and s.String2 = p.String2
-                            and s.Int1 in (1, 5)
-                        group by s.String1
-                    ))
-                    from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
-                    where p.Type in )sql" + contentTypesWhere + R"sql(
-                        and p.Last = 1
-                        and p.String1 = t.String1
-                        and p.Height < torig.Height
-                        and p.Height > (torig.Height - ?)
-                    order by p.Height desc
-                    limit ?
-                )
-                ,0)LastScores
-                */
+                torig.Height,
+                
+                ifnull((
+                    select sum(ifnull(pr.Value,0))
+                    from (
+                        select p.Id
+                        from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
+                        where p.Type in ( )sql" + contentTypesWhere + R"sql( )
+                            and p.Last = 1
+                            and p.String1 = t.String1
+                            and p.Height < torig.Height
+                            and p.Height > (torig.Height - ?)
+                        order by p.Height desc
+                        limit ?
+                    )q
+                    left join Ratings pr indexed by Ratings_Type_Id_Last_Height
+                        on pr.Type = 2 and pr.Id = q.Id and pr.Last = 1
+                ), 0)SumRating
+
             from Transactions t
 
             join Payload p on p.TxHash = t.Hash
@@ -2482,7 +2465,7 @@ namespace PocketDb
             left join Ratings ur indexed by Ratings_Type_Id_Last_Height
                 on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
 
-            where t.Type in )sql" + contentTypesWhere + R"sql(
+            where t.Type in ( )sql" + contentTypesWhere + R"sql( )
                 and t.Last = 1
                 and t.String3 is null
                 and t.Height is not null
