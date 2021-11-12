@@ -6,24 +6,6 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    void ParseRequestContentType(const UniValue& value, vector<int>& types)
-    {
-        if (value.isNum())
-        {
-            types.push_back(value.get_int());
-        }
-        else if (value.isStr())
-        {
-            if (TransactionHelper::TxIntType(value.get_str()) != TxType::NOT_SUPPORTED)
-                types.push_back(TransactionHelper::TxIntType(value.get_str()));
-        }
-        else if (value.isArray())
-        {
-            UniValue cntntTps = value.get_array();
-            for (unsigned int idx = 0; idx < cntntTps.size(); idx++)
-                ParseRequestContentType(cntntTps[idx], types);
-        }
-    }
 
     void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address)
@@ -49,35 +31,11 @@ namespace PocketWeb::PocketWebRpc
 
         // tags
         if (request.params.size() > 4)
-        {
-            if (request.params[4].isStr())
-            {
-                string tag = boost::trim_copy(request.params[4].get_str());
-                if (!tag.empty())
-                    tags.push_back(tag);
-            }
-            else if (request.params[4].isArray())
-            {
-                UniValue tgs = request.params[4].get_array();
-                for (unsigned int idx = 0; idx < tgs.size(); idx++)
-                {
-                    string tag = boost::trim_copy(tgs[idx].get_str());
-                    if (!tag.empty())
-                        tags.push_back(tag);
-
-                    if (tags.size() >= 10)
-                        break;
-                }
-            }
-        }
+            ParseRequestTags(request.params[4], tags);
 
         // content types
-        contentTypes = {CONTENT_POST, CONTENT_VIDEO};
-        if (request.params.size() > 5 && !request.params[5].empty())
-        {
-            contentTypes.clear();
-            ParseRequestContentType(request.params[5], contentTypes);
-        }
+        if (request.params.size() > 5)
+            ParseRequestContentTypes(request.params[5], contentTypes);
 
         // exclude ids
         if (request.params.size() > 6)
@@ -257,40 +215,20 @@ namespace PocketWeb::PocketWebRpc
 
         vector<string> tags;
         if (request.params.size() > 5)
-        {
-            if (request.params[5].isStr())
-            {
-                string tag = boost::trim_copy(request.params[5].get_str());
-                if (!tag.empty())
-                    tags.push_back(tag);
-            }
-            else if (request.params[5].isArray())
-            {
-                UniValue tgs = request.params[5].get_array();
-                for (unsigned int idx = 0; idx < tgs.size(); idx++)
-                {
-                    string tag = boost::trim_copy(tgs[idx].get_str());
-                    if (!tag.empty())
-                        tags.push_back(tag);
-
-                    if (tags.size() >= 10)
-                        break;
-                }
-            }
-        }
+            ParseRequestTags(request.params[5], tags);
 
         // content types
-        vector<int> contentTypes = {CONTENT_POST, CONTENT_VIDEO};
-        if (request.params.size() > 6 && !request.params[6].empty())
-        {
-            contentTypes.clear();
-            ParseRequestContentType(request.params[6], contentTypes);
-        }
+        vector<int> contentTypes;
+        if (request.params.size() > 6)
+            ParseRequestContentTypes(request.params[6], contentTypes);
 
         int64_t topContentId = 0;
-        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
-        if (!ids.empty())
-            topContentId = ids[0];
+        if (!topContentHash.empty())
+        {
+            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
+            if (!ids.empty())
+                topContentId = ids[0];
+        }
 
         return request.DbConnection()->WebRpcRepoInst->GetProfileFeed(addressFrom, addressTo, topContentId, count, lang, tags, contentTypes);
     }
@@ -348,12 +286,9 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 3)
             lang = request.params[3].get_str();
 
-        vector<int> contentTypes{CONTENT_POST, CONTENT_VIDEO};
+        vector<int> contentTypes;
         if (request.params.size() > 4)
-        {
-            contentTypes.clear();
-            ParseRequestContentType(request.params[4], contentTypes);
-        }
+            ParseRequestContentTypes(request.params[4], contentTypes);
 
         string address = "";
         if (request.params.size() > 5)
@@ -479,35 +414,12 @@ namespace PocketWeb::PocketWebRpc
 
         vector<string> tags;
         if (request.params.size() > 5)
-        {
-            if (request.params[5].isStr())
-            {
-                string tag = boost::trim_copy(request.params[5].get_str());
-                if (!tag.empty())
-                    tags.push_back(tag);
-            }
-            else if (request.params[5].isArray())
-            {
-                UniValue tgs = request.params[5].get_array();
-                for (unsigned int idx = 0; idx < tgs.size(); idx++)
-                {
-                    string tag = boost::trim_copy(tgs[idx].get_str());
-                    if (!tag.empty())
-                        tags.push_back(tag);
-
-                    if (tags.size() >= 10)
-                        break;
-                }
-            }
-        }
+            ParseRequestTags(request.params[5], tags);
 
         // content types
-        vector<int> contentTypes = {CONTENT_POST, CONTENT_VIDEO};
-        if (request.params.size() > 6 && !request.params[6].empty())
-        {
-            contentTypes.clear();
-            ParseRequestContentType(request.params[6], contentTypes);
-        }
+        vector<int> contentTypes;
+        if (request.params.size() > 6)
+            ParseRequestContentTypes(request.params[6], contentTypes);
 
         int64_t topContentId = 0;
         auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
@@ -566,12 +478,9 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        vector<int> contentTypes = {TxType::CONTENT_POST, TxType::CONTENT_VIDEO};
+        vector<int> contentTypes;
         if (request.params.size() > 1)
-        {
-            contentTypes.clear();
-            ParseRequestContentType(request.params[1], contentTypes);
-        }
+            ParseRequestContentTypes(request.params[1], contentTypes);
 
         int nHeight = chainActive.Height();
         if (request.params.size() > 2)

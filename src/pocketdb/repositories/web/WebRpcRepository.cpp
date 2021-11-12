@@ -2178,6 +2178,7 @@ namespace PocketDb
     UniValue WebRpcRepository::GetProfileFeed(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang,
         const vector<string>& tags, const vector<int>& contentTypes)
     {
+        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (addressTo.empty())
@@ -2191,7 +2192,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select t.Id
-            from Transactions t indexed by Transactions_Last_Id_Height
+            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
             join Payload p on p.TxHash = t.Hash
             where t.Type in ( )sql" + contentTypesWhere + R"sql( )
                 and t.Height is not null
@@ -2207,7 +2208,7 @@ namespace PocketDb
         sql += " limit ? ";
 
         vector<int64_t> ids;
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             
@@ -2228,6 +2229,8 @@ namespace PocketDb
                     TryBindStatementText(stmt, i++, tag);
 
             TryBindStatementInt(stmt, i++, count);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -2420,9 +2423,6 @@ namespace PocketDb
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
-
-        if (contentTypes.empty())
-            return result;
 
         string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
 

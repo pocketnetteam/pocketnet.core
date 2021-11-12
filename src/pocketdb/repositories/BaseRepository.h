@@ -31,25 +31,16 @@ namespace PocketDb
                 int64_t nTime1 = GetTimeMicros();
 
                 if (!m_database.BeginTransaction())
-                    throw std::runtime_error(strprintf("%s: can't begin transaction\n", __func__));
-
-                int64_t nTime2 = GetTimeMicros();
+                    throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
 
                 sql();
 
-                int64_t nTime3 = GetTimeMicros();
-
                 if (!m_database.CommitTransaction())
-                    throw std::runtime_error(strprintf("%s: can't commit transaction\n", __func__));
+                    throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
 
-                int64_t nTime4 = GetTimeMicros();
-                LogPrint(BCLog::BENCH, "      - TryTransactionStep (%s): %.2fms + %.2fms + %.2fms = %.2fms\n",
-                    func,
-                    0.001 * (nTime2 - nTime1),
-                    0.001 * (nTime3 - nTime2),
-                    0.001 * (nTime4 - nTime3),
-                    0.001 * (nTime4 - nTime1)
-                );
+                int64_t nTime2 = GetTimeMicros();
+
+                LogPrint(BCLog::SQLBENCH, "SQL Bench `%s`: %.2fms\n", func, 0.001 * (nTime2 - nTime1));
             }
             catch (const std::exception& ex)
             {

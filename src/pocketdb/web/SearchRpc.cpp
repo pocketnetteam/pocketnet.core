@@ -220,12 +220,9 @@ namespace PocketWeb::PocketWebRpc
             for (unsigned int idx = 0; idx < lnks.size(); idx++)
                 vLinks.emplace_back(lnks[idx].get_str());
 
-        vector<int> contentTypes = {TxType::CONTENT_POST, TxType::CONTENT_VIDEO};
+        vector<int> contentTypes;
         if (request.params.size() > 1)
-        {
-            contentTypes.clear();
-            ParseRequestContentType(request.params[1], contentTypes);
-        }
+            ParseRequestContentTypes(request.params[1], contentTypes);
 
         int nHeight = chainActive.Height();
         if (request.params.size() > 2)
