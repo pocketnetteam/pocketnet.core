@@ -20,8 +20,6 @@
 #  endif
 #endif
 
-#endif // POCKETCOIN_ATTRIBUTES_H
-
 #if defined(__clang__)
 #  if __has_attribute(lifetimebound)
 #    define LIFETIMEBOUND [[clang::lifetimebound]]
@@ -32,4 +30,4 @@
 #  define LIFETIMEBOUND
 #endif
 
-#endif // POCETCOIN_ATTRIBUTES_H
+#endif // POCKETCOIN_ATTRIBUTES_H

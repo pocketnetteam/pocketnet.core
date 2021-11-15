@@ -3,7 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/models/base/Base.h"
-#include "utilstrencodings.h"
+#include "util/strencodings.h"
 
 namespace PocketTx
 {

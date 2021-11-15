@@ -8,7 +8,7 @@
 #include <string>
 #include <univalue/include/univalue.h>
 #include <utility>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <crypto/sha256.h>
 
 #include "pocketdb/models/base/Payload.h"

@@ -347,11 +347,11 @@ set(POCKETCOIN_COMMON pocketcoin_common)
 add_library(${POCKETCOIN_COMMON}
         cuckoocache.h
         indirectmap.h
-        limitedmap.h
+        # limitedmap.h
         memusage.h
         version.h
         reverse_iterator.h
-        reverselock.h
+        # reverselock.h
         streams.h
         undo.h
         span.h
@@ -505,8 +505,8 @@ add_library(${POCKETCOIN_UTIL}
                 timedata.cpp
                 netaddress.h
                 netaddress.cpp
-                ui_interface.h
-                ui_interface.cpp
+                node/ui_interface.h
+                node/ui_interface.cpp
                 util/system.h
                 util/system.cpp
                 chainparamsbase.h
@@ -515,7 +515,7 @@ add_library(${POCKETCOIN_UTIL}
                 warnings.h
                 warnings.cpp
             )
-target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::date_time Event::event)
+target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ${POCKETCOIN_SUPPORT} ${POCKETCOIN_COMMON} ${POCKETCOIN_CRYPTO} OpenSSL::Crypto ${CRYPT32} Boost::thread Boost::chrono Boost::date_time Event::event univalue)
 target_link_libraries(${POCKETCOIN_UTIL} PUBLIC Boost::filesystem)
 if(WIN32)
     target_link_libraries(${POCKETCOIN_UTIL} PRIVATE ws2_32 crypt32 wsock32)
@@ -623,7 +623,8 @@ add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 set(POCKETCOIN_COMMON_RPC pocketcoin_common_rpc)
 add_library(${POCKETCOIN_COMMON_RPC}
         rpc/protocol.h
-        rpc/protocol.cpp)
+        # rpc/protocol.cpp
+        )
 target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL})
 
 
@@ -690,8 +691,8 @@ add_library(${POCKETCOIN_SERVER}
         txdb.cpp
         versionbits.h
         versionbits.cpp
-        keystore.h
-        keystore.cpp
+        # keystore.h
+        # keystore.cpp
         compressor.h
         compressor.cpp
         key_io.h
@@ -756,7 +757,7 @@ add_library(${POCKETCOIN_SERVER}
         rpc/mining.cpp
         rpc/misc.cpp
         rpc/net.cpp
-        rpc/rawtransaction.h
+        # rpc/rawtransaction.h
         rpc/rawtransaction.cpp
         rpc/register.h
         rpc/server.cpp
@@ -910,7 +911,7 @@ if (NOT DISABLE_ZMQ)
                 zmq/zmqnotificationinterface.h
                 zmq/zmqnotificationinterface.cpp
                 zmq/zmqpublishnotifier.h
-                zmq/zmqconfig.h
+                # zmq/zmqconfig.h
                 zmq/zmqpublishnotifier.cpp
                 zmq/zmqrpc.h
                 zmq/zmqrpc.cpp
