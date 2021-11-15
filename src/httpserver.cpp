@@ -792,7 +792,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
                 // Try launch rpc table method with timeout 3 seconds
                 try
                 {
-                    result = run_with_timeout(rpcTableExecute, 3s, std::ref(table), std::ref(jreq));
+                    result = run_with_timeout(rpcTableExecute, 10s, std::ref(table), std::ref(jreq));
                 }
                 catch (const TimeoutException& e)
                 {

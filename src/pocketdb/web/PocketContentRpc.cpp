@@ -287,8 +287,7 @@ namespace PocketWeb::PocketWebRpc
             lang = request.params[3].get_str();
 
         vector<int> contentTypes;
-        if (request.params.size() > 4)
-            ParseRequestContentTypes(request.params[4], contentTypes);
+        ParseRequestContentTypes(request.params[4], contentTypes);
 
         string address = "";
         if (request.params.size() > 5)

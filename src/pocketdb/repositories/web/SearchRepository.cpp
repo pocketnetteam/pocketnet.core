@@ -85,7 +85,7 @@ namespace PocketDb
                 TryBindStatementInt(stmt, i++, request.TopBlock);
             if (!request.Address.empty())
                 TryBindStatementText(stmt, i++, request.Address);
-            TryBindStatementText(stmt, i++, request.Keyword);
+            TryBindStatementText(stmt, i++, request.Keyword + "*");
             TryBindStatementInt(stmt, i++, request.PageSize);
             TryBindStatementInt(stmt, i++, request.PageStart);
 
@@ -105,7 +105,9 @@ namespace PocketDb
 
     map<int, string> SearchRepository::SearchUsers(const string& searchstr, const vector<int> fieldTypes, bool orderbyrank)
     {
-        string fieldTypesWhere = join(vector<string>(fieldTypes.size(), "?"), ",");
+        auto func = __func__;
+        map<int, string> result;
+
         string sql = R"sql(
             select
                 t.Id,
@@ -118,21 +120,25 @@ namespace PocketDb
             where t.Last = 1
                 and t.Type = 100
                 and t.Height is not null
-                and fm.FieldType in ( )sql" + fieldTypesWhere + R"sql( )
+                and fm.FieldType in ( )sql" + join(vector<string>(fieldTypes.size(), "?"), ",") + R"sql( )
                 and f.Value match ?
         )sql";
+
         if (orderbyrank)
             sql += " order by rank ";
 
-        map<int, string> result;
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
+
             int i = 1;
             for (const auto& fieldtype: fieldTypes)
                 TryBindStatementInt(stmt, i++, fieldtype);
+                
             TryBindStatementText(stmt, i++, "\"" + searchstr + "\"" + " OR " + searchstr + "*");
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {

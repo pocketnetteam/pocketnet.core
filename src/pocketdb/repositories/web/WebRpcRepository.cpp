@@ -608,8 +608,8 @@ namespace PocketDb
 
     map<int64_t, UniValue> WebRpcRepository::GetLastComments(const vector<int64_t>& ids, const string& address)
     {
+        auto func = __func__;
         map<int64_t, UniValue> result;
-        return result;
 
         string sql = R"sql(
             select
@@ -619,10 +619,10 @@ namespace PocketDb
                 c.String2 as RootTxHash,
                 c.String3 as PostTxHash,
                 c.String1 as AddressHash,
-                corig.Time,
+                (select corig.Time from Transactions corig where corig.Hash = c.String2)Time,
                 c.Time as TimeUpdate,
                 c.Height,
-                p.String1 as Message,
+                (select p.String1 from Payload p where p.TxHash = c.Hash)Message,
                 c.String4 as ParentTxHash,
                 c.String5 as AnswerTxHash,
 
@@ -650,7 +650,7 @@ namespace PocketDb
 
             from (
                 select (t.Id)contentId, (t.String1)ContentAddressHash, (c.Id)commentId
-                from Transactions t
+                from Transactions t indexed by Transactions_Last_Id_Height
                 left join Transactions c indexed by Transactions_Type_Last_String3_Height
                     on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.String3 = t.String2 and c.String4 is null
                 where t.Type in (200,201,207)
@@ -658,27 +658,24 @@ namespace PocketDb
                     and t.Height is not null
                     and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
                     and c.Id = (
-                    select q.Id from (
-                        select c1.Id, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
-                        from Transactions c1
+                        select c1.Id --, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
+                        from Transactions c1 indexed by Transactions_Type_Last_String3_Height
                         where c1.Type in (204,205)
-                        and c1.Height is not null
-                        and c1.String3 = t.String2
-                        and c1.String4 is null
-                    )q
-                    order by q.Donate desc, q.Id desc
-                    limit 1
+                            and c1.Last = 1
+                            and c1.Height is not null
+                            and c1.String3 = t.String2
+                            and c1.String4 is null
+                        --order by q.Donate desc, q.Id desc
+                        order by c1.Id desc
+                        limit 1
                     )
             ) cmnt
 
             join Transactions c indexed by Transactions_Last_Id_Height
                 on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.Id = cmnt.commentId
-            join Transactions corig
-                on corig.Hash = c.String2
-            join Payload p on p.TxHash = c.Hash
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             int i = 1;
@@ -687,6 +684,8 @@ namespace PocketDb
 
             for (int64_t id : ids)
                 TryBindStatementInt64(stmt, i++, id);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             // ---------------------------
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -755,34 +754,41 @@ namespace PocketDb
                 c.String4 as ParentTxHash,
                 c.String5 as AnswerTxHash,
 
-                (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
+                (SELECT COUNT(1) FROM Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1 and sc.Last in (0,1)) as ScoreUp,
 
-                (SELECT COUNT(1) FROM Transactions sc WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
+                (SELECT COUNT(1) FROM Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1 and sc.Last in (0,1)) as ScoreDown,
 
-                (SELECT r.Value FROM Ratings r WHERE r.Id=c.Id AND r.Type=3 and r.Last=1) as Reputation,
+                (SELECT r.Value FROM Ratings r indexed by Ratings_Type_Id_Last_Height
+                    WHERE r.Id=c.Id AND r.Type=3 and r.Last=1) as Reputation,
 
                 IFNULL(sc.Int1, 0) AS MyScore,
 
-                (SELECT COUNT(1) FROM Transactions s WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
+                (SELECT COUNT(1) FROM Transactions s indexed by Transactions_Type_Last_String4_Height
+                    WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
 
                 (select sum(o1.Value) Amount
-                 from Transactions c1 indexed by Transactions_Type_Last_String2_Height
-                 join Transactions p1 on p1.Hash = c1.String3
-                 join TxOutputs o1 on o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 and o1.AddressHash != c1.String1
-                 where c1.Type in (204,205) and c1.Last in (0,1) and c1.Height is not null and c1.String2 = c.String2
+                  from Transactions c1 indexed by Transactions_Type_Last_String2_Height
+                  join Transactions p1 on p1.Hash = c1.String3
+                  join TxOutputs o1 on o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 and o1.AddressHash != c1.String1
+                  where c1.Type in (204,205) and c1.Last in (0,1) and c1.Height is not null and c1.String2 = c.String2
                 ) as Amount
 
-            from Transactions c indexed by Transactions_Type_Last_Height_Time_String3_String4
+            from Transactions c indexed by Transactions_Type_Last_String3_Height
+            
             join Transactions r ON c.String2 = r.Hash
+            
             join Payload pl ON pl.TxHash = c.Hash
+            
             left join Transactions sc indexed by Transactions_Type_String1_String2_Height
                 on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
+
             where c.Type in (204, 205, 206)
                 and c.Height is not null
                 and c.Last = 1
                 and c.String3 = ?
                 )sql" + parentWhere + R"sql(
-                and c.Time < ?
         )sql";
 
         TryTransactionStep(func, [&]()
@@ -793,7 +799,6 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, postHash);
             if (!parentHash.empty())
                 TryBindStatementText(stmt, i++, parentHash);
-            TryBindStatementInt64(stmt, i++, GetAdjustedTime());
 
             LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
@@ -863,6 +868,7 @@ namespace PocketDb
 
     vector<UniValue> WebRpcRepository::GetPostScores(const vector<string>& postHashes, const string& addressHash)
     {
+        auto func = __func__;
         vector<UniValue> result;
 
         if (postHashes.empty())
@@ -903,7 +909,7 @@ namespace PocketDb
             --order by sub.Type is null, sc.Time
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
@@ -911,6 +917,8 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, addressHash);
             for (const auto& postHash: postHashes)
                 TryBindStatementText(stmt, i++, postHash);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -937,6 +945,7 @@ namespace PocketDb
 
     vector<UniValue> WebRpcRepository::GetCommentScores(const vector<string>& commentHashes, const string& addressHash)
     {
+        auto func = __func__;
         vector<UniValue> result;
 
         if (commentHashes.empty())
@@ -969,7 +978,7 @@ namespace PocketDb
                 )sql" + commentHashesWhere + R"sql(
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
@@ -977,6 +986,8 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, addressHash);
             for (const auto& commentHashe: commentHashes)
                 TryBindStatementText(stmt, i++, commentHashe);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -1225,6 +1236,7 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address)
     {
+        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         string sql = R"sql(
@@ -1235,7 +1247,7 @@ namespace PocketDb
             join Payload p indexed by Payload_String1_TxHash
                 on p.String1 = ? and t.Hash = p.TxHash
             
-            join Ratings r indexed by Ratings_Type_Id_Last_Height
+            join Ratings r indexed by Ratings_Type_Id_Last_Value
                 on r.Type = 2 and r.Last = 1 and r.Id = t.Id and r.Value > 0
 
             where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
@@ -1244,12 +1256,13 @@ namespace PocketDb
                 and t.Height <= ?
                 and t.Height > ?
                 and t.String3 is null
+
             order by r.Value desc
             limit ?
         )sql";
 
         vector<int64_t> ids;
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
@@ -1260,6 +1273,8 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, nHeight);
             TryBindStatementInt(stmt, i++, nHeight - depth);
             TryBindStatementInt(stmt, i++, countOut);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
