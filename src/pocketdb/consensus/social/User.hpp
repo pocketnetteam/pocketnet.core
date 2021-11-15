@@ -57,11 +57,11 @@ namespace PocketConsensus
 
             // Maximum length for user name
             auto name = *ptx->GetPayloadName();
-            if (name.empty() || name.size() > 35)
-            {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
-                    return {false, SocialConsensusResult_NicknameLong};
-            }
+            // if (name.empty() || name.size() > 35)
+            // {
+            //     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
+            //         return {false, SocialConsensusResult_NicknameLong};
+            // }
 
             // Trim spaces
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
