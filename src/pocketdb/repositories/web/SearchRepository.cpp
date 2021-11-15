@@ -55,6 +55,7 @@ namespace PocketDb
         string txTypes = join(request.TxTypes | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
         string heightWhere = request.TopBlock > 0 ? " and t.Height <= ? " : "";
         string addressWhere = !request.Address.empty() ? " and t.String1 = ? " : "";
+        string keyword = request.Keyword + "*";
 
         string sql = R"sql(
             select t.Id
@@ -85,7 +86,7 @@ namespace PocketDb
                 TryBindStatementInt(stmt, i++, request.TopBlock);
             if (!request.Address.empty())
                 TryBindStatementText(stmt, i++, request.Address);
-            TryBindStatementText(stmt, i++, request.Keyword + "*");
+            TryBindStatementText(stmt, i++, keyword);
             TryBindStatementInt(stmt, i++, request.PageSize);
             TryBindStatementInt(stmt, i++, request.PageStart);
 

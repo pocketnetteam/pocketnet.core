@@ -23,8 +23,8 @@ namespace Statistic
     struct RequestSample
     {
         RequestKey Key;
-        RequestTime TimestampCreated;
         RequestTime TimestampBegin;
+        RequestTime TimestampExec;
         RequestTime TimestampEnd;
         RequestIP SourceIP;
         RequestPayloadSize InputSize;
@@ -85,7 +85,7 @@ namespace Statistic
 
             for (auto& sample : _samples)
             {
-                if (sample.TimestampEnd.count() > 0 && sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
+                if (sample.TimestampEnd.count() > 0 && sample.TimestampEnd >= since && sample.Key != "WorkQueue::Enqueue")
                 {
                     sum += sample.TimestampEnd - sample.TimestampBegin;
                     count++;
@@ -96,7 +96,8 @@ namespace Statistic
             return sum / count;
         }
 
-        RequestTime GetAvgExecuteTimeSince(RequestTime since)
+
+        RequestTime GetAvgExecutionTimeSince(RequestTime since)
         {
             LOCK(_samplesLock);
 
@@ -108,37 +109,15 @@ namespace Statistic
 
             for (auto& sample : _samples)
             {
-                if (sample.TimestampEnd.count() > 0 && sample.TimestampCreated >= since && sample.Key != "WorkQueue::Enqueue")
+                if (sample.TimestampEnd.count() > 0 && sample.TimestampEnd >= since && sample.Key != "WorkQueue::Enqueue")
                 {
-                    sum += sample.TimestampEnd - sample.TimestampCreated;
+                    sum += sample.TimestampEnd - sample.TimestampExec;
                     count++;
                 }
             }
 
             if (count <= 0) return {};
             return sum / count;
-        }
-
-        int GetWorkQueueAvgCount(RequestTime since)
-        {
-            LOCK(_samplesLock);
-
-            if (_samples.empty())
-                return {};
-
-            int count = 0;
-            for (auto& sample : _samples)
-            {
-                if (sample.TimestampBegin >= since && sample.Key == "WorkQueue::Enqueue")
-                    count++;
-            }
-
-            return count;
-        }
-
-        RequestTime GetAvgRequestTime()
-        {
-            return GetAvgRequestTimeSince(RequestTime::min());
         }
 
         std::vector<RequestSample> GetTopHeavyTimeSamplesSince(std::size_t limit, RequestTime since)
@@ -177,7 +156,7 @@ namespace Statistic
 
             LOCK(_samplesLock);
             for (auto& sample : _samples)
-                if (sample.TimestampBegin >= since)
+                if (sample.TimestampEnd >= since)
                     result.insert(sample.SourceIP);
 
             return result;
@@ -246,7 +225,7 @@ namespace Statistic
             UniValue rpcStat(UniValue::VOBJ);
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
-            rpcStat.pushKV("AvgExecTime", GetAvgExecuteTimeSince(since).count());
+            rpcStat.pushKV("AvgExecTime", GetAvgExecutionTimeSince(since).count());
             rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
             if (g_logger->WillLogCategory(BCLog::STATDETAIL))
             {
@@ -346,15 +325,14 @@ namespace Statistic
                     _samples.end(),
                     [time](const RequestSample& sample)
                     {
-                        return sample.TimestampBegin < time;
+                        return sample.TimestampEnd < time;
                     }),
                 _samples.end());
 
             LogPrint(BCLog::STAT, "Clear statistic cache: %d -> %d items after.\n", sizeBefore, _samples.size());
         }
 
-        std::vector<RequestSample>
-        GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since)
+        std::vector<RequestSample> GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since)
         {
             LOCK(_samplesLock);
             auto samples_copy = _samples;
@@ -365,7 +343,7 @@ namespace Statistic
                     samples_copy.end(),
                     [since](const RequestSample& sample)
                     {
-                        return sample.TimestampBegin < since;
+                        return sample.TimestampEnd < since;
                     }),
                 samples_copy.end());
 
@@ -394,7 +372,7 @@ namespace Statistic
                     samples_copy.end(),
                     [since](const RequestSample& sample)
                     {
-                        return sample.TimestampBegin < since;
+                        return sample.TimestampEnd < since;
                     }),
                 samples_copy.end());
 

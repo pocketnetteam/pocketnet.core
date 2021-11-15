@@ -177,6 +177,8 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isStr())
             address = request.params[0].get_str();
 
+        // TODO (brangr, team): add pagination
+
         return request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
     }
 
@@ -258,12 +260,12 @@ namespace PocketWeb::PocketWebRpc
             else if (request.params[1].isStr())
                 ParseInt32(request.params[1].get_str(), &depthBlocks);
 
+            // for old version electron
             if (depthBlocks == 259200)
-            { // for old version electron
                 depthBlocks = 3 * dayInBlocks;
-            }
 
-            depthBlocks = min(depthBlocks, 365 * dayInBlocks);
+            // Max 3 months
+            depthBlocks = min(depthBlocks, 90 * dayInBlocks);
         }
 
         int nHeightOffset = chainActive.Height();

@@ -14,7 +14,7 @@ namespace PocketDb
         // invoked."
         // Assert that this is the case:
         assert(arg == nullptr);
-        LogPrintf("%s: %d; Message: %s\n", __func__, code, msg);
+        LogPrint(BCLog::SQL, "%s: %d; Message: %s\n", __func__, code, msg);
     }
 
     void IntitializeSqlite()

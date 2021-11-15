@@ -1512,6 +1512,7 @@ namespace PocketDb
     
     UniValue WebRpcRepository::GetContentsForAddress(const string& address)
     {
+        auto func = __func__;
         UniValue result(UniValue::VARR);
 
         if (address.empty())
@@ -1543,12 +1544,15 @@ namespace PocketDb
                 and t.Last = 1
                 and t.String1 = ?
             order by t.Height desc
+            limit 50
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
             TryBindStatementText(stmt, 1, address);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -2542,7 +2546,7 @@ namespace PocketDb
             // Get results
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                HierarchicalRecord record;
+                HierarchicalRecord record{};
 
                 auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
                 auto[ok1, contentRating] = TryGetColumnInt(*stmt, 1);
@@ -2601,8 +2605,6 @@ namespace PocketDb
 
         // Sort results
         sort(postsRanks.begin(), postsRanks.end(), greater<HierarchicalRecord>());
-        
-        //LogPrintf("--- postsRanks.size()=%d\n", postsRanks.size());
 
         // Build result list
         bool found = false;
@@ -2632,16 +2634,12 @@ namespace PocketDb
             auto contents = GetContentsData(resultIds, address);
             result.push_backV(contents);
         }
-        
-        //LogPrintf("--- resultIds.size()=%d result.size()=%d\n", resultIds.size(), result.size());
 
         // ---------------------------------------------
         // If not completed - request historical data
         int lack = countOut - (int)resultIds.size();
         if (lack > 0)
         {
-            //LogPrintf("--- lack=%d minPostRank=%d postsRanks.size()=%d\n", lack, minPostRank, postsRanks.size());
-
             UniValue histContents = GetHistoricalFeed(lack, minPostRank, topHeight, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
             result.push_backV(histContents.getValues());
         }

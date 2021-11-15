@@ -518,12 +518,12 @@ void StartHTTPServer()
     if (g_staticSocket)
     {
         g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
-        LogPrintf("HTTP: starting %d Static worker threads\n", rpcPublicThreads);
+        LogPrintf("HTTP: starting %d Static worker threads\n", rpcStaticThreads);
     }
     if (g_restSocket)
     {
         g_restSocket->StartHTTPSocket(rpcRestThreads, true);
-        LogPrintf("HTTP: starting %d Rest worker threads\n", rpcPublicThreads);
+        LogPrintf("HTTP: starting %d Rest worker threads\n", rpcRestThreads);
     }
 }
 
@@ -744,8 +744,11 @@ static inline std::string gen_random(const int len) {
 
 }
 
-UniValue rpcTableExecute(CRPCTable& table, JSONRPCRequest& jreq)
+UniValue rpcTableExecute(CRPCTable& table, JSONRPCRequest& jreq, int64_t startTime)
 {
+    int64_t nTime2 = GetTimeMicros();
+    LogPrint(BCLog::RPC, "--- RPC Thread creating: %.2fms\n", 0.001 * (nTime2 - startTime));
+
     return table.execute(jreq);
 }
 
@@ -792,14 +795,14 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
                 // Try launch rpc table method with timeout 3 seconds
                 try
                 {
-                    result = run_with_timeout(rpcTableExecute, 10s, std::ref(table), std::ref(jreq));
+                    result = run_with_timeout(rpcTableExecute, 10s, std::ref(table), std::ref(jreq), std::ref(nTime1));
                 }
                 catch (const TimeoutException& e)
                 {
                     if (req->DbConnection())
                         req->DbConnection()->InterruptQuery();
 
-                    LogPrint(BCLog::RPC, "RPC exception timeout (%s): %s\n", method, JSONRPCError(HTTP_TIMEOUT, e.what()).write());
+                    LogPrint(BCLog::RPC, "RPC exception timeout (%s): %s Prms: %s\n", method, JSONRPCError(HTTP_TIMEOUT, e.what()).write(), jreq.params.write(0, 0));
                     JSONErrorReply(req, JSONRPCError(HTTP_TIMEOUT, "Performing the function for more than 3 seconds"), jreq.id);
                     return false;
                 }
