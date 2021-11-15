@@ -611,6 +611,8 @@ namespace PocketDb
         auto func = __func__;
         map<int64_t, UniValue> result;
 
+        // TODO (brangr): We need to raise comments with donations to the top in this request
+
         string sql = R"sql(
             select
                 cmnt.contentId,
@@ -658,7 +660,8 @@ namespace PocketDb
                     and t.Height is not null
                     and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
                     and c.Id = (
-                        select c1.Id --, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
+                        select c1.Id
+                            --, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
                         from Transactions c1 indexed by Transactions_Type_Last_String3_Height
                         where c1.Type in (204,205)
                             and c1.Last = 1
@@ -960,12 +963,12 @@ namespace PocketDb
                 c.String2 as RootTxHash,
 
                 (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1) as ScoreUp,
+                    where sc.Type in (301) and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1) as ScoreUp,
 
                 (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    WHERE sc.Type in (301) and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = -1) as ScoreDown,
+                    where sc.Type in (301) and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
 
-                (select r.Value from Ratings r where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
+                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Value where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
 
                 msc.Int1 AS MyScore
 
