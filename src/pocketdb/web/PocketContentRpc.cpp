@@ -34,8 +34,7 @@ namespace PocketWeb::PocketWebRpc
             ParseRequestTags(request.params[4], tags);
 
         // content types
-        if (request.params.size() > 5)
-            ParseRequestContentTypes(request.params[5], contentTypes);
+        ParseRequestContentTypes(request.params[5], contentTypes);
 
         // exclude ids
         if (request.params.size() > 6)
@@ -117,7 +116,7 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue GetContent(const JSONRPCRequest& request)
     {
-        if (request.fHelp || request.params.size() < 1)
+        if (request.fHelp)
         {
             throw runtime_error(
                 "getcontent ids[]\n"
@@ -160,7 +159,7 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue GetContents(const JSONRPCRequest& request)
     {
-        if (request.fHelp || request.params.size() < 1)
+        if (request.fHelp)
         {
             throw runtime_error(
                 "getcontents address\n"
@@ -184,7 +183,7 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue GetProfileFeed(const JSONRPCRequest& request)
     {
-        if (request.fHelp || request.params.size() < 1)
+        if (request.fHelp)
         {
             throw runtime_error(
                 "getprofilefeed address\n"
@@ -221,8 +220,7 @@ namespace PocketWeb::PocketWebRpc
 
         // content types
         vector<int> contentTypes;
-        if (request.params.size() > 6)
-            ParseRequestContentTypes(request.params[6], contentTypes);
+        ParseRequestContentTypes(request.params[6], contentTypes);
 
         int64_t topContentId = 0;
         if (!topContentHash.empty())
@@ -328,9 +326,12 @@ namespace PocketWeb::PocketWebRpc
         ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
 
         int64_t topContentId = 0;
-        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
-        if (!ids.empty())
-            topContentId = ids[0];
+        if (!topContentHash.empty())
+        {
+            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+            if (!ids.empty())
+                topContentId = ids[0];
+        }
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetHistoricalFeed(
@@ -371,9 +372,12 @@ namespace PocketWeb::PocketWebRpc
         ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
 
         int64_t topContentId = 0;
-        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
-        if (!ids.empty())
-            topContentId = ids[0];
+        if (!topContentHash.empty())
+        {
+            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+            if (!ids.empty())
+                topContentId = ids[0];
+        }
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetHierarchicalFeed(
@@ -386,7 +390,7 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue GetSubscribesFeed(const JSONRPCRequest& request)
     {
-        if (request.fHelp || request.params.size() < 1)
+        if (request.fHelp)
         {
             throw runtime_error(
                 "getsubscribesfeed\n"
@@ -409,23 +413,24 @@ namespace PocketWeb::PocketWebRpc
                 count = 10;
         }
 
-        string lang = "";
+        string lang;
         if (request.params.size() > 4 && request.params[4].isStr())
             lang = request.params[4].get_str();
 
         vector<string> tags;
-        if (request.params.size() > 5)
-            ParseRequestTags(request.params[5], tags);
+        ParseRequestTags(request.params[5], tags);
 
         // content types
         vector<int> contentTypes;
-        if (request.params.size() > 6)
-            ParseRequestContentTypes(request.params[6], contentTypes);
+        ParseRequestContentTypes(request.params[6], contentTypes);
 
         int64_t topContentId = 0;
-        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
-        if (!ids.empty())
-            topContentId = ids[0];
+        if (!topContentHash.empty())
+        {
+            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+            if (!ids.empty())
+                topContentId = ids[0];
+        }
 
         return request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(addressFrom, topContentId, count, lang, tags, contentTypes);
     }
@@ -480,8 +485,7 @@ namespace PocketWeb::PocketWebRpc
         }
 
         vector<int> contentTypes;
-        if (request.params.size() > 1)
-            ParseRequestContentTypes(request.params[1], contentTypes);
+        ParseRequestContentTypes(request.params[1], contentTypes);
 
         int nHeight = chainActive.Height();
         if (request.params.size() > 2)

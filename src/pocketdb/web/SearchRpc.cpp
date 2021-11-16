@@ -221,8 +221,7 @@ namespace PocketWeb::PocketWebRpc
                 vLinks.emplace_back(lnks[idx].get_str());
 
         vector<int> contentTypes;
-        if (request.params.size() > 1)
-            ParseRequestContentTypes(request.params[1], contentTypes);
+        ParseRequestContentTypes(request.params[1], contentTypes);
 
         int nHeight = chainActive.Height();
         if (request.params.size() > 2)

@@ -19,7 +19,7 @@ namespace PocketWeb::PocketWebRpc
         }
         else if (value.isArray())
         {
-            UniValue cntntTps = value.get_array();
+            const UniValue& cntntTps = value.get_array();
             for (unsigned int idx = 0; idx < cntntTps.size(); idx++)
                 ParseRequestContentTypes(cntntTps[idx], types);
         }
@@ -38,7 +38,7 @@ namespace PocketWeb::PocketWebRpc
         }
         else if (value.isArray())
         {
-            UniValue tgs = value.get_array();
+            const UniValue& tgs = value.get_array();
             for (unsigned int idx = 0; idx < tgs.size(); idx++)
             {
                 string tag = boost::trim_copy(tgs[idx].get_str());

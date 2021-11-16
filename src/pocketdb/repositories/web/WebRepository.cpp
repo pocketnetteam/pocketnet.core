@@ -92,11 +92,12 @@ namespace PocketDb
                     insert or ignore
                     into web.TagsMap (ContentId, TagId) values (
                         ?,
-                        (select t.Id from web.Tags t where t.Value = ?)
+                        (select t.Id from web.Tags t where t.Value = ? and t.Lang = ?)
                     )
                 )sql");
                 TryBindStatementInt64(stmt, 1, contentTag.ContentId);
                 TryBindStatementText(stmt, 2, contentTag.Value);
+                TryBindStatementText(stmt, 3, contentTag.Lang);
                 TryStepStatement(stmt);
             }
         });

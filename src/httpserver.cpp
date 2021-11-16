@@ -815,7 +815,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
             
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
-                uri, method, rpcKey, (start.count() - finish.count()));
+                uri, method, rpcKey, (finish.count() - start.count()));
 
             // TODO (brangr): опустить немного ниже в конец функции
             if (g_logger->WillLogCategory(BCLog::STAT))
