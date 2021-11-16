@@ -2247,7 +2247,7 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, addressTo);
 
             if (topContentId > 0)
-                TryBindStatementInt(stmt, i++, topContentId);
+                TryBindStatementInt64(stmt, i++, topContentId);
 
             if (!lang.empty())
                 TryBindStatementText(stmt, i++, lang);
@@ -2370,7 +2370,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select t.Id
-            from Transactions t
+            from Transactions t indexed by Transactions_Last_Id_Height
             join Payload p on p.TxHash = t.Hash
             where t.Type in )sql" + contentTypesWhere + R"sql(
                 and t.Last = 1
@@ -2381,10 +2381,22 @@ namespace PocketDb
         )sql";
 
         if (!lang.empty()) sql += " and p.String1 = ? ";
-        if (!tags.empty()) sql += " and t.id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+
+        if (!tags.empty())
+        {
+            sql += R"sql( and t.id in (
+                select tm.ContentId
+                from web.Tags tag indexed by Tags_Lang_Value_Id
+                join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                    on tag.Id = tm.TagId
+                where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+            ) )sql";
+        }
+
         if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
         if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
-        if (!tagsExcluded.empty()) sql += " and t.id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
+        //if (!tagsExcluded.empty()) sql += " and t.Id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
 
         sql += " order by t.Id desc ";
         sql += " limit ? ";
@@ -2399,15 +2411,22 @@ namespace PocketDb
 
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
+
             TryBindStatementInt(stmt, i++, topHeight);
+
             if (topContentId > 0)
-                TryBindStatementInt(stmt, i++, topContentId);
+                TryBindStatementInt64(stmt, i++, topContentId);
 
             if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
             if (!tags.empty())
+            {
                 for (const auto& tag: tags)
                     TryBindStatementText(stmt, i++, tag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
 
             if (!txidsExcluded.empty())
                 for (const auto& extxid: txidsExcluded)
@@ -2417,9 +2436,9 @@ namespace PocketDb
                 for (const auto& exadr: adrsExcluded)
                     TryBindStatementText(stmt, i++, exadr);
             
-            if (!tagsExcluded.empty())
-                for (const auto& extag: tagsExcluded)
-                    TryBindStatementText(stmt, i++, extag);
+            // if (!tagsExcluded.empty())
+            //     for (const auto& extag: tagsExcluded)
+            //         TryBindStatementText(stmt, i++, extag);
                     
             TryBindStatementInt(stmt, i++, countOut);
 
@@ -2502,10 +2521,22 @@ namespace PocketDb
         )sql";
 
         if (!lang.empty()) sql += " and p.String1 = ? ";
-        if (!tags.empty()) sql += " and t.Id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+
+        if (!tags.empty())
+        {
+            sql += R"sql( and t.id in (
+                select tm.ContentId
+                from web.Tags tag indexed by Tags_Lang_Value_Id
+                join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                    on tag.Id = tm.TagId
+                where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+            ) )sql";
+        }
+
         if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
         if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
-        if (!tagsExcluded.empty()) sql += " and t.Id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
+        // if (!tagsExcluded.empty()) sql += " and t.Id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
 
         // ---------------------------------------------
         vector<HierarchicalRecord> postsRanks;
@@ -2518,19 +2549,27 @@ namespace PocketDb
 
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
+
             TryBindStatementInt(stmt, i++, durationBlocksForPrevPosts);
+
             TryBindStatementInt(stmt, i++, cntPrevPosts);
 
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
+
             TryBindStatementInt(stmt, i++, topHeight);
             TryBindStatementInt(stmt, i++, topHeight - cntBlocksForResult);
             
             if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
             if (!tags.empty())
+            {
                 for (const auto& tag: tags)
                     TryBindStatementText(stmt, i++, tag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
 
             if (!txidsExcluded.empty())
                 for (const auto& extxid: txidsExcluded)
