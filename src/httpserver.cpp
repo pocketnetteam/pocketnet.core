@@ -744,11 +744,8 @@ static inline std::string gen_random(const int len) {
 
 }
 
-UniValue rpcTableExecute(CRPCTable& table, JSONRPCRequest& jreq, int64_t startTime)
+UniValue rpcTableExecute(CRPCTable& table, JSONRPCRequest& jreq)
 {
-    int64_t nTime2 = GetTimeMicros();
-    LogPrint(BCLog::RPC, "--- RPC Thread creating: %.2fms\n", 0.001 * (nTime2 - startTime));
-
     return table.execute(jreq);
 }
 
@@ -781,21 +778,23 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 
             string uri = jreq.URI;
             string method = jreq.strMethod;
+            string peer = jreq.peerAddr.substr(0, jreq.peerAddr.find(':'));
 
             auto rpcKey = gen_random(15);
             LogPrint(BCLog::RPC, "RPC started method %s%s (%s) with params: %s\n",
                 uri, method, rpcKey, jreq.params.write(0, 0));
-                
-            UniValue result;
-            int64_t nTime1 = GetTimeMicros();
+
+            auto start = gStatEngineInstance.GetCurrentSystemTime();
 
             // We are running a separate thread to detect timeout only for public queries related to sqlite db
+            UniValue result;
+            bool timeoutError = false;
             if (m_publicAccess)
             {
                 // Try launch rpc table method with timeout 3 seconds
                 try
                 {
-                    result = run_with_timeout(rpcTableExecute, 10s, std::ref(table), std::ref(jreq), std::ref(nTime1));
+                    result = run_with_timeout(rpcTableExecute, 10s, std::ref(table), std::ref(jreq));
                 }
                 catch (const TimeoutException& e)
                 {
@@ -804,31 +803,55 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 
                     LogPrint(BCLog::RPC, "RPC exception timeout (%s): %s Prms: %s\n", method, JSONRPCError(HTTP_TIMEOUT, e.what()).write(), jreq.params.write(0, 0));
                     JSONErrorReply(req, JSONRPCError(HTTP_TIMEOUT, "Performing the function for more than 3 seconds"), jreq.id);
-                    return false;
+                    timeoutError = true;
                 }
             }
             else
             {
                 result = table.execute(jreq);
             }
+
+            auto finish = gStatEngineInstance.GetCurrentSystemTime();
             
             int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
-                uri, method, rpcKey, 0.001 * (nTime2 - nTime1));
+                uri, method, rpcKey, (start.count() - finish.count()));
+
+            // TODO (brangr): опустить немного ниже в конец функции
+            if (g_logger->WillLogCategory(BCLog::STAT))
+            {
+                gStatEngineInstance.AddSample(
+                    Statistic::RequestSample{
+                        uri,
+                        req->Created,
+                        start,
+                        finish,
+                        peer,
+                        timeoutError,
+                        0,
+                        0
+                    }
+                );
+            }
+
+            if (timeoutError)
+                return false;
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
         }
         else
         {
-            if (valRequest.isArray())
-            {
-                strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), m_table_rpc);
-            }
-            else
-            {
+            // Batches are disabled until their necessity is clarified.
+
+            // if (valRequest.isArray())
+            // {
+            //     strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), m_table_rpc);
+            // }
+            // else
+            // {
                 throw JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
-            }
+            // }
         }
 
         req->WriteHeader("Content-Type", "application/json");
@@ -905,6 +928,7 @@ void HTTPEvent::trigger(struct timeval *tv)
 HTTPRequest::HTTPRequest(struct evhttp_request *_req) : req(_req),
                                                         replySent(false)
 {
+    Created = gStatEngineInstance.GetCurrentSystemTime();
 }
 HTTPRequest::~HTTPRequest()
 {

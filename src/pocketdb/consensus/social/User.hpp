@@ -49,7 +49,9 @@ namespace PocketConsensus
 
             // Check payload
             if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPayloadName())) return {false, SocialConsensusResult_Failed};
+
+            // TODO (brangr): enable with fork height
+            //if (IsEmpty(ptx->GetPayloadName())) return {false, SocialConsensusResult_Failed};
 
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
@@ -57,6 +59,8 @@ namespace PocketConsensus
 
             // Maximum length for user name
             auto name = *ptx->GetPayloadName();
+
+            // TODO (brangr): enable with fork height
             // if (name.empty() || name.size() > 35)
             // {
             //     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))

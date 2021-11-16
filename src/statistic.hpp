@@ -27,6 +27,7 @@ namespace Statistic
         RequestTime TimestampExec;
         RequestTime TimestampEnd;
         RequestIP SourceIP;
+        bool Failed;
         RequestPayloadSize InputSize;
         RequestPayloadSize OutputSize;
     };
@@ -45,13 +46,7 @@ namespace Statistic
             _samples.push_back(sample);
         }
 
-        std::size_t GetNumSamples()
-        {
-            LOCK(_samplesLock);
-            return _samples.size();
-        }
-
-        std::size_t GetNumSamplesBetween(RequestTime begin, RequestTime end)
+        std::size_t GetNumSamplesSince(RequestTime time)
         {
             LOCK(_samplesLock);
             return std::count_if(
@@ -59,18 +54,20 @@ namespace Statistic
                 _samples.end(),
                 [=](const RequestSample& sample)
                 {
-                    return sample.TimestampBegin >= begin && sample.TimestampEnd <= end;
+                    return sample.TimestampEnd >= time && sample.TimestampEnd <= RequestTime::max();
                 });
         }
 
-        std::size_t GetNumSamplesBefore(RequestTime time)
+        std::size_t GetNumFailedSamplesSince(RequestTime time)
         {
-            return GetNumSamplesBetween(RequestTime::min(), time);
-        }
-
-        std::size_t GetNumSamplesSince(RequestTime time)
-        {
-            return GetNumSamplesBetween(time, RequestTime::max());
+            LOCK(_samplesLock);
+            return std::count_if(
+                _samples.begin(),
+                _samples.end(),
+                [=](const RequestSample& sample)
+                {
+                    return sample.TimestampEnd >= time && sample.TimestampEnd <= RequestTime::max() && sample.Failed;
+                });
         }
 
         RequestTime GetAvgRequestTimeSince(RequestTime since)
@@ -223,7 +220,8 @@ namespace Statistic
             result.pushKV("General", chainStat);
 
             UniValue rpcStat(UniValue::VOBJ);
-            rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since));
+            rpcStat.pushKV("RequestsAll", (int) GetNumSamplesSince(since));
+            rpcStat.pushKV("RequestsFailed", (int) GetNumFailedSamplesSince(since));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
             rpcStat.pushKV("AvgExecTime", GetAvgExecutionTimeSince(since).count());
             rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
@@ -270,11 +268,6 @@ namespace Statistic
             return result;
         }
 
-        UniValue CompileStatsAsJson()
-        {
-            return CompileStatsAsJsonSince(RequestTime::min());
-        }
-
         // Just a helper to prevent copypasta
         RequestTime GetCurrentSystemTime()
         {
@@ -304,7 +297,7 @@ namespace Statistic
                 LogPrint(BCLog::STATDETAIL, msg.c_str(), statLoggerSleep / 1000,
                     CompileStatsAsJsonSince(chunkSize).write(1));
 
-                RemoveSamplesBefore(chunkSize);
+                RemoveSamplesBefore(chunkSize * 2);
                 MilliSleep(statLoggerSleep);
             }
         }
