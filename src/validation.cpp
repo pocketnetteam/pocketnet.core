@@ -2572,6 +2572,10 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         catch (const std::exception& e)
         {
             LogPrintf("Error indexing social data: %s\n", e.what());
+
+            // Try rollback for double indexing
+            PocketServices::ChainPostProcessing::Rollback(pindex->nHeight);
+
             return false;
         }
     }

@@ -286,14 +286,17 @@ namespace PocketDb
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(
         const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
     {
-        auto[ok0, txType] = TryGetColumnInt(*stmt, 0);
+        // TODO (brangr): move deserialization logic to models
+
+        auto[ok0, _txType] = TryGetColumnInt(*stmt, 0);
         auto[ok1, txHash] = TryGetColumnString(*stmt, 1);
         auto[ok2, nTime] = TryGetColumnInt64(*stmt, 2);
 
         if (!ok0 || !ok1 || !ok2)
             return make_tuple(false, nullptr);
 
-        auto ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<TxType>(txType));
+        auto txType = static_cast<TxType>(_txType);
+        auto ptx = PocketHelpers::TransactionHelper::CreateInstance(txType);
         ptx->SetTime(nTime);
         ptx->SetHash(txHash);
 

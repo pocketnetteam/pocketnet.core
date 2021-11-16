@@ -70,7 +70,8 @@ namespace PocketConsensus
             // Trim spaces
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_Failed))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(),
+                    SocialConsensusResult_Failed))
                     return {false, SocialConsensusResult_Failed};
             }
 

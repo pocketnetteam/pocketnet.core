@@ -27,7 +27,7 @@ namespace PocketDb
                 strprintf("%s: %sd Failed to setup error log: %s\n", __func__, ret, sqlite3_errstr(ret)));
 
         // Force serialized threading mode
-        ret = sqlite3_config(SQLITE_CONFIG_SERIALIZED);
+        ret = sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
         if (ret != SQLITE_OK)
         {
             throw std::runtime_error(

@@ -52,9 +52,13 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "r"); ok) SetReferrerAddress(val);
 
         GeneratePayload();
+
         if (auto[ok, val] = TryGetStr(src, "l"); ok) m_payload->SetString1(val);
         else m_payload->SetString1("en");
+
         if (auto[ok, val] = TryGetStr(src, "n"); ok) m_payload->SetString2(val);
+        else m_payload->SetString2("");
+
         if (auto[ok, val] = TryGetStr(src, "i"); ok) m_payload->SetString3(val);
         if (auto[ok, val] = TryGetStr(src, "a"); ok) m_payload->SetString4(val);
         if (auto[ok, val] = TryGetStr(src, "s"); ok) m_payload->SetString5(val);
@@ -82,7 +86,10 @@ namespace PocketTx
         Transaction::DeserializePayload(src, tx);
 
         if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
+
         if (auto[ok, val] = TryGetStr(src, "name"); ok) m_payload->SetString2(val);
+        else m_payload->SetString2("");
+
         if (auto[ok, val] = TryGetStr(src, "avatar"); ok) m_payload->SetString3(val);
         if (auto[ok, val] = TryGetStr(src, "about"); ok) m_payload->SetString4(val);
         if (auto[ok, val] = TryGetStr(src, "url"); ok) m_payload->SetString5(val);
