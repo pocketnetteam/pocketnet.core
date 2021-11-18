@@ -1,7 +1,7 @@
 /*
     Utilities for working with HTML
 */
-#include "html.h"
+#include "utils/html.h"
 
 namespace HtmlUtils
 {
@@ -87,6 +87,11 @@ namespace HtmlUtils
             }
         }
         return ret;
+    }
+
+    void StringToLower(std::string& value)
+    {
+        std::transform(value.begin(), value.end(), value.begin(), [](char c) { return 'A' <= c && c <= 'Z' ? c ^ 32 : c; });
     }
 
 } // namespace HtmlUtils

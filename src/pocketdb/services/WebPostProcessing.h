@@ -12,7 +12,6 @@
 
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/repositories/web/WebRepository.h"
-
 #include "pocketdb/models/web/Tag.h"
 #include "pocketdb/models/web/Content.h"
 

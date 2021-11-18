@@ -101,7 +101,10 @@ namespace PocketServices
 
             // Decode contentTags before upsert
             for (auto& contentTag : contentTags)
+            {
                 contentTag.Value = HtmlUtils::UrlDecode(contentTag.Value);
+                HtmlUtils::StringToLower(contentTag.Value);
+            }
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));

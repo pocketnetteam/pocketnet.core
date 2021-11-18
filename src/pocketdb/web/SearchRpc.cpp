@@ -6,12 +6,6 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    string lower(string s)
-    {
-        transform(s.begin(), s.end(), s.begin(), [](char c) { return 'A' <= c && c <= 'Z' ? c ^ 32 : c; });
-        return s;
-    }
-
     UniValue Search(const JSONRPCRequest& request)
     {
         if (request.fHelp)
@@ -33,7 +27,8 @@ namespace PocketWeb::PocketWebRpc
 
         // General params
         searchRequest.Keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
-        string type = lower(request.params[1].get_str());
+        string type = request.params[1].get_str();
+        HtmlUtils::StringToLower(type);
 
         // Optional parameters
         // TopBlock

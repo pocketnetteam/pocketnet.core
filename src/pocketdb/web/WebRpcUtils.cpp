@@ -34,7 +34,11 @@ namespace PocketWeb::PocketWebRpc
         {
             string tag = boost::trim_copy(value.get_str());
             if (!tag.empty())
-                tags.push_back(HtmlUtils::UrlDecode(tag));
+            {
+                auto _tag = HtmlUtils::UrlDecode(tag);
+                HtmlUtils::StringToLower(_tag);
+                tags.push_back(_tag);
+            }
         }
         else if (value.isArray())
         {
@@ -43,7 +47,11 @@ namespace PocketWeb::PocketWebRpc
             {
                 string tag = boost::trim_copy(tgs[idx].get_str());
                 if (!tag.empty())
-                    tags.push_back(HtmlUtils::UrlDecode(tag));
+                {
+                    auto _tag = HtmlUtils::UrlDecode(tag);
+                    HtmlUtils::StringToLower(_tag);
+                    tags.push_back(_tag);
+                }
 
                 if (tags.size() >= 10)
                     break;

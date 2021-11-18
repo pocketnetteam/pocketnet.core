@@ -2,7 +2,7 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#include "WebRpcRepository.h"
+#include "pocketdb/repositories/web/WebRpcRepository.h"
 
 namespace PocketDb
 {
@@ -1648,8 +1648,9 @@ namespace PocketDb
                 s.String2 as posttxid,
                 s.Int1 as value,
                 s.Height
-            from Transactions c
-            join Transactions s on s.Type in (300) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
+            from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
+            join Transactions s indexed by Transactions_Type_Last_String2_Height
+                on s.Type in (300) and s.Last in (0,1) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
             where c.Type in (200, 201)
               and c.Last = 1
               and c.Height is not null
@@ -2212,28 +2213,41 @@ namespace PocketDb
         if (addressTo.empty())
             return result;
 
-        string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
+        // ---------------------------------------------
 
-        string contentIdWhere;
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string topContentIdFilter;
         if (topContentId > 0)
-            contentIdWhere = " and t.Id < ? ";
+            topContentIdFilter = " and t.Id < ? ";
 
         string sql = R"sql(
             select t.Id
             from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-            join Payload p on p.TxHash = t.Hash
-            where t.Type in ( )sql" + contentTypesWhere + R"sql( )
-                and t.Height is not null
+            where t.Type in ( )sql" + contentTypesFilter + R"sql( )
+                and t.Height > 0
                 and t.Last = 1
                 and t.String1 = ?
-                )sql" + contentIdWhere + R"sql(
+                )sql" + topContentIdFilter + R"sql(
         )sql";
 
-        if (!lang.empty()) sql += " and p.String1 = ? ";
-        if (!tags.empty()) sql += " and t.Id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
-        
+        if (!tags.empty())
+        {
+            sql += R"sql(
+                and t.id in (
+                    select tm.ContentId
+                    from web.Tags tag indexed by Tags_Lang_Value_Id
+                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                        on tag.Id = tm.TagId
+                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                )
+            )sql";
+        }
+
         sql += " order by t.Id desc ";
         sql += " limit ? ";
+
+        // ---------------------------------------------
 
         vector<int64_t> ids;
         TryTransactionStep(func, [&]()
@@ -2249,9 +2263,6 @@ namespace PocketDb
             if (topContentId > 0)
                 TryBindStatementInt64(stmt, i++, topContentId);
 
-            if (!lang.empty())
-                TryBindStatementText(stmt, i++, lang);
-
             if (!tags.empty())
                 for (const auto& tag: tags)
                     TryBindStatementText(stmt, i++, tag);
@@ -2259,6 +2270,8 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, count);
 
             LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
+            
+            // ---------------------------------------------
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -2280,53 +2293,74 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
     {
-        // TODO (brangr): add filter by blockings
         // TODO (brangr): add filter by min reputation
 
         auto func = __func__;
         UniValue result(UniValue::VARR);
 
-        string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
+        if (addressFrom.empty())
+            return result;
 
-        string contentIdWhere;
+        // ---------------------------------------------------
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string topContentIdFilter;
         if (topContentId > 0)
-            contentIdWhere = " and cnt.Id < ? ";
+            topContentIdFilter = " and cnt.Id < ? ";
 
         string sql = R"sql(
             select cnt.Id
-            from Transactions subs indexed by Transactions_Type_Last_String1_String2_Height
-            join Transactions cnt indexed by Transactions_Last_Id_Height
-                on cnt.Type in ( )sql" + contentTypesWhere + R"sql( ) and cnt.Last = 1 and cnt.Height is not null and cnt.String1 = subs.String2 )sql" + contentIdWhere + R"sql(
-            join Payload pld on pld.TxHash = cnt.Hash
-            where subs.Type in (302,303)
-                and subs.Last = 1
-                and subs.Height is not null
-                and subs.String1 = ?
+
+            from Transactions cnt indexed by Transactions_Type_Last_String1_Height_Id
+
+            join Transactions subs indexed by Transactions_Type_Last_String1_String2_Height
+                on subs.Type in (302,303)
+               and subs.Last = 1
+               and subs.Height > 0
+               and subs.String1 = ?
+               and subs.String2 = cnt.String1
+
+            where cnt.Type in ( )sql" + contentTypesFilter + R"sql( )
+              and cnt.Last = 1
+              and cnt.Height > 0
+            
+            )sql" + topContentIdFilter + R"sql(
+
         )sql";
 
-        if (!lang.empty()) sql += " and pld.String1 = ? ";
-        if (!tags.empty()) sql += " and cnt.Id in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id = tm.TagId where tag.Value in ( " + join(vector<string>(tags.size(), "?"), ",") + " )) ";
+        if (!tags.empty())
+        {
+            sql += R"sql(
+                and cnt.id in (
+                    select tm.ContentId
+                    from web.Tags tag indexed by Tags_Lang_Value_Id
+                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                        on tag.Id = tm.TagId
+                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                )
+            )sql";
+        }
         
         sql += " order by cnt.Id desc ";
         sql += " limit ? ";
 
+        // ---------------------------------------------------
+
         vector<int64_t> ids;
         TryTransactionStep(func, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            
             int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, i++, addressFrom);
+
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
                             
             if (topContentId > 0)
                 TryBindStatementInt(stmt, i++, topContentId);
                 
-            TryBindStatementText(stmt, i++, addressFrom);
-
-            if (!lang.empty())
-                TryBindStatementText(stmt, i++, lang);
-
             if (!tags.empty())
                 for (const auto& tag: tags)
                     TryBindStatementText(stmt, i++, tag);
@@ -2334,6 +2368,8 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, count);
 
             LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
+
+            // ---------------------------------------------
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -2362,36 +2398,42 @@ namespace PocketDb
         if (contentTypes.empty())
             return result;
 
+        // --------------------------------------------
+
         string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
 
         string contentIdWhere;
         if (topContentId > 0)
             contentIdWhere = " and t.Id < ? ";
 
+        string langFilter;
+        if (!lang.empty())
+            langFilter += " join Payload p on p.TxHash = t.Hash and p.String1 = ? ";
+
         string sql = R"sql(
             select t.Id
             from Transactions t indexed by Transactions_Last_Id_Height
-            join Payload p on p.TxHash = t.Hash
+            )sql" + langFilter + R"sql(
             where t.Type in )sql" + contentTypesWhere + R"sql(
                 and t.Last = 1
                 and t.String3 is null
-                and t.Height is not null
+                and t.Height > 0
                 and t.Height <= ?
                 )sql" + contentIdWhere + R"sql(
         )sql";
 
-        if (!lang.empty()) sql += " and p.String1 = ? ";
-
         if (!tags.empty())
         {
-            sql += R"sql( and t.id in (
-                select tm.ContentId
-                from web.Tags tag indexed by Tags_Lang_Value_Id
-                join web.TagsMap tm indexed by TagsMap_TagId_ContentId
-                    on tag.Id = tm.TagId
-                where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
-                    )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
-            ) )sql";
+            sql += R"sql(
+                and t.id in (
+                    select tm.ContentId
+                    from web.Tags tag indexed by Tags_Lang_Value_Id
+                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                        on tag.Id = tm.TagId
+                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+                )
+            )sql";
         }
 
         if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
@@ -2406,8 +2448,10 @@ namespace PocketDb
         vector<int64_t> ids;
         TryTransactionStep(func, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
             int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
@@ -2416,8 +2460,6 @@ namespace PocketDb
 
             if (topContentId > 0)
                 TryBindStatementInt64(stmt, i++, topContentId);
-
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
             if (!tags.empty())
             {
@@ -2443,8 +2485,9 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, countOut);
 
             LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
+
+            // ---------------------------------------------
             
-            // Get results
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
@@ -2471,7 +2514,13 @@ namespace PocketDb
         auto func = __func__;
         UniValue result(UniValue::VARR);
 
-        string contentTypesWhere = join(vector<string>(contentTypes.size(), "?"), ",");
+        // ---------------------------------------------
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string langFilter;
+        if (!lang.empty())
+            langFilter += " join Payload p on p.TxHash = t.Hash and p.String1 = ? ";
 
         string sql = R"sql(
             select
@@ -2485,7 +2534,7 @@ namespace PocketDb
                     from (
                         select p.Id
                         from Transactions p indexed by Transactions_Type_Last_String1_Height_Id
-                        where p.Type in ( )sql" + contentTypesWhere + R"sql( )
+                        where p.Type in ( )sql" + contentTypesFilter + R"sql( )
                             and p.Last = 1
                             and p.String1 = t.String1
                             and p.Height < torig.Height
@@ -2499,28 +2548,25 @@ namespace PocketDb
 
             from Transactions t
 
-            join Payload p on p.TxHash = t.Hash
+            )sql" + langFilter + R"sql(
 
-            join Transactions torig indexed by Transactions_Id on torig.Height is not null and torig.Id = t.Id and torig.Hash = torig.String2
+            join Transactions torig indexed by Transactions_Id on torig.Height > 0 and torig.Id = t.Id and torig.Hash = torig.String2
 
             left join Ratings pr indexed by Ratings_Type_Id_Last_Height
                 on pr.Type = 2 and pr.Last = 1 and pr.Id = t.Id
 
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type in (100) and u.Last = 1 and u.Height is not null and u.String1 = t.String1
+                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
 
             left join Ratings ur indexed by Ratings_Type_Id_Last_Height
                 on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
 
-            where t.Type in ( )sql" + contentTypesWhere + R"sql( )
+            where t.Type in ( )sql" + contentTypesFilter + R"sql( )
                 and t.Last = 1
                 and t.String3 is null
-                and t.Height is not null
                 and t.Height <= ?
                 and t.Height > ?
         )sql";
-
-        if (!lang.empty()) sql += " and p.String1 = ? ";
 
         if (!tags.empty())
         {
@@ -2553,6 +2599,8 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, durationBlocksForPrevPosts);
 
             TryBindStatementInt(stmt, i++, cntPrevPosts);
+            
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
 
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
@@ -2560,8 +2608,6 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, topHeight);
             TryBindStatementInt(stmt, i++, topHeight - cntBlocksForResult);
             
-            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
-
             if (!tags.empty())
             {
                 for (const auto& tag: tags)
@@ -2585,7 +2631,8 @@ namespace PocketDb
 
             LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
             
-            // Get results
+            // ---------------------------------------------
+            
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 HierarchicalRecord record{};
