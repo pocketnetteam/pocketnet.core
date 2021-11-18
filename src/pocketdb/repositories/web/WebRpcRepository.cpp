@@ -1223,13 +1223,13 @@ namespace PocketDb
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto[ok0, lang] = TryGetColumnString(*stmt, 0);
-                auto[ok1, value] = TryGetColumnString(*stmt, 1);
-                auto[ok2, count] = TryGetColumnInt(*stmt, 2);
+                auto[ok0, vLang] = TryGetColumnString(*stmt, 0);
+                auto[ok1, vValue] = TryGetColumnString(*stmt, 1);
+                auto[ok2, vCount] = TryGetColumnInt(*stmt, 2);
 
                 UniValue record(UniValue::VOBJ);
-                record.pushKV("tag", value);
-                record.pushKV("count", count);
+                record.pushKV("tag", vValue);
+                record.pushKV("count", vCount);
 
                 result.push_back(record);
             }
@@ -2204,8 +2204,8 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetProfileFeed(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang,
-        const vector<string>& tags, const vector<int>& contentTypes)
+    UniValue WebRpcRepository::GetProfileFeed(const string& addressFrom, const string& addressTo, int64_t topContentId,
+        int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
@@ -2291,7 +2291,8 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
+    UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count,
+        const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
     {
         // TODO (brangr): add filter by min reputation
 
@@ -2408,7 +2409,7 @@ namespace PocketDb
 
         string langFilter;
         if (!lang.empty())
-            langFilter += " join Payload p on p.TxHash = t.Hash and p.String1 = ? ";
+            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
 
         string sql = R"sql(
             select t.Id
@@ -2520,7 +2521,7 @@ namespace PocketDb
 
         string langFilter;
         if (!lang.empty())
-            langFilter += " join Payload p on p.TxHash = t.Hash and p.String1 = ? ";
+            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
 
         string sql = R"sql(
             select
@@ -2546,7 +2547,7 @@ namespace PocketDb
                         on pr.Type = 2 and pr.Id = q.Id and pr.Last = 1
                 ), 0)SumRating
 
-            from Transactions t
+            from Transactions t indexed by Transactions_Type_Last_String3_Height
 
             )sql" + langFilter + R"sql(
 
