@@ -359,23 +359,19 @@ struct TimeoutException : public std::exception
 
 using namespace std::chrono_literals;
 
-template <typename TF, typename TDuration, class... TArgs>
-std::result_of_t<TF&&(TArgs&&...)> run_with_timeout(TF&& f, TDuration timeout, TArgs&&... args)
+template <typename TF, typename TDuration, typename TOF, class... TArgs>
+std::result_of_t<TF&&(TArgs&&...)> run_with_timeout(TF&& f, TDuration timeout, TOF&& fout, TArgs&&... args)
 {
     using R = std::result_of_t<TF&&(TArgs&&...)>;
     std::packaged_task<R(TArgs...)> task(f);
     auto future = task.get_future();
     std::thread thr(std::move(task), std::forward<TArgs>(args)...);
-    if (future.wait_for(timeout) != std::future_status::timeout)
-    {
-       thr.join();
-       return future.get(); // this will propagate exception from f() if any
-    }
-    else
-    {
-       thr.detach(); // we leave the thread still running
-       throw TimeoutException();
-    }
+
+    while (future.wait_for(timeout) == std::future_status::timeout)
+        fout();
+    
+    thr.join();
+    return future.get(); // this will propagate exception from f() if any
 }
 
 

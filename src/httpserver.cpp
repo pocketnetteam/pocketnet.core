@@ -744,11 +744,6 @@ static inline std::string gen_random(const int len) {
 
 }
 
-UniValue rpcTableExecute(CRPCTable& table, JSONRPCRequest& jreq)
-{
-    return table.execute(jreq);
-}
-
 bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 {
     // JSONRPC handles only POST
@@ -769,6 +764,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
         // Set the URI
         jreq.URI = req->GetURI();
         std::string strReply;
+        bool executeSuccess = true;
 
         // singleton request
         if (valRequest.isObject())
@@ -788,23 +784,19 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 
             // We are running a separate thread to detect timeout only for public queries related to sqlite db
             UniValue result;
-            bool timeoutError = false;
             if (m_publicAccess)
             {
-                // Try launch rpc table method with timeout 3 seconds
-                try
-                {
-                    result = run_with_timeout(rpcTableExecute, 3s, std::ref(table), std::ref(jreq));
-                }
-                catch (const TimeoutException& e)
-                {
-                    if (req->DbConnection())
-                        req->DbConnection()->InterruptQuery();
-
-                    LogPrint(BCLog::RPC, "RPC exception timeout (%s): %s Prms: %s\n", method, JSONRPCError(HTTP_TIMEOUT, e.what()).write(), jreq.params.write(0, 0));
-                    JSONErrorReply(req, JSONRPCError(HTTP_TIMEOUT, "Performing the function for more than 3 seconds"), jreq.id);
-                    timeoutError = true;
-                }
+                result = run_with_timeout(
+                    [&]() {
+                        return table.execute(jreq);
+                    },
+                    3s,
+                    [&]() {
+                        executeSuccess = false;
+                        if (req->DbConnection())
+                            req->DbConnection()->InterruptQuery();
+                    }
+                );
             }
             else
             {
@@ -817,7 +809,6 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
             LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
                 uri, method, rpcKey, (finish.count() - start.count()));
 
-            // TODO (brangr): опустить немного ниже в конец функции
             if (g_logger->WillLogCategory(BCLog::STAT))
             {
                 gStatEngineInstance.AddSample(
@@ -827,16 +818,13 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
                         start,
                         finish,
                         peer,
-                        timeoutError,
+                        executeSuccess,
                         0,
                         0
                     }
                 );
             }
-
-            if (timeoutError)
-                return false;
-
+            
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
         }
@@ -856,6 +844,8 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strReply);
+
+        return executeSuccess;
     }
     catch (const UniValue& objError)
     {
