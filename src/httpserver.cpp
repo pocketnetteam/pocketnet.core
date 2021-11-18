@@ -818,7 +818,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
                         start,
                         finish,
                         peer,
-                        executeSuccess,
+                        !executeSuccess,
                         0,
                         0
                     }
