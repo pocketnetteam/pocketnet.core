@@ -17,11 +17,11 @@ namespace PocketDb
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                SELECT *
-                FROM Payload ap indexed by Payload_String2
+                select count(*)
+                from Payload ap indexed by Payload_String2_TxHash
                 join Transactions t indexed by Transactions_Hash_Height
                   on t.Type in (100, 101, 102) and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
-                WHERE ap.String2 = ?
+                where ap.String2 = ?
                   and t.String1 != ?
             )sql");
 

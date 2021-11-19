@@ -77,12 +77,12 @@ namespace PocketDb
         UniValue result(UniValue::VARR);
 
         string sql = R"sql(
-            SELECT p.String2, u.String1
-            FROM Transactions u
-            JOIN Payload p on u.Hash = p.TxHash
-            WHERE   u.Type in (100, 101, 102)
-                and p.String2 like ?
-            LIMIT 1
+            select p.String2, u.String1
+            from Payload p indexed by Payload_String2_TxHash
+            cross join Transactions u indexed by Transactions_Hash_Height
+                on u.Type in (100, 101, 102) and u.Height > 0 and u.Hash = p.TxHash and u.Last = 1
+            where p.String2 = ?
+            limit 1
         )sql";
 
         TryTransactionStep(__func__, [&]()
