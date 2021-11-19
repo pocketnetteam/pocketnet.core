@@ -474,6 +474,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select
+            
                 s.Hash sTxHash,
                 s.Type sType,
                 s.Time sTime,
@@ -486,13 +487,21 @@ namespace PocketDb
                 c.Id cId,
                 ca.Id caId,
                 ca.String1 caHash
-            from Transactions s
+
+            from Transactions s indexed by Transactions_Hash_Height
+
             -- Score Address
-            join Transactions sa on sa.Type in (100,101,102) and sa.Height is not null and sa.String1 = s.String1 and sa.Last = 1
+            join Transactions sa indexed by Transactions_Type_Last_String1_Height_Id
+                on sa.Type in (100,101,102) and sa.Height > 0 and sa.String1 = s.String1 and sa.Last = 1
+
             -- Content
-            join Transactions c on c.Type in (200,201,202,203,204,205,206,207) and c.Height is not null and c.Hash = s.String2
+            join Transactions c indexed by Transactions_Hash_Height
+                on c.Type in (200,201,202,203,204,205,206,207) and c.Height > 0 and c.Hash = s.String2
+
             -- Content Address
-            join Transactions ca on ca.Type in (100,101,102) and ca.Height is not null and ca.String1=c.String1 and ca.Last = 1
+            join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
+                on ca.Type in (100,101,102) and ca.Height > 0 and ca.String1 = c.String1 and ca.Last = 1
+
             where s.Hash = ?
         )sql";
 
