@@ -124,6 +124,7 @@ namespace PocketDb
                 select min(uf.Height)
                 from Transactions uf indexed by Transactions_Id
                 where uf.Id = u.Id
+            )
         )sql";
 
         TryTransactionStep(__func__, [&]()
