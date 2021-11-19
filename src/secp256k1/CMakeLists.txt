@@ -127,6 +127,7 @@ if (HAVE_BUILTIN)
 endif()
 
 add_library(${PROJECT_NAME} include/secp256k1.h
+                            include/secp256k1_preallocated.h
                             src/scalar.h
                             src/scalar_4x64.h
                             src/scalar_8x32.h
@@ -157,8 +158,7 @@ add_library(${PROJECT_NAME} include/secp256k1.h
                             src/field_5x52_impl.h
                             src/field_5x52_int128_impl.h
                             src/field_5x52_asm_impl.h
-                            src/java/org_pocketcoin_NativeSecp256k1.h
-                            src/java/org_pocketcoin_Secp256k1Context.h
+                            src/assumptions.h
                             src/util.h
                             src/testrand.h
                             src/testrand_impl.h
@@ -167,6 +167,9 @@ add_library(${PROJECT_NAME} include/secp256k1.h
                             src/field.h
                             src/field_impl.h
                             src/bench.h
+                            src/scratch.h
+                            src/scratch_impl.h
+                            src/selftest.h
                             contrib/lax_der_parsing.h
                             contrib/lax_der_parsing.c
                             contrib/lax_der_privatekey_parsing.h
@@ -185,6 +188,11 @@ target_include_directories(gen_context PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # TODO there are possible issues here if cross compiling. See https://cmake.org/cmake/help/latest/command/add_custom_command.html
 add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/ecmult_static_context.h COMMAND gen_context WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 add_custom_target(have_ecmult ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/ecmult_static_context.h)
-add_dependencies(secp256k1 have_ecmult)
+add_dependencies(${PROJECT_NAME} have_ecmult)
 
-target_compile_definitions(secp256k1 PRIVATE USE_ECMULT_STATIC_PRECOMPUTATION)
+target_compile_definitions(${PROJECT_NAME} PRIVATE USE_ECMULT_STATIC_PRECOMPUTATION)
+
+# TODO hardcoded
+add_compile_definitions(
+                                        ECMULT_GEN_PREC_BITS=4
+                                        ECMULT_WINDOW_SIZE=15)
