@@ -45,7 +45,7 @@ namespace PocketDb
             catch (const std::exception& ex)
             {
                 m_database.AbortTransaction();
-                throw std::runtime_error(ex.what());
+                throw std::runtime_error(func + ": " + ex.what());
             }
         }
 

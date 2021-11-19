@@ -109,6 +109,11 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetAddressesRegistrationDates(const vector<string>& addresses)
     {
+        auto result = UniValue(UniValue::VARR);
+
+        if (addresses.empty())
+            return result;
+
         string sql = R"sql(
             select u.String1, u.Time, u.Hash
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
@@ -120,8 +125,6 @@ namespace PocketDb
                 from Transactions uf indexed by Transactions_Id
                 where uf.Id = u.Id
         )sql";
-
-        auto result = UniValue(UniValue::VARR);
 
         TryTransactionStep(__func__, [&]()
         {
