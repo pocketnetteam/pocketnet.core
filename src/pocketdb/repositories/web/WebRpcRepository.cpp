@@ -110,18 +110,15 @@ namespace PocketDb
     UniValue WebRpcRepository::GetAddressesRegistrationDates(const vector<string>& addresses)
     {
         string sql = R"sql(
-            WITH addresses (String1, Height) AS (
-                SELECT u.String1, MIN(u.Height) AS Height
-                FROM Transactions u
-                WHERE u.Type in (100, 101, 102)
-                and u.Height is not null
-                and u.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-                and u.Last in (0,1)
-                GROUP BY u.String1   
-            )
-            SELECT u.String1, u.Time, u.Hash
-            FROM Transactions u
-            JOIN addresses a ON u.Type in (100, 101, 102) and u.String1 = a.String1 AND u.Height = a.Height
+            select u.String1, u.Time, u.Hash
+            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+            where u.Type in (100, 101, 102)
+            and u.Last in (0,1)
+            and u.String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+            and u.Height = (
+                select min(uf.Height)
+                from Transactions uf indexed by Transactions_Id
+                where uf.Id = u.Id
         )sql";
 
         auto result = UniValue(UniValue::VARR);
