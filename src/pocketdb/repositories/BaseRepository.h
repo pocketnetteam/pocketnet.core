@@ -11,6 +11,8 @@
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 
+#include <boost/algorithm/string/replace.hpp>
+
 namespace PocketDb
 {
     using namespace std;
@@ -20,6 +22,16 @@ namespace PocketDb
     {
     protected:
         SQLiteDatabase& m_database;
+
+
+        string EscapeValue(string value)
+        {
+            boost::replace_all(value, "%", "\\%");
+            boost::replace_all(value, "_", "\\_");
+
+            return value;
+        }
+
 
         // General method for SQL operations
         // Locked with shutdownMutex

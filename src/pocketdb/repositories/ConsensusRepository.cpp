@@ -14,6 +14,8 @@ namespace PocketDb
     {
         bool result = false;
 
+        auto _name = EscapeValue(name);
+
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
@@ -21,11 +23,11 @@ namespace PocketDb
                 from Payload ap indexed by Payload_String2_nocase_TxHash
                 cross join Transactions t indexed by Transactions_Hash_Height
                   on t.Type in (100, 101, 102) and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
-                where ap.String2 like ?
+                where ap.String2 like ? escape '\'
                   and t.String1 != ?
             )sql");
 
-            TryBindStatementText(stmt, 1, name);
+            TryBindStatementText(stmt, 1, _name);
             TryBindStatementText(stmt, 2, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)

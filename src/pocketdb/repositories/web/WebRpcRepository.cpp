@@ -76,12 +76,14 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
+        auto _name = EscapeValue(name);
+
         string sql = R"sql(
             select p.String2, u.String1
             from Payload p indexed by Payload_String2_nocase_TxHash
             cross join Transactions u indexed by Transactions_Hash_Height
                 on u.Type in (100, 101, 102) and u.Height > 0 and u.Hash = p.TxHash and u.Last = 1
-            where p.String2 like ?
+            where p.String2 like ? escape '\'
             limit 1
         )sql";
 
@@ -89,7 +91,7 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, name);
+            TryBindStatementText(stmt, 1, _name);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
