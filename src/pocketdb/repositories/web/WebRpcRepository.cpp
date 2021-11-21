@@ -78,10 +78,10 @@ namespace PocketDb
 
         string sql = R"sql(
             select p.String2, u.String1
-            from Payload p indexed by Payload_String2_TxHash
+            from Payload p indexed by Payload_String2_nocase_TxHash
             cross join Transactions u indexed by Transactions_Hash_Height
                 on u.Type in (100, 101, 102) and u.Height > 0 and u.Hash = p.TxHash and u.Last = 1
-            where p.String2 = ?
+            where p.String2 like ?
             limit 1
         )sql";
 
