@@ -1081,7 +1081,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 return state.DoS(0, false, REJECT_INTERNAL, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
 
             // Check transaction with pocketnet consensus rules
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(_pocketTx, chainActive.Height() + 1); !ok)
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, chainActive.Height() + 1); !ok)
                 return state.DoS(0, false, REJECT_INTERNAL, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result));
         }
 
@@ -2533,7 +2533,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
         // -----------------------------------------------------------------------------------------------------------------
         // Pocketnet Consensus rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight); !ok)
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(block, pocketBlock, pindex->nHeight); !ok)
         {
             LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
                 (int)result, pindex->GetBlockHash().GetHex());
@@ -3577,7 +3577,8 @@ bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainPar
         for (CBlockIndex* pindexConnect : reverse_iterate(vpindexToConnect))
         {
             if (!ConnectTip(state, chainparams, pindexConnect,
-                pindexConnect == pindexMostWork ? pblock : std::shared_ptr<const CBlock>(), pocketBlock,
+                pindexConnect == pindexMostWork ? pblock : std::shared_ptr<const CBlock>(),
+                pindexConnect == pindexMostWork ? pocketBlock : nullptr,
                 connectTrace, disconnectpool))
             {
                 if (state.IsInvalid())

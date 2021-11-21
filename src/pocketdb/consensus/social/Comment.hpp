@@ -22,10 +22,10 @@ namespace PocketConsensus
     {
     public:
         CommentConsensus(int height) : SocialConsensus<Comment>(height) {}
-        ConsensusValidateResult Validate(const CommentRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Parent comment

@@ -23,10 +23,10 @@ namespace PocketConsensus
     {
     public:
         PostConsensus(int height) : SocialConsensus<Post>(height) {}
-        tuple<bool, SocialConsensusResult> Validate(const PostRef& ptx, const PocketBlockRef& block) override
+        tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PostRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Check if this post relay another

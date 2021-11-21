@@ -21,10 +21,10 @@ namespace PocketConsensus
     {
     public:
         VideoConsensus(int height) : SocialConsensus<Video>(height) {}
-        ConsensusValidateResult Validate(const VideoRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const VideoRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Check payload size

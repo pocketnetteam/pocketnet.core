@@ -154,10 +154,22 @@ namespace PocketHelpers
     {
         vector<string> vasm;
         ParseAsmType(tx, vasm);
+        
         if (vasm.size() < 3)
             return "";
 
         return vasm[2];
+    }
+
+    tuple<bool, string> TransactionHelper::ExtractOpReturnPayload(const CTransactionRef& tx)
+    {
+        vector<string> vasm;
+        ParseAsmType(tx, vasm);
+
+        if (vasm.size() < 4)
+            return { false, "" };
+
+        return { !vasm[3].empty(), vasm[3] };
     }
 
     bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx, TxType& txType)

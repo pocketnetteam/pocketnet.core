@@ -21,10 +21,11 @@ namespace PocketConsensus
     {
     public:
         ScoreContentConsensus(int height) : SocialConsensus<ScoreContent>(height) {}
-        ConsensusValidateResult Validate(const ScoreContentRef& ptx, const PocketBlockRef& block) override
+
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const ScoreContentRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Check already scored content
@@ -65,6 +66,16 @@ namespace PocketConsensus
             if (auto[ok, result] = ValidateBlocking(*lastContent->GetString1(), ptx); !ok)
                 return {false, result};
 
+            // Check OP_RETURN content author address and score value
+            if (auto[ok, txOpReturnPayload] = TransactionHelper::ExtractOpReturnPayload(tx); ok)
+            {
+                string opReturnPayloadData = *lastContent->GetString1() + " " + to_string(*ptx->GetValue());
+                string opReturnPayloadHex = HexStr(opReturnPayloadData.begin(), opReturnPayloadData.end());
+
+                if (txOpReturnPayload != opReturnPayloadHex)
+                    return {false, SocialConsensusResult_FailedOpReturn};
+            }
+
             return Success;
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const ScoreContentRef& ptx) override
@@ -81,17 +92,6 @@ namespace PocketConsensus
             auto value = *ptx->GetValue();
             if (value < 1 || value > 5)
                 return {false, SocialConsensusResult_Failed};
-
-            // TODO (brangr): сверить адрес и значение лайка с данными в транзакции
-            // + добавить чекпойнт с принудительным включением проверки данные по автору поста и значению лайка
-            
-            // Check OP_RETURN with Payload
-            //if (IsEmpty(ptx->GetOPRAddress()) || *ptx->GetOPRAddress() != *ptx->GetAddress())
-            //    LogPrintf("000 CHECKPOINT 1 %s\n", *ptx->GetHash());
-            //return {false, SocialConsensusResult_OpReturnFailed};
-            //if (IsEmpty(ptx->GetOPRValue()) || *ptx->GetOPRValue() != *ptx->GetValue())
-            //    LogPrintf("000 CHECKPOINT 2 %s\n", *ptx->GetHash());
-            //return {false, SocialConsensusResult_OpReturnFailed};
 
             return Success;
         }

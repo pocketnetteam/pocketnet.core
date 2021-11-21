@@ -256,7 +256,7 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     }
 
     // Validate consensus
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pblocktemplate->pocketBlock, chainActive.Height() + 1); !ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(tx, ptx, pblocktemplate->pocketBlock, chainActive.Height() + 1); !ok)
     {
         LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with validate result %d\n",
             tx->GetHash().GetHex(), (int) result);

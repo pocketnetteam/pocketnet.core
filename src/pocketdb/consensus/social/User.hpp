@@ -20,10 +20,10 @@ namespace PocketConsensus
     {
     public:
         UserConsensus(int height) : SocialConsensus<User>(height) {}
-        ConsensusValidateResult Validate(const UserRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Duplicate name

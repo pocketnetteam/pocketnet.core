@@ -58,7 +58,6 @@ namespace PocketConsensus
         SocialConsensusResult_SelfCommentScore = 38,
         SocialConsensusResult_DoubleCommentDelete = 39,
         SocialConsensusResult_DoubleCommentScore = 40,
-        SocialConsensusResult_OpReturnFailed = 41,
         SocialConsensusResult_CommentDeletedEdit = 42,
         SocialConsensusResult_NotAllowed = 44,
         SocialConsensusResult_ChangeTxType = 45,
@@ -122,7 +121,6 @@ namespace PocketConsensus
             case (SocialConsensusResult_SelfCommentScore): return "SelfCommentScore";
             case (SocialConsensusResult_DoubleCommentDelete): return "DoubleCommentDelete";
             case (SocialConsensusResult_DoubleCommentScore): return "DoubleCommentScore";
-            case (SocialConsensusResult_OpReturnFailed): return "OpReturnFailed";
             case (SocialConsensusResult_CommentDeletedEdit): return "CommentDeletedEdit";
             case (SocialConsensusResult_NotAllowed): return "NotAllowed";
             case (SocialConsensusResult_ChangeTxType): return "ChangeTxType";

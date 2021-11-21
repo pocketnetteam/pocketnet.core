@@ -30,7 +30,7 @@ namespace PocketConsensus
         SocialConsensus(int height) : BaseConsensus(height) {}
 
         // Validate transaction in block for miner & network full block sync
-        virtual ConsensusValidateResult Validate(const shared_ptr<T>& ptx, const PocketBlockRef& block)
+        virtual ConsensusValidateResult Validate(const CTransactionRef& tx, const shared_ptr<T>& ptx, const PocketBlockRef& block)
         {
             // TODO (team): optimize algorithm
             // Account must be registered

@@ -6,8 +6,13 @@ set(_CLIENT_VERSION_REVISION 9)
 set(_CLIENT_VERSION_BUILD 0)
 set(_CLIENT_VERSION_IS_RELEASE false)
 set(_COPYRIGHT_YEAR 2021)
-# TODO validate these variables
-set(_COPYRIGHT_HOLDERS "\"The %s developers\"")
+
+if(WIN32)
+    set(_COPYRIGHT_HOLDERS "\"The %%s developers\"")
+else()
+    set(_COPYRIGHT_HOLDERS "\"The %s developers\"")
+endif()
+
 set(_COPYRIGHT_HOLDERS_SUBSTITUTION "\"Pocketnet\"")
 set(_HOMEPAGE "\"https://github.com/pocketnetteam/\"")
 string(REPLACE "%s" ${_COPYRIGHT_HOLDERS_SUBSTITUTION} _COPYRIGHT_HOLDERS_FINAL ${_COPYRIGHT_HOLDERS_SUBSTITUTION})

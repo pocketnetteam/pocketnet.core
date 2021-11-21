@@ -22,10 +22,10 @@ namespace PocketConsensus
     {
     public:
         CommentEditConsensus(int height) : SocialConsensus<CommentEdit>(height) {}
-        ConsensusValidateResult Validate(const CommentEditRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentEditRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Actual comment not deleted

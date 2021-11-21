@@ -775,10 +775,11 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
             string uri = jreq.URI;
             string method = jreq.strMethod;
             string peer = jreq.peerAddr.substr(0, jreq.peerAddr.find(':'));
+            string prms = jreq.params.write(0, 0);
 
             auto rpcKey = gen_random(15);
             LogPrint(BCLog::RPC, "RPC started method %s%s (%s) with params: %s\n",
-                uri, method, rpcKey, jreq.params.write(0, 0));
+                uri, method, rpcKey, prms);
 
             auto start = gStatEngineInstance.GetCurrentSystemTime();
 
@@ -793,8 +794,11 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
                     3s,
                     [&]() {
                         executeSuccess = false;
+                        
                         if (req->DbConnection())
                             req->DbConnection()->InterruptQuery();
+
+                        LogPrintf("Method `%s` failed with execute timeout. Params: %s\n", method, prms);
                     }
                 );
             }

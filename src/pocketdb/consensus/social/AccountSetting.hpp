@@ -20,10 +20,10 @@ namespace PocketConsensus
     {
     public:
         AccountSettingConsensus(int height) : SocialConsensus<AccountSetting>(height) {}
-        ConsensusValidateResult Validate(const AccountSettingRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const AccountSettingRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Check payload size
