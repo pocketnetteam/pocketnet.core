@@ -18,10 +18,10 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Payload ap indexed by Payload_String2_TxHash
-                join Transactions t indexed by Transactions_Hash_Height
+                from Payload ap indexed by Payload_String2_nocase_TxHash
+                cross join Transactions t indexed by Transactions_Hash_Height
                   on t.Type in (100, 101, 102) and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
-                where ap.String2 = ?
+                where ap.String2 like ?
                   and t.String1 != ?
             )sql");
 

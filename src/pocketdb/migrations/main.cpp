@@ -191,6 +191,7 @@ namespace PocketDb
 
             drop index if exists Payload_String2;
             create index if not exists Payload_String2_TxHash on Payload (String2, TxHash);
+            create index if not exists Payload_String2_nocase_TxHash on Payload (String2 collate nocase, TxHash);
             create index if not exists Payload_String7 on Payload (String7);
             create index if not exists Payload_String1_TxHash on Payload (String1, TxHash);
 
