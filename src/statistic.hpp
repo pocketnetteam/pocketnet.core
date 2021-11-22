@@ -1,11 +1,13 @@
 #pragma once
 
 #include "logging.h"
+#include "rpc/blockchain.h"
 #include "univalue.h"
 #include "util/time.h"
 
 #include "chainparams.h"
 #include "validation.h"
+#include "util/ref.h"
 #include <boost/thread.hpp>
 #include <chrono>
 #include <cstdint>
@@ -166,9 +168,10 @@ namespace Statistic
             return GetUniqueSourceIPsSince(RequestTime::min());
         }
 
-        UniValue CompileStatsAsJsonSince(RequestTime since)
+        UniValue CompileStatsAsJsonSince(RequestTime since, const util::Ref& context)
         {
             UniValue result{UniValue::VOBJ};
+            const auto& node = EnsureNodeContext(context);
 
             constexpr auto top_limit = 1;
             const auto sample_to_json = [](const RequestSample& sample)
@@ -216,10 +219,9 @@ namespace Statistic
             chainStat.pushKV("Chain", Params().NetworkIDString());
             chainStat.pushKV("Height", ChainActive().Height());
             chainStat.pushKV("LastBlock", ChainActive().Tip()->GetBlockHash().GetHex());
-            // TODO (losty): node context - EnsureNodeContext()
-            // chainStat.pushKV("PeersALL", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
-            // chainStat.pushKV("PeersIN", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
-            // chainStat.pushKV("PeersOUT", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
+            chainStat.pushKV("PeersALL", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
+            chainStat.pushKV("PeersIN", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
+            chainStat.pushKV("PeersOUT", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
             result.pushKV("General", chainStat);
 
             UniValue rpcStat(UniValue::VOBJ);
@@ -238,9 +240,9 @@ namespace Statistic
             return result;
         }
 
-        UniValue CompileStatsAsJson()
+        UniValue CompileStatsAsJson(const util::Ref& context)
         {
-            return CompileStatsAsJsonSince(RequestTime::min());
+            return CompileStatsAsJsonSince(RequestTime::min(), context);
         }
 
         // Just a helper to prevent copypasta
@@ -249,10 +251,10 @@ namespace Statistic
             return std::chrono::duration_cast<RequestTime>(std::chrono::system_clock::now().time_since_epoch());
         }
 
-        void Run(boost::thread_group& threadGroup)
+        void Run(boost::thread_group& threadGroup, const util::Ref& context)
         {
             shutdown = false;
-            threadGroup.create_thread(boost::bind(&RequestStatEngine::PeriodicStatLogger, this));
+            threadGroup.create_thread(boost::bind(&RequestStatEngine::PeriodicStatLogger, this, boost::cref(context)));
         }
 
         void Stop()
@@ -260,7 +262,7 @@ namespace Statistic
             shutdown = true;
         }
 
-        void PeriodicStatLogger()
+        void PeriodicStatLogger(const util::Ref& context)
         {
             auto statLoggerSleep = gArgs.GetArg("-statdepth", 60) * 1000;
             std::string msg = "Statistic for last %lds:\n%s\n";
@@ -268,9 +270,9 @@ namespace Statistic
             while (!shutdown)
             {
                 auto chunkSize = GetCurrentSystemTime() - std::chrono::milliseconds(statLoggerSleep);
-                LogPrint(BCLog::STAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize).write(1));
+                LogPrint(BCLog::STAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize, context).write(1));
                 LogPrint(BCLog::STATDETAIL, msg.c_str(), statLoggerSleep / 1000,
-                    CompileStatsAsJsonSince(chunkSize).write(1));
+                    CompileStatsAsJsonSince(chunkSize, context).write(1));
 
                 RemoveSamplesBefore(chunkSize);
                 UninterruptibleSleep(std::chrono::milliseconds{statLoggerSleep});

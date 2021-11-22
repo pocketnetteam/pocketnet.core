@@ -2324,7 +2324,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // Start WebSocket server
     if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
 
-    gStatEngineInstance.Run(threadGroup);
+    gStatEngineInstance.Run(threadGroup, context);
 
     if (gArgs.GetBoolArg("-api", false))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
