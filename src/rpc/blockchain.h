@@ -7,6 +7,7 @@
 
 #include <amount.h>
 #include <sync.h>
+#include <node/context.h>
 
 #include <stdint.h>
 #include <vector>
@@ -18,7 +19,6 @@ class CBlockIndex;
 class CTxMemPool;
 class ChainstateManager;
 class UniValue;
-struct NodeContext;
 namespace util {
 class Ref;
 } // namespace util

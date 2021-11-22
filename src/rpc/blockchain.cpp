@@ -15,7 +15,6 @@
 #include <hash.h>
 #include <index/blockfilterindex.h>
 #include <node/coinstats.h>
-#include <node/context.h>
 #include <node/utxo_snapshot.h>
 #include <policy/feerate.h>
 #include <policy/policy.h>
