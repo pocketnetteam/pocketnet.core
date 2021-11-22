@@ -137,8 +137,8 @@ namespace PocketConsensus
             }
 
             // First get original post transaction
-            auto originalTx = PocketDb::TransRepoInst.Get(*ptx->GetRootTxHash());
-            if (!originalTx)
+            auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
+            if (!originalTxOk || !originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
             const auto originalPtx = static_pointer_cast<Post>(originalTx);

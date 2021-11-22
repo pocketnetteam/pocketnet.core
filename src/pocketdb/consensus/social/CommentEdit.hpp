@@ -34,8 +34,8 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_CommentDeletedEdit};
 
             // Original comment exists
-            auto originalTx = PocketDb::TransRepoInst.Get(*ptx->GetRootTxHash());
-            if (!originalTx)
+            auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
+            if (!originalTxOk || !originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<CommentEdit>(originalTx);
@@ -48,9 +48,13 @@ namespace PocketConsensus
                 if (currParentTxHash != origParentTxHash)
                     return {false, SocialConsensusResult_InvalidParentComment};
 
-                if (!IsEmpty(originalPtx->GetParentTxHash()))
-                    if (!PocketDb::TransRepoInst.ExistsInChain(origParentTxHash))
+                if (!origParentTxHash.empty())
+                {
+                    // TODO (brangr): replace to check exists not deleted comment
+                    if (auto[ok, origParentTx] = ConsensusRepoInst.GetLastContent(origParentTxHash);
+                        !ok || *origParentTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
                         return {false, SocialConsensusResult_InvalidParentComment};
+                }
             }
 
             // Answer comment
@@ -61,9 +65,13 @@ namespace PocketConsensus
                 if (currAnswerTxHash != origAnswerTxHash)
                     return {false, SocialConsensusResult_InvalidAnswerComment};
 
-                if (!IsEmpty(originalPtx->GetAnswerTxHash()))
-                    if (!PocketDb::TransRepoInst.Get(origAnswerTxHash))
+                if (!origAnswerTxHash.empty())
+                {
+                    // TODO (brangr): replace to check exists not deleted comment
+                    if (auto[ok, origAnswerTx] = ConsensusRepoInst.GetLastContent(origAnswerTxHash);
+                        !ok || *origAnswerTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
                         return {false, SocialConsensusResult_InvalidAnswerComment};
+                }
             }
 
             // Original comment edit only 24 hours

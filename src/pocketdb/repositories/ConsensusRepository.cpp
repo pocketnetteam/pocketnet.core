@@ -90,6 +90,54 @@ namespace PocketDb
         return {tx != nullptr, tx};
     }
 
+    tuple<bool, PTransactionRef> ConsensusRepository::GetFirstContent(const string& rootHash)
+    {
+        PTransactionRef tx = nullptr;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            string sql = R"sql(
+                select
+                    t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                from Transactions t indexed by Transactions_Hash_Height
+                left join Payload p on t.Hash = p.TxHash
+                where t.Type in (200,201,202,203,204)
+                    and t.Hash = ?
+                    and t.String2 = ?
+                    and t.Height is not null
+            )sql";
+
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, rootHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
+                    tx = transaction;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {tx != nullptr, tx};
+    }
+
     tuple<bool, PTransactionRef> ConsensusRepository::GetLastContent(const string& rootHash)
     {
         PTransactionRef tx = nullptr;

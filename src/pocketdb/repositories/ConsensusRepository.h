@@ -35,6 +35,7 @@ namespace PocketDb
         void Destroy() override;
 
         tuple<bool, PTransactionRef> GetLastAccount(const string& address);
+        tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash);
 
         tuple<bool, int64_t> GetLastAccountHeight(const string& address);
