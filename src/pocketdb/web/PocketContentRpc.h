@@ -6,7 +6,7 @@
 #define SRC_POCKETDEBUG_H
 
 #include "rpc/server.h"
-#include "rpc/rawtransaction.h"
+// #include "rpc/rawtransaction.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 
 namespace PocketWeb::PocketWebRpc

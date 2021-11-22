@@ -34,6 +34,9 @@
 #include <memory>
 #include <typeinfo>
 
+#include "pocketdb/consensus/Helper.h"
+#include "pocketdb/services/Accessor.h"
+
 /** Expiration time for orphan transactions in seconds */
 static constexpr int64_t ORPHAN_TX_EXPIRE_TIME = 20 * 60;
 /** Minimum time between orphan transactions expire time checks in seconds */
@@ -153,6 +156,8 @@ static constexpr double MAX_ADDR_RATE_PER_SECOND{0.1};
  *  based increments won't go above this, but the MAX_ADDR_TO_SEND increment following GETADDR
  *  is exempt from this limit. */
 static constexpr size_t MAX_ADDR_PROCESSING_TOKEN_BUCKET{MAX_ADDR_TO_SEND};
+/* For PocketNet the compact blocks version 3 is the first to work on the PocketNet network */
+static constexpr uint64_t CMPCT_BLOCKS_PROTOCOL_VERSION = 3;
 
 struct COrphanTx {
     // When modifying, adapt the copy of this definition in tests/DoS_tests.
@@ -342,8 +347,8 @@ public:
         if (banNode) {
             // Clear the points and ban the node
             points.clear();
-            // TODO (team): DoS removed. Change this to something else
-            return state.DoS(100, false, REJECT_INVALID, "header-spam", "ban node for sending spam");
+            // TODO (losty): DoS removed. Change this to something else
+            // return state.DoS(100, false, REJECT_INVALID, "header-spam", "ban node for sending spam");
         }
 
         return ret;
@@ -1740,9 +1745,9 @@ void static ProcessGetBlockData(CNode& pfrom, const CChainParams& chainparams, c
                 }
             } else {
                 if (inv.IsMsgBlk())
-                    connman->PushMessage(pfrom, msgMaker.Make(SERIALIZE_TRANSACTION_NO_WITNESS, NetMsgType::BLOCK, *pblock, pocketBlockData));
-                else if (IsMsgWitnessBlk())
-                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::BLOCK, *pblock, pocketBlockData));
+                    connman.PushMessage(&pfrom, msgMaker.Make(SERIALIZE_TRANSACTION_NO_WITNESS, NetMsgType::BLOCK, *pblock, pocketBlockData));
+                else if (inv.IsMsgWitnessBlk())
+                    connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::BLOCK, *pblock, pocketBlockData));
                 else if (inv.IsMsgCmpctBlk()) {
                     // If a peer is asking for old blocks, we're almost guaranteed
                     // they won't have a useful mempool to match against a compact block,
@@ -1843,7 +1848,7 @@ void static ProcessGetData(CNode& pfrom, Peer& peer, const CChainParams& chainpa
             // Join PocketNet data from PocketDB to transaction stream
             std::string txPayloadData;
             // TODO (team): A lot reworked here. Validate that this is correct.
-            if (PocketServices::Accessor::GetTransaction(*mi->second, txPayloadData)) {
+            if (PocketServices::Accessor::GetTransaction(*tx, txPayloadData)) {
                 connman.PushMessage(&pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *tx, txPayloadData));
                 mempool.RemoveUnbroadcastTx(tx->GetHash());
                 std::vector<uint256> parent_ids_to_add;
@@ -2155,8 +2160,8 @@ void PeerManager::ProcessOrphanTx(std::set<uint256>& orphan_work_set)
         TxValidationState state;
         std::list<CTransactionRef> removed_txn;
 
-        // TODO (team): pocketblock
-        if (AcceptToMemoryPool(m_mempool, state, porphanTx, &removed_txn, false /* bypass_limits */)) {
+        // TODO (losty): pocket transaction. Currently with passing nullptr this will cause segfault probably
+        if (AcceptToMemoryPool(m_mempool, state, porphanTx, nullptr, &removed_txn, false /* bypass_limits */)) {
             LogPrint(BCLog::MEMPOOL, "   accepted orphan tx %s\n", orphanHash.ToString());
             RelayTransaction(orphanHash, porphanTx->GetWitnessHash(), m_connman);
             for (unsigned int i = 0; i < porphanTx->vout.size(); i++) {
@@ -3201,19 +3206,26 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
         // Deserialize pocket part if exists
         auto[deserializeOk, pocketTx] = PocketServices::Serializer::DeserializeTransaction(ptx, vRecv);
-        if (!deserializeOk)
-            state.Invalid(false, 0, "Deserialize");
+        // TODO (losty): use state.Invalid()
+        // if (!deserializeOk)
+            // state.Invalid(false, 0, "Deserialize"); // T
 
         // Check transaction with pocketnet base rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(txRef, pocketTx); !ok)
-            state.Invalid(false, result, "SocialConsensusHelper::Check");
+        {
+            // TODO (losty): use state.Invalid()
+            // state.Invalid(false, result, "SocialConsensusHelper::Check");
+        }
 
         // Check transaction with pocketnet consensus rules
         if (!state.IsInvalid())
         {
             int height = ::ChainActive().Height() + 1;
             if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketTx, height); !ok)
-                state.Invalid(false, result, "SocialConsensusHelper::Validate");
+            {
+                // TODO (losty): use state.Invalid()
+                // state.Invalid(false, result, "SocialConsensusHelper::Validate");
+            }
         }
 
         if (!state.IsInvalid() &&
@@ -3406,15 +3418,15 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             }
         }
 
-        if (gArgs.GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER) && !IsInitialBlockDownload()) {
+        if (gArgs.GetBoolArg("-headerspamfilter", DEFAULT_HEADER_SPAM_FILTER) && !::ChainstateActive().IsInitialBlockDownload()) {
             LOCK(cs_main);
-            CValidationState state;
-            CNodeState* nodestate = State(pfrom->GetId());
+            BlockValidationState state;
+            CNodeState* nodestate = State(pfrom.GetId());
             nodestate->headers.addHeaders(pindexFirst, pindex);
             nodestate->headers.updateState(state, true);
             if (state.IsInvalid()) {
                 MaybePunishNodeForBlock(pfrom.GetId(), state, /*via_compact_block*/ true, "invalid header via cmpctblock");
-                return true;
+                return;
             }
         }
 
@@ -3590,7 +3602,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             // compact blocks with less work than our tip, it is safe to treat
             // reconstructed compact blocks as having been requested.
             BlockValidationState state;
-            m_chainman.ProcessNewBlock(state, m_chainparams, pblock, pocketBlockRef, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            m_chainman.ProcessNewBlock(state, m_chainparams, pblock, pocketBlockRef, /*fForceProcessing=*/true, &fNewBlock);
             if (fNewBlock) {
                 pfrom.nLastBlockTime = GetTime();
             } else {
@@ -3684,7 +3696,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             // protections in the compact block handler -- see related comment
             // in compact block optimistic reconstruction handling.
             BlockValidationState state;
-            m_chainman.ProcessNewBlock(state, m_chainparams, pblock, pocketBlockRef, /*fForceProcessing=*/true, /* fReceived */ true, &fNewBlock);
+            m_chainman.ProcessNewBlock(state, m_chainparams, pblock, pocketBlockRef, /*fForceProcessing=*/true, &fNewBlock);
             if (fNewBlock) {
                 pfrom.nLastBlockTime = GetTime();
             } else {
@@ -3753,7 +3765,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
         bool fNewBlock = false;
         BlockValidationState state;
-        m_chainman.ProcessNewBlock(state, m_chainparams, pblock, pocketBlockRef, forceProcessing, /* fReceived */ true, &fNewBlock);
+        m_chainman.ProcessNewBlock(state, m_chainparams, pblock, pocketBlockRef, forceProcessing, &fNewBlock);
         if (fNewBlock) {
             pfrom.nLastBlockTime = GetTime();
         } else {

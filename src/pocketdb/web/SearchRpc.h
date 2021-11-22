@@ -6,7 +6,7 @@
 #define SRC_SEARCH_RPC_H
 
 #include "rpc/server.h"
-#include "utils/html.h"
+#include "util/html.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/models/web/SearchRequest.h"

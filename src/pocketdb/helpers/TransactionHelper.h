@@ -48,7 +48,7 @@ namespace PocketHelpers
     class TransactionHelper
     {
     public:
-        static txnouttype ScriptType(const CScript& scriptPubKey);
+        static TxoutType ScriptType(const CScript& scriptPubKey);
         static std::string ExtractDestination(const CScript& scriptPubKey);
         static tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx);
         static TxType ConvertOpReturnToType(const string& op);

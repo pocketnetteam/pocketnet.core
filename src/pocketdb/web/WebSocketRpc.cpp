@@ -39,7 +39,7 @@ namespace PocketWeb::PocketWebRpc
         // Language statistic
         auto[contentCount, contentLangCount] = request.DbConnection()->WebRpcRepoInst->GetContentLanguages(blockNumber);
         UniValue fullStat(UniValue::VOBJ);
-        fullStat.pushKV("block", chainActive.Height());
+        fullStat.pushKV("block", ::ChainActive().Height());
         fullStat.pushKV("cntposts", contentCount);
         fullStat.pushKV("contentsLang", contentLangCount);
         result.push_back(fullStat);

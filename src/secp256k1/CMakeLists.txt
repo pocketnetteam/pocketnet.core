@@ -175,13 +175,17 @@ add_library(${PROJECT_NAME} include/secp256k1.h
                             contrib/lax_der_privatekey_parsing.h
                             contrib/lax_der_privatekey_parsing.c
                             src/secp256k1.c
+                            src/modules/extrakeys/main_impl.h
+                            include/secp256k1_extrakeys.h
+                            src/modules/schnorrsig/main_impl.h
+                            include/secp256k1_schnorrsig.h
                             )
 if(ENABLE_MODULE_RECOVERY)
     add_compile_definitions(ENABLE_MODULE_RECOVERY=1)
     target_sources(${PROJECT_NAME} PRIVATE include/secp256k1_recovery.h src/modules/recovery/main_impl.h src/modules/recovery/tests_impl.h)
 endif()
 target_include_directories(${PROJECT_NAME} PUBLIC include/)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} src/)
 
 add_executable(gen_context src/gen_context.c)
 target_include_directories(gen_context PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -190,7 +194,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/ecmult_static_context.
 add_custom_target(have_ecmult ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/ecmult_static_context.h)
 add_dependencies(${PROJECT_NAME} have_ecmult)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE USE_ECMULT_STATIC_PRECOMPUTATION)
+target_compile_definitions(${PROJECT_NAME} PRIVATE USE_ECMULT_STATIC_PRECOMPUTATION ENABLE_MODULE_EXTRAKEYS=1 ENABLE_MODULE_SCHNORRSIG=1 SECP256K1_SOURCE_PATH=${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # TODO hardcoded
 add_compile_definitions(

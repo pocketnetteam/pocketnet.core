@@ -5,7 +5,7 @@
 #ifndef SRC_CHECKPOINT_REPOSITORY_H
 #define SRC_CHECKPOINT_REPOSITORY_H
 
-#include <util.h>
+#include <util/system.h>
 #include "pocketdb/repositories/BaseRepository.h"
 
 namespace PocketDb

@@ -189,6 +189,12 @@ CBlockIndex* LookupBlockIndex(const uint256& hash)
     return it == g_chainman.BlockIndex().end() ? nullptr : it->second;
 }
 
+CBlockIndex* LookupBlockIndexWithoutLock(const uint256& hash)
+{
+    BlockMap::const_iterator it = g_chainman.BlockIndex().find(hash);
+    return it == g_chainman.BlockIndex().end() ? nullptr : it->second;
+}
+
 CBlockIndex* FindForkInGlobalIndex(const CChain& chain, const CBlockLocator& locator)
 {
     AssertLockHeld(cs_main);
@@ -488,13 +494,13 @@ public:
     };
 
     // Single transaction acceptance
-    bool AcceptSingleTransaction(const CTransactionRef& ptx, ATMPArgs& args) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool AcceptSingleTransaction(const CTransactionRef& ptx, const PTransactionRef& pocketTx, ATMPArgs& args) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 private:
     // All the intermediate state that gets passed between the various levels
     // of checking a given transaction.
     struct Workspace {
-        Workspace(const CTransactionRef& ptx) : m_ptx(ptx), m_hash(ptx->GetHash()) {}
+        Workspace(const CTransactionRef& ptx, const PTransactionRef& pocketTx) : m_ptx(ptx), m_pocketTx(pocketTx), m_hash(ptx->GetHash()) {}
         std::set<uint256> m_conflicts;
         CTxMemPool::setEntries m_all_conflicting;
         CTxMemPool::setEntries m_ancestors;
@@ -506,6 +512,7 @@ private:
         size_t m_conflicting_size;
 
         const CTransactionRef& m_ptx;
+        const PTransactionRef& m_pocketTx;
         const uint256& m_hash;
     };
 
@@ -531,16 +538,22 @@ private:
     bool Finalize(ATMPArgs& args, Workspace& ws) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_pool.cs);
 
     // Compare a package's feerate against minimum allowed.
-    bool CheckFeeRate(size_t package_size, CAmount package_fee, TxValidationState& state)
+    bool CheckFeeRate(bool is_pocket_tx, size_t package_size, CAmount package_fee, TxValidationState& state)
     {
         CAmount mempoolRejectFee = m_pool.GetMinFee(gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000).GetFee(package_size);
         if (mempoolRejectFee > 0 && package_fee < mempoolRejectFee) {
             return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "mempool min fee not met", strprintf("%d < %d", package_fee, mempoolRejectFee));
         }
-
-        if (package_fee < ::minRelayTxFee.GetFee(package_size)) {
-            return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "min relay fee not met", strprintf("%d < %d", package_fee, ::minRelayTxFee.GetFee(package_size)));
+        if (is_pocket_tx) {
+            if (package_fee < DEFAULT_MIN_POCKETNET_TX_FEE) {
+                return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "min PocketNet TX fee not met", strprintf("%d < %d", package_fee, DEFAULT_MIN_POCKETNET_TX_FEE));
+            }
+        } else {
+            if (package_fee < ::minRelayTxFee.GetFee(package_size)) {
+                return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "min relay fee not met", strprintf("%d < %d", package_fee, ::minRelayTxFee.GetFee(package_size)));
+            }
         }
+        
         return true;
     }
 
@@ -692,7 +705,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "non-BIP68-final");
 
     CAmount nFees = 0;
-    if (!Consensus::CheckTxInputs(tx, state, m_view, GetSpendHeight(m_view), nFees)) {
+    if (!Consensus::CheckTxInputs(tx, state, m_view, GetSpendHeight(m_view), nFees, args.m_chainparams)) {
         return false; // state filled in by CheckTxInputs
     }
 
@@ -739,7 +752,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     // No transactions are allowed below minRelayTxFee except from disconnected
     // blocks
-    if (!bypass_limits && !CheckFeeRate(nSize, nModifiedFees, state)) return false;
+    if (!bypass_limits && !CheckFeeRate(PocketHelpers::TransactionHelper::IsPocketTransaction(ptx), nSize, nModifiedFees, state)) return false;
 
     const CTxMemPool::setEntries setIterConflicting = m_pool.GetIterSet(setConflicts);
     // Calculate in-mempool ancestors, up to a limit.
@@ -994,6 +1007,7 @@ bool MemPoolAccept::ConsensusScriptChecks(ATMPArgs& args, Workspace& ws, Precomp
 
 bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
 {
+    const auto& ptx = ws.m_ptx;
     const CTransaction& tx = *ws.m_ptx;
     const uint256& hash = ws.m_hash;
     TxValidationState &state = args.m_state;
@@ -1006,6 +1020,7 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     const size_t& nConflictingSize = ws.m_conflicting_size;
     const bool fReplacementTransaction = ws.m_replacement_transaction;
     std::unique_ptr<CTxMemPoolEntry>& entry = ws.m_entry;
+    auto& pocketTx = ws.m_pocketTx;
 
     // Remove conflicting transactions from the mempool
     for (CTxMemPool::txiter it : allConflicting)
@@ -1027,6 +1042,33 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     // - the transaction is not dependent on any other transactions in the mempool
     bool validForFeeEstimation = !fReplacementTransaction && !bypass_limits && IsCurrentForFeeEstimation() && m_pool.HasNoInputsOf(tx);
 
+    // Write payload part to sqlite db
+    // At this point, we believe that all the checks have been carried 
+    // out and we can safely save the transaction to the database for 
+    // subsequent verification of the consensus and inclusion in the block.
+    PTransactionRef _pocketTx = pocketTx;
+    if (!_pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
+    {
+        // Deserialize default money transaction
+        if (auto[ok, val] = PocketServices::Serializer::DeserializeTransaction(ptx); ok && val)
+            _pocketTx = val;
+        // else
+            // return state.DoS(0, false, REJECT_INTERNAL, "error restore pocketnet payload data"); // TODO (losty): use state.Invalid()
+    }
+    
+    if (_pocketTx)
+    {
+        try
+        {
+            PocketBlock pocketBlock{_pocketTx};
+            PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+        }
+        catch (const std::exception& e)
+        {
+            // return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db"); // TODO (losty): use state.Invalid()
+        }
+    }
+
     // Store transaction in memory
     m_pool.addUnchecked(*entry, setAncestors, validForFeeEstimation);
 
@@ -1039,12 +1081,12 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     return true;
 }
 
-bool MemPoolAccept::AcceptSingleTransaction(const CTransactionRef& ptx, ATMPArgs& args)
+bool MemPoolAccept::AcceptSingleTransaction(const CTransactionRef& ptx, const PTransactionRef& pocketTx, ATMPArgs& args)
 {
     AssertLockHeld(cs_main);
     LOCK(m_pool.cs); // mempool "read lock" (held through GetMainSignals().TransactionAddedToMempool())
 
-    Workspace workspace(ptx);
+    Workspace workspace(ptx, pocketTx);
 
     if (!PreChecks(args, workspace)) return false;
 
@@ -1077,7 +1119,7 @@ static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPo
 {
     std::vector<COutPoint> coins_to_uncache;
     MemPoolAccept::ATMPArgs args { chainparams, state, nAcceptTime, plTxnReplaced, bypass_limits, coins_to_uncache, test_accept, fee_out };
-    bool res = MemPoolAccept(pool).AcceptSingleTransaction(tx, pocketTx, args); // TODO (losty): what to do with pocketTx here?
+    bool res = MemPoolAccept(pool).AcceptSingleTransaction(tx, pocketTx, args);
     if (!res) {
         // Remove coins that were not present in the coins cache before calling ATMPW;
         // this is to prevent memory DoS in case we receive a large number of
@@ -2048,9 +2090,10 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     // Check proof of stake
     if (block.nBits != GetNextWorkRequired(pindex->pprev, &block, chainparams.GetConsensus()))
     {
-        return state.DoS(1, error("ContextualCheckBlock() : incorrect %s at height %d (%d)",
-            !block.IsProofOfStake() ? "proof-of-work" : "proof-of-stake", pindex->pprev->nHeight, block.nBits),
-            REJECT_INVALID, "bad-diffbits");
+        // TODO (losty): use state.Invalid()
+        // return state.DoS(1, error("ContextualCheckBlock() : incorrect %s at height %d (%d)",
+        //     !block.IsProofOfStake() ? "proof-of-work" : "proof-of-stake", pindex->pprev->nHeight, block.nBits),
+        //     REJECT_INVALID, "bad-diffbits");
     }
 
     arith_uint256 hashProof;
@@ -2075,8 +2118,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     }
 
     if (!pindex->SetStakeEntropyBit(block.GetStakeEntropyBit()))
-        return state.DoS(1, error("ContextualCheckBlock() : SetStakeEntropyBit() failed"), REJECT_INVALID,
-            "bad-entropy-bit");
+        // return state.DoS(1, error("ContextualCheckBlock() : SetStakeEntropyBit() failed"), REJECT_INVALID, // TODO (losty): use state.Invalid()
+        //     "bad-entropy-bit");
 
     // Record proof hash value
     pindex->hashProof = hashProof;
@@ -2084,8 +2127,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     uint64_t nStakeModifier = 0;
     bool fGeneratedStakeModifier = false;
     if (!ComputeNextStakeModifier(pindex->pprev, nStakeModifier, fGeneratedStakeModifier))
-        return state.DoS(1, error("ContextualCheckBlock() : ComputeNextStakeModifier() failed"), REJECT_INVALID,
-            "bad-stake-modifier");
+        // return state.DoS(1, error("ContextualCheckBlock() : ComputeNextStakeModifier() failed"), REJECT_INVALID, // TODO (losty): use state.Invalid()
+        //     "bad-stake-modifier");
 
     pindex->SetStakeModifier(nStakeModifier, fGeneratedStakeModifier);
 
@@ -2301,10 +2344,10 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
                 if (view.GetValueIn(tx) < Params().GetConsensus().nStakeMinimumThreshold)
                 {
-                    return state.DoS(100, error( // TODO (losty): use state.Invalid()
-                        "ConnectBlock(): Stake input is below threshold",
-                        REJECT_INVALID,
-                        "bad-blk-stake-inputs"));
+                    // return state.DoS(100, error( // TODO (losty): use state.Invalid() // TODO (losty): use state.Invalid()
+                    //     "ConnectBlock(): Stake input is below threshold",
+                    //     REJECT_INVALID,
+                    //     "bad-blk-stake-inputs"));
                 }
             }
 
@@ -2330,7 +2373,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
-    if(block.IsBoofOfWork())
+    if(block.IsProofOfWork())
     {
         CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
         if (block.vtx[0]->GetValueOut() > blockReward) {
@@ -2367,15 +2410,15 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         {
             if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
             {
-                return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint"));
+                // return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint")); // TODO (losty): use state.Invalid()
             }
         }
 
         if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
         {
             int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
-            if (nStakeReward > nCalculatedStakeReward)
-                return state.DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward));
+            // if (nStakeReward > nCalculatedStakeReward)
+                // return state.DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward)); // TODO (losty): use state.Invalid()
 
             int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
@@ -2749,7 +2792,7 @@ bool CChainState::DisconnectTip(BlockValidationState& state, const CChainParams&
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
 
-        if (!PocketServices::ChainPostProcessing::Rollback(chainActive.Height()))
+        if (!PocketServices::ChainPostProcessing::Rollback(::ChainActive().Height()))
             return error("DisconnectTip(): DisconnectBlock (Pocketnet part) %s failed", pindexDelete->GetBlockHash().ToString());
 
         bool flushed = view.Flush();
@@ -2863,7 +2906,7 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     if (!pocketBlock)
     {
         pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
-        return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true); // TODO (losty): use state.Invalid()
+        // return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true); // TODO (losty): use state.Invalid()
     }
 
     // Apply the block atomically to the chain state.
@@ -3862,7 +3905,7 @@ static bool FindBlockPos(FlatFilePos &pos, unsigned int nAddSize, unsigned int n
             // when the undo file is keeping up with the block file, we want to flush it explicitly
             // when it is lagging behind (more blocks arrive than are being connected), we let the
             // undo block write case handle it
-            finalize_undo = (vinfoBlockFile[nFile].nHeightLast == (unsigned int)ChainActive().Tip()->nHeight);
+            finalize_undo = (vinfoBlockFile[nFile].nHeightLast == (unsigned int)::ChainActive().Tip()->nHeight);
             nFile++;
             if (vinfoBlockFile.size() <= nFile) {
                 vinfoBlockFile.resize(nFile + 1);
@@ -3927,8 +3970,8 @@ static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& st
 {
     // Check proof of work matches claimed amount
     auto pblock = CBlockIndex(block);
-    if (pblock.IsProofOfWork() && mapBlockIndex.size() <= (size_t)consensusParams.nPosFirstBlock)
-        if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams, (int)mapBlockIndex.size()))
+    if (pblock.IsProofOfWork() && g_chainman.BlockIndex().size() <= (size_t)consensusParams.nPosFirstBlock)
+        if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, consensusParams, (int)g_chainman.BlockIndex().size()))
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
 
     return true;
@@ -3968,12 +4011,13 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
 
     if (block.IsProofOfStake())
     {
+         // TODO (losty): use state.Invalid()
         // Second transaction must be coinstake, the rest must not be
-        if (block.vtx.empty() || !block.vtx[1]->IsCoinStake())
-            return state.DoS(100, error("CheckBlock() : second tx is not coinstake")); // TODO (losty): use state.Invalid()
-        for (unsigned int i = 2; i < block.vtx.size(); i++)
-            if (block.vtx[i]->IsCoinStake())
-                return state.DoS(100, error("CheckBlock() : more than one coinstake")); // TODO (losty): use state.Invalid()
+        // if (block.vtx.empty() || !block.vtx[1]->IsCoinStake())
+            // return state.DoS(100, error("CheckBlock() : second tx is not coinstake")); // TODO (losty): use state.Invalid()
+        // for (unsigned int i = 2; i < block.vtx.size(); i++)
+            // if (block.vtx[i]->IsCoinStake())
+                // return state.DoS(100, error("CheckBlock() : more than one coinstake")); // TODO (losty): use state.Invalid()
     }
 
     // All potential-corruption validation must be done before we do any
@@ -4043,14 +4087,14 @@ bool CheckBlockSignature(const CBlock& block)
 
     const CTxOut& txout = block.vtx[1]->vout[1];
 
-    txnouttype whichType = Solver(txout.scriptPubKey, vSolutions);
-    if (whichType == TX_NONSTANDARD)
+    TxoutType whichType = Solver(txout.scriptPubKey, vSolutions);
+    if (whichType == TxoutType::NONSTANDARD)
     {
         LogPrintf("CheckBlockSignature: Bad Block - wrong signature\n");
         return false;
     }
 
-    if (whichType == TX_PUBKEY)
+    if (whichType == TxoutType::PUBKEY)
     {
         std::vector<unsigned char>& vchPubKey = vSolutions[0];
         return CPubKey(vchPubKey).Verify(block.GetHash(), block.vchBlockSig);
@@ -4083,7 +4127,7 @@ bool CheckBlockRatingRewards(const CBlock& block, CBlockIndex* pindexPrev, const
     for (const auto& out : block.vtx[1]->vout)
     {
         auto outType = PocketHelpers::TransactionHelper::ScriptType(out.scriptPubKey);
-        if (outType == TX_PUBKEYHASH)
+        if (outType == TxoutType::PUBKEYHASH)
             blockOuts.push_back(out);
     }
 
@@ -4247,16 +4291,18 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     }
 
     if (block.IsProofOfWork() && nHeight > Params().GetConsensus().nPosFirstBlock) {
-        return state.DoS(10, false, REJECT_INVALID, "check-pow-height", "pow-mined blocks not allowed"); // TODO (losty): use state.Invalid()
+        // return state.DoS(10, false, REJECT_INVALID, "check-pow-height", "pow-mined blocks not allowed"); // TODO (losty): use state.Invalid()
     }
 
-    if (block.IsProofOfStake() && nHeight < Params().GetConsensus().nPosFirstBlock)
-        return state.DoS(10, false, REJECT_INVALID, "check-pos-height", "pos-mined blocks not allowed"); // TODO (losty): use state.Invalid()
+    if (block.IsProofOfStake() && nHeight < Params().GetConsensus().nPosFirstBlock) {
+        // return state.DoS(10, false, REJECT_INVALID, "check-pos-height", "pos-mined blocks not allowed"); // TODO (losty): use state.Invalid()
+    }
 
     // Check CheckCoinStakeTimestamp
-    if (block.IsProofOfStake() &&
-        !CheckCoinStakeTimestamp(nHeight, block.GetBlockTime(), (int64_t) block.vtx[1]->nTime))
-        return state.Invalid(false, REJECT_INVALID, "check-coinstake-timestamp", "coinstake timestamp violation");
+    // TODO (losty): use state.Invalid correctly
+    // if (block.IsProofOfStake() &&
+        // !CheckCoinStakeTimestamp(nHeight, block.GetBlockTime(), (int64_t) block.vtx[1]->nTime))
+        // return state.Invalid(false, REJECT_INVALID, "check-coinstake-timestamp", "coinstake timestamp violation");
 
     int64_t nLockTimeCutoff = (nLockTimeFlags & LOCKTIME_MEDIAN_TIME_PAST)
                               ? pindexPrev->GetMedianTimePast()
@@ -4355,8 +4401,8 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
             {
                 if (!isJson)
                 {
-                    return state.DoS(100, error( // TODO (losty): use state.Invalid() instead of this. Probably need to implement smth inside.
-                        "CheckBlock() : coinbase output amount greater than 0 for proof-of-stake block. proof of work not allowed."));
+                    // return state.DoS(100, error( // TODO (losty): use state.Invalid() instead of this. Probably need to implement smth inside.
+                        // "CheckBlock() : coinbase output amount greater than 0 for proof-of-stake block. proof of work not allowed."));
                 }
                 nPaymentRequestsCount++;
             }
@@ -4590,7 +4636,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, const
     return true;
 }
 
-bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, const PocketBlockRef& pocketBlock, bool fForceProcessing, bool* fNewBlock)
+bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChainParams& chainparams, const std::shared_ptr<const CBlock>& pblock, const PocketBlockRef& pocketBlock, bool fForceProcessing, bool* fNewBlock)
 {
     AssertLockNotHeld(cs_main);
 
@@ -4670,7 +4716,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
         // Check FAILED
         if (!ret) {
             GetMainSignals().BlockChecked(*pblock, state);
-            if (state.GetRejectCode() != 0) {
+            if (!state.IsValid()) {
                 return error("%s: ProcessNewBlock FAILED (block: %s) (%s)", __func__, pblock->GetHash().GetHex(), state.ToString());
             } else {
                 return false;
@@ -4681,7 +4727,6 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
     // Block checked success
     NotifyHeaderTip();
 
-    BlockValidationState state; // Only used to report errors, not invalidity - ignore it
     if (!::ChainstateActive().ActivateBestChain(state, chainparams, pblock, pocketBlock))
         return error("%s: ActivateBestChain failed (%s)", __func__, state.ToString());
 
@@ -5034,7 +5079,7 @@ bool static LoadBlockIndexDB(ChainstateManager& chainman, const CChainParams& ch
 
 void CChainState::LoadMempool(const ArgsManager& args)
 {
-    if (args.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
+    if (args.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL) && !args.GetArg("-mempoolclean", false)) {
         ::LoadMempool(m_mempool);
     }
     m_mempool.SetIsLoaded(!ShutdownRequested());
@@ -5919,8 +5964,8 @@ bool LoadMempool(CTxMemPool& pool)
             TxValidationState state;
             if (nTime > nNow - nExpiryTimeout) {
                 std::shared_ptr<Transaction> pocketTx;
-                if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx))
-                    state.Invalid(false, 0, "not found in sqlite db");
+                // if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx)) // TODO (losty): use state.Invalid correctly
+                //     state.Invalid(false, 0, "not found in sqlite db");
                 
                 if (state.IsValid()) {
                     LOCK(cs_main);

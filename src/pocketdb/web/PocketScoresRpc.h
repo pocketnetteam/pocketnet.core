@@ -6,7 +6,7 @@
 #define SRC_POCKETSCORESRPC_H
 
 #include "rpc/server.h"
-#include "rpc/rawtransaction.h"
+// #include "rpc/rawtransaction.h"
 
 namespace PocketWeb::PocketWebRpc
 {

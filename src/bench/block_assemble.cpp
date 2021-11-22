@@ -29,7 +29,7 @@ static std::shared_ptr<CBlock> PrepareBlock(const CScript& coinbase_scriptPubKey
             .CreateNewBlock(coinbase_scriptPubKey, /* fMineWitnessTx */ true)
             ->block);
 
-    block->nTime = ::chainActive.Tip()->GetMedianTimePast() + 1;
+    block->nTime = ::ChainActive().Tip()->GetMedianTimePast() + 1;
     block->hashMerkleRoot = BlockMerkleRoot(*block);
 
     return block;
@@ -82,8 +82,8 @@ static void AssembleBlock(benchmark::State& state)
         LoadGenesisBlock(chainparams);
         CValidationState state;
         ActivateBestChain(state, chainparams);
-        assert(::chainActive.Tip() != nullptr);
-        const bool witness_enabled{IsWitnessEnabled(::chainActive.Tip(), chainparams.GetConsensus())};
+        assert(::ChainActive().Tip() != nullptr);
+        const bool witness_enabled{IsWitnessEnabled(::ChainActive().Tip(), chainparams.GetConsensus())};
         assert(witness_enabled);
     }
 

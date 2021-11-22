@@ -13,6 +13,7 @@
 #include <univalue.h>
 #include <util/strencodings.h>
 #include <version.h>
+#include "logging.h"
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -142,7 +143,7 @@ static bool DecodeTx(CMutableTransaction& tx, const std::vector<unsigned char>& 
         try {
             ssData >> tx_extended;
             if (ssData.empty()) ok_extended = true;
-        } catch (const std::exception&) {
+        } catch (const std::exception& e) {
             // Fall through.
 			LogPrintf("===============> %s\n", e.what());
         }
@@ -161,7 +162,7 @@ static bool DecodeTx(CMutableTransaction& tx, const std::vector<unsigned char>& 
         try {
             ssData >> tx_legacy;
             if (ssData.empty()) ok_legacy = true;
-        } catch (const std::exception&) {
+        } catch (const std::exception& e) {
             // Fall through.
 			LogPrintf("===============> %s\n", e.what());
         }

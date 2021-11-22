@@ -13,7 +13,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <timedata.h>
 #include "core_io.h"
-#include "utils/html.h"
+#include "util/html.h"
 
 namespace PocketDb
 {

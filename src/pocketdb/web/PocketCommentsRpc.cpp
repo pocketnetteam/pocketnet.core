@@ -55,7 +55,7 @@ namespace PocketWeb::PocketWebRpc
             lang = request.params[2].get_str();
         }
 
-        int nHeight = chainActive.Height();
+        int nHeight = ::ChainActive().Height();
 
         return request.DbConnection()->WebRpcRepoInst->GetLastComments(resultCount, nHeight, lang);
     }

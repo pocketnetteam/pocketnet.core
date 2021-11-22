@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2021 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,11 +8,11 @@
  * Server/client environment: argument handling, config file parsing,
  * thread wrappers, startup time
  */
-#ifndef BITCOIN_UTIL_SYSTEM_H
-#define BITCOIN_UTIL_SYSTEM_H
+#ifndef POCKETCOIN_UTIL_SYSTEM_H
+#define POCKETCOIN_UTIL_SYSTEM_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/pocketcoin-config.h>
 #endif
 
 #include <attributes.h>
@@ -42,8 +43,8 @@ class UniValue;
 // Application startup time (used for uptime calculation)
 int64_t GetStartupTime();
 
-extern const char * const BITCOIN_CONF_FILENAME;
-extern const char * const BITCOIN_SETTINGS_FILENAME;
+extern const char * const POCKETCOIN_CONF_FILENAME;
+extern const char * const POCKETCOIN_SETTINGS_FILENAME;
 
 void SetupEnvironment();
 bool SetupNetworking();
@@ -491,4 +492,4 @@ private:
 
 } // namespace util
 
-#endif // BITCOIN_UTIL_SYSTEM_H
+#endif // POCKETCOIN_UTIL_SYSTEM_H

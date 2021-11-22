@@ -13,6 +13,7 @@
 #include <amount.h>
 #include <coins.h>
 #include <crypto/common.h> // for ReadLE64
+#include <consensus/consensus.h>
 #include <fs.h>
 #include <optional.h>
 #include <policy/feerate.h>
@@ -33,7 +34,11 @@
 #include <utility>
 #include <vector>
 
-// TODO (losty): pocketdb headers
+#include "websocket/ws.h"
+#include "pocketdb/helpers/TransactionHelper.h"
+using namespace PocketHelpers;
+
+extern std::map<std::string, WSUser> WSConnections;
 
 class CChainState;
 class BlockValidationState;
@@ -343,11 +348,7 @@ public:
 
 CBlockIndex* LookupBlockIndex(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-inline CBlockIndex* LookupBlockIndexWithoutLock(const uint256& hash)
-{
-    BlockMap::const_iterator it = mapBlockIndex.find(hash);
-    return it == mapBlockIndex.end() ? nullptr : it->second;
-}
+CBlockIndex* LookupBlockIndexWithoutLock(const uint256& hash);
 
 
 /** Find the last common block between the parameter chain and a locator. */
@@ -720,7 +721,7 @@ public:
 
     void UnloadBlockIndex();
 
-    void InvalidBlockFound(CBlockIndex* pindex, const CValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    void InvalidBlockFound(CBlockIndex* pindex, const BlockValidationState& state) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     /** Check whether we are doing an initial block download (synchronizing from disk or network) */
     bool IsInitialBlockDownload() const;
@@ -950,7 +951,7 @@ public:
      * @param[out]  fNewBlock A boolean which is set to indicate if the block was first received via this call
      * @returns     If the block was processed, independently of block validity
      */
-    bool ProcessNewBlock(BlockValidationState& state, const CChainParams& chainparams, const std::shared_ptr<const CBlock>& pblock, const PocketHelpers::PocketBlockRef& pocketBlock, bool fForceProcessing, bool fReceived, bool* fNewBlock) LOCKS_EXCLUDED(cs_main);
+    bool ProcessNewBlock(BlockValidationState& state, const CChainParams& chainparams, const std::shared_ptr<const CBlock>& pblock, const PocketHelpers::PocketBlockRef& pocketBlock, bool fForceProcessing, bool* fNewBlock) LOCKS_EXCLUDED(cs_main);
 
     /**
      * Process incoming block headers.

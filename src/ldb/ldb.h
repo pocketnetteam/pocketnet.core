@@ -7,7 +7,7 @@
 #include <leveldb/cache.h>
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
-#include <util.h>
+#include <util/system.h>
 
 using std::string;
 //-----------------------------------------------------

@@ -11,12 +11,12 @@
 #include <pos.h>
 #include <pow.h>
 #include <primitives/block.h>
-#include <utiltime.h>
+#include <util/time.h>
 #include <validation.h>
 #ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
 #endif
-#include "util.h"
+#include "util/system.h"
 #include "validationinterface.h"
 
 double GetPosDifficulty(const CBlockIndex *blockindex)
@@ -25,12 +25,12 @@ double GetPosDifficulty(const CBlockIndex *blockindex)
     // minimum difficulty = 1.0.
     if (blockindex == nullptr)
     {
-        if (chainActive.Tip() == nullptr)
+        if (ChainActive().Tip() == nullptr)
         {
             return 1.0;
         } else
         {
-            blockindex = GetLastBlockIndex(chainActive.Tip(), false);
+            blockindex = GetLastBlockIndex(ChainActive().Tip(), false);
         }
     }
 
@@ -63,7 +63,7 @@ double GetPoSKernelPS()
     double dStakeKernelsTriedAvg = 0;
     int nStakesHandled = 0, nStakesTime = 0;
 
-    CBlockIndex *pindex = chainActive.Tip();
+    CBlockIndex *pindex = ChainActive().Tip();
     CBlockIndex *pindexPrevStake = NULL;
 
     while (pindex && nStakesHandled < nPoSInterval)
@@ -131,7 +131,7 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
 
     // verify hash target and signature of coinstake tx
     CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
-    if (!CheckProofOfStake(mapBlockIndex[pblock->hashPrevBlock], pblock->vtx[1], pblock->nBits, proofHash,
+    if (!CheckProofOfStake(g_chainman.BlockIndex()[pblock->hashPrevBlock], pblock->vtx[1], pblock->nBits, proofHash,
         hashProofOfStakeSource, hashTarget, NULL))
     {
         return error("CheckStake() : proof-of-stake checking failed (%s)", pblock->hashPrevBlock.GetHex());
@@ -143,21 +143,25 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
     // Found a solution
     {
         LOCK(cs_main);
-        auto hashBestChain = chainActive.Tip()->GetBlockHash();
+        auto hashBestChain = ChainActive().Tip()->GetBlockHash();
         if (pblock->hashPrevBlock != hashBestChain)
         {
             return error("CheckStake() : generated block is stale");
         }
 
-        GetMainSignals().BlockFound(pblock->GetHash());
+        // TODO (losty): idk what it is doing here because BlockFound signal is never connected to anything (see validationinterface.cpp)
+        // GetMainSignals().BlockFound(pblock->GetHash());
     }
 
     // Process this block the same as if we had received it from another node
-    CValidationState state;
-    if (!ProcessNewBlock(state, chainparams, pblock, pocketBlock, true, /* fReceived */ false, NULL))
-    {
-        return error("CoinStaker: ProcessNewBlock, block not accepted %s", state.GetRejectReason());
-    }
+    BlockValidationState state;
+    // TODO (losty): context issue here. 
+    // TODO (losty): use this - const CTxMemPool& mempool = EnsureMemPool(request.context);
+    // TODO (losty): use this - ChainstateManager& chainman = EnsureChainman(request.context);
+    // if (!ProcessNewBlock(state, chainparams, pblock, pocketBlock, true, /* fReceived */ false, NULL))
+    // {
+    //     return error("CoinStaker: ProcessNewBlock, block not accepted %s", state.GetRejectReason());
+    // }
 
     return true;
 }
@@ -177,11 +181,12 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
 
     CTransactionRef txPrev;
     uint256 hashBlock = uint256();
-    if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
-    {
-        return error("CheckProofOfStake() : INFO: read txPrev failed %s",
-            txin.prevout.hash.GetHex()); // previous transaction not in main chain, may occur during initial download
-    }
+    // TODO (losty): GetTransaction usage changed
+    // if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
+    // {
+    //     return error("CheckProofOfStake() : INFO: read txPrev failed %s",
+    //         txin.prevout.hash.GetHex()); // previous transaction not in main chain, may occur during initial download
+    // }
 
     if (pvChecks)
     {
@@ -193,7 +198,8 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
         const CTransaction &txn = *tx;
         PrecomputedTransactionData txdata(txn);
         const COutPoint &prevout = tx->vin[0].prevout;
-        const Coin *coins = &pcoinsTip->AccessCoin(prevout);
+        // TODO (losty): do we really need pointer here? Moreover below "assert" will never be triggered.
+        const Coin *coins = &::ChainstateActive().CoinsTip().AccessCoin(prevout);
         assert(coins);
 
         // Verify signature
@@ -208,12 +214,12 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
         }
     }
 
-    if (mapBlockIndex.count(hashBlock) == 0)
+    if (g_chainman.BlockIndex().count(hashBlock) == 0)
     {
         return error("CheckProofOfStake() : read block failed"); // unable to read block of previous transaction
     }
 
-    CBlockIndex *pblockindex = mapBlockIndex[hashBlock];
+    CBlockIndex *pblockindex = g_chainman.BlockIndex()[hashBlock];
 
     if (txin.prevout.hash != txPrev->GetHash())
     {
@@ -240,19 +246,20 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
 
     CTransactionRef txPrev;
     uint256 hashBlock = uint256();
-    if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
-    {
-        LogPrintf("CheckKernel : Could not find previous transaction %s\n", prevout.hash.ToString());
-        return false;
-    }
+    // TODO (losty): GetTransaction(...) signature changed 
+    // if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
+    // {
+    //     LogPrintf("CheckKernel : Could not find previous transaction %s\n", prevout.hash.ToString());
+    //     return false;
+    // }
 
-    if (mapBlockIndex.count(hashBlock) == 0)
+    if (g_chainman.BlockIndex().count(hashBlock) == 0)
     {
         LogPrintf("CheckKernel : Could not find block of previous transaction %s\n", hashBlock.ToString());
         return false;
     }
 
-    CBlockIndex *pblockindex = mapBlockIndex[hashBlock];
+    CBlockIndex *pblockindex = g_chainman.BlockIndex()[hashBlock];
 
     if (pblockindex->GetBlockTime() + Params().GetConsensus().nStakeMinAge > nTime)
     {
@@ -313,7 +320,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     CDataStream ss(SER_GETHASH, 0);
     ss << nStakeModifier << nTimeBlockFrom << txPrev->nTime << prevout.hash << prevout.n << nTimeTx;
     hashProofOfStakeSource = ss;
-    hashProofOfStake = UintToArith256(Hash(ss.begin(), ss.end()));
+    hashProofOfStake = UintToArith256(Hash(ss));
 
     if (fPrintProofOfStake)
     {
@@ -513,10 +520,10 @@ static bool SelectBlockFromCandidates(std::vector<std::pair<int64_t, uint256>> &
     *pindexSelected = (const CBlockIndex *) 0;
     for (auto &item : vSortedByTimestamp)
     {
-        if (!mapBlockIndex.count(item.second))
+        if (!g_chainman.BlockIndex().count(item.second))
             return error("SelectBlockFromCandidates: failed to find block index for candidate block %s",
                 item.second.ToString());
-        const CBlockIndex *pindex = mapBlockIndex[item.second];
+        const CBlockIndex *pindex = g_chainman.BlockIndex()[item.second];
         if (fSelected && pindex->GetBlockTime() > nSelectionIntervalStop)
         {
             break;
@@ -528,7 +535,7 @@ static bool SelectBlockFromCandidates(std::vector<std::pair<int64_t, uint256>> &
         // previous proof-of-stake modifier
         CDataStream ss(SER_GETHASH, 0);
         ss << ArithToUint256(pindex->hashProof) << nStakeModifierPrev;
-        uint256 hashSelection = Hash(ss.begin(), ss.end());
+        uint256 hashSelection = Hash(ss);
 
 
         // the selection hash is divided by 2**32 so that proof-of-stake block
@@ -569,26 +576,27 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge)
         CTransactionRef txPrev;
         uint256 hashBlock = uint256();
 
-        if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
-            continue; // previous transaction not in main chain
+        // TODO (losty): usage of GetTransaction changed. Need CBlockIndex as first parameter (passed as nullptr in some places) and mempool from node context (GetNodeContext(...))
+        // if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
+        //     continue; // previous transaction not in main chain
 
         if (transaction->nTime < txPrev->nTime)
             return false; // Transaction timestamp violation
 
-        if (mapBlockIndex.count(hashBlock) == 0)
+        if (g_chainman.BlockIndex().count(hashBlock) == 0)
             return false; //Block not found
 
-        CBlockIndex *pblockindex = mapBlockIndex[hashBlock];
+        CBlockIndex *pblockindex = g_chainman.BlockIndex()[hashBlock];
 
         if (pblockindex->nTime + Params().GetConsensus().nStakeMinAge > transaction->nTime)
             continue; // only count coins meeting min age requirement
 
         int64_t nValueIn = txPrev->vout[txin.prevout.n].nValue;
-        bnCentSecond += CAmount(nValueIn) * (transaction->nTime - txPrev->nTime) / CENT;
+        bnCentSecond += CAmount(nValueIn) * (transaction->nTime - txPrev->nTime) / (COIN / 100);
     }
 
 
-    CAmount bnCoinDay = ((bnCentSecond * CENT) / COIN) / (24 * 60 * 60);
+    CAmount bnCoinDay = ((bnCentSecond * (COIN / 100)) / COIN) / (24 * 60 * 60);
     nCoinAge = bnCoinDay;
 
     return true;

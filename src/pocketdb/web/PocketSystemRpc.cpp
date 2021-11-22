@@ -20,40 +20,41 @@ namespace PocketWeb::PocketWebRpc
         return entry;
     }
 
+    // TODO (losty): rpchelpman and node context
     UniValue GetPeerInfo(const JSONRPCRequest& request)
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getpeerinfo\n"
-                "\nReturns data about each connected network node as a json array of objects.\n"
-            );
+        // if (request.fHelp)
+        //     throw std::runtime_error(
+        //         "getpeerinfo\n"
+        //         "\nReturns data about each connected network node as a json array of objects.\n"
+        //     );
 
-        UniValue ret(UniValue::VARR);
+        // UniValue ret(UniValue::VARR);
 
-        std::vector<CNodeStats> vstats;
-        g_connman->GetNodeStats(vstats);
-        for (const CNodeStats& stats : vstats) {
-            UniValue obj(UniValue::VOBJ);
+        // std::vector<CNodeStats> vstats;
+        // g_connman->GetNodeStats(vstats);
+        // for (const CNodeStats& stats : vstats) {
+        //     UniValue obj(UniValue::VOBJ);
 
-            obj.pushKV("addr", stats.addrName);
-            obj.pushKV("services", strprintf("%016x", stats.nServices));
-            obj.pushKV("relaytxes", stats.fRelayTxes);
-            obj.pushKV("lastsend", stats.nLastSend);
-            obj.pushKV("lastrecv", stats.nLastRecv);
-            obj.pushKV("conntime", stats.nTimeConnected);
-            obj.pushKV("timeoffset", stats.nTimeOffset);
-            obj.pushKV("pingtime", stats.dPingTime);
-            obj.pushKV("protocol", stats.nVersion);
-            obj.pushKV("version", stats.cleanSubVer);
-            obj.pushKV("inbound", stats.fInbound);
-            obj.pushKV("addnode", stats.m_manual_connection);
-            obj.pushKV("startingheight", stats.nStartingHeight);
-            obj.pushKV("whitelisted", stats.fWhitelisted);
+        //     obj.pushKV("addr", stats.addrName);
+        //     obj.pushKV("services", strprintf("%016x", stats.nServices));
+        //     obj.pushKV("relaytxes", stats.fRelayTxes);
+        //     obj.pushKV("lastsend", stats.nLastSend);
+        //     obj.pushKV("lastrecv", stats.nLastRecv);
+        //     obj.pushKV("conntime", stats.nTimeConnected);
+        //     obj.pushKV("timeoffset", stats.nTimeOffset);
+        //     obj.pushKV("pingtime", stats.dPingTime);
+        //     obj.pushKV("protocol", stats.nVersion);
+        //     obj.pushKV("version", stats.cleanSubVer);
+        //     obj.pushKV("inbound", stats.fInbound);
+        //     obj.pushKV("addnode", stats.m_manual_connection);
+        //     obj.pushKV("startingheight", stats.nStartingHeight);
+        //     obj.pushKV("whitelisted", stats.fWhitelisted);
 
-            ret.push_back(obj);
-        }
+        //     ret.push_back(obj);
+        // }
 
-        return ret;
+        // return ret;
     }
 
     UniValue GetNodeInfo(const JSONRPCRequest& request)
@@ -73,7 +74,7 @@ namespace PocketWeb::PocketWebRpc
         uint64_t nNetworkWeight = GetPoSKernelPS();
         entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
 
-        CBlockIndex* pindex = chainActive.Tip();
+        CBlockIndex* pindex = ::ChainActive().Tip();
         UniValue oblock(UniValue::VOBJ);
         oblock.pushKV("height", pindex->nHeight);
         oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
@@ -125,7 +126,7 @@ namespace PocketWeb::PocketWebRpc
                 "1. height (integer optional) to calculate emission as of that block number\n"
                 "   if arguments are empty or non-numeric, then returns as of the current block number");
 
-        int height = chainActive.Height();
+        int height = ChainActive().Height();
         if (request.params.size() > 0 && request.params[0].isNum())
             height = request.params[0].get_int();
 

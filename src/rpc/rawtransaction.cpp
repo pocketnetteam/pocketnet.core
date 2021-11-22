@@ -35,6 +35,7 @@
 #include <validation.h>
 #include <validationinterface.h>
 
+#include <optional.h>
 
 #include <numeric>
 #include <stdint.h>
@@ -864,7 +865,7 @@ static RPCHelpMan signrawtransactionwithkey()
     };
 }
 
-static UniValue testmempoolaccept(const JSONRPCRequest& request)
+static RPCHelpMan testmempoolaccept()
 {
     return RPCHelpMan{"testmempoolaccept",
                 "\nReturns result of mempool acceptance tests indicating if raw transaction (serialized, hex-encoded) would be accepted by mempool.\n"
@@ -943,7 +944,7 @@ static UniValue testmempoolaccept(const JSONRPCRequest& request)
     CAmount fee{0};
     {
         LOCK(cs_main);
-        test_accept_res = AcceptToMemoryPool(mempool, state, std::move(tx),
+        test_accept_res = AcceptToMemoryPool(mempool, state, std::move(tx), nullptr,
             nullptr /* plTxnReplaced */, false /* bypass_limits */, /* test_accept */ true, &fee);
     }
 
@@ -1890,13 +1891,13 @@ static RPCHelpMan analyzepsbt()
     }
     if (!inputs_result.empty()) result.pushKV("inputs", inputs_result);
 
-    if (psbta.estimated_vsize != nullopt) {
+    if (psbta.estimated_vsize.has_value()) {
         result.pushKV("estimated_vsize", (int)*psbta.estimated_vsize);
     }
-    if (psbta.estimated_feerate != nullopt) {
+    if (psbta.estimated_feerate.has_value()) {
         result.pushKV("estimated_feerate", ValueFromAmount(psbta.estimated_feerate->GetFeePerK()));
     }
-    if (psbta.fee != nullopt) {
+    if (psbta.fee.has_value()) {
         result.pushKV("fee", ValueFromAmount(*psbta.fee));
     }
     result.pushKV("next", PSBTRoleName(psbta.next));

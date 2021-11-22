@@ -7,7 +7,9 @@
 #define POCKETCOIN_ADDRMAN_H
 
 #include <clientversion.h>
-#include <config/bitcoin-config.h>
+#if defined(HAVE_CONFIG_H)
+#include <config/pocketcoin-config.h>
+#endif
 #include <netaddress.h>
 #include <protocol.h>
 #include <random.h>

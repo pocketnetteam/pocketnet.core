@@ -31,6 +31,7 @@
 #include <util/system.h>
 #include <validation.h>
 #include <validationinterface.h>
+#include <httpserver.h>
 
 #include <memory>
 #include <utility>
@@ -124,14 +125,14 @@ public:
                 throw;
             }
         };
-        ::tableRPC.appendCommand(m_command.name, &m_command);
+        g_socket->m_table_rpc.appendCommand(m_command.name, &m_command);
     }
 
     void disconnect() final
     {
         if (m_wrapped_command) {
             m_wrapped_command = nullptr;
-            ::tableRPC.removeCommand(m_command.name, &m_command);
+            g_socket->m_table_rpc.removeCommand(m_command.name, &m_command);
         }
     }
 
@@ -152,7 +153,7 @@ public:
         if (height >= 0) {
             return height;
         }
-        return nullopt;
+        return Optional<int>{};
     }
     Optional<int> getBlockHeight(const uint256& hash) override
     {
@@ -161,7 +162,7 @@ public:
         if (block && ::ChainActive().Contains(block)) {
             return block->nHeight;
         }
-        return nullopt;
+        return Optional<int>{};
     }
     uint256 getBlockHash(int height) override
     {
@@ -184,7 +185,7 @@ public:
             if (hash) *hash = block->GetBlockHash();
             return block->nHeight;
         }
-        return nullopt;
+        return Optional<int>{};
     }
     CBlockLocator getTipLocator() override
     {
@@ -202,7 +203,7 @@ public:
         if (CBlockIndex* fork = FindForkInGlobalIndex(::ChainActive(), locator)) {
             return fork->nHeight;
         }
-        return nullopt;
+        return Optional<int>{};
     }
     bool findBlock(const uint256& hash, const FoundBlock& block) override
     {

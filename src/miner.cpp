@@ -98,8 +98,8 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-Optional<int64_t> BlockAssembler::m_last_block_num_txs{nullopt};
-Optional<int64_t> BlockAssembler::m_last_block_weight{nullopt};
+Optional<int64_t> BlockAssembler::m_last_block_num_txs{};
+Optional<int64_t> BlockAssembler::m_last_block_weight{};
 
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn,
     bool fProofOfStake, uint64_t* pFees)
@@ -254,7 +254,7 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     }
 
     // Validate consensus
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pblocktemplate->pocketBlock, chainActive.Height() + 1); !ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, pblocktemplate->pocketBlock, ChainActive().Height() + 1); !ok)
     {
         LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with validate result %d\n",
             tx->GetHash().GetHex(), (int) result);

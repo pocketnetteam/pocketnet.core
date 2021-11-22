@@ -363,6 +363,8 @@ add_library(${POCKETCOIN_COMMON}
         compat/glibc_sanity.cpp
         compat/glibcxx_sanity.cpp
         compat/strnlen.cpp
+        compat/stdin.h
+        compat/stdin.cpp
         amount.h
         tinyformat.h
         )
@@ -450,8 +452,12 @@ add_library(${POCKETCOIN_SUPPORT}
 # Pocketcoin util library
 set(POCKETCOIN_UTIL pocketcoin_util)
 add_library(${POCKETCOIN_UTIL}
+                randomenv.h
+                randomenv.cpp
                 clientversion.h
                 clientversion.cpp
+                flatfile.h
+                flatfile.cpp
                 fs.h
                 fs.cpp
                 logging.h
@@ -531,6 +537,8 @@ set(POCKETCOIN_CRYPTO pocketcoin_crypto)
 add_library(${POCKETCOIN_CRYPTO}
         crypto/sha256_sse4.cpp
         crypto/sha256.cpp
+        crypto/sha3.h
+        crypto/sha3.cpp
         crypto/chacha20.cpp
         crypto/aes.h
         crypto/hmac_sha256.cpp
@@ -546,6 +554,8 @@ add_library(${POCKETCOIN_CRYPTO}
         crypto/common.h
         crypto/hmac_sha256.h
         crypto/sha256.h
+        crypto/siphash.h
+        crypto/siphash.cpp
         crypto/aes.cpp
         uint256.h
         uint256.cpp
@@ -623,20 +633,37 @@ add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 set(POCKETCOIN_COMMON_RPC pocketcoin_common_rpc)
 add_library(${POCKETCOIN_COMMON_RPC}
         rpc/protocol.h
+        rpc/request.h
+        rpc/request.cpp
         # rpc/protocol.cpp
         )
-target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL})
+target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL} univalue)
 
 
 ########### Server
 set(POCKETCOIN_SERVER pocketcoin_server)
 add_library(${POCKETCOIN_SERVER}
+
+        node/coin.h
+        node/coin.cpp
+        node/coinstats.h
+        node/coinstats.cpp
+        node/context.h
+        node/context.cpp
+        node/psbt.h
+        node/psbt.cpp
+        node/transaction.h
+        node/transaction.cpp
+        interfaces/chain.h
+        interfaces/chain.cpp
         interfaces/node.h
         interfaces/node.cpp
         chainparams.h
         chainparams.cpp
         consensus/tx_verify.h
         consensus/tx_verify.cpp
+        consensus/tx_check.h
+        consensus/tx_check.cpp
         consensus/merkle.h
         consensus/merkle.cpp
         chain.h
@@ -655,9 +682,13 @@ add_library(${POCKETCOIN_SERVER}
         index/base.cpp
         index/txindex.h
         index/txindex.cpp
+        index/blockfilterindex.h
+        index/blockfilterindex.cpp
         checkpoints.h
         checkpoints.cpp
         checkqueue.h
+        banman.h
+        banman.cpp
         blockencodings.h
         blockencodings.cpp
         blockfilter.h
@@ -691,6 +722,8 @@ add_library(${POCKETCOIN_SERVER}
         txdb.cpp
         versionbits.h
         versionbits.cpp
+        versionbitsinfo.h
+        versionbitsinfo.cpp
         # keystore.h
         # keystore.cpp
         compressor.h
@@ -711,6 +744,10 @@ add_library(${POCKETCOIN_SERVER}
         policy/policy.cpp
         policy/rbf.h
         policy/rbf.cpp
+        policy/settings.h
+        policy/settings.cpp
+        signet.h
+        signet.cpp
         script/keyorigin.h
         script/descriptor.h
         script/descriptor.cpp
@@ -732,6 +769,8 @@ add_library(${POCKETCOIN_SERVER}
         script/script.h
         txmempool.h
         txmempool.cpp
+        txrequest.h
+        txrequest.cpp
         net.h
         net.cpp
         primitives/block.h
@@ -742,6 +781,8 @@ add_library(${POCKETCOIN_SERVER}
         netbase.cpp
         net_processing.h
         net_processing.cpp
+        net_permissions.h
+        net_permissions.cpp
         netmessagemaker.h
         addrdb.h
         addrdb.cpp
@@ -759,11 +800,17 @@ add_library(${POCKETCOIN_SERVER}
         rpc/net.cpp
         # rpc/rawtransaction.h
         rpc/rawtransaction.cpp
+        rpc/rawtransaction_util.h
+        rpc/rawtransaction_util.cpp
         rpc/register.h
         rpc/server.cpp
         rpc/server.h
         rpc/util.cpp
         rpc/util.h
+        rpc/request.h
+        rpc/request.cpp
+        psbt.h
+        psbt.cpp
         walletinitinterface.h
         pocketdb/helpers/PocketnetHelper.h
         pocketdb/helpers/TransactionHelper.h
@@ -855,15 +902,19 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/Lottery.cpp
         pocketdb/consensus/Reputation.cpp
         )
-target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event leveldb OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
+target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${SQlite3_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
-target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue)
+target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue leveldb)
 target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${SQlite3_INCLUDE_DIR})
 
 if (NOT DISABLE_WALLET)
     target_sources(${POCKETCOIN_SERVER} PRIVATE
+            wallet/bdb.h
+            wallet/bdb.cpp
             wallet/coincontrol.h
             wallet/coincontrol.cpp
+            wallet/context.h
+            wallet/context.cpp
             wallet/crypter.h
             wallet/crypter.cpp
             wallet/db.h
@@ -873,6 +924,8 @@ if (NOT DISABLE_WALLET)
             wallet/fees.h
             wallet/fees.cpp
             wallet/init.cpp
+            wallet/load.h
+            wallet/load.cpp
             wallet/rpcdump.cpp
             wallet/rpcwallet.h
             wallet/rpcwallet.cpp
@@ -884,6 +937,8 @@ if (NOT DISABLE_WALLET)
             wallet/walletutil.cpp
             wallet/coinselection.h
             wallet/coinselection.cpp
+            wallet/scriptpubkeyman.h
+            wallet/scriptpubkeyman.cpp
             interfaces/wallet.h
             interfaces/wallet.cpp
             staker.h
@@ -915,6 +970,8 @@ if (NOT DISABLE_ZMQ)
                 zmq/zmqpublishnotifier.cpp
                 zmq/zmqrpc.h
                 zmq/zmqrpc.cpp
+                zmq/zmqutil.h
+                zmq/zmqutil.cpp
                 )
         target_sources(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_ZMQ_SOURCES})
         target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ZMQ::zmq)
@@ -926,7 +983,7 @@ endif ()
 
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
-target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event sqlite3 univalue secp256k1 memenv)
+target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event sqlite3 univalue secp256k1 leveldb)
 target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
 
 add_library(libpocketcoin_cli rpc/client.h rpc/client.cpp)
@@ -942,5 +999,5 @@ target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN
 target_include_directories(${POCKETCOIN_TX} PRIVATE ${SQlite3_INCLUDE_DIR})
 
 if(NOT DISABLE_GUI)
-    add_subdirectory(qt/)
+    # add_subdirectory(qt/)
 endif()

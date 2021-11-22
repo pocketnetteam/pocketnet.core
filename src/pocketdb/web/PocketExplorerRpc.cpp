@@ -17,7 +17,7 @@ namespace PocketWeb::PocketWebRpc
                 "1. \"endTime\"   (int64, optional) End time of period\n"
                 "2. \"depth\"     (int32, optional) Day = 1, Month = 2, Year = 3\n");
 
-        auto end_time = (int64_t) chainActive.Tip()->nTime;
+        auto end_time = (int64_t) ::ChainActive().Tip()->nTime;
         if (!request.params.empty() && request.params[0].isNum())
             end_time = request.params[0].get_int64();
 
@@ -63,11 +63,11 @@ namespace PocketWeb::PocketWebRpc
             if (count > 100) count = 100;
         }
 
-        int last_height = chainActive.Height();
+        int last_height = ::ChainActive().Height();
         if (request.params.size() > 1 && request.params[1].isNum())
         {
             last_height = request.params[1].get_int();
-            if (last_height < 0) last_height = chainActive.Height();
+            if (last_height < 0) last_height = ::ChainActive().Height();
         }
 
         bool verbose = false;
@@ -78,7 +78,7 @@ namespace PocketWeb::PocketWebRpc
         }
 
         // Collect general block information
-        CBlockIndex* pindex = chainActive[last_height];
+        CBlockIndex* pindex = ::ChainActive()[last_height];
         int i = count;
         std::map<int, UniValue> blocks;
         while (pindex && i-- > 0)
@@ -144,8 +144,8 @@ namespace PocketWeb::PocketWebRpc
         if (!blockHash.empty())
             pindex = LookupBlockIndexWithoutLock(uint256S(blockHash));
 
-        if (blockNumber >= 0 && blockNumber <= chainActive.Height())
-            pindex = chainActive[blockNumber];
+        if (blockNumber >= 0 && blockNumber <= ::ChainActive().Height())
+            pindex = ::ChainActive()[blockNumber];
 
         if (!pindex)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
@@ -163,7 +163,7 @@ namespace PocketWeb::PocketWebRpc
         if (pindex->pprev)
             result.pushKV("prevhash", pindex->pprev->GetBlockHash().GetHex());
 
-        auto pnext = chainActive.Next(pindex);
+        auto pnext = ::ChainActive().Next(pindex);
         if (pnext)
             result.pushKV("nexthash", pnext->GetBlockHash().GetHex());
 
@@ -258,7 +258,7 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (address)");
         string address = request.params[0].get_str();
 
-        int pageInitBlock = chainActive.Height();
+        int pageInitBlock = ::ChainActive().Height();
         if (request.params.size() > 1 && request.params[1].isNum())
             pageInitBlock = request.params[1].get_int();
 

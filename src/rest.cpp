@@ -22,6 +22,7 @@
 #include <util/strencodings.h>
 #include <validation.h>
 #include <version.h>
+#include <pos.h>
 
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
@@ -371,7 +372,7 @@ static bool rest_blockhash(const util::Ref& context, HTTPRequest* req, const std
 
     auto[rf, uriParts] = ParseParams(strURIPart);
 
-    int height = chainActive.Height();
+    int height = ChainActive().Height();
 
     try
     {
@@ -380,10 +381,10 @@ static bool rest_blockhash(const util::Ref& context, HTTPRequest* req, const std
     }
     catch (...) {}
 
-    if (height < 0 || height > chainActive.Height())
+    if (height < 0 || height > ChainActive().Height())
         return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
 
-    CBlockIndex* pblockindex = chainActive[height];
+    CBlockIndex* pblockindex = ChainActive()[height];
     std::string blockHash = pblockindex->GetBlockHash().GetHex();
 
     switch (rf)
@@ -804,7 +805,7 @@ static bool rest_emission(const util::Ref& context, HTTPRequest* req, const std:
 
     auto[rf, uriParts] = ParseParams(strURIPart);
 
-    int height = chainActive.Height();
+    int height = ChainActive().Height();
     if (auto[ok, result] = TryGetParamInt(uriParts, 0); ok)
         height = result;
 
@@ -883,7 +884,7 @@ static bool debug_index_block(const util::Ref& context, HTTPRequest* req, const 
     int current = start;
     while (current <= height)
     {
-        CBlockIndex* pblockindex = chainActive[current];
+        CBlockIndex* pblockindex = ChainActive()[current];
         if (!pblockindex)
             return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
 
@@ -955,7 +956,7 @@ static bool debug_check_block(const util::Ref& context, HTTPRequest* req, const 
     int current = start;
     while (current <= height)
     {
-        CBlockIndex* pblockindex = chainActive[current];
+        CBlockIndex* pblockindex = ::ChainActive()[current];
         if (!pblockindex)
             return RESTERR(req, HTTP_BAD_REQUEST, "Block height out of range");
 
@@ -1095,7 +1096,7 @@ void StartREST(const util::Ref& context)
     if(g_staticSocket)
     {
         // TODO (team): passing context to get_static_web may be useful.
-        auto handler = [&context, get_static_web](HTTPRequest* req, const std::string& prefix) { return get_static_web(context, req, prefix); };
+        auto handler = [&context](HTTPRequest* req, const std::string& prefix) { return get_static_web(context, req, prefix); };
         g_staticSocket->RegisterHTTPHandler("/", false, handler, g_staticSocket->m_workQueue);
 
     }

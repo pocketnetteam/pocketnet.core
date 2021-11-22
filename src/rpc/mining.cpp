@@ -108,7 +108,7 @@ static RPCHelpMan getnetworkhashps()
     };
 }
 
-static bool GenerateBlock(ChainstateManager& chainman, CBlock& block, PocketBlock& pocketBlock, uint64_t& max_tries, unsigned int& extra_nonce, uint256& block_hash, const int& nHeight)
+static bool GenerateBlock(ChainstateManager& chainman, CBlock& block, PocketBlockRef& pocketBlock, uint64_t& max_tries, unsigned int& extra_nonce, uint256& block_hash, const int& nHeight)
 {
     block_hash.SetNull();
 
@@ -132,12 +132,12 @@ static bool GenerateBlock(ChainstateManager& chainman, CBlock& block, PocketBloc
 
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
 
-    if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(pblock.vtx[0]); ok)
-            pocketBlock.emplace_back(ptx);
-    auto shared_pocketBlock = std::make_shared<PocketBlock>(pocketBlock);
+    if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block.vtx[0]); ok)
+            pocketBlock->emplace_back(ptx);
+    // auto shared_pocketBlock = std::make_shared<PocketBlock>(pocketBlock);
 
     BlockValidationState state;
-    if (!chainman.ProcessNewBlock(state,chainparams, shared_pblock, shared_pocketBlock, true, false, nullptr)) {
+    if (!chainman.ProcessNewBlock(state,chainparams, shared_pblock, pocketBlock, true, nullptr)) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
     }
 
@@ -165,9 +165,8 @@ static UniValue generateBlocks(ChainstateManager& chainman, const CTxMemPool& me
         if (!pblocktemplate.get())
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
         CBlock* pblock = &pblocktemplate->block;
-        PocketBlock* pocketBlock = &pblocktemplate->pocketBlock;
         uint256 block_hash;
-        if (!GenerateBlock(chainman, *pblock, *pocketBlock, nMaxTries, nExtraNonce, block_hash, nHeight)) {
+        if (!GenerateBlock(chainman, *pblock, pblocktemplate->pocketBlock, nMaxTries, nExtraNonce, block_hash, nHeight)) {
             break;
         }
 
@@ -378,7 +377,7 @@ static RPCHelpMan generateblock()
 
     CChainParams chainparams(Params());
     CBlock block;
-    PocketBlock pocketBlock;
+    PocketBlockRef pocketBlock;
 
     {
         LOCK(cs_main);
@@ -403,7 +402,7 @@ static RPCHelpMan generateblock()
 
         BlockValidationState state;
 //        TODO PocketBlock here?
-        if (!TestBlockValidity(state, chainparams, block, nullptr, LookupBlockIndex(block.hashPrevBlock), false, false)) {
+        if (!TestBlockValidity(state, chainparams, block, pocketBlock, LookupBlockIndex(block.hashPrevBlock), false, false)) {
             throw JSONRPCError(RPC_VERIFY_ERROR, strprintf("TestBlockValidity failed: %s", state.ToString()));
         }
     }
@@ -994,7 +993,7 @@ static RPCHelpMan submitblock()
     RegisterSharedValidationInterface(sc);
     BlockValidationState state;
     auto pocketBlock = std::make_shared<PocketBlock>();
-    bool accepted = EnsureChainman(request.context).ProcessNewBlock(state, Params(), blockptr, pocketBlock, /* fForceProcessing */ true, /* fReceived */ false, /* fNewBlock */ &new_block);
+    bool accepted = EnsureChainman(request.context).ProcessNewBlock(state, Params(), blockptr, pocketBlock, /* fForceProcessing */ true, /* fNewBlock */ &new_block);
     UnregisterSharedValidationInterface(sc);
     if (!new_block && accepted) {
         return "duplicate";

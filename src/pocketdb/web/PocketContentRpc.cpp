@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketContentRpc.h"
+#include "validation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -28,7 +29,7 @@ namespace PocketWeb::PocketWebRpc
     void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address)
     {
-        topHeight = chainActive.Height();
+        topHeight = ::ChainActive().Height();
         if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int() > 0)
             topHeight = request.params[0].get_int();
 
@@ -307,7 +308,8 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[0].isNum())
                 count = request.params[0].get_int();
             else if (request.params[0].isStr())
-                ParseInt32(request.params[0].get_str(), &count);
+                // TODO (losty): do not ignore result
+                bool res = ParseInt32(request.params[0].get_str(), &count);
         }
 
         // Depth in blocks (default about 3 days)
@@ -318,7 +320,8 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[1].isNum())
                 depthBlocks = request.params[1].get_int();
             else if (request.params[1].isStr())
-                ParseInt32(request.params[1].get_str(), &depthBlocks);
+                // TODO (losty): do not ignore result
+                bool res = ParseInt32(request.params[1].get_str(), &depthBlocks);
 
             if (depthBlocks == 259200)
             { // for old version electron
@@ -328,7 +331,7 @@ namespace PocketWeb::PocketWebRpc
             depthBlocks = min(depthBlocks, 365 * dayInBlocks);
         }
 
-        int nHeightOffset = chainActive.Height();
+        int nHeightOffset = ::ChainActive().Height();
         int nOffset = 0;
         if (request.params.size() > 2)
         {
@@ -339,7 +342,8 @@ namespace PocketWeb::PocketWebRpc
             }
             else if (request.params[2].isStr())
             {
-                ParseInt32(request.params[2].get_str(), &nOffset);
+                // TODO (losty): do not ignore result
+                bool res = ParseInt32(request.params[2].get_str(), &nOffset);
             }
             nHeightOffset -= nOffset;
         }
@@ -573,7 +577,7 @@ namespace PocketWeb::PocketWebRpc
             ParseRequestContentType(request.params[1], contentTypes);
         }
 
-        int nHeight = chainActive.Height();
+        int nHeight = ::ChainActive().Height();
         if (request.params.size() > 2)
         {
             RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
@@ -581,7 +585,7 @@ namespace PocketWeb::PocketWebRpc
                 nHeight = request.params[2].get_int();
         }
 
-        int depth = chainActive.Height();
+        int depth = ::ChainActive().Height();
         if (request.params.size() > 3)
         {
             RPCTypeCheckArgument(request.params[3], UniValue::VNUM);

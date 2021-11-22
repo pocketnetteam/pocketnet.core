@@ -33,6 +33,9 @@
 #include <util/translation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/fees.h>
+#include <validation.h>
+#include <pos.h>
+#include <timedata.h>
 
 #include <univalue.h>
 
@@ -85,7 +88,7 @@ static void UpdateWalletSetting(interfaces::Chain& chain,
 								Optional<bool> load_on_startup,
 								std::vector<bilingual_str>& warnings)
 {
-	if (load_on_startup == nullopt) return;
+	if (load_on_startup.has_value()) return;
 	if (load_on_startup.get() && !AddWalletSetting(chain, wallet_name)) {
 		warnings.emplace_back(Untranslated("Wallet load on startup setting could not be updated, so wallet may not be loaded next node startup."));
 	} else if (!load_on_startup.get() && !RemoveWalletSetting(chain, wallet_name)) {
@@ -1154,7 +1157,7 @@ void CWallet::SyncTransaction(const CTransactionRef& ptx, CWalletTx::Confirmatio
 		if (ptx->IsCoinStake()) {
 			if (IsFromMe(*ptx)) {
 				// Do not flush the wallet here for performance reasons
-				WalletBatch batch(*database, "r+", false);
+				WalletBatch batch(*database, false);
 
 				if (mapWallet.count(ptx->GetHash()))
 				{
@@ -2543,7 +2546,8 @@ bool CWallet::SignTransaction(CMutableTransaction& tx) const
 			return false;
 		}
 		const CWalletTx& wtx = mi->second;
-		coins[input.prevout] = Coin(wtx.tx->vout[input.prevout.n], wtx.m_confirm.block_height, wtx.IsCoinBase());
+		// TODO (losty): is this valid usage of Coin()?
+		coins[input.prevout] = Coin(wtx.tx->vout[input.prevout.n], wtx.m_confirm.block_height, wtx.IsCoinBase(), wtx.IsCoinStake(), PocketHelpers::TransactionHelper::IsPocketTransaction(wtx.tx));
 	}
 	std::map<int, std::string> input_errors;
 	return SignTransaction(tx, coins, SIGHASH_ALL, input_errors);
@@ -4650,7 +4654,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
 	std::vector<COutput> vCoins;
 	AvailableCoinsForStaking(vCoins, nSpendTime);
 
-	LogPrintf("Available coins count %d BestHeader: %d %s\n", vCoins.size(), chainActive.Tip()->nHeight, chainActive.Tip()->GetBlockHash().GetHex());
+	LogPrintf("Available coins count %d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
 	setCoinsRet.clear();
 	nValueRet = 0;
 
@@ -4709,7 +4713,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
 			nValueRet += coin.first;
 			break;
 		}
-		else if (n < nTargetValue + CENT) {
+		else if (n < nTargetValue + (COIN / 100)) {
 			setCoinsRet.insert(coin.second);
 			nValueRet += coin.first;
 		}
@@ -4719,10 +4723,10 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
 }
 
 
-bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, int64_t nFees, CMutableTransaction& txNew, CKey& key)
+bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned int nBits, int64_t nSearchInterval, int64_t nFees, CMutableTransaction& txNew, CKey& key)
 {
     // We need create new coin after current chain
-	CBlockIndex* pindexPrev = chainActive.Tip();
+	CBlockIndex* pindexPrev = ::ChainActive().Tip();
 
 	arith_uint256 bnTargetPerCoinDay;
 	bnTargetPerCoinDay.SetCompact(nBits);
@@ -4736,7 +4740,8 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 	txNew.vout.push_back(CTxOut(0, scriptEmpty));
 
 	// Choose coins to use
-	int64_t nBalance = GetBalance();
+	// TODO (losty): is choosen balance right?
+	int64_t nBalance = GetBalance().m_mine_immature;
 
 	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
 
@@ -4765,7 +4770,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 	for (auto & pcoin : setCoins) {
 		static int nMaxStakeSearchInterval = 60;
 		bool fKernelFound = false;
-		for (unsigned int n = 0; n < fmin(nSearchInterval, (int64_t)nMaxStakeSearchInterval) && !fKernelFound && pindexPrev == chainActive.Tip(); n++) {
+		for (unsigned int n = 0; n < fmin(nSearchInterval, (int64_t)nMaxStakeSearchInterval) && !fKernelFound && pindexPrev == ::ChainActive().Tip(); n++) {
 			boost::this_thread::interruption_point();
 			// Search backward in time from the given txNew timestamp
 			// Search nSearchInterval seconds back up to nMaxStakeSearchInterval
@@ -4777,33 +4782,33 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 				std::vector<std::vector<unsigned char>> vSolutions;
 				CScript scriptPubKeyOut;
 				scriptPubKeyKernel = pcoin.first->tx->vout[pcoin.second].scriptPubKey;
-				txnouttype whichType = Solver(scriptPubKeyKernel, vSolutions);
-				if (whichType == TX_NONSTANDARD) {
+				TxoutType whichType = Solver(scriptPubKeyKernel, vSolutions);
+				if (whichType == TxoutType::NONSTANDARD) {
 					LogPrintf("CreateCoinStake : failed to parse kernel\n");
 					break;
 				}
 				// LogPrintf("CreateCoinStake : parsed kernel type=%d\n", whichType);
-				if (whichType != TX_PUBKEY && whichType != TX_PUBKEYHASH) {
-					LogPrintf("CreateCoinStake : no support for kernel type=%d\n", whichType);
+				if (whichType != TxoutType::PUBKEY && whichType != TxoutType::PUBKEYHASH) {
+					LogPrintf("CreateCoinStake : no support for kernel type=\"%s\"\n", GetTxnOutputType(whichType));
 					break;  // only support pay to public key and pay to address
 				}
-				if (whichType == TX_PUBKEYHASH) {
+				if (whichType == TxoutType::PUBKEYHASH) {
 					// convert to pay to public key type
 					if (!keystore.GetKey(CKeyID(uint160(vSolutions[0])), key)) {
-						LogPrintf("CreateCoinStake : failed to get key for kernel type=%d\n", whichType);
+						LogPrintf("CreateCoinStake : failed to get key for kernel type=\"%s\"\n", GetTxnOutputType(whichType));
 						break;  // unable to find corresponding public key
 					}
 					scriptPubKeyOut << ToByteVector(key.GetPubKey()) << OP_CHECKSIG;
 				}
-				if (whichType == TX_PUBKEY) {
+				if (whichType == TxoutType::PUBKEY) {
 					std::vector<unsigned char>& vchPubKey = vSolutions[0];
 					if (!keystore.GetKey(CKeyID(Hash160(vchPubKey)), key)) {
-						LogPrintf("CreateCoinStake : failed to get key for kernel type=%d\n", whichType);
+						LogPrintf("CreateCoinStake : failed to get key for kernel type=\"%s\"\n", GetTxnOutputType(whichType));
 						break;  // unable to find corresponding public key
 					}
 
 					if (key.GetPubKey() != CPubKey(vchPubKey)) {
-						LogPrintf("CreateCoinStake : invalid key for kernel type=%d\n", whichType);
+						LogPrintf("CreateCoinStake : invalid key for kernel type=\"%s\"\n", GetTxnOutputType(whichType));
 						break; // keys mismatch
 					}
 
@@ -4900,7 +4905,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
     }
 
 	if (txNew.vout.size() == 3) {
-		txNew.vout[1].nValue = (blockValue / 2 / CENT) * CENT;
+		txNew.vout[1].nValue = (blockValue / 2 / (COIN / 100)) * (COIN / 100);
 		txNew.vout[2].nValue = blockValue - txNew.vout[1].nValue;
 	}
 	else if (txNew.vout.size() == 2) {
@@ -4918,7 +4923,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 		bool signSuccess;
 		const CScript& scriptPubKey = coin.first->tx->vout[coin.second].scriptPubKey;
 		SignatureData sigdata;
-		signSuccess = ProduceSignature(*this, MutableTransactionSignatureCreator(&txNewConst, nIn, coin.first->tx->vout[coin.second].nValue, SIGHASH_ALL), scriptPubKey, sigdata);
+		signSuccess = ProduceSignature(keystore, MutableTransactionSignatureCreator(&txNewConst, nIn, coin.first->tx->vout[coin.second].nValue, SIGHASH_ALL), scriptPubKey, sigdata);
 
 		if (!signSuccess)
 		{
@@ -4974,7 +4979,8 @@ int64_t CWallet::GetNewMint() const
 uint64_t CWallet::GetStakeWeight() const
 {
 	// Choose coins to use
-	int64_t nBalance = GetBalance();
+	// TODO (losty): is this correct?
+	int64_t nBalance = GetBalance().m_mine_trusted;
 
 	if (nBalance <= 0) {
 		return 0;

@@ -6,9 +6,9 @@
 #define POCKETDB_WEB_POST_PROCESSING_H
 
 #include <boost/thread.hpp>
-#include "utiltime.h"
+#include "util/time.h"
 #include "sync.h"
-#include "utils/html.h"
+#include "util/html.h"
 
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/repositories/web/WebRepository.h"

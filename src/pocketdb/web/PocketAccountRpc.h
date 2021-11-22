@@ -6,7 +6,7 @@
 #define SRC_POCKETACCOUNTRPC_H
 
 #include "rpc/server.h"
-#include "rpc/rawtransaction.h"
+// #include "rpc/rawtransaction.h"
 #include "pocketdb/consensus/Reputation.h"
 
 namespace PocketWeb::PocketWebRpc

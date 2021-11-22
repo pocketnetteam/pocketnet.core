@@ -3,16 +3,17 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/services/Serializer.h"
+#include "script/standard.h"
 
 namespace PocketServices
 {
-    tuple<bool, PocketBlock> Serializer::DeserializeBlock(CBlock& block, CDataStream& stream)
+    tuple<bool, PocketBlock> Serializer::DeserializeBlock(const CBlock& block, CDataStream& stream)
     {
         // Get Serialized data from stream
         auto pocketData = parseStream(stream);
         return deserializeBlock(block, pocketData);
     }
-    tuple<bool, PocketBlock> Serializer::DeserializeBlock(CBlock& block)
+    tuple<bool, PocketBlock> Serializer::DeserializeBlock(const CBlock& block)
     {
         UniValue fakeData(UniValue::VOBJ);
         return deserializeBlock(block, fakeData);
@@ -134,7 +135,7 @@ namespace PocketServices
         {
             const CTxOut& txout = tx->vout[i];
 
-            txnouttype type;
+            TxoutType type;
             std::vector <CTxDestination> vDest;
             int nRequired;
             if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))
@@ -172,7 +173,7 @@ namespace PocketServices
     }
 
 
-    tuple<bool, PocketBlock> Serializer::deserializeBlock(CBlock& block, UniValue& pocketData)
+    tuple<bool, PocketBlock> Serializer::deserializeBlock(const CBlock& block, UniValue& pocketData)
     {
         // Restore pocket transaction instance
         PocketBlock pocketBlock;

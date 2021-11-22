@@ -219,7 +219,7 @@ static void SetFeeEstimateMode(const CWallet& wallet, CCoinControl& cc, const Un
         cc.m_feerate = CFeeRate(AmountFromValue(fee_rate), COIN);
         if (override_min_fee) cc.fOverrideFeeRate = true;
         // Default RBF to true for explicit fee_rate, if unset.
-        if (cc.m_signal_bip125_rbf == nullopt) cc.m_signal_bip125_rbf = true;
+        if (cc.m_signal_bip125_rbf.has_value()) cc.m_signal_bip125_rbf = true;
         return;
     }
     if (!estimate_mode.isNull() && !FeeModeFromString(estimate_mode.get_str(), cc.m_fee_mode)) {
@@ -287,15 +287,14 @@ static RPCHelpMan getprivkeyaddress()
     return RPCHelpMan{"getprivkeyaddress",
         "\nGet address from private key.\n",
         {
-            {"private", RPCArg::Type::STR, ""}
+            {"private", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
             {"output_type", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
         },
         RPCResult{
-            // TODO (team): provide description for return parameters
-            {}
+            RPCResult::Type::STR, "address", "The pocketcoin address" // TODO (losty): improve return description
         },
         // TODO (team): provide examples
-        {},
+        RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
    if (request.params.size() < 1) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key encoding");
@@ -2667,7 +2666,8 @@ static RPCHelpMan loadwallet()
     options.require_existing = true;
     bilingual_str error;
     std::vector<bilingual_str> warnings;
-    Optional<bool> load_on_start = request.params[1].isNull() ? nullopt : Optional<bool>(request.params[1].get_bool());
+    // TODO (losty): consider nullopt correct usage. Change all Optional<bool>{} to nullopt after
+    Optional<bool> load_on_start = request.params[1].isNull() ? Optional<bool>{} : Optional<bool>(request.params[1].get_bool());
     std::shared_ptr<CWallet> const wallet = LoadWallet(*context.chain, name, load_on_start, options, status, error, warnings);
     if (!wallet) {
         // Map bad format to not found, since bad format is returned when the
@@ -2817,7 +2817,7 @@ static RPCHelpMan createwallet()
     options.create_flags = flags;
     options.create_passphrase = passphrase;
     bilingual_str error;
-    Optional<bool> load_on_start = request.params[6].isNull() ? nullopt : Optional<bool>(request.params[6].get_bool());
+    Optional<bool> load_on_start = request.params[6].isNull() ? Optional<bool>{} : Optional<bool>(request.params[6].get_bool());
     std::shared_ptr<CWallet> wallet = CreateWallet(*context.chain, request.params[0].get_str(), load_on_start, options, status, error, warnings);
     if (!wallet) {
         RPCErrorCode code = status == DatabaseStatus::FAILED_ENCRYPT ? RPC_WALLET_ENCRYPTION_FAILED : RPC_WALLET_ERROR;
@@ -2869,7 +2869,7 @@ static RPCHelpMan unloadwallet()
     // Note that any attempt to load the same wallet would fail until the wallet
     // is destroyed (see CheckUniqueFileid).
     std::vector<bilingual_str> warnings;
-    Optional<bool> load_on_start = request.params[1].isNull() ? nullopt : Optional<bool>(request.params[1].get_bool());
+    Optional<bool> load_on_start = request.params[1].isNull() ? Optional<bool>{} : Optional<bool>(request.params[1].get_bool());
     if (!RemoveWallet(wallet, load_on_start, warnings)) {
         throw JSONRPCError(RPC_MISC_ERROR, "Requested wallet already unloaded");
     }
@@ -4625,12 +4625,7 @@ int GetsStakeSubTotal(vStakePeriodRange_T& aRange)
 
             nElement++;
 
-            // use the cached amount if available
-            if (pcoin->fCreditCached && pcoin->fDebitCached)
-                nAmount = pcoin->nCreditCached - pcoin->nDebitCached;
-            else
-                nAmount = pcoin->GetCredit(ISMINE_SPENDABLE) - pcoin->GetDebit(ISMINE_SPENDABLE);
-
+            nAmount = pcoin->GetCredit(ISMINE_SPENDABLE) - pcoin->GetDebit(ISMINE_SPENDABLE);
 
             // scan the range
             for(vIt=aRange.begin(); vIt != aRange.end(); vIt++)

@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketAccountRpc.h"
+#include "validation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -166,11 +167,11 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + request.params[0].get_str());
         auto address = request.params[0].get_str();
 
-        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(::ChainActive().Height());
         auto windowDepth = reputationConsensus->GetConsensusLimit(ConsensusLimit_depth);
 
         // Read general account info and current state
-        auto result = request.DbConnection()->WebRpcRepoInst->GetAccountState(address, chainActive.Height() - windowDepth);
+        auto result = request.DbConnection()->WebRpcRepoInst->GetAccountState(address, ::ChainActive().Height() - windowDepth);
         if (result["address"].isNull())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Pocketcoin address not found : " + address);
 
@@ -337,7 +338,7 @@ namespace PocketWeb::PocketWebRpc
         //     }
         // }
 
-        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, chainActive.Height());
+        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, ::ChainActive().Height());
     }
 
     UniValue GetAccountSetting(const JSONRPCRequest& request)
@@ -394,7 +395,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        int nHeight = chainActive.Height();
+        int nHeight = ::ChainActive().Height();
         if (request.params.size() > 1) {
             if (request.params[1].isNum()) {
                 if (request.params[1].get_int() > 0) {
@@ -403,7 +404,7 @@ namespace PocketWeb::PocketWebRpc
             }
         }
 
-        int depth = chainActive.Height();
+        int depth = ::ChainActive().Height();
         if (request.params.size() > 2) {
             if (request.params[2].isNum()) {
                 if (request.params[2].get_int() > 0) {

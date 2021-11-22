@@ -26,6 +26,9 @@
 #include <validation.h>
 #include <version.h>
 #include <warnings.h>
+#include <pow.h>
+#include <pos.h>
+#include <miner.h>
 #ifdef ENABLE_WALLET
 #include <staker.h>
 #include <wallet/wallet.h>
@@ -803,16 +806,16 @@ static RPCHelpMan getstakinginfo()
                     {
                         {
                             // TODO (team) improve descriptions
-                            RPCResult::Type::BOOL, "enabled", "If staking is enabled",
-                            RPCResult::Type::BOOL, "staking", "If current block is staking",
-                            RPCResult::Type::STR, "errors", "Errors. Empty if there is no error",
-                            RPCResult::Type::NUM, "currentblockweight", "Weight of the current block",
-                            RPCResult::Type::NUM, "currentblocktx", "Tx of the current block",
-                            RPCResult::Type::STR_AMOUNT, "difficulty", "Difficulty",
-                            RPCResult::Type::NUM, "weight", "nWeight",
-                            RPCResult::Type::NUM, "netstakeweight", "Stake network weight",
-                            RPCResult::Type::NUM, "expectedtime", "Expected time",
-                        },
+                            { RPCResult::Type::BOOL, "enabled", "If staking is enabled" },
+                            { RPCResult::Type::BOOL, "staking", "If current block is staking" },
+                            { RPCResult::Type::STR, "errors", "Errors. Empty if there is no error" },
+                            { RPCResult::Type::NUM, "currentblockweight", "Weight of the current block" },
+                            { RPCResult::Type::NUM, "currentblocktx", "Tx of the current block" },
+                            { RPCResult::Type::STR_AMOUNT, "difficulty", "Difficulty" },
+                            { RPCResult::Type::NUM, "weight", "nWeight" },
+                            { RPCResult::Type::NUM, "netstakeweight", "Stake network weight" },
+                            { RPCResult::Type::NUM, "expectedtime", "Expected time" }
+                        }
                     }
                 },
                 RPCExamples{""},
@@ -829,18 +832,18 @@ static RPCHelpMan getstakinginfo()
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
     bool staking = Staker::getInstance()->getLastCoinStakeSearchInterval() && nWeight;
-    uint64_t nExpectedTime = staking ? (GetTargetSpacing(chainActive.Height()) * nNetworkWeight / nWeight) : 0;
+    uint64_t nExpectedTime = staking ? (GetTargetSpacing(ChainActive().Height()) * nNetworkWeight / nWeight) : 0;
 
     UniValue obj(UniValue::VOBJ);
 
     obj.pushKV("enabled", Staker::getInstance()->getIsStaking());
     obj.pushKV("staking", staking);
-    obj.pushKV("errors", GetWarnings("statusbar"));
+    obj.pushKV("errors", GetWarnings("statusbar").translated);
 
-    obj.pushKV("currentblockweight", (uint64_t)nLastBlockWeight);
-    obj.pushKV("currentblocktx", (uint64_t)nLastBlockTx);
+    if (BlockAssembler::m_last_block_weight) obj.pushKV("currentblockweight", *BlockAssembler::m_last_block_weight);
+    if (BlockAssembler::m_last_block_num_txs) obj.pushKV("currentblocktx", *BlockAssembler::m_last_block_num_txs);
 
-    obj.pushKV("difficulty", GetPosDifficulty(GetLastBlockIndex(chainActive.Tip(), true)));
+    obj.pushKV("difficulty", GetPosDifficulty(GetLastBlockIndex(ChainActive().Tip(), true)));
     obj.pushKV("search-interval", Staker::getInstance()->getLastCoinStakeSearchInterval());
 
     obj.pushKV("weight", (uint64_t)nWeight);

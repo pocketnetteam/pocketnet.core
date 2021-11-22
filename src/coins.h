@@ -333,6 +333,18 @@ public:
     //! Calculate the size of the cache (in bytes)
     size_t DynamicMemoryUsage() const;
 
+    // TODO (losty): this method was marked by bitcoin as unsafe because of signed integer overflow possibility (https://github.com/bitcoin/bitcoin/pull/18859)
+    // This is used by pocketnet and probably should be removed as well.
+    /**
+     * Amount of pocketcoins coming in to a transaction
+     * Note that lightweight clients may not know anything besides the hash of previous transactions,
+     * so may not be able to calculate this.
+     *
+     * @param[in] tx    transaction for which we are checking input total
+     * @return  Sum of value of all inputs (scriptSigs)
+     */
+    CAmount GetValueIn(const CTransaction& tx) const;
+
     //! Check whether all prevouts of the transaction are present in the UTXO set represented by this view
     bool HaveInputs(const CTransaction& tx) const;
 

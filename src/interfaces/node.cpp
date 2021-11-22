@@ -13,6 +13,7 @@
 #include <interfaces/handler.h>
 #include <interfaces/wallet.h>
 #include <net.h>
+#include <httpserver.h>
 #include <net_processing.h>
 #include <netaddress.h>
 #include <netbase.h>

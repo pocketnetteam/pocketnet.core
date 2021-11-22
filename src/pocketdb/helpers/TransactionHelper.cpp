@@ -3,10 +3,11 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/helpers/TransactionHelper.h"
+#include "core_io.h"
 
 namespace PocketHelpers
 {
-    txnouttype TransactionHelper::ScriptType(const CScript& scriptPubKey)
+    TxoutType TransactionHelper::ScriptType(const CScript& scriptPubKey)
     {
         std::vector<std::vector<unsigned char>> vSolutions;
         return Solver(scriptPubKey, vSolutions);

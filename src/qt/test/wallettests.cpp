@@ -145,7 +145,7 @@ void TestGUI()
         LOCK(cs_main);
         WalletRescanReserver reserver(wallet.get());
         reserver.reserve();
-        wallet->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver, true);
+        wallet->ScanForWalletTransactions(::ChainActive().Genesis(), nullptr, reserver, true);
     }
     wallet->SetBroadcastTransactions(true);
 

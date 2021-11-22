@@ -10,10 +10,14 @@
 #include <boost/thread.hpp>
 #include "init.h"
 
+namespace util {
+class Ref;
+} // namespace util
+
 /** Start HTTP RPC subsystem.
  * Precondition; HTTP and RPC has been started.
  */
-bool StartHTTPRPC();
+bool StartHTTPRPC(const util::Ref& context);
 /** Interrupt HTTP RPC subsystem.
  */
 void InterruptHTTPRPC();
@@ -25,7 +29,7 @@ void StopHTTPRPC();
 /** Start HTTP REST subsystem.
  * Precondition; HTTP and RPC has been started.
  */
-void StartREST();
+void StartREST(const util::Ref& context);
 /** Interrupt RPC REST subsystem.
  */
 void InterruptREST();

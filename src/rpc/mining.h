@@ -13,6 +13,7 @@
 /** Default max iterations to try in RPC generatetodescriptor, generatetoaddress, and generateblock. */
 static const uint64_t DEFAULT_MAX_TRIES{1000000};
 
-UniValue estimatesmartfee(const JSONRPCRequest& request);
+// TODO (losty): changed to RPCHelpMan and used by pocketdb
+// UniValue estimatesmartfee(const JSONRPCRequest& request);
 
 #endif

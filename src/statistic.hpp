@@ -1,6 +1,8 @@
 #pragma once
 
+#include "logging.h"
 #include "univalue.h"
+#include "util/time.h"
 
 #include "chainparams.h"
 #include "validation.h"
@@ -191,7 +193,7 @@ namespace Statistic
 
             auto unique_ips = GetUniqueSourceIPsSince(since);
             auto unique_ips_count = unique_ips.size();
-            if (g_logger->WillLogCategory(BCLog::STATDETAIL))
+            if (LogInstance().WillLogCategory(BCLog::STATDETAIL))
             {
                 auto top_tm = GetTopHeavyTimeSamplesSince(top_limit, since);
                 auto top_in = GetTopHeavyInputSamplesSince(top_limit, since);
@@ -212,18 +214,19 @@ namespace Statistic
 
             UniValue chainStat(UniValue::VOBJ);
             chainStat.pushKV("Chain", Params().NetworkIDString());
-            chainStat.pushKV("Height", chainActive.Height());
-            chainStat.pushKV("LastBlock", chainActive.Tip()->GetBlockHash().GetHex());
-            chainStat.pushKV("PeersALL", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
-            chainStat.pushKV("PeersIN", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
-            chainStat.pushKV("PeersOUT", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
+            chainStat.pushKV("Height", ChainActive().Height());
+            chainStat.pushKV("LastBlock", ChainActive().Tip()->GetBlockHash().GetHex());
+            // TODO (losty): node context - EnsureNodeContext()
+            // chainStat.pushKV("PeersALL", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
+            // chainStat.pushKV("PeersIN", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
+            // chainStat.pushKV("PeersOUT", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
             result.pushKV("General", chainStat);
 
             UniValue rpcStat(UniValue::VOBJ);
             rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
             rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
-            if (g_logger->WillLogCategory(BCLog::STATDETAIL))
+            if (LogInstance().WillLogCategory(BCLog::STATDETAIL))
             {
                 rpcStat.pushKV("UniqueIps", unique_ips_json);
                 rpcStat.pushKV("TopTime", top_tm_json);
@@ -270,7 +273,7 @@ namespace Statistic
                     CompileStatsAsJsonSince(chunkSize).write(1));
 
                 RemoveSamplesBefore(chunkSize);
-                MilliSleep(statLoggerSleep);
+                UninterruptibleSleep(std::chrono::milliseconds{statLoggerSleep});
             }
         }
 

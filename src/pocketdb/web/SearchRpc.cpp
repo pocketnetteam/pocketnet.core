@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/SearchRpc.h"
+#include "validation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -41,7 +42,8 @@ namespace PocketWeb::PocketWebRpc
         {
             try
             {
-                ParseInt32(request.params[2].get_str(), &searchRequest.TopBlock);
+                // TODO (losty): do not ignore result
+                bool res = ParseInt32(request.params[2].get_str(), &searchRequest.TopBlock);
             }
             catch (...) { }
         }
@@ -51,7 +53,8 @@ namespace PocketWeb::PocketWebRpc
         {
             try
             {
-                ParseInt32(request.params[3].get_str(), &searchRequest.PageStart);
+                // TODO (losty): do not ignore result
+                bool res = ParseInt32(request.params[3].get_str(), &searchRequest.PageStart);
             }
             catch (...) { }
         }
@@ -61,7 +64,8 @@ namespace PocketWeb::PocketWebRpc
         {
             try
             {
-                ParseInt32(request.params[4].get_str(), &searchRequest.PageSize);
+                // TODO (losty): do not ignore result
+                bool res = ParseInt32(request.params[4].get_str(), &searchRequest.PageSize);
             }
             catch (...) { }
         }
@@ -197,7 +201,7 @@ namespace PocketWeb::PocketWebRpc
             ParseRequestContentType(request.params[1], contentTypes);
         }
 
-        int nHeight = chainActive.Height();
+        int nHeight = ::ChainActive().Height();
         if (request.params.size() > 2)
         {
             RPCTypeCheckArgument(request.params[2], UniValue::VNUM);

@@ -5,7 +5,7 @@
 #ifndef POCKETDB_CHAIN_POST_PROCESSING_H
 #define POCKETDB_CHAIN_POST_PROCESSING_H
 
-#include "util.h"
+#include "util/system.h"
 #include "chain.h"
 #include "primitives/block.h"
 
