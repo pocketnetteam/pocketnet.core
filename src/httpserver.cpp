@@ -5,6 +5,7 @@
 #include "logging.h"
 #include "rpc/blockchain.h"
 #include <httpserver.h>
+#include <interfaces/chain.h>
 
 #include <chainparamsbase.h>
 #include <util/system.h>

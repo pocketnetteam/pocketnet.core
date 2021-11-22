@@ -43,10 +43,14 @@ class WorkQueue;
 
 struct HTTPPathHandler;
 
+namespace util {
+class Ref;
+}
+
 /** Initialize HTTP server.
  * Call this before RegisterHTTPHandler or EventBase().
  */
-bool InitHTTPServer();
+bool InitHTTPServer(const util::Ref& context);
 /** Start HTTP server.
  * This is separate from InitHTTPServer to give users race-condition-free time
  * to register their handlers between InitHTTPServer and StartHTTPServer.
