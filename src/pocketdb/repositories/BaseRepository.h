@@ -20,9 +20,39 @@ namespace PocketDb
 
     class BaseRepository
     {
+    private:
+
+        template<typename T>
+        void TryTransactionStepSince(const string& func, T sql)
+        {
+            if (!m_database.BeginTransaction())
+                throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
+
+            sql();
+
+            if (!m_database.CommitTransaction())
+                throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
+        }
+
+        template<typename T>
+        void TryTransactionStepTimeoutSince(const string& func, T sql)
+        {
+            run_with_timeout(
+                [&]()
+                {
+                    TryTransactionStepSince(func, sql);
+                },
+                3s,
+                [&]()
+                {
+                    m_database.InterruptQuery();
+                    LogPrintf("Function `%s` failed with execute timeout\n", func);
+                }
+            );
+        }
+
     protected:
         SQLiteDatabase& m_database;
-
 
         string EscapeValue(string value)
         {
@@ -32,9 +62,9 @@ namespace PocketDb
             return value;
         }
 
-
         // General method for SQL operations
         // Locked with shutdownMutex
+        // Timeouted for ReadOnly connections
         template<typename T>
         void TryTransactionStep(const string& func, T sql)
         {
@@ -42,13 +72,11 @@ namespace PocketDb
             {
                 int64_t nTime1 = GetTimeMicros();
 
-                if (!m_database.BeginTransaction())
-                    throw std::runtime_error(strprintf("%s: can't begin transaction\n", func));
-
-                sql();
-
-                if (!m_database.CommitTransaction())
-                    throw std::runtime_error(strprintf("%s: can't commit transaction\n", func));
+                // We are running SQL logic with timeout only for read-only connections
+                if (m_database.IsReadOnly())
+                    TryTransactionStepTimeoutSince(func, sql);
+                else
+                    TryTransactionStepSince(func, sql);
 
                 int64_t nTime2 = GetTimeMicros();
 

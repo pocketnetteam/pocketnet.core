@@ -30,8 +30,6 @@ namespace PocketDb
         SQLiteConnection();
         virtual ~SQLiteConnection();
 
-        void InterruptQuery();
-
         WebRpcRepositoryRef WebRpcRepoInst;
         ExplorerRepositoryRef ExplorerRepoInst;
         SearchRepositoryRef SearchRepoInst;

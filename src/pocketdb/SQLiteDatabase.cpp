@@ -89,6 +89,8 @@ namespace PocketDb
         return true;
     }
 
+    bool SQLiteDatabase::IsReadOnly() const { return isReadOnlyConnect; }
+
     void SQLiteDatabase::Init(const std::string& dbBasePath, const std::string& dbName, const PocketDbMigrationRef& migration, bool drop)
     {
         m_db_migration = migration;
@@ -274,6 +276,12 @@ namespace PocketDb
         m_connection_mutex.unlock();
 
         return res == SQLITE_OK;
+    }
+
+    void SQLiteDatabase::InterruptQuery()
+    {
+        if (m_db)
+            sqlite3_interrupt(m_db);
     }
 
     void SQLiteDatabase::AttachDatabase(const string& dbName)

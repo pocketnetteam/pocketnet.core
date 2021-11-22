@@ -753,6 +753,12 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
         return false;
     }
 
+    string uri;
+    string method;
+    string peer;
+    auto start = gStatEngineInstance.GetCurrentSystemTime();
+    bool executeSuccess = true;
+
     JSONRPCRequest jreq;
     try
     {
@@ -764,7 +770,6 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
         // Set the URI
         jreq.URI = req->GetURI();
         std::string strReply;
-        bool executeSuccess = true;
 
         // singleton request
         if (valRequest.isObject())
@@ -772,63 +777,22 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
             jreq.parse(valRequest);
             jreq.SetDbConnection(req->DbConnection());
 
-            string uri = jreq.URI;
-            string method = jreq.strMethod;
-            string peer = jreq.peerAddr.substr(0, jreq.peerAddr.find(':'));
+            uri = jreq.URI;
+            method = jreq.strMethod;
+            peer = jreq.peerAddr.substr(0, jreq.peerAddr.find(':'));
             string prms = jreq.params.write(0, 0);
 
             auto rpcKey = gen_random(15);
             LogPrint(BCLog::RPC, "RPC started method %s%s (%s) with params: %s\n",
                 uri, method, rpcKey, prms);
 
-            auto start = gStatEngineInstance.GetCurrentSystemTime();
+            UniValue result = table.execute(jreq);
 
-            // We are running a separate thread to detect timeout only for public queries related to sqlite db
-            UniValue result;
-            if (m_publicAccess)
-            {
-                result = run_with_timeout(
-                    [&]() {
-                        return table.execute(jreq);
-                    },
-                    3s,
-                    [&]() {
-                        executeSuccess = false;
-                        
-                        if (req->DbConnection())
-                            req->DbConnection()->InterruptQuery();
+            auto execute = gStatEngineInstance.GetCurrentSystemTime();
 
-                        LogPrintf("Method `%s` failed with execute timeout. Params: %s\n", method, prms);
-                    }
-                );
-            }
-            else
-            {
-                result = table.execute(jreq);
-            }
-
-            auto finish = gStatEngineInstance.GetCurrentSystemTime();
-            
-            int64_t nTime2 = GetTimeMicros();
             LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
-                uri, method, rpcKey, (finish.count() - start.count()));
+                uri, method, rpcKey, (execute.count() - start.count()));
 
-            if (g_logger->WillLogCategory(BCLog::STAT))
-            {
-                gStatEngineInstance.AddSample(
-                    Statistic::RequestSample{
-                        uri,
-                        req->Created,
-                        start,
-                        finish,
-                        peer,
-                        !executeSuccess,
-                        0,
-                        0
-                    }
-                );
-            }
-            
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
         }
@@ -848,23 +812,40 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 
         req->WriteHeader("Content-Type", "application/json");
         req->WriteReply(HTTP_OK, strReply);
-
-        return executeSuccess;
     }
     catch (const UniValue& objError)
     {
         LogPrint(BCLog::RPC, "Exception %s\n", objError.write());
         JSONErrorReply(req, objError, jreq.id);
-        return false;
+        executeSuccess = false;
     }
     catch (const std::exception& e)
     {
         LogPrint(BCLog::RPC, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
         JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
-        return false;
+        executeSuccess = false;
     }
 
-    return true;
+    // Collect statistic data
+    if (g_logger->WillLogCategory(BCLog::STAT))
+    {
+        auto finish = gStatEngineInstance.GetCurrentSystemTime();
+
+        gStatEngineInstance.AddSample(
+            Statistic::RequestSample{
+                uri,
+                req->Created,
+                start,
+                finish,
+                peer,
+                !executeSuccess,
+                0,
+                0
+            }
+        );
+    }
+
+    return executeSuccess;
 }
 
 /** WebSocket for public API */
