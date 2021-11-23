@@ -30,13 +30,21 @@ namespace PocketConsensus
 
             // Parent comment
             if (!IsEmpty(ptx->GetParentTxHash()))
-                if (!PocketDb::TransRepoInst.ExistsInChain(*ptx->GetParentTxHash()))
+            {
+                // TODO (brangr): replace to check exists not deleted comment
+                if (auto[ok, parentTx] = ConsensusRepoInst.GetLastContent(*ptx->GetParentTxHash());
+                    !ok || *parentTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
                     return {false, SocialConsensusResult_InvalidParentComment};
+            }
 
             // Answer comment
             if (!IsEmpty(ptx->GetAnswerTxHash()))
-                if (!PocketDb::TransRepoInst.ExistsInChain(*ptx->GetAnswerTxHash()))
-                    return {false, SocialConsensusResult_InvalidAnswerComment};
+            {
+                // TODO (brangr): replace to check exists not deleted comment
+                if (auto[ok, answerTx] = ConsensusRepoInst.GetLastContent(*ptx->GetAnswerTxHash());
+                    !ok || *answerTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
+                    return {false, SocialConsensusResult_InvalidParentComment};
+            }
 
             // Check exists content transaction
             auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetPostTxHash());
