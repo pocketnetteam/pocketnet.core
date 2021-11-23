@@ -70,7 +70,7 @@ static const CRPCCommand commands[] =
 
     // Explorer
     {"explorer",       "getstatistic",                     &GetStatistic,                   {"endTime", "depth"}},
-    {"explorer",       "getaddressspent",                  &GetAddressSpent,                {"address"}},
+    {"explorer",       "getaddressinfo",                   &GetAddressInfo,                 {"address"}},
     {"explorer",       "getcompactblock",                  &GetCompactBlock,                {"blockHash"}},
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
     {"explorer",       "searchbyhash",                     &SearchByHash,                   {"value"}},

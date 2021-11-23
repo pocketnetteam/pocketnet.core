@@ -170,12 +170,12 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetAddressSpent(const JSONRPCRequest& request)
+    UniValue GetAddressInfo(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw std::runtime_error(
-                "getaddressspent \"address\"\n"
-                "\nGet address spent & unspent amounts.\n"
+                "getaddressinfo \"address\"\n"
+                "\nGet address summary information\n"
                 "\nArguments:\n"
                 "1. \"address\"    (string) Address\n");
 
@@ -189,11 +189,11 @@ namespace PocketWeb::PocketWebRpc
                 std::string("Invalid address: ") + request.params[0].get_str());
         address = request.params[0].get_str();
 
-        auto[spent, unspent] = request.DbConnection()->ExplorerRepoInst->GetAddressSpent(address);
+        auto[lastChange, balance] = request.DbConnection()->ExplorerRepoInst->GetAddressInfo(address);
 
         UniValue addressInfo(UniValue::VOBJ);
-        addressInfo.pushKV("spent", spent);
-        addressInfo.pushKV("unspent", unspent);
+        addressInfo.pushKV("lastChange", lastChange);
+        addressInfo.pushKV("balance", balance);
 
         return addressInfo;
     }
