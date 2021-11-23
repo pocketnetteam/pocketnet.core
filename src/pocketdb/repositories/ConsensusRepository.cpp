@@ -127,6 +127,7 @@ namespace PocketDb
 
             auto stmt = SetupSqlStatement(sql);
             TryBindStatementText(stmt, 1, rootHash);
+            TryBindStatementText(stmt, 2, rootHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
