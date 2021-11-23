@@ -37,12 +37,14 @@ namespace PocketDb
         template<typename T>
         void TryTransactionStepTimeoutSince(const string& func, T sql)
         {
+            auto timeoutValue = chrono::seconds(gArgs.GetArg("-sqltimeout", 10));
+
             run_with_timeout(
                 [&]()
                 {
                     TryTransactionStepSince(func, sql);
                 },
-                3s,
+                timeoutValue,
                 [&]()
                 {
                     m_database.InterruptQuery();

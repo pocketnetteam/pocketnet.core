@@ -627,6 +627,10 @@ void SetupServerArgs()
     gArgs.AddArg("-wsuse", "Accept WebSocket connections", false, OptionsCategory::RPC);
     gArgs.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), false, OptionsCategory::RPC);
 
+    // SQLite
+    gArgs.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), false, OptionsCategory::SQLITE);
+
+
 #if HAVE_DECL_DAEMON
     gArgs.AddArg("-daemon", "Run in the background as a daemon and accept commands", false, OptionsCategory::OPTIONS);
 #else
