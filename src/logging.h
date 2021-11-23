@@ -62,6 +62,7 @@ namespace BCLog {
         WALLET        = (1 << 27),
         SQL           = (1 << 28),
         SQLBENCH      = (1 << 29),
+        RPCERROR      = (1 << 30),
         ALL           = ~(uint32_t)0,
     };
 

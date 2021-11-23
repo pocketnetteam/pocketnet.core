@@ -815,13 +815,13 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
     }
     catch (const UniValue& objError)
     {
-        LogPrint(BCLog::RPC, "Exception %s\n", objError.write());
+        LogPrint(BCLog::RPCERROR, "Exception %s\n", objError.write());
         JSONErrorReply(req, objError, jreq.id);
         executeSuccess = false;
     }
     catch (const std::exception& e)
     {
-        LogPrint(BCLog::RPC, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
+        LogPrint(BCLog::RPCERROR, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
         JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
         executeSuccess = false;
     }
