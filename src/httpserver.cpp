@@ -798,16 +798,14 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
         }
         else
         {
-            // Batches are disabled until their necessity is clarified.
-
-            // if (valRequest.isArray())
-            // {
-            //     strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), m_table_rpc);
-            // }
-            // else
-            // {
+            if (valRequest.isArray())
+            {
+                strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), table);
+            }
+            else
+            {
                 throw JSONRPCError(RPC_PARSE_ERROR, "Top-level object parse error");
-            // }
+            }
         }
 
         req->WriteHeader("Content-Type", "application/json");
