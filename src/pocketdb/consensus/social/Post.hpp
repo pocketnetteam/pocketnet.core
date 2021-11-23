@@ -227,10 +227,12 @@ namespace PocketConsensus
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
                 (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
-                (ptx->GetRootTxHash() ? ptx->GetRootTxHash()->size() : 0) +
                 (ptx->GetRelayTxHash() ? ptx->GetRelayTxHash()->size() : 0) +
                 (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
                 (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
+
+            if (ptx->GetRootTxHash() && *ptx->GetRootTxHash() != *ptx->GetHash())
+                dataSize += ptx->GetRootTxHash()->size();
 
             if (!IsEmpty(ptx->GetPayloadTags()))
             {
