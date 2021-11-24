@@ -1095,7 +1095,7 @@ void StartREST(const util::Ref& context)
         }
     if(g_staticSocket)
     {
-        // TODO (team): passing context to get_static_web may be useful.
+        // TODO (losty-fur): passing context to get_static_web may be useful.
         auto handler = [&context](HTTPRequest* req, const std::string& prefix) { return get_static_web(context, req, prefix); };
         g_staticSocket->RegisterHTTPHandler("/", false, handler, g_staticSocket->m_workQueue);
 

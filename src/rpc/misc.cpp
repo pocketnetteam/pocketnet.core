@@ -656,12 +656,12 @@ static RPCHelpMan echojson() { return echo("echojson"); }
 
 static RPCHelpMan stop()
 {
-    // TODO (team) validate nothing became broken here
+    // TODO (losty-fur) validate nothing became broken here
     return RPCHelpMan{"stop",
                 "\nStop Pocketcoin server.\n",
                 {},
                 RPCResult{
-                    // TODO (team) validate if empty name is valid?
+                    // TODO (losty-fur) validate if empty name is valid?
                     RPCResult::Type::STR, "", "Message that pocketcoin stopping"
                 },
                 RPCExamples{
@@ -681,12 +681,12 @@ static RPCHelpMan stop()
 
 static RPCHelpMan uptime()
 {
-    // TODO (team) validate nothing became broken here
+    // TODO (losty-fur) validate nothing became broken here
     return RPCHelpMan{"uptime",
                 "\nReturns the total uptime of the server.\n",
                 {},
                 RPCResult{
-                    // TODO (team) validate if empty name is valid?
+                    // TODO (losty-fur) validate if empty name is valid?
                     RPCResult::Type::NUM, "", "The number of seconds that the server has been running"
                 },
                 RPCExamples{

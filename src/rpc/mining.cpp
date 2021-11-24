@@ -411,7 +411,7 @@ static RPCHelpMan generateblock()
     uint64_t max_tries{DEFAULT_MAX_TRIES};
     unsigned int extra_nonce{0};
 
-    if (!GenerateBlock(EnsureChainman(request.context), block, pocketBlock, max_tries, extra_nonce, block_hash, 0 /*TODO (team) is 0 legal in this situation?*/) || block_hash.IsNull()) {
+    if (!GenerateBlock(EnsureChainman(request.context), block, pocketBlock, max_tries, extra_nonce, block_hash, 0 /*TODO (losty-critical) is 0 legal in this situation?*/) || block_hash.IsNull()) {
         throw JSONRPCError(RPC_MISC_ERROR, "Failed to make block.");
     }
 

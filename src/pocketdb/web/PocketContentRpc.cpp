@@ -308,7 +308,7 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[0].isNum())
                 count = request.params[0].get_int();
             else if (request.params[0].isStr())
-                // TODO (losty): do not ignore result
+                // TODO (losty-fur): do not ignore result
                 bool res = ParseInt32(request.params[0].get_str(), &count);
         }
 
@@ -320,7 +320,7 @@ namespace PocketWeb::PocketWebRpc
             if (request.params[1].isNum())
                 depthBlocks = request.params[1].get_int();
             else if (request.params[1].isStr())
-                // TODO (losty): do not ignore result
+                // TODO (losty-fur): do not ignore result
                 bool res = ParseInt32(request.params[1].get_str(), &depthBlocks);
 
             if (depthBlocks == 259200)
@@ -342,7 +342,7 @@ namespace PocketWeb::PocketWebRpc
             }
             else if (request.params[2].isStr())
             {
-                // TODO (losty): do not ignore result
+                // TODO (losty-fur): do not ignore result
                 bool res = ParseInt32(request.params[2].get_str(), &nOffset);
             }
             nHeightOffset -= nOffset;

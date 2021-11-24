@@ -347,8 +347,8 @@ public:
         if (banNode) {
             // Clear the points and ban the node
             points.clear();
-            // TODO (losty): DoS removed. Change this to something else
-            // return state.DoS(100, false, REJECT_INVALID, "header-spam", "ban node for sending spam");
+            // TODO (losty-fur): Validate error is correct.
+            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "header-spam", "ban node for sending spam");
         }
 
         return ret;
@@ -1847,7 +1847,7 @@ void static ProcessGetData(CNode& pfrom, Peer& peer, const CChainParams& chainpa
             int nSendFlags = (inv.IsMsgTx() ? SERIALIZE_TRANSACTION_NO_WITNESS : 0);
             // Join PocketNet data from PocketDB to transaction stream
             std::string txPayloadData;
-            // TODO (team): A lot reworked here. Validate that this is correct.
+            // TODO (losty-critical): A lot reworked here. Validate that this is correct.
             if (PocketServices::Accessor::GetTransaction(*tx, txPayloadData)) {
                 connman.PushMessage(&pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *tx, txPayloadData));
                 mempool.RemoveUnbroadcastTx(tx->GetHash());
@@ -2160,7 +2160,7 @@ void PeerManager::ProcessOrphanTx(std::set<uint256>& orphan_work_set)
         TxValidationState state;
         std::list<CTransactionRef> removed_txn;
 
-        // TODO (losty): pocket transaction. Currently with passing nullptr this will cause segfault probably
+        // TODO (losty-critical): pocket transaction. Currently with passing nullptr this will cause segfault probably
         if (AcceptToMemoryPool(m_mempool, state, porphanTx, nullptr, &removed_txn, false /* bypass_limits */)) {
             LogPrint(BCLog::MEMPOOL, "   accepted orphan tx %s\n", orphanHash.ToString());
             RelayTransaction(orphanHash, porphanTx->GetWitnessHash(), m_connman);
@@ -3206,15 +3206,15 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
         // Deserialize pocket part if exists
         auto[deserializeOk, pocketTx] = PocketServices::Serializer::DeserializeTransaction(ptx, vRecv);
-        // TODO (losty): use state.Invalid()
-        // if (!deserializeOk)
-            // state.Invalid(false, 0, "Deserialize"); // T
+        // TODO (losty-fur): Validate error correct
+        if (!deserializeOk)
+            state.Invalid(TxValidationResult::TX_CONSENSUS, "Deserialize"); // T
 
         // Check transaction with pocketnet base rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(txRef, pocketTx); !ok)
         {
-            // TODO (losty): use state.Invalid()
-            // state.Invalid(false, result, "SocialConsensusHelper::Check");
+            // TODO (losty-fur): Validate error correct
+            state.Invalid(TxValidationResult::TX_CONSENSUS, "SocialConsensusHelper::Check");
         }
 
         // Check transaction with pocketnet consensus rules
@@ -3223,8 +3223,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
             int height = ::ChainActive().Height() + 1;
             if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketTx, height); !ok)
             {
-                // TODO (losty): use state.Invalid()
-                // state.Invalid(false, result, "SocialConsensusHelper::Validate");
+                // TODO (losty-fur): Validate error correct
+                state.Invalid(TxValidationResult::TX_CONSENSUS, "SocialConsensusHelper::Validate");
             }
         }
 
@@ -3382,8 +3382,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     if (msg_type == NetMsgType::CMPCTBLOCK)
     {
         // Ignore cmpctblock received while importing
-        // TODO (team): reindex stuff?
-        if (fImporting || fReindex) {
+        // TODO (losty-fur): reindex stuff?
+        if (fImporting || IsChainReindex()) {
             LogPrint(BCLog::NET, "Unexpected cmpctblock message received from peer %d\n", pfrom.GetId());
             return;
         }

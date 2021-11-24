@@ -26,7 +26,7 @@ const std::string CLIENT_NAME("Satoshi");
 
 //! git will put "#define GIT_COMMIT_ID ..." on the next line inside archives. $Format:%n#define GIT_COMMIT_ID "%H"$
 
-// TODO (team): is it really needed?
+// TODO (losty-fur): is it really needed?
 #define BUILD_GENERAL_VERSION(maj, min, rev) \
     "v" DO_STRINGIZE(maj) "." DO_STRINGIZE(min) "." DO_STRINGIZE(rev)
 

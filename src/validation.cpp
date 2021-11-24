@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <cstdio>
 #include <validation.h>
 
 #include <arith_uint256.h>
@@ -1052,8 +1053,8 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
         // Deserialize default money transaction
         if (auto[ok, val] = PocketServices::Serializer::DeserializeTransaction(ptx); ok && val)
             _pocketTx = val;
-        // else
-            // return state.DoS(0, false, REJECT_INTERNAL, "error restore pocketnet payload data"); // TODO (losty): use state.Invalid()
+        else
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "error restore pocketnet payload data"); // TODO (losty-fur): is this error correct?
     }
     
     if (_pocketTx)
@@ -1065,7 +1066,7 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
         }
         catch (const std::exception& e)
         {
-            // return state.DoS(0, false, REJECT_INTERNAL, "error write payload data to sqlite db"); // TODO (losty): use state.Invalid()
+            return state.DoS(TxValidationResult::TX_CONSENSUS, "error write payload data to sqlite db"); // TODO (losty-fur):is this error correct?
         }
     }
 
@@ -2090,10 +2091,9 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     // Check proof of stake
     if (block.nBits != GetNextWorkRequired(pindex->pprev, &block, chainparams.GetConsensus()))
     {
-        // TODO (losty): use state.Invalid()
-        // return state.DoS(1, error("ContextualCheckBlock() : incorrect %s at height %d (%d)",
-        //     !block.IsProofOfStake() ? "proof-of-work" : "proof-of-stake", pindex->pprev->nHeight, block.nBits),
-        //     REJECT_INVALID, "bad-diffbits");
+        // TODO (losty-fur): is error correct?
+        error("ContextualCheckBlock() : incorrect %s at height %d (%d)", !block.IsProofOfStake() ? "proof-of-work" : "proof-of-stake", pindex->pprev->nHeight, block.nBits);
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-diffbits");
     }
 
     arith_uint256 hashProof;
@@ -2117,18 +2117,22 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         hashProof = UintToArith256(block.GetHash());
     }
 
-    if (!pindex->SetStakeEntropyBit(block.GetStakeEntropyBit()))
-        // return state.DoS(1, error("ContextualCheckBlock() : SetStakeEntropyBit() failed"), REJECT_INVALID, // TODO (losty): use state.Invalid()
-        //     "bad-entropy-bit");
+    if (!pindex->SetStakeEntropyBit(block.GetStakeEntropyBit())) {
+        // TODO (losty-fur): is error correct?
+        error("ContextualCheckBlock() : SetStakeEntropyBit() failed");
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-entropy-bit");
+    }
 
     // Record proof hash value
     pindex->hashProof = hashProof;
 
     uint64_t nStakeModifier = 0;
     bool fGeneratedStakeModifier = false;
-    if (!ComputeNextStakeModifier(pindex->pprev, nStakeModifier, fGeneratedStakeModifier))
-        // return state.DoS(1, error("ContextualCheckBlock() : ComputeNextStakeModifier() failed"), REJECT_INVALID, // TODO (losty): use state.Invalid()
-        //     "bad-stake-modifier");
+    if (!ComputeNextStakeModifier(pindex->pprev, nStakeModifier, fGeneratedStakeModifier)) {
+        // TODO (losty-fur): is error correct?
+        error("ContextualCheckBlock() : ComputeNextStakeModifier() failed");
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-stake-modifier");
+    }
 
     pindex->SetStakeModifier(nStakeModifier, fGeneratedStakeModifier);
 
@@ -2344,10 +2348,9 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
                 if (view.GetValueIn(tx) < Params().GetConsensus().nStakeMinimumThreshold)
                 {
-                    // return state.DoS(100, error( // TODO (losty): use state.Invalid() // TODO (losty): use state.Invalid()
-                    //     "ConnectBlock(): Stake input is below threshold",
-                    //     REJECT_INVALID,
-                    //     "bad-blk-stake-inputs"));
+                    // TODO (losty-fur): is error correct?
+                    error("ConnectBlock(): Stake input is below threshold");
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-stake-inputs");
                 }
             }
 
@@ -2410,15 +2413,20 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         {
             if (pindex->GetBlockHash().GetHex() != Params().GetConsensus().sVersion_1_0_0_pre_checkpoint)
             {
-                // return state.DoS(100, error("ConnectBlock() : incorrect proof of stake transaction checkpoint")); // TODO (losty): use state.Invalid()
+                // TODO (losty-fur): is error correct?
+                error("ConnectBlock() : incorrect proof of stake transaction checkpoint");
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS); 
             }
         }
 
         if (pindex->nHeight > (int)Params().GetConsensus().nHeight_version_1_0_0_pre && block.IsProofOfStake())
         {
             int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
-            // if (nStakeReward > nCalculatedStakeReward)
-                // return state.DoS(100, error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward)); // TODO (losty): use state.Invalid()
+            if (nStakeReward > nCalculatedStakeReward) {
+                // TODO (losty-fur): is error correct?
+                error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward);
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
+            }
 
             int64_t nReward = GetProofOfStakeReward(pindex->nHeight, 0, chainparams.GetConsensus());
 
@@ -2906,7 +2914,7 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
     if (!pocketBlock)
     {
         pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
-        // return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true); // TODO (losty): use state.Invalid()
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "failed-find-social-payload"); // TODO (losty-fur): is error correct?
     }
 
     // Apply the block atomically to the chain state.
@@ -4011,13 +4019,18 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
 
     if (block.IsProofOfStake())
     {
-         // TODO (losty): use state.Invalid()
         // Second transaction must be coinstake, the rest must not be
-        // if (block.vtx.empty() || !block.vtx[1]->IsCoinStake())
-            // return state.DoS(100, error("CheckBlock() : second tx is not coinstake")); // TODO (losty): use state.Invalid()
-        // for (unsigned int i = 2; i < block.vtx.size(); i++)
-            // if (block.vtx[i]->IsCoinStake())
-                // return state.DoS(100, error("CheckBlock() : more than one coinstake")); // TODO (losty): use state.Invalid()
+        if (block.vtx.empty() || !block.vtx[1]->IsCoinStake()) {
+            // TODO (losty-fur): is error correct?
+            error("CheckBlock() : second tx is not coinstake");
+            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
+        }
+        for (unsigned int i = 2; i < block.vtx.size(); i++)
+            if (block.vtx[i]->IsCoinStake()) {
+                // TODO (losty-fur): is error correct?
+                error("CheckBlock() : more than one coinstake");
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
+            }
     }
 
     // All potential-corruption validation must be done before we do any
@@ -4048,7 +4061,7 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     // Must check for duplicate inputs (see CVE-2018-17144)
     for (const auto& tx : block.vtx) {
         TxValidationState tx_state;
-        if (!CheckTransaction(*tx, tx_state)) { // TODO (losty): there was third bool argument that was changed to true by us (origanally was false). Check if nothing affected here by removed that argument
+        if (!CheckTransaction(*tx, tx_state)) { // TODO (losty-fur): there was third bool argument that was changed to true by us (origanally was false). Check if nothing affected here by removed that argument
             // CheckBlock() does context-free validation checks. The only
             // possible failures are consensus failures.
             assert(tx_state.GetResult() == TxValidationResult::TX_CONSENSUS);
@@ -4291,18 +4304,20 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     }
 
     if (block.IsProofOfWork() && nHeight > Params().GetConsensus().nPosFirstBlock) {
-        // return state.DoS(10, false, REJECT_INVALID, "check-pow-height", "pow-mined blocks not allowed"); // TODO (losty): use state.Invalid()
+        // TODO (losty-fur): is error correct?
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "check-pow-height", "pow-mined blocks not allowed");
     }
 
     if (block.IsProofOfStake() && nHeight < Params().GetConsensus().nPosFirstBlock) {
-        // return state.DoS(10, false, REJECT_INVALID, "check-pos-height", "pos-mined blocks not allowed"); // TODO (losty): use state.Invalid()
+        // TODO (losty-fur): is error correct?
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "check-pos-height", "pos-mined blocks not allowed");
     }
 
     // Check CheckCoinStakeTimestamp
-    // TODO (losty): use state.Invalid correctly
-    // if (block.IsProofOfStake() &&
-        // !CheckCoinStakeTimestamp(nHeight, block.GetBlockTime(), (int64_t) block.vtx[1]->nTime))
-        // return state.Invalid(false, REJECT_INVALID, "check-coinstake-timestamp", "coinstake timestamp violation");
+    // TODO (losty-fur): is error correct?
+    if (block.IsProofOfStake() &&
+        !CheckCoinStakeTimestamp(nHeight, block.GetBlockTime(), (int64_t) block.vtx[1]->nTime))
+        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "check-coinstake-timestamp", "coinstake timestamp violation");
 
     int64_t nLockTimeCutoff = (nLockTimeFlags & LOCKTIME_MEDIAN_TIME_PAST)
                               ? pindexPrev->GetMedianTimePast()
@@ -4401,8 +4416,9 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
             {
                 if (!isJson)
                 {
-                    // return state.DoS(100, error( // TODO (losty): use state.Invalid() instead of this. Probably need to implement smth inside.
-                        // "CheckBlock() : coinbase output amount greater than 0 for proof-of-stake block. proof of work not allowed."));
+                    // TODO (losty-fur): is error correct?
+                    error("CheckBlock() : coinbase output amount greater than 0 for proof-of-stake block. proof of work not allowed.");
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
                 }
                 nPaymentRequestsCount++;
             }
@@ -4446,10 +4462,12 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
         }
         pindexPrev = (*mi).second;
         if (pindexPrev->nStatus & BLOCK_FAILED_MASK) {
-            LogPrintf("ERROR: %s: prev block invalid\n", __func__);
-            return state.Invalid(BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk"); // TODO (losty): additional log "pindexPrev->GetBlockHash().GetHex()"
+            // TODO (losty-fur): is error correct?
+            error("%s: prev block invalid %s", __func__, pindexPrev->GetBlockHash().GetHex());
+            return state.Invalid(BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk");
         }
         if (!ContextualCheckBlockHeader(block, state, chainparams, pindexPrev, GetAdjustedTime()))
+            // TODO (losty-fur): probably we need fill state.Invalid() here?
             return error("%s: Consensus::ContextualCheckBlockHeader: %s, %s", __func__, hash.ToString(), state.ToString());
 
         /* Determine if this block descends from any block which has been found
@@ -4485,8 +4503,9 @@ bool BlockManager::AcceptBlockHeader(const CBlockHeader& block, BlockValidationS
                         setDirtyBlockIndex.insert(invalid_walk);
                         invalid_walk = invalid_walk->pprev;
                     }
-                    LogPrintf("ERROR: %s: prev block invalid\n", __func__);
-                    return state.Invalid(BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk"); // TODO (losty): additional log "pindexPrev->GetBlockHash().GetHex()"
+                    // TODO (losty-fur): is error correct?
+                    error("%s: prev block invalid %s", __func__, pindexPrev->GetBlockHash().GetHex());
+                    return state.Invalid(BlockValidationResult::BLOCK_INVALID_PREV, "bad-prevblk");
                 }
             }
         }
@@ -5523,7 +5542,7 @@ bool CChainState::LoadGenesisBlock(const CChainParams& chainparams)
     try {
         const CBlock& block = chainparams.GenesisBlock();
 
-        auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(block); // TODO (losty): constness issue here
+        auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(block);
         if (!deserializeOk)
             return error("%s: generate genesis sqlite record failed", __func__);
 
@@ -5964,8 +5983,9 @@ bool LoadMempool(CTxMemPool& pool)
             TxValidationState state;
             if (nTime > nNow - nExpiryTimeout) {
                 std::shared_ptr<Transaction> pocketTx;
-                // if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx)) // TODO (losty): use state.Invalid correctly
-                //     state.Invalid(false, 0, "not found in sqlite db");
+                if (!PocketServices::Accessor::GetTransaction(*tx, pocketTx))
+                    // TODO (losty-fur): is error correct?
+                    state.Invalid(TxValidationResult::TX_CONSENSUS, "not found in sqlite db");
                 
                 if (state.IsValid()) {
                     LOCK(cs_main);

@@ -42,7 +42,7 @@ namespace PocketWeb::PocketWebRpc
         {
             try
             {
-                // TODO (losty): do not ignore result
+                // TODO (losty-fur): do not ignore result
                 bool res = ParseInt32(request.params[2].get_str(), &searchRequest.TopBlock);
             }
             catch (...) { }
@@ -53,7 +53,7 @@ namespace PocketWeb::PocketWebRpc
         {
             try
             {
-                // TODO (losty): do not ignore result
+                // TODO (losty-fur): do not ignore result
                 bool res = ParseInt32(request.params[3].get_str(), &searchRequest.PageStart);
             }
             catch (...) { }
@@ -64,7 +64,7 @@ namespace PocketWeb::PocketWebRpc
         {
             try
             {
-                // TODO (losty): do not ignore result
+                // TODO (losty-fur): do not ignore result
                 bool res = ParseInt32(request.params[4].get_str(), &searchRequest.PageSize);
             }
             catch (...) { }

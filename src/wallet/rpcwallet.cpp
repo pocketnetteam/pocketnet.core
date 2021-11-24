@@ -291,9 +291,9 @@ static RPCHelpMan getprivkeyaddress()
             {"output_type", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
         },
         RPCResult{
-            RPCResult::Type::STR, "address", "The pocketcoin address" // TODO (losty): improve return description
+            RPCResult::Type::STR, "address", "The pocketcoin address" // TODO (losty-fur): improve return description
         },
-        // TODO (team): provide examples
+        // TODO (losty-fur): provide examples
         RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -2666,7 +2666,7 @@ static RPCHelpMan loadwallet()
     options.require_existing = true;
     bilingual_str error;
     std::vector<bilingual_str> warnings;
-    // TODO (losty): consider nullopt correct usage. Change all Optional<bool>{} to nullopt after
+    // TODO (losty-fur): consider nullopt correct usage. Change all Optional<bool>{} to nullopt after
     Optional<bool> load_on_start = request.params[1].isNull() ? Optional<bool>{} : Optional<bool>(request.params[1].get_bool());
     std::shared_ptr<CWallet> const wallet = LoadWallet(*context.chain, name, load_on_start, options, status, error, warnings);
     if (!wallet) {
@@ -4727,7 +4727,7 @@ static RPCHelpMan getstakereport()
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                // TODO (team): provide descriptions and probably update key's names
+                // TODO (losty-fur): provide descriptions and probably update key's names
                 {RPCResult::Type::STR, "Latest Time", ""},
                 {RPCResult::Type::NUM, "Stake counted", ""},
                 {RPCResult::Type::NUM, "time took (ms)", ""}

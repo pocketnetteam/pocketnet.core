@@ -119,7 +119,7 @@ int64_t GetWeight(int64_t nIntervalBeginning, int64_t nIntervalEnd)
 }
 
 #ifdef ENABLE_WALLET
-bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const &chainparams)
+bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const &chainparams, ChainstateManager& chainman)
 {
     arith_uint256 proofHash = arith_uint256(0), hashTarget = arith_uint256(0);
     uint256 hashBlock = pblock->GetHash();
@@ -149,19 +149,16 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
             return error("CheckStake() : generated block is stale");
         }
 
-        // TODO (losty): idk what it is doing here because BlockFound signal is never connected to anything (see validationinterface.cpp)
+        // TODO (losty-fur): idk what it is doing here because BlockFound signal is never connected to anything (see validationinterface.cpp)
         // GetMainSignals().BlockFound(pblock->GetHash());
     }
 
     // Process this block the same as if we had received it from another node
     BlockValidationState state;
-    // TODO (losty): context issue here. 
-    // TODO (losty): use this - const CTxMemPool& mempool = EnsureMemPool(request.context);
-    // TODO (losty): use this - ChainstateManager& chainman = EnsureChainman(request.context);
-    // if (!ProcessNewBlock(state, chainparams, pblock, pocketBlock, true, /* fReceived */ false, NULL))
-    // {
-    //     return error("CoinStaker: ProcessNewBlock, block not accepted %s", state.GetRejectReason());
-    // }
+    if (!chainman.ProcessNewBlock(state, chainparams, pblock, pocketBlock, true, nullptr))
+    {
+        return error("CoinStaker: ProcessNewBlock, block not accepted %s", state.GetRejectReason());
+    }
 
     return true;
 }
@@ -181,7 +178,7 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
 
     CTransactionRef txPrev;
     uint256 hashBlock = uint256();
-    // TODO (losty): GetTransaction usage changed
+    // TODO (losty-critical): GetTransaction usage changed
     // if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
     // {
     //     return error("CheckProofOfStake() : INFO: read txPrev failed %s",
@@ -198,7 +195,7 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
         const CTransaction &txn = *tx;
         PrecomputedTransactionData txdata(txn);
         const COutPoint &prevout = tx->vin[0].prevout;
-        // TODO (losty): do we really need pointer here? Moreover below "assert" will never be triggered.
+        // TODO (losty-fur): do we really need pointer here? Moreover below "assert" will never be triggered.
         const Coin *coins = &::ChainstateActive().CoinsTip().AccessCoin(prevout);
         assert(coins);
 
@@ -246,7 +243,7 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
 
     CTransactionRef txPrev;
     uint256 hashBlock = uint256();
-    // TODO (losty): GetTransaction(...) signature changed 
+    // TODO (losty-critical): GetTransaction(...) signature changed 
     // if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
     // {
     //     LogPrintf("CheckKernel : Could not find previous transaction %s\n", prevout.hash.ToString());
@@ -576,7 +573,7 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge)
         CTransactionRef txPrev;
         uint256 hashBlock = uint256();
 
-        // TODO (losty): usage of GetTransaction changed. Need CBlockIndex as first parameter (passed as nullptr in some places) and mempool from node context (GetNodeContext(...))
+        // TODO (losty-critical): usage of GetTransaction changed. Need CBlockIndex as first parameter (passed as nullptr in some places) and mempool from node context (GetNodeContext(...))
         // if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
         //     continue; // previous transaction not in main chain
 

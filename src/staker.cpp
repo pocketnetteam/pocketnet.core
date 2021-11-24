@@ -115,16 +115,16 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     const auto& node = EnsureNodeContext(context);
     bool running = true;
     int nLastCoinStakeSearchInterval = 0;
-    // TODO (losty): CReverseScript is removed as well as GetScriptForMining().
+    // TODO (losty-critical): CReverseScript is removed as well as GetScriptForMining().
     // auto coinbaseScript = std::make_shared<CReserveScript>();
 
     auto wallet = GetWallet(walletName);
     if (!wallet) { return; }
-    // wallet->GetScriptForMining(coinbaseScript); // TODO (losty): this method deleted
+    // wallet->GetScriptForMining(coinbaseScript); // TODO (losty-critical): this method deleted
 
     try
     {
-        // TODO (losty): conbasescript removed
+        // TODO (losty-critical): conbasescript removed
         // if (!coinbaseScript || coinbaseScript->reserveScript.empty())
             throw std::runtime_error("No coinbase script available (staking requires a wallet)");
 
@@ -171,9 +171,9 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             }
 
             uint64_t nFees = 0;
-            // TODO (losty): possible null mempool
-            auto assembler = BlockAssembler(*node.mempool, chainparams); // TODO (losty): mempool
-            // TODO (losty): coinbasescript
+            // TODO (losty-fur): possible null mempool
+            auto assembler = BlockAssembler(*node.mempool, chainparams);
+            // TODO (losty-critical): coinbasescript
             // auto blocktemplate = assembler.CreateNewBlock(
             //     coinbaseScript->reserveScript, true, true, &nFees
             // );
@@ -185,8 +185,8 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             //     // Extend pocketBlock with coinStake transaction
             //     if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
             //         blocktemplate->pocketBlock->emplace_back(ptx);
-
-            //     CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams);
+            //     // TODO (losty-fur): possible null chainman
+            //     CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman);
             //     UninterruptibleSleep(std::chrono::milliseconds{500});
             // }
             // else
@@ -241,7 +241,7 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
     if (nSearchTime > nLastCoinStakeSearchTime)
     {
         int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nLastCoinStakeSearchTime;
-        // TODO (losty): wallet is no longer a CKeyStore. Research what to use here instead
+        // TODO (losty-critical): wallet is no longer a CKeyStore. Research what to use here instead
         if (wallet->CreateCoinStake(/* *wallet.get() */ FillableSigningProvider(), block->nBits, nSearchInterval, nFees, txCoinStake, key))
         {
             if (txCoinStake.nTime >= ::ChainActive().Tip()->GetPastTimeLimit() + 1)
@@ -281,7 +281,7 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
                     auto prevTx = wallet->GetWalletTx(prevHash);
                     const CScript& scriptPubKey = prevTx->tx->vout[n].scriptPubKey;
                     SignatureData sigdata;
-                    // TODO (losty): wallet is now not a CKeyStore and SigningProvider. Is GetSolvingProvider suitable here?
+                    // TODO (losty-critical): wallet is now not a CKeyStore and SigningProvider. Is GetSolvingProvider suitable here?
                     signSuccess = ProduceSignature(*wallet->GetSolvingProvider(scriptPubKey),
                         MutableTransactionSignatureCreator(&txNewConst, i, prevTx->tx->vout[n].nValue, SIGHASH_ALL),
                         scriptPubKey, sigdata);

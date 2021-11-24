@@ -2546,7 +2546,7 @@ bool CWallet::SignTransaction(CMutableTransaction& tx) const
 			return false;
 		}
 		const CWalletTx& wtx = mi->second;
-		// TODO (losty): is this valid usage of Coin()?
+		// TODO (losty-critical): is this valid usage of Coin()?
 		coins[input.prevout] = Coin(wtx.tx->vout[input.prevout.n], wtx.m_confirm.block_height, wtx.IsCoinBase(), wtx.IsCoinStake(), PocketHelpers::TransactionHelper::IsPocketTransaction(wtx.tx));
 	}
 	std::map<int, std::string> input_errors;
@@ -4740,7 +4740,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	txNew.vout.push_back(CTxOut(0, scriptEmpty));
 
 	// Choose coins to use
-	// TODO (losty): is choosen balance right?
+	// TODO (losty-critical): is choosen balance right?
 	int64_t nBalance = GetBalance().m_mine_immature;
 
 	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
@@ -4979,7 +4979,7 @@ int64_t CWallet::GetNewMint() const
 uint64_t CWallet::GetStakeWeight() const
 {
 	// Choose coins to use
-	// TODO (losty): is this correct?
+	// TODO (losty-critical): is this correct?
 	int64_t nBalance = GetBalance().m_mine_trusted;
 
 	if (nBalance <= 0) {

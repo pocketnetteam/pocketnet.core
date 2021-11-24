@@ -55,7 +55,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
             // First, call ATMP with test_accept and check the fee. If ATMP
             // fails here, return error immediately.
             CAmount fee{0};
-            // TODO (losty): pockettx?
+            // TODO (losty-critical): pockettx? It goes here by field from wallet.
             if (!AcceptToMemoryPool(*node.mempool, state, tx,
                 nullptr /* plTxnReplaced */, nullptr, false /* bypass_limits */, /* test_accept */ true, &fee)) {
                 return HandleATMPError(state, err_string);
@@ -64,7 +64,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
             }
         }
         // Try to submit the transaction to the mempool.
-        // TODO (losty): pockettx?
+        // TODO (losty-critical): pockettx?
         if (!AcceptToMemoryPool(*node.mempool, state, tx,
                 nullptr /* plTxnReplaced */, nullptr, false /* bypass_limits */)) {
             return HandleATMPError(state, err_string);
