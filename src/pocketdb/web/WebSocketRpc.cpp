@@ -25,6 +25,8 @@ namespace PocketWeb::PocketWebRpc
 
         // Get initial block number
         int blockNumber = request.params[1].get_int();
+        if (chainActive.Height() - blockNumber > 10000)
+            blockNumber = chainActive.Height() - 10000;
 
         // Get count of result records
         int cntResult = 30;
