@@ -133,6 +133,11 @@ namespace PocketConsensus
             case (SocialConsensusResult_RepostDeletedContent): return "RepostDeletedContent";
             case (SocialConsensusResult_AlreadyExists): return "AlreadyExists";
             case (SocialConsensusResult_PocketDataNotFound): return "PocketDataNotFound";
+            case (SocialConsensusResult_TxORNotFound): return "TxORNotFound";
+            case (SocialConsensusResult_ComplainDeletedContent): return "ComplainDeletedContent";
+            case (SocialConsensusResult_ScoreDeletedContent): return "ScoreDeletedContent";
+            case (SocialConsensusResult_RelayContentNotFound): return "RelayContentNotFound";
+            case (SocialConsensusResult_BadPayload): return "BadPayload";
             default: return "Unknown";
         }
     }

@@ -277,7 +277,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
         }
         else
         {
-            LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue depth exceeded.\n");
+            LogPrint(BCLog::RPCERROR, "WARNING: request rejected because http work queue depth exceeded.\n");
             item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded");
         }
     }
@@ -748,7 +748,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 {
     // JSONRPC handles only POST
     if (req->GetRequestMethod() != HTTPRequest::POST) {
-        LogPrint(BCLog::RPC, "WARNING: Request not POST\n");
+        LogPrint(BCLog::RPCERROR, "WARNING: Request not POST\n");
         req->WriteReply(HTTP_BAD_METHOD, "JSONRPC server handles only POST requests");
         return false;
     }

@@ -226,7 +226,7 @@ namespace PocketDb
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             join Payload up on up.TxHash=u.Hash
 
-            where u.Type in (100, 102, 102)
+            where u.Type in (100, 101, 102)
             and u.Height is not null
             and u.String1 = ?
             and u.Last = 1
