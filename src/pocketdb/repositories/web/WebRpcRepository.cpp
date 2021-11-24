@@ -617,7 +617,7 @@ namespace PocketDb
         auto func = __func__;
         map<int64_t, UniValue> result;
 
-        // TODO (brangr): We need to raise comments with donations to the top in this request
+        // TODO (brangr): We need to raise comments with donations to the top in this request -testing
 
         string sql = R"sql(
             select
@@ -657,27 +657,43 @@ namespace PocketDb
                 ) as Donate
 
             from (
-                select (t.Id)contentId, (t.String1)ContentAddressHash, (c.Id)commentId
-                from Transactions t indexed by Transactions_Last_Id_Height
-                left join Transactions c indexed by Transactions_Type_Last_String3_Height
-                    on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.String3 = t.String2 and c.String4 is null
-                where t.Type in (200,201,207)
-                    and t.Last = 1
-                    and t.Height is not null
-                    and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
-                    and c.Id = (
-                        select c1.Id
-                            --, (select sum(o.Value) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1)donate
-                        from Transactions c1 indexed by Transactions_Type_Last_String3_Height
-                        where c1.Type in (204,205)
+                select
+
+                    (t.Id)contentId,
+                    (t.String1)ContentAddressHash,
+
+                    -- Last comment for content record
+                    (
+                        select q.Id from (
+                          select c1.Id, (select sum( o.Value ) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1) donate
+
+                          from Transactions c1 indexed by Transactions_Type_Last_String3_Height
+
+                          where c1.Type in (204, 205)
                             and c1.Last = 1
                             and c1.Height is not null
                             and c1.String3 = t.String2
                             and c1.String4 is null
-                        --order by q.Donate desc, q.Id desc
-                        order by c1.Id desc
+
+                            -- Exclude accounts blocked by the content author
+                            and c1.String1 not in ( select b.String2 from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                                where b.Type in (305) and b.Last = 1 and b.Height is not null and b.String1 = t.String1 )
+                        ) q
+
+                        order by q.Donate desc, q.Id desc
                         limit 1
-                    )
+                    )commentId
+
+                from Transactions t indexed by Transactions_Last_Id_Height
+
+                left join Transactions c indexed by Transactions_Type_Last_String3_Height
+                    on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.String3 = t.String2 and c.String4 is null
+
+                where t.Type in (200,201,207)
+                    and t.Last = 1
+                    and t.Height is not null
+                    and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+
             ) cmnt
 
             join Transactions c indexed by Transactions_Last_Id_Height
@@ -782,7 +798,12 @@ namespace PocketDb
                   join Transactions p1 on p1.Hash = c1.String3
                   join TxOutputs o1 on o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 and o1.AddressHash != c1.String1
                   where c1.Type in (204,205) and c1.Last in (0,1) and c1.Height is not null and c1.String2 = c.String2
-                ) as Amount
+                )Amount,
+
+                (
+                    select count(1) from Transactions b  indexed by Transactions_Type_Last_String1_Height_Id
+                    where b.Type in (305) and b.Last = 1 and b.Height is not null and b.String1 = cmnt.ContentAddressHash and b.String2 = c.String1
+                )Blocked
 
             from Transactions c indexed by Transactions_Type_Last_String3_Height
             
@@ -819,28 +840,35 @@ namespace PocketDb
                 auto[ok1, rootTxHash] = TryGetColumnString(*stmt, 2);
                 record.pushKV("id", rootTxHash);
 
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok)
-                    record.pushKV("postid", valueStr);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
+                    record.pushKV("postid", value);
 
-                auto[ok8, msgValue] = TryGetColumnString(*stmt, 8);
-                record.pushKV("msg", msgValue);
-
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("address", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("timeUpd", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("block", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("parentid", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 10); ok) record.pushKV("answerid", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 11); ok) record.pushKV("scoreUp", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreDown", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 14); ok) record.pushKV("myScore", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 16); ok)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 17); ok && value == 0)
                 {
-                    if (valueStr != "0")
+                    if (auto[ok8, msgValue] = TryGetColumnString(*stmt, 8); ok8)
+                        record.pushKV("msg", msgValue);
+                }
+                else
+                {
+                    record.pushKV("blck", 1);
+                }
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("myScore", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok)
+                {
+                    if (value != "0")
                     {
-                        record.pushKV("amount", valueStr);
+                        record.pushKV("amount", value);
                         record.pushKV("donation", "true");
                     }
                 }
