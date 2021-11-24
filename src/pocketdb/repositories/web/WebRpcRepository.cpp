@@ -843,20 +843,11 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
                     record.pushKV("postid", value);
 
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 17); ok && value == 0)
-                {
-                    if (auto[ok8, msgValue] = TryGetColumnString(*stmt, 8); ok8)
-                        record.pushKV("msg", msgValue);
-                }
-                else
-                {
-                    record.pushKV("blck", 1);
-                }
-
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("address", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("timeUpd", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("msg", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("parentid", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("answerid", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("scoreUp", value);
@@ -872,6 +863,7 @@ namespace PocketDb
                         record.pushKV("donation", "true");
                     }
                 }
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 17); ok && value > 0) record.pushKV("blck", 1);
 
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                 {
