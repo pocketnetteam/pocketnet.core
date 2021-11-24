@@ -654,7 +654,12 @@ namespace PocketDb
                     from Transactions cc indexed by Transactions_Id
                     join TxOutputs o on o.TxHash = cc.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != cc.String1
                     where cc.Id = c.Id and cc.Height is not null
-                ) as Donate
+                ) as Donate,
+
+                (
+                    select count(1) from Transactions b  indexed by Transactions_Type_Last_String1_Height_Id
+                    where b.Type in (305) and b.Last = 1 and b.Height is not null and b.String1 = cmnt.ContentAddressHash and b.String2 = c.String1
+                )Blocked
 
             from (
                 select
@@ -674,10 +679,6 @@ namespace PocketDb
                             and c1.Height is not null
                             and c1.String3 = t.String2
                             and c1.String4 is null
-
-                            -- Exclude accounts blocked by the content author
-                            and c1.String1 not in ( select b.String2 from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
-                                where b.Type in (305) and b.Last = 1 and b.Height is not null and b.String1 = t.String1 )
                         ) q
 
                         order by q.Donate desc, q.Id desc
@@ -740,12 +741,12 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("reputation", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 16); ok) record.pushKV("myScore", value);
-                
                 if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
                 }
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 18); ok && value > 0) record.pushKV("blck", 1);
                                 
                 result.emplace(contentId, record);
             }
