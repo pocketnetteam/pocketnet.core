@@ -687,9 +687,6 @@ namespace PocketDb
 
                 from Transactions t indexed by Transactions_Last_Id_Height
 
-                left join Transactions c indexed by Transactions_Type_Last_String3_Height
-                    on c.Type in (204,205) and c.Last = 1 and c.Height is not null and c.String3 = t.String2 and c.String4 is null
-
                 where t.Type in (200,201,207)
                     and t.Last = 1
                     and t.Height is not null
