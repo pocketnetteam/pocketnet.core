@@ -28,6 +28,7 @@ namespace PocketTx
         virtual shared_ptr<UniValue> Serialize() const;
 
         virtual void Deserialize(const UniValue& src);
+        // TODO (brangr): remove tx
         virtual void DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx);
         virtual void DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx);
 
@@ -89,9 +90,10 @@ namespace PocketTx
         shared_ptr<Payload> m_payload = nullptr;
         vector<shared_ptr<TransactionOutput>> m_outputs;
 
-        string GenerateHash(const string& data) const;
         void GeneratePayload();
         void ClearPayload();
+
+        string GenerateHash(const string& data) const;
     };
 
 } // namespace PocketTx

@@ -12,6 +12,10 @@
 #include "validationinterface.h"
 #include "txmempool.h"
 #include "rpc/mining.h"
+#include "policy/rbf.h"
+#include "utilstrencodings.h"
+#include "keystore.h"
+#include "rpc/rawtransaction.h"
 #include "pocketdb/services/Serializer.h"
 #include "pocketdb/consensus/Base.h"
 #include "pocketdb/consensus/Helper.h"
@@ -22,6 +26,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue AddTransaction(const JSONRPCRequest& request);
     UniValue GetTransaction(const JSONRPCRequest& request);
     UniValue EstimateSmartFee(const JSONRPCRequest& request);
+    UniValue GenerateTransaction(const JSONRPCRequest& request);
 }
 
 #endif //SRC_POCKETTRANSACTIONRPC_H
