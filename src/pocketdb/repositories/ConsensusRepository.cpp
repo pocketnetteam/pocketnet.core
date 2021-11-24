@@ -974,12 +974,12 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
-                from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
-                where Type in (204)
+                from Transactions indexed by Transactions_Type_Last_String1_Height_Id
+                where Type in (204,205,206)
+                  and Last = 1
                   and Height is not null
                   and Height >= ?
                   and String1 = ?
-                  and Hash = String2
             )sql");
 
             TryBindStatementInt(stmt, 1, height);

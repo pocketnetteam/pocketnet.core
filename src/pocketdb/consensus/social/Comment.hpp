@@ -181,7 +181,10 @@ namespace PocketConsensus
     protected:
         int GetChainCount(const CommentRef& ptx) override
         {
-            return ConsensusRepoInst.CountChainCommentHeight(*ptx->GetAddress(), Height - (int) GetConsensusLimit(ConsensusLimit_depth));
+            return ConsensusRepoInst.CountChainCommentHeight(
+                *ptx->GetAddress(),
+                Height - (int)GetConsensusLimit(ConsensusLimit_depth)
+            );
         }
     };
 
