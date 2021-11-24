@@ -57,6 +57,8 @@ namespace PocketDb
         string addressWhere = !request.Address.empty() ? " and t.String1 = ? " : "";
         string keyword = request.Keyword + "*";
 
+        LogPrint(BCLog::RPCERROR, "Search keyword debug = `%s`\n", keyword);
+
         string sql = R"sql(
             select t.Id
             from Transactions t indexed by Transactions_Type_Last_String1_Height_Id

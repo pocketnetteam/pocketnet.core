@@ -200,6 +200,8 @@ namespace PocketConsensus
 
         ConsensusLimit_scores_depth_modify_reputation,
         ConsensusLimit_lottery_referral_depth,
+
+        ConsensusLimit_bad_reputation,
     };
 
     /*********************************************************************************************/
@@ -211,6 +213,24 @@ namespace PocketConsensus
     typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimits;
 
     static inline ConsensusLimits m_consensus_limits = {
+        // ConsensusLimit_bad_reputation
+        {
+            ConsensusLimit_bad_reputation,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, -500}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, -50}
+                    }
+                }
+            }
+        },
         // ConsensusLimit_threshold_reputation
         {
             ConsensusLimit_threshold_reputation,

@@ -1243,66 +1243,6 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address)
-    {
-        auto func = __func__;
-        UniValue result(UniValue::VARR);
-
-        string sql = R"sql(
-            select t.Id
-
-            from Transactions t indexed by Transactions_Type_Last_String3_Height
-            
-            join Payload p indexed by Payload_String1_TxHash
-                on p.String1 = ? and t.Hash = p.TxHash
-            
-            join Ratings r indexed by Ratings_Type_Id_Last_Value
-                on r.Type = 2 and r.Last = 1 and r.Id = t.Id and r.Value > 0
-
-            where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-                and t.Last = 1
-                and t.Height is not null
-                and t.Height <= ?
-                and t.Height > ?
-                and t.String3 is null
-
-            order by r.Value desc
-            limit ?
-        )sql";
-
-        vector<int64_t> ids;
-        TryTransactionStep(func, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            TryBindStatementText(stmt, i++, lang);
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
-            TryBindStatementInt(stmt, i++, nHeight);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
-            TryBindStatementInt(stmt, i++, countOut);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    ids.push_back(value);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        if (ids.empty())
-            return result;
-
-        auto contents = GetContentsData(ids, address);
-        result.push_backV(contents);
-
-        return result;
-    }
-
     vector<int64_t> WebRpcRepository::GetContentIds(const vector<string>& txHashes)
     {
         vector<int64_t> result;
@@ -2056,6 +1996,77 @@ namespace PocketDb
     // ------------------------------------------------------
     // Feeds
 
+    UniValue WebRpcRepository::GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang,
+        const vector<int>& contentTypes, const string& address, int badReputationLimit)
+    {
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select t.Id
+
+            from Transactions t indexed by Transactions_Type_Last_String3_Height
+
+            join Payload p indexed by Payload_String1_TxHash
+                on p.String1 = ? and t.Hash = p.TxHash
+
+            join Ratings r indexed by Ratings_Type_Id_Last_Value
+                on r.Type = 2 and r.Last = 1 and r.Id = t.Id and r.Value > 0
+
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+
+            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
+                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+
+            where t.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+                and t.Last = 1
+                and t.Height is not null
+                and t.Height <= ?
+                and t.Height > ?
+                and t.String3 is null
+
+                -- Do not show posts from users with low reputation
+                and ifnull(ur.Value,0) > ?
+
+            order by r.Value desc
+            limit ?
+        )sql";
+
+        vector<int64_t> ids;
+        TryTransactionStep(func, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            TryBindStatementText(stmt, i++, lang);
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+            TryBindStatementInt(stmt, i++, nHeight);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
+            TryBindStatementInt(stmt, i++, badReputationLimit);
+            TryBindStatementInt(stmt, i++, countOut);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    ids.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        if (ids.empty())
+            return result;
+
+        auto contents = GetContentsData(ids, address);
+        result.push_backV(contents);
+
+        return result;
+    }
+
     vector<UniValue> WebRpcRepository::GetContentsData(const vector<int64_t>& ids, const string& address)
     {
         auto func = __func__;
@@ -2393,8 +2404,10 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
-        const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
+    UniValue WebRpcRepository::GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight,
+        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const string& address, int badReputationLimit)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
@@ -2416,13 +2429,24 @@ namespace PocketDb
 
         string sql = R"sql(
             select t.Id
+
             from Transactions t indexed by Transactions_Last_Id_Height
             )sql" + langFilter + R"sql(
+
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
+                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+
             where t.Type in )sql" + contentTypesWhere + R"sql(
                 and t.Last = 1
                 and t.String3 is null
                 and t.Height > 0
                 and t.Height <= ?
+
+                -- Do not show posts from users with low reputation
+                and ifnull(ur.Value,0) > ?
+
                 )sql" + contentIdWhere + R"sql(
         )sql";
 
@@ -2461,6 +2485,8 @@ namespace PocketDb
                 TryBindStatementInt(stmt, i++, contenttype);
 
             TryBindStatementInt(stmt, i++, topHeight);
+
+            TryBindStatementInt(stmt, i++, badReputationLimit);
 
             if (topContentId > 0)
                 TryBindStatementInt64(stmt, i++, topContentId);
@@ -2512,8 +2538,10 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
-        const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address)
+    UniValue WebRpcRepository::GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight,
+        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const string& address, int badReputationLimit)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
@@ -2570,6 +2598,9 @@ namespace PocketDb
                 and t.String3 is null
                 and t.Height <= ?
                 and t.Height > ?
+
+                -- Do not show posts from users with low reputation
+                and ifnull(ur.Value,0) > ?
         )sql";
 
         if (!tags.empty())
@@ -2611,6 +2642,8 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, i++, topHeight);
             TryBindStatementInt(stmt, i++, topHeight - cntBlocksForResult);
+
+            TryBindStatementInt(stmt, i++, badReputationLimit);
             
             if (!tags.empty())
             {
@@ -2733,7 +2766,9 @@ namespace PocketDb
         int lack = countOut - (int)resultIds.size();
         if (lack > 0)
         {
-            UniValue histContents = GetHistoricalFeed(lack, minPostRank, topHeight, lang, tags, contentTypes, txidsExcluded, adrsExcluded, tagsExcluded, address);
+            UniValue histContents = GetHistoricalFeed(lack, minPostRank, topHeight, lang, tags, contentTypes,
+                txidsExcluded, adrsExcluded, tagsExcluded, address, badReputationLimit);
+
             result.push_backV(histContents.getValues());
         }
 

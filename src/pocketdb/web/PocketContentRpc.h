@@ -9,10 +9,12 @@
 #include "validation.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/web/WebRpcUtils.h"
+#include "pocketdb/consensus/Reputation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
     using namespace PocketHelpers;
+    using namespace PocketConsensus;
 
     UniValue GetContent(const JSONRPCRequest& request);
     UniValue GetContents(const JSONRPCRequest& request);

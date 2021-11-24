@@ -2,6 +2,7 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
+#include <pocketdb/consensus/Base.h>
 #include "pocketdb/web/PocketContentRpc.h"
 
 namespace PocketWeb::PocketWebRpc
@@ -293,7 +294,11 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 5)
             address = request.params[5].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang, contentTypes, address);
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
+        return request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang,
+            contentTypes, address, badReputationLimit);
     }
 
     UniValue GetHistoricalFeed(const JSONRPCRequest& request)
@@ -323,7 +328,8 @@ namespace PocketWeb::PocketWebRpc
         vector<string> adrsExcluded;
         vector<string> tagsExcluded;
         string address;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+            adrsExcluded, tagsExcluded, address);
 
         int64_t topContentId = 0;
         if (!topContentHash.empty())
@@ -333,9 +339,14 @@ namespace PocketWeb::PocketWebRpc
                 topContentId = ids[0];
         }
 
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetHistoricalFeed(
-            countOut, topContentId, topHeight, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
+            countOut, topContentId, topHeight, lang, tags, contentTypes,
+            txIdsExcluded, adrsExcluded, tagsExcluded,
+            address, badReputationLimit);
 
         result.pushKV("height", topHeight);
         result.pushKV("contents", content);
@@ -369,7 +380,8 @@ namespace PocketWeb::PocketWebRpc
         vector<string> adrsExcluded;
         vector<string> tagsExcluded;
         string address;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
+        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+            adrsExcluded, tagsExcluded, address);
 
         int64_t topContentId = 0;
         if (!topContentHash.empty())
@@ -379,9 +391,14 @@ namespace PocketWeb::PocketWebRpc
                 topContentId = ids[0];
         }
 
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetHierarchicalFeed(
-            countOut, topContentId, topHeight, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address);
+            countOut, topContentId, topHeight, lang, tags, contentTypes,
+            txIdsExcluded, adrsExcluded, tagsExcluded,
+            address, badReputationLimit);
 
         result.pushKV("height", topHeight);
         result.pushKV("contents", content);
@@ -432,7 +449,8 @@ namespace PocketWeb::PocketWebRpc
                 topContentId = ids[0];
         }
 
-        return request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(addressFrom, topContentId, count, lang, tags, contentTypes);
+        return request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(addressFrom, topContentId, count,
+            lang, tags, contentTypes);
     }
 
     UniValue FeedSelector(const JSONRPCRequest& request)
