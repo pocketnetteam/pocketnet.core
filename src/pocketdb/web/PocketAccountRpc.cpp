@@ -319,25 +319,12 @@ namespace PocketWeb::PocketWebRpc
         //         nMaximumCount = options["maximumCount"].get_int64();
         // }
 
-        // Check exists TX in mempool
-        // // T_O_D_O: LOCK(mempool.cs);
-        // for (const auto& e : mempool.mapTx) {
-        //     const CTransaction& tx = e.GetTx();
-        //     for (const CTxIn& txin : tx.vin) {
-        //         AddressUnspentTransactionItem mempoolItm = {"", txin.prevout.hash.ToString(), (int)txin.prevout.n};
+        // Get exclude inputs already used in mempool
+        vector<pair<string, uint32_t>> mempoolInputs;
+        mempool.GetAllInputs(mempoolInputs);
 
-        //         if (find_if(
-        //             unspentTransactions.begin(),
-        //             unspentTransactions.end(),
-        //             [&](const AddressUnspentTransactionItem& itm) { return itm == mempoolItm; }) != unspentTransactions.end()) {
-        //             unspentTransactions.erase(
-        //                 remove(unspentTransactions.begin(), unspentTransactions.end(), mempoolItm),
-        //                 unspentTransactions.end());
-        //         }
-        //     }
-        // }
-
-        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, chainActive.Height());
+        // Get unspents from DB
+        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, chainActive.Height(), mempoolInputs);
     }
 
     UniValue GetAccountSetting(const JSONRPCRequest& request)

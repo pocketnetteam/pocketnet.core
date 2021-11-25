@@ -202,32 +202,18 @@ namespace PocketWeb::PocketWebRpc
         // Deserialize params
         _ptx->DeserializeRpc(txPayload, nullptr);
 
+        // Get unspents
+        vector<pair<string, uint32_t>> mempoolInputs;
         vector<string> addresses {address};
-        auto unsp =  request.DbConnection()->WebRpcRepoInst->GetUnspents(addresses, chainActive.Height());
-        // TODO (brangr): select very olds inputs from UTXO table
-        // reindexer::Item inp;
-        // auto err = g_pocketdb->SelectOne(
-        //     reindexer::Query("UTXO")
-        //         .Where("address", CondEq, address)
-        //         .Where("spent_block", CondEq, 0)
-        //         .Sort("block", false)
-        //     , inp
-        // );
-        //
-        // if (!err.ok())
-        //     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Not found input for address " + address);
+        auto unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents(addresses, chainActive.Height(), mempoolInputs);
 
+        // Build inputs
         UniValue _inputs(UniValue::VARR);
-        // UniValue _input(UniValue::VOBJ);
-        // _input.pushKV("txid", inp["txid"].As<string>());
-        // _input.pushKV("vout", inp["txout"].As<int>());
-        // _inputs.push_back(_input);
         _inputs.push_back(unsp[0]);
-
 
         // Build outputs
         UniValue _outputs(UniValue::VARR);
-        auto totalAmount = unsp[0]["amount"].get_int64();
+        auto totalAmount = unsp[0]["amountSat"].get_int64();
         auto chunkAmount = totalAmount / outputCount;
         for (int i = 0; i < outputCount; i++)
         {

@@ -1226,3 +1226,19 @@ void CTxMemPool::GetTransactionAncestry(const uint256& txid, size_t& ancestors, 
 
 SaltedTxidHasher::SaltedTxidHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())),
                                        k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
+
+void CTxMemPool::GetAllInputs(std::vector<std::pair<std::string, uint32_t>>& inputs)
+{
+    LOCK(cs);
+    for (const auto& e: mempool.mapTx)
+    {
+        const auto& tx = e.GetTx();
+        for (const auto& txin: tx.vin)
+        {
+            inputs.push_back({
+                txin.prevout.hash.ToString(),
+                txin.prevout.n
+            });
+        }
+    }
+}

@@ -1297,7 +1297,8 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetUnspents(vector<string>& addresses, int height)
+    UniValue WebRpcRepository::GetUnspents(vector<string>& addresses, int height,
+        vector<pair<string, uint32_t>>& mempoolInputs)
     {
         UniValue result(UniValue::VARR);
 
@@ -1330,10 +1331,28 @@ namespace PocketDb
             {
                 UniValue record(UniValue::VOBJ);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("txid", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 1); ok) record.pushKV("vout", value);
+                auto[ok0, txHash] = TryGetColumnString(*stmt, 0);
+                auto[ok1, txOut] = TryGetColumnInt(*stmt, 1);
+
+                // Exclude outputs already used as inputs in mempool
+                if (!ok0 || !ok1 || find_if(
+                    mempoolInputs.begin(),
+                    mempoolInputs.end(),
+                    [&](const pair<string, uint32_t>& itm)
+                    {
+                        return itm.first == txHash && itm.second == txOut;
+                    })  != mempoolInputs.end())
+                    continue;
+
+                record.pushKV("txid", txHash);
+                record.pushKV("vout", txOut);
+
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) record.pushKV("amount", ValueFromAmount(value));
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok)
+                {
+                    record.pushKV("amount", ValueFromAmount(value));
+                    record.pushKV("amountSat", value);
+                }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("scriptPubKey", value);
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 5); ok)
                 {

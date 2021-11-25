@@ -91,7 +91,7 @@ namespace PocketDb
 
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
 
-        UniValue GetUnspents(vector<string>& addresses, int height);
+        UniValue GetUnspents(vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
 
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
