@@ -649,10 +649,9 @@ namespace PocketDb
                     where scr.Type = 301 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = c.String2),0) as MyScore,
 
                 (
-                    select sum(o.Value)
-                    from Transactions cc indexed by Transactions_Id
-                    join TxOutputs o on o.TxHash = cc.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != cc.String1
-                    where cc.Id = c.Id and cc.Height is not null
+                    select o.Value
+                    from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                    where o.TxHash = c.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != c.String1
                 ) as Donate,
 
                 (
@@ -668,19 +667,16 @@ namespace PocketDb
 
                     -- Last comment for content record
                     (
-                        select q.Id from (
-                          select c1.Id, (select sum( o.Value ) from TxOutputs o where o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1) donate
-
-                          from Transactions c1 indexed by Transactions_Type_Last_String3_Height
-
-                          where c1.Type in (204, 205)
-                            and c1.Last = 1
-                            and c1.Height is not null
-                            and c1.String3 = t.String2
-                            and c1.String4 is null
-                        ) q
-
-                        order by q.Donate desc, q.Id desc
+                        select c1.Id
+                        from Transactions c1 indexed by Transactions_Type_Last_String3_Height
+                        left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                            on o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1
+                        where c1.Type in (204, 205)
+                          and c1.Last = 1
+                          and c1.Height is not null
+                          and c1.String3 = t.String2
+                          and c1.String4 is null
+                        order by o.Value desc, c1.Id desc
                         limit 1
                     )commentId
 
