@@ -616,8 +616,6 @@ namespace PocketDb
         auto func = __func__;
         map<int64_t, UniValue> result;
 
-        // TODO (brangr): We need to raise comments with donations to the top in this request -testing
-
         string sql = R"sql(
             select
                 cmnt.contentId,
@@ -759,7 +757,8 @@ namespace PocketDb
             parentWhere = " and c.String4 = ? ";
 
         auto sql = R"sql(
-            SELECT
+            select
+
                 c.Type,
                 c.Hash,
                 c.String2 as RootTxHash,
@@ -772,49 +771,51 @@ namespace PocketDb
                 c.String4 as ParentTxHash,
                 c.String5 as AnswerTxHash,
 
-                (SELECT COUNT(1) FROM Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash AND sc.Int1 = 1 and sc.Last in (0,1)) as ScoreUp,
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1 and sc.Last in (0,1)) as ScoreUp,
 
-                (SELECT COUNT(1) FROM Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    WHERE sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1 and sc.Last in (0,1)) as ScoreDown,
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1 and sc.Last in (0,1)) as ScoreDown,
 
-                (SELECT r.Value FROM Ratings r indexed by Ratings_Type_Id_Last_Height
-                    WHERE r.Id=c.Id AND r.Type=3 and r.Last=1) as Reputation,
+                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
+                    where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
 
-                IFNULL(sc.Int1, 0) AS MyScore,
+                sc.Int1 as MyScore,
 
-                (SELECT COUNT(1) FROM Transactions s indexed by Transactions_Type_Last_String4_Height
-                    WHERE s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
+                (select count(1) from Transactions s indexed by Transactions_Type_Last_String4_Height
+                    where s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
 
-                (select sum(o1.Value) Amount
-                  from Transactions c1 indexed by Transactions_Type_Last_String2_Height
-                  join Transactions p1 on p1.Hash = c1.String3
-                  join TxOutputs o1 on o1.TxHash = c1.Hash and o1.AddressHash = p1.String1 and o1.AddressHash != c1.String1
-                  where c1.Type in (204,205) and c1.Last in (0,1) and c1.Height is not null and c1.String2 = c.String2
-                )Amount,
+                o.Value as Donate,
 
                 (
-                    select count(1) from Transactions b  indexed by Transactions_Type_Last_String1_Height_Id
+                    select 1 from Transactions b  indexed by Transactions_Type_Last_String1_Height_Id
                     where b.Type in (305) and b.Last = 1 and b.Height is not null and b.String1 = t.String1 and b.String2 = c.String1
+                    limit 1
                 )Blocked
 
             from Transactions c indexed by Transactions_Type_Last_String3_Height
-            
+
             join Transactions r ON c.String2 = r.Hash
-            
+
             join Payload pl ON pl.TxHash = c.Hash
 
             join Transactions t indexed by Transactions_Type_Last_String2_Height
                 on t.Type in (200,201) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
-            
+
             left join Transactions sc indexed by Transactions_Type_String1_String2_Height
                 on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
+
+            left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                on o.TxHash = c.Hash and o.AddressHash = t.String1 and o.AddressHash != c.String1
 
             where c.Type in (204, 205, 206)
                 and c.Height is not null
                 and c.Last = 1
                 and c.String3 = ?
                 )sql" + parentWhere + R"sql(
+
+            order by o.Value desc, c.Height asc, c.BlockNum asc
+
         )sql";
 
         TryTransactionStep(func, [&]()
@@ -851,14 +852,13 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("myScore", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
+
                 if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok)
                 {
-                    if (value != "0")
-                    {
-                        record.pushKV("amount", value);
-                        record.pushKV("donation", "true");
-                    }
+                    record.pushKV("amount", value);
+                    record.pushKV("donation", "true");
                 }
+
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 17); ok && value > 0) record.pushKV("blck", 1);
 
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
