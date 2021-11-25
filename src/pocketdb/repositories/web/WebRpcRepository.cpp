@@ -1330,13 +1330,15 @@ namespace PocketDb
                 auto[ok0, txHash] = TryGetColumnString(*stmt, 0);
                 auto[ok1, txOut] = TryGetColumnInt(*stmt, 1);
 
+                string _txHash = txHash;
+                int _txOut = txOut;
                 // Exclude outputs already used as inputs in mempool
                 if (!ok0 || !ok1 || find_if(
                     mempoolInputs.begin(),
                     mempoolInputs.end(),
                     [&](const pair<string, uint32_t>& itm)
                     {
-                        return itm.first == txHash && itm.second == txOut;
+                        return itm.first == _txHash && itm.second == _txOut;
                     })  != mempoolInputs.end())
                     continue;
 
