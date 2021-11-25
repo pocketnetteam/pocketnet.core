@@ -308,7 +308,7 @@ namespace PocketDb
     {
         UniValue result(UniValue::VARR);
 
-        if (!addresses.empty())
+        if (addresses.empty())
             return  result;
 
         string addressesWhere = join(vector<string>(addresses.size(), "?"), ",");
@@ -319,12 +319,11 @@ namespace PocketDb
                 ifnull((select count(distinct ru.String1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
                     where ru.Type in (100,101,102) and ru.Last=1 and ru.Height <= ? and ru.Height > ? and ru.String2=u.String1),0) as ReferralsCountHist
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            join Payload up on up.TxHash=u.Hash
-
             where u.Type in (100, 102, 102)
             and u.Height is not null
             and u.String1 in ( )sql" + addressesWhere + R"sql( )
             and u.Last = 1
+            group by u.String1
         )sql";
 
         TryTransactionStep(__func__, [&]()

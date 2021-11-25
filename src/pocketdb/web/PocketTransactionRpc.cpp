@@ -202,6 +202,8 @@ namespace PocketWeb::PocketWebRpc
         // Deserialize params
         _ptx->DeserializeRpc(txPayload, nullptr);
 
+        vector<string> addresses {address};
+        auto unsp =  request.DbConnection()->WebRpcRepoInst->GetUnspents(addresses, chainActive.Height());
         // TODO (brangr): select very olds inputs from UTXO table
         // reindexer::Item inp;
         // auto err = g_pocketdb->SelectOne(
@@ -220,10 +222,12 @@ namespace PocketWeb::PocketWebRpc
         // _input.pushKV("txid", inp["txid"].As<string>());
         // _input.pushKV("vout", inp["txout"].As<int>());
         // _inputs.push_back(_input);
+        _inputs.push_back(unsp[0]);
+
 
         // Build outputs
         UniValue _outputs(UniValue::VARR);
-        auto totalAmount = 0; //inp["amount"].As<int64_t>();
+        auto totalAmount = unsp[0]["amount"].get_int64();
         auto chunkAmount = totalAmount / outputCount;
         for (int i = 0; i < outputCount; i++)
         {
