@@ -814,8 +814,6 @@ namespace PocketDb
                 and c.String3 = ?
                 )sql" + parentWhere + R"sql(
 
-            order by o.Value desc, c.Height asc, c.BlockNum asc
-
         )sql";
 
         TryTransactionStep(func, [&]()
