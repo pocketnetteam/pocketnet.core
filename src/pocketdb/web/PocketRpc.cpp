@@ -70,8 +70,8 @@ static const CRPCCommand commands[] =
 
     // Scores
     {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},
-    {"scores",          "getpostscores",                    &GetPostScores,                 {"txs", "address"}},
-    {"scores",          "getpagescores",                    &GetPageScores,                 {"txs", "address", "cmntids"}},
+    {"scores",          "getpostscores",                    &GetPostScores,                 {"txHash"}},
+    {"scores",          "getpagescores",                    &GetPagesScores,                {"postIds", "address", "cmntIds"}},
 
     // Explorer
     {"explorer",       "getstatistic",                     &GetStatistic,                   {"endTime", "depth"}},

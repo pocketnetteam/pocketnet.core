@@ -928,146 +928,115 @@ namespace PocketDb
         return result;
     }
 
-    vector<UniValue> WebRpcRepository::GetPostScores(const vector<string>& postHashes, const string& addressHash)
+    UniValue WebRpcRepository::GetPagesScores(const vector<string>& postHashes, const vector<string>& commentHashes, const string& addressHash)
     {
         auto func = __func__;
-        vector<UniValue> result;
+        UniValue result(UniValue::VARR);
 
-        if (postHashes.empty())
-            return result;
-
-        string sql = R"sql(
-            select
-
-                sc.String2, -- post
-                sc.Int1 -- score value
-
-                --sc.String1, -- address
-                --p.String2, -- name
-                --p.String3, -- avatar
-                --(select r.Value from Ratings r where r.Type=0 and r.Id=u.Id and r.Last=1), -- user reputation
-                --case
-                --    when sub.Type is null then null
-                --    when sub.Type = 303 then 1
-                --    else 0
-                --end -- isPrivate
-
-            from Transactions sc indexed by Transactions_Type_Last_String1_String2_Height
-
-            --join Transactions u indexed by Transactions_Type_Last_String1_String2_Height
-            --    on u.Type in (100, 101, 102) and u.Last = 1 and u.String1 = sc.String1 and u.Height is not null
-
-            --join Payload p ON p.TxHash=u.Hash
-
-            --left join Transactions sub indexed by Transactions_Type_Last_String1_String2_Height
-            --    on sub.Type in (302, 303) and sub.Last = 1 and sub.Height is not null and sub.String2 = sc.String1 AND sub.String1 = ?
-
-            where sc.Type in (300)
-              and sc.Last in (0,1)
-              and sc.Height is not null
-              and sc.String1 = ?
-              and sc.String2 in ( )sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql( )
-
-            --order by sub.Type is null, sc.Time
-        )sql";
-
-        TryTransactionStep(func, [&]()
+        if (!postHashes.empty())
         {
-            auto stmt = SetupSqlStatement(sql);
+            string sql = R"sql(
+                select
+                    sc.String2 as ContentTxHash,
+                    sc.Int1 as MyScoreValue
 
-            int i = 1;
-            TryBindStatementText(stmt, i++, addressHash);
-            for (const auto& postHash: postHashes)
-                TryBindStatementText(stmt, i++, postHash);
+                from Transactions sc indexed by Transactions_Type_Last_String1_String2_Height
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
+                where sc.Type in (300)
+                  and sc.Last in (0,1)
+                  and sc.Height is not null
+                  and sc.String1 = ?
+                  and sc.String2 in ( )sql" + join(vector<string>(postHashes.size(), "?"), ",") + R"sql( )
+            )sql";
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            TryTransactionStep(func, [&]()
             {
-                UniValue record(UniValue::VOBJ);
+                auto stmt = SetupSqlStatement(sql);
 
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("value", value);
+                int i = 1;
+                TryBindStatementText(stmt, i++, addressHash);
+                for (const auto& postHash: postHashes)
+                    TryBindStatementText(stmt, i++, postHash);
 
-                // TODO (brangr): add postLikers from subscribers
-                // if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
-                // if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
-                // if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
-                // if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("reputation", value);
-                // if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("isprivate", value);
+                LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
-                result.push_back(record);
-            }
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
 
-            FinalizeSqlStatement(*stmt);
-        });
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("value", value);
+
+                    result.push_back(record);
+                }
+
+                FinalizeSqlStatement(*stmt);
+            });
+        }
+
+        if (!commentHashes.empty())
+        {
+            string commentHashesWhere;
+            if (!commentHashes.empty())
+                commentHashesWhere = " and c.String2 in (" + join(vector<string>(commentHashes.size(), "?"), ",") + ")";
+
+            string sql = R"sql(
+                select
+                    c.String2 as RootTxHash,
+
+                    (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                        where sc.Type in (301) and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1) as ScoreUp,
+
+                    (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                        where sc.Type in (301) and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
+
+                    (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Value where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
+
+                    msc.Int1 AS MyScore
+
+                from Transactions c indexed by Transactions_Type_Last_String2_Height
+                left join Transactions msc indexed by Transactions_Type_String1_String2_Height
+                    on msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1 = ?
+                where c.Type in (204, 205)
+                    and c.Last = 1
+                    and c.Height is not null
+                    )sql" + commentHashesWhere + R"sql(
+            )sql";
+
+            TryTransactionStep(func, [&]()
+            {
+                auto stmt = SetupSqlStatement(sql);
+
+                int i = 1;
+                TryBindStatementText(stmt, i++, addressHash);
+                for (const auto& commentHashe: commentHashes)
+                    TryBindStatementText(stmt, i++, commentHashe);
+
+                LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
+
+                while (sqlite3_step(*stmt) == SQLITE_ROW)
+                {
+                    UniValue record(UniValue::VOBJ);
+
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("cmntid", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("scoreUp", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("scoreDown", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("reputation", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("myScore", value);
+
+                    result.push_back(record);
+                }
+
+                FinalizeSqlStatement(*stmt);
+            });
+        }
 
         return result;
     }
 
-    vector<UniValue> WebRpcRepository::GetCommentScores(const vector<string>& commentHashes, const string& addressHash)
+    UniValue GetPostScores(const string& postTxHash)
     {
-        auto func = __func__;
-        vector<UniValue> result;
-
-        if (commentHashes.empty())
-            return result;
-
-        string commentHashesWhere;
-        if (!commentHashes.empty())
-            commentHashesWhere = " and c.String2 in (" + join(vector<string>(commentHashes.size(), "?"), ",") + ")";
-
-        string sql = R"sql(
-            select
-                c.String2 as RootTxHash,
-
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type in (301) and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1) as ScoreUp,
-
-                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type in (301) and sc.Last in (0,1) and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1) as ScoreDown,
-
-                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Value where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
-
-                msc.Int1 AS MyScore
-
-            from Transactions c indexed by Transactions_Type_Last_String2_Height
-            left join Transactions msc indexed by Transactions_Type_String1_String2_Height
-                on msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1 = ?
-            where c.Type in (204, 205)
-                and c.Last = 1
-                and c.Height is not null
-                )sql" + commentHashesWhere + R"sql(
-        )sql";
-
-        TryTransactionStep(func, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            TryBindStatementText(stmt, i++, addressHash);
-            for (const auto& commentHashe: commentHashes)
-                TryBindStatementText(stmt, i++, commentHashe);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("cmntid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("myScore", value);
-
-                result.push_back(record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
+        // TODO (brangr):
     }
 
     UniValue WebRpcRepository::GetAddressScores(const vector<string>& postHashes, const string& address)

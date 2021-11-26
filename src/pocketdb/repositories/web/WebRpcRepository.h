@@ -71,8 +71,8 @@ namespace PocketDb
         UniValue GetLastComments(int count, int height, const string& lang);
         map<int64_t, UniValue> GetLastComments(const vector<int64_t>& ids, const string& address);
 
-        vector<UniValue> GetPostScores(const vector<string>& postHashes, const string& address);
-        vector<UniValue> GetCommentScores(const vector<string>& commentHashes, const string& address);
+        UniValue GetPagesScores(const vector<string>& postHashes, const vector<string>& commentHashes, const string& address);
+        UniValue GetPostScores(const string& postTxHash);
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
 
