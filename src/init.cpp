@@ -961,12 +961,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
 
     // Start staker thread after activate best chain
     #ifdef ENABLE_WALLET
-    // TODO (brangr): DEBUG!
-    if (chainparams.NetworkID() == NetworkTest)
-    {
-        Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
-        Staker::getInstance()->startWorkers(threadGroup, chainparams);
-    }
+    Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", false));
+    Staker::getInstance()->startWorkers(threadGroup, chainparams);
     #endif
 }
 
