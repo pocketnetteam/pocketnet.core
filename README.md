@@ -123,6 +123,7 @@ See `doc/build-*.md` files for build instructions.
 # Help
 You can get help and useful information from different sources:
 - https://pocketnet.app/help
+- https://github.com/pocketnetteam/pocketnet.core/blob/master/doc/public_access.md
 - https://github.com/pocketnetteam/pocketnet.core/tree/master/doc/help
 - https://github.com/pocketnetteam/pocketnet.core/blob/master/share/examples/pocketcoin.conf
 - Contact section below
