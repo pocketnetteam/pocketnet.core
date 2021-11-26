@@ -415,7 +415,7 @@ namespace PocketWeb::PocketWebRpc
 
         string address = request.params[0].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetBlockedAddresses(address);
+        return request.DbConnection()->WebRpcRepoInst->GetBlockingToAddresses(address);
     }
 
 }
