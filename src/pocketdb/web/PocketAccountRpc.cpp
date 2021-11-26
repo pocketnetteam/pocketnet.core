@@ -6,7 +6,7 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetAddressId(const JSONRPCRequest& request)
+    UniValue GetAccountId(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
@@ -62,7 +62,7 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetUserAddress(const JSONRPCRequest& request)
+    UniValue GetAccountAddress(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
@@ -75,7 +75,7 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->WebRpcRepoInst->GetUserAddress(userName);
     }
 
-    UniValue GetAddressRegistration(const JSONRPCRequest& request)
+    UniValue GetAccountRegistration(const JSONRPCRequest& request)
     {
         if (request.fHelp)
         {
@@ -123,7 +123,7 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->WebRpcRepoInst->GetAddressesRegistrationDates(addresses);
     }
 
-    UniValue GetUserState(const JSONRPCRequest& request)
+    UniValue GetAccountState(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
@@ -209,7 +209,7 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetUnspents(const JSONRPCRequest& request)
+    UniValue GetAccountUnspents(const JSONRPCRequest& request)
     {
         // TODO (brangr): add pagination
 
@@ -315,7 +315,7 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->WebRpcRepoInst->GetAccountSetting(address);
     }
 
-    UniValue GetUserStatistic(const JSONRPCRequest& request)
+    UniValue GetAccountStatistic(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw std::runtime_error(
@@ -376,22 +376,46 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depth);
     }
 
-    UniValue GetUserSubscribes(const JSONRPCRequest& request)
+    UniValue GetAccountSubscribes(const JSONRPCRequest& request)
     {
-        // TODO (brangr): implement
-        return UniValue();
+        if (request.fHelp)
+            throw std::runtime_error(
+                "GetAccountSubscribes \"address\"\n"
+                "\nReturn subscribes accounts list with pagination - NOT IMPLEMENTED\n");
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetSubscribesAddresses(address);
     }
 
-    UniValue GetUserSubscribers(const JSONRPCRequest& request)
+    UniValue GetAccountSubscribers(const JSONRPCRequest& request)
     {
-        // TODO (brangr): implement
-        return UniValue();
+        if (request.fHelp)
+            throw std::runtime_error(
+                "GetAccountSubscribers \"address\"\n"
+                "\nReturn subscribers accounts list with pagination - NOT IMPLEMENTED\n");
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetSubscribersAddresses(address);
     }
 
-    UniValue GetUserBlockings(const JSONRPCRequest& request)
+    UniValue GetAccountBlockings(const JSONRPCRequest& request)
     {
-        // TODO (brangr): implement
-        return UniValue();
+        if (request.fHelp)
+            throw std::runtime_error(
+                "GetAccountBlockings \"address\"\n"
+                "\nReturn blocked accounts list with pagination - NOT IMPLEMENTED\n");
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetBlockedAddresses(address);
     }
 
 }

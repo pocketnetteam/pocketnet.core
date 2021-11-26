@@ -14,17 +14,17 @@ namespace PocketWeb::PocketWebRpc
     using namespace std;
     using namespace PocketConsensus;
 
-    UniValue GetAddressId(const JSONRPCRequest& request);
+    UniValue GetAccountId(const JSONRPCRequest& request);
     UniValue GetAccountProfiles(const JSONRPCRequest& request);
     UniValue GetAccountSetting(const JSONRPCRequest& request);
-    UniValue GetUserAddress(const JSONRPCRequest& request);
-    UniValue GetAddressRegistration(const JSONRPCRequest& request);
-    UniValue GetUserState(const JSONRPCRequest& request);
-    UniValue GetUnspents(const JSONRPCRequest& request);
-    UniValue GetUserStatistic(const JSONRPCRequest& request);
-    UniValue GetUserSubscribes(const JSONRPCRequest& request);
-    UniValue GetUserSubscribers(const JSONRPCRequest& request);
-    UniValue GetUserBlockings(const JSONRPCRequest& request);
+    UniValue GetAccountAddress(const JSONRPCRequest& request);
+    UniValue GetAccountRegistration(const JSONRPCRequest& request);
+    UniValue GetAccountState(const JSONRPCRequest& request);
+    UniValue GetAccountUnspents(const JSONRPCRequest& request);
+    UniValue GetAccountStatistic(const JSONRPCRequest& request);
+    UniValue GetAccountSubscribes(const JSONRPCRequest& request);
+    UniValue GetAccountSubscribers(const JSONRPCRequest& request);
+    UniValue GetAccountBlockings(const JSONRPCRequest& request);
 }
 
 

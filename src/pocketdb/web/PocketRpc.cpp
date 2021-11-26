@@ -57,16 +57,16 @@ static const CRPCCommand commands[] =
 
     // Accounts
     {"accounts",        "getuserprofile",                   &GetAccountProfiles,             {"addresses", "short"}},
-    {"accounts",        "getuseraddress",                   &GetUserAddress,                 {"name"}},
+    {"accounts",        "getuseraddress",                   &GetAccountAddress,              {"name"}},
     {"accounts",        "getaddressregistration",           &GetAddressRegistration,         {"addresses"}},
-    {"accounts",        "getuserstate",                     &GetUserState,                   {"address"}},
-    {"accounts",        "txunspent",                        &GetUnspents,                    {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
-    {"accounts",        "getaddressid",                     &GetAddressId,                   {"address_or_id"}},
+    {"accounts",        "getuserstate",                     &GetAccountState,                {"address"}},
+    {"accounts",        "txunspent",                        &GetAccountUnspents,             {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
+    {"accounts",        "getaddressid",                     &GetAccountId,                   {"address_or_id"}},
     {"accounts",        "getaccountsetting",                &GetAccountSetting,              {"address"}},
-    {"accounts",        "getuserstatistic",                 &GetUserStatistic,               {"address", "height", "depth"}},
-    {"accounts",        "getusersubscribes",                &GetUserSubscribes,              {"address", "height", "depth"}},
-    {"accounts",        "getusersubscribers",               &GetUserSubscribers,             {"address", "height", "depth"}},
-    {"accounts",        "getuserblockings",                 &GetUserBlockings,               {"address", "height", "depth"}},
+    {"accounts",        "getuserstatistic",                 &GetAccountStatistic,            {"address", "height", "depth"}},
+    {"accounts",        "getusersubscribes",                &GetAccountSubscribes,           {"address", "height", "depth"}},
+    {"accounts",        "getusersubscribers",               &GetAccountSubscribers,          {"address", "height", "depth"}},
+    {"accounts",        "getuserblockings",                 &GetAccountBlockings,            {"address", "height", "depth"}},
 
     // Scores
     {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},

@@ -1155,124 +1155,64 @@ namespace PocketDb
         return result;
     }
 
-    map<string, UniValue> WebRpcRepository::GetSubscribesAddresses(const vector<string>& addresses, const vector<TxType>& types)
+    UniValue WebRpcRepository::GetSubscribesAddresses(const string& address, const vector<TxType>& types)
     {
-        auto result = map<string, UniValue>();
-        for (const auto& address: addresses)
-            result[address] = UniValue(UniValue::VARR);
+        UniValue result(UniValue::VARR);
 
-        string sql = R"sql(
-            select
-                String1 as AddressHash,
-                String2 as AddressToHash,
-                case
-                    when Type = 303 then 1
-                    else 0
-                end as Private
-            from Transactions
-            where Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
-              and Last = 1
-              and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-        )sql";
+        // TODO (brangr) (v0.21): implement
+        // Should return pagination list of account profiles
 
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            for (const auto& address: addresses)
-                TryBindStatementText(stmt, i++, address);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                UniValue record(UniValue::VOBJ);
-                auto[ok, address] = TryGetColumnString(*stmt, 0);
-
-                if (auto[ok1, value] = TryGetColumnString(*stmt, 1); ok1) record.pushKV("adddress", value);
-                if (auto[ok2, value] = TryGetColumnString(*stmt, 2); ok2) record.pushKV("private", value);
-
-                result[address].push_back(record);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
+        // string sql = R"sql(
+        //     select
+        //         String1 as AddressHash,
+        //         String2 as AddressToHash,
+        //         case
+        //             when Type = 303 then 1
+        //             else 0
+        //         end as Private
+        //     from Transactions indexed by Transactions_Type_Last_String1_String2_Height
+        //     where Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
+        //       and Last = 1
+        //       and Height > 0
+        //       and String1 = ?
+        // )sql";
+        //
+        // TryTransactionStep(__func__, [&]()
+        // {
+        //     auto stmt = SetupSqlStatement(sql);
+        //
+        //     int i = 1;
+        //     TryBindStatementText(stmt, i++, address);
+        //
+        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
+        //     {
+        //         UniValue record(UniValue::VOBJ);
+        //         auto[ok, address] = TryGetColumnString(*stmt, 0);
+        //
+        //         if (auto[ok1, value] = TryGetColumnString(*stmt, 1); ok1) record.pushKV("adddress", value);
+        //         if (auto[ok2, value] = TryGetColumnString(*stmt, 2); ok2) record.pushKV("private", value);
+        //
+        //         result[address].push_back(record);
+        //     }
+        //
+        //     FinalizeSqlStatement(*stmt);
+        // });
 
         return result;
     }
 
-    map<string, UniValue> WebRpcRepository::GetSubscribersAddresses(const vector<string>& addresses, const vector<TxType>& types)
+    UniValue WebRpcRepository::GetSubscribersAddresses(const string& address, const vector<TxType>& types)
     {
-        string sql = R"sql(
-            select
-                String2 as AddressToHash,
-                String1 as AddressHash
-            from Transactions indexed by Transactions_Type_Last_String2_Height
-            where Type in ( )sql" + join(types | transformed(static_cast<string(*)(int)>(to_string)), ",") + R"sql( )
-              and Last = 1
-              and Height is not null
-              and String2 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-        )sql";
-
-        auto result = map<string, UniValue>();
-        for (const auto& address: addresses)
-            result[address] = UniValue(UniValue::VARR);
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            for (const auto& address: addresses)
-                TryBindStatementText(stmt, i++, address);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                auto[ok, addressTo] = TryGetColumnString(*stmt, 0);
-                auto[ok1, address] = TryGetColumnString(*stmt, 1);
-
-                result[addressTo].push_back(address);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
+        // TODO (brangr) (v0.21): implement
+        // Should return pagination list of account profiles
+        return UniValue(UniValue::VARR);
     }
 
-    map<string, UniValue> WebRpcRepository::GetBlockingToAddresses(const vector<string>& addresses)
+    UniValue WebRpcRepository::GetBlockingToAddresses(const string& address)
     {
-        string sql = R"sql(
-            SELECT String1 as AddressHash,
-                String2 as AddressToHash
-            FROM Transactions
-            WHERE Type in (305) and Last = 1
-            and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-        )sql";
-
-        auto result = map<string, UniValue>();
-        for (const auto& address: addresses)
-            result[address] = UniValue(UniValue::VARR);
-
-        TryTransactionStep(__func__, [&]()
-        {
-            auto stmt = SetupSqlStatement(sql);
-
-            int i = 1;
-            for (const auto& address: addresses)
-                TryBindStatementText(stmt, i++, address);
-
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
-            {
-                auto[ok, address] = TryGetColumnString(*stmt, 0);
-                auto[ok1, addressTo] = TryGetColumnString(*stmt, 1);
-
-                result[address].push_back(addressTo);
-            }
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return result;
+        // TODO (brangr) (v0.21): implement
+        // Should return pagination list of account profiles
+        return UniValue(UniValue::VARR);
     }
 
     UniValue WebRpcRepository::GetTags(const string& lang, int pageSize, int pageStart)

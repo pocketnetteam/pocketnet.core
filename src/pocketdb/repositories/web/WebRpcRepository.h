@@ -79,13 +79,9 @@ namespace PocketDb
         map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true);
         map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true);
 
-        map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses,
-            const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
-
-        map<string, UniValue> GetSubscribersAddresses(const vector<string>& addresses,
-            const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
-
-        map<string, UniValue> GetBlockingToAddresses(const vector<string>& addresses);
+        UniValue GetSubscribesAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+        UniValue GetSubscribersAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+        UniValue GetBlockingToAddresses(const string& address);
 
         UniValue GetTags(const string& lang, int pageSize, int pageStart);
 
