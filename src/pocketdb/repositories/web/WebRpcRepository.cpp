@@ -1034,9 +1034,64 @@ namespace PocketDb
         return result;
     }
 
-    UniValue GetPostScores(const string& postTxHash)
+    UniValue WebRpcRepository::GetPostScores(const string& postTxHash)
     {
-        // TODO (brangr):
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        string sql = R"sql(
+            select
+                s.String2 as ContentTxHash,
+                s.String1 as ScoreAddressHash,
+                p.String2 as AccountName,
+                p.String3 as AccountAvatar,
+                r.Value as AccountReputation,
+                s.Int1 as ScoreValue
+
+            from Transactions s indexed by Transactions_Type_Last_String2_Height
+
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = s.String1
+
+            cross join Ratings r indexed by Ratings_Type_Id_Last_Value
+                on r.Type = 0 and r.Last = 1 and r.Id = u.Id
+
+            cross join Payload p on p.TxHash = u.Hash
+
+            where s.Type in (300)
+              and s.Last in (0,1)
+              and s.Height > 0
+              and s.String2 = ?
+        )sql";
+
+        TryTransactionStep(func, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, postTxHash);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
+
+            // ---------------------------------------------
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("value", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
     UniValue WebRpcRepository::GetAddressScores(const vector<string>& postHashes, const string& address)
