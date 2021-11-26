@@ -14,15 +14,15 @@ namespace PocketWeb::PocketWebRpc
     using namespace std;
     using namespace PocketConsensus;
 
-    UniValue GetAddressId(const JSONRPCRequest& request);
-    UniValue GetAccountProfiles(const JSONRPCRequest& request);
-    UniValue GetAccountSetting(const JSONRPCRequest& request);
-    UniValue GetUserAddress(const JSONRPCRequest& request);
-    UniValue GetAddressRegistration(const JSONRPCRequest& request);
-    UniValue GetUserState(const JSONRPCRequest& request);
+    RPCHelpMan GetAddressId();
+    RPCHelpMan GetAccountProfiles();
+    RPCHelpMan GetAccountSetting();
+    RPCHelpMan GetUserAddress();
+    RPCHelpMan GetAddressRegistration();
+    RPCHelpMan GetUserState();
     map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses, bool shortForm = true);
-    UniValue GetUnspents(const JSONRPCRequest& request);
-    UniValue GetUserStatistic(const JSONRPCRequest& request);
+    RPCHelpMan GetUnspents();
+    RPCHelpMan GetUserStatistic();
 }
 
 

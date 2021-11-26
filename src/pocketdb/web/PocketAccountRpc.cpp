@@ -3,17 +3,34 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketAccountRpc.h"
+#include "rpc/util.h"
 #include "validation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetAddressId(const JSONRPCRequest& request)
+    RPCHelpMan GetAddressId()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getaddressid \"address\" or \"id\"\n"
-                "\nGet id and address.\n");
-
+        return RPCHelpMan{"getaddressid",
+                "\nGet id and address.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"id", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
+                },
+                RPCResult{
+                    RPCResult::Type::OBJ, "", /* optional (means array may be empty) */ true, "",
+                    {
+                        {RPCResult::Type::STR, "address", ""},
+                        {RPCResult::Type::STR, "id", ""}
+                    }
+                },
+                RPCExamples{
+                    HelpExampleCli("getaddressid", "123") +
+                    HelpExampleRpc("getaddressid", "123") +
+                    HelpExampleCli("getaddressid", "\"ab1123afd1231\"") +
+                    HelpExampleRpc("getaddressid", "\"ab1123afd1231\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty())
             throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
 
@@ -23,6 +40,8 @@ namespace PocketWeb::PocketWebRpc
             return request.DbConnection()->WebRpcRepoInst->GetAddressId(request.params[0].get_str());
 
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
+    },
+        };
     }
 
     map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm)
@@ -51,13 +70,27 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
-    UniValue GetAccountProfiles(const JSONRPCRequest& request)
+    RPCHelpMan GetAccountProfiles()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getuserprofile \"address\" ( shortForm )\n"
-                "\nReturn Pocketnet user profile.\n");
-
+        return RPCHelpMan{"getuserprofile",
+                "\nReturn Pocketnet user profile.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"shortForm", /* TODO (losty-fur): is this really string? */RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                    
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("getuserprofile", "123123abd123 1") +
+                    HelpExampleRpc("getuserprofile", "123123abd123 1") +
+                    HelpExampleCli("getuserprofile", "123123abd123") +
+                    HelpExampleRpc("getuserprofile", "123123abd123")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         UniValue result(UniValue::VARR);
 
         if (request.params.empty())
@@ -87,45 +120,62 @@ namespace PocketWeb::PocketWebRpc
             result.push_back(p.second);
 
         return result;
+    },
+        };
     }
 
-    UniValue GetUserAddress(const JSONRPCRequest& request)
+    RPCHelpMan GetUserAddress()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getuseraddress \"user_name\" ( count )\n"
-                "\nGet list addresses of user.\n");
-
+        return RPCHelpMan{"getuseraddress",
+                "\nGet list addresses of user.\n",
+                {
+                    {"user_name", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("getpostscores", "") +
+                    HelpExampleRpc("getpostscores", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         RPCTypeCheck(request.params, {UniValue::VSTR});
 
         string userName = request.params[0].get_str();
         return request.DbConnection()->WebRpcRepoInst->GetUserAddress(userName);
+    },
+        };
     }
 
-    UniValue GetAddressRegistration(const JSONRPCRequest& request)
+    RPCHelpMan GetAddressRegistration()
     {
-        if (request.fHelp)
-        {
-            throw runtime_error(
-                "getaddressregistration [\"addresses\",...]\n"
-                "\nReturns array of registration dates.\n"
-                "\nArguments:\n"
-                "1. \"addresses\"      (string) A json array of pocketcoin addresses to filter\n"
-                "    [\n"
-                "      \"address\"     (string) pocketcoin address\n"
-                "      ,...\n"
-                "    ]\n"
-                "\nResult\n"
-                "[                             (array of json objects)\n"
-                "  {\n"
-                "    \"address\" : \"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\",     (string) the pocketcoin address\n"
-                "    \"date\" : \"1544596205\",                                (int64) date in Unix time format\n"
-                "    \"date\" : \"2378659...\"                                 (string) id of first transaction with this address\n"
-                "  },\n"
-                "  ,...\n"
-                "]");
-        }
-
+        return RPCHelpMan{"getaddressregistration",
+                "\nReturns array of registration dates.\n",
+                {
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array of pocketcoin addresses to filter"}
+                },
+                RPCResult{
+                    RPCResult::Type::ARR, "", "", 
+                    {
+                        {
+                            RPCResult::Type::OBJ, "", /* optional (means array may be empty) */ true, "",
+                            {
+                                {RPCResult::Type::STR, "address", ""},
+                                {RPCResult::Type::NUM_TIME, "date", ""},
+                            }
+                        }
+                    },
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("getaddressregistration", "[\"addresses\",...]") +
+                    HelpExampleRpc("getaddressregistration", "[\"addresses\",...]")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty arguments"));
 
@@ -148,16 +198,27 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return request.DbConnection()->WebRpcRepoInst->GetAddressesRegistrationDates(addresses);
+    },
+        };
     }
 
-    UniValue GetUserState(const JSONRPCRequest& request)
+    RPCHelpMan GetUserState()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getuserstate \"address\"\n"
-                "\nReturns account limits and rating information\n"
-            );
-
+        return RPCHelpMan{"getuserstate",
+                "\nReturns account limits and rating information\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("getuserstate", "ad123ab123fd") +
+                    HelpExampleRpc("getuserstate", "ad123ab123fd")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid or empty Pocketcoin address"));
 
@@ -234,26 +295,33 @@ namespace PocketWeb::PocketWebRpc
             result.pushKV("score_unspent", scoreLimit - result["score_spent"].get_int());
 
         return result;
+    },
+        };
     }
 
-    UniValue GetUnspents(const JSONRPCRequest& request)
+    RPCHelpMan GetUnspents()
     {
-        // TODO (brangr): add pagination
-
-        if (request.fHelp)
-            throw runtime_error(
-                "txunspent ( minconf maxconf  [\"addresses\",...] [include_unsafe] [query_options])\n"
+        return RPCHelpMan{"txunspent",
                 "\nReturns array of unspent transaction outputs\n"
                 "with between minconf and maxconf (inclusive) confirmations.\n"
-                "Optionally filter to only include txouts paid to specified addresses.\n"
-                "\nArguments:\n"
-                "1. \"addresses\"      (string) A json array of pocketcoin addresses to filter\n"
-                "    [\n"
-                "      \"address\"     (string) pocketcoin address\n"
-                "      ,...\n"
-                "    ]\n"
-                "2. minconf          (numeric, optional, default=1) The minimum confirmations to filter\n"
-                "3. maxconf          (numeric, optional, default=9999999) The maximum confirmations to filter\n");
+                "Optionally filter to only include txouts paid to specified addresses.\n",
+                {
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "A json array of pocketcoin addresses to filter"},
+                    {"minconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The minimum confirmations to filter (default=1)"},
+                    {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The maximum confirmations to filter (default=9999999)"},
+
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("txunspent", "") +
+                    HelpExampleRpc("txunspent", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        // TODO (brangr): add pagination
 
         vector<string> destinations;
         if (request.params.size() > 0)
@@ -339,34 +407,55 @@ namespace PocketWeb::PocketWebRpc
         // }
 
         return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, ::ChainActive().Height());
+    },
+        };
     }
 
-    UniValue GetAccountSetting(const JSONRPCRequest& request)
+    RPCHelpMan GetAccountSetting()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                    "getaccountsetting \"address\"\n"
-                    "\nReturn account settings object.\n");
-
+        return RPCHelpMan{"getaccountsetting",
+                "\nReturn account settings object.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("getaccountsetting", "123abacf12") +
+                    HelpExampleRpc("getaccountsetting", "123abacf12")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         RPCTypeCheck(request.params, {UniValue::VSTR});
 
         string address = request.params[0].get_str();
 
         return request.DbConnection()->WebRpcRepoInst->GetAccountSetting(address);
+    },
+        };
     }
 
-    UniValue GetUserStatistic(const JSONRPCRequest& request)
+    RPCHelpMan GetUserStatistic()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getuserstatistic [\"addresses\", ...], height, depth\n"
-                "\nGet user statistic.\n"
-                "\nArguments:\n"
-                "1. \"addresses\" (Array of strings) Addresses for statistic\n"
-                "2. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
-                "3. \"depth\" (int, optional) Depth of statistic. Default - whole history\n"
-            );
-
+        return RPCHelpMan{"getuserstatistic",
+                "\nGet user statistic.\n",
+                {
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "Addresses for statistic"},
+                    {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum search height. Default is current chain height"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of statistic. Default - whole history"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("getuserstatistic", "[\"addresses\", ...], height, depth") +
+                    HelpExampleRpc("getuserstatistic", "[\"addresses\", ...], height, depth")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         std::string address;
         std::vector<std::string> addresses;
         if (request.params.size() > 0) {
@@ -414,6 +503,8 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depth);
+    },
+        };
     }
 
 }
