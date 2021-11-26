@@ -286,7 +286,7 @@ namespace PocketDb
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(
         const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
     {
-        // TODO (brangr): move deserialization logic to models
+        // TODO (brangr): move deserialization logic to models ?
 
         auto[ok0, _txType] = TryGetColumnInt(*stmt, 0);
         auto[ok1, txHash] = TryGetColumnString(*stmt, 1);

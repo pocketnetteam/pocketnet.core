@@ -36,7 +36,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "posttxid"); ok) SetPostTxHash(val);
     }
 
-    void Complain::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
+    void Complain::DeserializeRpc(const UniValue& src)
     {
         if (auto[ok, val] = TryGetStr(src, "share"); ok) SetPostTxHash(val);
         if (auto[ok, val] = TryGetInt64(src, "reason"); ok) SetReason(val);
@@ -51,7 +51,7 @@ namespace PocketTx
     shared_ptr <int64_t> Complain::GetReason() const { return m_int1; }
     void Complain::SetReason(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
-    void Complain::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
+    void Complain::DeserializePayload(const UniValue& src)
     {
     }
 

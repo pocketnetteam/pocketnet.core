@@ -51,7 +51,7 @@ namespace PocketTx
         if (auto[ok, valTxId] = TryGetStr(src, "txid"); ok) SetRootTxHash(valTxId);
     }
 
-    void ContentDelete::DeserializeRpc(const UniValue& src, const CTransactionRef& tx)
+    void ContentDelete::DeserializeRpc(const UniValue& src)
     {
         if (auto[ok, val] = TryGetStr(src, "txidEdit"); ok) SetRootTxHash(val);
 
@@ -59,11 +59,11 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "s"); ok) m_payload->SetString1(val);
     }
     
-    void ContentDelete::DeserializePayload(const UniValue& src, const CTransactionRef& tx)
+    void ContentDelete::DeserializePayload(const UniValue& src)
     {
         if (auto[ok, val] = TryGetStr(src, "settings"); ok)
         {
-            Transaction::DeserializePayload(src, tx);
+            Transaction::DeserializePayload(src);
             m_payload->SetString1(val);
         }
     }

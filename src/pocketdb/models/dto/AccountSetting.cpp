@@ -40,13 +40,13 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
     }
     
-    void AccountSetting::DeserializePayload(const UniValue& src, const CTransactionRef& tx)
+    void AccountSetting::DeserializePayload(const UniValue& src)
     {
-        Transaction::DeserializePayload(src, tx);
+        Transaction::DeserializePayload(src);
         if (auto[ok, val] = TryGetStr(src, "data"); ok) m_payload->SetString1(val);
     }
 
-    void AccountSetting::DeserializeRpc(const UniValue& src, const CTransactionRef& tx)
+    void AccountSetting::DeserializeRpc(const UniValue& src)
     {
         GeneratePayload();
         if (auto[ok, val] = TryGetStr(src, "d"); ok) m_payload->SetString1(val);

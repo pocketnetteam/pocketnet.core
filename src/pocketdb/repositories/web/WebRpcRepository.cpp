@@ -2393,8 +2393,6 @@ namespace PocketDb
     UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count,
         const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
     {
-        // TODO (brangr): add filter by min reputation
-
         auto func = __func__;
         UniValue result(UniValue::VARR);
 

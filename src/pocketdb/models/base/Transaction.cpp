@@ -31,9 +31,9 @@ namespace PocketTx
 
     void Transaction::Deserialize(const UniValue& src) {}
 
-    void Transaction::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) {}
+    void Transaction::DeserializeRpc(const UniValue& src) {}
 
-    void Transaction::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
+    void Transaction::DeserializePayload(const UniValue& src)
     {
         GeneratePayload();
     }

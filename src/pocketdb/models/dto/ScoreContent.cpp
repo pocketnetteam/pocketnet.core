@@ -36,7 +36,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
     }
 
-    void ScoreContent::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
+    void ScoreContent::DeserializeRpc(const UniValue& src)
     {
         if (auto[ok, val] = TryGetStr(src, "share"); ok) SetContentTxHash(val);
         if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
@@ -51,7 +51,7 @@ namespace PocketTx
     shared_ptr <int64_t> ScoreContent::GetValue() const { return m_int1; }
     void ScoreContent::SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
-    void ScoreContent::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
+    void ScoreContent::DeserializePayload(const UniValue& src)
     {
     }
 
