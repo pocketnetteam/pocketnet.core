@@ -31,21 +31,22 @@ namespace PocketWeb::PocketWebRpc
         if (shortForm)
             return result;
 
-        auto subscribes = dbCon->WebRpcRepoInst->GetSubscribesAddresses(addresses);
-        auto subscribers = dbCon->WebRpcRepoInst->GetSubscribersAddresses(addresses);
-        auto blocking = dbCon->WebRpcRepoInst->GetBlockingToAddresses(addresses);
-
-        for (auto& i : result)
-        {
-            if (subscribes.find(i.first) != subscribes.end())
-                i.second.pushKV("subscribes", subscribes[i.first]);
-
-            if (subscribers.find(i.first) != subscribers.end())
-                i.second.pushKV("subscribers", subscribers[i.first]);
-
-            if (blocking.find(i.first) != blocking.end())
-                i.second.pushKV("blocking", blocking[i.first]);
-        }
+        // TODO (brangr, mavreh): ????
+        // auto subscribes = dbCon->WebRpcRepoInst->GetSubscribesAddresses(addresses);
+        // auto subscribers = dbCon->WebRpcRepoInst->GetSubscribersAddresses(addresses);
+        // auto blocking = dbCon->WebRpcRepoInst->GetBlockingToAddresses(addresses);
+        //
+        // for (auto& i : result)
+        // {
+        //     if (subscribes.find(i.first) != subscribes.end())
+        //         i.second.pushKV("subscribes", subscribes[i.first]);
+        //
+        //     if (subscribers.find(i.first) != subscribers.end())
+        //         i.second.pushKV("subscribers", subscribers[i.first]);
+        //
+        //     if (blocking.find(i.first) != blocking.end())
+        //         i.second.pushKV("blocking", blocking[i.first]);
+        // }
 
         return result;
     }
@@ -400,6 +401,24 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depth);
+    }
+
+    UniValue GetUserSubscribes(const JSONRPCRequest& request)
+    {
+        // TODO (brangr): implement
+        return UniValue();
+    }
+
+    UniValue GetUserSubscribers(const JSONRPCRequest& request)
+    {
+        // TODO (brangr): implement
+        return UniValue();
+    }
+
+    UniValue GetUserBlockings(const JSONRPCRequest& request)
+    {
+        // TODO (brangr): implement
+        return UniValue();
     }
 
 }

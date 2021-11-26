@@ -23,6 +23,9 @@ namespace PocketWeb::PocketWebRpc
     map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses, bool shortForm = true);
     UniValue GetUnspents(const JSONRPCRequest& request);
     UniValue GetUserStatistic(const JSONRPCRequest& request);
+    UniValue GetUserSubscribes(const JSONRPCRequest& request);
+    UniValue GetUserSubscribers(const JSONRPCRequest& request);
+    UniValue GetUserBlockings(const JSONRPCRequest& request);
 }
 
 

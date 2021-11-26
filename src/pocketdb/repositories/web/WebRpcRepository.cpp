@@ -370,22 +370,25 @@ namespace PocketDb
         if (!shortForm)
         {
             fullProfileSql = R"sql(
-                , p.String4 as About
-                , p.String1 as Lang
-                , p.String5 as Url
-                , u.Time
-                
-                , (select reg.Time from Transactions reg indexed by Transactions_Id
-                    where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1) as RegistrationDate
-                
-                , (select json_group_array(json_object('address', subs.String1, 'private', case when subs.Type == 303 then 'true' else 'false' end)) from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1) as Subscribes
-                
-                , (select json_group_array(subs.String1) from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1) as Subscribers
 
-                , (select json_group_array(blck.String2) from Transactions blck indexed by Transactions_Type_Last_String1_Height_Id
-                    where blck.Type in (305) and blck.Height is not null and blck.Last = 1 and blck.String1 = u.String1) as Blockings
+                , (
+                    select json_group_array(json_object('address', subs.String1, 'private', case when subs.Type == 303 then '1' else '0' end))
+                    from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
+                ) as Subscribes
+                
+                , (
+                    select json_group_array(subs.String1)
+                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
+                ) as Subscribers
+
+                , (
+                    select json_group_array(blck.String2)
+                    from Transactions blck indexed by Transactions_Type_Last_String1_Height_Id
+                    where blck.Type in (305) and blck.Height is not null and blck.Last = 1 and blck.String1 = u.String1
+                ) as Blockings
+
             )sql";
         }
 
@@ -398,22 +401,58 @@ namespace PocketDb
                 , p.String7 as Donations
                 , ifnull(u.String2,'') as Referrer
 
-                , ifnull((select count(1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
-                    where ru.Type in (100,101,102) and ru.Last=1 and ru.Height is not null and ru.String2=u.String1),0) as ReferralsCount
+                , ifnull((
+                    select count(1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
+                    where ru.Type in (100,101,102) and ru.Last=1 and ru.Height is not null and ru.String2=u.String1)
+                ,0) as ReferralsCount
 
-                , ifnull((select count(1) from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (200,201) and po.Last=1 and po.Height is not null and po.String1=u.String1),0) as PostsCount
+                , ifnull((
+                    select count(1)
+                    from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
+                    where po.Type in (200,201) and po.Last=1 and po.Height is not null and po.String1=u.String1)
+                ,0) as PostsCount
 
-                , ifnull((select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
-                    where r.Type=0 and r.Id=u.Id and r.Last=1),0) as Reputation
+                , ifnull((
+                    select r.Value
+                    from Ratings r indexed by Ratings_Type_Id_Last_Height
+                    where r.Type=0 and r.Id=u.Id and r.Last=1)
+                ,0) as Reputation
 
-                , (select count(*) from Transactions subs indexed by Transactions_Type_Last_String2_Height
-                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1) as SubscribersCount
+                , (
+                    select count(*)
+                    from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
+                ) as SubscribesCount
 
-                , (select count(*) from Ratings lkr indexed by Ratings_Type_Id_Last_Height
-                    where lkr.Type = 1 and lkr.Id = u.Id) as Likers
+                , (
+                    select count(*)
+                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
+                ) as SubscribersCount
+
+                , (
+                    select count(*)
+                    from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
+                    where subs.Type in (305) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
+                ) as BlockingsCount
+
+                , (
+                    select count(*)
+                    from Ratings lkr indexed by Ratings_Type_Id_Last_Height
+                    where lkr.Type = 1 and lkr.Id = u.Id
+                ) as Likers
 
                 , p.String6 as Pubkey
+                , p.String4 as About
+                , p.String1 as Lang
+                , p.String5 as Url
+                , u.Time
+
+                , (
+                    select reg.Time
+                    from Transactions reg indexed by Transactions_Id
+                    where reg.Id=u.Id and reg.Height is not null order by reg.Height asc limit 1
+                ) as RegistrationDate
 
                 )sql" + fullProfileSql + R"sql(
 
@@ -454,35 +493,35 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 6); ok) record.pushKV("rc", value);
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 7); ok) record.pushKV("postcnt", value);
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 8); ok) record.pushKV("reputation", value / 10.0);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) record.pushKV("subscribers_count", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) record.pushKV("likers_count", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("k", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 9); ok) record.pushKV("subscribes_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) record.pushKV("subscribers_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("blockings_count", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 12); ok) record.pushKV("likers_count", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("k", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("a", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("l", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok) record.pushKV("s", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 17); ok) record.pushKV("update", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 18); ok) record.pushKV("regdate", value);
 
                 if (!shortForm)
                 {
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("a", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("l", value);
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("s", value);
-                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 15); ok) record.pushKV("update", value);
-                    if (auto[ok, value] = TryGetColumnInt64(*stmt, 16); ok) record.pushKV("regdate", value);
                     
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 17); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 19); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribes", subscribes);
-
-                        // LogPrintf("--- %s", subscribes.write());
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 20); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
                         record.pushKV("subscribers", subscribes);
                     }
 
-                    if (auto[ok, value] = TryGetColumnString(*stmt, 19); ok)
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 21); ok)
                     {
                         UniValue subscribes(UniValue::VARR);
                         subscribes.read(value);
