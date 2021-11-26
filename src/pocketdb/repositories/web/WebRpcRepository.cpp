@@ -206,22 +206,22 @@ namespace PocketDb
                     where r.Type=1 and r.Id=u.Id) as Likers,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (200) and p.Hash=p.String2 and p.String1=u.String1 and p.Height>=?) as PostSpent,
+                    where p.Type in (200) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as PostSpent,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (201) and p.Hash=p.String2 and p.String1=u.String1 and p.Height>=?) as VideoSpent,
+                    where p.Type in (201) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as VideoSpent,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (204) and p.String1=u.String1 and p.Height>=?) as CommentSpent,
+                    where p.Type in (204) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as CommentSpent,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (300) and p.String1=u.String1 and p.Height>=?) as ScoreSpent,
+                    where p.Type in (300) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ScoreSpent,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (301) and p.String1=u.String1 and p.Height>=?) as ScoreCommentSpent,
+                    where p.Type in (301) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ScoreCommentSpent,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
-                    where p.Type in (307) and p.String1=u.String1 and p.Height>=?) as ComplainSpent
+                    where p.Type in (307) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ComplainSpent
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
             join Payload up on up.TxHash=u.Hash
