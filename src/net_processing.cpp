@@ -4400,13 +4400,6 @@ bool PeerManager::SendMessages(CNode* pto)
             }
         }
 
-        // Resend wallet transactions that haven't gotten in a block yet
-        // Except during reindex, importing and IBD, when old wallet
-        // transactions become unconfirmed and spams other nodes.
-        if (!IsChainReindex() && !fImporting && !::ChainstateActive().IsInitialBlockDownload()) {
-            // GetMainSignals().Broadcast(nTimeBestReceived, connman); // TODO (losty): missing signal
-        }
-
         //
         // Try sending block announcements via headers
         //
