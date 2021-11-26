@@ -23,10 +23,17 @@ namespace PocketDb
         )sql");
 
         _tables.emplace_back(R"sql(
+            create table if not exists ContentMap
+            (
+                ContentId int not null,
+                FieldType int not null,
+                primary key (ContentId, FieldType)
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
             create virtual table if not exists Content using fts5
             (
-                ContentId UNINDEXED,
-                FieldType UNINDEXED,
                 Value
             );
         )sql");

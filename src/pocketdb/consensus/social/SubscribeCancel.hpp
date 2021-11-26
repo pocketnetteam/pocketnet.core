@@ -21,10 +21,10 @@ namespace PocketConsensus
     {
     public:
         SubscribeCancelConsensus(int height) : SocialConsensus<SubscribeCancel>(height) {}
-        ConsensusValidateResult Validate(const SubscribeCancelRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const SubscribeCancelRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Last record not valid subscribe

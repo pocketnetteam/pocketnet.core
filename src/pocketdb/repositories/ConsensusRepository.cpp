@@ -14,18 +14,20 @@ namespace PocketDb
     {
         bool result = false;
 
+        auto _name = EscapeValue(name);
+
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                SELECT *
-                FROM Payload ap indexed by Payload_String2
-                join Transactions t indexed by Transactions_Hash_Height
+                select count(*)
+                from Payload ap indexed by Payload_String2_nocase_TxHash
+                cross join Transactions t indexed by Transactions_Hash_Height
                   on t.Type in (100, 101, 102) and t.Hash = ap.TxHash and t.Height is not null and t.Last = 1
-                WHERE ap.String2 = ?
+                where ap.String2 like ? escape '\'
                   and t.String1 != ?
             )sql");
 
-            TryBindStatementText(stmt, 1, name);
+            TryBindStatementText(stmt, 1, _name);
             TryBindStatementText(stmt, 2, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -77,6 +79,55 @@ namespace PocketDb
 
             auto stmt = SetupSqlStatement(sql);
             TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
+                    tx = transaction;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return {tx != nullptr, tx};
+    }
+
+    tuple<bool, PTransactionRef> ConsensusRepository::GetFirstContent(const string& rootHash)
+    {
+        PTransactionRef tx = nullptr;
+
+        TryTransactionStep(__func__, [&]()
+        {
+            string sql = R"sql(
+                select
+                    t.Type,
+                    t.Hash,
+                    t.Time,
+                    t.Last,
+                    t.Id,
+                    t.String1,
+                    t.String2,
+                    t.String3,
+                    t.String4,
+                    t.String5,
+                    t.Int1,
+                    p.TxHash pHash,
+                    p.String1 pString1,
+                    p.String2 pString2,
+                    p.String3 pString3,
+                    p.String4 pString4,
+                    p.String5 pString5,
+                    p.String6 pString6,
+                    p.String7 pString7
+                from Transactions t indexed by Transactions_Hash_Height
+                left join Payload p on t.Hash = p.TxHash
+                where t.Type in (200,201,202,203,204)
+                    and t.Hash = ?
+                    and t.String2 = ?
+                    and t.Height is not null
+            )sql";
+
+            auto stmt = SetupSqlStatement(sql);
+            TryBindStatementText(stmt, 1, rootHash);
+            TryBindStatementText(stmt, 2, rootHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
@@ -474,6 +525,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select
+            
                 s.Hash sTxHash,
                 s.Type sType,
                 s.Time sTime,
@@ -486,13 +538,21 @@ namespace PocketDb
                 c.Id cId,
                 ca.Id caId,
                 ca.String1 caHash
-            from Transactions s
+
+            from Transactions s indexed by Transactions_Hash_Height
+
             -- Score Address
-            join Transactions sa on sa.Type in (100,101,102) and sa.Height is not null and sa.String1 = s.String1 and sa.Last = 1
+            join Transactions sa indexed by Transactions_Type_Last_String1_Height_Id
+                on sa.Type in (100,101,102) and sa.Height > 0 and sa.String1 = s.String1 and sa.Last = 1
+
             -- Content
-            join Transactions c on c.Type in (200,201,202,203,204,205,206,207) and c.Height is not null and c.Hash = s.String2
+            join Transactions c indexed by Transactions_Hash_Height
+                on c.Type in (200,201,202,203,204,205,206,207) and c.Height > 0 and c.Hash = s.String2
+
             -- Content Address
-            join Transactions ca on ca.Type in (100,101,102) and ca.Height is not null and ca.String1=c.String1 and ca.Last = 1
+            join Transactions ca indexed by Transactions_Type_Last_String1_Height_Id
+                on ca.Type in (100,101,102) and ca.Height > 0 and ca.String1 = c.String1 and ca.Last = 1
+
             where s.Hash = ?
         )sql";
 

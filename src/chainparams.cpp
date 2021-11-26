@@ -1,5 +1,5 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2020 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -29,9 +29,9 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     txNew.vout[0].scriptPubKey = genesisOutputScript;
 
     CBlock genesis;
-    genesis.nTime    = nTime;
-    genesis.nBits    = nBits;
-    genesis.nNonce   = nNonce;
+    genesis.nTime = nTime;
+    genesis.nBits = nBits;
+    genesis.nNonce = nNonce;
     genesis.nVersion = nVersion;
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
     genesis.hashPrevBlock.SetNull();
@@ -60,9 +60,11 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
 /**
  * Main network
  */
-class CMainParams : public CChainParams {
+class CMainParams : public CChainParams
+{
 public:
-    CMainParams() {
+    CMainParams()
+    {
         strNetworkID = CBaseChainParams::MAIN;
         networkId = NetworkMain;
         consensus.signet_blocks = false; // TODO (losty): may be change??
@@ -84,7 +86,6 @@ public:
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 95;
         consensus.nMinerConfirmationWindow = 100;
-
         consensus.nPosFirstBlock = 1020;
         consensus.fPosRequiresPeers = false;
         consensus.nStakeMinAge = 60 * 60;
@@ -98,7 +99,7 @@ public:
         consensus.nStakeMaximumThreshold = 10000 * COIN;
         consensus.nDailyBlockCount = (24 * 60 * 60) / consensus.nPosTargetSpacing;
         consensus.nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
-        
+
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE; // TODO (losty): probably return 1199145601???
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT; // TODO (losty): probably return 1230767999???
@@ -115,8 +116,11 @@ public:
         consensus.sVersion_1_0_0_pre_checkpoint = "128abcf7e0371db3ad595702b456a701539ba5977459fac0cd720dc7b84f09a8";
         consensus.nHeight_version_1_0_0 = 108300;
 
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000002d85d35c2f300d613d"); // 1424753
-        consensus.defaultAssumeValid = uint256S("0x485b5866ffeed034da04617b04c3ec5fad926a6b5b24edb8f5170ac4941cc131"); // 1424753
+        // The best chain should have at least this much work.
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000002dbba03d11d96c9cad"); // 1431558
+
+        // By default assume that the signatures in ancestors of this block are valid.
+        consensus.defaultAssumeValid = uint256S("0x13145e13c703d75d535d7415d660483dd717868654b7fdcd2e3232255ea05445"); // 1431558
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -173,9 +177,11 @@ public:
 /**
  * Testnet (v3)
  */
-class CTestNetParams : public CChainParams {
+class CTestNetParams : public CChainParams
+{
 public:
-    CTestNetParams() {
+    CTestNetParams()
+    {
         strNetworkID = CBaseChainParams::TESTNET;
         networkId = NetworkRegTest;
         consensus.signet_blocks = false; // TODO (losty): may be change??
@@ -229,7 +235,10 @@ public:
         consensus.sVersion_1_0_0_pre_checkpoint = "00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f";
         consensus.nHeight_version_1_0_0 = 0;
 
+        // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100001"); // 0
+
+        // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f"); // 0
 
         /**
@@ -389,9 +398,11 @@ public:
 /**
  * Regression test
  */
-class CRegTestParams : public CChainParams {
+class CRegTestParams : public CChainParams
+{
 public:
-    explicit CRegTestParams(const ArgsManager& args) {
+    explicit CRegTestParams(const ArgsManager& args)
+    {
         strNetworkID =  CBaseChainParams::REGTEST;
         networkId = NetworkRegTest;
         consensus.signet_blocks = false; // TODO (losty): may be change?
@@ -453,18 +464,16 @@ public:
         checkpointData = {
             {
                 {0, uint256S("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206")},
-            }
-        };
+            }};
 
         chainTxData = ChainTxData{
             0,
             0,
-            0
-        };
+            0};
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 111);
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 196);
+        base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 239);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 

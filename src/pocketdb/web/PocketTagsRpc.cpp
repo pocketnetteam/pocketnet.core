@@ -15,7 +15,8 @@ namespace PocketWeb::PocketWebRpc
 
         int pageSize = 50;
         if (request.params.size() > 1)
-            ParseInt32(request.params[1].get_str(), &pageSize);
+            // TODO (losty-fur): do not ignore result
+            bool res = ParseInt32(request.params[1].get_str(), &pageSize);
 
         int pageStart = 0;
         // if (request.params.size() > 2)

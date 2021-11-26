@@ -35,6 +35,8 @@
 #include <validation.h>
 #include <validationinterface.h>
 
+#include "pocketdb/web/PocketTransactionRpc.h"
+
 #include <optional.h>
 
 #include <numeric>
@@ -762,6 +764,37 @@ static RPCHelpMan combinerawtransaction()
     return EncodeHexTx(CTransaction(mergedTx));
 },
     };
+}
+
+UniValue SendRawTransaction(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "sendrawtransaction \"hexstring\" ( allowhighfees )\n"
+            "\nSubmits raw transaction (serialized, hex-encoded) to local node and network.\n"
+            "\nAlso see createrawtransaction and signrawtransactionwithkey calls.\n"
+            "\nArguments:\n"
+            "1. \"hexstring\"    (string, required) The hex string of the raw transaction)\n"
+            "\nResult:\n"
+            "\"hex\"             (string) The transaction hash in hex\n"
+            "\nExamples:\n"
+            "\nCreate a transaction\n" +
+            HelpExampleCli("createrawtransaction",
+                "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"vout\\\":0}]\" \"{\\\"myaddress\\\":0.01}\"") +
+            "Sign the transaction, and get back the hex\n" +
+            HelpExampleCli("signrawtransactionwithwallet", "\"myhex\"") +
+            "\nSend the transaction (signed hex)\n" + HelpExampleCli("sendrawtransaction", "\"signedhex\"") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("sendrawtransaction", "\"signedhex\""));
+
+    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VBOOL});
+
+    // parse hex string from parameter
+    CMutableTransaction mtx;
+    if (!DecodeHexTx(mtx, request.params[0].get_str()))
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+
+    CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
+    return PocketWeb::PocketWebRpc::_accept_transaction(tx, nullptr);
 }
 
 static RPCHelpMan signrawtransactionwithkey()
@@ -1921,6 +1954,7 @@ static const CRPCCommand commands[] =
     {   "rawtransactions",    "createrawtransaction",                 &createrawtransaction,              {"inputs", "outputs", "locktime", "replaceable"}},
     {   "rawtransactions",    "decoderawtransaction",                 &decoderawtransaction,              {"hexstring", "iswitness"}},
     {   "rawtransactions",    "decodescript",                         &decodescript,                      {"hexstring"}},
+    {   "rawtransactions",    "sendrawtransaction",                   &SendRawTransaction,                {"hexstring"}},
     {   "rawtransactions",    "combinerawtransaction",                &combinerawtransaction,             {"txs"}},
     {   "rawtransactions",    "signrawtransactionwithkey",            &signrawtransactionwithkey,         {"hexstring", "privkeys", "prevtxs",  "sighashtype"}},
     {   "rawtransactions",    "testmempoolaccept",                    &testmempoolaccept,                 {"rawtxs", "maxfeerate"}},

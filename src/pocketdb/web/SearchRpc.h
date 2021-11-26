@@ -10,7 +10,7 @@
 #include "pocketdb/helpers/TransactionHelper.h"
 #include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/models/web/SearchRequest.h"
-#include "pocketdb/web/PocketContentRpc.h"
+#include "pocketdb/web/WebRpcUtils.h"
 
 namespace PocketWeb::PocketWebRpc
 {

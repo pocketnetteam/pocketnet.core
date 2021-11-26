@@ -7,12 +7,6 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    string lower(string s)
-    {
-        transform(s.begin(), s.end(), s.begin(), [](char c) { return 'A' <= c && c <= 'Z' ? c ^ 32 : c; });
-        return s;
-    }
-
     UniValue Search(const JSONRPCRequest& request)
     {
         if (request.fHelp)
@@ -34,7 +28,8 @@ namespace PocketWeb::PocketWebRpc
 
         // General params
         searchRequest.Keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
-        string type = lower(request.params[1].get_str());
+        string type = request.params[1].get_str();
+        HtmlUtils::StringToLower(type);
 
         // Optional parameters
         // TopBlock
@@ -168,7 +163,37 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue SearchUsers(const JSONRPCRequest& request)
     {
-        return UniValue();
+        if (request.fHelp)
+            throw runtime_error(
+                "search \"keyword\", \"fieldtype\", orderbyrank\n"
+                "\nSearch users in DB.\n"
+                "\nArguments:\n"
+                "1. \"keyword\"     (string) String for search\n"
+                "2. \"fieldtype\"        (string, optional)\n"
+                "3. \"orderbyrank\"  (int, optional)\n"
+            );
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+        string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
+
+        vector<int> fieldTypes = { ContentFieldType::ContentFieldType_AccountUserName };
+        // ContentFieldType::ContentFieldType_AccountUserAbout, ContentFieldType::ContentFieldType_AccountUserUrl
+        auto users = request.DbConnection()->SearchRepoInst->SearchUsers(keyword, fieldTypes, false);
+
+        vector<int64_t> usersIds;
+        for (const auto &user : users)
+            usersIds.emplace_back(user.first);
+
+        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(usersIds);
+
+        UniValue result(UniValue::VARR);
+        for (auto &profile : usersProfiles)
+        {
+            profile.second.pushKV("searchResult",users[profile.first]);
+            result.push_back(profile.second);
+        }
+
+        return result;
     }
 
     UniValue SearchLinks(const JSONRPCRequest& request)
@@ -194,12 +219,8 @@ namespace PocketWeb::PocketWebRpc
             for (unsigned int idx = 0; idx < lnks.size(); idx++)
                 vLinks.emplace_back(lnks[idx].get_str());
 
-        vector<int> contentTypes = {TxType::CONTENT_POST, TxType::CONTENT_VIDEO};
-        if (request.params.size() > 1)
-        {
-            contentTypes.clear();
-            ParseRequestContentType(request.params[1], contentTypes);
-        }
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
 
         int nHeight = ::ChainActive().Height();
         if (request.params.size() > 2)

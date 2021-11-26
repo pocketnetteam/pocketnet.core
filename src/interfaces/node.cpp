@@ -197,7 +197,7 @@ public:
         return GuessVerificationProgress(Params().TxData(), tip);
     }
     bool isInitialBlockDownload() override { return ::ChainstateActive().IsInitialBlockDownload(); }
-    bool getReindex() override { return ::fReindex > 0; }
+    bool getReindex() override { return ::IsChainReindex(); }
     bool getImporting() override { return ::fImporting; }
     void setNetworkActive(bool active) override
     {

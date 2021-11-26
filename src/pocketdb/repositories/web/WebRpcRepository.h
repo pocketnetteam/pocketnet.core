@@ -108,17 +108,21 @@ namespace PocketDb
 
         vector<UniValue> GetContentsData(const vector<int64_t>& ids, const string& address);
         
-        UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address);
+        UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
         
         UniValue GetProfileFeed(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
         
         UniValue GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
 
-        UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
-            const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
+        UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
+            int badReputationLimit);
 
-        UniValue GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang, const vector<string>& tags,
-            const vector<int>& contentTypes, const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
+        UniValue GetHierarchicalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
+            int badReputationLimit);
 
         UniValue GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes, const int nHeight, const int depth);
 

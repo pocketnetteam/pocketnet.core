@@ -23,10 +23,10 @@ namespace PocketConsensus
     {
     public:
         PostConsensus(int height) : SocialConsensus<Post>(height) {}
-        tuple<bool, SocialConsensusResult> Validate(const PostRef& ptx, const PocketBlockRef& block) override
+        tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PostRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Check if this post relay another
@@ -137,8 +137,8 @@ namespace PocketConsensus
             }
 
             // First get original post transaction
-            auto originalTx = PocketDb::TransRepoInst.Get(*ptx->GetRootTxHash());
-            if (!originalTx)
+            auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
+            if (!originalTxOk || !originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
             const auto originalPtx = static_pointer_cast<Post>(originalTx);
@@ -227,10 +227,12 @@ namespace PocketConsensus
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
                 (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
-                (ptx->GetRootTxHash() ? ptx->GetRootTxHash()->size() : 0) +
                 (ptx->GetRelayTxHash() ? ptx->GetRelayTxHash()->size() : 0) +
                 (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
                 (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
+
+            if (ptx->GetRootTxHash() && *ptx->GetRootTxHash() != *ptx->GetHash())
+                dataSize += ptx->GetRootTxHash()->size();
 
             if (!IsEmpty(ptx->GetPayloadTags()))
             {

@@ -18,7 +18,7 @@ namespace PocketDb
         string sql = R"sql(
             select Value
             from Tags t indexed by Tags_Value
-            where t.Value like ?
+            where t.Value match ?
             limit ?
             offset ?
         )sql";
@@ -44,14 +44,20 @@ namespace PocketDb
 
     vector<int64_t> SearchRepository::SearchIds(const SearchRequest& request)
     {
+        auto func = __func__;
         vector<int64_t> ids;
 
+        if (request.Keyword.empty())
+            return ids;
+
         // First search request
-        string keyword = "%" + request.Keyword + "%";
         string fieldTypes = join(request.FieldTypes | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
         string txTypes = join(request.TxTypes | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",");
         string heightWhere = request.TopBlock > 0 ? " and t.Height <= ? " : "";
         string addressWhere = !request.Address.empty() ? " and t.String1 = ? " : "";
+        string keyword = request.Keyword + "*";
+
+        LogPrint(BCLog::RPCERROR, "Search keyword debug = `%s`\n", keyword);
 
         string sql = R"sql(
             select t.Id
@@ -61,13 +67,19 @@ namespace PocketDb
                 and t.Height is not null
                 )sql" + heightWhere + R"sql(
                 )sql" + addressWhere + R"sql(
-                and t.Id in (select c.ContentId from web.Content c where c.FieldType in ( )sql" + fieldTypes + R"sql( ) and c.Value like ?)
+                and t.Id in (
+                    select cm.ContentId
+                    from web.Content c, web.ContentMap cm
+                    where c.ROWID = cm.ROWID
+                        and cm.FieldType in ( )sql" + fieldTypes + R"sql( )
+                        and c.Value match ?
+                    )
             order by t.Id desc
             limit ?
             offset ?
         )sql";
         
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
 
@@ -79,6 +91,8 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, keyword);
             TryBindStatementInt(stmt, i++, request.PageSize);
             TryBindStatementInt(stmt, i++, request.PageStart);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -92,39 +106,48 @@ namespace PocketDb
         return ids;
     }
 
-    UniValue SearchRepository::SearchUsers(const string& searchstr, const vector<ContentFieldType> fieldTypes, bool orderbyrank)
+    map<int, string> SearchRepository::SearchUsers(const string& searchstr, const vector<int> fieldTypes, bool orderbyrank)
     {
-        string fieldTypesWhere = join(vector<string>(fieldTypes.size(), "?"), ",");
+        auto func = __func__;
+        map<int, string> result;
+
         string sql = R"sql(
             select
                 t.Id,
                 f.Value,
-                f.FieldType
+                fm.FieldType
             from web.Content f
-            inner join Transactions t on f.ContentId = t.Id
-            inner join Payload p on p.TxHash=t.Hash
+            join web.ContentMap fm on fm.ROWID = f.ROWID
+            join Transactions t on t.Id = fm.ContentId
+            join Payload p on p.TxHash=t.Hash
             where t.Last = 1
                 and t.Type = 100
                 and t.Height is not null
-                and f.FieldType in ( )sql" + fieldTypesWhere + R"sql( )
+                and fm.FieldType in ( )sql" + join(vector<string>(fieldTypes.size(), "?"), ",") + R"sql( )
                 and f.Value match ?
         )sql";
-        if (orderbyrank)
-            sql += " order by rank";
 
-        UniValue result(UniValue::VARR);
+        if (orderbyrank)
+            sql += " order by rank ";
+
+
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
+
             int i = 1;
             for (const auto& fieldtype: fieldTypes)
                 TryBindStatementInt(stmt, i++, fieldtype);
-            TryBindStatementText(stmt, i++, searchstr);
+                
+            TryBindStatementText(stmt, i++, "\"" + searchstr + "\"" + " OR " + searchstr + "*");
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                //if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
-                //    result.push_back(value);
+                auto[ok0, id] = TryGetColumnInt(*stmt, 0);
+                auto[ok, value] = TryGetColumnString(*stmt, 1);
+                result[id] = value;
             }
 
             FinalizeSqlStatement(*stmt);

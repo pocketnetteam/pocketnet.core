@@ -118,6 +118,7 @@ POCKETDB_H = \
     pocketdb/web/SearchRpc.h \
     pocketdb/web/PocketTagsRpc.h \
     pocketdb/web/PocketRpc.h \
+    pocketdb/web/WebRpcUtils.h \
     \
     pocketdb/repositories/BaseRepository.h \
     pocketdb/repositories/TransactionRepository.h \
@@ -245,6 +246,7 @@ POCKETDB_CPP = \
     pocketdb/web/SearchRpc.cpp \
     pocketdb/web/PocketTagsRpc.cpp \
     pocketdb/web/PocketRpc.cpp \
+    pocketdb/web/WebRpcUtils.cpp \
     \
     pocketdb/models/dto/Default.cpp \
     pocketdb/models/dto/Coinbase.cpp \

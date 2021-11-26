@@ -580,6 +580,8 @@ static RPCHelpMan logging()
             enable.push_back(prm.substr(1));
         else
             enable.push_back(prm);
+
+        i += 1;
     }
 
     if (!enable.empty())

@@ -904,7 +904,6 @@ CWalletTx* CWallet::AddToWallet(CTransactionRef tx, const CWalletTx::Confirmatio
 		}
 	}
 
-	//// debug print
 	WalletLogPrintf("AddToWallet %s  %s%s\n", hash.ToString(), (fInsertedNew ? "new" : ""), (fUpdated ? "update" : ""));
 
 	// Write to disk
@@ -4654,7 +4653,7 @@ bool CWallet::SelectCoinsForStaking(int64_t nTargetValue, unsigned int nSpendTim
 	std::vector<COutput> vCoins;
 	AvailableCoinsForStaking(vCoins, nSpendTime);
 
-	LogPrintf("Available coins count %d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
+	LogPrint(BCLog::WALLET, "Available coins count %d BestHeader: %d %s\n", vCoins.size(), ::ChainActive().Tip()->nHeight, ::ChainActive().Tip()->GetBlockHash().GetHex());
 	setCoinsRet.clear();
 	nValueRet = 0;
 

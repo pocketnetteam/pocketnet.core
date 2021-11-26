@@ -6,14 +6,15 @@
 #define SRC_POCKETDEBUG_H
 
 #include "rpc/server.h"
-// #include "rpc/rawtransaction.h"
+#include "validation.h"
 #include "pocketdb/helpers/TransactionHelper.h"
+#include "pocketdb/web/WebRpcUtils.h"
+#include "pocketdb/consensus/Reputation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
     using namespace PocketHelpers;
-
-    void ParseRequestContentType(const UniValue& value, vector<int>& types);
+    using namespace PocketConsensus;
 
     UniValue GetContent(const JSONRPCRequest& request);
     UniValue GetContents(const JSONRPCRequest& request);

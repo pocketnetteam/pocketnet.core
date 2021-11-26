@@ -18,7 +18,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetStatistic(const JSONRPCRequest& request);
     UniValue GetLastBlocks(const JSONRPCRequest& request);
     UniValue GetCompactBlock(const JSONRPCRequest& request);
-    UniValue GetAddressSpent(const JSONRPCRequest& request);
+    UniValue GetAddressInfo(const JSONRPCRequest& request);
     UniValue SearchByHash(const JSONRPCRequest& request);
     UniValue GetAddressTransactions(const JSONRPCRequest& request);
     UniValue GetBlockTransactions(const JSONRPCRequest& request);

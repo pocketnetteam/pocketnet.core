@@ -60,15 +60,15 @@ namespace PocketConsensus
             // Get destination address and score value
             // In lottery allowed only likes to posts and comments
             // Also in lottery allowed only positive scores
-            auto[parseScoreOk, scoreTxData] = PocketHelpers::TransactionHelper::ParseScore(tx);
+            auto[parseScoreOk, scoreTxData] = TransactionHelper::ParseScore(tx);
             if (!parseScoreOk)
                 continue;
 
-            if (scoreTxData->ScoreType == PocketTx::TxType::ACTION_SCORE_COMMENT
+            if (scoreTxData->ScoreType == ACTION_SCORE_COMMENT
                 && scoreTxData->ScoreValue != 1)
                 continue;
 
-            if (scoreTxData->ScoreType == PocketTx::TxType::ACTION_SCORE_CONTENT
+            if (scoreTxData->ScoreType == ACTION_SCORE_CONTENT
                 && scoreTxData->ScoreValue != 4 && scoreTxData->ScoreValue != 5)
                 continue;
 
@@ -85,13 +85,13 @@ namespace PocketConsensus
             ))
                 continue;
 
-            if (scoreData->ScoreType == PocketTx::TxType::ACTION_SCORE_CONTENT)
+            if (scoreData->ScoreType == ACTION_SCORE_CONTENT)
             {
                 postCandidates[scoreData->ContentAddressHash] += (scoreData->ScoreValue - 3);
                 ExtendReferrer(scoreData, postReferrersCandidates);
             }
 
-            if (scoreData->ScoreType == PocketTx::TxType::ACTION_SCORE_COMMENT)
+            if (scoreData->ScoreType == ACTION_SCORE_COMMENT)
             {
                 commentCandidates[scoreData->ContentAddressHash] += scoreData->ScoreValue;
                 ExtendReferrer(scoreData, commentReferrersCandidates);

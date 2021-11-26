@@ -14,6 +14,8 @@
 namespace PocketConsensus
 {
     using namespace std;
+    using namespace PocketTx;
+    using namespace PocketHelpers;
 
     struct LotteryWinners
     {

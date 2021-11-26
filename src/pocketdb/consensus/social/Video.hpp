@@ -21,10 +21,10 @@ namespace PocketConsensus
     {
     public:
         VideoConsensus(int height) : SocialConsensus<Video>(height) {}
-        ConsensusValidateResult Validate(const VideoRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const VideoRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Check payload size
@@ -126,8 +126,8 @@ namespace PocketConsensus
             }
 
             // First get original post transaction
-            auto originalTx = PocketDb::TransRepoInst.Get(*ptx->GetRootTxHash());
-            if (!originalTx)
+            auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
+            if (!originalTxOk || !originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<Video>(originalTx);

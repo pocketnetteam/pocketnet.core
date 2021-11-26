@@ -175,7 +175,6 @@ namespace PocketDb
             create index if not exists Transactions_Time_Type_Height on Transactions (Time, Type, Height);
             create index if not exists Transactions_Type_Time_Height on Transactions (Type, Time, Height);
             create index if not exists Transactions_BlockHash on Transactions (BlockHash);
-            create index if not exists Transactions_Type_Last_Height_Time_String3_String4 on Transactions (Type, Last, Height, Time, String3, String4);
             create index if not exists Transactions_Height_Time on Transactions (Height, Time);
             create index if not exists Transactions_Height_Id on Transactions (Height, Id);
 
@@ -187,9 +186,12 @@ namespace PocketDb
             create index if not exists Ratings_Height_Last on Ratings (Height, Last);
             create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
             create index if not exists Ratings_Type_Id_Last_Height on Ratings (Type, Id, Last, Height);
+            create index if not exists Ratings_Type_Id_Last_Value on Ratings (Type, Id, Last, Value);
             create index if not exists Ratings_Type_Id_Height_Value on Ratings (Type, Id, Height, Value);
 
-            create index if not exists Payload_String2 on Payload (String2);
+            drop index if exists Payload_String2;
+            create index if not exists Payload_String2_TxHash on Payload (String2, TxHash);
+            create index if not exists Payload_String2_nocase_TxHash on Payload (String2 collate nocase, TxHash);
             create index if not exists Payload_String7 on Payload (String7);
             create index if not exists Payload_String1_TxHash on Payload (String1, TxHash);
 

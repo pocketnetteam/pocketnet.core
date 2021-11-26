@@ -1023,6 +1023,37 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     std::unique_ptr<CTxMemPoolEntry>& entry = ws.m_entry;
     auto& pocketTx = ws.m_pocketTx;
 
+    // Restore and validate pocketnet part
+    PTransactionRef _pocketTx = pocketTx;
+    if (!_pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
+    {
+        // Try deserialize transaction
+        if (auto[ok, val] = PocketServices::Serializer::DeserializeTransaction(ptx); ok && val)
+            _pocketTx = val;
+        else
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "error deserialize pocketnet payload data"); // TODO (losty-fur):is this error correct?
+    }
+
+    // For supported transactions payload must be exists
+    if (!_pocketTx && PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
+        return state.Invalid(TxValidationResult::TX_CONSENSUS, "pocketnet payload data not found"); // TODO (losty-fur):is this error correct?
+
+    // Check consensus if transaction payload exists
+    if (_pocketTx)
+    {
+        // Check transaction with pocketnet base rules
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx); !ok)
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result)); // TODO (losty-fur):is this error correct?
+
+        // Check transaction with pocketnet consensus rules
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result)); // TODO (losty-fur):is this error correct?
+    }
+
+    // At this point, we believe that all the checks have been carried
+    // out and we can safely save the transaction to the database for
+    // subsequent verification of the consensus and inclusion in the block.
+
     // Remove conflicting transactions from the mempool
     for (CTxMemPool::txiter it : allConflicting)
     {
@@ -1044,19 +1075,6 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     bool validForFeeEstimation = !fReplacementTransaction && !bypass_limits && IsCurrentForFeeEstimation() && m_pool.HasNoInputsOf(tx);
 
     // Write payload part to sqlite db
-    // At this point, we believe that all the checks have been carried 
-    // out and we can safely save the transaction to the database for 
-    // subsequent verification of the consensus and inclusion in the block.
-    PTransactionRef _pocketTx = pocketTx;
-    if (!_pocketTx && !PocketDb::TransRepoInst.Exists(tx.GetHash().GetHex()))
-    {
-        // Deserialize default money transaction
-        if (auto[ok, val] = PocketServices::Serializer::DeserializeTransaction(ptx); ok && val)
-            _pocketTx = val;
-        else
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "error restore pocketnet payload data"); // TODO (losty-fur): is this error correct?
-    }
-    
     if (_pocketTx)
     {
         try
@@ -1066,7 +1084,7 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
         }
         catch (const std::exception& e)
         {
-            return state.DoS(TxValidationResult::TX_CONSENSUS, "error write payload data to sqlite db"); // TODO (losty-fur):is this error correct?
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "error write payload data to sqlite db"); // TODO (losty-fur):is this error correct?
         }
     }
 
@@ -2406,7 +2424,9 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // If the block is not in the database or it is the last one, we have to check and index
     bool enablePocketConnect = (!blockExists || blockLast);
-    if (enablePocketConnect)
+    int skipValidation = gArgs.GetArg("-skip-validation", -1);
+    
+    if (enablePocketConnect && pindex->nHeight > skipValidation)
     {
         // Checks PoS logic
         if (pindex->nHeight == (int)Params().GetConsensus().nHeight_version_1_0_0_pre)
@@ -2446,7 +2466,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
         // -----------------------------------------------------------------------------------------------------------------
         // Pocketnet Consensus rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pindex->nHeight); !ok)
+        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(block, pocketBlock, pindex->nHeight); !ok)
         {
             LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
                 (int)result, pindex->GetBlockHash().GetHex());
@@ -2458,6 +2478,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
             //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
         }
+        
+        LogPrint(BCLog::CONSENSUS, "--- Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
 
         nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
@@ -2478,10 +2500,15 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         try
         {
             PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
+            LogPrint(BCLog::SYNC, "--- Block indexed: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
         }
         catch (const std::exception& e)
         {
             LogPrintf("Error indexing social data: %s\n", e.what());
+
+            // Try rollback for double indexing
+            PocketServices::ChainPostProcessing::Rollback(pindex->nHeight);
+
             return false;
         }
     }
@@ -2982,7 +3009,8 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
         NotifyWSClients(blockConnecting, pindexNew);
     }
 
-    LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH:%s\n", pindexNew->nHeight, pindexNew->GetBlockHash().GetHex());
+    LogPrint(BCLog::SYNC, "+++ Block connected to chain: %d BH: %s\n", pindexNew->nHeight,
+        pindexNew->GetBlockHash().GetHex());
 
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
     return true;
@@ -3421,9 +3449,15 @@ bool CChainState::ActivateBestChainStep(BlockValidationState& state, const CChai
         nHeight = nTargetHeight;
 
         // Connect new blocks.
-        for (CBlockIndex *pindexConnect : reverse_iterate(vpindexToConnect)) {
-            if (!ConnectTip(state, chainparams, pindexConnect, pindexConnect == pindexMostWork ? pblock : std::shared_ptr<const CBlock>(), pocketBlock, connectTrace, disconnectpool)) {
-                if (state.IsInvalid()) {
+        for (CBlockIndex* pindexConnect : reverse_iterate(vpindexToConnect))
+        {
+            if (!ConnectTip(state, chainparams, pindexConnect,
+                pindexConnect == pindexMostWork ? pblock : std::shared_ptr<const CBlock>(),
+                pindexConnect == pindexMostWork ? pocketBlock : nullptr,
+                connectTrace, disconnectpool))
+            {
+                if (state.IsInvalid())
+                {
                     // The block violates a consensus rule.
                     if (state.GetResult() != BlockValidationResult::BLOCK_MUTATED && !state.Incompleted()) {
                         InvalidChainFound(vpindexToConnect.front());
@@ -5091,7 +5125,7 @@ bool static LoadBlockIndexDB(ChainstateManager& chainman, const CChainParams& ch
     // Check whether we need to continue reindexing
     bool fReindexing = false;
     pblocktree->ReadReindexing(fReindexing);
-    if(fReindexing) fReindex = 2;
+    if (fReindexing) fReindex = 1;
 
     return true;
 }

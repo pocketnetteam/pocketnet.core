@@ -280,7 +280,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
         }
         else
         {
-            LogPrint(BCLog::RPC, "WARNING: request rejected because http work queue depth exceeded.\n");
+            LogPrint(BCLog::RPCERROR, "WARNING: request rejected because http work queue depth exceeded.\n");
             item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded");
         }
     }
@@ -372,7 +372,7 @@ static bool HTTPBindAddresses()
 
 /** Simple wrapper to set thread name and run work queue */
 static void HTTPWorkQueueRun(WorkQueue<HTTPClosure> *queue, bool selfDbConnection, int worker_num)
-{ 
+{
     util::ThreadRename(strprintf("pocketcoin-httpworker.%i", worker_num));
     queue->Run(selfDbConnection);
 }
@@ -448,7 +448,8 @@ bool InitHTTPServer(const util::Ref& context)
     RegisterMiscRPCCommands(g_socket->m_table_rpc);
     RegisterMiningRPCCommands(g_socket->m_table_rpc);
     RegisterRawTransactionRPCCommands(g_socket->m_table_rpc);
-    
+
+//    TODO (losty) : wallet rpcs
     for (const auto& client : node.chain_clients) {
         client->registerRpcs();
     }
@@ -523,12 +524,12 @@ void StartHTTPServer()
     if (g_staticSocket)
     {
         g_staticSocket->StartHTTPSocket(rpcStaticThreads, false);
-        LogPrintf("HTTP: starting %d Static worker threads\n", rpcPublicThreads);
+        LogPrintf("HTTP: starting %d Static worker threads\n", rpcStaticThreads);
     }
     if (g_restSocket)
     {
         g_restSocket->StartHTTPSocket(rpcRestThreads, true);
-        LogPrintf("HTTP: starting %d Rest worker threads\n", rpcPublicThreads);
+        LogPrintf("HTTP: starting %d Rest worker threads\n", rpcRestThreads);
     }
 }
 
@@ -744,13 +745,20 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
 {
     // JSONRPC handles only POST
     if (req->GetRequestMethod() != HTTPRequest::POST) {
-        LogPrint(BCLog::RPC, "WARNING: Request not POST\n");
+        LogPrint(BCLog::RPCERROR, "WARNING: Request not POST\n");
         req->WriteReply(HTTP_BAD_METHOD, "JSONRPC server handles only POST requests");
         return false;
     }
 
+    string uri;
+    string method;
+    string peer;
+    auto start = gStatEngineInstance.GetCurrentSystemTime();
+    bool executeSuccess = true;
+
     JSONRPCRequest jreq(context);
-    try {
+    try
+    {
         UniValue valRequest;
 
         if (!valRequest.read(req->ReadBody()))
@@ -766,20 +774,21 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
             jreq.parse(valRequest);
             jreq.SetDbConnection(req->DbConnection());
 
-            string uri = jreq.URI;
-            string method = jreq.strMethod;
+            uri = jreq.URI;
+            method = jreq.strMethod;
+            peer = jreq.peerAddr.substr(0, jreq.peerAddr.find(':'));
+            string prms = jreq.params.write(0, 0);
 
             auto rpcKey = gen_random(15);
             LogPrint(BCLog::RPC, "RPC started method %s%s (%s) with params: %s\n",
-                uri, method, rpcKey, jreq.params.write(0, 0));
-
-            int64_t nTime1 = GetTimeMicros();
+                uri, method, rpcKey, prms);
 
             UniValue result = table.execute(jreq);
-            
-            int64_t nTime2 = GetTimeMicros();
+
+            auto execute = gStatEngineInstance.GetCurrentSystemTime();
+
             LogPrint(BCLog::RPC, "RPC executed method %s%s (%s) > %.2fms\n",
-                uri, method, rpcKey, 0.001 * (nTime2 - nTime1));
+                uri, method, rpcKey, (execute.count() - start.count()));
 
             // Send reply
             strReply = JSONRPCReply(result, NullUniValue, jreq.id);
@@ -788,7 +797,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
         {
             if (valRequest.isArray())
             {
-                strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), m_table_rpc);
+                strReply = JSONRPCExecBatch(jreq, valRequest.get_array(), table);
             }
             else
             {
@@ -801,18 +810,37 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
     }
     catch (const UniValue& objError)
     {
-        LogPrint(BCLog::RPC, "Exception %s\n", objError.write());
+        LogPrint(BCLog::RPCERROR, "Exception %s\n", objError.write());
         JSONErrorReply(req, objError, jreq.id);
-        return false;
+        executeSuccess = false;
     }
     catch (const std::exception& e)
     {
-        LogPrint(BCLog::RPC, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
+        LogPrint(BCLog::RPCERROR, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
         JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
-        return false;
+        executeSuccess = false;
     }
 
-    return true;
+    // Collect statistic data
+    if (LogInstance().WillLogCategory(BCLog::STAT))
+    {
+        auto finish = gStatEngineInstance.GetCurrentSystemTime();
+
+        gStatEngineInstance.AddSample(
+            Statistic::RequestSample{
+                uri,
+                req->Created,
+                start,
+                finish,
+                peer,
+                !executeSuccess,
+                0,
+                0
+            }
+        );
+    }
+
+    return executeSuccess;
 }
 
 /** WebSocket for public API */
@@ -870,6 +898,7 @@ void HTTPEvent::trigger(struct timeval *tv)
 HTTPRequest::HTTPRequest(struct evhttp_request *_req, bool _replySent) : req(_req),
                                                         replySent(_replySent)
 {
+    Created = gStatEngineInstance.GetCurrentSystemTime();
 }
 
 HTTPRequest::~HTTPRequest()

@@ -34,7 +34,6 @@
 #include <memory>
 #include <typeinfo>
 
-#include "pocketdb/consensus/Helper.h"
 #include "pocketdb/services/Accessor.h"
 
 /** Expiration time for orphan transactions in seconds */
@@ -2893,7 +2892,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
                 LogPrint(BCLog::NET, "got inv: %s  %s peer=%d\n", inv.ToString(), fAlreadyHave ? "have" : "new", pfrom.GetId());
 
                 UpdateBlockAvailability(pfrom.GetId(), inv.hash);
-                if (!fAlreadyHave && !fImporting && !fReindex && !mapBlocksInFlight.count(inv.hash)) {
+                if (!fAlreadyHave && !fImporting && !IsChainReindex() && !mapBlocksInFlight.count(inv.hash)) {
                     // Headers-first is the primary method of announcement on
                     // the network. If a node fell back to sending blocks by inv,
                     // it's probably for a re-org. The final block hash
@@ -3210,23 +3209,6 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
         if (!deserializeOk)
             state.Invalid(TxValidationResult::TX_CONSENSUS, "Deserialize"); // T
 
-        // Check transaction with pocketnet base rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(txRef, pocketTx); !ok)
-        {
-            // TODO (losty-fur): Validate error correct
-            state.Invalid(TxValidationResult::TX_CONSENSUS, "SocialConsensusHelper::Check");
-        }
-
-        // Check transaction with pocketnet consensus rules
-        if (!state.IsInvalid())
-        {
-            int height = ::ChainActive().Height() + 1;
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketTx, height); !ok)
-            {
-                // TODO (losty-fur): Validate error correct
-                state.Invalid(TxValidationResult::TX_CONSENSUS, "SocialConsensusHelper::Validate");
-            }
-        }
 
         if (!state.IsInvalid() &&
             AcceptToMemoryPool(m_mempool, state, ptx, pocketTx, &lRemovedTxn, false /* bypass_limits */)) {
@@ -3624,7 +3606,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     if (msg_type == NetMsgType::BLOCKTXN)
     {
         // Ignore blocktxn received while importing
-        if (fImporting || fReindex) {
+        if (fImporting || IsChainReindex()) {
             LogPrint(BCLog::NET, "Unexpected blocktxn message received from peer %d\n", pfrom.GetId());
             return;
         }
@@ -3710,7 +3692,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     if (msg_type == NetMsgType::HEADERS)
     {
         // Ignore headers received while importing
-        if (fImporting || fReindex) {
+        if (fImporting || IsChainReindex()) {
             LogPrint(BCLog::NET, "Unexpected headers message received from peer %d\n", pfrom.GetId());
             return;
         }
@@ -3736,7 +3718,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     if (msg_type == NetMsgType::BLOCK)
     {
         // Ignore block received while importing
-        if (fImporting || fReindex) {
+        if (fImporting || IsChainReindex()) {
             LogPrint(BCLog::NET, "Unexpected block message received from peer %d\n", pfrom.GetId());
             return;
         }
@@ -4397,7 +4379,7 @@ bool PeerManager::SendMessages(CNode* pto)
         if (pindexBestHeader == nullptr)
             pindexBestHeader = ::ChainActive().Tip();
         bool fFetch = state.fPreferredDownload || (nPreferredDownload == 0 && !pto->fClient && !pto->IsAddrFetchConn()); // Download if this is a nice peer, or we have no nice peers and this one might do.
-        if (!state.fSyncStarted && !pto->fClient && !fImporting && !fReindex) {
+        if (!state.fSyncStarted && !pto->fClient && !fImporting && !IsChainReindex()) {
             // Only actively request headers from a single peer, unless we're close to today.
             if ((nSyncStarted == 0 && fFetch) || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - 24 * 60 * 60) {
                 state.fSyncStarted = true;
@@ -4416,6 +4398,13 @@ bool PeerManager::SendMessages(CNode* pto)
                 LogPrint(BCLog::NET, "initial getheaders (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
                 m_connman.PushMessage(pto, msgMaker.Make(NetMsgType::GETHEADERS, ::ChainActive().GetLocator(pindexStart), uint256()));
             }
+        }
+
+        // Resend wallet transactions that haven't gotten in a block yet
+        // Except during reindex, importing and IBD, when old wallet
+        // transactions become unconfirmed and spams other nodes.
+        if (!IsChainReindex() && !fImporting && !::ChainstateActive().IsInitialBlockDownload()) {
+            // GetMainSignals().Broadcast(nTimeBestReceived, connman); // TODO (losty): missing signal
         }
 
         //

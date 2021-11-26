@@ -36,6 +36,11 @@
 #include <utility>
 #include <vector>
 
+#include <chrono>
+#include <future>
+#include <iostream>
+#include <thread>
+
 #include <boost/thread/condition_variable.hpp> // for boost::thread_interrupted
 
 class UniValue;
@@ -143,6 +148,7 @@ enum class OptionsCategory {
     GUI,
     COMMANDS,
     REGISTER_COMMANDS,
+    SQLITE,
 
     HIDDEN // Always the last option to avoid printing these in the help
 };
@@ -453,6 +459,38 @@ template <typename Callable> void TraceThread(const char* name,  Callable func)
         throw;
     }
 }
+
+/**
+ * Runs an arbitrary function TF in an independent thread 
+ * and interrupts the execution of the function if 
+ * the execution time exceeds the specified timeout TDuration
+ */
+
+struct TimeoutException : public std::exception
+{
+	const char * what () const throw ()
+    {
+    	return "Timeout Exception";
+    }
+};
+
+using namespace std::chrono_literals;
+
+template <typename TF, typename TDuration, typename TOF, class... TArgs>
+std::result_of_t<TF&&(TArgs&&...)> run_with_timeout(TF&& f, TDuration timeout, TOF&& fout, TArgs&&... args)
+{
+    using R = std::result_of_t<TF&&(TArgs&&...)>;
+    std::packaged_task<R(TArgs...)> task(f);
+    auto future = task.get_future();
+    std::thread thr(std::move(task), std::forward<TArgs>(args)...);
+
+    while (future.wait_for(timeout) == std::future_status::timeout)
+        fout();
+    
+    thr.join();
+    return future.get(); // this will propagate exception from f() if any
+}
+
 
 std::string CopyrightHolders(const std::string& strPrefix);
 

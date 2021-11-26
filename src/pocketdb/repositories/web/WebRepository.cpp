@@ -92,11 +92,12 @@ namespace PocketDb
                     insert or ignore
                     into web.TagsMap (ContentId, TagId) values (
                         ?,
-                        (select t.Id from web.Tags t where t.Value = ?)
+                        (select t.Id from web.Tags t where t.Value = ? and t.Lang = ?)
                     )
                 )sql");
                 TryBindStatementInt64(stmt, 1, contentTag.ContentId);
                 TryBindStatementText(stmt, 2, contentTag.Value);
+                TryBindStatementText(stmt, 3, contentTag.Lang);
                 TryStepStatement(stmt);
             }
         });
@@ -145,8 +146,8 @@ namespace PocketDb
                     if (auto[ok, string4] = TryGetColumnString(*stmt, 5); ok)    
                         result.emplace_back(Content(id, ContentFieldType_AccountUserAbout, string4));
 
-                    if (auto[ok, string5] = TryGetColumnString(*stmt, 6); ok)
-                        result.emplace_back(Content(id, ContentFieldType_AccountUserUrl, string5));
+                    // if (auto[ok, string5] = TryGetColumnString(*stmt, 6); ok)
+                    //     result.emplace_back(Content(id, ContentFieldType_AccountUserUrl, string5));
 
                     break;
                 case CONTENT_POST:
@@ -157,8 +158,8 @@ namespace PocketDb
                     if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
                         result.emplace_back(Content(id, ContentFieldType_ContentPostMessage, string3));
 
-                    if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentPostUrl, string7));
+                    // if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
+                    //     result.emplace_back(Content(id, ContentFieldType_ContentPostUrl, string7));
 
                     break;
                 case CONTENT_VIDEO:
@@ -169,18 +170,18 @@ namespace PocketDb
                     if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
                         result.emplace_back(Content(id, ContentFieldType_ContentVideoMessage, string3));
 
-                    if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentVideoUrl, string7));
+                    // if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
+                    //     result.emplace_back(Content(id, ContentFieldType_ContentVideoUrl, string7));
 
                     break;
-                case CONTENT_COMMENT:
-                case CONTENT_COMMENT_EDIT:
+                // case CONTENT_COMMENT:
+                // case CONTENT_COMMENT_EDIT:
 
                     // TODO (brangr): implement extract message from JSON
                     // if (auto[ok, string1] = TryGetColumnString(*stmt, 2); ok)
                     //     result.emplace_back(Content(id, ContentFieldType_CommentMessage, string1));
 
-                    break;
+                    // break;
                 default:
                     break;
                 }
@@ -194,47 +195,91 @@ namespace PocketDb
 
     void WebRepository::UpsertContent(const vector<Content>& contentList)
     {
-        vector<int> ids;
+        auto func = __func__;
+
+        vector<int64_t> ids;
         for (auto& contentItm : contentList)
         {
             if (find(ids.begin(), ids.end(), contentItm.ContentId) == ids.end())
                 ids.emplace_back(contentItm.ContentId);
         }
 
+        // ---------------------------------------------------------
+
         TryTransactionStep(__func__, [&]()
         {
+            // ---------------------------------------------------------
             int64_t nTime1 = GetTimeMicros();
 
-            int i = 1;
-            auto idsStmt = SetupSqlStatement(R"sql(
+            auto delContentStmt = SetupSqlStatement(R"sql(
                 delete from web.Content
-                where ContentId in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
+                where ROWID in (
+                    select cm.ROWID from ContentMap cm where cm.ContentId in (
+                        )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql(
+                    )
+                )
             )sql");
-            for (const auto& id: ids) TryBindStatementInt64(idsStmt, i++, id);
-            TryStepStatement(idsStmt);
 
+            int i = 1;
+            for (const auto& id: ids) TryBindStatementInt64(delContentStmt, i++, id);
+            TryStepStatement(delContentStmt);
+
+            // ---------------------------------------------------------
             int64_t nTime2 = GetTimeMicros();
-            
-            for (const auto& contentItm : contentList)
-            {
-                auto stmt = SetupSqlStatement(R"sql(
-                    insert or ignore
-                    into web.Content (ContentId, FieldType, Value)
-                    values (?,?,?)
-                )sql");
-                TryBindStatementInt64(stmt, 1, contentItm.ContentId);
-                TryBindStatementInt(stmt, 2, (int)contentItm.FieldType);
-                TryBindStatementText(stmt, 3, contentItm.Value);
-                TryStepStatement(stmt);
-            }
 
+            auto delContentMapStmt = SetupSqlStatement(R"sql(
+                delete from web.ContentMap
+                where ContentId in (
+                    )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql(
+                )
+            )sql");
+
+            i = 1;
+            for (const auto& id: ids) TryBindStatementInt64(delContentMapStmt, i++, id);
+            TryStepStatement(delContentMapStmt);
+
+            // ---------------------------------------------------------
             int64_t nTime3 = GetTimeMicros();
 
-            LogPrint(BCLog::BENCH, "        - TryTransactionStep (%s): %.2fms + %.2fms = %.2fms\n",
-                __func__,
+            for (const auto& contentItm : contentList)
+            {
+                SetLastInsertRowId(0);
+
+                auto stmtMap = SetupSqlStatement(R"sql(
+                    insert or ignore into ContentMap (ContentId, FieldType) values (?,?)
+                )sql");
+                TryBindStatementInt64(stmtMap, 1, contentItm.ContentId);
+                TryBindStatementInt(stmtMap, 2, (int)contentItm.FieldType);
+                TryStepStatement(stmtMap);
+
+                // ---------------------------------------------------------
+
+                auto lastRowId = GetLastInsertRowId();
+                if (lastRowId > 0)
+                {
+                    auto stmtContent = SetupSqlStatement(R"sql(
+                        replace into web.Content (ROWID, Value) values (?,?)
+                    )sql");
+                    TryBindStatementInt64(stmtContent, 1, lastRowId);
+                    TryBindStatementText(stmtContent, 2, contentItm.Value);
+                    TryStepStatement(stmtContent);
+                }
+                else
+                {
+                    LogPrintf("Warning: content (%d) field (%d) not indexed in search db\n",
+                        contentItm.ContentId, (int)contentItm.FieldType);
+                }
+            }
+
+            // ---------------------------------------------------------
+            int64_t nTime4 = GetTimeMicros();
+
+            LogPrint(BCLog::BENCH, "        - TryTransactionStep (%s): %.2fms + %.2fms + %.2fms = %.2fms\n",
+                func,
                 0.001 * (nTime2 - nTime1),
                 0.001 * (nTime3 - nTime2),
-                0.001 * (nTime3 - nTime1)
+                0.001 * (nTime4 - nTime3),
+                0.001 * (nTime4 - nTime1)
             );
         });
     }

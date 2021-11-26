@@ -186,7 +186,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"addpeeraddress",                1, "port"},
         {"stop",                          0, "wait"},
         {"getnodeaddresses",              0, "count"},
-        {"sendrawtransactionwithmessage", 1, "message"},
         {"txunspent",                     0, "addresses"},
         {"txunspent",                     1, "minconf"},
         {"txunspent",                     2, "maxconf"},

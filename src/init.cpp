@@ -472,7 +472,9 @@ void SetupServerArgs(NodeContext& node)
         false, OptionsCategory::OPTIONS);
     argsman.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-settings=<file>", strprintf("Specify path to dynamic settings data file. Can be disabled with -nosettings. File is written at runtime and not meant to be edited by users (use %s instead for custom settings). Relative paths will be prefixed by datadir location. (default: %s)", POCKETCOIN_CONF_FILENAME, POCKETCOIN_SETTINGS_FILENAME), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
-    argsman.AddArg("-skipvalidation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
+    argsman.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-reindex-start", "Start block for -reindex logic (Deafult: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 
 #if HAVE_SYSTEM
     argsman.AddArg("-startupnotify=<cmd>", "Execute command on startup.", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -648,6 +650,10 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-wsuse", "Accept WebSocket connections", false, OptionsCategory::RPC);
     argsman.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), false, OptionsCategory::RPC);
 
+    // SQLite
+    argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), false, OptionsCategory::SQLITE);
+
+
 #if HAVE_DECL_DAEMON
     argsman.AddArg("-daemon", "Run in the background as a daemon and accept commands", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 #else
@@ -758,7 +764,7 @@ static void StartupNotify(const ArgsManager& args)
 }
 #endif
 
-static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImportFiles, const ArgsManager& args)
+static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, std::vector<fs::path> vImportFiles, const ArgsManager& args)
 {
     const CChainParams& chainparams = Params();
     ScheduleBatchPriority();
@@ -839,10 +845,12 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
         //     }
         // }
 
-        // Reindex only pocket part
+
+        // Reindex requests
+        // .. only pocket part
         if (fReindex == 3)
         {
-            int i = (int)gArgs.GetArg("-reindex-start", 0);
+            int i = (int)args.GetArg("-reindex-start", 0);
             PocketServices::ChainPostProcessing::Rollback(i);
 
             while (i <= ChainActive().Height() && !ShutdownRequested())
@@ -855,7 +863,7 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
                     {
                         LogPrintf("Stopping after failed index pocket part\n");
                         StartShutdown();
-                        return;
+                        break;
                     }
 
                     PocketServices::ChainPostProcessing::Index(block, pblockindex->nHeight);
@@ -867,24 +875,28 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
                 {
                     LogPrintf("Stopping after failed index pocket part: %s\n", e.what());
                     StartShutdown();
-                    return;
+                    break;
                 }
             }
         }
 
-        // Rebuild web DB
-        if (fReindex == 5)
+        // .. only web DB
+        if (fReindex == 5 && args.GetBoolArg("-api", false))
         {
             LogPrintf("Building a Web database: 0%%\n");
 
-            int current = 0;
+            int i = 0;
             int percent = ChainActive().Height() / 100;
             int64_t startTime = GetTimeMicros();
-            while (++current <= ChainActive().Height())
+            while (i <= ChainActive().Height() && !ShutdownRequested())
             {
-                CBlockIndex* pblockindex = ChainActive()[current];
+                CBlockIndex* pblockindex = ChainActive()[i];
                 if (!pblockindex)
+                {
+                    LogPrintf("ERROR: Block not found in chainActive[%d]\n", i);
+                    StartShutdown();
                     break;
+                }
 
                 try
                 {
@@ -893,16 +905,18 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
                 }
                 catch (std::exception& ex)
                 {
-                    LogPrintf("Process web db building failed - block:%s height:%d what:%s\n", pblockindex->GetBlockHash().GetHex(), pblockindex->nHeight, ex.what());
+                    LogPrintf("ERROR: Process web db building failed - block:%s height:%d what:%s\n", pblockindex->GetBlockHash().GetHex(), pblockindex->nHeight, ex.what());
                     StartShutdown();
-                    return;
+                    break;
                 }
 
-                if (current % percent == 0)
+                if (i % percent == 0)
                 {
                     int64_t time = GetTimeMicros();
-                    LogPrintf("Building a Web database: %d%% (%.2fm)\n", (current / percent), (0.000001 * (time - startTime)) / 60.0);
+                    LogPrintf("Building a Web database: %d%% (%.2fm)\n", (i / percent), (0.000001 * (time - startTime)) / 60.0);
                 }
+
+                i += 1;
             }
         }
 
@@ -914,9 +928,9 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
     for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
         BlockValidationState state;
         if (!chainstate->ActivateBestChain(state, chainparams, nullptr, nullptr)) {
-            LogPrintf("Failed to connect best block (%s)\n", state.ToString());
-            StartShutdown();
-            return;
+            LogPrintf("Failed to connect best block (%s) - Maybe later?\n", state.ToString());
+            // StartShutdown();
+            // return;
         }
     }
 
@@ -927,6 +941,17 @@ static void ThreadImport(ChainstateManager& chainman, std::vector<fs::path> vImp
     }
     } // End scope of CImportingNow
     chainman.ActiveChainstate().LoadMempool(args);
+    
+    // Start staker thread after activate best chain
+    #ifdef ENABLE_WALLET
+    // TODO (brangr): DEBUG!
+    if (chainparams.NetworkID() == NetworkTest)
+    {
+        Staker::getInstance()->setIsStaking(args.GetBoolArg("-staking", true));
+        Staker::getInstance()->startWorkers(threadGroup, context, chainparams);
+        
+    }
+    #endif
 }
 
 /** Sanity checks
@@ -1039,7 +1064,7 @@ void InitLogging(const ArgsManager& args)
 {
     LogInstance().m_print_to_file = !args.IsArgNegated("-debuglogfile");
     LogInstance().m_file_path = AbsPathForConfigVal(args.GetArg("-debuglogfile", DEFAULT_DEBUGLOGFILE));
-    LogInstance().m_print_to_console = args.GetBoolArg("-printtoconsole", !args.GetBoolArg("-daemon", false) & !gArgs.GetBoolArg("-silent", false));
+    LogInstance().m_print_to_console = args.GetBoolArg("-printtoconsole", !args.GetBoolArg("-daemon", false) & !args.GetBoolArg("-silent", false));
     LogInstance().m_log_timestamps = args.GetBoolArg("-logtimestamps", DEFAULT_LOGTIMESTAMPS);
     LogInstance().m_log_time_micros = args.GetBoolArg("-logtimemicros", DEFAULT_LOGTIMEMICROS);
 #ifdef HAVE_THREAD_LOCAL
@@ -1621,7 +1646,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // Open, create structure and close `web` db
     PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
     PocketDb::SQLiteDatabase sqliteDbWebInst(false);
-    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, gArgs.GetArg("-reindex", 0) == 5);
+    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, args.GetArg("-reindex", 0) == 5);
     sqliteDbWebInst.CreateStructure();
     sqliteDbWebInst.Close();
 
@@ -1645,15 +1670,18 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
 
     PocketWeb::PocketFrontendInst.Init();
 
+    if (args.GetBoolArg("-api", false))
+        PocketServices::WebPostProcessorInst.Start(threadGroup);
+
     // ********************************************************* Step 4b: Additional settings
 
-    if (gArgs.GetBoolArg("-mempoolclean", false))
+    if (args.GetBoolArg("-mempoolclean", false))
     {
         PocketDb::TransRepoInst.Clean();
         LogPrintf("The sqlite db is cleared according to the -mempoolclean parameter\n");
     }
 
-    if (gArgs.GetArg("-reindex", 0) == 4)
+    if (args.GetArg("-reindex", 0) == 4)
         PocketDb::SQLiteDbInst.RebuildIndexes();
 
     // ********************************************************* Step 4b: Start servers
@@ -2181,8 +2209,8 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         vImportFiles.push_back(strFile);
     }
 
-    g_load_block = std::thread(&TraceThread<std::function<void()>>, "loadblk", [=, &chainman, &args] {
-        ThreadImport(chainman, vImportFiles, args);
+    g_load_block = std::thread(&TraceThread<std::function<void()>>, "loadblk", [=, &context, &chainman, &args] {
+        ThreadImport(chainman, context, vImportFiles, args);
     });
 
     // Wait for genesis block to be processed
@@ -2312,22 +2340,10 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
 
     // ********************************************************* Step 13: finished
 
-#ifdef ENABLE_WALLET
-    // TODO (brangr): DEBUG!
-    if (chainparams.NetworkID() == NetworkTest)
-    {
-        Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
-        Staker::getInstance()->startWorkers(threadGroup, context, chainparams);
-    }
-#endif
-
     // Start WebSocket server
-    if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
+    if (args.GetBoolArg("-wsuse", false)) InitWS();
 
     gStatEngineInstance.Run(threadGroup, context);
-
-    if (gArgs.GetBoolArg("-api", false))
-        PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading").translated);

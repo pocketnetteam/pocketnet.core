@@ -22,21 +22,29 @@ namespace PocketConsensus
     {
     public:
         CommentConsensus(int height) : SocialConsensus<Comment>(height) {}
-        ConsensusValidateResult Validate(const CommentRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Parent comment
             if (!IsEmpty(ptx->GetParentTxHash()))
-                if (!PocketDb::TransRepoInst.ExistsInChain(*ptx->GetParentTxHash()))
+            {
+                // TODO (brangr): replace to check exists not deleted comment
+                if (auto[ok, parentTx] = ConsensusRepoInst.GetLastContent(*ptx->GetParentTxHash());
+                    !ok || *parentTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
                     return {false, SocialConsensusResult_InvalidParentComment};
+            }
 
             // Answer comment
             if (!IsEmpty(ptx->GetAnswerTxHash()))
-                if (!PocketDb::TransRepoInst.ExistsInChain(*ptx->GetAnswerTxHash()))
-                    return {false, SocialConsensusResult_InvalidAnswerComment};
+            {
+                // TODO (brangr): replace to check exists not deleted comment
+                if (auto[ok, answerTx] = ConsensusRepoInst.GetLastContent(*ptx->GetAnswerTxHash());
+                    !ok || *answerTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
+                    return {false, SocialConsensusResult_InvalidParentComment};
+            }
 
             // Check exists content transaction
             auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetPostTxHash());

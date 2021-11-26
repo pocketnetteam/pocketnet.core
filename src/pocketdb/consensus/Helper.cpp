@@ -23,30 +23,60 @@ namespace PocketConsensus
     ComplainConsensusFactory SocialConsensusHelper::m_complainFactory;
     ContentDeleteConsensusFactory SocialConsensusHelper::m_contentDeleteFactory;
 
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PocketBlockRef& block, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CBlock& block, const PocketBlockRef& pBlock, int height)
     {
-        for (const auto& ptx : *block)
+        for (const auto& tx : block.vtx)
         {
-            // Not double validate for already in DB
-            if (auto[ok, result] = validate(ptx, block, height); !ok)
-                return {ok, result};
+            // We have to verify all transactions using consensus
+            // The presence of data in pBlock is checked in the `check` function
+            auto txHash = tx->GetHash().GetHex();
+            auto it = find_if(pBlock->begin(), pBlock->end(), [&](PTransactionRef const& ptx) { return *ptx == txHash; });
+
+            // Validate founded data
+            if (it != pBlock->end())
+            {
+                if (auto[ok, result] = validate(tx, *it, pBlock, height); !ok)
+                {
+                    LogPrint(BCLog::CONSENSUS,
+                        "Warning: SocialConsensus type:%d validate tx:%s blk:%s failed with result:%d at height:%d\n",
+                        (int) *(*it)->GetType(), txHash, block.GetHash().GetHex(), (int) result, height);
+
+                    return {false, result};
+                }
+            }
         }
 
         return {true, SocialConsensusResult_Success};
     }
 
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& ptx, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CTransactionRef& tx, const PTransactionRef& ptx, int height)
     {
         // Not double validate for already in DB
         if (TransRepoInst.Exists(*ptx->GetHash()))
             return {true, SocialConsensusResult_Success};
 
-        return validate(ptx, nullptr, height);
+        if (auto[ok, result] = validate(tx, ptx, nullptr, height); !ok)
+        {
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d validate failed with result:%d for tx:%s at height:%d\n",
+                (int) *ptx->GetType(), (int)result, *ptx->GetHash(), height);
+
+            return {false, result};
+        }
+
+        return {true, SocialConsensusResult_Success};
     }
 
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const PTransactionRef& ptx, PocketBlockRef& block, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CTransactionRef& tx, const PTransactionRef& ptx, PocketBlockRef& pBlock, int height)
     {
-        return validate(ptx, block, height);
+        if (auto[ok, result] = validate(tx, ptx, pBlock, height); !ok)
+        {
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d validate tx:%s failed with result:%d for block construction at height:%d\n",
+                (int)*ptx->GetType(), *ptx->GetHash(), (int)result, height);
+
+            return {false, result};
+        }
+
+        return {true, SocialConsensusResult_Success};
     }
 
     // Проверяет блок транзакций без привязки к цепи
@@ -71,15 +101,20 @@ namespace PocketConsensus
             auto it = find_if(pBlock->begin(), pBlock->end(), [&](PTransactionRef const& ptx) { return *ptx == txHash; });
             if (it == pBlock->end())
             {
-                LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus check transaction with type:%d failed with result %d for transaction %s\n",
-                    (int)txType, (int)SocialConsensusResult_PocketDataNotFound, tx->GetHash().GetHex());
+                LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d check failed with result:%d for tx:%s in blk:%s\n",
+                    (int)txType, (int)SocialConsensusResult_PocketDataNotFound, tx->GetHash().GetHex(), block.GetHash().GetHex());
 
                 return {false, SocialConsensusResult_PocketDataNotFound};
             }
 
             // Check founded payload
             if (auto[ok, result] = check(tx, *it); !ok)
+            {
+                LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus check type:%d failed with result:%d for tx:%s in blk:%s\n",
+                    (int)txType, (int)result, tx->GetHash().GetHex(), block.GetHash().GetHex());
+
                 return {false, result};
+            }
         }
 
         return {true, SocialConsensusResult_Success};
@@ -92,7 +127,15 @@ namespace PocketConsensus
         if (TransRepoInst.Exists(*ptx->GetHash()))
             return {true, SocialConsensusResult_Success};
 
-        return check(tx, ptx);
+        if (auto[ok, result] = check(tx, ptx); !ok)
+        {
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d check failed with result:%d for tx:%s\n",
+                (int) *ptx->GetType(), (int)result, *ptx->GetHash());
+
+            return {false, result};
+        }
+
+        return {true, SocialConsensusResult_Success};
     }
 
     // -----------------------------------------------------------------
@@ -107,75 +150,63 @@ namespace PocketConsensus
         switch (*ptx->GetType())
         {
             case ACCOUNT_SETTING:
-                result = m_accountSettingFactory.Instance(0)->Check(tx, static_pointer_cast<AccountSetting>(ptx));
+                return m_accountSettingFactory.Instance(0)->Check(tx, static_pointer_cast<AccountSetting>(ptx));
                 break;
             case ACCOUNT_USER:
-                result = m_userFactory.Instance(0)->Check(tx, static_pointer_cast<User>(ptx));
+                return m_userFactory.Instance(0)->Check(tx, static_pointer_cast<User>(ptx));
                 break;
             case CONTENT_POST:
-                result = m_postFactory.Instance(0)->Check(tx, static_pointer_cast<Post>(ptx));
+                return m_postFactory.Instance(0)->Check(tx, static_pointer_cast<Post>(ptx));
                 break;
             case CONTENT_VIDEO:
-                result = m_videoFactory.Instance(0)->Check(tx, static_pointer_cast<Video>(ptx));
+                return m_videoFactory.Instance(0)->Check(tx, static_pointer_cast<Video>(ptx));
                 break;
             case CONTENT_COMMENT:
-                result = m_commentFactory.Instance(0)->Check(tx, static_pointer_cast<Comment>(ptx));
+                return m_commentFactory.Instance(0)->Check(tx, static_pointer_cast<Comment>(ptx));
                 break;
             case CONTENT_COMMENT_EDIT:
-                result = m_commentEditFactory.Instance(0)->Check(tx, static_pointer_cast<CommentEdit>(ptx));
+                return m_commentEditFactory.Instance(0)->Check(tx, static_pointer_cast<CommentEdit>(ptx));
                 break;
             case CONTENT_COMMENT_DELETE:
-                result = m_commentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<CommentDelete>(ptx));
+                return m_commentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<CommentDelete>(ptx));
                 break;
             case CONTENT_DELETE:
-                result = m_contentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<ContentDelete>(ptx));
+                return m_contentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<ContentDelete>(ptx));
                 break;
             case ACTION_SCORE_CONTENT:
-                result = m_scoreContentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreContent>(ptx));
+                return m_scoreContentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreContent>(ptx));
                 break;
             case ACTION_SCORE_COMMENT:
-                result = m_scoreCommentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreComment>(ptx));
+                return m_scoreCommentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreComment>(ptx));
                 break;
             case ACTION_SUBSCRIBE:
-                result = m_subscribeFactory.Instance(0)->Check(tx, static_pointer_cast<Subscribe>(ptx));
+                return m_subscribeFactory.Instance(0)->Check(tx, static_pointer_cast<Subscribe>(ptx));
                 break;
             case ACTION_SUBSCRIBE_PRIVATE:
-                result = m_subscribePrivateFactory.Instance(0)->Check(tx, static_pointer_cast<SubscribePrivate>(ptx));
+                return m_subscribePrivateFactory.Instance(0)->Check(tx, static_pointer_cast<SubscribePrivate>(ptx));
                 break;
             case ACTION_SUBSCRIBE_CANCEL:
-                result = m_subscribeCancelFactory.Instance(0)->Check(tx, static_pointer_cast<SubscribeCancel>(ptx));
+                return m_subscribeCancelFactory.Instance(0)->Check(tx, static_pointer_cast<SubscribeCancel>(ptx));
                 break;
             case ACTION_BLOCKING:
-                result = m_blockingFactory.Instance(0)->Check(tx, static_pointer_cast<Blocking>(ptx));
+                return m_blockingFactory.Instance(0)->Check(tx, static_pointer_cast<Blocking>(ptx));
                 break;
             case ACTION_BLOCKING_CANCEL:
-                result = m_blockingCancelFactory.Instance(0)->Check(tx, static_pointer_cast<BlockingCancel>(ptx));
+                return m_blockingCancelFactory.Instance(0)->Check(tx, static_pointer_cast<BlockingCancel>(ptx));
                 break;
             case ACTION_COMPLAIN:
-                result = m_complainFactory.Instance(0)->Check(tx, static_pointer_cast<Complain>(ptx));
-                break;
+                return m_complainFactory.Instance(0)->Check(tx, static_pointer_cast<Complain>(ptx));
+            // TODO (brangr): future realize types
             case ACCOUNT_VIDEO_SERVER:
             case ACCOUNT_MESSAGE_SERVER:
             case CONTENT_TRANSLATE:
             case CONTENT_SERVERPING:
-                // TODO (brangr): future realize types
-                break;
             default:
-                break;
+                return {true, SocialConsensusResult_Success};
         }
-
-        if (auto[ok, code] = result; !ok)
-        {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d check transaction failed with result %d for transaction %s\n",
-                (int)*ptx->GetType(), (int) code, *ptx->GetHash());
-
-            return {false, code};
-        }
-
-        return {true, SocialConsensusResult_Success};
     }
 
-    tuple<bool, SocialConsensusResult> SocialConsensusHelper::validate(const PTransactionRef& ptx, const PocketBlockRef& block, int height)
+    tuple<bool, SocialConsensusResult> SocialConsensusHelper::validate(const CTransactionRef& tx, const PTransactionRef& ptx, const PocketBlockRef& pBlock, int height)
     {
         if (!isConsensusable(*ptx->GetType()))
             return {true, SocialConsensusResult_Success};
@@ -185,72 +216,45 @@ namespace PocketConsensus
         switch (*ptx->GetType())
         {
             case ACCOUNT_SETTING:
-                result = m_accountSettingFactory.Instance(height)->Validate(static_pointer_cast<AccountSetting>(ptx), block);
-                break;
+                return m_accountSettingFactory.Instance(height)->Validate(tx, static_pointer_cast<AccountSetting>(ptx), pBlock);
             case ACCOUNT_USER:
-                result = m_userFactory.Instance(height)->Validate(static_pointer_cast<User>(ptx), block);
-                break;
+                return m_userFactory.Instance(height)->Validate(tx, static_pointer_cast<User>(ptx), pBlock);
             case CONTENT_POST:
-                result = m_postFactory.Instance(height)->Validate(static_pointer_cast<Post>(ptx), block);
-                break;
+                return m_postFactory.Instance(height)->Validate(tx, static_pointer_cast<Post>(ptx), pBlock);
             case CONTENT_VIDEO:
-                result = m_videoFactory.Instance(height)->Validate(static_pointer_cast<Video>(ptx), block);
-                break;
+                return m_videoFactory.Instance(height)->Validate(tx, static_pointer_cast<Video>(ptx), pBlock);
             case CONTENT_COMMENT:
-                result = m_commentFactory.Instance(height)->Validate(static_pointer_cast<Comment>(ptx), block);
-                break;
+                return m_commentFactory.Instance(height)->Validate(tx, static_pointer_cast<Comment>(ptx), pBlock);
             case CONTENT_COMMENT_EDIT:
-                result = m_commentEditFactory.Instance(height)->Validate(static_pointer_cast<CommentEdit>(ptx), block);
-                break;
+                return m_commentEditFactory.Instance(height)->Validate(tx, static_pointer_cast<CommentEdit>(ptx), pBlock);
             case CONTENT_COMMENT_DELETE:
-                result = m_commentDeleteFactory.Instance(height)->Validate(static_pointer_cast<CommentDelete>(ptx), block);
-                break;
+                return m_commentDeleteFactory.Instance(height)->Validate(tx, static_pointer_cast<CommentDelete>(ptx), pBlock);
             case CONTENT_DELETE:
-                result = m_contentDeleteFactory.Instance(height)->Validate(static_pointer_cast<ContentDelete>(ptx), block);
-                break;
+                return m_contentDeleteFactory.Instance(height)->Validate(tx, static_pointer_cast<ContentDelete>(ptx), pBlock);
             case ACTION_SCORE_CONTENT:
-                result = m_scoreContentFactory.Instance(height)->Validate(static_pointer_cast<ScoreContent>(ptx), block);
-                break;
+                return m_scoreContentFactory.Instance(height)->Validate(tx, static_pointer_cast<ScoreContent>(ptx), pBlock);
             case ACTION_SCORE_COMMENT:
-                result = m_scoreCommentFactory.Instance(height)->Validate(static_pointer_cast<ScoreComment>(ptx), block);
-                break;
+                return m_scoreCommentFactory.Instance(height)->Validate(tx, static_pointer_cast<ScoreComment>(ptx), pBlock);
             case ACTION_SUBSCRIBE:
-                result = m_subscribeFactory.Instance(height)->Validate(static_pointer_cast<Subscribe>(ptx), block);
-                break;
+                return m_subscribeFactory.Instance(height)->Validate(tx, static_pointer_cast<Subscribe>(ptx), pBlock);
             case ACTION_SUBSCRIBE_PRIVATE:
-                result = m_subscribePrivateFactory.Instance(height)->Validate(static_pointer_cast<SubscribePrivate>(ptx), block);
-                break;
+                return m_subscribePrivateFactory.Instance(height)->Validate(tx, static_pointer_cast<SubscribePrivate>(ptx), pBlock);
             case ACTION_SUBSCRIBE_CANCEL:
-                result = m_subscribeCancelFactory.Instance(height)->Validate(static_pointer_cast<SubscribeCancel>(ptx), block);
-                break;
+                return m_subscribeCancelFactory.Instance(height)->Validate(tx, static_pointer_cast<SubscribeCancel>(ptx), pBlock);
             case ACTION_BLOCKING:
-                result = m_blockingFactory.Instance(height)->Validate(static_pointer_cast<Blocking>(ptx), block);
-                break;
+                return m_blockingFactory.Instance(height)->Validate(tx, static_pointer_cast<Blocking>(ptx), pBlock);
             case ACTION_BLOCKING_CANCEL:
-                result = m_blockingCancelFactory.Instance(height)->Validate(static_pointer_cast<BlockingCancel>(ptx), block);
-                break;
+                return m_blockingCancelFactory.Instance(height)->Validate(tx, static_pointer_cast<BlockingCancel>(ptx), pBlock);
             case ACTION_COMPLAIN:
-                result = m_complainFactory.Instance(height)->Validate(static_pointer_cast<Complain>(ptx), block);
-                break;
+                return m_complainFactory.Instance(height)->Validate(tx, static_pointer_cast<Complain>(ptx), pBlock);
+            // TODO (brangr): future realize types
             case ACCOUNT_VIDEO_SERVER:
             case ACCOUNT_MESSAGE_SERVER:
             case CONTENT_TRANSLATE:
             case CONTENT_SERVERPING:
-                // TODO (brangr): future realize types
-                break;
             default:
-                break;
+                return {true, SocialConsensusResult_Success};
         }
-
-        if (auto[ok, code] = result; !ok)
-        {
-            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus %d validate failed with result %d for transaction %s at height:%d\n",
-                (int)*ptx->GetType(), (int) code, *ptx->GetHash(), height);
-
-            return {false, code};
-        }
-
-        return {true, SocialConsensusResult_Success};
     }
 
     bool SocialConsensusHelper::isConsensusable(TxType txType)

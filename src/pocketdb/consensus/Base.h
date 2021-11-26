@@ -58,7 +58,6 @@ namespace PocketConsensus
         SocialConsensusResult_SelfCommentScore = 38,
         SocialConsensusResult_DoubleCommentDelete = 39,
         SocialConsensusResult_DoubleCommentScore = 40,
-        SocialConsensusResult_OpReturnFailed = 41,
         SocialConsensusResult_CommentDeletedEdit = 42,
         SocialConsensusResult_NotAllowed = 44,
         SocialConsensusResult_ChangeTxType = 45,
@@ -122,7 +121,6 @@ namespace PocketConsensus
             case (SocialConsensusResult_SelfCommentScore): return "SelfCommentScore";
             case (SocialConsensusResult_DoubleCommentDelete): return "DoubleCommentDelete";
             case (SocialConsensusResult_DoubleCommentScore): return "DoubleCommentScore";
-            case (SocialConsensusResult_OpReturnFailed): return "OpReturnFailed";
             case (SocialConsensusResult_CommentDeletedEdit): return "CommentDeletedEdit";
             case (SocialConsensusResult_NotAllowed): return "NotAllowed";
             case (SocialConsensusResult_ChangeTxType): return "ChangeTxType";
@@ -135,6 +133,11 @@ namespace PocketConsensus
             case (SocialConsensusResult_RepostDeletedContent): return "RepostDeletedContent";
             case (SocialConsensusResult_AlreadyExists): return "AlreadyExists";
             case (SocialConsensusResult_PocketDataNotFound): return "PocketDataNotFound";
+            case (SocialConsensusResult_TxORNotFound): return "TxORNotFound";
+            case (SocialConsensusResult_ComplainDeletedContent): return "ComplainDeletedContent";
+            case (SocialConsensusResult_ScoreDeletedContent): return "ScoreDeletedContent";
+            case (SocialConsensusResult_RelayContentNotFound): return "RelayContentNotFound";
+            case (SocialConsensusResult_BadPayload): return "BadPayload";
             default: return "Unknown";
         }
     }
@@ -197,6 +200,8 @@ namespace PocketConsensus
 
         ConsensusLimit_scores_depth_modify_reputation,
         ConsensusLimit_lottery_referral_depth,
+
+        ConsensusLimit_bad_reputation,
     };
 
     /*********************************************************************************************/
@@ -208,6 +213,24 @@ namespace PocketConsensus
     typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimits;
 
     static inline ConsensusLimits m_consensus_limits = {
+        // ConsensusLimit_bad_reputation
+        {
+            ConsensusLimit_bad_reputation,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, -500}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, -50}
+                    }
+                }
+            }
+        },
         // ConsensusLimit_threshold_reputation
         {
             ConsensusLimit_threshold_reputation,

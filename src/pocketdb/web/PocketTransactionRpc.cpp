@@ -14,9 +14,6 @@ namespace PocketWeb::PocketWebRpc
                 "\nAdd new pocketnet transaction.\n"
             );
 
-        if (Params().NetworkID() != NetworkTest)
-            throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Only for TEST network");
-
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
 
         CMutableTransaction mTx;
@@ -37,14 +34,6 @@ namespace PocketWeb::PocketWebRpc
 
         // Set required fields
         ptx->SetAddress(address);
-
-        // Antibot checked transaction with pocketnet consensus rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(tx, ptx); !ok)
-            throw JSONRPCError(result, PocketConsensus::SocialConsensusResultString(result));
-
-        // And validating
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, ::ChainActive().Height() + 1); !ok)
-            throw JSONRPCError(result, PocketConsensus::SocialConsensusResultString(result));
 
         // Insert into mempool
         return _accept_transaction(tx, ptx);
@@ -81,7 +70,8 @@ namespace PocketWeb::PocketWebRpc
 
             CCoinsViewCache& view = ::ChainstateActive().CoinsTip();
             bool fHaveChain = false;
-            for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++) {
+            for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++)
+            {
                 const Coin& existingCoin = view.AccessCoin(COutPoint(txid, o));
                 fHaveChain = !existingCoin.IsSpent();
             }
@@ -93,18 +83,26 @@ namespace PocketWeb::PocketWebRpc
                 // // push to local node and sync with wallets
                 // BlockValidationState state;
                 // bool fMissingInputs;
-                                    // TODO (losty): mempool from node context
-                // if (!AcceptToMemoryPool(mempool, state, tx, ptx, &fMissingInputs, nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee)) {
-                //     if (state.IsInvalid()) {
+                // if (!AcceptToMemoryPool(mempool, state, tx, ptx, &fMissingInputs,
+                //     nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee))
+                // {
+                //     if (state.IsInvalid())
+                //     {
                 //         throw JSONRPCError(RPC_TRANSACTION_REJECTED, FormatStateMessage(state));
-                //     } else {
-                                // TODO (losty): add RPC_POCKETTX_MATURITY to reject codes
-                //         if (state.GetRejectCode() == RPC_POCKETTX_MATURITY) {
+                //     }
+                //     else
+                //     {
+                //         if (state.GetRejectCode() == RPC_POCKETTX_MATURITY)
+                //         {
                 //             throw JSONRPCError(RPC_POCKETTX_MATURITY, FormatStateMessage(state));
-                //         } else {
-                //             if (fMissingInputs) {
+                //         }
+                //         else
+                //         {
+                //             if (fMissingInputs)
+                //             {
                 //                 throw JSONRPCError(RPC_TRANSACTION_ERROR, "Missing inputs");
                 //             }
+
                 //             throw JSONRPCError(RPC_TRANSACTION_ERROR, FormatStateMessage(state));
                 //         }
                 //     }
@@ -120,7 +118,8 @@ namespace PocketWeb::PocketWebRpc
                 //         promise.set_value();
                 //     });
                 // }
-            } else if (fHaveChain)
+            }
+            else if (fHaveChain)
             {
                 throw JSONRPCError(RPC_TRANSACTION_ALREADY_IN_CHAIN, "transaction already in block chain");
             }
@@ -130,7 +129,6 @@ namespace PocketWeb::PocketWebRpc
                 // a transaction already in mempool.
                 promise.set_value();
             }
-
         } // cs_main
 
         promise.get_future().wait();

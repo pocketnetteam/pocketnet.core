@@ -88,6 +88,8 @@ public:
     explicit HTTPRequest(struct evhttp_request* req, bool _replySent = false);
     ~HTTPRequest();
 
+    Statistic::RequestTime Created;
+
     enum RequestMethod
     {
         UNKNOWN,
@@ -222,33 +224,38 @@ public:
     HTTPWorkItem(std::unique_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
         req(std::move(_req)), path(_path), func(_func)
     {
+        // log = LogInstance().WillLogCategory(BCLog::STAT);
+        // created = gStatEngineInstance.GetCurrentSystemTime();
     }
+
     void operator()(DbConnectionRef& dbConnection) override
     {
-        auto log = LogInstance().WillLogCategory(BCLog::STAT);
         auto jreq = req.get();
         jreq->SetDbConnection(dbConnection);
 
-        auto uri = jreq->GetURI();
-        auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
+        // auto uri = jreq->GetURI();
+        // auto peer = jreq->GetPeer().ToString().substr(0, jreq->GetPeer().ToString().find(':'));
 
-        auto start = gStatEngineInstance.GetCurrentSystemTime();
+        // auto start = gStatEngineInstance.GetCurrentSystemTime();
+
         func(jreq, path);
-        auto stop = gStatEngineInstance.GetCurrentSystemTime();
 
-        if (log)
-        {
-            gStatEngineInstance.AddSample(
-                Statistic::RequestSample{
-                    uri,
-                    start,
-                    stop,
-                    peer,
-                    0,
-                    0
-                }
-            );
-        }
+        // auto stop = gStatEngineInstance.GetCurrentSystemTime();
+
+        // if (log)
+        // {
+        //     gStatEngineInstance.AddSample(
+        //         Statistic::RequestSample{
+        //             uri,
+        //             created,
+        //             stop,
+        //             finish,
+        //             peer,
+        //             0,
+        //             0
+        //         }
+        //     );
+        // }
     }
 
     std::unique_ptr<HTTPRequest> req;
@@ -256,6 +263,8 @@ public:
 private:
     std::string path;
     HTTPRequestHandler func;
+    // bool log;
+    // Statistic::RequestTime created;
 };
 
 class HTTPSocket

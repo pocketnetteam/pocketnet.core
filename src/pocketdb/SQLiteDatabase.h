@@ -39,6 +39,8 @@ namespace PocketDb
 
         explicit SQLiteDatabase(bool readOnly);
 
+        bool IsReadOnly() const;
+
         void Init(const std::string& dbBasePath, const string& dbName, const PocketDbMigrationRef& migration = nullptr, bool drop = false);
 
         void CreateStructure();
@@ -54,6 +56,8 @@ namespace PocketDb
         bool CommitTransaction();
 
         bool AbortTransaction();
+
+        void InterruptQuery();
 
         void DetachDatabase(const string& dbName);
         void AttachDatabase(const string& dbName);

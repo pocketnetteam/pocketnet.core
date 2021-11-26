@@ -916,7 +916,7 @@ static bool debug_index_block(const util::Ref& context, HTTPRequest* req, const 
                 }
             }
 
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(pocketBlock, pblockindex->nHeight); !ok)
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(block, pocketBlock, pblockindex->nHeight); !ok)
             {
                 LogPrintf("failed at %d heaihgt with result %d\n", pblockindex->nHeight, (int)result);
                 // return RESTERR(req, HTTP_BAD_REQUEST, "Validate failed");
@@ -1079,11 +1079,6 @@ static const struct
     {"/rest/topaddresses",       rest_topaddresses},
     {"/rest/gettopaddresses",    rest_topaddresses},
     {"/rest/blockhash",          rest_blockhash},
-
-    // Debug
-    {"/rest/debugindex",        debug_index_block},
-    {"/rest/debugcheck",        debug_check_block},
-
 };
 
 void StartREST(const util::Ref& context)

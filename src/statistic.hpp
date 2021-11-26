@@ -28,8 +28,10 @@ namespace Statistic
     {
         RequestKey Key;
         RequestTime TimestampBegin;
+        RequestTime TimestampExec;
         RequestTime TimestampEnd;
         RequestIP SourceIP;
+        bool Failed;
         RequestPayloadSize InputSize;
         RequestPayloadSize OutputSize;
     };
@@ -48,13 +50,7 @@ namespace Statistic
             _samples.push_back(sample);
         }
 
-        std::size_t GetNumSamples()
-        {
-            LOCK(_samplesLock);
-            return _samples.size();
-        }
-
-        std::size_t GetNumSamplesBetween(RequestTime begin, RequestTime end)
+        std::size_t GetNumSamplesSince(RequestTime time)
         {
             LOCK(_samplesLock);
             return std::count_if(
@@ -62,18 +58,20 @@ namespace Statistic
                 _samples.end(),
                 [=](const RequestSample& sample)
                 {
-                    return sample.TimestampBegin >= begin && sample.TimestampEnd <= end;
+                    return sample.TimestampEnd >= time && sample.TimestampEnd <= RequestTime::max();
                 });
         }
 
-        std::size_t GetNumSamplesBefore(RequestTime time)
+        std::size_t GetNumFailedSamplesSince(RequestTime time)
         {
-            return GetNumSamplesBetween(RequestTime::min(), time);
-        }
-
-        std::size_t GetNumSamplesSince(RequestTime time)
-        {
-            return GetNumSamplesBetween(time, RequestTime::max());
+            LOCK(_samplesLock);
+            return std::count_if(
+                _samples.begin(),
+                _samples.end(),
+                [=](const RequestSample& sample)
+                {
+                    return sample.TimestampEnd >= time && sample.TimestampEnd <= RequestTime::max() && sample.Failed;
+                });
         }
 
         RequestTime GetAvgRequestTimeSince(RequestTime since)
@@ -88,7 +86,7 @@ namespace Statistic
 
             for (auto& sample : _samples)
             {
-                if (sample.TimestampBegin >= since && sample.Key != "WorkQueue::Enqueue")
+                if (sample.TimestampEnd.count() > 0 && sample.TimestampEnd >= since && sample.Key != "WorkQueue::Enqueue")
                 {
                     sum += sample.TimestampEnd - sample.TimestampBegin;
                     count++;
@@ -99,26 +97,28 @@ namespace Statistic
             return sum / count;
         }
 
-        int GetWorkQueueAvgCount(RequestTime since)
+
+        RequestTime GetAvgExecutionTimeSince(RequestTime since)
         {
             LOCK(_samplesLock);
 
             if (_samples.empty())
                 return {};
 
-            int count = 0;
+            RequestTime sum{};
+            std::size_t count{};
+
             for (auto& sample : _samples)
             {
-                if (sample.TimestampBegin >= since && sample.Key == "WorkQueue::Enqueue")
+                if (sample.TimestampEnd.count() > 0 && sample.TimestampEnd >= since && sample.Key != "WorkQueue::Enqueue")
+                {
+                    sum += sample.TimestampEnd - sample.TimestampExec;
                     count++;
+                }
             }
 
-            return count;
-        }
-
-        RequestTime GetAvgRequestTime()
-        {
-            return GetAvgRequestTimeSince(RequestTime::min());
+            if (count <= 0) return {};
+            return sum / count;
         }
 
         std::vector<RequestSample> GetTopHeavyTimeSamplesSince(std::size_t limit, RequestTime since)
@@ -157,7 +157,7 @@ namespace Statistic
 
             LOCK(_samplesLock);
             for (auto& sample : _samples)
-                if (sample.TimestampBegin >= since)
+                if (sample.TimestampEnd >= since)
                     result.insert(sample.SourceIP);
 
             return result;
@@ -225,8 +225,10 @@ namespace Statistic
             result.pushKV("General", chainStat);
 
             UniValue rpcStat(UniValue::VOBJ);
-            rpcStat.pushKV("Requests", (int) GetNumSamplesSince(since));
+            rpcStat.pushKV("RequestsAll", (int) GetNumSamplesSince(since));
+            rpcStat.pushKV("RequestsFailed", (int) GetNumFailedSamplesSince(since));
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
+            rpcStat.pushKV("AvgExecTime", GetAvgExecutionTimeSince(since).count());
             rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
             if (LogInstance().WillLogCategory(BCLog::STATDETAIL))
             {
@@ -237,12 +239,38 @@ namespace Statistic
             }
             result.pushKV("RPC", rpcStat);
 
-            return result;
-        }
+            UniValue sqlStats(UniValue::VOBJ);
+            sqlite3_int64 current64 = 0, highWater64 = 0; 
+            sqlite3_status64(SQLITE_STATUS_MEMORY_USED, &current64, &highWater64, false);
+            sqlStats.pushKV("MemoryUsed", (int64_t) current64);
+            sqlStats.pushKV("MemoryUsedMax", (int64_t) highWater64);
+            sqlite3_status64(SQLITE_STATUS_PAGECACHE_USED, &current64, &highWater64, false);
+            sqlStats.pushKV("PageCacheUsed", (int64_t) current64);
+            sqlStats.pushKV("PageCacheUsedMax", (int64_t) highWater64);
+            sqlite3_status64(SQLITE_STATUS_PAGECACHE_SIZE, &current64, &highWater64, false);
+            sqlStats.pushKV("PageCacheSize", (int64_t) current64);
+            sqlStats.pushKV("PageCacheSizeMax", (int64_t) highWater64);
+            sqlite3 *db = PocketDb::SQLiteDbInst.m_db;
 
-        UniValue CompileStatsAsJson(const util::Ref& context)
-        {
-            return CompileStatsAsJsonSince(RequestTime::min(), context);
+            int current = 0, highWater = 0; 
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED, &current, &highWater, false);
+            sqlStats.pushKV("CacheUsed", current);
+
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_USED_SHARED, &current, &highWater, false);
+            sqlStats.pushKV("SharedCacheUsed", current);
+
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_HIT, &current, &highWater, true);
+            sqlStats.pushKV("CacheHit", current);
+
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_MISS, &current, &highWater, true);
+            sqlStats.pushKV("CacheMiss", current);
+
+            sqlite3_db_status(db, SQLITE_DBSTATUS_CACHE_SPILL, &current, &highWater, true);
+            sqlStats.pushKV("CacheSpill", current);
+
+            result.pushKV("SQL", sqlStats);
+
+            return result;
         }
 
         // Just a helper to prevent copypasta
@@ -274,7 +302,7 @@ namespace Statistic
                 LogPrint(BCLog::STATDETAIL, msg.c_str(), statLoggerSleep / 1000,
                     CompileStatsAsJsonSince(chunkSize, context).write(1));
 
-                RemoveSamplesBefore(chunkSize);
+                RemoveSamplesBefore(chunkSize * 2);
                 UninterruptibleSleep(std::chrono::milliseconds{statLoggerSleep});
             }
         }
@@ -295,15 +323,14 @@ namespace Statistic
                     _samples.end(),
                     [time](const RequestSample& sample)
                     {
-                        return sample.TimestampBegin < time;
+                        return sample.TimestampEnd < time;
                     }),
                 _samples.end());
 
             LogPrint(BCLog::STAT, "Clear statistic cache: %d -> %d items after.\n", sizeBefore, _samples.size());
         }
 
-        std::vector<RequestSample>
-        GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since)
+        std::vector<RequestSample> GetTopSizeSamplesImpl(std::size_t limit, RequestPayloadSize RequestSample::*size_field, RequestTime since)
         {
             LOCK(_samplesLock);
             auto samples_copy = _samples;
@@ -314,7 +341,7 @@ namespace Statistic
                     samples_copy.end(),
                     [since](const RequestSample& sample)
                     {
-                        return sample.TimestampBegin < since;
+                        return sample.TimestampEnd < since;
                     }),
                 samples_copy.end());
 
@@ -343,7 +370,7 @@ namespace Statistic
                     samples_copy.end(),
                     [since](const RequestSample& sample)
                     {
-                        return sample.TimestampBegin < since;
+                        return sample.TimestampEnd < since;
                     }),
                 samples_copy.end());
 

@@ -26,6 +26,7 @@ static const CRPCCommand commands[] =
     // Search
     {"search",          "search",                           &Search,                        {"keyword", "type", "topBlock", "pageStart", "pageSize", "address"}},
     {"search",          "searchlinks",                      &SearchLinks,                   {"links", "contenttypes", "height", "count"}},
+    {"search",          "searchusers",                      &SearchUsers,                   {"keyword", "fieldtypes", "orderbyrank"}},
 
     // WebSocket
     {"websocket",       "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},
@@ -69,7 +70,7 @@ static const CRPCCommand commands[] =
 
     // Explorer
     {"explorer",       "getstatistic",                     &GetStatistic,                   {"endTime", "depth"}},
-    {"explorer",       "getaddressspent",                  &GetAddressSpent,                {"address"}},
+    {"explorer",       "getaddressinfo",                   &GetAddressInfo,                 {"address"}},
     {"explorer",       "getcompactblock",                  &GetCompactBlock,                {"blockHash"}},
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
     {"explorer",       "searchbyhash",                     &SearchByHash,                   {"value"}},

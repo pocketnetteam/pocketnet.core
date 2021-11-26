@@ -27,7 +27,7 @@ namespace PocketTx
         // For olf protocol edited content
         // txid     - original content hash
         // txidEdit - actual transaction hash
-            result->pushKV("txidEdit", "");
+        result->pushKV("txidEdit", "");
         if (*GetRootTxHash() != *GetHash())
         {
             result->pushKV("txid", *GetRootTxHash());

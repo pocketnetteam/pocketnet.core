@@ -138,7 +138,7 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
     }
 
     //// debug print
-    LogPrintf("=== Staking : new PoS block found hash: %s\n", hashBlock.GetHex());
+    LogPrintf("=== Staking : new PoS block found hash: %d - %s\n", ChainActive().Height() + 1, hashBlock.GetHex());
 
     // Found a solution
     {

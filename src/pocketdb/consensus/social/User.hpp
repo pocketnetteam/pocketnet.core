@@ -20,10 +20,10 @@ namespace PocketConsensus
     {
     public:
         UserConsensus(int height) : SocialConsensus<User>(height) {}
-        ConsensusValidateResult Validate(const UserRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const UserRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Duplicate name
@@ -49,7 +49,9 @@ namespace PocketConsensus
 
             // Check payload
             if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
-            if (IsEmpty(ptx->GetPayloadName())) return {false, SocialConsensusResult_Failed};
+
+            // TODO (brangr): enable with fork height
+            //if (IsEmpty(ptx->GetPayloadName())) return {false, SocialConsensusResult_Failed};
 
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
@@ -57,16 +59,19 @@ namespace PocketConsensus
 
             // Maximum length for user name
             auto name = *ptx->GetPayloadName();
-            if (name.empty() || name.size() > 35)
-            {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
-                    return {false, SocialConsensusResult_NicknameLong};
-            }
+
+            // TODO (brangr): enable with fork height
+            // if (name.empty() || name.size() > 35)
+            // {
+            //     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
+            //         return {false, SocialConsensusResult_NicknameLong};
+            // }
 
             // Trim spaces
             if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
             {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_Failed))
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(),
+                    SocialConsensusResult_Failed))
                     return {false, SocialConsensusResult_Failed};
             }
 

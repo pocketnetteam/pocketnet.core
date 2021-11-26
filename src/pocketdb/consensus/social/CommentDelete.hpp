@@ -20,10 +20,10 @@ namespace PocketConsensus
     {
     public:
         CommentDeleteConsensus(int height) : SocialConsensus<CommentDelete>(height) {}
-        ConsensusValidateResult Validate(const CommentDeleteRef& ptx, const PocketBlockRef& block) override
+        ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentDeleteRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
-            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(ptx, block); !baseValidate)
+            if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
             // Actual comment not deleted
@@ -32,8 +32,8 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_NotFound};
 
             // Original comment exists
-            auto originalTx = PocketDb::TransRepoInst.Get(*ptx->GetRootTxHash());
-            if (!originalTx)
+            auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
+            if (!originalTxOk || !originalTx)
                 return {false, SocialConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<CommentDelete>(originalTx);

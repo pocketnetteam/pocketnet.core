@@ -45,55 +45,69 @@ namespace PocketDb {
 
     UniValue ExplorerRepository::GetStatistic(int64_t startTime, int64_t endTime, StatisticDepth depth)
     {
+        auto func = __func__;
         UniValue result(UniValue::VOBJ);
 
+        // TODO (brangr): Optimization is needed
+        return result;
+
         string formatTime;
+        string delimiter;
         switch (depth)
         {
             case StatisticDepth_Day:
                 formatTime = "%Y%m%d%H";
+                delimiter = "3600";
                 break;
             default:
             case StatisticDepth_Month:
                 formatTime = "%Y%m%d";
+                delimiter = "604800";
                 break;
             case StatisticDepth_Year:
                 formatTime = "%Y%m";
+                delimiter = "604800";
                 break;
         }
 
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select 'txs',
-                    strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')),
+                    strftime(')sql" + formatTime + R"sql(', datetime(max(t.Time), 'unixepoch')),
                     t.Type,
-                    count(*)
+                    count(*)Count
                 from Transactions t indexed by Transactions_Time_Type_Height
                 where   t.Time >= ?
                     and t.Time < ?
-                group by strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')), t.Type
+                group by (t.Time / )sql" + delimiter + R"sql( ), t.Type
 
                 union
 
                 select 'users',
-                    q.Time,
+                    strftime(')sql" + formatTime + R"sql(', datetime(q.MaxTime, 'unixepoch')),
                     q.Type,
-                    (select count(*) from Transactions t indexed by Transactions_Type_Time_Height where t.Type = q.Type and strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')) <= q.Time)
+                    (
+                        select count(*)
+                        from Transactions t indexed by Transactions_Type_Time_Height
+                        where t.Type = q.Type and (t.Time / )sql" + delimiter + R"sql( ) <= q.Time
+                    )Count
                 from (
-                    select strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch'))Time, t.Type, count(*)Cnt
+                    select (t.Time / )sql" + delimiter + R"sql( )Time, max(t.Time)MaxTime, t.Type, count(*)Cnt
                     from Transactions t indexed by Transactions_Type_Time_Height
                     where   t.Type in (100, 101, 102)
                         and t.Time < ?
-                    group by strftime(')sql" + formatTime + R"sql(', datetime(t.Time, 'unixepoch')), t.Type
+                    group by (t.Time / )sql" + delimiter + R"sql( ), t.Type
                 ) q
-                where q.Time >= strftime(')sql" + formatTime + R"sql(', datetime(?, 'unixepoch'))
+                where q.Time >= (? / )sql" + delimiter + R"sql( )
             )sql");
 
             TryBindStatementInt64(stmt, 1, startTime);
             TryBindStatementInt64(stmt, 2, endTime);
             TryBindStatementInt64(stmt, 3, endTime);
             TryBindStatementInt64(stmt, 4, startTime);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -120,38 +134,37 @@ namespace PocketDb {
         return result;
     }
 
-    tuple<int64_t, int64_t> ExplorerRepository::GetAddressSpent(const string& addressHash)
+    tuple<int, int64_t> ExplorerRepository::GetAddressInfo(const string& addressHash)
     {
-        int64_t spent = 0;
-        int64_t unspent = 0;
+        int lastChange = 0;
+        int64_t balance = 0;
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select (o.SpentHeight isnull), sum(o.Value)
-                from TxOutputs o
-                where o.AddressHash = ?
-                group by (o.SpentHeight isnull)
+                select Height, Value
+                from Balances
+                where AddressHash = ?
             )sql");
 
             TryBindStatementText(stmt, 1, addressHash);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto [ok0, sUnspent] = TryGetColumnInt(*stmt, 0);
-                auto [ok1, sAmount] = TryGetColumnInt64(*stmt, 1);
+                auto [ok0, height] = TryGetColumnInt(*stmt, 0);
+                auto [ok1, value] = TryGetColumnInt64(*stmt, 1);
 
                 if (ok0 && ok1)
                 {
-                    if (sUnspent == 1) unspent = sAmount;
-                    else spent = sAmount;
+                    lastChange = height;
+                    balance = value;
                 }
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        return {spent, unspent};
+        return {lastChange, balance};
     }
 
     template<typename T>

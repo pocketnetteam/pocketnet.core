@@ -101,7 +101,10 @@ namespace PocketServices
 
             // Decode contentTags before upsert
             for (auto& contentTag : contentTags)
+            {
                 contentTag.Value = HtmlUtils::UrlDecode(contentTag.Value);
+                HtmlUtils::StringToLower(contentTag.Value);
+            }
 
             int64_t nTime3 = GetTimeMicros();
             LogPrint(BCLog::BENCH, "    - WebPostProcessor::ProcessTags (Prepare): %.2fms\n", 0.001 * (double)(nTime3 - nTime2));
@@ -134,6 +137,9 @@ namespace PocketServices
             // Decode content before upsert
             for (auto& contentItm : contentList)
             {
+                if (contentItm.Value.empty())
+                    continue;
+
                 switch (contentItm.FieldType)
                 {
                     case ContentFieldType_ContentPostCaption:
@@ -141,16 +147,11 @@ namespace PocketServices
                     case ContentFieldType_ContentPostMessage:
                     case ContentFieldType_ContentVideoMessage:
                     case ContentFieldType_AccountUserAbout:
-                    case ContentFieldType_AccountUserUrl:
-                    case ContentFieldType_ContentPostUrl:
-                    case ContentFieldType_ContentVideoUrl:
+                    case ContentFieldType_AccountUserName:
                         contentItm.Value = HtmlUtils::UrlDecode(contentItm.Value);
                         break;
                     case ContentFieldType_CommentMessage:
                         // TODO (brangr): get message from JSON
-                        break;
-                    case ContentFieldType_AccountUserName:
-                        // Nothing
                         break;
                     default:
                         break;
