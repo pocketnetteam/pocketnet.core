@@ -13,9 +13,9 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetTime(const JSONRPCRequest& request);
-    UniValue GetPeerInfo(const JSONRPCRequest& request);
-    UniValue GetNodeInfo(const JSONRPCRequest& request);
+    RPCHelpMan GetTime();
+    RPCHelpMan GetPeerInfo();
+    RPCHelpMan GetNodeInfo();
 }
 
 #endif //SRC_POCKETSYSTEMRPC_H

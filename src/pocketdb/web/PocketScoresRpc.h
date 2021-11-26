@@ -12,10 +12,10 @@ namespace PocketWeb::PocketWebRpc
 {
     using namespace std;
 
-    UniValue GetAddressScores(const JSONRPCRequest& request);
-    UniValue GetPostScores(const JSONRPCRequest& request);
-    UniValue GetPageScores(const JSONRPCRequest& request);
-    UniValue GetCoinInfo(const JSONRPCRequest& request);
+    RPCHelpMan GetAddressScores();
+    RPCHelpMan GetPostScores();
+    RPCHelpMan GetPageScores();
+    RPCHelpMan GetCoinInfo();
 
 }
 
