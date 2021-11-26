@@ -24,33 +24,6 @@ namespace PocketWeb::PocketWebRpc
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
     }
 
-    map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm)
-    {
-        auto result = dbCon->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm);
-
-        if (shortForm)
-            return result;
-
-        // TODO (brangr, mavreh): ????
-        // auto subscribes = dbCon->WebRpcRepoInst->GetSubscribesAddresses(addresses);
-        // auto subscribers = dbCon->WebRpcRepoInst->GetSubscribersAddresses(addresses);
-        // auto blocking = dbCon->WebRpcRepoInst->GetBlockingToAddresses(addresses);
-        //
-        // for (auto& i : result)
-        // {
-        //     if (subscribes.find(i.first) != subscribes.end())
-        //         i.second.pushKV("subscribes", subscribes[i.first]);
-        //
-        //     if (subscribers.find(i.first) != subscribers.end())
-        //         i.second.pushKV("subscribers", subscribers[i.first]);
-        //
-        //     if (blocking.find(i.first) != blocking.end())
-        //         i.second.pushKV("blocking", blocking[i.first]);
-        // }
-
-        return result;
-    }
-
     UniValue GetAccountProfiles(const JSONRPCRequest& request)
     {
         if (request.fHelp)
@@ -82,7 +55,7 @@ namespace PocketWeb::PocketWebRpc
             shortForm = request.params[1].get_str() == "1";
 
         // Get data
-        map<string, UniValue> profiles = GetUsersProfiles(request.DbConnection(), addresses, shortForm);
+        map<string, UniValue> profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm);
         for (auto& p : profiles)
             result.push_back(p.second);
 
