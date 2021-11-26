@@ -286,7 +286,11 @@ namespace PocketWeb::PocketWebRpc
                 if (!AcceptToMemoryPool(mempool, state, tx, ptx, &fMissingInputs,
                     nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee))
                 {
-                    if (state.IsInvalid())
+                    if (state.IsConsensusFailed())
+                    {
+                        throw JSONRPCError(state.GetRejectCode(), FormatStateMessage(state));
+                    }
+                    else if (state.IsInvalid())
                     {
                         throw JSONRPCError(RPC_TRANSACTION_REJECTED, FormatStateMessage(state));
                     }

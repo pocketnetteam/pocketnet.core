@@ -27,9 +27,10 @@ static const unsigned char REJECT_INCOMPLETE = 0x60;
 class CValidationState {
 private:
     enum mode_state {
-        MODE_VALID,   //!< everything ok
-        MODE_INVALID, //!< network rule violation (DoS value may be set)
-        MODE_ERROR,   //!< run-time error
+        MODE_VALID,     //!< everything ok
+        MODE_INVALID,   //!< network rule violation (DoS value may be set)
+        MODE_ERROR,     //!< run-time error
+        MODE_CONSENSUS, //!< consensus error
     } mode;
     int nDoS;
     std::string strRejectReason;
@@ -43,7 +44,8 @@ public:
              unsigned int chRejectCodeIn=0, const std::string &strRejectReasonIn="",
              bool corruptionIn=false,
              const std::string &strDebugMessageIn="",
-             bool incompletedIn=false) {
+             bool incompletedIn=false,
+             mode_state modeIn=MODE_INVALID) {
         chRejectCode = chRejectCodeIn;
         strRejectReason = strRejectReasonIn;
         corruptionPossible = corruptionIn;
@@ -52,13 +54,17 @@ public:
         if (mode == MODE_ERROR)
             return ret;
         nDoS += level;
-        mode = MODE_INVALID;
+        mode = modeIn;
         return ret;
     }
     bool Invalid(bool ret = false,
                  unsigned int _chRejectCode=0, const std::string &_strRejectReason="",
                  const std::string &_strDebugMessage="") {
         return DoS(0, ret, _chRejectCode, _strRejectReason, false, _strDebugMessage);
+    }
+    bool ConsensusFailed(unsigned int _chRejectCode, const std::string &_strRejectReason) {
+        mode = MODE_CONSENSUS;
+        return DoS(0, false, _chRejectCode, _strRejectReason, false, "", false, MODE_CONSENSUS);
     }
     bool Error(const std::string& strRejectReasonIn) {
         if (mode == MODE_VALID)
@@ -74,6 +80,9 @@ public:
     }
     bool IsError() const {
         return mode == MODE_ERROR;
+    }
+    bool IsConsensusFailed() const {
+        return mode == MODE_CONSENSUS;
     }
     bool IsInvalid(int &nDoSOut) const {
         if (IsInvalid()) {
