@@ -153,6 +153,7 @@ namespace PocketWeb::PocketWebRpc
 
         result.pushKV("mode", accountMode);
         result.pushKV("trial", accountMode == AccountMode_Trial);
+        result.pushKV("reputation", result["reputation"].get_int() / 10.0);
 
         int64_t postLimit;
         int64_t videoLimit;

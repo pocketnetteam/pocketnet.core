@@ -249,7 +249,7 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("name", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.pushKV("user_reg_date", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("reputation", value / 10);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("reputation", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 4); ok) result.pushKV("balance", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("likers", value);
 
