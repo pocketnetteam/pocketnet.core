@@ -230,7 +230,7 @@ namespace PocketDb
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("addressTo", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("addressFrom", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("nameFrom", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("avatarFrom", value);
             }
 
