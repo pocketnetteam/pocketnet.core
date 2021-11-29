@@ -33,13 +33,12 @@ namespace PocketConsensus
 
             // Original content exists
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
-            if (!originalTxOk || !originalTx)
+            if (!originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
-            auto originalPtx = static_pointer_cast<ContentDelete>(originalTx);
-
+            // TODO (brangr): convert to Content base class
             // You are author? Really?
-            if (*ptx->GetAddress() != *originalPtx->GetAddress())
+            if (*ptx->GetAddress() != *originalTx->GetString1())
                 return {false, SocialConsensusResult_ContentDeleteUnauthorized};
 
             return Success;
@@ -61,15 +60,14 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE}))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                auto blockPtx = static_pointer_cast<ContentDelete>(blockTx);
-
-                if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
+                // TODO (brangr): convert to content base class
+                if (*ptx->GetRootTxHash() == *blockTx->GetString2())
                     return {false, SocialConsensusResult_ContentDeleteDouble};
             }
 

@@ -1661,7 +1661,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (207)
+                where Type in (200,201,207)
                     and Height is null
                     and String1 = ?
                     and String2 = ?
