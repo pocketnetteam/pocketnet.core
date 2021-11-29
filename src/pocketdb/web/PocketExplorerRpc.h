@@ -8,21 +8,20 @@
 #include "rpc/server.h"
 #include "rpc/blockchain.h"
 #include "validation.h"
-#include "univalue/include/univalue.h"
 
 namespace PocketWeb::PocketWebRpc
 {
     using namespace PocketDb;
     using namespace std;
 
-    UniValue GetStatistic(const JSONRPCRequest& request);
-    UniValue GetLastBlocks(const JSONRPCRequest& request);
-    UniValue GetCompactBlock(const JSONRPCRequest& request);
-    UniValue GetAddressInfo(const JSONRPCRequest& request);
-    UniValue SearchByHash(const JSONRPCRequest& request);
-    UniValue GetAddressTransactions(const JSONRPCRequest& request);
-    UniValue GetBlockTransactions(const JSONRPCRequest& request);
-    UniValue GetTransactions(const JSONRPCRequest& request);
+    RPCHelpMan GetStatistic();
+    RPCHelpMan GetLastBlocks();
+    RPCHelpMan GetCompactBlock();
+    RPCHelpMan GetAddressInfo();
+    RPCHelpMan SearchByHash();
+    RPCHelpMan GetAddressTransactions();
+    RPCHelpMan GetBlockTransactions();
+    RPCHelpMan GetTransactions();
 }
 
 

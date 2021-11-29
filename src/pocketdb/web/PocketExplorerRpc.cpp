@@ -7,16 +7,23 @@
 namespace PocketWeb::PocketWebRpc
 {
 
-    UniValue GetStatistic(const JSONRPCRequest& request)
+    RPCHelpMan GetStatistic()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getstatistic (endTime, depth)\n"
-                "\nGet statistics.\n"
-                "\nArguments:\n"
-                "1. \"endTime\"   (int64, optional) End time of period\n"
-                "2. \"depth\"     (int32, optional) Day = 1, Month = 2, Year = 3\n");
-
+        return RPCHelpMan{"getstatistic",
+                "\nGet statistics.\n",
+                {
+                    {"endTime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "End time of period"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Day = 1, Month = 2, Year = 3"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getstatistic", "") +
+                    HelpExampleRpc("getstatistic", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         auto end_time = (int64_t) ::ChainActive().Tip()->nTime;
         if (!request.params.empty() && request.params[0].isNum())
             end_time = request.params[0].get_int64();
@@ -43,9 +50,27 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return request.DbConnection()->ExplorerRepoInst->GetStatistic(start_time, end_time, depth);
+    },
+        };
     }
 
-    UniValue GetLastBlocks(const JSONRPCRequest& request)
+    RPCHelpMan GetLastBlocks()
+    {
+        return RPCHelpMan{"getlastblocks",
+                "\nGet N last blocks.\n",
+                {
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Count of blocks. Maximum 100 blocks."},
+                    {"last_height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Height of last block, including."},
+                    {"verbosity", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Verbosity output."},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getlastblocks", "") +
+                    HelpExampleRpc("getlastblocks", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
         if (request.fHelp)
             throw std::runtime_error(
@@ -116,17 +141,30 @@ namespace PocketWeb::PocketWebRpc
             result.push_back(block.second);
 
         return result;
+    },
+        };
     }
 
-    UniValue GetCompactBlock(const JSONRPCRequest& request)
+    RPCHelpMan GetCompactBlock()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getcompactblock \"blockhash\" or \"blocknumber\" \n"
-                "\nArguments:\n"
-                "1. \"blockhash\"          (string, required) The block hash\n"
-                "1. \"blocknumber\"        (number, required) The block number\n");
-
+        return RPCHelpMan{"getcompactblock",
+                // TODO (team): description
+                "",
+                {
+                    {"blockhash", RPCArg::Type::STR, RPCArg::Optional::NO, "The block hash"},
+                    {"blocknumber", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The block number"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getcompactblock", "123acbadbcca") +
+                    HelpExampleRpc("getcompactblock", "123acbadbcca") +
+                    HelpExampleCli("getcompactblock", "7546744353") +
+                    HelpExampleRpc("getcompactblock", "7546744353")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty())
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameters");
 
@@ -168,17 +206,26 @@ namespace PocketWeb::PocketWebRpc
             result.pushKV("nexthash", pnext->GetBlockHash().GetHex());
 
         return result;
+    },
+        };
     }
 
-    UniValue GetAddressInfo(const JSONRPCRequest& request)
+    RPCHelpMan GetAddressInfo()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getaddressinfo \"address\"\n"
-                "\nGet address summary information\n"
-                "\nArguments:\n"
-                "1. \"address\"    (string) Address\n");
-
+        return RPCHelpMan{"getaddressinfo",
+                "\nGet contents statistic.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getaddressinfo", "1bd123c12f123a123b") +
+                    HelpExampleRpc("getaddressinfo", "1bd123c12f123a123b")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         std::string address;
         if (request.params.empty() || !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address argument");
@@ -196,17 +243,26 @@ namespace PocketWeb::PocketWebRpc
         addressInfo.pushKV("balance", balance);
 
         return addressInfo;
+    },
+        };
     }
 
-    UniValue SearchByHash(const JSONRPCRequest& request)
+    RPCHelpMan SearchByHash()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "checkstringtype \"string\"\n"
-                "\nCheck type of input string - address, block or tx id.\n"
-                "\nArguments:\n"
-                "1. \"string\"   (string) Input string\n");
-
+        return RPCHelpMan{"checkstringtype",
+                "\nCheck type of input string - address, block or tx id.\n",
+                {
+                    {"string", RPCArg::Type::STR, RPCArg::Optional::NO, "Input string"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("checkstringtype", "123123123123") +
+                    HelpExampleRpc("checkstringtype", "123123123123")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty())
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameter");
 
@@ -237,23 +293,29 @@ namespace PocketWeb::PocketWebRpc
 
         result.pushKV("type", "notfound");
         return result;
+    },
+        };
     }
 
-    UniValue GetAddressTransactions(const JSONRPCRequest& request)
+    RPCHelpMan GetAddressTransactions()
     {
-        if (request.fHelp)
-        {
-            throw std::runtime_error(
-                "getaddresstransactions [address, pageInitBlock, pageStart, pageSize]\n"
-                "\nGet transactions info.\n"
-                "\nArguments:\n"
-                "1. \"address\"       (string, required) Address hash\n"
-                "2. \"pageInitBlock\" (number) Max block height for filter pagination window\n"
-                "3. \"pageStart\"     (number) Row number for start page\n"
-                "4. \"pageSize\"      (number) Page size\n"
-            );
-        }
-
+        return RPCHelpMan{"getaddresstransactions",
+                "\nGet transactions info.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address hash"},
+                    {"pageInitBlock", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Max block height for filter pagination window"},
+                    {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Row number for start page"},
+                    {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getaddresstransactions", "abaa1231bca1231") +
+                    HelpExampleRpc("getaddresstransactions", "abaa1231bca1231")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty() || !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (address)");
         string address = request.params[0].get_str();
@@ -276,22 +338,28 @@ namespace PocketWeb::PocketWebRpc
             pageStart,
             pageSize
         );
+    },
+        };
     }
 
-    UniValue GetBlockTransactions(const JSONRPCRequest& request)
+    RPCHelpMan GetBlockTransactions()
     {
-        if (request.fHelp)
-        {
-            throw std::runtime_error(
-                "getblocktransactions [blockHash, pageStart, pageSize]\n"
-                "\nGet transactions info.\n"
-                "\nArguments:\n"
-                "1. \"blockHash\"     (string, required) Block hash\n"
-                "2. \"pageStart\"     (number) Row number for start page\n"
-                "3. \"pageSize\"      (number) Page size\n"
-            );
-        }
-
+        return RPCHelpMan{"getblocktransactions",
+                "\nGet transactions info.\n",
+                {
+                    {"blockHash", RPCArg::Type::STR, RPCArg::Optional::NO, "Block hash"},
+                    {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Row number for start page"},
+                    {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getblocktransactions", "abaa1231bca1231") +
+                    HelpExampleRpc("getblocktransactions", "abaa1231bca1231")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (request.params.empty() || !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid argument 1 (blockHash)");
         string blockHash = request.params[0].get_str();
@@ -309,22 +377,28 @@ namespace PocketWeb::PocketWebRpc
             pageStart,
             pageSize
         );
+    },
+        };
     }
 
-    UniValue GetTransactions(const JSONRPCRequest& request)
+    RPCHelpMan GetTransactions()
     {
-        if (request.fHelp)
-        {
-            throw std::runtime_error(
-                "gettransactions [transactions[], pageStart, pageSize]\n"
-                "\nGet transactions info.\n"
-                "\nArguments:\n"
-                "1. \"transactions\"  (array, required) Transaction hashes\n"
-                "2. \"pageStart\"     (number) Row number for start page\n"
-                "3. \"pageSize\"      (number) Page size\n"
-            );
-        }
-
+        return RPCHelpMan{"gettransactions",
+                "\nGet transactions info.\n",
+                {
+                    {"transactions", RPCArg::Type::ARR, RPCArg::Optional::NO, "Transaction hashes"},
+                    {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Row number for start page"},
+                    {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (team): provide examples
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         std::vector<std::string> transactions;
         if (request.params[0].isStr())
             transactions.push_back(request.params[0].get_str());
@@ -354,6 +428,8 @@ namespace PocketWeb::PocketWebRpc
             pageStart,
             pageSize
         );
+    },
+        };
     }
 
 }
