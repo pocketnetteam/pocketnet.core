@@ -55,7 +55,11 @@ namespace PocketWeb::PocketWebRpc
         RPCTypeCheck(request.params, {UniValue::VSTR});
         string txid = request.params[0].get_str();
 
-        return request.DbConnection()->ExplorerRepoInst->GetTransactions({ txid }, 1, 2);
+        UniValue txs = request.DbConnection()->ExplorerRepoInst->GetTransactions({ txid }, 1, 2);
+        if (txs.empty())
+            return UniValue(UniValue::VOBJ);
+
+        return txs[0];
     }
 
     CMutableTransaction ConstructPocketnetTransaction(const UniValue& inputs_in, const CTxOut& dataOut,
