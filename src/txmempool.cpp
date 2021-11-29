@@ -1039,12 +1039,26 @@ int CTxMemPool::Expire(int64_t time)
         toremove.insert(mapTx.project<0>(it));
         it++;
     }
+
     setEntries stage;
     for (txiter removeit : toremove)
-    {
         CalculateDescendants(removeit, stage);
-    }
+
+    // Build list of removed transaction hashes
+    std::vector<std::string> stageHashes;
+    for (const auto& txIter : stage)
+        stageHashes.push_back(txIter->GetTx().GetHash().GetHex());
+
+    // Remove from memory mempool
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
+
+    // Also remove from sqlite db
+    for (const string& hash : stageHashes)
+    {
+        PocketDb::TransRepoInst.CleanTransaction(hash);
+        LogPrint(BCLog::SYNC, "Clean SQLite mempool transaction %s\n", hash);
+    }
+
     return stage.size();
 }
 
@@ -1063,7 +1077,8 @@ void CTxMemPool::UpdateChild(txiter entry, txiter child, bool add)
     if (add && mapLinks[entry].children.insert(child).second)
     {
         cachedInnerUsage += memusage::IncrementalDynamicUsage(s);
-    } else if (!add && mapLinks[entry].children.erase(child))
+    }
+    else if (!add && mapLinks[entry].children.erase(child))
     {
         cachedInnerUsage -= memusage::IncrementalDynamicUsage(s);
     }

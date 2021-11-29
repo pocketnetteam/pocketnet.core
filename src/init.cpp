@@ -953,9 +953,17 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         }
     } // End scope of CImportingNow
 
-    if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL) && !gArgs.GetArg("-mempoolclean", false))
+    if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL))
     {
-        LoadMempool();
+        if (!gArgs.GetArg("-mempoolclean", false))
+        {
+            LoadMempool();
+        }
+        else
+        {
+            LogPrintf("Clean SQLite mempool..\n");
+            PocketDb::TransRepoInst.CleanMempool();
+        }
     }
     g_is_mempool_loaded = !ShutdownRequested();
 

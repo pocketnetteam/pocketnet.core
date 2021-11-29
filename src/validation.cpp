@@ -6366,7 +6366,8 @@ bool LoadMempool()
     }
 
     int64_t count = 0;
-    int64_t expired = 0;
+    //int64_t expired = 0;
+    std::vector<string> expiredHashes;
     int64_t failed = 0;
     int64_t already_there = 0;
     int64_t nNow = GetTime();
@@ -6376,9 +6377,8 @@ bool LoadMempool()
         uint64_t version;
         file >> version;
         if (version != MEMPOOL_DUMP_VERSION)
-        {
             return false;
-        }
+
         uint64_t num;
         file >> num;
         while (num--)
@@ -6432,7 +6432,8 @@ bool LoadMempool()
             }
             else
             {
-                ++expired;
+                //++expired;
+                expiredHashes.push_back(tx->GetHash().GetHex());
             }
             if (ShutdownRequested())
                 return false;
@@ -6441,9 +6442,12 @@ bool LoadMempool()
         file >> mapDeltas;
 
         for (const auto& i : mapDeltas)
-        {
             mempool.PrioritiseTransaction(i.first, i.second);
-        }
+
+        // TODO (brangr): implement remove expired transactions from sqlite db
+        // Also remove from sqlite db
+        for (const string& hash : expiredHashes)
+            PocketDb::TransRepoInst.CleanTransaction(hash);
     }
     catch (const std::exception& e)
     {
@@ -6452,7 +6456,7 @@ bool LoadMempool()
     }
 
     LogPrintf("Imported mempool transactions from disk: %i succeeded, %i failed, %i expired, %i already there\n", count,
-        failed, expired, already_there);
+        failed, expiredHashes.size(), already_there);
     return true;
 }
 

@@ -183,6 +183,85 @@ namespace PocketDb
                 delete from Transactions
                 where Height is null
             )sql");
+
+            TryStepStatement(stmt);
+        });
+    }
+
+    void TransactionRepository::CleanTransaction(const string& hash)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            // Clear Payload table
+            auto stmt = SetupSqlStatement(R"sql(
+                delete from Payload
+                where TxHash = ?
+                  and exists(
+                    select 1
+                    from Transactions t
+                    where t.Hash = Payload.TxHash
+                      and t.Height isnull
+                  )
+            )sql");
+            TryBindStatementText(stmt, 1, hash);
+            TryStepStatement(stmt);
+
+            // Clear TxOutputs table
+            stmt = SetupSqlStatement(R"sql(
+                delete from TxOutputs
+                where TxHash = ?
+                  and exists(
+                    select 1
+                    from Transactions t
+                    where t.Hash = TxOutputs.TxHash
+                      and t.Height isnull
+                  )
+            )sql");
+            TryBindStatementText(stmt, 1, hash);
+            TryStepStatement(stmt);
+
+            // Clear Transactions table
+            stmt = SetupSqlStatement(R"sql(
+                delete from Transactions
+                where Hash = ?
+                  and Height isnull
+            )sql");
+            TryBindStatementText(stmt, 1, hash);
+            TryStepStatement(stmt);
+        });
+    }
+
+    void TransactionRepository::CleanMempool()
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            // Clear Payload table
+            auto stmt = SetupSqlStatement(R"sql(
+                delete from Payload
+                where TxHash in (
+                  select t.Hash
+                  from Transactions t
+                  where t.Height is null
+                )
+            )sql");
+            TryStepStatement(stmt);
+
+            // Clear TxOutputs table
+            stmt = SetupSqlStatement(R"sql(
+                delete from TxOutputs
+                where TxHash in (
+                  select t.Hash
+                  from Transactions t
+                  where t.Height is null
+                )
+            )sql");
+            TryStepStatement(stmt);
+
+            // Clear Transactions table
+            stmt = SetupSqlStatement(R"sql(
+                delete from Transactions
+                where Height isnull
+            )sql");
             TryStepStatement(stmt);
         });
     }
