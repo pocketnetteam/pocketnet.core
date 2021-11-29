@@ -793,8 +793,12 @@ UniValue SendRawTransaction(const JSONRPCRequest& request)
     if (!DecodeHexTx(mtx, request.params[0].get_str()))
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
 
+    auto& node = EnsureNodeContext(request.context);
+    assert (node.mempool);
+    assert (node.connman); // TODO (losty): probably connman is able to be null?
+
     CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
-    return PocketWeb::PocketWebRpc::_accept_transaction(tx, nullptr);
+    return PocketWeb::PocketWebRpc::_accept_transaction(tx, nullptr, *node.mempool, *node.connman);
 }
 
 static RPCHelpMan signrawtransactionwithkey()

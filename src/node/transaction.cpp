@@ -57,7 +57,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
             CAmount fee{0};
             // TODO (losty-critical): pockettx? It goes here by field from wallet.
             if (!AcceptToMemoryPool(*node.mempool, state, tx,
-                nullptr /* plTxnReplaced */, nullptr, false /* bypass_limits */, /* test_accept */ true, &fee)) {
+                nullptr, /* plTxnReplaced */ nullptr, false /* bypass_limits */, /* test_accept */ true, &fee)) {
                 return HandleATMPError(state, err_string);
             } else if (fee > max_tx_fee) {
                 return TransactionError::MAX_FEE_EXCEEDED;
@@ -66,7 +66,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
         // Try to submit the transaction to the mempool.
         // TODO (losty-critical): pockettx?
         if (!AcceptToMemoryPool(*node.mempool, state, tx,
-                nullptr /* plTxnReplaced */, nullptr, false /* bypass_limits */)) {
+                nullptr, /* plTxnReplaced */ nullptr, false /* bypass_limits */)) {
             return HandleATMPError(state, err_string);
         }
 

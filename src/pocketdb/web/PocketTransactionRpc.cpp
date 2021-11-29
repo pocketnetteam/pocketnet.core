@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketTransactionRpc.h"
+#include "consensus/validation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -13,6 +14,7 @@ namespace PocketWeb::PocketWebRpc
                 "addtransaction\n"
                 "\nAdd new pocketnet transaction.\n"
             );
+        auto& node = EnsureNodeContext(request.context);
 
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
 
@@ -36,7 +38,7 @@ namespace PocketWeb::PocketWebRpc
         ptx->SetAddress(address);
 
         // Insert into mempool
-        return _accept_transaction(tx, ptx);
+        return _accept_transaction(tx, ptx, *node.mempool, *node.connman); // TODO (losty-fur): possible null
     }
     
     UniValue EstimateSmartFee(const JSONRPCRequest& request)
@@ -59,7 +61,7 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->ExplorerRepoInst->GetTransactions({ txid }, 1, 2);
     }
 
-    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx)
+    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman)
     {
         promise<void> promise;
         // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty): it seems like maxTxFee is only accesibble from walletInstance->m_default_max_tx_fee but it seems it doesn't even needed here
@@ -80,44 +82,39 @@ namespace PocketWeb::PocketWebRpc
 
             if (!fHaveMempool && !fHaveChain)
             {
-                // // push to local node and sync with wallets
-                // BlockValidationState state;
-                // bool fMissingInputs;
-                // if (!AcceptToMemoryPool(mempool, state, tx, ptx, &fMissingInputs,
-                //     nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee))
-                // {
-                //     if (state.IsInvalid())
-                //     {
-                //         throw JSONRPCError(RPC_TRANSACTION_REJECTED, FormatStateMessage(state));
-                //     }
-                //     else
-                //     {
-                //         if (state.GetRejectCode() == RPC_POCKETTX_MATURITY)
-                //         {
-                //             throw JSONRPCError(RPC_POCKETTX_MATURITY, FormatStateMessage(state));
-                //         }
-                //         else
-                //         {
-                //             if (fMissingInputs)
-                //             {
-                //                 throw JSONRPCError(RPC_TRANSACTION_ERROR, "Missing inputs");
-                //             }
-
-                //             throw JSONRPCError(RPC_TRANSACTION_ERROR, FormatStateMessage(state));
-                //         }
-                //     }
-                // }
-                // else
-                // {
-                //     // If wallet is enabled, ensure that the wallet has been made aware
-                //     // of the new transaction prior to returning. This prevents a race
-                //     // where a user might call sendrawtransaction with a transaction
-                //     // to/from their wallet, immediately call some wallet RPC, and get
-                //     // a stale result because callbacks have not yet been processed.
-                //     CallFunctionInValidationInterfaceQueue([&promise] {
-                //         promise.set_value();
-                //     });
-                // }
+                // push to local node and sync with wallets
+                TxValidationState state;
+                if (!AcceptToMemoryPool(mempool, state, tx, ptx,
+                    nullptr /* plTxnReplaced */, false /* bypass_limits */)) // TODO (losty-critical): is new usage correct?
+                {
+                    if (state.IsInvalid())
+                    {
+                        throw JSONRPCError(RPC_TRANSACTION_REJECTED, state.ToString());
+                    }
+                    else
+                    {
+                        // TODO (losty): GetRejectCode is removed. Probably need to add POCKETTX_MATURITY to TxValidationResult, but it seems this code is never using
+                        // if (state.GetRejectCode() == RPC_POCKETTX_MATURITY)
+                        // {
+                            throw JSONRPCError(RPC_POCKETTX_MATURITY, state.ToString());
+                        // }
+                        // else
+                        // {
+                        //     throw JSONRPCError(RPC_TRANSACTION_ERROR, FormatStateMessage(state));
+                        // }
+                    }
+                }
+                else
+                {
+                    // If wallet is enabled, ensure that the wallet has been made aware
+                    // of the new transaction prior to returning. This prevents a race
+                    // where a user might call sendrawtransaction with a transaction
+                    // to/from their wallet, immediately call some wallet RPC, and get
+                    // a stale result because callbacks have not yet been processed.
+                    CallFunctionInValidationInterfaceQueue([&promise] {
+                        promise.set_value();
+                    });
+                }
             }
             else if (fHaveChain)
             {
@@ -134,14 +131,11 @@ namespace PocketWeb::PocketWebRpc
         promise.get_future().wait();
 
         // TODO (losty): get connman from node context
-        // if (g_connman)
-        // {
-        //     CInv inv(MSG_TX, txid);
-        //     g_connman->ForEachNode([&inv](CNode* pnode) {
-        //         // TODO (losty): PushInventory changed to PushTxInventory 
-        //         // pnode->PushInventory(inv.GetH);
-        //     });
-        // }
+        CInv inv(MSG_TX, txid);
+        connman.ForEachNode([&inv](CNode* pnode) {
+            // TODO (losty-critical): PushInventory changed to PushTxInventory. Validate this is correct
+            pnode->PushTxInventory(inv.hash);
+        });
 
         return txid.GetHex();
     }

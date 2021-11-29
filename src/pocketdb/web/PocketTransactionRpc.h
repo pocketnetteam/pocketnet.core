@@ -18,7 +18,7 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx);
+    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman);
     UniValue AddTransaction(const JSONRPCRequest& request);
     UniValue GetTransaction(const JSONRPCRequest& request);
     UniValue EstimateSmartFee(const JSONRPCRequest& request);
