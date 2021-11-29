@@ -583,6 +583,7 @@ namespace PocketDb
               ) as ScoreDown,
 
               rc.Value    as CommentRating,
+
               (case when c.Hash != c.String2 then 1 else 0 end) as CommentEdit,
 
               (
@@ -638,13 +639,14 @@ namespace PocketDb
                     record.pushKV("timeUpd", value);
                 }
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) record.pushKV("edit", value == 1);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("edit", value == 1);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
