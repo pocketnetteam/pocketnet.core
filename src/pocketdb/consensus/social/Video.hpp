@@ -173,7 +173,7 @@ namespace PocketConsensus
             // Double edit in block not allowed
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_VIDEO, CONTENT_DELETE}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<Video>(blockTx);
