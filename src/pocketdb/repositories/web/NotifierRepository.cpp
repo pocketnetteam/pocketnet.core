@@ -45,13 +45,13 @@ namespace PocketDb
 
         string sql = R"sql(
             select t.Hash,
-                   tRepost.String1 address,
-                   t.String1 addressRepost,
+                   t.String1 address,
+                   tRepost.String1 addressRepost,
                    p.String2 as nameRepost,
                    p.String3 as avatarRepost
             from Transactions t
             join Transactions tRepost on tRepost.String3 = t.Hash
-            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = t.String1
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = tRepost.String1
             join Payload p on p.TxHash = u.Hash
             where tRepost.Type in (200, 201, 202, 203)
               and tRepost.Hash = ?
