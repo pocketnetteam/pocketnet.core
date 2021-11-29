@@ -571,8 +571,8 @@ namespace PocketWeb::PocketWebRpc
                     // TODO (losty-fur): provide return description
                 },
                 RPCExamples{
-                    HelpExampleCli("getlastcomments", "") +
-                    HelpExampleRpc("getlastcomments", "")
+                    HelpExampleCli("getcontentsstatistic", "") +
+                    HelpExampleRpc("getcontentsstatistic", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
