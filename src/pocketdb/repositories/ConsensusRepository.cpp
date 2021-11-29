@@ -1142,7 +1142,6 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (200)
-                  and Height is not null
                   and String1 = ?
                   and Height >= ?
                   and Hash = String2
@@ -1436,7 +1435,6 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (201)
-                  and Height is not null
                   and String1 = ?
                   and Height >= ?
                   and Hash = String2

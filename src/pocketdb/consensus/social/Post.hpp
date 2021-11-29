@@ -33,16 +33,11 @@ namespace PocketConsensus
             if (!IsEmpty(ptx->GetRelayTxHash()))
             {
                 auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRelayTxHash());
-                if (relayOk)
-                {
-                    if (*relayTx->GetType() == CONTENT_DELETE)
-                        return {false, SocialConsensusResult_RepostDeletedContent};
-                }
-                else
-                {
-                    if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
-                        return {false, SocialConsensusResult_RelayContentNotFound};
-                }
+                if (!relayOk && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
+                    return {false, SocialConsensusResult_RelayContentNotFound};
+
+                if (*relayTx->GetType() == CONTENT_DELETE)
+                    return {false, SocialConsensusResult_RepostDeletedContent};
             }
 
             // Check payload size
@@ -91,17 +86,17 @@ namespace PocketConsensus
 
                 const auto blockPtx = static_pointer_cast<Post>(blockTx);
 
-                if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                {
-                    if (blockPtx->IsEdit())
-                        continue;
+                if (*ptx->GetAddress() != *blockPtx->GetAddress())
+                    continue;
 
-                    if (*blockPtx->GetHash() == *ptx->GetHash())
-                        continue;
+                if (blockPtx->IsEdit())
+                    continue;
 
-                    if (AllowBlockLimitTime(ptx, blockPtx))
-                        count += 1;
-                }
+                if (*blockPtx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                if (AllowBlockLimitTime(ptx, blockPtx))
+                    count += 1;
             }
 
             return ValidateLimit(ptx, count);
@@ -138,7 +133,7 @@ namespace PocketConsensus
 
             // First get original post transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
-            if (!originalTxOk || !originalTx)
+            if (!originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
             const auto originalPtx = static_pointer_cast<Post>(originalTx);
