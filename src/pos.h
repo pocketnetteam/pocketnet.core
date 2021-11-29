@@ -36,7 +36,7 @@ inline static bool GetLastStakeModifier(const CBlockIndex* pindex, uint64_t& nSt
 
 arith_uint256 GetProofOfStakeLimit(int nHeight);
 
-bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t& nCoinAge);
+bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t& nCoinAge, ChainstateManager& chainman, CTxMemPool& mempool);
 
 inline unsigned int GetTargetSpacing(int nHeight) {
   return 150;

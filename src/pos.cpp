@@ -4,6 +4,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "txmempool.h"
 #include <boost/range/adaptor/reversed.hpp>
 #include <chain.h>
 #include <chainparams.h>
@@ -176,14 +177,14 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     // Kernel (input 0) must match the stake hash target per coin age (nBits)
     const CTxIn &txin = tx->vin[0];
 
-    CTransactionRef txPrev;
     uint256 hashBlock = uint256();
-    // TODO (losty-critical): GetTransaction usage changed
-    // if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
-    // {
-    //     return error("CheckProofOfStake() : INFO: read txPrev failed %s",
-    //         txin.prevout.hash.GetHex()); // previous transaction not in main chain, may occur during initial download
-    // }
+    // TODO (losty-critical): GetTransaction usage changed. Validate!
+    CTransactionRef txPrev = GetTransaction(nullptr, &mempool, txin.prevout.hash, Params().GetConsensus(), hashBlock);
+    if (!txPrev)
+    {
+        return error("CheckProofOfStake() : INFO: read txPrev failed %s",
+            txin.prevout.hash.GetHex()); // previous transaction not in main chain, may occur during initial download
+    }
 
     if (pvChecks)
     {
@@ -241,14 +242,14 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
 {
     arith_uint256 hashProofOfStake, targetProofOfStake;
 
-    CTransactionRef txPrev;
+    // TODO (losty-critical): GetTransaction(...) signature changed. Null mempool and index is probably bad idea!
     uint256 hashBlock = uint256();
-    // TODO (losty-critical): GetTransaction(...) signature changed 
-    // if (!GetTransaction(prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
-    // {
-    //     LogPrintf("CheckKernel : Could not find previous transaction %s\n", prevout.hash.ToString());
-    //     return false;
-    // }
+    CTransactionRef txPrev = GetTransaction(nullptr, nullptr, prevout.hash, Params().GetConsensus(), hashBlock);
+    if (!txPrev)
+    {
+        LogPrintf("CheckKernel : Could not find previous transaction %s\n", prevout.hash.ToString());
+        return false;
+    }
 
     if (g_chainman.BlockIndex().count(hashBlock) == 0)
     {
@@ -557,7 +558,7 @@ static bool SelectBlockFromCandidates(std::vector<std::pair<int64_t, uint256>> &
     return fSelected;
 }
 
-bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge)
+bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge, ChainstateManager& chainman, CTxMemPool& mempool)
 {
     CAmount bnCentSecond = 0; // coin age in the unit of cent-seconds
     nCoinAge = 0;
@@ -570,20 +571,21 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge)
     for (auto txin : transaction->vin)
     {
         // First try finding the previous transaction in database
-        CTransactionRef txPrev;
-        uint256 hashBlock = uint256();
 
         // TODO (losty-critical): usage of GetTransaction changed. Need CBlockIndex as first parameter (passed as nullptr in some places) and mempool from node context (GetNodeContext(...))
-        // if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true))
-        //     continue; // previous transaction not in main chain
+        uint256 hashBlock = uint256();
+        CTransactionRef txPrev = GetTransaction(nullptr, &mempool, txin.prevout.hash, Params().GetConsensus(), hashBlock);
+
+        if (!txPrev)
+            continue; // previous transaction not in main chain
 
         if (transaction->nTime < txPrev->nTime)
             return false; // Transaction timestamp violation
 
-        if (g_chainman.BlockIndex().count(hashBlock) == 0)
+        if (chainman.BlockIndex().count(hashBlock) == 0)
             return false; //Block not found
 
-        CBlockIndex *pblockindex = g_chainman.BlockIndex()[hashBlock];
+        CBlockIndex *pblockindex = chainman.BlockIndex()[hashBlock];
 
         if (pblockindex->nTime + Params().GetConsensus().nStakeMinAge > transaction->nTime)
             continue; // only count coins meeting min age requirement
