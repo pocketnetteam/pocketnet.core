@@ -1493,7 +1493,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (204, 205, 206)
+                where Type in (204,205,206)
                     and Height is null
                     and String1 = ?
                     and String2 = ?
@@ -1520,7 +1520,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (204, 205, 206)
+                where Type in (204,205,206)
                     and Height is not null
                     and Hash != String2
                     and String1 = ?
@@ -1549,7 +1549,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200)
+                where Type in (200,207)
                     and Height is null
                     and String1 = ?
                     and String2 = ?
@@ -1605,7 +1605,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (201)
+                where Type in (201,207)
                     and Height is null
                     and String1 = ?
                     and String2 = ?
