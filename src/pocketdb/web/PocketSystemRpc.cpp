@@ -34,7 +34,6 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
-    // TODO (losty): rpchelpman and node context
     RPCHelpMan GetPeerInfo()
     {
         return RPCHelpMan{"getpeerinfo",
