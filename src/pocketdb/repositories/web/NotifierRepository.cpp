@@ -127,9 +127,10 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            select r.String2 as referrerAddress
-                  p.String2 as referralName,
-                  p.String3 as referralAvatar
+            select
+                r.String2 as referrerAddress,
+                p.String2 as referralName,
+                p.String3 as referralAvatar
             from Transactions r
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = r.String1
             join Payload p on p.TxHash = u.Hash
