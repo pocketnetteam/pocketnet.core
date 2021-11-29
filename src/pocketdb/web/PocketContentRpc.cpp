@@ -562,7 +562,7 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getcontentsstatistic",
                 "\nGet contents statistic.\n",
                 {
-                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, " Address - сontent author"},
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address - сontent author"},
                     {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video"},
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum content height. Default is current chain height"},
                     {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of content history for statistics. Default is all history"},
