@@ -205,7 +205,7 @@ namespace PocketDb {
                         // Extend transaction with outputs
                         UniValue txOut(UniValue::VOBJ);
                         if (auto [ok, value] = TryGetColumnInt(*stmt, 6); ok) txOut.pushKV("n", value);
-                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 8); ok) txOut.pushKV("value", value);
+                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 8); ok) txOut.pushKV("value", value / 100000000.0);
 
                         {
                             UniValue scriptPubKey(UniValue::VOBJ);
@@ -255,7 +255,7 @@ namespace PocketDb {
                         if (auto [ok, value] = TryGetColumnString(*stmt, 1); ok) txInp.pushKV("txid", value);
                         if (auto [ok, value] = TryGetColumnInt(*stmt, 2); ok) txInp.pushKV("vout", value);
                         if (auto [ok, value] = TryGetColumnString(*stmt, 3); ok) txInp.pushKV("address", value);
-                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 4); ok) txInp.pushKV("value", value);
+                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 4); ok) txInp.pushKV("value", value / 100000000.0);
 
                         get<1>(txs[hash]).push_back(txInp);
                     }
