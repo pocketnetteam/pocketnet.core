@@ -119,7 +119,7 @@ int64_t GetWeight(int64_t nIntervalBeginning, int64_t nIntervalEnd)
 }
 
 #ifdef ENABLE_WALLET
-bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const &chainparams, ChainstateManager& chainman)
+bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const &chainparams, ChainstateManager& chainman, CTxMemPool& mempool)
 {
     arith_uint256 proofHash = arith_uint256(0), hashTarget = arith_uint256(0);
     uint256 hashBlock = pblock->GetHash();
@@ -131,8 +131,8 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
 
     // verify hash target and signature of coinstake tx
     CDataStream hashProofOfStakeSource(SER_GETHASH, 0);
-    if (!CheckProofOfStake(g_chainman.BlockIndex()[pblock->hashPrevBlock], pblock->vtx[1], pblock->nBits, proofHash,
-        hashProofOfStakeSource, hashTarget, NULL))
+    if (!CheckProofOfStake(chainman.BlockIndex()[pblock->hashPrevBlock], pblock->vtx[1], pblock->nBits, proofHash,
+        hashProofOfStakeSource, hashTarget, NULL, mempool))
     {
         return error("CheckStake() : proof-of-stake checking failed (%s)", pblock->hashPrevBlock.GetHex());
     }
@@ -166,7 +166,7 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
 
 bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsigned int nBits,
     arith_uint256 &hashProofOfStake, CDataStream &hashProofOfStakeSource, arith_uint256 &targetProofOfStake,
-    std::vector<CScriptCheck> *pvChecks, bool fCheckSignature)
+    std::vector<CScriptCheck> *pvChecks, CTxMemPool& mempool, bool fCheckSignature)
 {
     if (!tx->IsCoinStake())
     {

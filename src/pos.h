@@ -8,6 +8,7 @@
 #include <validation.h>
 #include <streams.h>
 #include <key_io.h>
+#include "txmempool.h"
 
 #include "pocketdb/consensus/Lottery.h"
 #include "pocketdb/helpers/TransactionHelper.h"
@@ -54,12 +55,12 @@ int64_t GetWeight(int64_t nIntervalBeginning, int64_t nIntervalEnd);
 
 #ifdef ENABLE_WALLET
 bool CheckKernel(CBlockIndex* pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint& prevout, int64_t* pBlockTime, CWallet* wallet, CDataStream& hashProofOfStakeSource);
-bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const & chainparams);
+bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pocketBlock, std::shared_ptr<CWallet> wallet, CChainParams const & chainparams, ChainstateManager& chainman, CTxMemPool& mempool);
 #endif
 
 bool CheckStakeKernelHash(CBlockIndex* pindexPrev, unsigned int nBits, CBlockIndex& blockFrom, CTransactionRef const & txPrev, COutPoint const & prevout, unsigned int nTimeTx, arith_uint256& hashProofOfStake, CDataStream& hashProofOfStakeSource, arith_uint256& targetProofOfStake, bool fPrintProofOfStake = true);
 
-bool CheckProofOfStake(CBlockIndex* pindexPrev, CTransactionRef const & tx, unsigned int nBits, arith_uint256& hashProofOfStake, CDataStream& hashProofOfStakeSource, arith_uint256& targetProofOfStake, std::vector<CScriptCheck> *pvChecks, bool fCheckSignature = false);
+bool CheckProofOfStake(CBlockIndex* pindexPrev, CTransactionRef const & tx, unsigned int nBits, arith_uint256& hashProofOfStake, CDataStream& hashProofOfStakeSource, arith_uint256& targetProofOfStake, std::vector<CScriptCheck> *pvChecks, CTxMemPool& mempool, bool fCheckSignature = false);
 
 
 bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock, int64_t nTimeTx);

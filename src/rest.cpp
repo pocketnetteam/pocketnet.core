@@ -864,6 +864,7 @@ static bool debug_index_block(const util::Ref& context, HTTPRequest* req, const 
     if (!CheckWarmup(req))
         return false;
 
+    auto& node = EnsureNodeContext(context);
     auto[rf, uriParts] = ParseParams(strURIPart);
     int start = 0;
     int height = 1;
@@ -906,7 +907,7 @@ static bool debug_index_block(const util::Ref& context, HTTPRequest* req, const 
                 arith_uint256 hashProof;
                 arith_uint256 targetProofOfStake;
                 CheckProofOfStake(pblockindex->pprev, block.vtx[1], block.nBits, hashProof, hashProofOfStakeSource,
-                    targetProofOfStake, NULL, false);
+                    targetProofOfStake, NULL, *node.mempool, false); // TODO (losty-fur): possible null nmempool
 
                 int64_t nReward = GetProofOfStakeReward(pblockindex->nHeight, 0, Params().GetConsensus());
                 if (!CheckBlockRatingRewards(block, pblockindex->pprev, nReward, hashProofOfStakeSource))

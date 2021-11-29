@@ -186,7 +186,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             //     if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
             //         blocktemplate->pocketBlock->emplace_back(ptx);
             //     // TODO (losty-fur): possible null chainman
-            //     CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman);
+            //     CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
             //     UninterruptibleSleep(std::chrono::milliseconds{500});
             // }
             // else
