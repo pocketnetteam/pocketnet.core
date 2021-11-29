@@ -608,6 +608,7 @@ namespace PocketDb
             where c.Type in (204,205)
               and c.Last = 1
               and c.Height > (? - 600)
+              and rc.Value >= 0
 
             order by c.Height desc
             limit ?
@@ -631,16 +632,19 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("id", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("postid", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("time", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("timeUpd", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("block", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("parentid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("answerid", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreUp", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("scoreDown", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("reputation", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("edit", value == 1);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
+                {
+                    record.pushKV("time", value);
+                    record.pushKV("timeUpd", value);
+                }
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 10); ok) record.pushKV("edit", value == 1);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok)
                 {
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
