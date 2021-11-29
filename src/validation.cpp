@@ -3230,27 +3230,31 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      auto response = PocketDb::NotifierRepoInst.GetOriginalPostAddressByRepost(txid);
                      if (response.exists("hash"))
                      {
-                         std::string addrFrom = response["address"].get_str();
+                         std::string address = response["address"].get_str();
 
                          custom_fields cFields
                          {
                              {"mesType",    "reshare"},
                              {"txidRepost", response["hash"].get_str()},
-                             {"addrFrom",   addrFrom}
+                             {"addrFrom",   response["addressRepost"].get_str()},
+                             {"nameFrom",   response["nameRepost"].get_str()},
+                             {"avatarFrom",   response["avatarRepost"].get_str()}
                          };
 
-                         PrepareWSMessage(messages, "event", addrFrom, txid, txtime, cFields);
+                         PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                      }
                  }
 
                  auto subscribesResponse = PocketDb::NotifierRepoInst.GetPrivateSubscribeAddressesByAddressTo(addr.first);
                  for (size_t i = 0; i < subscribesResponse.size(); ++i)
                  {
-                     auto address = subscribesResponse[i]["address"].get_str();
+                     auto address = subscribesResponse[i]["addressTo"].get_str();
 
                      custom_fields cFields{
                              {"mesType", "postfromprivate"},
-                             {"addrFrom", addr.first}};
+                             {"addrFrom", addr.first},
+                             {"nameFrom",   subscribesResponse[i]["nameFrom"].get_str()},
+                             {"avatarFrom",   subscribesResponse[i]["avatarFrom"].get_str()}};
                      PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                  }
              }
@@ -3262,7 +3266,9 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      custom_fields cFields
                      {
                          {"mesType", optype},
-                         {"addrFrom", addr.first}
+                         {"addrFrom", addr.first},
+                         {"nameFrom", response["referralName"].get_str()},
+                         {"avatarFrom", response["referralAvatar"].get_str()}
                      };
 
                      PrepareWSMessage(messages, "event", response["referrerAddress"].get_str(), txid, txtime, cFields);
@@ -3277,6 +3283,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
+                         {"nameFrom", response["scoreName"].get_str()},
+                         {"avatarFrom", response["scoreAvatar"].get_str()},
                          {"posttxid", response["postTxHash"].get_str()},
                          {"upvoteVal", response["value"].get_str()}
                      };
@@ -3293,6 +3301,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
+                         {"nameFrom", response["nameFrom"].get_str()},
+                         {"avatarFrom", response["avatarFrom"].get_str()}
                      };
 
                      PrepareWSMessage(messages, "event", response["addressTo"].get_str(), txid, txtime, cFields);
@@ -3307,6 +3317,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
+                         {"nameFrom", response["scoreCommentName"].get_str()},
+                         {"avatarFrom", response["scoreCommentAvatar"].get_str()},
                          {"commentid", response["commentHash"].get_str()},
                          {"upvoteVal", response["value"].get_str()}
                      };
@@ -3323,6 +3335,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
+                         {"nameFrom", response["commentName"].get_str()},
+                         {"avatarFrom", response["commentAvatar"].get_str()},
                          {"posttxid", response["postHash"].get_str()},
                          {"parentid", response["parentHash"].get_str()},
                          {"answerid", response["answerHash"].get_str()},
@@ -3337,6 +3351,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          {
                              {"mesType", optype},
                              {"addrFrom", addr.first},
+                             {"nameFrom", response["commentName"].get_str()},
+                             {"avatarFrom", response["commentAvatar"].get_str()},
                              {"posttxid", response["postHash"].get_str()},
                              {"parentid", response["parentHash"].get_str()},
                              {"answerid", response["answerHash"].get_str()},
