@@ -3,25 +3,32 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/SearchRpc.h"
+#include "rpc/util.h"
 #include "validation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue Search(const JSONRPCRequest& request)
+    RPCHelpMan Search()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "search \"keyword\", \"type\", topBlock, pageStart, pageSize, \"address\"\n"
-                "\nSearch data in DB.\n"
-                "\nArguments:\n"
-                "1. \"keyword\"     (string) String for search\n"
-                "2. \"type\"        (string, optional) posts, videolink, tags, users\n"
-                "3. \"topBlock\"  (int, optional) Top block for search.\n"
-                "4. \"pageStart\" (int, optional) Pagination start. Default 0\n"
-                "5. \"pageSize\" (int, optional) Pagination count. Default 10\n"
-                "5. \"address\"     (string, optional) Filter by address\n"
-            );
-
+        return RPCHelpMan{"search",
+                "\nSearch data in DB.\n",
+                {
+                    {"keyword", RPCArg::Type::STR, RPCArg::Optional::NO, "String for search"},
+                    {"type", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "posts, videolink, tags, users"},
+                    {"topBlock", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Top block for search."},
+                    {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Pagination start. Default 0"},
+                    {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Pagination count. Default 10"},
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Filter by address"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("search", "\"keyword\", \"type\", topBlock, pageStart, pageSize, \"address\"") +
+                    HelpExampleRpc("search", "\"keyword\", \"type\", topBlock, pageStart, pageSize, \"address\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR});
 
         SearchRequest searchRequest;
@@ -159,20 +166,28 @@ namespace PocketWeb::PocketWebRpc
         // Send result
         
         return result;
+    },
+        };
     }
 
-    UniValue SearchUsers(const JSONRPCRequest& request)
+    RPCHelpMan SearchUsers()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "search \"keyword\", \"fieldtype\", orderbyrank\n"
-                "\nSearch users in DB.\n"
-                "\nArguments:\n"
-                "1. \"keyword\"     (string) String for search\n"
-                "2. \"fieldtype\"        (string, optional)\n"
-                "3. \"orderbyrank\"  (int, optional)\n"
-            );
-
+        return RPCHelpMan{"searchusers",
+                "\nSearch users in DB.\n",
+                {
+                    {"keyword", RPCArg::Type::STR, RPCArg::Optional::NO, "String for search"},
+                    {"fieldtype", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"orderbyrank", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("searchusers", "\"keyword\", \"fieldtype\", orderbyrank") +
+                    HelpExampleRpc("searchusers", "\"keyword\", \"fieldtype\", orderbyrank")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         RPCTypeCheck(request.params, {UniValue::VSTR});
         string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
 
@@ -194,9 +209,28 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return result;
+    },
+        };
     }
 
-    UniValue SearchLinks(const JSONRPCRequest& request)
+    RPCHelpMan SearchLinks()
+    {
+        return RPCHelpMan{"searchlinks",
+                "\nSearch links in DB.\n",
+                {
+                    {"links", RPCArg::Type::STR, RPCArg::Optional::NO, "String for search"},
+                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video"},
+                    {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum search height. Default is current chain height"},
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("searchlinks", "[\"links\", ...], \"contenttypes\", height, count") +
+                    HelpExampleRpc("searchlinks", "[\"links\", ...], \"contenttypes\", height, count")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
         if (request.fHelp)
             throw runtime_error(
@@ -239,6 +273,8 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return request.DbConnection()->WebRpcRepoInst->SearchLinks(vLinks, contentTypes, nHeight, countOut);
+    },
+        };
     }
 
 }

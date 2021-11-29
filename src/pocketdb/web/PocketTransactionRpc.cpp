@@ -7,13 +7,22 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue AddTransaction(const JSONRPCRequest& request)
+    RPCHelpMan AddTransaction()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "addtransaction\n"
-                "\nAdd new pocketnet transaction.\n"
-            );
+        return RPCHelpMan{"addtransaction",
+                "\nGet transaction data.\n"
+                "in BIP 141 (witness data is discounted).\n",
+                {
+                    // TODO (losty-fur): provide arguments description
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    "" // TODO (losty-fur): provide examples
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         auto& node = EnsureNodeContext(request.context);
 
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
@@ -39,26 +48,38 @@ namespace PocketWeb::PocketWebRpc
 
         // Insert into mempool
         return _accept_transaction(tx, ptx, *node.mempool, *node.connman); // TODO (losty-fur): possible null
+    },
+        };
     }
     
-    UniValue EstimateSmartFee(const JSONRPCRequest& request)
+    RPCHelpMan EstimateSmartFee()
     {
         // TODO (losty): changed to RPCHelpMan
-        // return estimatesmartfee(request);
+        return estimatesmartfee();
     }
 
-    UniValue GetTransaction(const JSONRPCRequest& request)
+    RPCHelpMan GetTransaction()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getrawtransaction\n"
+        return RPCHelpMan{"getrawtransaction",
                 "\nGet transaction data.\n"
-            );
-
+                "in BIP 141 (witness data is discounted).\n",
+                {
+                    // TODO (losty-fur): provide arguments description
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    "" // TODO (losty-fur): provide examples
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         RPCTypeCheck(request.params, {UniValue::VSTR});
         string txid = request.params[0].get_str();
 
         return request.DbConnection()->ExplorerRepoInst->GetTransactions({ txid }, 1, 2);
+    },
+        };
     }
 
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman)
@@ -78,7 +99,7 @@ namespace PocketWeb::PocketWebRpc
                 fHaveChain = !existingCoin.IsSpent();
             }
             
-            bool fHaveMempool = false; // mempool.exists(txid); // TODO (losty): gather mempool var from node context
+            bool fHaveMempool = mempool.exists(txid);
 
             if (!fHaveMempool && !fHaveChain)
             {
@@ -130,7 +151,6 @@ namespace PocketWeb::PocketWebRpc
 
         promise.get_future().wait();
 
-        // TODO (losty): get connman from node context
         CInv inv(MSG_TX, txid);
         connman.ForEachNode([&inv](CNode* pnode) {
             // TODO (losty-critical): PushInventory changed to PushTxInventory. Validate this is correct

@@ -116,82 +116,49 @@ namespace PocketWeb::PocketWebRpc
         }
     }
 
-    UniValue GetContent(const JSONRPCRequest& request)
+    static UniValue _getsubscribersfeed(const JSONRPCRequest& request)
     {
-        if (request.fHelp)
+        string addressFrom;
+        if (request.params.size() > 0 && request.params[0].isStr())
+            addressFrom = request.params[0].get_str();
+
+        string topContentHash;
+        if (request.params.size() > 2 && request.params[2].isStr())
+            topContentHash = request.params[2].get_str();
+
+        int count = 10;
+        if (request.params.size() > 3 && request.params[3].isNum())
         {
-            throw runtime_error(
-                "getcontent ids[]\n"
-                "\nReturns contents for list of ids");
+            count = request.params[3].get_int();
+            if (count > 10)
+                count = 10;
         }
 
-        vector<string> hashes;
-        if (request.params.size() > 0)
-        {
-            if (request.params[0].isStr())
-            {
-                hashes.push_back(request.params[0].get_str());
-            }
-            else if (request.params[0].isArray())
-            {
-                UniValue txids = request.params[0].get_array();
-                for (unsigned int idx = 0; idx < txids.size(); idx++)
-                {
-                    string txidEx = boost::trim_copy(txids[idx].get_str());
-                    if (!txidEx.empty())
-                        hashes.push_back(txidEx);
+        string lang;
+        if (request.params.size() > 4 && request.params[4].isStr())
+            lang = request.params[4].get_str();
 
-                    if (hashes.size() > 100)
-                        break;
-                }
-            }
+        vector<string> tags;
+        ParseRequestTags(request.params[5], tags);
+
+        // content types
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[6], contentTypes);
+
+        int64_t topContentId = 0;
+        if (!topContentHash.empty())
+        {
+            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+            if (!ids.empty())
+                topContentId = ids[0];
         }
 
-        string address;
-        if (request.params.size() > 1 && request.params[1].isStr())
-            address = request.params[1].get_str();
-
-        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds(hashes);
-        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, address);
-
-        UniValue result(UniValue::VARR);
-        result.push_backV(content);
-        return result;
+        return request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(addressFrom, topContentId, count,
+            lang, tags, contentTypes);
     }
 
-    UniValue GetContents(const JSONRPCRequest& request)
+    static UniValue _getprofilefeed(const JSONRPCRequest& request)
     {
-        if (request.fHelp)
-        {
-            throw runtime_error(
-                "getcontents address\n"
-                "\nReturns contents for address.\n"
-                "\nArguments:\n"
-                "1. address            (string) A pocketcoin addresses to filter\n"
-                "\nResult\n"
-                "[                     (array of contents)\n"
-                "  ...\n"
-                "]");
-        }
-
-        string address;
-        if (request.params[0].isStr())
-            address = request.params[0].get_str();
-
-        // TODO (brangr, team): add pagination
-
-        return request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
-    }
-
-    UniValue GetProfileFeed(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-        {
-            throw runtime_error(
-                "getprofilefeed address\n"
-                "\nReturns contents for list of ids");
-        }
-
         string addressFrom;
         if (request.params.size() > 0 && request.params[0].isStr())
             addressFrom = request.params[0].get_str();
@@ -235,12 +202,121 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->WebRpcRepoInst->GetProfileFeed(addressFrom, addressTo, topContentId, count, lang, tags, contentTypes);
     }
 
-    UniValue GetHotPosts(const JSONRPCRequest& request)
+    RPCHelpMan GetContent()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "GetHotPosts\n");
+        return RPCHelpMan{"getcontent",
+                "\nReturns contents for list of ids\n",
+                {
+                    {"ids", RPCArg::Type::ARR, RPCArg::Optional::NO, ""}
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getcontent", "ids[]") +
+                    HelpExampleRpc("getcontent", "ids[]")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        vector<string> hashes;
+        if (request.params.size() > 0)
+        {
+            if (request.params[0].isStr())
+            {
+                hashes.push_back(request.params[0].get_str());
+            }
+            else if (request.params[0].isArray())
+            {
+                UniValue txids = request.params[0].get_array();
+                for (unsigned int idx = 0; idx < txids.size(); idx++)
+                {
+                    string txidEx = boost::trim_copy(txids[idx].get_str());
+                    if (!txidEx.empty())
+                        hashes.push_back(txidEx);
 
+                    if (hashes.size() > 100)
+                        break;
+                }
+            }
+        }
+
+        string address;
+        if (request.params.size() > 1 && request.params[1].isStr())
+            address = request.params[1].get_str();
+
+        auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds(hashes);
+        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, address);
+
+        UniValue result(UniValue::VARR);
+        result.push_backV(content);
+        return result;
+    },
+        };
+    }
+
+    RPCHelpMan GetContents()
+    {
+        return RPCHelpMan{"getcontents",
+                "\nReturns contents for address.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "A pocketcoin addresses to filter"}
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                    // {RPCResult::Type::ARR, "", "", {}}
+                },
+                RPCExamples{
+                    HelpExampleCli("getcontents", "a123bda213") +
+                    HelpExampleRpc("getcontents", "a123bda213")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        string address;
+        if (request.params[0].isStr())
+            address = request.params[0].get_str();
+
+        // TODO (brangr, team): add pagination
+
+        return request.DbConnection()->WebRpcRepoInst->GetContentsForAddress(address);
+    },
+        };
+    }
+
+    RPCHelpMan GetProfileFeed()
+    {
+        return RPCHelpMan{"getprofilefeed",
+                "\nReturns contents for list of ids\n", // TODO (team): description, args and examples really need to be fixed
+                {
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getprofilefeed", "") +
+                    HelpExampleRpc("getprofilefeed", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        return _getprofilefeed(request);
+    },
+        };
+    }
+
+    RPCHelpMan GetHotPosts()
+    {
+        return RPCHelpMan{"GetHotPosts",
+                // TODO (team): provide description, args and examples
+                "",
+                {},
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         int count = 30;
         if (request.params.size() > 0)
         {
@@ -303,25 +379,37 @@ namespace PocketWeb::PocketWebRpc
 
         return request.DbConnection()->WebRpcRepoInst->GetHotPosts(count, depthBlocks, nHeightOffset, lang,
             contentTypes, address, badReputationLimit);
+    },
+        };
     }
 
-    UniValue GetHistoricalFeed(const JSONRPCRequest& request)
+    RPCHelpMan GetHistoricalFeed()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "GetHistoricalFeed\n"
-                "topHeight           (int) - ???\n"
-                "topContentHash      (string, optional) - ???\n"
-                "countOut            (int, optional) - ???\n"
-                "lang                (string, optional) - ???\n"
-                "tags                (vector<string>, optional) - ???\n"
-                "contentTypes        (vector<int>, optional) - ???\n"
-                "txIdsExcluded       (vector<string>, optional) - ???\n"
-                "adrsExcluded        (vector<string>, optional) - ???\n"
-                "tagsExcluded        (vector<string>, optional) - ???\n"
-                "address             (string, optional) - ???\n"
-            );
-
+        return RPCHelpMan{"GetHistoricalFeed",
+                // TODO (team): provide description
+                "",
+                {
+                    {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::NO, ""},
+                    {"topContentHash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"countOut", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"lang", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"tags", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"contentTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"txIdsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"adrsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"tagsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): more examples
+                    HelpExampleCli("GetHistoricalFeed", "123123123123") +
+                    HelpExampleRpc("GetHistoricalFeed", "123123123123")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         int topHeight;
         string topContentHash;
         int countOut;
@@ -355,25 +443,37 @@ namespace PocketWeb::PocketWebRpc
         result.pushKV("height", topHeight);
         result.pushKV("contents", content);
         return result;
+    },
+        };
     }
 
-    UniValue GetHierarchicalFeed(const JSONRPCRequest& request)
+    RPCHelpMan GetHierarchicalFeed()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "GetHierarchicalFeed\n"
-                "topHeight           (int) - ???\n"
-                "topContentHash      (string, optional) - ???\n"
-                "countOut            (int, optional) - ???\n"
-                "lang                (string, optional) - ???\n"
-                "tags                (vector<string>, optional) - ???\n"
-                "contentTypes        (vector<int>, optional) - ???\n"
-                "txIdsExcluded       (vector<string>, optional) - ???\n"
-                "adrsExcluded        (vector<string>, optional) - ???\n"
-                "tagsExcluded        (vector<string>, optional) - ???\n"
-                "address             (string, optional) - ???\n"
-            );
-
+        return RPCHelpMan{"GetHierarchicalFeed",
+                // TODO (team): provide description
+                "",
+                {
+                    {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::NO, ""},
+                    {"topContentHash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"countOut", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"lang", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"tags", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"contentTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"txIdsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"adrsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"tagsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): more examples
+                    HelpExampleCli("GetHierarchicalFeed", "1231231414") +
+                    HelpExampleRpc("GetHierarchicalFeed", "1231231414")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         int topHeight;
         string topContentHash;
         int countOut;
@@ -407,77 +507,75 @@ namespace PocketWeb::PocketWebRpc
         result.pushKV("height", topHeight);
         result.pushKV("contents", content);
         return result;
+    },
+        };
     }
 
-    UniValue GetSubscribesFeed(const JSONRPCRequest& request)
+    RPCHelpMan GetSubscribesFeed()
     {
-        if (request.fHelp)
-        {
-            throw runtime_error(
-                "getsubscribesfeed\n"
-                "\nReturns contents from subscribers");
-        }
-
-        string addressFrom;
-        if (request.params.size() > 0 && request.params[0].isStr())
-            addressFrom = request.params[0].get_str();
-
-        string topContentHash;
-        if (request.params.size() > 2 && request.params[2].isStr())
-            topContentHash = request.params[2].get_str();
-
-        int count = 10;
-        if (request.params.size() > 3 && request.params[3].isNum())
-        {
-            count = request.params[3].get_int();
-            if (count > 10)
-                count = 10;
-        }
-
-        string lang;
-        if (request.params.size() > 4 && request.params[4].isStr())
-            lang = request.params[4].get_str();
-
-        vector<string> tags;
-        ParseRequestTags(request.params[5], tags);
-
-        // content types
-        vector<int> contentTypes;
-        ParseRequestContentTypes(request.params[6], contentTypes);
-
-        int64_t topContentId = 0;
-        if (!topContentHash.empty())
-        {
-            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
-            if (!ids.empty())
-                topContentId = ids[0];
-        }
-
-        return request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(addressFrom, topContentId, count,
-            lang, tags, contentTypes);
+        return RPCHelpMan{"getsubscribesfeed",
+                "\nReturns contents from subscribers\n",
+                {
+                    // TODO (team): provide arguments description
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getsubscribesfeed", "") +
+                    HelpExampleRpc("getsubscribesfeed", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        return _getsubscribersfeed(request);
+    },
+        };
     }
 
-    UniValue FeedSelector(const JSONRPCRequest& request)
+    RPCHelpMan FeedSelector()
+    {
+        return RPCHelpMan{"getrawtransactionwithmessage",
+                // TODO (team): provide description
+                "",
+                {
+                    // Args
+                },
+                {
+                    // Returns
+                },
+                RPCExamples{
+                    // Examples (HelpExampleCli() and HelpExampleRpc())
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
         if (request.params.size() > 1 && request.params[1].isStr() && request.params[1].get_str() == "1")
-            return GetSubscribesFeed(request);
+            return _getsubscribersfeed(request);
 
-        return GetProfileFeed(request);
+        return _getprofilefeed(request);
+    },
+        };
     }
 
-    UniValue GetContentsStatistic(const JSONRPCRequest& request)
+    RPCHelpMan GetContentsStatistic()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getcontentsstatistic \"address\", \"contenttypes\", height, depth\n"
-                "\nGet contents statistic.\n"
-                "\nArguments:\n"
-                "1. \"address\" (string) Address - сontent author\n"
-                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
-                "3. \"height\"  (int, optional) Maximum content height. Default is current chain height\n"
-                "4. \"depth\" (int, optional) Depth of content history for statistics. Default is all history\n"
-            );
-
+        return RPCHelpMan{"getcontentsstatistic",
+                "\nGet contents statistic.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, " Address - сontent author"},
+                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video"},
+                    {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum content height. Default is current chain height"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of content history for statistics. Default is all history"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getlastcomments", "") +
+                    HelpExampleRpc("getlastcomments", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         string address;
         vector<string> addresses;
         if (request.params.size() > 0) {
@@ -526,5 +624,7 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return request.DbConnection()->WebRpcRepoInst->GetContentsStatistic(addresses, contentTypes, nHeight, depth);
+    },
+        };
     }
 }

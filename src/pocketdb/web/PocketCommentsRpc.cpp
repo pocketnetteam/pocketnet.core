@@ -6,13 +6,25 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetCommentsByPost(const JSONRPCRequest& request)
+    RPCHelpMan GetCommentsByPost()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "getcomments (\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...])\n"
-                "\nGet Pocketnet comments.\n");
-
+        return RPCHelpMan{"getcomments",
+                "\nGet Pocketnet comments.\n",
+                {
+                    {"postid", RPCArg::Type::NUM, RPCArg::Optional::NO, "Post to get comments from."},
+                    {"parentid", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"commend_ids", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getcomments", "\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...]") +
+                    HelpExampleRpc("getcomments", "\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...]")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         string postHash;
         if (!request.params.empty()) {
             postHash = request.params[0].get_str();
@@ -29,9 +41,25 @@ namespace PocketWeb::PocketWebRpc
             addressHash = request.params[2].get_str();
 
         return request.DbConnection()->WebRpcRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
+    },
+        };
     }
 
-    UniValue GetLastComments(const JSONRPCRequest& request)
+    RPCHelpMan GetLastComments()
+    {
+        return RPCHelpMan{"getlastcomments",
+                "\nGet Pocketnet last comments.\n",
+                {
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getlastcomments", "") +
+                    HelpExampleRpc("getlastcomments", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
         if (request.fHelp)
             throw runtime_error(
@@ -58,6 +86,8 @@ namespace PocketWeb::PocketWebRpc
         int nHeight = ::ChainActive().Height();
 
         return request.DbConnection()->WebRpcRepoInst->GetLastComments(resultCount, nHeight, lang);
+    },
+        };
     }
 
 }
