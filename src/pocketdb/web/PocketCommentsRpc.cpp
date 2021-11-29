@@ -39,21 +39,16 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet Pocketnet last comments.\n");
 
         int resultCount = 10;
-        if (!request.params.empty()) {
-            if (request.params[0].isNum()) {
-                resultCount = request.params[0].get_int();
-            }
-        }
+        if (request.params[0].isNum())
+            resultCount = request.params[0].get_int();
 
         string address;
-        if (request.params.size() > 1) {
+        if (request.params[1].isStr())
             address = request.params[1].get_str();
-        }
 
-        string lang;
-        if (request.params.size() > 2) {
+        string lang = "en";
+        if (request.params[2].isStr())
             lang = request.params[2].get_str();
-        }
 
         int nHeight = chainActive.Height();
 

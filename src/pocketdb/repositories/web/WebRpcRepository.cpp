@@ -373,7 +373,7 @@ namespace PocketDb
             fullProfileSql = R"sql(
 
                 , (
-                    select json_group_array(json_object('adddress', subs.String1, 'private', case when subs.Type == 303 then '1' else '0' end))
+                    select json_group_array(json_object('adddress', subs.String2, 'private', case when subs.Type == 303 then '1' else '0' end))
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
                 ) as Subscribes
@@ -563,84 +563,95 @@ namespace PocketDb
 
     UniValue WebRpcRepository::GetLastComments(int count, int height, const string& lang)
     {
+        auto func = __func__;
         auto result = UniValue(UniValue::VARR);
-        return result;
-        
-        // TODO (team): The method is no longer needed? 
 
         auto sql = R"sql(
-            WITH RowIds AS (
-                SELECT MAX(c.RowId) as RowId
-                FROM Transactions c
-                JOIN Payload pl ON pl.TxHash = c.Hash
-                WHERE c.Type in (204,205)
-                    and c.Last=1
-                    and c.Height is not null
-                    and c.Height <= ?
-                    and c.Time < ?
-                    and pl.String1 = ?
-                GROUP BY c.Id
-                )
-            select t.Hash,
-                t.String2 as RootTxHash,
-                t.String3 as PostTxHash,
-                t.String1 as AddressHash,
-                t.Time,
-                t.Height,
-                t.String4 as ParentTxHash,
-                t.String5 as AnswerTxHash,
-                (select count(1) from Transactions sc where sc.Type=301 and sc.Height is not null and sc.String2=t.Hash and sc.Int1=1) as ScoreUp,
-                (select count(1) from Transactions sc where sc.Type=301 and sc.Height is not null and sc.String2=t.Hash and sc.Int1=-1) as ScoreDown,
-                (select r.Value from Ratings r where r.Id=t.Id and r.Type=3 and r.Last=1) as Reputation,
-                pl.String2 AS Msg
-            from Transactions t
-            join RowIds rid on t.RowId = rid.RowId
-            join Payload pl ON pl.TxHash = t.Hash
-            where t.Type in (204,205) and t.Last=1 and t.height is not null
-            order by t.Height desc, t.Time desc
-            limit ?;
+            select
+              c.String2   as CommentTxHash,
+              p.String2   as ContentTxHash,
+              c.String1   as CommentAddress,
+              c.Time      as CommentTime,
+              c.Height    as CommentHeight,
+              pc.String1  as CommentMessage,
+              c.String4   as CommentParent,
+              c.String5   as CommentAnswer,
+
+              (
+                select count(1)
+                from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                where sc.Type = 301 and sc.Last in (0,1) and sc.Height > 0 and sc.String2 = c.String2 and sc.Int1 = 1
+              ) as ScoreUp,
+
+              (
+                select count(1)
+                from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                where sc.Type = 301 and sc.Last in (0,1) and sc.Height > 0 and sc.String2 = c.String2 and sc.Int1 = -1
+              ) as ScoreDown,
+
+              rc.Value    as CommentRating,
+              (case when c.Hash != c.String2 then 1 else 0 end) as CommentEdit,
+
+              (
+                  select o.Value
+                  from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                  where o.TxHash = c.Hash and o.AddressHash = p.String1 and o.AddressHash != c.String1
+              ) as Donate
+
+            from Transactions c indexed by Transactions_Height_Id
+
+            cross join Transactions p indexed by Transactions_Type_Last_String2_Height
+              on p.Type in (200,201) and p.Last = 1 and p.Height > 0 and p.String2 = c.String3
+
+            cross join Payload pp indexed by Payload_String1_TxHash
+              on pp.TxHash = p.Hash and pp.String1 = ?
+
+            cross join Payload pc
+              on pc.TxHash = c.Hash
+
+            cross join Ratings rc indexed by Ratings_Type_Id_Last_Value
+              on rc.Type = 3 and rc.Last = 1 and rc.Id = c.Id
+
+            where c.Type in (204,205)
+              and c.Last = 1
+              and c.Height > (? - 600)
+
+            order by c.Height desc
+            limit ?
         )sql";
 
-        TryTransactionStep(__func__, [&]()
+        TryTransactionStep(func, [&]()
         {
+            int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementInt(stmt, 1, height);
-            TryBindStatementInt64(stmt, 2, GetAdjustedTime());
-            TryBindStatementText(stmt, 3, lang.empty() ? "en" : lang);
-            TryBindStatementInt(stmt, 4, count);
+            TryBindStatementText(stmt, i++, lang);
+            TryBindStatementInt(stmt, i++, height);
+            TryBindStatementInt(stmt, i++, count);
+
+            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
 
-                auto[ok0, txHash] = TryGetColumnString(*stmt, 0);
-                auto[ok1, rootTxHash] = TryGetColumnString(*stmt, 1);
-
-                record.pushKV("id", rootTxHash);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 2); ok) record.pushKV("postid", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 3); ok) record.pushKV("address", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("time", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 4); ok) record.pushKV("timeUpd", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 5); ok) record.pushKV("block", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 6); ok) record.pushKV("parentid", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 7); ok) record.pushKV("answerid", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreUp", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 9); ok) record.pushKV("scoreDown", valueStr);
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 10); ok) record.pushKV("reputation", valueStr);
-
-                if (auto[ok, valueStr] = TryGetColumnString(*stmt, 11); ok)
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("id", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("postid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 11); ok) record.pushKV("edit", value == 1);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok)
                 {
-                    record.pushKV("msg", valueStr);
-                    record.pushKV("deleted", false);
+                    record.pushKV("donation", "true");
+                    record.pushKV("amount", value);
                 }
-                else
-                {
-                    record.pushKV("msg", "");
-                    record.pushKV("deleted", true);
-                }
-
-                record.pushKV("edit", txHash != rootTxHash);
 
                 result.push_back(record);
             }
