@@ -449,7 +449,6 @@ bool InitHTTPServer(const util::Ref& context)
     RegisterMiningRPCCommands(g_socket->m_table_rpc);
     RegisterRawTransactionRPCCommands(g_socket->m_table_rpc);
 
-//    TODO (losty) : wallet rpcs
     for (const auto& client : node.chain_clients) {
         client->registerRpcs();
     }
