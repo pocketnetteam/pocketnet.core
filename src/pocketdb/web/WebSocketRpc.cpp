@@ -3,16 +3,28 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/WebSocketRpc.h"
+#include "rpc/util.h"
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetMissedInfo(const JSONRPCRequest& request)
+    RPCHelpMan GetMissedInfo()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getmissedinfo \"address\" block_number\n"
-                "\nGet missed info.\n");
-
+        return RPCHelpMan{
+                "getmissedinfo",
+                "\nGet missed info.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"block_number", RPCArg::Type::NUM, RPCArg::Optional::NO, ""}
+                },
+                {
+                    // TODO (team)
+                },
+                RPCExamples{
+                    // TODO (team)
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VNUM});
 
         // Get address from arguments
@@ -128,5 +140,7 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         return result;
+    },
+        };
     }
 }

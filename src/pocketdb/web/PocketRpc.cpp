@@ -3,16 +3,29 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketRpc.h"
+#include "rpc/util.h"
 
-UniValue gettemplate(const JSONRPCRequest& request)
+RPCHelpMan gettemplate()
 {
-    if (request.fHelp)
-        throw std::runtime_error(
-            "getrawtransactionwithmessagebyid\n"
-            "\nReturn Pocketnet posts.\n");
+    return RPCHelpMan{
+            // TODO (team): update name and all description
+            "getrawtransactionwithmessagebyid",
+            "\nReturn Pocketnet posts.\n",
+            {
 
+            },
+            {
+
+            },
+            RPCExamples{
+                ""
+            },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     UniValue aResult(UniValue::VARR);
     return aResult;
+},
+    };
 }
 
 // @formatter:off

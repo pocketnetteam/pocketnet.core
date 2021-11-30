@@ -766,26 +766,33 @@ static RPCHelpMan combinerawtransaction()
     };
 }
 
-UniValue SendRawTransaction(const JSONRPCRequest& request)
+RPCHelpMan SendRawTransaction()
 {
-    if (request.fHelp)
-        throw std::runtime_error(
-            "sendrawtransaction \"hexstring\" ( allowhighfees )\n"
-            "\nSubmits raw transaction (serialized, hex-encoded) to local node and network.\n"
-            "\nAlso see createrawtransaction and signrawtransactionwithkey calls.\n"
-            "\nArguments:\n"
-            "1. \"hexstring\"    (string, required) The hex string of the raw transaction)\n"
-            "\nResult:\n"
-            "\"hex\"             (string) The transaction hash in hex\n"
-            "\nExamples:\n"
-            "\nCreate a transaction\n" +
-            HelpExampleCli("createrawtransaction",
-                "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"vout\\\":0}]\" \"{\\\"myaddress\\\":0.01}\"") +
-            "Sign the transaction, and get back the hex\n" +
-            HelpExampleCli("signrawtransactionwithwallet", "\"myhex\"") +
-            "\nSend the transaction (signed hex)\n" + HelpExampleCli("sendrawtransaction", "\"signedhex\"") +
-            "\nAs a json rpc call\n" + HelpExampleRpc("sendrawtransaction", "\"signedhex\""));
-
+    return RPCHelpMan{
+            "sendrawtransaction",
+            "\nSubmit a raw transaction (serialized, hex-encoded) to local node and network.\n"
+            "\nNote that the transaction will be sent unconditionally to all peers, so using this\n"
+            "for manual rebroadcast may degrade privacy by leaking the transaction's origin, as\n"
+            "nodes will normally not rebroadcast non-wallet transactions already in their mempool.\n"
+            "\nAlso see createrawtransaction and signrawtransactionwithkey calls.\n",
+            {
+                {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"},
+            },
+            RPCResult{
+                RPCResult::Type::STR_HEX, "", "The transaction hash in hex"
+            },
+            RPCExamples{
+                "\nCreate a transaction\n"
+                + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"vout\\\":0}]\" \"{\\\"myaddress\\\":0.01}\"") +
+                "Sign the transaction, and get back the hex\n"
+                + HelpExampleCli("signrawtransactionwithwallet", "\"myhex\"") +
+                "\nSend the transaction (signed hex)\n"
+                + HelpExampleCli("sendrawtransaction", "\"signedhex\"") +
+                "\nAs a JSON-RPC call\n"
+                + HelpExampleRpc("sendrawtransaction", "\"signedhex\"")
+            },
+    [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VBOOL});
 
     // parse hex string from parameter
@@ -799,6 +806,8 @@ UniValue SendRawTransaction(const JSONRPCRequest& request)
 
     CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
     return PocketWeb::PocketWebRpc::_accept_transaction(tx, nullptr, *node.mempool, *node.connman);
+},
+    };
 }
 
 static RPCHelpMan signrawtransactionwithkey()
