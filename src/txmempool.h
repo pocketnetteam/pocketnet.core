@@ -587,6 +587,10 @@ public:
      */
     void RemoveStaged(setEntries &stage, bool updateDescendants, MemPoolRemovalReason reason = MemPoolRemovalReason::UNKNOWN) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
+    /** Remove transactions from SQLite db with payload and additional data
+     */
+    void CleanSQLite(const std::vector<std::string>& hashes);
+
     /** When adding transactions from a disconnected block back to the mempool,
      *  new mempool entries may have children in the mempool (which is generally
      *  not the case when otherwise adding transactions).

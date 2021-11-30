@@ -6366,7 +6366,6 @@ bool LoadMempool()
     }
 
     int64_t count = 0;
-    //int64_t expired = 0;
     std::vector<string> expiredHashes;
     int64_t failed = 0;
     int64_t already_there = 0;
@@ -6427,12 +6426,12 @@ bool LoadMempool()
                     else
                     {
                         ++failed;
+                        expiredHashes.push_back(tx->GetHash().GetHex());
                     }
                 }
             }
             else
             {
-                //++expired;
                 expiredHashes.push_back(tx->GetHash().GetHex());
             }
             if (ShutdownRequested())
@@ -6444,10 +6443,8 @@ bool LoadMempool()
         for (const auto& i : mapDeltas)
             mempool.PrioritiseTransaction(i.first, i.second);
 
-        // TODO (brangr): implement remove expired transactions from sqlite db
         // Also remove from sqlite db
-        for (const string& hash : expiredHashes)
-            PocketDb::TransRepoInst.CleanTransaction(hash);
+        mempool.CleanSQLite(expiredHashes);
     }
     catch (const std::exception& e)
     {
