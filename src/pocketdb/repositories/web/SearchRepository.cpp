@@ -204,9 +204,9 @@ namespace PocketDb
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("avatar", value);
                 result.push_back(record);
             }
 
@@ -290,9 +290,9 @@ namespace PocketDb
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("avatar", value);
                 result.push_back(record);
             }
 
@@ -378,9 +378,9 @@ namespace PocketDb
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("avatar", value);
                 result.push_back(record);
             }
 
