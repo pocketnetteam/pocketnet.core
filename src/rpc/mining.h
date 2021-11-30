@@ -13,7 +13,6 @@
 /** Default max iterations to try in RPC generatetodescriptor, generatetoaddress, and generateblock. */
 static const uint64_t DEFAULT_MAX_TRIES{1000000};
 
-// TODO (losty): changed to RPCHelpMan and used by pocketdb
 RPCHelpMan estimatesmartfee();
 
 #endif

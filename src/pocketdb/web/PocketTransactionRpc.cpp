@@ -54,7 +54,6 @@ namespace PocketWeb::PocketWebRpc
     
     RPCHelpMan EstimateSmartFee()
     {
-        // TODO (losty): changed to RPCHelpMan
         return estimatesmartfee();
     }
 
