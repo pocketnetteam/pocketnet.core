@@ -237,4 +237,90 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->WebRpcRepoInst->SearchLinks(vLinks, contentTypes, nHeight, countOut);
     }
 
+    UniValue GetRecomendedAccountsBySubscriptions(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetRecomendedAccountsBySubscriptions"
+            );
+
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+
+        int cntOut = 10;
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsBySubscriptions(address, cntOut);
+    }
+
+    UniValue GetRecomendedAccountsByScoresOnSimilarAccounts(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetRecomendedAccountsBySubscriptions"
+            );
+
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int nHeight = chainActive.Height();
+        int depth = 1000;
+        int cntOut = 10;
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresOnSimilarAccounts(address, contentTypes, nHeight, depth, cntOut);
+    }
+
+    UniValue GetRecomendedAccountsByScoresFromAddress(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetRecomendedAccountsByScoresFromAddress"
+            );
+
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int nHeight = chainActive.Height();
+        int depth = 1000;
+        int cntOut = 10;
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
+    }
+
+    UniValue GetRecomendedContentsByScoresOnSimilarContents(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetRecomendedContentsByScoresOnSimilarContents"
+            );
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresOnSimilarContents();
+    }
+
+    UniValue GetRecomendedContentsByScoresFromAddress(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetRecomendedContentsByScoresFromAddress"
+            );
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresFromAddress();
+    }
 }
