@@ -2122,13 +2122,12 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     {
         arith_uint256 targetProofOfStake;
         // Signature will be checked in CheckInputs(), we can avoid it here (fCheckSignature = false)
-        // TODO (losty): pass mempool here
-        // if (!CheckProofOfStake(pindex->pprev, block.vtx[1], block.nBits, hashProof, hashProofOfStakeSource,
-        //     targetProofOfStake, NULL))
-        // {
-        //     return error("ContextualCheckBlock() : check proof-of-stake signature failed for block %s",
-        //         block.GetHash().GetHex());
-        // }
+        if (!CheckProofOfStake(pindex->pprev, block.vtx[1], block.nBits, hashProof, hashProofOfStakeSource,
+            targetProofOfStake, nullptr, m_mempool))
+        {
+            return error("ContextualCheckBlock() : check proof-of-stake signature failed for block %s",
+                block.GetHash().GetHex());
+        }
     }
 
     if (block.IsProofOfWork())
