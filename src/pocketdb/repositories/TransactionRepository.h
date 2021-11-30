@@ -44,6 +44,7 @@ namespace PocketDb
 
         bool Exists(const string& hash);
         bool ExistsInChain(const string& hash);
+        int MempoolCount();
 
         void CleanTransaction(const string& hash);
         void CleanMempool();

@@ -175,6 +175,31 @@ namespace PocketDb
         return result;
     }
 
+    int TransactionRepository::MempoolCount()
+    {
+        int result = 0;
+
+        string sql = R"sql(
+            select count(*)
+            from Transactions
+            where Height isnull
+              and Type != 3
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     void TransactionRepository::Clean()
     {
         TryTransactionStep(__func__, [&]()

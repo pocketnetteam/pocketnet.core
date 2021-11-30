@@ -1388,7 +1388,15 @@ static UniValue getmempoolinfo(const JSONRPCRequest& request)
                             "\nExamples:\n" +
             HelpExampleCli("getmempoolinfo", "") + HelpExampleRpc("getmempoolinfo", ""));
 
-    return mempoolInfoToJSON();
+    UniValue result = mempoolInfoToJSON();
+    int sqliteMempoolCount = PocketDb::TransRepoInst.MempoolCount();
+
+    UniValue size(UniValue::VOBJ);
+    size.pushKV("memory", result["size"].get_int());
+    size.pushKV("sqlite", sqliteMempoolCount);
+    result.pushKV("size", size);
+
+    return result;
 }
 
 static UniValue preciousblock(const JSONRPCRequest& request)

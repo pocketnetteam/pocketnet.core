@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <amount.h>
 
+#include "pocketdb/pocketnet.h"
+
 class CBlock;
 class CBlockIndex;
 class UniValue;
