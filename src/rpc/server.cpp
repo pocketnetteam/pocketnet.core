@@ -209,37 +209,24 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
     strRet = strRet.substr(0,strRet.size()-1);
     return strRet;
 }
-// TODO (brangr): implement help
-// UniValue help(const JSONRPCRequest& jsonRequest)
-// {
-//     if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
-//         throw std::runtime_error(
-//             "help ( \"command\" )\n"
-//             "\nList all commands, or get help for a specified command.\n"
-//             "\nArguments:\n"
-//             "1. \"command\"     (string, optional) The command to get help on\n"
-//             "\nResult:\n"
-//             "\"text\"     (string) The help text\n"
-//         );
-//
-//     std::string strCommand;
-//     if (!jsonRequest.params.empty())
-//         strCommand = jsonRequest.params[0].get_str();
-//
-//     return tableRPC.help(strCommand, jsonRequest);
-// }
 
-
-
-CRPCTable::CRPCTable()
+UniValue CRPCTable::help(const JSONRPCRequest& jsonRequest) const
 {
-    // TODO (brangr): implement help 2
-    // unsigned int vcidx;
-    // for (vcidx = 0; vcidx < (sizeof(vRPCCommands) / sizeof(vRPCCommands[0])); vcidx++)
-    // {
-    //     //const CRPCCommand pcmd = {"control", "help", help, {"command"}};
-    //     mapCommands[pcmd.name] = &pcmd;
-    // }
+    if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
+        throw std::runtime_error(
+             "help ( \"command\" )\n"
+             "\nList all commands, or get help for a specified command.\n"
+             "\nArguments:\n"
+            "1. \"command\"     (string, optional) The command to get help on\n"
+            "\nResult:\n"
+            "\"text\"     (string) The help text\n"
+        );
+
+    std::string strCommand;
+    if (!jsonRequest.params.empty())
+        strCommand = jsonRequest.params[0].get_str();
+
+    return help(strCommand, jsonRequest);
 }
 
 const CRPCCommand *CRPCTable::operator[](const std::string &name) const
@@ -447,6 +434,10 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
         LOCK(cs_rpcWarmup);
         if (fRPCInWarmup)
             throw JSONRPCError(RPC_IN_WARMUP, rpcWarmupStatus);
+    }
+
+    if (request.strMethod == "help") {
+        return help(request);
     }
 
     // Find method
