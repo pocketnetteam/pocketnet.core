@@ -205,8 +205,8 @@ namespace PocketDb
             {
                 UniValue record(UniValue::VOBJ);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
                 result.push_back(record);
             }
 
@@ -291,8 +291,8 @@ namespace PocketDb
             {
                 UniValue record(UniValue::VOBJ);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
                 result.push_back(record);
             }
 
@@ -379,8 +379,8 @@ namespace PocketDb
             {
                 UniValue record(UniValue::VOBJ);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("name", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
                 result.push_back(record);
             }
 

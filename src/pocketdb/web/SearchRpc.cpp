@@ -161,12 +161,7 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw runtime_error(
-                "search \"keyword\", \"fieldtype\", orderbyrank\n"
-                "\nSearch users in DB.\n"
-                "\nArguments:\n"
-                "1. \"keyword\"     (string) String for search\n"
-                "2. \"fieldtype\"        (string, optional)\n"
-                "3. \"orderbyrank\"  (int, optional)\n"
+                "SearchUsers"
             );
 
         RPCTypeCheck(request.params, {UniValue::VSTR});
@@ -235,6 +230,44 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return request.DbConnection()->WebRpcRepoInst->SearchLinks(vLinks, contentTypes, nHeight, countOut);
+    }
+
+    UniValue SearchContents(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "SearchContents"
+            );
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+        string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        vector<int> fieldTypes = { ContentFieldType::ContentFieldType_ContentPostCaption,
+                                   ContentFieldType::ContentFieldType_ContentPostMessage,
+                                   ContentFieldType::ContentFieldType_ContentPostUrl,
+                                   ContentFieldType::ContentFieldType_ContentVideoCaption,
+                                   ContentFieldType::ContentFieldType_ContentVideoMessage,
+                                   ContentFieldType::ContentFieldType_ContentVideoUrl};
+
+        // auto contents = request.DbConnection()->SearchRepoInst->SearchContents(keyword, contentTypes, fieldTypes, false);
+        //
+        // vector<int64_t> contentsIds;
+        // for (const auto &content : contents)
+        //     contentsIds.emplace_back(content.first);
+
+        //auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(usersIds);
+
+        UniValue result(UniValue::VARR);
+        // for (auto &profile : usersProfiles)
+        // {
+        //     profile.second.pushKV("searchResult",users[profile.first]);
+        //     result.push_back(profile.second);
+        // }
+
+        return result;
     }
 
     UniValue GetRecomendedAccountsBySubscriptions(const JSONRPCRequest& request)

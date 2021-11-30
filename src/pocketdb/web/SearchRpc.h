@@ -21,6 +21,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue Search(const JSONRPCRequest& request);
     UniValue SearchUsers(const JSONRPCRequest& request);
     UniValue SearchLinks(const JSONRPCRequest& request);
+    UniValue SearchContents(const JSONRPCRequest& request);
 
     #pragma region Recomendations
     // Accounts recommendations based on subscriptions
