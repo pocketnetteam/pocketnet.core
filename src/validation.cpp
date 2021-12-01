@@ -564,6 +564,8 @@ static void UpdateMempoolForReorg(DisconnectedBlockTransactions& disconnectpool,
     auto it = disconnectpool.queuedTx.get<insertion_order>().rbegin();
     while (it != disconnectpool.queuedTx.get<insertion_order>().rend())
     {
+        LogPrintf("DEBUG disconnect tx %s\n", (*it)->GetHash().GetHex());
+
         // ignore validation errors in resurrected transactions
         CValidationState stateDummy;
         if (!fAddToMempool ||
@@ -571,12 +573,14 @@ static void UpdateMempoolForReorg(DisconnectedBlockTransactions& disconnectpool,
             !AcceptToMemoryPool(mempool, stateDummy, *it, nullptr, nullptr /* pfMissingInputs */,
                 nullptr /* plTxnReplaced */, true /* bypass_limits */, 0 /* nAbsurdFee */))
         {
+            LogPrintf("DEBUG disconnect tx remove %s\n", (*it)->GetHash().GetHex());
             // If the transaction doesn't make it in to the mempool, remove any
             // transactions that depend on it (which would now be orphans).
             mempool.removeRecursive(**it, MemPoolRemovalReason::REORG);
         }
         else if (mempool.exists((*it)->GetHash()))
         {
+            LogPrintf("DEBUG disconnect tx exists %s\n", (*it)->GetHash().GetHex());
             vHashUpdate.push_back((*it)->GetHash());
         }
         ++it;
@@ -6366,7 +6370,7 @@ bool LoadMempool()
     }
 
     int64_t count = 0;
-    std::vector<string> expiredHashes;
+    std::unordered_set<string> expiredHashes;
     int64_t failed = 0;
     int64_t already_there = 0;
     int64_t nNow = GetTime();
@@ -6426,13 +6430,13 @@ bool LoadMempool()
                     else
                     {
                         ++failed;
-                        expiredHashes.push_back(tx->GetHash().GetHex());
+                        expiredHashes.emplace(tx->GetHash().GetHex());
                     }
                 }
             }
             else
             {
-                expiredHashes.push_back(tx->GetHash().GetHex());
+                expiredHashes.emplace(tx->GetHash().GetHex());
             }
             if (ShutdownRequested())
                 return false;

@@ -515,6 +515,7 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
     // Remove transaction from memory pool
     LOCK(cs);
 
+    std::unordered_set<std::string> removeHashes;
     setEntries txToRemove;
     txiter origit = mapTx.find(origTx.GetHash());
 
@@ -524,6 +525,8 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
     }
     else
     {
+        removeHashes.emplace(origTx.GetHash().GetHex());
+
         // When recursively removing but origTx isn't in the mempool
         // be sure to remove any children that are in the pool. This can
         // happen during chain re-orgs if origTx isn't re-accepted into
@@ -544,21 +547,26 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
         CalculateDescendants(it, setAllRemoves);
 
     // Build list of tx hashes
-    std::vector<std::string> hashes;
     for (const auto& iter : setAllRemoves)
-        hashes.push_back(iter->GetTx().GetHash().GetHex());
+    {
+        auto hash = iter->GetTx().GetHash().GetHex();
+        if (removeHashes.find(hash) == removeHashes.end())
+            removeHashes.emplace(hash);
+    }
 
     RemoveStaged(setAllRemoves, false, reason);
 
     // Also sqlite clean
-    CleanSQLite(hashes);
+    CleanSQLite(removeHashes);
 }
 
 void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMemPoolHeight, int flags)
 {
     // Remove transactions spending a coinbase which are now immature and no-longer-final transactions
     LOCK(cs);
+    std::unordered_set<std::string> removeHashes;
     setEntries txToRemove;
+
     for (indexed_transaction_set::const_iterator it = mapTx.begin(); it != mapTx.end(); it++)
     {
         const CTransaction& tx = it->GetTx();
@@ -569,13 +577,15 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
             // Note if CheckSequenceLocks fails the LockPoints may still be invalid
             // So it's critical that we remove the tx and not depend on the LockPoints.
             txToRemove.insert(it);
-        } else if (it->GetSpendsCoinbase())
+        }
+        else if (it->GetSpendsCoinbase())
         {
             for (const CTxIn& txin : tx.vin)
             {
                 indexed_transaction_set::const_iterator it2 = mapTx.find(txin.prevout.hash);
                 if (it2 != mapTx.end())
                     continue;
+
                 const Coin& coin = pcoins->AccessCoin(txin.prevout);
                 if (nCheckFrequency != 0) assert(!coin.IsSpent());
                 if (coin.IsSpent() || ((coin.IsCoinBase() || coin.IsCoinStake()) &&
@@ -586,24 +596,23 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
                 }
             }
         }
+
         if (!validLP)
-        {
             mapTx.modify(it, update_lock_points(lp));
-        }
     }
+
     setEntries setAllRemoves;
     for (txiter it : txToRemove)
         CalculateDescendants(it, setAllRemoves);
 
     // Build list of tx hashes
-    std::vector<std::string> hashes;
     for (const auto& iter : setAllRemoves)
-        hashes.push_back(iter->GetTx().GetHash().GetHex());
+        removeHashes.emplace(iter->GetTx().GetHash().GetHex());
 
     RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::REORG);
 
     // Also sqlite clean
-    CleanSQLite(hashes);
+    CleanSQLite(removeHashes);
 }
 
 void CTxMemPool::removeConflicts(const CTransaction& tx)
@@ -1044,7 +1053,7 @@ void CTxMemPool::RemoveStaged(setEntries& stage, bool updateDescendants, MemPool
     }
 }
 
-void CTxMemPool::CleanSQLite(const std::vector<std::string>& hashes)
+void CTxMemPool::CleanSQLite(const std::unordered_set<std::string>& hashes)
 {
     for (const auto& hash : hashes)
     {
@@ -1069,15 +1078,15 @@ int CTxMemPool::Expire(int64_t time)
         CalculateDescendants(removeit, stage);
 
     // Build list of tx hashes
-    std::vector<std::string> hashes;
+    std::unordered_set<std::string> removeHashes;
     for (const auto& iter : stage)
-        hashes.push_back(iter->GetTx().GetHash().GetHex());
+        removeHashes.emplace(iter->GetTx().GetHash().GetHex());
 
     // Remove from memory mempool
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
 
     // Also remove from sqlite db
-    CleanSQLite(hashes);
+    CleanSQLite(removeHashes);
 
     return stage.size();
 }
