@@ -776,8 +776,8 @@ struct DisconnectedBlockTransactions {
     // instance if there was some other way we cleaned up the mempool after a
     // reorg, besides draining this object).
     ~DisconnectedBlockTransactions() {
-        // TODO (brangr): !!!!!!!!
-        //assert(queuedTx.empty());
+        // TODO (brangr): why queuedTx not empty?
+        assert(queuedTx.empty());
     }
 
     indexed_disconnected_transactions queuedTx;

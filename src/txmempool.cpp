@@ -545,8 +545,8 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
 
     // Build list of tx hashes
     std::vector<std::string> hashes;
-    for (const auto& tx : txs)
-        hashes.push_back(tx->GetTx().GetHash().GetHex());
+    for (const auto& iter : setAllRemoves)
+        hashes.push_back(iter->GetTx().GetHash().GetHex());
 
     RemoveStaged(setAllRemoves, false, reason);
 
@@ -597,8 +597,8 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
 
     // Build list of tx hashes
     std::vector<std::string> hashes;
-    for (const auto& tx : txs)
-        hashes.push_back(tx->GetTx().GetHash().GetHex());
+    for (const auto& iter : setAllRemoves)
+        hashes.push_back(iter->GetTx().GetHash().GetHex());
 
     RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::REORG);
 
@@ -1070,8 +1070,8 @@ int CTxMemPool::Expire(int64_t time)
 
     // Build list of tx hashes
     std::vector<std::string> hashes;
-    for (const auto& tx : txs)
-        hashes.push_back(tx->GetTx().GetHash().GetHex());
+    for (const auto& iter : stage)
+        hashes.push_back(iter->GetTx().GetHash().GetHex());
 
     // Remove from memory mempool
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
