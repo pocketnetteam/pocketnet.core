@@ -114,7 +114,7 @@ namespace PocketConsensus
 
             auto minimumReputation = GetConsensusLimit(ConsensusLimit_threshold_reputation);
             if (reputation < minimumReputation)
-                return {false, SocialConsensusResult_LowReputation};
+                return {false, SocialConsensusResult_ComplainLowReputation};
 
             return Success;
         }

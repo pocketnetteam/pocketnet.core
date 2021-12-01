@@ -167,7 +167,7 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_ScoreLimit};
 
             if (!ValidateLowReputation(ptx, mode))
-                return {false, SocialConsensusResult_LowReputation};
+                return {false, SocialConsensusResult_ScoreLowReputation};
 
             return Success;
         }

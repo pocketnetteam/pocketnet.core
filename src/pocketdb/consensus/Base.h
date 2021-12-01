@@ -34,7 +34,7 @@ namespace PocketConsensus
         SocialConsensusResult_DoubleComplain = 13,
         SocialConsensusResult_SelfComplain = 14,
         SocialConsensusResult_ComplainLimit = 15,
-        SocialConsensusResult_LowReputation = 16,
+        SocialConsensusResult_ComplainLowReputation = 16,
         SocialConsensusResult_ContentSizeLimit = 17,
         SocialConsensusResult_NicknameDouble = 18,
         SocialConsensusResult_NicknameLong = 19,
@@ -75,6 +75,7 @@ namespace PocketConsensus
         SocialConsensusResult_ScoreDeletedContent = 57,
         SocialConsensusResult_RelayContentNotFound = 58,
         SocialConsensusResult_BadPayload = 59,
+        SocialConsensusResult_ScoreLowReputation = 60,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
@@ -97,7 +98,8 @@ namespace PocketConsensus
             case (SocialConsensusResult_DoubleComplain): return "DoubleComplain";
             case (SocialConsensusResult_SelfComplain): return "SelfComplain";
             case (SocialConsensusResult_ComplainLimit): return "ComplainLimit";
-            case (SocialConsensusResult_LowReputation): return "LowReputation";
+            case (SocialConsensusResult_ComplainLowReputation): return "ComplainLowReputation";
+            case (SocialConsensusResult_ScoreLowReputation): return "ScoreLowReputation";
             case (SocialConsensusResult_ContentSizeLimit): return "ContentSizeLimit";
             case (SocialConsensusResult_NicknameDouble): return "NicknameDouble";
             case (SocialConsensusResult_NicknameLong): return "NicknameLong";
