@@ -1291,7 +1291,7 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
             std::string pocketBlockData;
             if (!PocketServices::Accessor::GetBlock(block, pocketBlockData))
             {
-                LogPrintf("WARNING! Cannot load block payload from sqlite db: %s\n", pblock->GetHash().GetHex());
+                LogPrintf("WARNING! Cannot load block payload from sqlite db: %s\n", block.GetHash().GetHex());
                 return;
             }
 
