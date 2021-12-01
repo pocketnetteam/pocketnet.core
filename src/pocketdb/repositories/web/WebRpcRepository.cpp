@@ -451,7 +451,7 @@ namespace PocketDb
                 )sql" + fullProfileSql + R"sql(
 
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            join Payload p on p.TxHash=u.Hash
+            cross join Payload p on p.TxHash=u.Hash
 
             where u.Type in (100,101,102)
               and u.Last=1

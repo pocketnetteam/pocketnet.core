@@ -132,14 +132,15 @@ namespace PocketWeb::PocketWebRpc
         {
             searchRequest.Address = "";
             searchRequest.TxTypes = { ACCOUNT_USER };
+            searchRequest.OrderByRank = true;
             searchRequest.FieldTypes = {
                 ContentFieldType_AccountUserName,
-                ContentFieldType_AccountUserAbout,
-                ContentFieldType_AccountUserUrl
+                // ContentFieldType_AccountUserAbout,
+                // ContentFieldType_AccountUserUrl
             };
 
             // Search
-            auto ids = request.DbConnection()->SearchRepoInst->SearchIds(searchRequest);
+            auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest);
             
             // Get accounts data
             auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
@@ -165,22 +166,21 @@ namespace PocketWeb::PocketWebRpc
             );
 
         RPCTypeCheck(request.params, {UniValue::VSTR});
-        string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
 
-        vector<int> fieldTypes = { ContentFieldType::ContentFieldType_AccountUserName };
+        SearchRequest searchRequest;
+
+        searchRequest.Keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
+        searchRequest.FieldTypes = { ContentFieldType::ContentFieldType_AccountUserName };
         // ContentFieldType::ContentFieldType_AccountUserAbout, ContentFieldType::ContentFieldType_AccountUserUrl
-        auto users = request.DbConnection()->SearchRepoInst->SearchUsers(keyword, fieldTypes, false);
+        searchRequest.OrderByRank = true;
 
-        vector<int64_t> usersIds;
-        for (const auto &user : users)
-            usersIds.emplace_back(user.first);
-
-        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(usersIds);
+        auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest);
+        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
 
         UniValue result(UniValue::VARR);
         for (auto &profile : usersProfiles)
         {
-            profile.second.pushKV("searchResult",users[profile.first]);
+            // profile.second.pushKV("searchResult", users[profile.first]);
             result.push_back(profile.second);
         }
 
