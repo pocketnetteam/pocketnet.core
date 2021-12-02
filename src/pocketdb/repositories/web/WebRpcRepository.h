@@ -122,6 +122,8 @@ namespace PocketDb
 
         UniValue GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes, const int nHeight, const int depth);
 
+        vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
+
     private:
         int cntBlocksForResult = 300;
         int cntPrevPosts = 5;

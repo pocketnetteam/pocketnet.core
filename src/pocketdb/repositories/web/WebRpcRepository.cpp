@@ -2810,4 +2810,61 @@ namespace PocketDb
         return result;
     }
 
+    // ------------------------------------------------------
+
+    vector<int64_t> WebRpcRepository::GetRandomContentIds(const string& lang, int count, int height)
+    {
+        vector<int64_t> result;
+
+        auto sql = R"sql(
+            select t.Id, t.String1, r.Value, p.String1
+
+            from Transactions t indexed by Transactions_Last_Id_Height
+
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type = 100 and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+
+            cross join Ratings r indexed by Ratings_Type_Id_Last_Value
+                on r.Type = 0 and r.Last = 1 and r.Id = u.Id and r.Value > 0
+
+            cross join Payload p indexed by Payload_String1_TxHash
+                on p.TxHash = t.Hash and p.String1 = ?
+
+            where t.Last = 1
+              and t.Height > 0
+              and t.Id in (
+                select tr.Id
+                from Transactions tr indexed by Transactions_Type_Last_Height_Id
+                where tr.Type in (200,201)
+                  and tr.Last = 1
+                  and tr.Height > ?
+                order by random()
+                limit ?
+              )
+
+            order by random()
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, i++, lang);
+            TryBindStatementInt(stmt, i++, height);
+            TryBindStatementInt(stmt, i++, count * 100);
+            TryBindStatementInt(stmt, i++, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
 }

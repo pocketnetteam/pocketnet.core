@@ -523,4 +523,41 @@ namespace PocketWeb::PocketWebRpc
 
         return request.DbConnection()->WebRpcRepoInst->GetContentsStatistic(addresses, contentTypes, nHeight, depth);
     }
+
+    UniValue GetRandomContents(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+        {
+            UniValue help(UniValue::VOBJ);
+            help.pushKV("Method", "GetRandomPost");
+
+            UniValue args(UniValue::VARR);
+
+            UniValue argLang(UniValue::VOBJ);
+            argLang.pushKV("Name", "lang");
+            argLang.pushKV("Type", "String");
+            argLang.pushKV("Default", "en");
+            args.push_back(argLang);
+
+            help.pushKV("Arguments", args);
+
+            UniValue examples(UniValue::VARR);
+            help.pushKV("Examples", examples);
+        }
+
+        string lang = "en";
+        if (request.params[0].isStr())
+            lang = request.params[0].get_str();
+
+        const int count = 1;
+        const int height = chainActive.Height() - 150000;
+
+        auto ids = request.DbConnection()->WebRpcRepoInst->GetRandomContentIds(lang, count, height);
+        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+
+        UniValue result(UniValue::VARR);
+        result.push_backV(content);
+
+        return result;
+    }
 }
