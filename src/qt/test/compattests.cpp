@@ -1,8 +1,10 @@
-// Copyright (c) 2016-2018 The Pocketcoin Core developers
+// Copyright (c) 2016-2019 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <qt/paymentrequestplus.h> // this includes protobuf's port.h which defines its own bswap macos
+#if defined(HAVE_CONFIG_H)
+#include <config/pocketcoin-config.h>
+#endif
 
 #include <qt/test/compattests.h>
 
