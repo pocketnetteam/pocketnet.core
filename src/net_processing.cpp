@@ -64,6 +64,8 @@ static constexpr int STALE_RELAY_AGE_LIMIT = 30 * 24 * 60 * 60;
 /// limiting block relay. Set to one week, denominated in seconds.
 static constexpr int HISTORICAL_BLOCK_AGE = 7 * 24 * 60 * 60;
 
+CCriticalSection cs_nodestate;
+
 struct COrphanTx {
     // When modifying, adapt the copy of this definition in tests/DoS_tests.
     CTransactionRef tx;
@@ -388,13 +390,21 @@ struct CNodeState {
 };
 
 /** Map maintaining per-node state. */
-// TODO (brangr): change cs_main to cs_nodestate
 static std::map<NodeId, CNodeState> mapNodeState GUARDED_BY(cs_main);
+static std::map<NodeId, CNodeState> mapNodeStateView GUARDED_BY(cs_nodestate);
 
 static CNodeState* State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     auto it = mapNodeState.find(pnode);
     if (it == mapNodeState.end())
+        return nullptr;
+    return &it->second;
+}
+
+static CNodeState* StateView(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_nodestate)
+{
+    auto it = mapNodeStateView.find(pnode);
+    if (it == mapNodeStateView.end())
         return nullptr;
     return &it->second;
 }
@@ -707,10 +717,17 @@ void PeerLogicValidation::InitializeNode(CNode* pnode)
     CAddress addr = pnode->addr;
     std::string addrName = pnode->GetAddrName();
     NodeId nodeid = pnode->GetId();
+    
     {
         LOCK(cs_main);
         mapNodeState.emplace_hint(mapNodeState.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
     }
+
+    {
+        LOCK(cs_nodestate);
+        mapNodeStateView.emplace_hint(mapNodeStateView.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
+    }
+
     if (!pnode->fInbound)
         PushNodeVersion(pnode, connman, GetTime());
 }
@@ -741,6 +758,11 @@ void PeerLogicValidation::FinalizeNode(NodeId nodeid, bool& fUpdateConnectionTim
 
     mapNodeState.erase(nodeid);
 
+    {
+        LOCK(cs_nodestate);
+        mapNodeStateView.erase(nodeid);
+    }
+
     if (mapNodeState.empty()) {
         // Do a consistency check after the last peer is removed.
         assert(mapBlocksInFlight.empty());
@@ -764,6 +786,21 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats& stats)
         if (queue.pindex)
             stats.vHeightInFlight.push_back(queue.pindex->nHeight);
     }
+    return true;
+}
+
+bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
+{
+    LOCK(cs_nodestate);
+
+    CNodeState* state = StateView(nodeid);
+    if (state == nullptr)
+        return false;
+
+    stats.nMisbehavior = state->nMisbehavior;
+    stats.nSyncHeight = state->pindexBestKnownBlock ? state->pindexBestKnownBlock->nHeight : -1;
+    stats.nCommonHeight = state->pindexLastCommonBlock ? state->pindexLastCommonBlock->nHeight : -1;
+
     return true;
 }
 

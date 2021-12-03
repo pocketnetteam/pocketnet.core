@@ -138,7 +138,6 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             blockNumber = request.params[0].get_int();
 
-
         const CBlockIndex* pindex = nullptr;
 
         if (!blockHash.empty())

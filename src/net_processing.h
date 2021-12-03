@@ -91,5 +91,6 @@ struct CNodeStateStats {
 
 /** Get statistics from node state */
 bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
+bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats &stats);
 
 #endif // POCKETCOIN_NET_PROCESSING_H

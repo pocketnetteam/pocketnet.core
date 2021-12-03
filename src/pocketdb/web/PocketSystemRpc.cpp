@@ -50,6 +50,15 @@ namespace PocketWeb::PocketWebRpc
             obj.pushKV("startingheight", stats.nStartingHeight);
             obj.pushKV("whitelisted", stats.fWhitelisted);
 
+            // Mutex guarded node statistic
+            CNodeStateStats nodeState;
+            if (GetNodeStateStats(stats.nodeid, nodeState))
+            {
+                obj.pushKV("banscore", nodeState.nMisbehavior);
+                obj.pushKV("synced_headers", nodeState.nSyncHeight);
+                obj.pushKV("synced_blocks", nodeState.nCommonHeight);
+            }
+
             ret.push_back(obj);
         }
 
