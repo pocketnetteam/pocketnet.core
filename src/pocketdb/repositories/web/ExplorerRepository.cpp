@@ -143,13 +143,14 @@ namespace PocketDb {
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select Height, Value
-                from Balances
+                from Balances indexed by Balances_AddressHash_Last
                 where AddressHash = ?
+                  and Last = 1
             )sql");
 
             TryBindStatementText(stmt, 1, addressHash);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto [ok0, height] = TryGetColumnInt(*stmt, 0);
                 auto [ok1, value] = TryGetColumnInt64(*stmt, 1);
@@ -157,7 +158,7 @@ namespace PocketDb {
                 if (ok0 && ok1)
                 {
                     lastChange = height;
-                    balance = value;
+                    balance = value / 100000000.0;
                 }
             }
 
@@ -170,15 +171,18 @@ namespace PocketDb {
     template<typename T>
     UniValue ExplorerRepository::_getTransactions(T stmtOut)
     {
+        auto func = __func__;
         UniValue result(UniValue::VARR);
         map<string, tuple<UniValue, UniValue, UniValue>> txs;
 
         // Select outputs
         {
-            TryTransactionStep(__func__, [&]()
+            TryTransactionStep(func, [&]()
             {
                 shared_ptr<sqlite3_stmt*> stmt;
                 stmtOut(stmt);
+
+                LogPrint(BCLog::SQL, "%s (Outputs): %s\n", func, sqlite3_expanded_sql(*stmt));
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
@@ -245,6 +249,8 @@ namespace PocketDb {
                 size_t i = 1;
                 for (auto& tx : txs)
                     TryBindStatementText(stmt, i++, tx.first);
+
+                LogPrint(BCLog::SQL, "%s (Inputs): %s\n", func, sqlite3_expanded_sql(*stmt));
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
