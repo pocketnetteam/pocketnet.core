@@ -3832,6 +3832,20 @@ bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams,
     return g_chainstate.ActivateBestChain(state, chainparams, std::move(pblock), pocketBlock);
 }
 
+bool DisconnectTip(CValidationState& state, const CChainParams& chainparams, int height)
+{
+    while (chainActive.Tip() && chainActive.Height() > height)
+    {
+        if (ShutdownRequested())
+            return true;
+
+        if (!g_chainstate.DisconnectTip(state, chainparams, nullptr))
+            return false;
+    }
+
+    return true;
+}
+
 bool CChainState::PreciousBlock(CValidationState& state, const CChainParams& params, CBlockIndex* pindex)
 {
     {

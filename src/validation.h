@@ -315,6 +315,10 @@ bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::P
 bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams,
     std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>(),
     std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr);
+
+/**  Disconnect chain blocks before height */
+bool DisconnectTip(CValidationState& state, const CChainParams& chainparams, int height);
+
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
 
 /** Guess verification progress (as a fraction between 0.0=genesis and 1.0=current tip). */

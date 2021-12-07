@@ -471,6 +471,7 @@ void SetupServerArgs()
     gArgs.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks. When in pruning mode or if blocks on disk might be corrupted, use full -reindex instead.", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-disconnectlast", "Disconnect latest blocks up to the specified height (Default: -1)", false, OptionsCategory::COMMANDS);
 
 #ifndef WIN32
     gArgs.AddArg("-sysperms", "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)", false, OptionsCategory::OPTIONS);
@@ -932,15 +933,26 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             }
         }
 
+        CValidationState state;
+        int64_t disconnectHeight = gArgs.GetArg("-disconnectlast", -1);
+        if (disconnectHeight > -1)
+        {
+            if (!DisconnectTip(state, chainparams, disconnectHeight))
+            {
+                LogPrintf("Failed to disconnect blocks (%s)\n", FormatStateMessage(state));
+                StartShutdown();
+                return;
+            }
+        }
+
         // Shutdown if requested
         if (ShutdownRequested())
             return;
 
         // scan for better chains in the block chain database, that are not yet connected in the active best chain
-        CValidationState state;
         if (!ActivateBestChain(state, chainparams))
         {
-            LogPrintf("Failed to connect best block (%s) - Maybe later?\n", FormatStateMessage(state));
+            LogPrintf("Failed to connect best block (%s)\n", FormatStateMessage(state));
             //StartShutdown();
             //return;
         }
