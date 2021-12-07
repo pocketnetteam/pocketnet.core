@@ -784,8 +784,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         CAmount nFees = 0;
         if (!Consensus::CheckTxInputs(tx, state, view, GetSpendHeight(view), nFees, chainparams))
         {
-            return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(),
-                FormatStateMessage(state));
+            LogPrint(BCLog::CONSENSUS, "%s: Consensus::CheckTxInputs: %s, %s\n",
+                __func__, tx.GetHash().ToString(), FormatStateMessage(state));
+
+            return false;
         }
 
         // Check for non-standard pay-to-script-hash in inputs
