@@ -182,7 +182,7 @@ namespace PocketConsensus
                 (ptx->GetReferrerAddress() ? ptx->GetReferrerAddress()->size() : 0) +
                 (ptx->GetPayloadPubkey() ? ptx->GetPayloadPubkey()->size() : 0);
 
-            if (dataSize > GetConsensusLimit(ConsensusLimit_max_user_size))
+            if (dataSize > (size_t) GetConsensusLimit(ConsensusLimit_max_user_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};
 
             return Success;
