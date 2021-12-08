@@ -17,12 +17,10 @@
 
 namespace PocketDb
 {
-    using std::runtime_error;
-    using std::string;
-
     using boost::algorithm::join;
     using boost::adaptors::transformed;
 
+    using namespace std;
     using namespace PocketTx;
     using namespace PocketHelpers;
 
@@ -36,7 +34,7 @@ namespace PocketDb
 
         tuple<bool, PTransactionRef> GetLastAccount(const string& address);
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
-        tuple<bool, PTransactionRef> GetLastContent(const string& rootHash);
+        tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);
 
         tuple<bool, int64_t> GetLastAccountHeight(const string& address);
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
@@ -69,7 +67,7 @@ namespace PocketDb
             int64_t scoresOneToOneDepth);
 
         // Exists
-        bool ExistsComplain(const string& txHash, const string& postHash, const string& address);
+        bool ExistsComplain(const string& postHash, const string& address);
         bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
         bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
         bool ExistsAnotherByName(const string& address, const string& name);

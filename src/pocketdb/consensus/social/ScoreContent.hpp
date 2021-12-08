@@ -33,7 +33,11 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_DoubleScore};
 
             // Content should be exists in chain
-            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash());
+            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
+                *ptx->GetContentTxHash(),
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+            );
+
             if (!lastContentOk && block)
             {
                 // ... or in block
@@ -42,9 +46,8 @@ namespace PocketConsensus
                     if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE}))
                         continue;
 
-                    auto blockPtx = static_pointer_cast<ScoreContent>(blockTx);
-
-                    if (*blockPtx->GetContentTxHash() == *ptx->GetContentTxHash())
+                    // TODO (brangr): convert to Content base class
+                    if (*blockTx->GetString2() == *ptx->GetContentTxHash())
                     {
                         lastContent = blockTx;
                         break;

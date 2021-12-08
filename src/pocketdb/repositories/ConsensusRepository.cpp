@@ -139,7 +139,7 @@ namespace PocketDb
         return {tx != nullptr, tx};
     }
 
-    tuple<bool, PTransactionRef> ConsensusRepository::GetLastContent(const string& rootHash)
+    tuple<bool, PTransactionRef> ConsensusRepository::GetLastContent(const string& rootHash, const vector<TxType>& types)
     {
         PTransactionRef tx = nullptr;
 
@@ -168,14 +168,18 @@ namespace PocketDb
                     p.String7 pString7
                 FROM Transactions t indexed by Transactions_Type_Last_String2_Height
                 LEFT JOIN Payload p on t.Hash = p.TxHash
-                WHERE t.Type in (200,201,202,203,204,205,206,207)
+                WHERE t.Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
                     and t.String2 = ?
                     and t.Last = 1
                     and t.Height is not null
             )sql";
 
             auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, rootHash);
+
+            int i = 1;
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i++, rootHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
@@ -317,7 +321,7 @@ namespace PocketDb
         return result;
     }
 
-    bool ConsensusRepository::ExistsComplain(const string& txHash, const string& postHash, const string& address)
+    bool ConsensusRepository::ExistsComplain(const string& postHash, const string& address)
     {
         bool result = false;
 
@@ -329,13 +333,11 @@ namespace PocketDb
                 WHERE   Type in (307)
                     and String1 = ?
                     and String2 = ?
-                    and Hash != ?
                     and Height is not null
             )sql");
 
             TryBindStatementText(stmt, 1, address);
             TryBindStatementText(stmt, 2, postHash);
-            TryBindStatementText(stmt, 3, txHash);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

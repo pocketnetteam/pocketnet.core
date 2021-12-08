@@ -32,9 +32,16 @@ namespace PocketConsensus
             // Check if this post relay another
             if (!IsEmpty(ptx->GetRelayTxHash()))
             {
-                auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRelayTxHash());
+                auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(
+                    *ptx->GetRelayTxHash(),
+                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+                );
+
                 if (!relayOk && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
                     return {false, SocialConsensusResult_RelayContentNotFound};
+
+                if (relayOk && *relayTx->GetType() != CONTENT_POST)
+                    return {false, SocialConsensusResult_NotAllowed};
 
                 if (relayOk && *relayTx->GetType() == CONTENT_DELETE)
                     return {false, SocialConsensusResult_RepostDeletedContent};
@@ -125,15 +132,16 @@ namespace PocketConsensus
 
         virtual tuple<bool, SocialConsensusResult> ValidateEdit(const PostRef& ptx)
         {
-            if (auto[ok, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash()); ok)
-            {
-                if (*lastContent->GetType() == CONTENT_DELETE)
-                    return {false, SocialConsensusResult_NotAllowed};
-            }
+            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
+                *ptx->GetRootTxHash(),
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+            );
+            if (lastContentOk && *lastContent->GetType() != CONTENT_POST)
+                return {false, SocialConsensusResult_NotAllowed};
 
             // First get original post transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
-            if (!originalTxOk)
+            if (!lastContentOk || !originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
             const auto originalPtx = static_pointer_cast<Post>(originalTx);

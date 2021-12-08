@@ -32,8 +32,12 @@ namespace PocketConsensus
             if (!IsEmpty(ptx->GetParentTxHash()))
             {
                 // TODO (brangr): replace to check exists not deleted comment
-                if (auto[ok, parentTx] = ConsensusRepoInst.GetLastContent(*ptx->GetParentTxHash());
-                    !ok || *parentTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
+                auto[ok, parentTx] = ConsensusRepoInst.GetLastContent(
+                    *ptx->GetParentTxHash(),
+                    { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
+                );
+
+                if (!ok)
                     return {false, SocialConsensusResult_InvalidParentComment};
             }
 
@@ -41,13 +45,21 @@ namespace PocketConsensus
             if (!IsEmpty(ptx->GetAnswerTxHash()))
             {
                 // TODO (brangr): replace to check exists not deleted comment
-                if (auto[ok, answerTx] = ConsensusRepoInst.GetLastContent(*ptx->GetAnswerTxHash());
-                    !ok || *answerTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
+                auto[ok, answerTx] = ConsensusRepoInst.GetLastContent(
+                    *ptx->GetAnswerTxHash(),
+                    { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
+                );
+
+                if (!ok)
                     return {false, SocialConsensusResult_InvalidParentComment};
             }
 
             // Check exists content transaction
-            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetPostTxHash());
+            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(
+                *ptx->GetPostTxHash(),
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+            );
+
             if (!contentOk)
                 return {false, SocialConsensusResult_NotFound};
 
@@ -55,8 +67,6 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_CommentDeletedContent};
 
             // TODO (brangr): convert to Content base class
-            //auto contentPtx = static_pointer_cast<Content>(contentTx);
-
             // Check Blocking
             if (auto[existsBlocking, blockingType] = PocketDb::ConsensusRepoInst.GetLastBlockingType(
                     *contentTx->GetString1(), *ptx->GetAddress()

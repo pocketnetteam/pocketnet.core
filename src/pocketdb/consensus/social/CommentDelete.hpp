@@ -20,6 +20,7 @@ namespace PocketConsensus
     {
     public:
         CommentDeleteConsensus(int height) : SocialConsensus<CommentDelete>(height) {}
+
         ConsensusValidateResult Validate(const CTransactionRef& tx, const CommentDeleteRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
@@ -27,20 +28,22 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Actual comment not deleted
-            if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
-                !ok || *actuallTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
+            auto[actuallTxOk, actuallTx] = ConsensusRepoInst.GetLastContent(
+                *ptx->GetRootTxHash(),
+                { CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE }
+            );
+            if (!actuallTxOk || *actuallTx->GetType() == TxType::CONTENT_COMMENT_DELETE)
                 return {false, SocialConsensusResult_NotFound};
 
             // Original comment exists
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
-            if (!originalTxOk || !originalTx)
+            if (!actuallTxOk || !originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<CommentDelete>(originalTx);
 
             // Parent comment
             {
-                // GetString4() = ParentTxHash
                 auto currParentTxHash = IsEmpty(ptx->GetParentTxHash()) ? "" : *ptx->GetParentTxHash();
                 auto origParentTxHash = IsEmpty(originalPtx->GetParentTxHash()) ? "" : *originalPtx->GetParentTxHash();
 
@@ -93,7 +96,6 @@ namespace PocketConsensus
                     continue;
 
                 auto blockPtx = static_pointer_cast<CommentDelete>(blockTx);
-
                 if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
                     return {false, SocialConsensusResult_DoubleCommentDelete};
             }

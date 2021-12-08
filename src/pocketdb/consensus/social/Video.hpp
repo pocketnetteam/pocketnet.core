@@ -120,15 +120,16 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
         {
             // TODO (brangr): change with check deleted content
-            if (auto[ok, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash()); ok)
-            {
-                if (*lastContent->GetType() == CONTENT_DELETE)
-                    return {false, SocialConsensusResult_NotAllowed};
-            }
+            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
+                *ptx->GetRootTxHash(),
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+            );
+            if (lastContentOk && *lastContent->GetType() != CONTENT_VIDEO)
+                return {false, SocialConsensusResult_NotAllowed};
 
             // First get original post transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
-            if (!originalTxOk)
+            if (!lastContentOk || !originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<Video>(originalTx);

@@ -27,7 +27,10 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Actual content not deleted
-            auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash();
+            auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(
+                *ptx->GetRootTxHash(),
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+            );
 
             if (!ok)
                 return {false, SocialConsensusResult_NotFound};
