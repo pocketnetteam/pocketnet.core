@@ -27,18 +27,17 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Actual content not deleted
-            if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
-                !ok || *actuallTx->GetType() == TxType::CONTENT_DELETE)
-                return {false, SocialConsensusResult_ContentDeleteDouble};
+            auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash();
 
-            // Original content exists
-            auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
-            if (!originalTxOk)
+            if (!ok)
                 return {false, SocialConsensusResult_NotFound};
+
+            if (*actuallTx->GetType() == TxType::CONTENT_DELETE)
+                return {false, SocialConsensusResult_ContentDeleteDouble};
 
             // TODO (brangr): convert to Content base class
             // You are author? Really?
-            if (*ptx->GetAddress() != *originalTx->GetString1())
+            if (*ptx->GetAddress() != *actuallTx->GetString1())
                 return {false, SocialConsensusResult_ContentDeleteUnauthorized};
 
             return Success;
