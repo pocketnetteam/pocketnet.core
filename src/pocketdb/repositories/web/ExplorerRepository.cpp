@@ -107,8 +107,6 @@ namespace PocketDb {
             TryBindStatementInt64(stmt, 3, endTime);
             TryBindStatementInt64(stmt, 4, startTime);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto [ok0, sGroup] = TryGetColumnString(*stmt, 0);
@@ -182,8 +180,6 @@ namespace PocketDb {
                 shared_ptr<sqlite3_stmt*> stmt;
                 stmtOut(stmt);
 
-                LogPrint(BCLog::SQL, "%s (Outputs): %s\n", func, sqlite3_expanded_sql(*stmt));
-
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
                     if (auto [ok0, hash] = TryGetColumnString(*stmt, 0); ok0)
@@ -249,8 +245,6 @@ namespace PocketDb {
                 size_t i = 1;
                 for (auto& tx : txs)
                     TryBindStatementText(stmt, i++, tx.first);
-
-                LogPrint(BCLog::SQL, "%s (Inputs): %s\n", func, sqlite3_expanded_sql(*stmt));
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {

@@ -624,8 +624,6 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, height);
             TryBindStatementInt(stmt, i++, count);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
@@ -751,8 +749,6 @@ namespace PocketDb
             for (int64_t id : ids)
                 TryBindStatementInt64(stmt, i++, id);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
             // ---------------------------
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -875,8 +871,6 @@ namespace PocketDb
             if (!parentHash.empty())
                 TryBindStatementText(stmt, i++, parentHash);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 UniValue record(UniValue::VOBJ);
@@ -969,8 +963,6 @@ namespace PocketDb
                 for (const auto& postHash: postHashes)
                     TryBindStatementText(stmt, i++, postHash);
 
-                LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
                     UniValue record(UniValue::VOBJ);
@@ -1022,8 +1014,6 @@ namespace PocketDb
                 TryBindStatementText(stmt, i++, addressHash);
                 for (const auto& commentHashe: commentHashes)
                     TryBindStatementText(stmt, i++, commentHashe);
-
-                LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
@@ -1080,8 +1070,6 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             TryBindStatementText(stmt, 1, postTxHash);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             // ---------------------------------------------
 
@@ -1546,8 +1534,6 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
             TryBindStatementText(stmt, 1, address);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -2083,8 +2069,6 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, badReputationLimit);
             TryBindStatementInt(stmt, i++, countOut);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
@@ -2163,8 +2147,6 @@ namespace PocketDb
 
             for (int64_t id : ids)
                 TryBindStatementInt64(stmt, i++, id);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             // ---------------------------
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -2319,8 +2301,6 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, i++, count);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-            
             // ---------------------------------------------
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -2416,8 +2396,6 @@ namespace PocketDb
 
             TryBindStatementInt(stmt, i++, count);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
             // ---------------------------------------------
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -2465,10 +2443,12 @@ namespace PocketDb
             select t.Id
 
             from Transactions t indexed by Transactions_Last_Id_Height
+
             )sql" + langFilter + R"sql(
 
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+
             left join Ratings ur indexed by Ratings_Type_Id_Last_Height
                 on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
 
@@ -2508,6 +2488,7 @@ namespace PocketDb
         // ---------------------------------------------
 
         vector<int64_t> ids;
+
         TryTransactionStep(func, [&]()
         {
             int i = 1;
@@ -2547,8 +2528,6 @@ namespace PocketDb
             //         TryBindStatementText(stmt, i++, extag);
                     
             TryBindStatementInt(stmt, i++, countOut);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             // ---------------------------------------------
             
@@ -2700,8 +2679,6 @@ namespace PocketDb
                 for (const auto& extag: tagsExcluded)
                     TryBindStatementText(stmt, i++, extag);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-            
             // ---------------------------------------------
             
             while (sqlite3_step(*stmt) == SQLITE_ROW)

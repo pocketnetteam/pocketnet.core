@@ -93,8 +93,6 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, request.PageSize);
             TryBindStatementInt(stmt, i++, request.PageStart);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
@@ -155,8 +153,6 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, request.PageSize);
             TryBindStatementInt(stmt, i++, request.PageStart);
 
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
-
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result.push_back(value);
@@ -210,8 +206,6 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, address);
             TryBindStatementText(stmt, i++, address);
             TryBindStatementInt(stmt, i++, cntOut);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -296,8 +290,6 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, address);
             TryBindStatementInt(stmt, i++, nHeight - depth);
             TryBindStatementInt(stmt, i++, cntOut);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -384,8 +376,6 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, address);
             TryBindStatementInt(stmt, i++, nHeight - depth);
             TryBindStatementInt(stmt, i++, cntOut);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
