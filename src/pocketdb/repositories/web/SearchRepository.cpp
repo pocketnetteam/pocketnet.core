@@ -355,7 +355,7 @@ namespace PocketDb
               and tOtherContents.Height >= ?
             group by tOtherContents.String1
             order by count(*) desc
-            limit ?;
+            limit ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -364,10 +364,6 @@ namespace PocketDb
 
             int i = 1;
             TryBindStatementText(stmt, i++, address);
-
-
-            for (const auto& contenttype: contentTypes)
-                TryBindStatementInt(stmt, i++, contenttype);
             TryBindStatementInt(stmt, i++, nHeight - depth);
             TryBindStatementInt(stmt, i++, nHeight - depth);
             TryBindStatementInt(stmt, i++, nHeight - depth);
