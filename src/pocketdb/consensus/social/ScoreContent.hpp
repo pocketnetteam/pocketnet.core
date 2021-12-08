@@ -121,7 +121,8 @@ namespace PocketConsensus
                         count += 1;
 
                     if (*blockPtx->GetContentTxHash() == *ptx->GetContentTxHash())
-                        return {false, SocialConsensusResult_DoubleScore};
+                        if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleScore))
+                            return {false, SocialConsensusResult_DoubleScore};
                 }
             }
 
