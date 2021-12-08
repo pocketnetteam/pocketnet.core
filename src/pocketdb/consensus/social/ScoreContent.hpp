@@ -108,17 +108,16 @@ namespace PocketConsensus
                 if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_SCORE_CONTENT}))
                     continue;
 
-                auto blockPtx = static_pointer_cast<ScoreContent>(blockTx);
-
-                if (*blockPtx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
+                auto blockPtx = static_pointer_cast<ScoreContent>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
                     if (CheckBlockLimitTime(ptx, blockPtx))
                         count += 1;
 
-                    if (*blockTx->GetHash() == *ptx->GetContentTxHash())
+                    if (*blockPtx->GetContentTxHash() == *ptx->GetContentTxHash())
                         return {false, SocialConsensusResult_DoubleScore};
                 }
             }
