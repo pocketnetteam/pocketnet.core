@@ -204,6 +204,7 @@ namespace PocketWeb::PocketWebRpc
         if (!_ptx) throw JSONRPCError(RPC_PARSE_ERROR, "Failed create pocketnet transaction payload");
 
         // Deserialize params
+        _ptx->SetHash("");
         _ptx->DeserializeRpc(txPayload);
 
         // Get unspents
