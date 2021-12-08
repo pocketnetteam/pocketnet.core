@@ -1,8 +1,10 @@
 include(CheckFunctionExists)
 include(CheckCXXSourceCompiles)
+include(CheckCXXSymbolExists)
 include(CheckSymbolExists)
 include(CheckCXXCompilerFlag)
 include(CheckCXXSourceRuns)
+include(CheckIncludeFileCXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -166,6 +168,179 @@ else ()
 endif ()
 
 # Common checks
+
+# AC_CHECK_HEADERS analog
+foreach(_HEADER endian.h sys/endian.h byteswap.h stdio.h stdlib.h unistd.h strings.h sys/types.h sys/stat.h sys/select.h sys/prctl.h sys/sysctl.h vm/vm_param.h sys/vmmeter.h sys/resources.h)
+    check_include_file_cxx(${_HEADER} _RES_${_HEADER})
+    if (_RES_${_HEADER})
+        # Replace all non letter and number symbols with "_"
+        string (REGEX REPLACE "[^a-zA-Z0-9]" "_" _HEADER ${_HEADER})
+        # All letters to upper
+        string (TOUPPER ${_HEADER} _HEADER)
+        string (CONCAT _TODECLARE "HAVE_" ${_HEADER})
+        add_compile_definitions(${_TODECLARE}=1)
+    endif()
+endforeach()
+
+# Checking for getifaddrs and freeifaddrs
+set(_ADDRS_STUFF_COUNT 0)
+foreach(_SYMBOL getifaddrs freeifaddrs)
+    check_cxx_symbol_exists(${_SYMBOL} "sys/types.h;ifaddrs.h" _RES_${_SYMBOL})
+    if (_RES_${_SYMBOL})
+        # Replace all non letter and number symbols with "_"
+        string (REGEX REPLACE "[^a-zA-Z0-9]" "_" _SYMBOL ${_SYMBOL})
+        # All letters to upper
+        string (TOUPPER ${_SYMBOL} _SYMBOL)
+        string (CONCAT _TODECLARE "HAVE_DECL_" ${_SYMBOL})
+        add_compile_definitions(${_TODECLARE}=1)
+        MATH(EXPR _ADDRS_STUFF_COUNT "${_ADDRS_STUFF_COUNT}+1")
+    endif()
+endforeach()
+
+# Checking for bswap functions
+foreach(_SYMBOL bswap_16 bswap_32 bswap_64)
+    check_cxx_symbol_exists(${_SYMBOL} byteswap.h _RES_${_SYMBOL})
+    # Replace all non letter and number symbols with "_"
+    string (REGEX REPLACE "[^a-zA-Z0-9]" "_" _TODECLARE ${_SYMBOL})
+    # All letters to upper
+    string (TOUPPER ${_TODECLARE} _TODECLARE)
+    string (CONCAT _TODECLARE "HAVE_DECL_" ${_TODECLARE})
+    if (_RES_${_SYMBOL})
+        add_compile_definitions(${_TODECLARE}=1)
+    else()
+        add_compile_definitions(${_TODECLARE}=0)
+    endif()
+endforeach()
+
+if(${_ADDRS_STUFF_COUNT} EQUAL 2) # Means we succeed with both getifaddrs and freeifaddrs functions checking
+    # Trying to use noticed functions without linking "socket" lib
+    set(_CHECK_SOCKET_testbody "#include <sys/types.h>
+                                #include <ifaddrs.h>
+
+                                int main() {
+                                    struct ifaddrs *ifaddr;
+                                    getifaddrs(&ifaddr);
+                                    freeifaddrs(ifaddr);
+                                }")
+    check_cxx_source_runs("${_CHECK_SOCKET_testbody}" _CHECK_SOCKET_RES_WITHOUT_LIBSOCKET)
+    if(_CHECK_SOCKET_RES_WITHOUT_LIBSOCKET)
+        set(REQUIRED_SOCKET_LIB OFF)
+    else()
+        set(CMAKE_REQUIRED_LIBS_BACKUP ${CMAKE_REQUIRED_LIBS})
+        set(CMAKE_REQUIRED_LIBS ${CMAKE_REQUIRED_LIBS} socket)
+        check_cxx_source_runs("${_CHECK_SOCKET_testbody}" _CHECK_SOCKET_RES_WITH_LIBSOCKET)
+        if(_CHECK_SOCKET_RES_WITH_LIBSOCKET)
+            set(REQUIRED_SOCKET_LIB ON)
+        else()
+            message(FATAL_ERROR "cannot figure out how to use getifaddrs")
+        endif()
+        set (CMAKE_REQUIRED_LIBS ${CMAKE_REQUIRED_LIBS_BACKUP})
+    endif()
+endif()
+
+# TODO (losty-fur): non-posix method from bsd and macos that should be enabled by specific option.
+# Checking for daemon function
+check_cxx_symbol_exists(daemon unistd.h _RES_DAEMON)
+if (_RES_DAEMON)
+    add_compile_definitions(HAVE_DECL_DAEMON=1)
+endif()
+
+# Checking for __builtin_clzll
+check_cxx_source_compiles("int main()
+                           {
+                               (void) __builtin_clzll(0);
+                               return 0;
+                           }" HAVE_BUILTIN_CLZLL)
+if(HAVE_BUILTIN_CLZLL)
+    add_compile_definitions(HAVE_BUILTIN_CLZLL=1)
+endif()
+
+# Checking for posix_fallocate
+check_cxx_source_compiles("#ifdef __linux__
+                           #ifdef _POSIX_C_SOURCE
+                           #undef _POSIX_C_SOURCE
+                           #endif
+                           #define _POSIX_C_SOURCE 200112L
+                           #endif // __linux__
+                           #include <fcntl.h>
+                           int main()
+                           {
+                               int f = posix_fallocate(0, 0, 0);
+                               return 0;
+                           }" HAVE_POSIX_FALLOCATE)
+if(HAVE_POSIX_FALLOCATE)
+    add_compile_definitions(HAVE_POSIX_FALLOCATE=1)
+endif()
+
+# Checking for sysctl
+check_cxx_source_compiles("#include <sys/types.h>
+                           #include <sys/sysctl.h>
+                           int main()
+                           {
+                               #ifdef __linux__
+                               #error \"Don't use sysctl on Linux, it's deprecated even when it works\"
+                               #endif
+                               sysctl(nullptr, 2, nullptr, nullptr, nullptr, 0);
+                               return 0;
+                           }" HAVE_SYSCTL)
+if(HAVE_SYSCTL)
+    add_compile_definitions(HAVE_SYSCTL=1)
+endif()
+
+# Checking for sysctl
+check_cxx_source_compiles("#include <sys/types.h>
+                           #include <sys/sysctl.h>
+                           int main()
+                           {
+                               #ifdef __linux__
+                               #error \"Don't use sysctl on Linux, it's deprecated even when it works\"
+                               #endif
+                               static int name[2] = {CTL_KERN, KERN_ARND};
+                               sysctl(name, 2, nullptr, nullptr, nullptr, 0);
+                               return 0;
+                           }" HAVE_SYSCTL_ARND)
+if(HAVE_SYSCTL_ARND)
+    add_compile_definitions(HAVE_SYSCTL_ARND=1)
+endif()
+
+# Checking for fdatasync
+check_cxx_source_compiles("#include <unistd.h>
+                           int main()
+                           {
+                               fdatasync(0);
+                               return 0;
+                           }" HAVE_FDATASYNC)
+if(HAVE_FDATASYNC)
+    add_compile_definitions(HAVE_FDATASYNC=1)
+else()
+    add_compile_definitions(HAVE_FDATASYNC=0)
+endif()
+
+# Checking for std::system
+check_cxx_source_compiles("#include <cstdlib>
+                           int main()
+                           {
+                               int nErr = std::system(\"\");
+                               return 0;
+                           }" HAVE_STD__SYSTEM)
+if(HAVE_STD__SYSTEM)
+    add_compile_definitions(HAVE_STD__SYSTEM=1)
+endif()
+
+# Checking for ::_wsystem
+check_cxx_source_compiles("int main()
+                           {
+                               int nErr = ::_wsystem(\"\");
+                               return 0;
+                           }" HAVE_WSYSTEM)
+if(HAVE_WSYSTEM)
+    add_compile_definitions(HAVE_WSYSTEM=1)
+endif()
+
+if(HAVE_STD__SYSTEM OR HAVE_WSYSTEM)
+    add_compile_definitions(HAVE_SYSTEM=1)
+endif()
+
 set(CMAKE_REQUIRED_FLAGS -msse4.1)
 check_cxx_source_runs( "#include <stdint.h>
                             #include <immintrin.h>
@@ -255,16 +430,21 @@ else()
     endif()
 endif()
 
-check_cxx_source_compiles(" #include <thread>
-                            static thread_local int foo = 0;
-                            static void run_thread() { foo++;}
-                            int main(){
-                                for(int i = 0; i < 10; i++) { std::thread(run_thread).detach();}
-                                return foo;
-                            }" HAVE_THREAD_LOCAL)
-if (HAVE_THREAD_LOCAL)
-    add_compile_definitions(HAVE_THREAD_LOCAL=1)
-endif ()
+# TODO (losty-fur): make an option to allow disabling this
+if (NOT MINGW) # TODO (losty-fur): also freebsd but probably we do not support it
+    check_cxx_source_compiles(" #include <thread>
+                                static thread_local int foo = 0;
+                                static void run_thread() { foo++;}
+                                int main(){
+                                    for(int i = 0; i < 10; i++) { std::thread(run_thread).detach();}
+                                    return foo;
+                                }" HAVE_THREAD_LOCAL)
+    if (HAVE_THREAD_LOCAL)
+        add_compile_definitions(HAVE_THREAD_LOCAL=1)
+    endif ()
+endif()
+
+# TODO (losty-fur): add libmultiprocess stuff
 
 check_cxx_source_compiles(" #include <sys/syscall.h>
                             #include <linux/random.h>
@@ -318,6 +498,7 @@ set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_BACKUP})
 find_package(Event 2.0 REQUIRED)
 
 add_subdirectory(sqlite/)
+add_compile_definitions(USE_SQLITE=1)
 
 find_package(OpenSSL REQUIRED)
 
@@ -530,6 +711,11 @@ endif ()
 if (ENABLE_GLIBC_BACK_COMPAT)
     target_sources(${POCKETCOIN_UTIL} PRIVATE compat/glibc_compat.cpp)
 endif ()
+if (REQUIRED_SOCKET_LIB)
+    # TODO (losty-fur): idk what is this "socket" lib, but linking to this is done in bitcoin after specific checking.
+    #                   Probably this is specific for some unix systems but since we have the checking noticed above nothing should be broken here. 
+    target_link_libraries(${POCKETCOIN_UTIL} PRIVATE socket)
+endif()
 target_include_directories(${POCKETCOIN_UTIL} PUBLIC ${Boost_INCLUDE_DIRS})
 
 ######## Crypto
@@ -952,6 +1138,12 @@ else ()
     target_sources(${POCKETCOIN_SERVER} PRIVATE dummywallet.cpp)
 endif ()
 
+if(REQUIRED_SOCKET_LIB)
+    # TODO (losty-fur): idk what is this "socket" lib, but linking to this is done in bitcoin after specific checking.
+    #                   Probably this is specific for some unix systems but since we have the checking noticed above nothing should be broken here. 
+    target_link_libraries(${POCKETCOIN_SERVER} PRIVATE socket)
+endif()
+
 # TODO USE_UPNP
 
 # ZMQ
@@ -961,7 +1153,7 @@ if (NOT DISABLE_ZMQ)
         if (MSVC AND MSVC_FORCE_STATIC)
             target_compile_definitions(${POCKETCOIN_SERVER} PRIVATE ZMQ_STATIC)
         endif ()
-        add_compile_definitions(ENABLE_ZMQ)
+        add_compile_definitions(ENABLE_ZMQ=1)
         set(POCKETCOIN_ZMQ_SOURCES
                 zmq/zmqabstractnotifier.h
                 zmq/zmqabstractnotifier.cpp
@@ -981,6 +1173,8 @@ if (NOT DISABLE_ZMQ)
     else ()
         message(WARNING "ZMQ not found, disabling")
     endif ()
+else()
+    add_compile_definitions(ENABLE_ZMQ=0)
 endif ()
 
 set(POCKETCOIND pocketcoind)
