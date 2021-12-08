@@ -1750,12 +1750,6 @@ bool AppInitMain()
 
     // ********************************************************* Step 4b: Additional settings
 
-    if (gArgs.GetBoolArg("-mempoolclean", false))
-    {
-        PocketDb::TransRepoInst.Clean();
-        LogPrintf("The sqlite db is cleared according to the -mempoolclean parameter\n");
-    }
-
     if (gArgs.GetArg("-reindex", 0) == 4)
         PocketDb::SQLiteDbInst.RebuildIndexes();
 
