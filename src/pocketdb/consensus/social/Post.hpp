@@ -40,9 +40,6 @@ namespace PocketConsensus
                 if (!relayOk && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
                     return {false, SocialConsensusResult_RelayContentNotFound};
 
-                if (relayOk && *relayTx->GetType() != CONTENT_POST)
-                    return {false, SocialConsensusResult_NotAllowed};
-
                 if (relayOk && *relayTx->GetType() == CONTENT_DELETE)
                     return {false, SocialConsensusResult_RepostDeletedContent};
             }
