@@ -87,6 +87,9 @@ int main() {
   return 0;
 }
 "  HAVE_BUILTIN_PREFETCH)
+if(HAVE_BUILTIN_PREFETCH)
+  add_compile_definitions(HAVE_BUILTIN_PREFETCH=1)
+endif()
 
 # Check for _mm_prefetch support in the compiler.
 include(CheckCXXSourceCompiles)
@@ -104,6 +107,9 @@ int main() {
   return 0;
 }
 "  HAVE_MM_PREFETCH)
+if(HAVE_MM_PREFETCH)
+  add_compile_definitions(HAVE_MM_PREFETCH=1)
+endif()
 
 # Check for SSE4.2 support in the compiler.
 set(OLD_CMAKE_REQURED_FLAGS ${CMAKE_REQUIRED_FLAGS})
@@ -128,6 +134,10 @@ int main() {
   return 0;
 }
 "  HAVE_SSE42)
+if(HAVE_SSE42)
+  add_compile_definitions(HAVE_SSE42=1)
+endif()
+
 set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQURED_FLAGS})
 
 # Check for ARMv8 w/ CRC and CRYPTO extensions support in the compiler.
@@ -148,6 +158,9 @@ int main() {
   return 0;
 }
 " HAVE_ARM64_CRC32C)
+if(HAVE_ARM64_CRC32C)
+  add_compile_definitions(HAVE_ARM64_CRC32C=1)
+endif()
 set(CMAKE_REQUIRED_FLAGS ${OLD_CMAKE_REQURED_FLAGS})
 
 # Check for strong getauxval() support in the system headers.
@@ -161,6 +174,9 @@ int main() {
   return 0;
 }
 " HAVE_STRONG_GETAUXVAL)
+if(HAVE_STRONG_GETAUXVAL)
+  add_compile_definitions(HAVE_STRONG_GETAUXVAL=1)
+endif()
 
 # Check for weak getauxval() support in the compiler.
 check_cxx_source_compiles("
@@ -172,6 +188,9 @@ int main() {
   return 0;
 }
 " HAVE_WEAK_GETAUXVAL)
+if(HAVE_WEAK_GETAUXVAL)
+  add_compile_definitions(HAVE_WEAK_GETAUXVAL=1)
+endif()
 
 if(CRC32C_USE_GLOG)
   # glog requires this setting to avoid using dynamic_cast.
