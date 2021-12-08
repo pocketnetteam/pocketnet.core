@@ -140,6 +140,7 @@ namespace PocketDb
             if (m_db == nullptr)
             {
                 int ret = sqlite3_open_v2((dbPath / m_file_path).string().c_str(), &m_db, flags, nullptr);
+                // int ret = sqlite3_open_v2(":memory:", &m_db, flags, nullptr);
                 if (ret != SQLITE_OK)
                     throw std::runtime_error(strprintf("%s: %d; Failed to open database: %s\n",
                         __func__, ret, sqlite3_errstr(ret)));
