@@ -250,7 +250,7 @@ namespace PocketDb
                     where tLikes.String2 in (
                         select tContents.String2 as BloggerContent
                         from Transactions tContents
-                        where tContent.Type in ( )sql" + contentTypesFilter + R"sql( )
+                        where tContents.Type in ( )sql" + contentTypesFilter + R"sql( )
                           and tContents.Last = 1
                           and tContents.String1 = ?
                           and tContents.Height >= ?
