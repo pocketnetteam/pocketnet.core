@@ -80,15 +80,26 @@ $ pocketcoind --help
 # Initialize blockchain data with database checkpoint
 1. Stop the node.
 2. Download database archive:
-        ```
-        https://3.pocketnet.app/checkpoint/pocketnet.checkpoint.latest.tgz
-        ```
-4. There must be archive tar.gz with 4 directories:
+    ```
+    # List all snapshots available at
+    https://snapshot.pocketnet.app
+    
+    # Latest snapshot archive
+    https://snapshot.pocketnet.app/latest.tgz
+    ```
+4. There must be archive tgz with 5 directories:
     ```shell
     blocks\
+      - ...
     chainstate\
+      - ...
     indexes\
+      - ...
     pocketdb\
+      - main.sqlite3
+      - web.sqlite3
+    checkpoints\
+      - main.sqlite3
     ```
 4. Clean out everything except **wallet.dat** file, **wallets/** directory and **pocketcoin.conf** config file in the blockchain working directory and unpack the archive:
     ```shell
@@ -106,9 +117,10 @@ $ pocketcoind --help
     $ rm -r ./chainstate
     $ rm -r ./indexes
     $ rm -r ./pocketdb
+    $ rm -r ./checkpoints
     
     # unpack new checkpoint DB
-    $ tar -xzvf pocketnet.checkpoint.*.tar.gz -C ./
+    $ tar -xzf latest.tgz -C ./
     ```
 5. Make sure the folders and files inside are not set to "read only"
 6. Start the node.
