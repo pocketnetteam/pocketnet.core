@@ -4,6 +4,7 @@
 
 #include "chainparams.h"
 #include "validation.h"
+#include "clientversion.h"
 #include <boost/thread.hpp>
 #include <chrono>
 #include <cstdint>
@@ -211,6 +212,7 @@ namespace Statistic
             }
 
             UniValue chainStat(UniValue::VOBJ);
+            chainStat.pushKV("Version", FormatVersion(CLIENT_VERSION));
             chainStat.pushKV("Chain", Params().NetworkIDString());
             chainStat.pushKV("Height", chainActive.Height());
             chainStat.pushKV("LastBlock", chainActive.Tip()->GetBlockHash().GetHex());
