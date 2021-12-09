@@ -44,7 +44,7 @@ namespace PocketDb
         UniValue result(UniValue::VOBJ);
 
         string sql = R"sql(
-            select t.Hash,
+            select t.String2 as RootTxHash,
                    t.String1 address,
                    tRepost.String1 addressRepost,
                    p.String2 as nameRepost,
@@ -56,7 +56,7 @@ namespace PocketDb
             where tRepost.Type in (200, 201, 202, 203)
               and tRepost.Hash = ?
               and u.Type in (100,101,102)
-              and u.Last=1
+              and u.Last = 1
               and u.Height is not null
         )sql";
 

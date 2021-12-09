@@ -1574,7 +1574,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                r.Hash,
+                r.String2 as RootTxHash,
                 r.String3 as RelayTxHash,
                 r.String1 as AddressHash,
                 r.Time,
@@ -1628,7 +1628,7 @@ namespace PocketDb
                 s.Height
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions s indexed by Transactions_Type_Last_String2_Height
-                on s.Type in (300) and s.Last in (0,1) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
+                on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height is not null and s.Height > ?
             where c.Type in (200, 201)
               and c.Last = 1
               and c.Height is not null
@@ -1682,7 +1682,7 @@ namespace PocketDb
                 s.Height
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions s indexed by Transactions_Type_Last_String2_Height
-                on s.Type in (301) and s.String2 = c.Hash and s.Height is not null and s.Height > ?
+                on s.Type in (301) and s.String2 = c.String2 and s.Height is not null and s.Height > ?
             where c.Type in (204, 205)
               and c.Last = 1
               and c.Height is not null
@@ -1784,7 +1784,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                c.Hash,
+                c.String2 as RootTxHash,
                 c.Time,
                 c.Height,
                 c.String1 as addrFrom,
@@ -1842,7 +1842,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                c.Hash,
+                c.String2 as RootTxHash,
                 c.Time,
                 c.Height,
                 c.String1 as addrFrom,
@@ -1856,7 +1856,7 @@ namespace PocketDb
               and p.Last = 1
               and p.Height is not null
               and p.String1 = ?
-              and p.Hash not in ( )sql" + join(vector<string>(excludePosts.size(), "?"), ",") + R"sql( )
+              and p.String2 not in ( )sql" + join(vector<string>(excludePosts.size(), "?"), ",") + R"sql( )
             order by c.Height desc
             limit ?
         )sql";
