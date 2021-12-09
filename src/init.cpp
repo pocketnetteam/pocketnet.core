@@ -833,32 +833,6 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             }
         }
 
-        // TODO (brangr): in testing!
-        // The idea is to roll back SQLITE data at the chain connection level
-
-        // if (!IsChainReindex())
-        // {
-        //     if (PocketDb::ChainRepoInst.Rollback(chainActive.Height() + 1))
-        //     {
-        //         if (chainActive.Tip())
-        //         {
-        //             LogPrint(BCLog::SYNC, "Best block in sqlite db: %s (%d)\n",
-        //                 chainActive.Tip()->GetBlockHash().GetHex(), chainActive.Height());
-        //         }
-        //         else
-        //         {
-        //             LogPrint(BCLog::SYNC, "No existing blockchain found on disk\n");
-        //         }
-        //     }
-        //     else
-        //     {
-        //         LogPrintf("Error\n");
-        //         StartShutdown();
-        //         return;
-        //     }
-        // }
-
-
         // Reindex requests
         // .. only pocket part
         if (fReindex == 3)
@@ -981,7 +955,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
 
     // Start staker thread after activate best chain
     #ifdef ENABLE_WALLET
-    Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", false));
+    Staker::getInstance()->setIsStaking(gArgs.GetBoolArg("-staking", true));
     Staker::getInstance()->startWorkers(threadGroup, chainparams);
     #endif
 }
