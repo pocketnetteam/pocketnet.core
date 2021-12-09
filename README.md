@@ -69,6 +69,7 @@ $ pocketcoin-tx --help
 To quickly synchronize and minimize traffic costs, you can run an empty node with additional parameters:
 - `-listen=0` - disable the visibility of your node so that other novice nodes can't connect to you to download the blockchain.
 - `-blocksonly=1` - specifies the mode of operation without transaction relay. In this way, the node will load the blocks as a whole, ignoring individual transactions on the network.
+- `-disablewallet=1` - disables wallet mechanisms to speed up the synchronization process
 
 **After full synchronization, it is strongly recommended to disable these settings for the full operation of the node.**
 
