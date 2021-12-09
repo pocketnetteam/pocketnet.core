@@ -526,6 +526,7 @@ endif ()
 # Common library
 set(POCKETCOIN_COMMON pocketcoin_common)
 add_library(${POCKETCOIN_COMMON}
+        attributes.h
         cuckoocache.h
         indirectmap.h
         # limitedmap.h
@@ -538,7 +539,9 @@ add_library(${POCKETCOIN_COMMON}
         span.h
         prevector.h
         compat.h
+        compat/assumptions.h
         compat/byteswap.h
+        compat/cpuid.h
         compat/endian.h
         compat/sanity.h
         compat/glibc_sanity.cpp
@@ -546,6 +549,7 @@ add_library(${POCKETCOIN_COMMON}
         compat/strnlen.cpp
         compat/stdin.h
         compat/stdin.cpp
+        optional.h
         amount.h
         tinyformat.h
         )
@@ -643,6 +647,7 @@ add_library(${POCKETCOIN_UTIL}
                 fs.cpp
                 logging.h
                 logging.cpp
+                logging/timer.h
                 sync.h
                 sync.cpp
                 threadsafety.h
@@ -694,6 +699,7 @@ add_library(${POCKETCOIN_UTIL}
                 netaddress.cpp
                 node/ui_interface.h
                 node/ui_interface.cpp
+                node/utxo_snapshot.h
                 util/system.h
                 util/system.cpp
                 chainparamsbase.h
@@ -735,9 +741,15 @@ add_library(${POCKETCOIN_CRYPTO}
         crypto/ripemd160.h
         crypto/hmac_sha512.h
         crypto/chacha20.h
+        crypto/chacha_poly_aead.h
+        crypto/chacha_poly_aead.cpp
+        crypto/hkdf_sha256_32.h
+        crypto/hkdf_sha256_32.cpp
         crypto/sha512.cpp
         crypto/sha1.cpp
         crypto/common.h
+        crypto/poly1305.h
+        crypto/poly1305.cpp
         crypto/hmac_sha256.h
         crypto/sha256.h
         crypto/siphash.h
@@ -819,9 +831,12 @@ add_compile_definitions(HAVE_CONSENSUS_LIB=1)
 set(POCKETCOIN_COMMON_RPC pocketcoin_common_rpc)
 add_library(${POCKETCOIN_COMMON_RPC}
         rpc/protocol.h
+        # TODO (losty-fur): request is shared between cli and daemon.
+        #                   Currently it is using DBConnection that is a part of server.
+        #                   This is OK for now because we have shared headers but this should be reworked.
+        #                   PocketDB stuff should be extracted to a different lib. Specially "pocketdb/SQLiteConnection.h" 
         rpc/request.h
         rpc/request.cpp
-        # rpc/protocol.cpp
         )
 target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL} univalue)
 
@@ -870,6 +885,7 @@ add_library(${POCKETCOIN_SERVER}
         index/txindex.cpp
         index/blockfilterindex.h
         index/blockfilterindex.cpp
+        index/disktxpos.h
         checkpoints.h
         checkpoints.cpp
         checkqueue.h
@@ -970,6 +986,7 @@ add_library(${POCKETCOIN_SERVER}
         net_permissions.h
         net_permissions.cpp
         netmessagemaker.h
+        net_types.h
         addrdb.h
         addrdb.cpp
         addrman.h
@@ -993,8 +1010,6 @@ add_library(${POCKETCOIN_SERVER}
         rpc/server.h
         rpc/util.cpp
         rpc/util.h
-        rpc/request.h
-        rpc/request.cpp
         psbt.h
         psbt.cpp
         walletinitinterface.h
@@ -1112,6 +1127,7 @@ if (NOT DISABLE_WALLET)
             wallet/fees.h
             wallet/fees.cpp
             wallet/init.cpp
+            wallet/ismine.h
             wallet/load.h
             wallet/load.cpp
             wallet/rpcdump.cpp
@@ -1121,12 +1137,18 @@ if (NOT DISABLE_WALLET)
             wallet/wallet.cpp
             wallet/walletdb.h
             wallet/walletdb.cpp
+            wallet/wallettool.h
             wallet/walletutil.h
             wallet/walletutil.cpp
             wallet/coinselection.h
             wallet/coinselection.cpp
+            wallet/salvage.h
             wallet/scriptpubkeyman.h
             wallet/scriptpubkeyman.cpp
+
+            # TODO (losty-fur): we force use sqlite. In bitcoin this is optional
+            wallet/sqlite.h
+            wallet/sqlite.cpp
             interfaces/wallet.h
             interfaces/wallet.cpp
             staker.h
