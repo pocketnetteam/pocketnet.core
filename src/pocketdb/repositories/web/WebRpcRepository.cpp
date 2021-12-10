@@ -933,6 +933,142 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash)
+    {
+        auto result = UniValue(UniValue::VARR);
+
+        if (cmntHashes.empty())
+            return result;
+
+        auto sql = R"sql(
+            select
+
+                c.Type,
+                c.Hash,
+                c.String2 as RootTxHash,
+                c.String3 as PostTxHash,
+                c.String1 as AddressHash,
+                r.Time AS RootTime,
+                c.Time,
+                c.Height,
+                pl.String1 AS Msg,
+                c.String4 as ParentTxHash,
+                c.String5 as AnswerTxHash,
+
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1 and sc.Last in (0,1)) as ScoreUp,
+
+                (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
+                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1 and sc.Last in (0,1)) as ScoreDown,
+
+                (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
+                    where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
+
+                sc.Int1 as MyScore,
+
+                (select count(1) from Transactions s indexed by Transactions_Type_Last_String4_Height
+                    where s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
+
+                o.Value as Donate,
+
+                (
+                    select 1 from Transactions b  indexed by Transactions_Type_Last_String1_Height_Id
+                    where b.Type in (305) and b.Last = 1 and b.Height is not null and b.String1 = t.String1 and b.String2 = c.String1
+                    limit 1
+                )Blocked
+
+            from Transactions c indexed by Transactions_Type_Last_String2_Height
+
+            join Transactions r ON c.String2 = r.Hash
+
+            join Payload pl ON pl.TxHash = c.Hash
+
+            join Transactions t indexed by Transactions_Type_Last_String2_Height
+                on t.Type in (200,201) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
+
+            left join Transactions sc indexed by Transactions_Type_String1_String2_Height
+                on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
+
+            left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                on o.TxHash = c.Hash and o.AddressHash = t.String1 and o.AddressHash != c.String1
+
+            where c.Type in (204, 205, 206)
+                and c.Height is not null
+                and c.Last = 1
+                and c.String2 in ( )sql" + join(vector<string>(cmntHashes.size(), "?"), ",") + R"sql( )
+
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            int i = 1;
+            TryBindStatementText(stmt, i++, addressHash);
+            for (const string& cmntHash : cmntHashes)
+                TryBindStatementText(stmt, i++, cmntHash);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                //auto[ok0, txHash] = TryGetColumnString(stmt, 1);
+                auto[ok1, rootTxHash] = TryGetColumnString(*stmt, 2);
+                record.pushKV("id", rootTxHash);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok)
+                    record.pushKV("postid", value);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("timeUpd", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("block", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok) record.pushKV("msg", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 9); ok) record.pushKV("parentid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 10); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 11); ok) record.pushKV("scoreUp", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 12); ok) record.pushKV("scoreDown", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 13); ok) record.pushKV("reputation", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 14); ok) record.pushKV("myScore", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 15); ok) record.pushKV("children", value);
+
+                if (auto[ok, value] = TryGetColumnString(*stmt, 16); ok)
+                {
+                    record.pushKV("amount", value);
+                    record.pushKV("donation", "true");
+                }
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 17); ok && value > 0) record.pushKV("blck", 1);
+
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                {
+                    switch (static_cast<TxType>(value))
+                    {
+                        case PocketTx::CONTENT_COMMENT:
+                            record.pushKV("deleted", false);
+                            record.pushKV("edit", false);
+                            break;
+                        case PocketTx::CONTENT_COMMENT_EDIT:
+                            record.pushKV("deleted", false);
+                            record.pushKV("edit", true);
+                            break;
+                        case PocketTx::CONTENT_COMMENT_DELETE:
+                            record.pushKV("deleted", true);
+                            record.pushKV("edit", true);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue WebRpcRepository::GetPagesScores(const vector<string>& postHashes, const vector<string>& commentHashes, const string& addressHash)
     {
         auto func = __func__;

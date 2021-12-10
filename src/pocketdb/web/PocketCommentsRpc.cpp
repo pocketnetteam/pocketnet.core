@@ -28,7 +28,25 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 2)
             addressHash = request.params[2].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
+        vector<string> cmntHashes;
+        if (request.params.size() > 3)
+        {
+            if (request.params[3].isArray())
+            {
+                UniValue hashes = request.params[3].get_array();
+                for (unsigned int id = 0; id < hashes.size(); id++)
+                    cmntHashes.push_back(hashes[id].get_str());
+            }
+            else
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
+            }
+        }
+
+        if (!cmntHashes.empty())
+            return request.DbConnection()->WebRpcRepoInst->GetCommentsByHashes(cmntHashes, addressHash);
+        else
+            return request.DbConnection()->WebRpcRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
     }
 
     UniValue GetLastComments(const JSONRPCRequest& request)
