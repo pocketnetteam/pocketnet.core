@@ -287,7 +287,7 @@ namespace PocketDb {
                     select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash
                     from (
                         select distinct o.TxHash, o.TxHeight
-                        from TxOutputs o
+                        from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
                         where o.AddressHash = ?
                           and o.SpentHeight is not null
                           and o.TxHeight <= ?
