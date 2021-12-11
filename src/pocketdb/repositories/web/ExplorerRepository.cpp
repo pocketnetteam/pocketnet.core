@@ -132,10 +132,10 @@ namespace PocketDb {
         return result;
     }
 
-    tuple<int, int64_t> ExplorerRepository::GetAddressInfo(const string& addressHash)
+    tuple<int, double> ExplorerRepository::GetAddressInfo(const string& addressHash)
     {
         int lastChange = 0;
-        int64_t balance = 0;
+        double balance = 0;
 
         TryTransactionStep(__func__, [&]()
         {

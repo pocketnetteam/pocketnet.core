@@ -37,7 +37,7 @@ namespace PocketDb
 
         map<int, map<int, int>> GetStatistic(int bottomHeight, int topHeight);
         UniValue GetStatistic(int64_t startTime, int64_t endTime, StatisticDepth depth);
-        tuple<int, int64_t> GetAddressInfo(const string& addressHash);
+        tuple<int, double> GetAddressInfo(const string& addressHash);
         UniValue GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize);
         UniValue GetBlockTransactions(const string& blockHash, int pageStart, int pageSize);
         UniValue GetTransactions(const vector<string>& transactions, int pageStart, int pageSize);
