@@ -124,8 +124,8 @@ namespace PocketWeb::PocketWebRpc
             throw std::runtime_error(
                 "getcompactblock \"blockhash\" or \"blocknumber\" \n"
                 "\nArguments:\n"
-                "1. \"blockhash\"          (string, required) The block hash\n"
-                "1. \"blocknumber\"        (number, required) The block number\n");
+                "1. \"blockhash\"          (string, optional) The block by hash\n"
+                "2. \"blocknumber\"        (number, optional) The block by number\n");
 
         if (request.params.empty())
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Missing parameters");
@@ -135,8 +135,8 @@ namespace PocketWeb::PocketWebRpc
             blockHash = request.params[0].get_str();
 
         int blockNumber = -1;
-        if (request.params[0].isNum())
-            blockNumber = request.params[0].get_int();
+        if (request.params[1].isNum())
+            blockNumber = request.params[1].get_int();
 
         const CBlockIndex* pindex = nullptr;
 
