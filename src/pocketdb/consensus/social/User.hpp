@@ -131,6 +131,9 @@ namespace PocketConsensus
             if (ConsensusRepoInst.CountMempoolUser(*ptx->GetAddress()) > 0)
                 return {false, SocialConsensusResult_ChangeInfoDoubleInBlock};
 
+            if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
+                return {false, SocialConsensusResult_ChangeInfoLimit};
+
             return Success;
         }
         vector<string> GetAddressesForCheckRegistration(const UserRef& ptx) override
