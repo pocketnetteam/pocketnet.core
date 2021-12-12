@@ -366,7 +366,7 @@ namespace PocketDb
             fullProfileSql = R"sql(
 
                 , (
-                    select json_group_array(json_object('adddress', subs.String2, 'private', case when subs.Type == 303 then '1' else '0' end))
+                    select json_group_array(json_object('adddress', subs.String2, 'private', case when subs.Type == 303 then 'true' else 'false' end))
                     from Transactions subs indexed by Transactions_Type_Last_String1_Height_Id
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String1 = u.String1
                 ) as Subscribes
