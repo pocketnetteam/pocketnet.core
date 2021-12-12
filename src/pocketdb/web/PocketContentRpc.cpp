@@ -505,23 +505,7 @@ namespace PocketWeb::PocketWebRpc
         vector<int> contentTypes;
         ParseRequestContentTypes(request.params[1], contentTypes);
 
-        int nHeight = chainActive.Height();
-        if (request.params.size() > 2)
-        {
-            RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
-            if (request.params[2].get_int() > 0)
-                nHeight = request.params[2].get_int();
-        }
-
-        int depth = chainActive.Height();
-        if (request.params.size() > 3)
-        {
-            RPCTypeCheckArgument(request.params[3], UniValue::VNUM);
-            if (request.params[3].get_int() > 0)
-                depth = request.params[3].get_int();
-        }
-
-        return request.DbConnection()->WebRpcRepoInst->GetContentsStatistic(addresses, contentTypes, nHeight, depth);
+        return request.DbConnection()->WebRpcRepoInst->GetContentsStatistic(addresses, contentTypes);
     }
 
     UniValue GetRandomContents(const JSONRPCRequest& request)

@@ -122,7 +122,7 @@ namespace PocketDb
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
             int badReputationLimit);
 
-        UniValue GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes, const int nHeight, const int depth);
+        UniValue GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes);
 
         vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
 

@@ -309,14 +309,28 @@ namespace PocketDb
         string sql = R"sql(
             select
                 u.String1 as Address,
-                ifnull((select count(distinct ru.String1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
-                    where ru.Type in (100,101,102) and ru.Last=1 and ru.Height <= ? and ru.Height > ? and ru.String2=u.String1),0) as ReferralsCountHist
+
+                ifnull((
+                  select count(1)
+                  from Transactions ru indexed by Transactions_Type_Last_String2_Height
+                  where ru.Type in (100)
+                    and ru.Last in (0,1)
+                    and ru.Height <= ?
+                    and ru.Height > ?
+                    and ru.String2 = u.String1
+                    and ru.ROWID = (
+                      select min(ru1.ROWID)
+                      from Transactions ru1 indexed by Transactions_Id
+                      where ru1.Id = ru.Id
+                      limit 1
+                    )
+                  ),0) as ReferralsCountHist
+
             from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-            where u.Type in (100, 102, 102)
+            where u.Type in (100)
             and u.Height is not null
             and u.String1 in ( )sql" + addressesWhere + R"sql( )
             and u.Last = 1
-            group by u.String1
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -396,9 +410,19 @@ namespace PocketDb
                 , ifnull(u.String2,'') as Referrer
 
                 , ifnull((
-                    select count(1) from Transactions ru indexed by Transactions_Type_Last_String2_Height
-                    where ru.Type in (100,101,102) and ru.Last=1 and ru.Height is not null and ru.String2=u.String1)
-                ,0) as ReferralsCount
+                  select count(1)
+                  from Transactions ru indexed by Transactions_Type_Last_String2_Height
+                  where ru.Type in (100)
+                    and ru.Last in (0,1)
+                    and ru.Height > 0
+                    and ru.String2 = u.String1
+                    and ru.ROWID = (
+                      select min(ru1.ROWID)
+                      from Transactions ru1 indexed by Transactions_Id
+                      where ru1.Id = ru.Id
+                      limit 1
+                    )
+                ),0) as ReferralsCount
 
                 , ifnull((
                     select count(1)
@@ -2089,8 +2113,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes,
-        const int nHeight, const int depth)
+    UniValue WebRpcRepository::GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes)
     {
         UniValue result(UniValue::VARR);
 
@@ -2100,26 +2123,19 @@ namespace PocketDb
         string sql = R"sql(
             select
 
-                sum(q.scrSum) as scoreSum,
-                sum(q.scrCnt) as scoreCnt,
-                count(1) as countLikers
+              sum(s.Int1) as scrSum,
+              count(1) as scrCnt,
+              count(distinct s.String1) as countLikers
 
-            from (
-              select sum(s.Int1)scrSum, count(1)scrCnt
+            from Transactions v indexed by Transactions_Type_Last_String1_Height_Id
 
-              from Transactions v indexed by Transactions_Type_Last_String1_Height_Id
+            join Transactions s indexed by Transactions_Type_Last_String2_Height
+              on s.Type in ( 300 ) and s.Last in (0,1) and s.Height > 0 and s.String2 = v.String2
 
-              join Transactions s indexed by Transactions_Type_Last_String2_Height
-                on s.Type in ( 300 ) and s.Last in (0,1) and s.Height > 0 and s.String2 = v.String2
-
-              where v.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
-                and v.Last = 1
-                and v.Height <= ?
-                and v.Height > ?
-                and v.String1 = ?
-
-              group by s.String1
-            ) q
+            where v.Type in ( )sql" + join(vector<string>(contentTypes.size(), "?"), ",") + R"sql( )
+              and v.Last = 1
+              and v.Height > 0
+              and v.String1 = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -2129,8 +2145,6 @@ namespace PocketDb
 
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
-            TryBindStatementInt(stmt, i++, nHeight);
-            TryBindStatementInt(stmt, i++, nHeight - depth);
             TryBindStatementText(stmt, i++, addresses[0]);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
