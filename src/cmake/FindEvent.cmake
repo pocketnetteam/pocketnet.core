@@ -43,16 +43,13 @@ else()
 endif()
 # Find includes path
 
-
+set (Event_VERSION 0)
 # Checks if the version file exists, save the version file to a var, and fail if there's no version file
 if(Event_INCLUDE_DIRS)
     # Read the version file db.h into a variable
     file(READ "${Event_INCLUDE_DIRS}/event2/event-config.h" _EVENT_CONFIG)
     # Parse the DB version into variables to be used in the lib names
-    string(REGEX REPLACE ".*EVENT__VERSION_MAJOR ([0-9]+).*" "\\1" Event_VERSION_MAJOR "${_EVENT_CONFIG}")
-    string(REGEX REPLACE ".*EVENT__VERSION_MINOR ([0-9]+).*" "\\1" Event_VERSION_MINOR "${_EVENT_CONFIG}")
-    # Patch version example on non-crypto installs: x.x.xNC
-    string(REGEX REPLACE ".*EVENT__VERSION_PATCH ([0-9]+).*" "\\1" Event_VERSION_PATCH "${_EVENT_CONFIG}")
+    string(REGEX REPLACE ".*EVENT__VERSION[ ]+\"([0-9a-z\.\-]+)\".*" "\\1" _Event_VERSION "${_EVENT_CONFIG}")
 else()
     if(EVENT_FIND_REQUIRED)
         message(FATAL_ERROR "Failed to find libevent's header file \"event.h\"! Try setting \"EVENT_ROOT\" when initiating Cmake.")
@@ -60,13 +57,10 @@ else()
         message(WARNING "Failed to find libevent's header file \"event.h\"! Try setting \"EVENT_ROOT\" when initiating Cmake.")
     endif()
     # Set some garbage values to the versions since we didn't find a file to read
-    set(Event_VERSION_MAJOR "0")
-    set(Event_VERSION_MINOR "0")
-    set(Event_VERSION_PATCH "0")
 endif()
 
 # The actual returned/output version variable (the others can be used if needed)
-set(Event_VERSION "${Event_VERSION_MAJOR}.${Event_VERSION_MINOR}.${Event_VERSION_PATCH}")
+set(Event_VERSION ${_Event_VERSION})
 
 # Finds the target library for event, since they all follow the same naming conventions
 macro(findpackage_event_get_lib _EVENT_OUTPUT_VARNAME _TARGET_EVENT_LIB)
