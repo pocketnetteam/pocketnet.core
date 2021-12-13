@@ -76,6 +76,7 @@ namespace PocketConsensus
         SocialConsensusResult_RelayContentNotFound = 58,
         SocialConsensusResult_BadPayload = 59,
         SocialConsensusResult_ScoreLowReputation = 60,
+        SocialConsensusResult_ChangeInfoDoubleInMempool = 61,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)

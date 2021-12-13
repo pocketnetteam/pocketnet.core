@@ -127,7 +127,7 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
-            select count(*)
+            select 1
             from Transactions
             where Hash = ?
         )sql";
@@ -138,9 +138,7 @@ namespace PocketDb
 
             TryBindStatementText(stmt, 1, hash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = (value >= 1);
+            result = (sqlite3_step(*stmt) == SQLITE_ROW);
 
             FinalizeSqlStatement(*stmt);
         });
