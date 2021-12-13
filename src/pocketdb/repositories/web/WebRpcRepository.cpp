@@ -628,12 +628,21 @@ namespace PocketDb
               on pc.TxHash = c.Hash
 
             cross join Ratings rc indexed by Ratings_Type_Id_Last_Value
-              on rc.Type = 3 and rc.Last = 1 and rc.Id = c.Id
+              on rc.Type = 3 and rc.Last = 1 and rc.Id = c.Id and rc.Value >= 0
 
             where c.Type in (204,205)
               and c.Last = 1
               and c.Height > (? - 600)
-              and rc.Value >= 0
+
+              and not exists (
+                select 1
+                from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                where b.Type in (305)
+                  and b.Last = 1
+                  and b.Height > 0
+                  and b.String1 = p.String1
+                  and b.String2 = c.String1
+              )
 
             order by c.Height desc
             limit ?
@@ -722,12 +731,7 @@ namespace PocketDb
                     select o.Value
                     from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
                     where o.TxHash = c.Hash and o.AddressHash = cmnt.ContentAddressHash and o.AddressHash != c.String1
-                ) as Donate,
-
-                (
-                    select count(1) from Transactions b  indexed by Transactions_Type_Last_String1_Height_Id
-                    where b.Type in (305) and b.Last = 1 and b.Height is not null and b.String1 = cmnt.ContentAddressHash and b.String2 = c.String1
-                )Blocked
+                ) as Donate
 
             from (
                 select
@@ -746,6 +750,15 @@ namespace PocketDb
                           and c1.Height is not null
                           and c1.String3 = t.String2
                           and c1.String4 is null
+                          and not exists (
+                            select 1
+                            from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                            where b.Type in (305)
+                              and b.Last = 1
+                              and b.Height > 0
+                              and b.String1 = t.String1
+                              and b.String2 = c1.String1
+                          )
                         order by o.Value desc, c1.Id desc
                         limit 1
                     )commentId
@@ -806,7 +819,6 @@ namespace PocketDb
                     record.pushKV("donation", "true");
                     record.pushKV("amount", value);
                 }
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 18); ok && value > 0) record.pushKV("blck", 1);
                                 
                 result.emplace(contentId, record);
             }
@@ -855,13 +867,7 @@ namespace PocketDb
                 (select count(1) from Transactions s indexed by Transactions_Type_Last_String4_Height
                     where s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
 
-                o.Value as Donate,
-
-                (
-                    select 1 from Transactions b  indexed by Transactions_Type_Last_String1_Height_Id
-                    where b.Type in (305) and b.Last = 1 and b.Height is not null and b.String1 = t.String1 and b.String2 = c.String1
-                    limit 1
-                )Blocked
+                o.Value as Donate
 
             from Transactions c indexed by Transactions_Type_Last_String3_Height
 
@@ -882,8 +888,16 @@ namespace PocketDb
                 and c.Height is not null
                 and c.Last = 1
                 and c.String3 = ?
+                and not exists (
+                  select 1
+                  from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                  where b.Type in (305)
+                    and b.Last = 1
+                    and b.Height > 0
+                    and b.String1 = t.String1
+                    and b.String2 = c.String1
+                )
                 )sql" + parentWhere + R"sql(
-
         )sql";
 
         TryTransactionStep(func, [&]()
@@ -924,8 +938,6 @@ namespace PocketDb
                     record.pushKV("amount", value);
                     record.pushKV("donation", "true");
                 }
-
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 17); ok && value > 0) record.pushKV("blck", 1);
 
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                 {
