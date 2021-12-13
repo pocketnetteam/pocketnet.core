@@ -20,13 +20,6 @@ namespace PocketDb
     using boost::algorithm::join;
     using boost::adaptors::transformed;
 
-    enum StatisticDepth
-    {
-        StatisticDepth_Day = 1,
-        StatisticDepth_Month = 2,
-        StatisticDepth_Year = 3
-    };
-
     class ExplorerRepository : public BaseRepository
     {
     public:
@@ -35,8 +28,9 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        map<int, map<int, int>> GetStatistic(int bottomHeight, int topHeight);
-        UniValue GetStatistic(int64_t startTime, int64_t endTime, StatisticDepth depth);
+        map<int, map<int, int>> GetBlocksStatistic(int bottomHeight, int topHeight);
+        UniValue GetTransactionsStatistic(int topHeight, int depth);
+        UniValue GetContentStatistic();
         tuple<int, double> GetAddressInfo(const string& addressHash);
         UniValue GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize);
         UniValue GetBlockTransactions(const string& blockHash, int pageStart, int pageSize);
