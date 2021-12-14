@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2018 The Pocketcoin Core developers
+# Copyright (c) 2014-2019 The Pocketcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test resurrection of mined transactions when the blockchain is re-organized."""
@@ -45,18 +45,17 @@ class MempoolCoinbaseTest(PocketcoinTestFramework):
         assert_equal(set(self.nodes[0].getrawmempool()), set())
         for txid in spends1_id+spends2_id:
             tx = self.nodes[0].gettransaction(txid)
-            assert(tx["confirmations"] > 0)
+            assert tx["confirmations"] > 0
 
-        # Use invalidateblock to re-org back; all transactions should
-        # end up unconfirmed and back in the mempool
+        # Use invalidateblock to re-org back
         for node in self.nodes:
             node.invalidateblock(blocks[0])
 
-        # mempool should be empty, all txns confirmed
+        # All txns should be back in mempool with 0 confirmations
         assert_equal(set(self.nodes[0].getrawmempool()), set(spends1_id+spends2_id))
         for txid in spends1_id+spends2_id:
             tx = self.nodes[0].gettransaction(txid)
-            assert(tx["confirmations"] == 0)
+            assert tx["confirmations"] == 0
 
         # Generate another block, they should all get mined
         self.nodes[0].generate(1)
@@ -64,7 +63,7 @@ class MempoolCoinbaseTest(PocketcoinTestFramework):
         assert_equal(set(self.nodes[0].getrawmempool()), set())
         for txid in spends1_id+spends2_id:
             tx = self.nodes[0].gettransaction(txid)
-            assert(tx["confirmations"] > 0)
+            assert tx["confirmations"] > 0
 
 
 if __name__ == '__main__':
