@@ -5,7 +5,7 @@
 #include <bench/bench.h>
 #include <blockfilter.h>
 
-static void ConstructGCSFilter(benchmark::State& state)
+static void ConstructGCSFilter(benchmark::Bench& bench)
 {
     GCSFilter::ElementSet elements;
     for (int i = 0; i < 10000; ++i) {
@@ -16,14 +16,14 @@ static void ConstructGCSFilter(benchmark::State& state)
     }
 
     uint64_t siphash_k0 = 0;
-    while (state.KeepRunning()) {
-        GCSFilter filter(siphash_k0, 0, 20, 1 << 20, elements);
+    bench.batch(elements.size()).unit("elem").run([&] {
+        GCSFilter filter({siphash_k0, 0, 20, 1 << 20}, elements);
 
         siphash_k0++;
-    }
+    });
 }
 
-static void MatchGCSFilter(benchmark::State& state)
+static void MatchGCSFilter(benchmark::Bench& bench)
 {
     GCSFilter::ElementSet elements;
     for (int i = 0; i < 10000; ++i) {
@@ -32,12 +32,12 @@ static void MatchGCSFilter(benchmark::State& state)
         element[1] = static_cast<unsigned char>(i >> 8);
         elements.insert(std::move(element));
     }
-    GCSFilter filter(0, 0, 20, 1 << 20, elements);
+    GCSFilter filter({0, 0, 20, 1 << 20}, elements);
 
-    while (state.KeepRunning()) {
+    bench.unit("elem").run([&] {
         filter.Match(GCSFilter::Element());
-    }
+    });
 }
 
-BENCHMARK(ConstructGCSFilter, 1000);
-BENCHMARK(MatchGCSFilter, 50 * 1000);
+BENCHMARK(ConstructGCSFilter);
+BENCHMARK(MatchGCSFilter);
