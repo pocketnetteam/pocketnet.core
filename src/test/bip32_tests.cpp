@@ -1,15 +1,15 @@
-// Copyright (c) 2013-2018 The Pocketcoin Core developers
+// Copyright (c) 2013-2020 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <boost/test/unit_test.hpp>
 
+#include <clientversion.h>
 #include <key.h>
 #include <key_io.h>
-#include <uint256.h>
-#include <util.h>
-#include <utilstrencodings.h>
-#include <test/test_pocketcoin.h>
+#include <streams.h>
+#include <test/util/setup_common.h>
+#include <util/strencodings.h>
 
 #include <string>
 #include <vector>
@@ -118,27 +118,11 @@ static void RunTest(const TestVector &test) {
         }
         key = keyNew;
         pubkey = pubkeyNew;
-
-        CDataStream ssPub(SER_DISK, CLIENT_VERSION);
-        ssPub << pubkeyNew;
-        BOOST_CHECK(ssPub.size() == 75);
-
-        CDataStream ssPriv(SER_DISK, CLIENT_VERSION);
-        ssPriv << keyNew;
-        BOOST_CHECK(ssPriv.size() == 75);
-
-        CExtPubKey pubCheck;
-        CExtKey privCheck;
-        ssPub >> pubCheck;
-        ssPriv >> privCheck;
-
-        BOOST_CHECK(pubCheck == pubkeyNew);
-        BOOST_CHECK(privCheck == keyNew);
     }
 }
 #ifdef DISABLED_TEST
-BOOST_FIXTURE_TEST_SUITE(bip32_tests, BasicTestingSetup)
 
+BOOST_FIXTURE_TEST_SUITE(bip32_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(bip32_test1) {
     RunTest(test1);
@@ -151,7 +135,6 @@ BOOST_AUTO_TEST_CASE(bip32_test2) {
 BOOST_AUTO_TEST_CASE(bip32_test3) {
     RunTest(test3);
 }
-
 
 BOOST_AUTO_TEST_SUITE_END()
 #endif

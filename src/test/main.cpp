@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2020 The Bitcoin Core developers
+// Copyright (c) 2011-2020 The Pocketcoin Core developers
 // Copyright (c) 2021 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -10,7 +10,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-//#include <test/util/setup_common.h>
+#include <test/util/setup_common.h>
 
 #include <iostream>
 
