@@ -1,9 +1,9 @@
-// Copyright (c) 2019-2020 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_NODE_CONTEXT_H
-#define BITCOIN_NODE_CONTEXT_H
+#ifndef POCKETCOIN_NODE_CONTEXT_H
+#define POCKETCOIN_NODE_CONTEXT_H
 
 #include <cassert>
 #include <functional>
@@ -56,4 +56,4 @@ struct NodeContext {
     ~NodeContext();
 };
 
-#endif // BITCOIN_NODE_CONTEXT_H
+#endif // POCKETCOIN_NODE_CONTEXT_H

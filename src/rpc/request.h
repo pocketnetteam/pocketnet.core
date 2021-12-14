@@ -1,10 +1,10 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2009-2019 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_RPC_REQUEST_H
-#define BITCOIN_RPC_REQUEST_H
+#ifndef POCKETCOIN_RPC_REQUEST_H
+#define POCKETCOIN_RPC_REQUEST_H
 
 #include "pocketdb/SQLiteConnection.h"
 #include <string>
@@ -61,4 +61,4 @@ private:
     DbConnectionRef dbConnection;
 };
 
-#endif // BITCOIN_RPC_REQUEST_H
+#endif // POCKETCOIN_RPC_REQUEST_H

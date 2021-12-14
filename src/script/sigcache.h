@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SCRIPT_SIGCACHE_H
-#define BITCOIN_SCRIPT_SIGCACHE_H
+#ifndef POCKETCOIN_SCRIPT_SIGCACHE_H
+#define POCKETCOIN_SCRIPT_SIGCACHE_H
 
 #include <script/interpreter.h>
 #include <span.h>
@@ -55,4 +55,4 @@ public:
 
 void InitSignatureCache();
 
-#endif // BITCOIN_SCRIPT_SIGCACHE_H
+#endif // POCKETCOIN_SCRIPT_SIGCACHE_H
