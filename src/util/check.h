@@ -2,11 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTIL_CHECK_H
-#define BITCOIN_UTIL_CHECK_H
+#ifndef POCKETCOIN_UTIL_CHECK_H
+#define POCKETCOIN_UTIL_CHECK_H
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/pocketcoin-config.h>
 #endif
 
 #include <tinyformat.h>
@@ -56,4 +56,4 @@ T get_pure_r_value(T&& val)
 /** Identity function. Abort if the value compares equal to zero */
 #define Assert(val) [&]() -> decltype(get_pure_r_value(val)) { auto&& check = (val); assert(#val && check); return std::forward<decltype(get_pure_r_value(val))>(check); }()
 
-#endif // BITCOIN_UTIL_CHECK_H
+#endif // POCKETCOIN_UTIL_CHECK_H
