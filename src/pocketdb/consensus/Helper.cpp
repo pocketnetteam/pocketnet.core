@@ -23,6 +23,7 @@ namespace PocketConsensus
     BlockingCancelConsensusFactory SocialConsensusHelper::m_blockingCancelFactory;
     ComplainConsensusFactory SocialConsensusHelper::m_complainFactory;
     ContentDeleteConsensusFactory SocialConsensusHelper::m_contentDeleteFactory;
+    BoostContentConsensusFactory SocialConsensusHelper::m_boostContentFactory;
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CBlock& block, const PocketBlockRef& pBlock, int height)
     {
@@ -178,6 +179,10 @@ namespace PocketConsensus
                 return m_commentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<CommentDelete>(ptx));
             case CONTENT_DELETE:
                 return m_contentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<ContentDelete>(ptx));
+                break;
+            case CONTENT_BOOST:
+                return m_boostContentFactory.Instance(0)->Check(tx, static_pointer_cast<BoostContent>(ptx));
+                break;
             case ACTION_SCORE_CONTENT:
                 return m_scoreContentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreContent>(ptx));
             case ACTION_SCORE_COMMENT:
@@ -230,6 +235,8 @@ namespace PocketConsensus
                 return m_commentDeleteFactory.Instance(height)->Validate(tx, static_pointer_cast<CommentDelete>(ptx), pBlock);
             case CONTENT_DELETE:
                 return m_contentDeleteFactory.Instance(height)->Validate(tx, static_pointer_cast<ContentDelete>(ptx), pBlock);
+            case CONTENT_BOOST:
+                return m_boostContentFactory.Instance(height)->Validate(tx, static_pointer_cast<BoostContent>(ptx), pBlock);
             case ACTION_SCORE_CONTENT:
                 return m_scoreContentFactory.Instance(height)->Validate(tx, static_pointer_cast<ScoreContent>(ptx), pBlock);
             case ACTION_SCORE_COMMENT:

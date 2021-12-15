@@ -43,6 +43,8 @@ namespace PocketTx
 
     #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
 
+    #define OR_CONTENT_BOOST "636f6e74656e74426f6f7374" // Boost content
+
     #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
 
     // Int tx type
@@ -69,6 +71,8 @@ namespace PocketTx
         CONTENT_COMMENT_DELETE = 206,
 
         CONTENT_DELETE = 207,
+
+        CONTENT_BOOST = 208,
 
         ACTION_SCORE_CONTENT = 300,
         ACTION_SCORE_COMMENT = 301,
