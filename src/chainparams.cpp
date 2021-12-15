@@ -75,7 +75,7 @@ public:
         consensus.BIP34Hash = uint256S("00000b6321951f2ed170bbc9b7a360995176f2df418b0e275149bfce2fde3d6c");
         consensus.BIP65Height = 0; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 0; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-        consensus.CSVHeight = 419328; // 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5 // TODO (losty): may be change??
+        consensus.CSVHeight = 419328; // 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5 // TODO (losty+): may be change?? - (brangr) мы должны будем определить свои высоты, когда включать этот функционал
         consensus.SegwitHeight = 481824; // 0000000000000000001c8018d9cb3b742ef25114f27563e3fc4a1902167f9893 // TODO (losty): may be change??
         consensus.MinBIP9WarningHeight = 483840; // segwit activation height + miner confirmation window // TODO (losty): may be change??
         consensus.powLimit = ArithToUint256(~arith_uint256(0) >> 16);
@@ -105,7 +105,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT; // TODO (losty): probably return 1230767999???
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
 
-        // TODO (losty): below replacing DEPLOYMENT_CSV and DEPLOYMENT_SEGWIT. Do we need to return them or change something here?
+        // TODO (losty+): below replacing DEPLOYMENT_CSV and DEPLOYMENT_SEGWIT. Do we need to return them or change something here?
+        // Нужно будет созвониться обсудить эти моменты
         // Deployment of Taproot (BIPs 340-342)
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1619222400; // April 24th, 2021
@@ -134,8 +135,8 @@ public:
 
         nDefaultPort = 37070;
         nPruneAfterHeight = 100000;
-        m_assumed_blockchain_size = 350; // TODO (losty): may be change??
-        m_assumed_chain_state_size = 6; // TODO (losty): may be change??
+        m_assumed_blockchain_size = 50; // TODO (losty+): пока хватает 50 - будем увеличивать по мере роста
+        m_assumed_chain_state_size = 0; // TODO (losty+): мы не используем пока prune
 
         genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -253,8 +254,8 @@ public:
 
         nDefaultPort = 36060;
         nPruneAfterHeight = 100000;
-        m_assumed_blockchain_size = 40; // TODO (losty): may be change???
-        m_assumed_chain_state_size = 2; // TODO (losty): may be change???
+        m_assumed_blockchain_size = 10;
+        m_assumed_chain_state_size = 0;
 
         genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -271,8 +272,8 @@ public:
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
-        m_is_test_chain = true; // TODO (losty): may be change???
-        m_is_mockable_chain = false; // TODO (losty): may be change???
+        m_is_test_chain = true; // TODO (losty+): may be change??? - brangr: почему бы и нет)
+        m_is_mockable_chain = false; // TODO (losty+): may be change??? - brangr: еще бы понять что это
 
         checkpointData = {
             {}};
