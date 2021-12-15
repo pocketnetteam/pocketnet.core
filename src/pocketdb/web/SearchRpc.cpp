@@ -285,6 +285,8 @@ namespace PocketWeb::PocketWebRpc
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
 
         int cntOut = 10;
+        if (request.params.size() > 1 && request.params[1].isNum())
+            cntOut = request.params[1].get_int();
 
         return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsBySubscriptions(address, cntOut);
     }
@@ -310,6 +312,15 @@ namespace PocketWeb::PocketWebRpc
         int depth = 1000;
         int cntOut = 10;
 
+        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
+            nHeight = request.params[2].get_int();
+
+        if (request.params.size() > 3 && request.params[3].isNum())
+            depth = request.params[3].get_int();
+
+        if (request.params.size() > 4 && request.params[4].isNum())
+            cntOut = request.params[4].get_int();
+
         return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresOnSimilarAccounts(address, contentTypes, nHeight, depth, cntOut);
     }
 
@@ -333,6 +344,15 @@ namespace PocketWeb::PocketWebRpc
         int nHeight = chainActive.Height();
         int depth = 1000;
         int cntOut = 10;
+
+        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
+            nHeight = request.params[2].get_int();
+
+        if (request.params.size() > 3 && request.params[3].isNum())
+            depth = request.params[3].get_int();
+
+        if (request.params.size() > 4 && request.params[4].isNum())
+            cntOut = request.params[4].get_int();
 
         return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
     }
