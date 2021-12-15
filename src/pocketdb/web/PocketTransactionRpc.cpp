@@ -84,7 +84,9 @@ namespace PocketWeb::PocketWebRpc
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman)
     {
         promise<void> promise;
-        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty): it seems like maxTxFee is only accesibble from walletInstance->m_default_max_tx_fee but it seems it doesn't even needed here
+        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty+): it seems like maxTxFee is only accesibble from walletInstance->m_default_max_tx_fee but it seems it doesn't even needed here
+        // nMaxRawTxFee думаю нужен, т.к. используется внутри AcceptToMemoryPool
+        // Транзакции создаются клиентом, мы не можем гарантировать валидность платы
         const uint256& txid = tx->GetHash();
 
         { // cs_main scope
@@ -105,7 +107,8 @@ namespace PocketWeb::PocketWebRpc
                 // push to local node and sync with wallets
                 TxValidationState state;
                 if (!AcceptToMemoryPool(mempool, state, tx, ptx,
-                    nullptr /* plTxnReplaced */, false /* bypass_limits */)) // TODO (losty-critical): is new usage correct?
+                    nullptr /* plTxnReplaced */, false /* bypass_limits */)) // TODO (losty-critical+): is new usage correct?
+                                                                             // вернуть nMaxRawTxFee в этом методе (см выше) + мерж с текущей версией для обработки пейлода pocketTx
                 {
                     if (state.IsInvalid())
                     {
@@ -113,7 +116,9 @@ namespace PocketWeb::PocketWebRpc
                     }
                     else
                     {
-                        // TODO (losty): GetRejectCode is removed. Probably need to add POCKETTX_MATURITY to TxValidationResult, but it seems this code is never using
+                        // TODO (losty+): GetRejectCode is removed. Probably need to add POCKETTX_MATURITY to TxValidationResult, but it seems this code is never using
+                        // RPC_POCKETTX_MATURITY используется в src/consensus/tx_verify.cpp:224 + нужно поднять это условие выше if (state.IsInvalid())
+                        // также необходим мерж с текущими изменениями
                         // if (state.GetRejectCode() == RPC_POCKETTX_MATURITY)
                         // {
                             throw JSONRPCError(RPC_POCKETTX_MATURITY, state.ToString());
@@ -152,7 +157,8 @@ namespace PocketWeb::PocketWebRpc
 
         CInv inv(MSG_TX, txid);
         connman.ForEachNode([&inv](CNode* pnode) {
-            // TODO (losty-critical): PushInventory changed to PushTxInventory. Validate this is correct
+            // TODO (losty-critical+): PushInventory changed to PushTxInventory. Validate this is correct
+            // похоже на правду, если PushInventory не изменил свою логику в PushTxInventory
             pnode->PushTxInventory(inv.hash);
         });
 
