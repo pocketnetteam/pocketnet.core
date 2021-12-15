@@ -40,6 +40,7 @@ namespace PocketDb
                 -- Subscribe.AddressHash
                 -- Blocking.AddressHash
                 -- Complain.AddressHash
+                -- Boost.AddressHash
                 String1   text   null,
 
                 -- AccountUser.ReferrerAddressHash
@@ -52,6 +53,7 @@ namespace PocketDb
                 -- Subscribe.AddressToHash
                 -- Blocking.AddressToHash
                 -- Complain.PostTxHash
+                -- Boost.ContentTxHash
                 String2   text   null,
 
                 -- ContentPost.RelayTxHash

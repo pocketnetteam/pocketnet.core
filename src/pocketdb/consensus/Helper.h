@@ -11,6 +11,7 @@
 
 #include "pocketdb/consensus/social/Blocking.hpp"
 #include "pocketdb/consensus/social/BlockingCancel.hpp"
+#include "pocketdb/consensus/social/BoostContent.hpp"
 #include "pocketdb/consensus/social/Comment.hpp"
 #include "pocketdb/consensus/social/CommentEdit.hpp"
 #include "pocketdb/consensus/social/CommentDelete.hpp"
@@ -64,6 +65,7 @@ namespace PocketConsensus
         static ComplainConsensusFactory m_complainFactory;
         static AccountSettingConsensusFactory m_accountSettingFactory;
         static ContentDeleteConsensusFactory m_contentDeleteFactory;
+        static BoostContentConsensusFactory m_boostContentFactory;
     };
 }
 

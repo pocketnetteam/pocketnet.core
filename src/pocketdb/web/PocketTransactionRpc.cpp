@@ -262,6 +262,8 @@ namespace PocketWeb::PocketWebRpc
 
         // Insert into mempool
         return _accept_transaction(tx, ptx);
+        //const CTransaction& ctx = *tx;
+        //return ctx.ToString();
     }
 
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx)

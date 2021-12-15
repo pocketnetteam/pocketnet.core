@@ -18,6 +18,7 @@
 
 #include "pocketdb/models/dto/Blocking.h"
 #include "pocketdb/models/dto/BlockingCancel.h"
+#include "pocketdb/models/dto/BoostContent.h"
 #include "pocketdb/models/dto/Coinbase.h"
 #include "pocketdb/models/dto/Coinstake.h"
 #include "pocketdb/models/dto/Default.h"
