@@ -182,7 +182,8 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     // Этот метод может не найти предыдущую транзакцию, т.к. blockIndex = nullptr, а txindex не всегда успевает догонять
     // Я просмотрел логику CheckStakeKernelHash и в целом нам хватит данных в sqlite db для этой логики + будет быстрее,
     // чем идти за блоком цепи на диске
-    // TODO (brangr): get transaction with outputs from sqlite db (nTime, nValue)
+    // TODO (losty): get transaction with outputs from sqlite db (nTime, nValue)
+    // !!! use in src/pocketdb/repositories/TransactionRepository.h - shared_ptr<Transaction> Get(txin.prevout.hash, false, false, true)
     CTransactionRef txPrev = GetTransaction(nullptr, &mempool, txin.prevout.hash, Params().GetConsensus(), hashBlock);
     if (!txPrev)
     {
