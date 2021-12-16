@@ -29,8 +29,10 @@ namespace PocketDb
         void Destroy() override;
 
         map<int, map<int, int>> GetBlocksStatistic(int bottomHeight, int topHeight);
-        UniValue GetTransactionsStatistic(int topHeight, int depth);
+        UniValue GetTransactionsStatisticByHours(int topHeight, int depth);
+        UniValue GetTransactionsStatisticByDays(int topHeight, int depth);
         UniValue GetContentStatistic();
+
         tuple<int, double> GetAddressInfo(const string& addressHash);
         UniValue GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize);
         UniValue GetBlockTransactions(const string& blockHash, int pageStart, int pageSize);

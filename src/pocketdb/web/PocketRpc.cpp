@@ -82,7 +82,9 @@ static const CRPCCommand commands[] =
     {"scores",          "getpagescores",                    &GetPagesScores,                {"postIds", "address", "cmntIds"}},
 
     // Explorer
-    {"explorer",       "getstatistic",                     &GetStatistic,                   {"endTime", "depth"}},
+    {"explorer",       "getstatisticbyhours",              &GetStatisticByHours,            {"topHeight", "depth"}},
+    {"explorer",       "getstatisticbydays",               &GetStatisticByDays,             {"topHeight", "depth"}},
+    {"explorer",       "getstatisticcontent",              &GetStatisticContent,            {}},
     {"explorer",       "getaddressinfo",                   &GetAddressInfo,                 {"address"}},
     {"explorer",       "getcompactblock",                  &GetCompactBlock,                {"blockHash"}},
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
