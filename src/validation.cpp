@@ -1125,6 +1125,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             {
                 PocketBlock pocketBlock{_pocketTx};
                 PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+                //LogPrintf("DEBUG InsertTransactions to mempool: %s\n", tx.GetHash().GetHex());
             }
             catch (const std::exception& e)
             {
@@ -2544,7 +2545,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
             // we need to think about marking the block incomplete and requesting it from the network again.
             return false;
-
             //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
         }
         
@@ -6460,7 +6460,7 @@ bool LoadMempool()
             mempool.PrioritiseTransaction(i.first, i.second);
 
         // Also remove from sqlite db
-        mempool.CleanSQLite(expiredHashes);
+        mempool.CleanSQLite(expiredHashes, "init", MemPoolRemovalReason::EXPIRY);
     }
     catch (const std::exception& e)
     {
