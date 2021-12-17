@@ -109,11 +109,10 @@ namespace PocketConsensus
                 if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
                     continue;
 
-                auto blockPtx = static_pointer_cast<User>(blockTx);
-
-                if (*blockPtx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
+                auto blockPtx = static_pointer_cast<User>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
                     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoDoubleInBlock))
@@ -129,7 +128,10 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const UserRef& ptx) override
         {
             if (ConsensusRepoInst.CountMempoolUser(*ptx->GetAddress()) > 0)
-                return {false, SocialConsensusResult_ChangeInfoDoubleInBlock};
+                return {false, SocialConsensusResult_ChangeInfoDoubleInMempool};
+
+            if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
+                return {false, SocialConsensusResult_ChangeInfoLimit};
 
             return Success;
         }
@@ -182,7 +184,7 @@ namespace PocketConsensus
                 (ptx->GetReferrerAddress() ? ptx->GetReferrerAddress()->size() : 0) +
                 (ptx->GetPayloadPubkey() ? ptx->GetPayloadPubkey()->size() : 0);
 
-            if (dataSize > GetConsensusLimit(ConsensusLimit_max_user_size))
+            if (dataSize > (size_t) GetConsensusLimit(ConsensusLimit_max_user_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};
 
             return Success;

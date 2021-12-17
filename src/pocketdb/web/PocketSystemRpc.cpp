@@ -91,6 +91,16 @@ namespace PocketWeb::PocketWebRpc
             obj.pushKV("startingheight", stats.nStartingHeight);
             obj.pushKV("whitelisted", stats.m_legacyWhitelisted); // TODO (losty-fur): probably remove this
 
+            // Mutex guarded node statistic
+            CNodeStateStats nodeState;
+            if (GetNodeStateStats(stats.nodeid, nodeState))
+            {
+                // TODO (losty-critical): this field is no longer exists (see corresponding todo in net_processing.cpp GetNodeStateStatsView(...))
+                // obj.pushKV("banscore", nodeState.nMisbehavior);
+                obj.pushKV("synced_headers", nodeState.nSyncHeight);
+                obj.pushKV("synced_blocks", nodeState.nCommonHeight);
+            }
+
             ret.push_back(obj);
         }
 

@@ -68,30 +68,28 @@ namespace PocketDb
         UniValue GetUserStatistic(const vector<string>& addresses, const int nHeight = 0, const int depth = 0);
 
         UniValue GetCommentsByPost(const string& postHash, const string& parentHash, const string& addressHash);
+        UniValue GetCommentsByHashes(const vector<string>& cmntHashes, const string& addressHash);
+
         UniValue GetLastComments(int count, int height, const string& lang);
         map<int64_t, UniValue> GetLastComments(const vector<int64_t>& ids, const string& address);
 
-        vector<UniValue> GetPostScores(const vector<string>& postHashes, const string& address);
-        vector<UniValue> GetCommentScores(const vector<string>& commentHashes, const string& address);
+        UniValue GetPagesScores(const vector<string>& postHashes, const vector<string>& commentHashes, const string& address);
+        UniValue GetPostScores(const string& postTxHash);
 
         UniValue GetAddressScores(const vector<string>& postHashes, const string& address);
 
         map<string, UniValue> GetAccountProfiles(const vector<string>& addresses, bool shortForm = true);
         map<int64_t, UniValue> GetAccountProfiles(const vector<int64_t>& ids, bool shortForm = true);
 
-        map<string, UniValue> GetSubscribesAddresses(const vector<string>& addresses,
-            const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
-
-        map<string, UniValue> GetSubscribersAddresses(const vector<string>& addresses,
-            const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
-
-        map<string, UniValue> GetBlockingToAddresses(const vector<string>& addresses);
+        UniValue GetSubscribesAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+        UniValue GetSubscribersAddresses(const string& address, const vector<TxType>& types = {ACTION_SUBSCRIBE, ACTION_SUBSCRIBE_PRIVATE });
+        UniValue GetBlockingToAddresses(const string& address);
 
         UniValue GetTags(const string& lang, int pageSize, int pageStart);
 
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
 
-        UniValue GetUnspents(vector<string>& addresses, int height);
+        UniValue GetUnspents(vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
 
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
@@ -124,7 +122,9 @@ namespace PocketDb
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
             int badReputationLimit);
 
-        UniValue GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes, const int nHeight, const int depth);
+        UniValue GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes);
+
+        vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
 
     private:
         int cntBlocksForResult = 300;

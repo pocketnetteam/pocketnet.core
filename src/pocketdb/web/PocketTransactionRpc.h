@@ -12,6 +12,8 @@
 #include "validationinterface.h"
 #include "txmempool.h"
 #include "rpc/mining.h"
+#include "policy/rbf.h"
+#include "util/strencodings.h"
 #include "pocketdb/services/Serializer.h"
 #include "pocketdb/consensus/Base.h"
 #include "pocketdb/consensus/Helper.h"
@@ -22,6 +24,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan AddTransaction();
     RPCHelpMan GetTransaction();
     RPCHelpMan EstimateSmartFee();
+    RPCHelpMan GenerateTransaction();
 }
 
 #endif //SRC_POCKETTRANSACTIONRPC_H

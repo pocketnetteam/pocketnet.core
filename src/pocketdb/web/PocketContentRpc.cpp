@@ -4,6 +4,7 @@
 
 #include <pocketdb/consensus/Base.h>
 #include "pocketdb/web/PocketContentRpc.h"
+#include "rpc/util.h"
 #include "validation.h"
 
 namespace PocketWeb::PocketWebRpc
@@ -607,23 +608,61 @@ namespace PocketWeb::PocketWebRpc
         vector<int> contentTypes;
         ParseRequestContentTypes(request.params[1], contentTypes);
 
-        int nHeight = ::ChainActive().Height();
-        if (request.params.size() > 2)
-        {
-            RPCTypeCheckArgument(request.params[2], UniValue::VNUM);
-            if (request.params[2].get_int() > 0)
-                nHeight = request.params[2].get_int();
-        }
+        return request.DbConnection()->WebRpcRepoInst->GetContentsStatistic(addresses, contentTypes);
+    },
+        };
+    }
 
-        int depth = ::ChainActive().Height();
-        if (request.params.size() > 3)
-        {
-            RPCTypeCheckArgument(request.params[3], UniValue::VNUM);
-            if (request.params[3].get_int() > 0)
-                depth = request.params[3].get_int();
-        }
+    RPCHelpMan GetRandomContents()
+    {
+        return RPCHelpMan{"GetRandomPost",
+                "\nGet contents statistic.\n",
+                {
+                    // TODO (losty-fur): provide args description
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur)
+                    HelpExampleCli("GetRandomPost", "") +
+                    HelpExampleRpc("GetRandomPost", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {   
+        // if (request.fHelp)
+        // {
+        //     UniValue help(UniValue::VOBJ);
+        //     help.pushKV("Method", "GetRandomPost");
 
-        return request.DbConnection()->WebRpcRepoInst->GetContentsStatistic(addresses, contentTypes, nHeight, depth);
+        //     UniValue args(UniValue::VARR);
+
+        //     UniValue argLang(UniValue::VOBJ);
+        //     argLang.pushKV("Name", "lang");
+        //     argLang.pushKV("Type", "String");
+        //     argLang.pushKV("Default", "en");
+        //     args.push_back(argLang);
+
+        //     help.pushKV("Arguments", args);
+
+        //     UniValue examples(UniValue::VARR);
+        //     help.pushKV("Examples", examples);
+        // }
+
+        string lang = "en";
+        if (request.params[0].isStr())
+            lang = request.params[0].get_str();
+
+        const int count = 1;
+        const int height = ::ChainActive().Height() - 150000;
+
+        auto ids = request.DbConnection()->WebRpcRepoInst->GetRandomContentIds(lang, count, height);
+        auto content = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, "");
+
+        UniValue result(UniValue::VARR);
+        result.push_backV(content);
+
+        return result;
     },
         };
     }

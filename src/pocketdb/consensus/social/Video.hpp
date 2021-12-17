@@ -62,7 +62,6 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateBlock(const VideoRef& ptx, const PocketBlockRef& block) override
         {
-
             // Edit
             if (ptx->IsEdit())
                 return ValidateEditBlock(ptx, block);
@@ -80,16 +79,17 @@ namespace PocketConsensus
                     continue;
 
                 auto blockPtx = static_pointer_cast<Video>(blockTx);
-                if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                {
-                    if (blockPtx->IsEdit())
-                        continue;
 
-                    if (*blockPtx->GetHash() == *ptx->GetHash())
-                        continue;
+                if (*ptx->GetAddress() != *blockPtx->GetAddress())
+                    continue;
 
-                    count += 1;
-                }
+                if (*blockPtx->GetHash() == *ptx->GetHash())
+                    continue;
+
+                if (blockPtx->IsEdit())
+                    continue;
+
+                count += 1;
             }
 
             return ValidateLimit(ptx, count);
@@ -119,15 +119,17 @@ namespace PocketConsensus
 
         virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)
         {
-            if (auto[ok, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash()); ok)
-            {
-                if (*lastContent->GetType() == CONTENT_DELETE)
-                    return {false, SocialConsensusResult_NotAllowed};
-            }
+            // TODO (brangr): change with check deleted content
+            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
+                *ptx->GetRootTxHash(),
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+            );
+            if (lastContentOk && *lastContent->GetType() != CONTENT_VIDEO)
+                return {false, SocialConsensusResult_NotAllowed};
 
             // First get original post transaction
             auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
-            if (!originalTxOk || !originalTx)
+            if (!lastContentOk || !originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
             auto originalPtx = static_pointer_cast<Video>(originalTx);
@@ -144,8 +146,9 @@ namespace PocketConsensus
             if (!AllowEditWindow(ptx, originalPtx))
                 return {false, SocialConsensusResult_ContentEditLimit};
 
-            return make_tuple(true, SocialConsensusResult_Success);
+            return Success;
         }
+        // TODO (brangr): move to base Social class
         virtual ConsensusValidateResult ValidateLimit(const VideoRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
@@ -171,7 +174,7 @@ namespace PocketConsensus
             // Double edit in block not allowed
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_VIDEO}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_VIDEO, CONTENT_DELETE}))
                     continue;
 
                 auto blockPtx = static_pointer_cast<Video>(blockTx);
@@ -214,14 +217,16 @@ namespace PocketConsensus
         }
         virtual ConsensusValidateResult ValidatePayloadSize(const VideoRef& ptx)
         {
-            int64_t dataSize =
+            size_t dataSize =
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
                 (ptx->GetPayloadCaption() ? ptx->GetPayloadCaption()->size() : 0) +
                 (ptx->GetPayloadMessage() ? ptx->GetPayloadMessage()->size() : 0) +
-                (ptx->GetRootTxHash() ? ptx->GetRootTxHash()->size() : 0) +
                 (ptx->GetRelayTxHash() ? ptx->GetRelayTxHash()->size() : 0) +
                 (ptx->GetPayloadSettings() ? ptx->GetPayloadSettings()->size() : 0) +
                 (ptx->GetPayloadLang() ? ptx->GetPayloadLang()->size() : 0);
+
+            if (ptx->GetRootTxHash() && *ptx->GetRootTxHash() != *ptx->GetHash())
+                dataSize += ptx->GetRootTxHash()->size();
 
             if (!IsEmpty(ptx->GetPayloadTags()))
             {
@@ -239,7 +244,7 @@ namespace PocketConsensus
                     dataSize += images[i].get_str().size();
             }
 
-            if (dataSize > GetConsensusLimit(ConsensusLimit_max_video_size))
+            if (dataSize > (size_t)GetConsensusLimit(ConsensusLimit_max_video_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};
 
             return Success;

@@ -707,6 +707,9 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     CAmount nFees = 0;
     if (!Consensus::CheckTxInputs(tx, state, m_view, GetSpendHeight(m_view), nFees, args.m_chainparams)) {
+        LogPrint(BCLog::CONSENSUS, "%s: Consensus::CheckTxInputs: %s, %s\n",
+                __func__, tx.GetHash().ToString(), state.ToString());
+
         return false; // state filled in by CheckTxInputs
     }
 
@@ -1041,13 +1044,15 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     // Check consensus if transaction payload exists
     if (_pocketTx)
     {
+        // TODO (losty-critical): ConsensusFailed should be reworked as well as result should be converted to something else because internal DoS method is removed and int as a resutl is no longer accepted.
+        //                        Probably move SocialConsensusResult to some kind of enum and create a special "state" for it. Or aggregate such errors in TxValidationResult
         // Check transaction with pocketnet base rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx); !ok)
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result)); // TODO (losty-fur):is this error correct?
+            return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result)); // TODO (losty-fur):is this error correct?
 
         // Check transaction with pocketnet consensus rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result)); // TODO (losty-fur):is this error correct?
+            return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result)); // TODO (losty-fur):is this error correct?
     }
 
     // At this point, we believe that all the checks have been carried
@@ -3113,27 +3118,37 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      auto response = PocketDb::NotifierRepoInst.GetOriginalPostAddressByRepost(txid);
                      if (response.exists("hash"))
                      {
-                         std::string addrFrom = response["address"].get_str();
+                         std::string address = response["address"].get_str();
 
                          custom_fields cFields
                          {
                              {"mesType",    "reshare"},
                              {"txidRepost", response["hash"].get_str()},
-                             {"addrFrom",   addrFrom}
+                             {"addrFrom",   response["addressRepost"].get_str()},
+                             {"nameFrom",   response["nameRepost"].get_str()},
+                             {"avatarFrom",   ""}
                          };
+                         if (response.exists("avatarRepost"))
+                             cFields["avatarFrom"] = response["avatarRepost"].get_str();
 
-                         PrepareWSMessage(messages, "event", addrFrom, txid, txtime, cFields);
+                         PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                      }
                  }
 
                  auto subscribesResponse = PocketDb::NotifierRepoInst.GetPrivateSubscribeAddressesByAddressTo(addr.first);
                  for (size_t i = 0; i < subscribesResponse.size(); ++i)
                  {
-                     auto address = subscribesResponse[i]["address"].get_str();
+                     auto address = subscribesResponse[i]["addressTo"].get_str();
 
                      custom_fields cFields{
                              {"mesType", "postfromprivate"},
-                             {"addrFrom", addr.first}};
+                             {"addrFrom", addr.first},
+                             {"nameFrom",   subscribesResponse[i]["nameFrom"].get_str()},
+                             {"avatarFrom",   ""}};
+
+                     if (subscribesResponse[i].exists("avatarFrom"))
+                         cFields["avatarFrom"] = subscribesResponse[i]["avatarFrom"].get_str();
+
                      PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                  }
              }
@@ -3145,8 +3160,12 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      custom_fields cFields
                      {
                          {"mesType", optype},
-                         {"addrFrom", addr.first}
+                         {"addrFrom", addr.first},
+                         {"nameFrom", response["referralName"].get_str()},
+                         {"avatarFrom", ""}
                      };
+                     if (response.exists("referralAvatar"))
+                         cFields["avatarFrom"] = response["referralAvatar"].get_str();
 
                      PrepareWSMessage(messages, "event", response["referrerAddress"].get_str(), txid, txtime, cFields);
                  }
@@ -3160,9 +3179,14 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
+                         {"nameFrom", response["scoreName"].get_str()},
+                         {"avatarFrom", ""},
                          {"posttxid", response["postTxHash"].get_str()},
                          {"upvoteVal", response["value"].get_str()}
                      };
+
+                     if (response.exists("scoreAvatar"))
+                         cFields["avatarFrom"] = response["scoreAvatar"].get_str();
 
                      PrepareWSMessage(messages, "event", response["postAddress"].get_str(), txid, txtime, cFields);
                  }
@@ -3176,7 +3200,12 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
+                         {"nameFrom", response["nameFrom"].get_str()},
+                         {"avatarFrom", ""}
                      };
+
+                     if (response.exists("avatarFrom"))
+                         cFields["avatarFrom"] = response["avatarFrom"].get_str();
 
                      PrepareWSMessage(messages, "event", response["addressTo"].get_str(), txid, txtime, cFields);
                  }
@@ -3190,9 +3219,14 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
+                         {"nameFrom", response["scoreCommentName"].get_str()},
+                         {"avatarFrom", ""},
                          {"commentid", response["commentHash"].get_str()},
                          {"upvoteVal", response["value"].get_str()}
                      };
+
+                     if (response.exists("scoreCommentAvatar"))
+                         cFields["avatarFrom"] = response["scoreCommentAvatar"].get_str();
 
                      PrepareWSMessage(messages, "event", response["commentAddress"].get_str(), txid, txtime, cFields);
                  }
@@ -3206,11 +3240,16 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
+                         {"nameFrom", response["commentName"].get_str()},
+                         {"avatarFrom", ""},
                          {"posttxid", response["postHash"].get_str()},
                          {"parentid", response["parentHash"].get_str()},
                          {"answerid", response["answerHash"].get_str()},
                          {"reason", "post"},
                      };
+
+                     if (response.exists("commentAvatar"))
+                         cFields["avatarFrom"] = response["commentAvatar"].get_str();
 
                      PrepareWSMessage(messages, "event", response["postAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);
 
@@ -3220,11 +3259,16 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          {
                              {"mesType", optype},
                              {"addrFrom", addr.first},
+                             {"nameFrom", response["commentName"].get_str()},
+                             {"avatarFrom", ""},
                              {"posttxid", response["postHash"].get_str()},
                              {"parentid", response["parentHash"].get_str()},
                              {"answerid", response["answerHash"].get_str()},
                              {"reason", "answer"},
                          };
+
+                         if (response.exists("commentAvatar"))
+                             cFields["avatarFrom"] = response["commentAvatar"].get_str();
 
                          PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
                      }
@@ -3637,6 +3681,20 @@ bool CChainState::ActivateBestChain(BlockValidationState &state, const CChainPar
 
 bool ActivateBestChain(BlockValidationState &state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock, std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock) {
     return ::ChainstateActive().ActivateBestChain(state, chainparams, std::move(pblock), pocketBlock);
+}
+
+bool DisconnectTip(BlockValidationState& state, const CChainParams& chainparams, int height)
+{
+    while (::ChainActive().Tip() && ::ChainActive().Height() > height)
+    {
+        if (ShutdownRequested())
+            return true;
+
+        if (!::ChainstateActive().DisconnectTip(state, chainparams, nullptr))
+            return false;
+    }
+
+    return true;
 }
 
 bool CChainState::PreciousBlock(BlockValidationState& state, const CChainParams& params, CBlockIndex *pindex)
@@ -5132,8 +5190,17 @@ bool static LoadBlockIndexDB(ChainstateManager& chainman, const CChainParams& ch
 
 void CChainState::LoadMempool(const ArgsManager& args)
 {
-    if (args.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL) && !args.GetArg("-mempoolclean", false)) {
-        ::LoadMempool(m_mempool);
+    if (args.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL))
+    {
+        if (!args.GetArg("-mempoolclean", false))
+        {
+            ::LoadMempool(m_mempool);
+        }
+        else
+        {
+            LogPrintf("Clean SQLite mempool..\n");
+            PocketDb::TransRepoInst.CleanMempool();
+        }
     }
     m_mempool.SetIsLoaded(!ShutdownRequested());
 }
@@ -5988,7 +6055,7 @@ bool LoadMempool(CTxMemPool& pool)
     }
 
     int64_t count = 0;
-    int64_t expired = 0;
+    std::unordered_set<string> expiredHashes;
     int64_t failed = 0;
     int64_t already_there = 0;
     int64_t unbroadcast = 0;
@@ -5997,9 +6064,9 @@ bool LoadMempool(CTxMemPool& pool)
     try {
         uint64_t version;
         file >> version;
-        if (version != MEMPOOL_DUMP_VERSION) {
+        if (version != MEMPOOL_DUMP_VERSION)
             return false;
-        }
+
         uint64_t num;
         file >> num;
         while (num--) {
@@ -6039,10 +6106,13 @@ bool LoadMempool(CTxMemPool& pool)
                         ++already_there;
                     } else {
                         ++failed;
+                        expiredHashes.emplace(tx->GetHash().GetHex());
                     }
                 }
-            } else {
-                ++expired;
+            }
+            else
+            {
+                expiredHashes.emplace(tx->GetHash().GetHex());
             }
             if (ShutdownRequested())
                 return false;
@@ -6053,6 +6123,9 @@ bool LoadMempool(CTxMemPool& pool)
         for (const auto& i : mapDeltas) {
             pool.PrioritiseTransaction(i.first, i.second);
         }
+
+        // Also remove from sqlite db
+        pool.CleanSQLite(expiredHashes);
 
         // TODO: remove this try except in v0.22
         std::set<uint256> unbroadcast_txids;
@@ -6073,7 +6146,7 @@ bool LoadMempool(CTxMemPool& pool)
         return false;
     }
 
-    LogPrintf("Imported mempool transactions from disk: %i succeeded, %i failed, %i expired, %i already there, %i waiting for initial broadcast\n", count, failed, expired, already_there, unbroadcast);
+    LogPrintf("Imported mempool transactions from disk: %i succeeded, %i failed, %i expired, %i already there, %i waiting for initial broadcast\n", count, failed, expiredHashes.size(), already_there, unbroadcast);
     return true;
 }
 

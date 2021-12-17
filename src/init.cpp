@@ -475,6 +475,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-reindex-start", "Start block for -reindex logic (Deafult: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), false, OptionsCategory::SQLITE); // TODO (losty): false to AllowAny or smth.
 
 #if HAVE_SYSTEM
     argsman.AddArg("-startupnotify=<cmd>", "Execute command on startup.", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -770,81 +771,55 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
     ScheduleBatchPriority();
 
     {
-    CImportingNow imp;
+        CImportingNow imp;
 
-    // -reindex
-    if (IsChainReindex()) {
-        // Rollback to first block
-        if (fReindex == 1 && !PocketDb::ChainRepoInst.ClearDatabase()) {
-            LogPrintf("Failed clear pocket database\n");
-            StartShutdown();
-            return;
-        }
-
-        // Loop all block files for restore chain
-        int nFile = 0;
-        while (true) {
-            FlatFilePos pos(nFile, 0);
-            if (!fs::exists(GetBlockPosFilename(pos)))
-                break; // No block files left to reindex
-            FILE *file = OpenBlockFile(pos, true);
-            if (!file)
-                break; // This error is logged in OpenBlockFile
-            LogPrintf("Reindexing block file blk%05u.dat...\n", (unsigned int)nFile);
-            LoadExternalBlockFile(chainparams, file, &pos);
-            if (ShutdownRequested()) {
-                LogPrintf("Shutdown requested. Exit %s\n", __func__);
+        // -reindex
+        if (IsChainReindex()) {
+            // Rollback to first block
+            if (fReindex == 1 && !PocketDb::ChainRepoInst.ClearDatabase()) {
+                LogPrintf("Failed clear pocket database\n");
+                StartShutdown();
                 return;
             }
-            nFile++;
-        }
-        pblocktree->WriteReindexing(false);
-        fReindex = 0;
-        LogPrintf("Reindexing finished\n");
-        // To avoid ending up in a situation without genesis block, re-try initializing (no-op if reindexing worked):
-        LoadGenesisBlock(chainparams);
-    }
 
-    // -loadblock=
-    for (const fs::path& path : vImportFiles) {
-        FILE *file = fsbridge::fopen(path, "rb");
-        if (file) {
-            LogPrintf("Importing blocks file %s...\n", path.string());
-            LoadExternalBlockFile(chainparams, file);
-            if (ShutdownRequested()) {
-                LogPrintf("Shutdown requested. Exit %s\n", __func__);
-                return;
+            // Loop all block files for restore chain
+            int nFile = 0;
+            while (true) {
+                FlatFilePos pos(nFile, 0);
+                if (!fs::exists(GetBlockPosFilename(pos)))
+                    break; // No block files left to reindex
+                FILE *file = OpenBlockFile(pos, true);
+                if (!file)
+                    break; // This error is logged in OpenBlockFile
+                LogPrintf("Reindexing block file blk%05u.dat...\n", (unsigned int)nFile);
+                LoadExternalBlockFile(chainparams, file, &pos);
+                if (ShutdownRequested()) {
+                    LogPrintf("Shutdown requested. Exit %s\n", __func__);
+                    return;
+                }
+                nFile++;
             }
-        } else {
-            LogPrintf("Warning: Could not open blocks file %s\n", path.string());
+            pblocktree->WriteReindexing(false);
+            fReindex = 0;
+            LogPrintf("Reindexing finished\n");
+            // To avoid ending up in a situation without genesis block, re-try initializing (no-op if reindexing worked):
+            LoadGenesisBlock(chainparams);
         }
-    }
 
-      // TODO (brangr): in testing!
-        // The idea is to roll back SQLITE data at the chain connection level
-
-        // if (!IsChainReindex())
-        // {
-        //     if (PocketDb::ChainRepoInst.Rollback(ChainActive().Height() + 1))
-        //     {
-        //         if (ChainActive().Tip())
-        //         {
-        //             LogPrint(BCLog::SYNC, "Best block in sqlite db: %s (%d)\n",
-        //                 ChainActive().Tip()->GetBlockHash().GetHex(), ChainActive().Height());
-        //         }
-        //         else
-        //         {
-        //             LogPrint(BCLog::SYNC, "No existing blockchain found on disk\n");
-        //         }
-        //     }
-        //     else
-        //     {
-        //         LogPrintf("Error\n");
-        //         StartShutdown();
-        //         return;
-        //     }
-        // }
-
+        // -loadblock=
+        for (const fs::path& path : vImportFiles) {
+            FILE *file = fsbridge::fopen(path, "rb");
+            if (file) {
+                LogPrintf("Importing blocks file %s...\n", path.string());
+                LoadExternalBlockFile(chainparams, file);
+                if (ShutdownRequested()) {
+                    LogPrintf("Shutdown requested. Exit %s\n", __func__);
+                    return;
+                }
+            } else {
+                LogPrintf("Warning: Could not open blocks file %s\n", path.string());
+            }
+        }
 
         // Reindex requests
         // .. only pocket part
@@ -920,37 +895,45 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
             }
         }
 
-    // scan for better chains in the block chain database, that are not yet connected in the active best chain
-
-    // We can't hold cs_main during ActivateBestChain even though we're accessing
-    // the chainman unique_ptrs since ABC requires us not to be holding cs_main, so retrieve
-    // the relevant pointers before the ABC call.
-    for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
+        // TODO (losty-critical): is this ok still we have more than 1 chainstate?
         BlockValidationState state;
-        if (!chainstate->ActivateBestChain(state, chainparams, nullptr, nullptr)) {
-            LogPrintf("Failed to connect best block (%s) - Maybe later?\n", state.ToString());
-            // StartShutdown();
-            // return;
+        int64_t disconnectHeight = args.GetArg("-disconnectlast", -1);
+        if (disconnectHeight > -1)
+        {
+            if (!DisconnectTip(state, chainparams, disconnectHeight))
+            {
+                LogPrintf("Failed to disconnect blocks (%s)\n", state.ToString());
+                StartShutdown();
+                return;
+            }
         }
-    }
 
-    if (args.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
-        LogPrintf("Stopping after block import\n");
-        StartShutdown();
-        return;
-    }
+        // scan for better chains in the block chain database, that are not yet connected in the active best chain
+
+        // We can't hold cs_main during ActivateBestChain even though we're accessing
+        // the chainman unique_ptrs since ABC requires us not to be holding cs_main, so retrieve
+        // the relevant pointers before the ABC call.
+        for (CChainState* chainstate : WITH_LOCK(::cs_main, return chainman.GetAll())) {
+            if (!chainstate->ActivateBestChain(state, chainparams, nullptr, nullptr)) {
+                LogPrintf("Failed to connect best block (%s)\n", state.ToString());
+                // StartShutdown();
+                // return;
+            }
+        }
+
+        if (args.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
+            LogPrintf("Stopping after block import\n");
+            StartShutdown();
+            return;
+        }
     } // End scope of CImportingNow
+
     chainman.ActiveChainstate().LoadMempool(args);
     
     // Start staker thread after activate best chain
     #ifdef ENABLE_WALLET
-    // TODO (brangr): DEBUG!
-    if (chainparams.NetworkID() == NetworkTest)
-    {
-        Staker::getInstance()->setIsStaking(args.GetBoolArg("-staking", true));
-        Staker::getInstance()->startWorkers(threadGroup, context, chainparams);
-        
-    }
+    Staker::getInstance()->setIsStaking(args.GetBoolArg("-staking", true));
+    Staker::getInstance()->startWorkers(threadGroup, context, chainparams);
     #endif
 }
 
@@ -1674,12 +1657,6 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     // ********************************************************* Step 4b: Additional settings
-
-    if (args.GetBoolArg("-mempoolclean", false))
-    {
-        PocketDb::TransRepoInst.Clean();
-        LogPrintf("The sqlite db is cleared according to the -mempoolclean parameter\n");
-    }
 
     if (args.GetArg("-reindex", 0) == 4)
         PocketDb::SQLiteDbInst.RebuildIndexes();

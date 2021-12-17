@@ -528,41 +528,56 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
 {
     // Remove transaction from memory pool
     AssertLockHeld(cs);
-        setEntries txToRemove;
-        txiter origit = mapTx.find(origTx.GetHash());
-        if (origit != mapTx.end())
+    std::unordered_set<std::string> removeHashes;
+    setEntries txToRemove;
+    txiter origit = mapTx.find(origTx.GetHash());
+    if (origit != mapTx.end())
+    {
+        txToRemove.insert(origit);
+    } else
+    {
+        removeHashes.emplace(origTx.GetHash().GetHex());
+        // When recursively removing but origTx isn't in the mempool
+        // be sure to remove any children that are in the pool. This can
+        // happen during chain re-orgs if origTx isn't re-accepted into
+        // the mempool for any reason.
+        for (unsigned int i = 0; i < origTx.vout.size(); i++)
         {
-            txToRemove.insert(origit);
-        } else
-        {
-            // When recursively removing but origTx isn't in the mempool
-            // be sure to remove any children that are in the pool. This can
-            // happen during chain re-orgs if origTx isn't re-accepted into
-            // the mempool for any reason.
-            for (unsigned int i = 0; i < origTx.vout.size(); i++)
-            {
-                auto it = mapNextTx.find(COutPoint(origTx.GetHash(), i));
-                if (it == mapNextTx.end())
-                    continue;
-                txiter nextit = mapTx.find(it->second->GetHash());
-                assert(nextit != mapTx.end());
-                txToRemove.insert(nextit);
-            }
+            auto it = mapNextTx.find(COutPoint(origTx.GetHash(), i));
+            if (it == mapNextTx.end())
+                continue;
+            txiter nextit = mapTx.find(it->second->GetHash());
+            assert(nextit != mapTx.end());
+            txToRemove.insert(nextit);
         }
-        setEntries setAllRemoves;
-        for (txiter it : txToRemove)
-        {
-            CalculateDescendants(it, setAllRemoves);
-        }
+    }
+    setEntries setAllRemoves;
+    for (txiter it : txToRemove)
+    {
+        CalculateDescendants(it, setAllRemoves);
+    }
+    
+    // Build list of tx hashes
+    for (const auto& iter : setAllRemoves)
+    {
+        auto hash = iter->GetTx().GetHash().GetHex();
+        if (removeHashes.find(hash) == removeHashes.end())
+            removeHashes.emplace(hash);
+    }
 
-        RemoveStaged(setAllRemoves, false, reason);
+    RemoveStaged(setAllRemoves, false, reason);
+
+    // Also sqlite clean
+    CleanSQLite(removeHashes);
 }
 
 void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMemPoolHeight, int flags)
 {
     // Remove transactions spending a coinbase which are now immature and no-longer-final transactions
     AssertLockHeld(cs);
+    std::unordered_set<std::string> removeHashes;
     setEntries txToRemove;
+
     for (indexed_transaction_set::const_iterator it = mapTx.begin(); it != mapTx.end(); it++)
     {
         const CTransaction& tx = it->GetTx();
@@ -573,13 +588,15 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
             // Note if CheckSequenceLocks fails the LockPoints may still be invalid
             // So it's critical that we remove the tx and not depend on the LockPoints.
             txToRemove.insert(it);
-        } else if (it->GetSpendsCoinbase())
+        }
+        else if (it->GetSpendsCoinbase())
         {
             for (const CTxIn& txin : tx.vin)
             {
                 indexed_transaction_set::const_iterator it2 = mapTx.find(txin.prevout.hash);
                 if (it2 != mapTx.end())
                     continue;
+
                 const Coin& coin = pcoins->AccessCoin(txin.prevout);
                 if (nCheckFrequency != 0) assert(!coin.IsSpent());
                 if (coin.IsSpent() || ((coin.IsCoinBase() || coin.IsCoinStake()) &&
@@ -590,17 +607,23 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
                 }
             }
         }
+
         if (!validLP)
-        {
             mapTx.modify(it, update_lock_points(lp));
-        }
     }
+
     setEntries setAllRemoves;
     for (txiter it : txToRemove)
-    {
         CalculateDescendants(it, setAllRemoves);
-    }
+
+    // Build list of tx hashes
+    for (const auto& iter : setAllRemoves)
+        removeHashes.emplace(iter->GetTx().GetHash().GetHex());
+
     RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::REORG);
+
+    // Also sqlite clean
+    CleanSQLite(removeHashes);
 }
 
 void CTxMemPool::removeConflicts(const CTransaction& tx)
@@ -1052,6 +1075,15 @@ void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPool
     }
 }
 
+void CTxMemPool::CleanSQLite(const std::unordered_set<std::string>& hashes)
+{
+    for (const auto& hash : hashes)
+    {
+        PocketDb::TransRepoInst.CleanTransaction(hash);
+        LogPrint(BCLog::SYNC, "Clean SQLite mempool transaction %s\n", hash);
+    }
+}
+
 int CTxMemPool::Expire(std::chrono::seconds time)
 {
     AssertLockHeld(cs);
@@ -1062,12 +1094,22 @@ int CTxMemPool::Expire(std::chrono::seconds time)
         toremove.insert(mapTx.project<0>(it));
         it++;
     }
+
     setEntries stage;
     for (txiter removeit : toremove)
-    {
         CalculateDescendants(removeit, stage);
-    }
+
+    // Build list of tx hashes
+    std::unordered_set<std::string> removeHashes;
+    for (const auto& iter : stage)
+        removeHashes.emplace(iter->GetTx().GetHash().GetHex());
+
+    // Remove from memory mempool
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
+
+    // Also remove from sqlite db
+    CleanSQLite(removeHashes);
+
     return stage.size();
 }
 
@@ -1087,7 +1129,8 @@ void CTxMemPool::UpdateChild(txiter entry, txiter child, bool add)
     if (add && entry->GetMemPoolChildren().insert(*child).second)
     {
         cachedInnerUsage += memusage::IncrementalDynamicUsage(s);
-    } else if (!add && entry->GetMemPoolChildren().erase(*child))
+    }
+    else if (!add && entry->GetMemPoolChildren().erase(*child))
     {
         cachedInnerUsage -= memusage::IncrementalDynamicUsage(s);
     }
@@ -1265,3 +1308,19 @@ CTxMemPool::EpochGuard::~EpochGuard()
 
 SaltedTxidHasher::SaltedTxidHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())),
                                        k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
+
+void CTxMemPool::GetAllInputs(std::vector<std::pair<std::string, uint32_t>>& inputs)
+{
+    LOCK(cs);
+    for (const auto& e: mapTx)
+    {
+        const auto& tx = e.GetTx();
+        for (const auto& txin: tx.vin)
+        {
+            inputs.push_back({
+                txin.prevout.hash.ToString(),
+                txin.prevout.n
+            });
+        }
+    }
+}

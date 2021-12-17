@@ -72,7 +72,7 @@ namespace PocketTx
                 SetRootTxHash(valTxId);
     }
 
-    void Post::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
+    void Post::DeserializeRpc(const UniValue& src)
     {
         if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
 
@@ -93,9 +93,9 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "i"); ok) m_payload->SetString5(val);
     }
 
-    void Post::DeserializePayload(const UniValue& src, const CTransactionRef& tx)
+    void Post::DeserializePayload(const UniValue& src)
     {
-        Transaction::DeserializePayload(src, tx);
+        Transaction::DeserializePayload(src);
 
         if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
         else m_payload->SetString1("en");

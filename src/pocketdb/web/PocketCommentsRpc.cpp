@@ -40,7 +40,25 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 2)
             addressHash = request.params[2].get_str();
 
-        return request.DbConnection()->WebRpcRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
+        vector<string> cmntHashes;
+        if (request.params.size() > 3)
+        {
+            if (request.params[3].isArray())
+            {
+                UniValue hashes = request.params[3].get_array();
+                for (unsigned int id = 0; id < hashes.size(); id++)
+                    cmntHashes.push_back(hashes[id].get_str());
+            }
+            else
+            {
+                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
+            }
+        }
+
+        if (!cmntHashes.empty())
+            return request.DbConnection()->WebRpcRepoInst->GetCommentsByHashes(cmntHashes, addressHash);
+        else
+            return request.DbConnection()->WebRpcRepoInst->GetCommentsByPost(postHash, parentHash, addressHash);
     },
         };
     }
@@ -67,21 +85,16 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet Pocketnet last comments.\n");
 
         int resultCount = 10;
-        if (!request.params.empty()) {
-            if (request.params[0].isNum()) {
-                resultCount = request.params[0].get_int();
-            }
-        }
+        if (request.params[0].isNum())
+            resultCount = request.params[0].get_int();
 
         string address;
-        if (request.params.size() > 1) {
+        if (request.params[1].isStr())
             address = request.params[1].get_str();
-        }
 
-        string lang;
-        if (request.params.size() > 2) {
+        string lang = "en";
+        if (request.params[2].isStr())
             lang = request.params[2].get_str();
-        }
 
         int nHeight = ::ChainActive().Height();
 

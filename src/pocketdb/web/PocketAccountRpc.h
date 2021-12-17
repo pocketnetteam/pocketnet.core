@@ -14,15 +14,17 @@ namespace PocketWeb::PocketWebRpc
     using namespace std;
     using namespace PocketConsensus;
 
-    RPCHelpMan GetAddressId();
+    RPCHelpMan GetAccountId();
     RPCHelpMan GetAccountProfiles();
     RPCHelpMan GetAccountSetting();
-    RPCHelpMan GetUserAddress();
-    RPCHelpMan GetAddressRegistration();
-    RPCHelpMan GetUserState();
-    map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, std::vector<std::string> addresses, bool shortForm = true);
-    RPCHelpMan GetUnspents();
-    RPCHelpMan GetUserStatistic();
+    RPCHelpMan GetAccountAddress();
+    RPCHelpMan GetAccountRegistration();
+    RPCHelpMan GetAccountState();
+    RPCHelpMan GetAccountUnspents();
+    RPCHelpMan GetAccountStatistic();
+    RPCHelpMan GetAccountSubscribes();
+    RPCHelpMan GetAccountSubscribers();
+    RPCHelpMan GetAccountBlockings();
 }
 
 

@@ -1473,7 +1473,7 @@ static RPCHelpMan getchaintips()
     };
 }
 
-UniValue MempoolInfoToJSON(const CTxMemPool& pool)
+UniValue mempoolInfoToJSON(const CTxMemPool& pool)
 {
     // Make sure this call is atomic in the pool.
     LOCK(pool.cs);
@@ -1513,7 +1513,17 @@ static RPCHelpMan getmempoolinfo()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    return MempoolInfoToJSON(EnsureMemPool(request.context));
+    const auto& node = EnsureNodeContext(request.context);
+    // TODO (losty-fur): possible null mempool
+    UniValue result = mempoolInfoToJSON(*node.mempool);
+    int sqliteMempoolCount = PocketDb::TransRepoInst.MempoolCount();
+
+    UniValue size(UniValue::VOBJ);
+    size.pushKV("memory", result["size"].get_int());
+    size.pushKV("sqlite", sqliteMempoolCount);
+    result.pushKV("size", size);
+
+    return result;
 },
     };
 }

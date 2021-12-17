@@ -27,19 +27,20 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Actual content not deleted
-            if (auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(*ptx->GetRootTxHash());
-                !ok || *actuallTx->GetType() == TxType::CONTENT_DELETE)
-                return {false, SocialConsensusResult_ContentDeleteDouble};
+            auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(
+                *ptx->GetRootTxHash(),
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+            );
 
-            // Original content exists
-            auto[originalTxOk, originalTx] = PocketDb::ConsensusRepoInst.GetFirstContent(*ptx->GetRootTxHash());
-            if (!originalTxOk || !originalTx)
+            if (!ok)
                 return {false, SocialConsensusResult_NotFound};
 
-            auto originalPtx = static_pointer_cast<ContentDelete>(originalTx);
+            if (*actuallTx->GetType() == TxType::CONTENT_DELETE)
+                return {false, SocialConsensusResult_ContentDeleteDouble};
 
+            // TODO (brangr): convert to Content base class
             // You are author? Really?
-            if (*ptx->GetAddress() != *originalPtx->GetAddress())
+            if (*ptx->GetAddress() != *actuallTx->GetString1())
                 return {false, SocialConsensusResult_ContentDeleteUnauthorized};
 
             return Success;
@@ -61,15 +62,14 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE}))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                auto blockPtx = static_pointer_cast<ContentDelete>(blockTx);
-
-                if (*ptx->GetRootTxHash() == *blockPtx->GetRootTxHash())
+                // TODO (brangr): convert to content base class
+                if (*ptx->GetRootTxHash() == *blockTx->GetString2())
                     return {false, SocialConsensusResult_ContentDeleteDouble};
             }
 

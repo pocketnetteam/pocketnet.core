@@ -21,6 +21,7 @@ namespace PocketDbWeb
         int PageStart = 0;
         int PageSize = 10;
         string Address;
+        bool OrderByRank = false;
 
         vector<ContentFieldType> FieldTypes;
         vector<TxType> TxTypes;
@@ -28,7 +29,8 @@ namespace PocketDbWeb
         SearchRequest() = default;
 
         SearchRequest(const string& keyword, const vector<ContentFieldType>& fieldTypes, const vector<TxType>& txTypes,
-            int topBlock = 0, int pageStart = 0, int pageSize = 10, const string& address = "")
+            int topBlock = 0, int pageStart = 0, int pageSize = 10, const string& address = "",
+            bool orderByRank = false)
         {
             Keyword = keyword;
             FieldTypes = fieldTypes;
@@ -37,6 +39,7 @@ namespace PocketDbWeb
             PageStart = pageStart;
             PageSize = pageSize;
             Address = address;
+            OrderByRank = orderByRank;
         }
     };
 

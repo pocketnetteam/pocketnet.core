@@ -31,6 +31,8 @@ RPCHelpMan gettemplate()
 // @formatter:off
 static const CRPCCommand commands[] =
 {
+    {"hidden",       "generatepocketnettransaction",      &GenerateTransaction,             {"address", "privKey", "outCount", "type", "payload"}},
+
     // Old methods
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
     {"artifacts", "getusercontents",                  &gettemplate,                       {"address", "height", "start_txid", "count", "lang", "tags", "contenttypes"}},
@@ -40,6 +42,13 @@ static const CRPCCommand commands[] =
     {"search",          "search",                           &Search,                        {"keyword", "type", "topBlock", "pageStart", "pageSize", "address"}},
     {"search",          "searchlinks",                      &SearchLinks,                   {"links", "contenttypes", "height", "count"}},
     {"search",          "searchusers",                      &SearchUsers,                   {"keyword", "fieldtypes", "orderbyrank"}},
+
+    // Recomendations
+    {"search",          "getrecomendedaccountsbysubscriptions",           &GetRecomendedAccountsBySubscriptions,           {}},
+    {"search",          "getrecomendedaccountsbyscoresonsimilaraccounts", &GetRecomendedAccountsByScoresOnSimilarAccounts, {}},
+    {"search",          "getrecomendedaccountsbyscoresfromaddress",       &GetRecomendedAccountsByScoresFromAddress,       {}},
+    {"search",          "getrecomendedcontentsbyscoresonsimilarcontents", &GetRecomendedContentsByScoresOnSimilarContents, {}},
+    {"search",          "getrecomendedcontentsbyscoresfromaddress",       &GetRecomendedContentsByScoresFromAddress,       {}},
 
     // WebSocket
     {"websocket",       "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},
@@ -57,6 +66,7 @@ static const CRPCCommand commands[] =
     {"contents",        "getsubscribesfeed",                &GetSubscribesFeed,             {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
     {"contents",        "getcontentsstatistic",             &GetContentsStatistic,          {"addresses", "contentTypes", "height", "depth"}},
     {"contents",        "getcontents",                      &GetContents,                   {"address"}},
+    {"contents",        "getrandomcontents",                &GetRandomContents,             {}},
 
     // Tags
 //    {"artifacts", "searchtags",                       &gettemplate,                       {"search_string", "count"}},
@@ -67,19 +77,22 @@ static const CRPCCommand commands[] =
     {"comments",        "getlastcomments",                  &GetLastComments,               {"count", "address"}},
 
     // Accounts
-    {"accounts",       "getuserprofile",                   &GetAccountProfiles,             {"addresses", "short"}},
-    {"accounts",       "getuseraddress",                   &GetUserAddress,                 {"name"}},
-    {"accounts",       "getaddressregistration",           &GetAddressRegistration,         {"addresses"}},
-    {"accounts",       "getuserstate",                     &GetUserState,                   {"address"}},
-    {"accounts",       "txunspent",                        &GetUnspents,                    {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
-    {"accounts",       "getaddressid",                     &GetAddressId,                   {"address_or_id"}},
-    {"accounts",       "getaccountsetting",                &GetAccountSetting,              {"address"}},
-    {"accounts",       "getuserstatistic",                 &GetUserStatistic,               {"addresses", "height", "depth"}},
+    {"accounts",        "getuserprofile",                   &GetAccountProfiles,             {"addresses", "short"}},
+    {"accounts",        "getuseraddress",                   &GetAccountAddress,              {"name"}},
+    {"accounts",        "getaddressregistration",           &GetAccountRegistration,         {"addresses"}},
+    {"accounts",        "getuserstate",                     &GetAccountState,                {"address"}},
+    {"accounts",        "txunspent",                        &GetAccountUnspents,             {"addresses", "minconf", "maxconf", "include_unsafe", "query_options"}},
+    {"accounts",        "getaddressid",                     &GetAccountId,                   {"address_or_id"}},
+    {"accounts",        "getaccountsetting",                &GetAccountSetting,              {"address"}},
+    {"accounts",        "getuserstatistic",                 &GetAccountStatistic,            {"address", "height", "depth"}},
+    {"accounts",        "getusersubscribes",                &GetAccountSubscribes,           {"address", "height", "depth"}},
+    {"accounts",        "getusersubscribers",               &GetAccountSubscribers,          {"address", "height", "depth"}},
+    {"accounts",        "getuserblockings",                 &GetAccountBlockings,            {"address", "height", "depth"}},
 
     // Scores
     {"scores",          "getaddressscores",                 &GetAddressScores,              {"address", "txs"}},
-    {"scores",          "getpostscores",                    &GetPostScores,                 {"txs", "address"}},
-    {"scores",          "getpagescores",                    &GetPageScores,                 {"txs", "address", "cmntids"}},
+    {"scores",          "getpostscores",                    &GetPostScores,                 {"txHash"}},
+    {"scores",          "getpagescores",                    &GetPagesScores,                {"postIds", "address", "cmntIds"}},
 
     // Explorer
     {"explorer",       "getstatistic",                     &GetStatistic,                   {"endTime", "depth"}},

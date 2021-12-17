@@ -103,7 +103,7 @@ namespace PocketServices
             }
 
             ptx->Deserialize(txDataSrc);
-            ptx->DeserializePayload(txDataSrc, tx);
+            ptx->DeserializePayload(txDataSrc);
         }
 
         return ptx;
@@ -123,7 +123,7 @@ namespace PocketServices
         if (!buildOutputs(tx, ptx))
             return nullptr;
 
-        ptx->DeserializeRpc(src, tx);
+        ptx->DeserializeRpc(src);
         return ptx;
     }
 
@@ -200,14 +200,12 @@ namespace PocketServices
                 pocketBlock.push_back(ptx);
         }
 
-        // TODO (brangr): check deserialize success ?
-        //bool resultCheck = pocketBlock.size() == (block.vtx.size() - 1);
-        return {true, pocketBlock};
+        return { true, pocketBlock };
     }
 
     tuple<bool, shared_ptr<Transaction>> Serializer::deserializeTransaction(const CTransactionRef& tx, UniValue& pocketData)
     {
         auto ptx = buildInstance(tx, pocketData);
-        return {ptx != nullptr, ptx};
+        return { ptx != nullptr, ptx };
     }
 }

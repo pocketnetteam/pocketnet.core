@@ -47,7 +47,7 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "referrer"); ok) SetReferrerAddress(val);
     }
 
-    void User::DeserializeRpc(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
+    void User::DeserializeRpc(const UniValue& src)
     {
         if (auto[ok, val] = TryGetStr(src, "r"); ok) SetReferrerAddress(val);
 
@@ -81,9 +81,9 @@ namespace PocketTx
     shared_ptr <string> User::GetPayloadDonations() const { return GetPayload() ? GetPayload()->GetString7() : nullptr; }
     shared_ptr <string> User::GetPayloadPubkey() const { return GetPayload() ? GetPayload()->GetString6() : nullptr; }
 
-    void User::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx)
+    void User::DeserializePayload(const UniValue& src)
     {
-        Transaction::DeserializePayload(src, tx);
+        Transaction::DeserializePayload(src);
 
         if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
 

@@ -34,9 +34,10 @@ struct PSBTAnalysis {
 
     void SetInvalid(std::string err_msg)
     {
-        estimated_vsize = nullopt;
-        estimated_feerate = nullopt;
-        fee = nullopt;
+        // TODO (losty-fur): optional issues here
+        estimated_vsize = Optional<size_t>();
+        estimated_feerate = Optional<CFeeRate>();
+        fee = Optional<CAmount>();
         inputs.clear();
         next = PSBTRole::CREATOR;
         error = err_msg;

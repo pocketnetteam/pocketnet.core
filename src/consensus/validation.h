@@ -53,6 +53,7 @@ enum class TxValidationResult {
      */
     TX_CONFLICT,
     TX_MEMPOOL_POLICY,        //!< violated mempool's fee/size/descendant/RBF/etc limits
+    // TODO (losty-critical): RPC_POCKETTX_MATURITY here!
 };
 
 /** A "reason" why a block was invalid, suitable for determining whether the
@@ -78,7 +79,7 @@ enum class BlockValidationResult {
     BLOCK_INVALID_PREV,      //!< A block this one builds on is invalid
     BLOCK_TIME_FUTURE,       //!< block timestamp was > 2 hours in the future (or our clock is bad)
     BLOCK_CHECKPOINT,        //!< the block failed to meet one of our checkpoints
-    BLOCK_INCOMPLETE         //!< TODO description
+    // BLOCK_INCOMPLETE         //!< TODO (losty-critical): this is for sure needed somewhere but i forgot where
 };
 
 
@@ -94,6 +95,7 @@ private:
         M_VALID,   //!< everything ok
         M_INVALID, //!< network rule violation (DoS value may be set)
         M_ERROR,   //!< run-time error
+        M_MODE_CONSENSUS, //!< consensus error
     } m_mode{ModeState::M_VALID};
     Result m_result{};
     std::string m_reject_reason;
@@ -103,14 +105,19 @@ public:
     bool Invalid(Result result,
                  const std::string& reject_reason = "",
                  const std::string& debug_message = "",
-                 bool incompleted = false)
+                 bool incompleted = false,
+                 ModeState modIn = ModeState::M_INVALID)
     {
         m_result = result;
         m_reject_reason = reject_reason;
         m_debug_message = debug_message;
         m_incompleted = incompleted;
-        if (m_mode != ModeState::M_ERROR) m_mode = ModeState::M_INVALID;
+        if (m_mode != ModeState::M_ERROR) m_mode = modIn;
         return false;
+    }
+    bool ConsensusFailed(unsigned int _chRejectCode, const std::string &_strRejectReason) {
+        // TODO (losty-critical)
+        return false;//Invalid(0, false, _chRejectCode, _strRejectReason, false, "", false, ModeState::M_MODE_CONSENSUS);
     }
     bool Error(const std::string& reject_reason)
     {
@@ -122,6 +129,7 @@ public:
     bool IsValid() const { return m_mode == ModeState::M_VALID; }
     bool IsInvalid() const { return m_mode == ModeState::M_INVALID; }
     bool IsError() const { return m_mode == ModeState::M_ERROR; }
+    bool IsConsensusFailed() const { return m_mode == ModeState::M_MODE_CONSENSUS; }
     Result GetResult() const { return m_result; }
     std::string GetRejectReason() const { return m_reject_reason; }
     std::string GetDebugMessage() const { return m_debug_message; }

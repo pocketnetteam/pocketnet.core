@@ -158,6 +158,8 @@ static constexpr size_t MAX_ADDR_PROCESSING_TOKEN_BUCKET{MAX_ADDR_TO_SEND};
 /* For PocketNet the compact blocks version 3 is the first to work on the PocketNet network */
 static constexpr uint64_t CMPCT_BLOCKS_PROTOCOL_VERSION = 3;
 
+RecursiveMutex cs_nodestate;
+
 struct COrphanTx {
     // When modifying, adapt the copy of this definition in tests/DoS_tests.
     CTransactionRef tx;
@@ -514,8 +516,8 @@ struct CNodeState {
 };
 
 /** Map maintaining per-node state. */
-// TODO (brangr): change cs_main to cs_nodestate
 static std::map<NodeId, CNodeState> mapNodeState GUARDED_BY(cs_main);
+static std::map<NodeId, CNodeState> mapNodeStateView GUARDED_BY(cs_nodestate);
 
 static CNodeState *State(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_main) {
     std::map<NodeId, CNodeState>::iterator it = mapNodeState.find(pnode);
@@ -584,6 +586,14 @@ static PeerRef GetPeerRef(NodeId id)
     LOCK(g_peer_mutex);
     auto it = g_peer_map.find(id);
     return it != g_peer_map.end() ? it->second : nullptr;
+}
+
+static CNodeState* StateView(NodeId pnode) EXCLUSIVE_LOCKS_REQUIRED(cs_nodestate)
+{
+    auto it = mapNodeStateView.find(pnode);
+    if (it == mapNodeStateView.end())
+        return nullptr;
+    return &it->second;
 }
 
 static void UpdatePreferredDownload(const CNode& node, CNodeState* state) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
@@ -914,6 +924,7 @@ void PeerManager::InitializeNode(CNode *pnode) {
     CAddress addr = pnode->addr;
     std::string addrName = pnode->GetAddrName();
     NodeId nodeid = pnode->GetId();
+    
     {
         LOCK(cs_main);
         mapNodeState.emplace_hint(mapNodeState.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, pnode->IsInboundConn(), pnode->IsManualConn()));
@@ -924,6 +935,13 @@ void PeerManager::InitializeNode(CNode *pnode) {
         LOCK(g_peer_mutex);
         g_peer_map.emplace_hint(g_peer_map.end(), nodeid, std::move(peer));
     }
+
+    {
+        LOCK(cs_nodestate);
+        // TODO (losty-critical): CNodeState constructing changed. It doesn't require addrName anymore but require flags for inbound and manual connection.
+        // mapNodeStateView.emplace_hint(mapNodeStateView.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
+    }
+    
     if (!pnode->IsInboundConn()) {
         PushNodeVersion(*pnode, m_connman, GetTime());
     }
@@ -988,6 +1006,11 @@ void PeerManager::FinalizeNode(const CNode& node, bool& fUpdateConnectionTime) {
 
     mapNodeState.erase(nodeid);
 
+    {
+        LOCK(cs_nodestate);
+        mapNodeStateView.erase(nodeid);
+    }
+
     if (mapNodeState.empty()) {
         // Do a consistency check after the last peer is removed.
         assert(mapBlocksInFlight.empty());
@@ -1019,6 +1042,22 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats) {
     stats.m_misbehavior_score = WITH_LOCK(peer->m_misbehavior_mutex, return peer->m_misbehavior_score);
     stats.m_addr_processed = peer->m_addr_processed.load();
     stats.m_addr_rate_limited = peer->m_addr_rate_limited.load();
+
+    return true;
+}
+
+bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
+{
+    LOCK(cs_nodestate);
+
+    CNodeState* state = StateView(nodeid);
+    if (state == nullptr)
+        return false;
+
+    // TODO (losty-critical): these fields removed. stats have m_misbehaviuor_score, but state does not have analog
+    // stats.nMisbehavior = state->nMisbehavior;
+    stats.nSyncHeight = state->pindexBestKnownBlock ? state->pindexBestKnownBlock->nHeight : -1;
+    stats.nCommonHeight = state->pindexLastCommonBlock ? state->pindexLastCommonBlock->nHeight : -1;
 
     return true;
 }
@@ -1699,7 +1738,7 @@ void static ProcessGetBlockData(CNode& pfrom, const CChainParams& chainparams, c
             std::string pocketBlockData;
             if (!PocketServices::Accessor::GetBlock(block, pocketBlockData))
             {
-                LogPrintf("WARNING! Cannot load block payload from sqlite db: %s\n", pblock->GetHash().GetHex());
+                LogPrintf("WARNING! Cannot load block payload from sqlite db: %s\n", block.GetHash().GetHex());
                 return;
             }
 

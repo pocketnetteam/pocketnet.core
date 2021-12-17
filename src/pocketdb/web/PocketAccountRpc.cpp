@@ -3,12 +3,13 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketAccountRpc.h"
+#include "rpc/blockchain.h"
 #include "rpc/util.h"
 #include "validation.h"
 
 namespace PocketWeb::PocketWebRpc
 {
-    RPCHelpMan GetAddressId()
+    RPCHelpMan GetAccountId()
     {
         return RPCHelpMan{"getaddressid",
                 "\nGet id and address.\n",
@@ -42,32 +43,6 @@ namespace PocketWeb::PocketWebRpc
         throw JSONRPCError(RPC_INVALID_PARAMETER, "There is no arguments");
     },
         };
-    }
-
-    map<string, UniValue> GetUsersProfiles(const DbConnectionRef& dbCon, vector<string> addresses, bool shortForm)
-    {
-        auto result = dbCon->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm);
-
-        if (shortForm)
-            return result;
-
-        auto subscribes = dbCon->WebRpcRepoInst->GetSubscribesAddresses(addresses);
-        auto subscribers = dbCon->WebRpcRepoInst->GetSubscribersAddresses(addresses);
-        auto blocking = dbCon->WebRpcRepoInst->GetBlockingToAddresses(addresses);
-
-        for (auto& i : result)
-        {
-            if (subscribes.find(i.first) != subscribes.end())
-                i.second.pushKV("subscribes", subscribes[i.first]);
-
-            if (subscribers.find(i.first) != subscribers.end())
-                i.second.pushKV("subscribers", subscribers[i.first]);
-
-            if (blocking.find(i.first) != blocking.end())
-                i.second.pushKV("blocking", blocking[i.first]);
-        }
-
-        return result;
     }
 
     RPCHelpMan GetAccountProfiles()
@@ -115,7 +90,7 @@ namespace PocketWeb::PocketWebRpc
             shortForm = request.params[1].get_str() == "1";
 
         // Get data
-        map<string, UniValue> profiles = GetUsersProfiles(request.DbConnection(), addresses, shortForm);
+        map<string, UniValue> profiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(addresses, shortForm);
         for (auto& p : profiles)
             result.push_back(p.second);
 
@@ -124,7 +99,7 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
-    RPCHelpMan GetUserAddress()
+    RPCHelpMan GetAccountAddress()
     {
         return RPCHelpMan{"getuseraddress",
                 "\nGet list addresses of user.\n",
@@ -137,8 +112,8 @@ namespace PocketWeb::PocketWebRpc
                 },
                 RPCExamples{
                     // TODO (losty-fur): provide correct examples
-                    HelpExampleCli("getpostscores", "") +
-                    HelpExampleRpc("getpostscores", "")
+                    HelpExampleCli("getuseraddress", "") +
+                    HelpExampleRpc("getuseraddress", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -150,7 +125,7 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
-    RPCHelpMan GetAddressRegistration()
+    RPCHelpMan GetAccountRegistration()
     {
         return RPCHelpMan{"getaddressregistration",
                 "\nReturns array of registration dates.\n",
@@ -163,8 +138,10 @@ namespace PocketWeb::PocketWebRpc
                         {
                             RPCResult::Type::OBJ, "", /* optional (means array may be empty) */ true, "",
                             {
-                                {RPCResult::Type::STR, "address", ""},
-                                {RPCResult::Type::NUM_TIME, "date", ""},
+                                {RPCResult::Type::STR, "address", "the pocketcoin address"},
+                                {RPCResult::Type::NUM_TIME, "date", "date in Unix time format"},
+                                // TODO (team): provide name for this arg
+                                {RPCResult::Type::STR, "?", "id of first transaction with this address"}
                             }
                         }
                     },
@@ -202,7 +179,7 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
-    RPCHelpMan GetUserState()
+    RPCHelpMan GetAccountState()
     {
         return RPCHelpMan{"getuserstate",
                 "\nReturns account limits and rating information\n",
@@ -241,6 +218,7 @@ namespace PocketWeb::PocketWebRpc
 
         result.pushKV("mode", accountMode);
         result.pushKV("trial", accountMode == AccountMode_Trial);
+        result.pushKV("reputation", result["reputation"].get_int() / 10.0);
 
         int64_t postLimit;
         int64_t videoLimit;
@@ -299,7 +277,7 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
-    RPCHelpMan GetUnspents()
+    RPCHelpMan GetAccountUnspents()
     {
         return RPCHelpMan{"txunspent",
                 "\nReturns array of unspent transaction outputs\n"
@@ -388,25 +366,14 @@ namespace PocketWeb::PocketWebRpc
         //         nMaximumCount = options["maximumCount"].get_int64();
         // }
 
-        // Check exists TX in mempool
-        // // T_O_D_O: LOCK(mempool.cs);
-        // for (const auto& e : mempool.mapTx) {
-        //     const CTransaction& tx = e.GetTx();
-        //     for (const CTxIn& txin : tx.vin) {
-        //         AddressUnspentTransactionItem mempoolItm = {"", txin.prevout.hash.ToString(), (int)txin.prevout.n};
+        const auto& node = EnsureNodeContext(request.context);
+        // Get exclude inputs already used in mempool
+        vector<pair<string, uint32_t>> mempoolInputs;
+        // TODO (losty-fur): possible null mempool
+        node.mempool->GetAllInputs(mempoolInputs);
 
-        //         if (find_if(
-        //             unspentTransactions.begin(),
-        //             unspentTransactions.end(),
-        //             [&](const AddressUnspentTransactionItem& itm) { return itm == mempoolItm; }) != unspentTransactions.end()) {
-        //             unspentTransactions.erase(
-        //                 remove(unspentTransactions.begin(), unspentTransactions.end(), mempoolItm),
-        //                 unspentTransactions.end());
-        //         }
-        //     }
-        // }
-
-        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, ::ChainActive().Height());
+        // Get unspents from DB
+        return request.DbConnection()->WebRpcRepoInst->GetUnspents(destinations, ::ChainActive().Height(), mempoolInputs);
     },
         };
     }
@@ -437,7 +404,7 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
-    RPCHelpMan GetUserStatistic()
+    RPCHelpMan GetAccountStatistic()
     {
         return RPCHelpMan{"getuserstatistic",
                 "\nGet user statistic.\n",
@@ -503,6 +470,84 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return request.DbConnection()->WebRpcRepoInst->GetUserStatistic(addresses, nHeight, depth);
+    },
+        };
+    }
+
+    RPCHelpMan GetAccountSubscribes()
+    {
+        return RPCHelpMan{"GetAccountSubscribes",
+                "\nReturn subscribes accounts list with pagination - NOT IMPLEMENTED\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("GetAccountSubscribes", "\"address\"") +
+                    HelpExampleRpc("GetAccountSubscribes", "\"address\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetSubscribesAddresses(address);
+    },
+        };
+    }
+
+    RPCHelpMan GetAccountSubscribers()
+    {
+        return RPCHelpMan{"GetAccountSubscribers",
+                "\nReturn subscribers accounts list with pagination - NOT IMPLEMENTED\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("GetAccountSubscribers", "\"address\"") +
+                    HelpExampleRpc("GetAccountSubscribers", "\"address\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetSubscribersAddresses(address);
+    },
+        };
+    }
+
+    RPCHelpMan GetAccountBlockings()
+    {
+        return RPCHelpMan{"GetAccountBlockings",
+                "\nReturn blocked accounts list with pagination - NOT IMPLEMENTED\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    HelpExampleCli("GetAccountBlockings", "\"address\"") +
+                    HelpExampleRpc("GetAccountBlockings", "\"address\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+
+        string address = request.params[0].get_str();
+
+        return request.DbConnection()->WebRpcRepoInst->GetBlockingToAddresses(address);
     },
         };
     }

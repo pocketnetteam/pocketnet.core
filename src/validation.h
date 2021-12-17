@@ -199,7 +199,13 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
  * May not be called with cs_main held. May not be called in a
  * validationinterface callback.
  */
-bool ActivateBestChain(BlockValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>(), std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr);
+bool ActivateBestChain(BlockValidationState& state, const CChainParams& chainparams,
+    std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>(),
+    std::shared_ptr<PocketHelpers::PocketBlock> pocketBlock = nullptr);
+
+/**  Disconnect chain blocks before height */
+bool DisconnectTip(BlockValidationState& state, const CChainParams& chainparams, int height);
+
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);
 
 /** Guess verification progress (as a fraction between 0.0=genesis and 1.0=current tip). */

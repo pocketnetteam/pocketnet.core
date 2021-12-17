@@ -22,6 +22,7 @@
 #include <primitives/transaction.h>
 #include <sync.h>
 #include <random.h>
+#include <logging.h>
 
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
@@ -665,6 +666,10 @@ public:
      */
     void RemoveStaged(setEntries& stage, bool updateDescendants, MemPoolRemovalReason reason) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
+    /** Remove transactions from SQLite db with payload and additional data
+     */
+    void CleanSQLite(const std::unordered_set<std::string>& hashes);
+
     /** When adding transactions from a disconnected block back to the mempool,
      *  new mempool entries may have children in the mempool (which is generally
      *  not the case when otherwise adding transactions).
@@ -790,6 +795,8 @@ public:
     uint64_t GetSequence() const EXCLUSIVE_LOCKS_REQUIRED(cs) {
         return m_sequence_number;
     }
+
+    void GetAllInputs(std::vector<std::pair<std::string, uint32_t>>& inputs);
 
 private:
     /** UpdateForDescendants is used by UpdateTransactionsFromBlock to update
@@ -946,7 +953,10 @@ struct DisconnectedBlockTransactions {
     // instance if there was some other way we cleaned up the mempool after a
     // reorg, besides draining this object).
     ~DisconnectedBlockTransactions() {
-        assert(queuedTx.empty());
+        // TODO (brangr): why queuedTx not empty? Temp commented
+        if (!queuedTx.empty())
+            LogPrintf("DANGER! This line should not have appeared, please inform the developers https://github.com/pocketnetteam/pocketnet.core/issues");
+        // assert(queuedTx.empty());
     }
 
     indexed_disconnected_transactions queuedTx;

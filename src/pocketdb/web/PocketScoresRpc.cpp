@@ -110,43 +110,15 @@ namespace PocketWeb::PocketWebRpc
                 "getpostscores\n"
                 "\nGet scores from address.\n");
 
-        vector<string> postHashes;
-        if (!request.params.empty())
-        {
-            if (request.params[0].isArray())
-            {
-                UniValue txid = request.params[0].get_array();
-                for (unsigned int idx = 0; idx < txid.size(); idx++)
-                    postHashes.push_back(txid[idx].get_str());
-            }
-            else if (request.params[0].isStr())
-                postHashes.push_back(request.params[0].get_str());
-            else
-                throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid txs format");
-        }
-        else
-            throw JSONRPCError(RPC_INVALID_PARAMS, "There are no txid");
+        RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR, UniValue::VARR});
 
-
-        std::string address;
-        if (request.params.size() > 1 && request.params[1].isStr())
-        {
-            CTxDestination dest = DecodeDestination(request.params[1].get_str());
-            if (!IsValidDestination(dest))
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid address: ") + request.params[1].get_str());
-
-            address = request.params[1].get_str();
-        }
-
-        auto postScores = request.DbConnection()->WebRpcRepoInst->GetPostScores(postHashes, address);
-        UniValue result(UniValue::VARR);
-        result.push_backV(postScores);
-        return result;
+        auto postTxHash = request.params[0].get_str();
+        return request.DbConnection()->WebRpcRepoInst->GetPostScores(postTxHash);
     },
         };
     }
 
-    RPCHelpMan GetPageScores()
+    RPCHelpMan GetPagesScores()
     {
         return RPCHelpMan{"getpagescores",
                 "\nGet scores for posts and comments from address.\n",
@@ -201,14 +173,7 @@ namespace PocketWeb::PocketWebRpc
         for (unsigned int idx = 0; idx < commentTxIds.size(); idx++)
             commentIds.push_back(commentTxIds[idx].get_str());
 
-        auto postScores =  request.DbConnection()->WebRpcRepoInst->GetPostScores(postIds, address);
-        auto commentScores =  request.DbConnection()->WebRpcRepoInst->GetCommentScores(commentIds, address);
-
-        UniValue result(UniValue::VARR);
-        result.push_backV(postScores);
-        result.push_backV(commentScores);
-
-        return result;
+        return request.DbConnection()->WebRpcRepoInst->GetPagesScores(postIds, commentIds, address);
     },
         };
     }

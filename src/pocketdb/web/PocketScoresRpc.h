@@ -14,7 +14,7 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetAddressScores();
     RPCHelpMan GetPostScores();
-    RPCHelpMan GetPageScores();
+    RPCHelpMan GetPagesScores();
     RPCHelpMan GetCoinInfo();
 
 }

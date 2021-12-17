@@ -139,8 +139,9 @@ class CRPCTable
 private:
     std::map<std::string, std::vector<const CRPCCommand*>> mapCommands;
 public:
-    CRPCTable();
+    const CRPCCommand* operator[](const std::string& name) const;
     std::string help(const std::string& name, const JSONRPCRequest& helpreq) const;
+    UniValue help(const JSONRPCRequest& jsonRequest) const;
 
     /**
      * Execute a method.

@@ -143,14 +143,15 @@ namespace PocketWeb::PocketWebRpc
         {
             searchRequest.Address = "";
             searchRequest.TxTypes = { ACCOUNT_USER };
+            searchRequest.OrderByRank = true;
             searchRequest.FieldTypes = {
                 ContentFieldType_AccountUserName,
-                ContentFieldType_AccountUserAbout,
-                ContentFieldType_AccountUserUrl
+                // ContentFieldType_AccountUserAbout,
+                // ContentFieldType_AccountUserUrl
             };
 
             // Search
-            auto ids = request.DbConnection()->SearchRepoInst->SearchIds(searchRequest);
+            auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest);
             
             // Get accounts data
             auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
@@ -172,9 +173,10 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan SearchUsers()
     {
-        return RPCHelpMan{"searchusers",
+        return RPCHelpMan{"SearchUsers",
                 "\nSearch users in DB.\n",
                 {
+                    // TODO (losty-fur): update argumants probably?
                     {"keyword", RPCArg::Type::STR, RPCArg::Optional::NO, "String for search"},
                     {"fieldtype", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                     {"orderbyrank", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
@@ -183,28 +185,27 @@ namespace PocketWeb::PocketWebRpc
                     // TODO (losty-fur): provide return description
                 },
                 RPCExamples{
-                    HelpExampleCli("searchusers", "\"keyword\", \"fieldtype\", orderbyrank") +
-                    HelpExampleRpc("searchusers", "\"keyword\", \"fieldtype\", orderbyrank")
+                    HelpExampleCli("SearchUsers", "\"keyword\", \"fieldtype\", orderbyrank") +
+                    HelpExampleRpc("SearchUsers", "\"keyword\", \"fieldtype\", orderbyrank")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
         RPCTypeCheck(request.params, {UniValue::VSTR});
-        string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
 
-        vector<int> fieldTypes = { ContentFieldType::ContentFieldType_AccountUserName };
+        SearchRequest searchRequest;
+
+        searchRequest.Keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
+        searchRequest.FieldTypes = { ContentFieldType::ContentFieldType_AccountUserName };
         // ContentFieldType::ContentFieldType_AccountUserAbout, ContentFieldType::ContentFieldType_AccountUserUrl
-        auto users = request.DbConnection()->SearchRepoInst->SearchUsers(keyword, fieldTypes, false);
+        searchRequest.OrderByRank = true;
 
-        vector<int64_t> usersIds;
-        for (const auto &user : users)
-            usersIds.emplace_back(user.first);
-
-        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(usersIds);
+        auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest);
+        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
 
         UniValue result(UniValue::VARR);
         for (auto &profile : usersProfiles)
         {
-            profile.second.pushKV("searchResult",users[profile.first]);
+            // profile.second.pushKV("searchResult", users[profile.first]);
             result.push_back(profile.second);
         }
 
@@ -232,17 +233,6 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "searchlinks [\"links\", ...], \"contenttypes\", height, count\n"
-                "\nSearch links in DB.\n"
-                "\nArguments:\n"
-                "1. \"links\" (Array of strings) String for search\n"
-                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
-                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
-                "4. \"count\" (int, optional) Number of resulting records. Default 10\n"
-            );
-
         RPCTypeCheck(request.params, {UniValue::VARR});
 
         std::vector<std::string> vLinks;
@@ -277,4 +267,205 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
+    RPCHelpMan SearchContents()
+    {
+        return RPCHelpMan{"SearchContents",
+                "\n\n", // TODO (team): provide description
+                {   
+                    // TODO (team): args
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (team): examples
+                    HelpExampleCli("SearchContents", "") +
+                    HelpExampleRpc("SearchContents", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "SearchContents"
+            );
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+        string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        vector<int> fieldTypes = { ContentFieldType::ContentFieldType_ContentPostCaption,
+                                   ContentFieldType::ContentFieldType_ContentPostMessage,
+                                   ContentFieldType::ContentFieldType_ContentPostUrl,
+                                   ContentFieldType::ContentFieldType_ContentVideoCaption,
+                                   ContentFieldType::ContentFieldType_ContentVideoMessage,
+                                   ContentFieldType::ContentFieldType_ContentVideoUrl};
+
+        // auto contents = request.DbConnection()->SearchRepoInst->SearchContents(keyword, contentTypes, fieldTypes, false);
+        //
+        // vector<int64_t> contentsIds;
+        // for (const auto &content : contents)
+        //     contentsIds.emplace_back(content.first);
+
+        //auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(usersIds);
+
+        UniValue result(UniValue::VARR);
+        // for (auto &profile : usersProfiles)
+        // {
+        //     profile.second.pushKV("searchResult",users[profile.first]);
+        //     result.push_back(profile.second);
+        // }
+
+        return result;
+    },
+        };
+    }
+
+    RPCHelpMan GetRecomendedAccountsBySubscriptions()
+    {
+        return RPCHelpMan{"GetRecomendedAccountsBySubscriptions",
+                "\n\n", // TODO (team): provide description
+                {   
+                    // TODO (team): args
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (team): examples
+                    HelpExampleCli("GetRecomendedAccountsBySubscriptions", "") +
+                    HelpExampleRpc("GetRecomendedAccountsBySubscriptions", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+
+        int cntOut = 10;
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsBySubscriptions(address, cntOut);
+    },
+        };
+    }
+
+    RPCHelpMan GetRecomendedAccountsByScoresOnSimilarAccounts()
+    {
+        return RPCHelpMan{"getrecomendedaccountsbyscoresonsimilaraccounts",
+                "\n\n", // TODO (team): provide description
+                {   
+                    // TODO (team): args
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (team): examples
+                    HelpExampleCli("getrecomendedaccountsbyscoresonsimilaraccounts", "") +
+                    HelpExampleRpc("getrecomendedaccountsbyscoresonsimilaraccounts", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int nHeight = ChainActive().Height();
+        int depth = 1000;
+        int cntOut = 10;
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresOnSimilarAccounts(address, contentTypes, nHeight, depth, cntOut);
+    },
+        };
+    }
+
+    RPCHelpMan GetRecomendedAccountsByScoresFromAddress()
+    {
+        return RPCHelpMan{"GetRecomendedAccountsByScoresFromAddress",
+                "\n\n", // TODO (team): provide description
+                {   
+                    // TODO (team): args
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (team): examples
+                    HelpExampleCli("GetRecomendedAccountsByScoresFromAddress", "") +
+                    HelpExampleRpc("GetRecomendedAccountsByScoresFromAddress", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int nHeight = ChainActive().Height();
+        int depth = 1000;
+        int cntOut = 10;
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
+    },
+        };
+    }
+
+    RPCHelpMan GetRecomendedContentsByScoresOnSimilarContents()
+    {
+        return RPCHelpMan{"GetRecomendedContentsByScoresOnSimilarContents",
+                "\n\n", // TODO (team): provide description
+                {   
+                    // TODO (team): args
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (team): examples
+                    HelpExampleCli("GetRecomendedContentsByScoresOnSimilarContents", "") +
+                    HelpExampleRpc("GetRecomendedContentsByScoresOnSimilarContents", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresOnSimilarContents();
+    },
+        };
+    }
+
+    RPCHelpMan GetRecomendedContentsByScoresFromAddress()
+    {
+        return RPCHelpMan{"GetRecomendedContentsByScoresFromAddress",
+                "\n\n", // TODO (team): provide description
+                {   
+                    // TODO (team): args
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (team): examples
+                    HelpExampleCli("GetRecomendedContentsByScoresFromAddress", "") +
+                    HelpExampleRpc("GetRecomendedContentsByScoresFromAddress", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresFromAddress();
+    },
+        };
+    }
 }

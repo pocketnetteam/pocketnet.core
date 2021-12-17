@@ -33,7 +33,11 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_DoubleScore};
 
             // Content should be exists in chain
-            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash());
+            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
+                *ptx->GetContentTxHash(),
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+            );
+
             if (!lastContentOk && block)
             {
                 // ... or in block
@@ -42,9 +46,8 @@ namespace PocketConsensus
                     if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE}))
                         continue;
 
-                    auto blockPtx = static_pointer_cast<ScoreContent>(blockTx);
-
-                    if (*blockPtx->GetContentTxHash() == *ptx->GetContentTxHash())
+                    // TODO (brangr): convert to Content base class
+                    if (*blockTx->GetString2() == *ptx->GetContentTxHash())
                     {
                         lastContent = blockTx;
                         break;
@@ -108,18 +111,18 @@ namespace PocketConsensus
                 if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_SCORE_CONTENT}))
                     continue;
 
-                auto blockPtx = static_pointer_cast<ScoreContent>(blockTx);
-
-                if (*blockPtx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
+                auto blockPtx = static_pointer_cast<ScoreContent>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
                     if (CheckBlockLimitTime(ptx, blockPtx))
                         count += 1;
 
-                    if (*blockTx->GetHash() == *ptx->GetContentTxHash())
-                        return {false, SocialConsensusResult_DoubleScore};
+                    if (*blockPtx->GetContentTxHash() == *ptx->GetContentTxHash())
+                        if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_DoubleScore))
+                            return {false, SocialConsensusResult_DoubleScore};
                 }
             }
 
@@ -167,7 +170,7 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_ScoreLimit};
 
             if (!ValidateLowReputation(ptx, mode))
-                return {false, SocialConsensusResult_LowReputation};
+                return {false, SocialConsensusResult_ScoreLowReputation};
 
             return Success;
         }

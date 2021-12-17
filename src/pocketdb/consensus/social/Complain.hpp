@@ -28,19 +28,39 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Author or post must be exists
-            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetPostTxHash());
-            if (!contentOk)
+            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
+                *ptx->GetPostTxHash(),
+                {CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE}
+            );
+
+            if (!lastContentOk && block)
+            {
+                // ... or in block
+                for (auto& blockTx : *block)
+                {
+                    if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE}))
+                        continue;
+
+                    // TODO (brangr): convert to Content base class
+                    if (*blockTx->GetString2() == *ptx->GetPostTxHash())
+                    {
+                        lastContent = blockTx;
+                        break;
+                    }
+                }
+            }
+            if (!lastContent)
                 return {false, SocialConsensusResult_NotFound};
 
             // Complain to self
-            if (*contentTx->GetString1() == *ptx->GetAddress())
+            if (*lastContent->GetString1() == *ptx->GetAddress())
                 return {false, SocialConsensusResult_SelfComplain};
 
-            if (*contentTx->GetType() == CONTENT_DELETE)
+            if (*lastContent->GetType() == CONTENT_DELETE)
                 return {false, SocialConsensusResult_ComplainDeletedContent};
 
             // Check double complain
-            if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetHash(), *ptx->GetPostTxHash(), *ptx->GetAddress()))
+            if (PocketDb::ConsensusRepoInst.ExistsComplain(*ptx->GetPostTxHash(), *ptx->GetAddress()))
                 return {false, SocialConsensusResult_DoubleComplain};
 
             return Success;
@@ -114,7 +134,7 @@ namespace PocketConsensus
 
             auto minimumReputation = GetConsensusLimit(ConsensusLimit_threshold_reputation);
             if (reputation < minimumReputation)
-                return {false, SocialConsensusResult_LowReputation};
+                return {false, SocialConsensusResult_ComplainLowReputation};
 
             return Success;
         }

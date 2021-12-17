@@ -62,9 +62,7 @@ namespace PocketConsensus
                     continue;
 
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
-                {
                     return {false, SocialConsensusResult_AccountSettingsDouble};
-                }
             }
 
             int count = GetChainCount(ptx);

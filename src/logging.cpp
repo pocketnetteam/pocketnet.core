@@ -163,7 +163,6 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::RESTFRONTEND, "restfrontend"},
     {BCLog::CONSENSUS, "consensus"},
     {BCLog::WALLET, "wallet"},
-    {BCLog::SQL, "sql"},
     {BCLog::SQLBENCH, "sqlbench"},
     {BCLog::RPCERROR, "rpcerror"}
 };

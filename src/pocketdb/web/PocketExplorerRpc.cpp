@@ -6,14 +6,15 @@
 
 namespace PocketWeb::PocketWebRpc
 {
+    map<string, UniValue> TransactionsStatisticCache;
 
     RPCHelpMan GetStatistic()
     {
         return RPCHelpMan{"getstatistic",
                 "\nGet statistics.\n",
                 {
-                    {"endTime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "End time of period"},
-                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Day = 1, Month = 2, Year = 3"},
+                    {"topheight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Top height (Default: chain height)"},
+                    {"stepsize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Step size - Hour = 60, Day = 1440, Month = 43200 (Default: Day)"},
                 },
                 {
                     // TODO (losty-fur): provide return description
@@ -24,32 +25,52 @@ namespace PocketWeb::PocketWebRpc
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        auto end_time = (int64_t) ::ChainActive().Tip()->nTime;
-        if (!request.params.empty() && request.params[0].isNum())
-            end_time = request.params[0].get_int64();
+        int topHeight = ChainActive().Height() / 10 * 10;
+        if (request.params[0].isNum())
+            topHeight = std::min(request.params[0].get_int(), topHeight);
 
-        StatisticDepth depth = StatisticDepth_Month;
-        if (request.params.size() > 1 && request.params[1].isNum() &&
-            request.params[1].get_int() >= 1 && request.params[1].get_int() <= 3
-            )
-            depth = (StatisticDepth) request.params[1].get_int();
-
-        int64_t start_time;
-        switch (depth)
+        int stepSize = 60;
+        if (request.params[1].isNum())
         {
-            case StatisticDepth_Day:
-                start_time = end_time - (60 * 60 * 24);
-                break;
-            default:
-            case StatisticDepth_Month:
-                start_time = end_time - (60 * 60 * 24 * 30);
-                break;
-            case StatisticDepth_Year:
-                start_time = end_time - (60 * 60 * 24 * 365);
-                break;
+            auto _stepSize = request.params[1].get_int();
+            if (_stepSize == 60 || _stepSize == 1440 || _stepSize == 43200)
+                stepSize = _stepSize;
         }
 
-        return request.DbConnection()->ExplorerRepoInst->GetStatistic(start_time, end_time, depth);
+        int count = 24;
+        if (stepSize == 1440) count = 30;
+        if (stepSize == 43200) count = 12;
+
+        UniValue result(UniValue::VOBJ);
+
+        // --------------------------------------------------------------------
+        // Get transactions statistic
+
+        UniValue resultTransactions(UniValue::VOBJ);
+        while (count > 0)
+        {
+            string cacheKey = to_string(topHeight) + to_string(stepSize);
+            //if (TransactionsStatisticCache.find(cacheKey) == TransactionsStatisticCache.end())
+            {
+                auto stepData = request.DbConnection()->ExplorerRepoInst->GetTransactionsStatistic(topHeight, stepSize);
+                resultTransactions.pushKV(to_string(topHeight), stepData);
+                //TransactionsStatisticCache.insert_or_assign(cacheKey, stepData);
+            }
+
+            // resultTransactions.pushKV(to_string(topHeight), TransactionsStatisticCache[cacheKey]);
+
+            topHeight -= stepSize;
+            count -= 1;
+        }
+        result.pushKV("txs", resultTransactions);
+
+        // --------------------------------------------------------------------
+        // Get content statistic
+
+        auto contentResult = request.DbConnection()->ExplorerRepoInst->GetContentStatistic();
+        result.pushKV("content", contentResult);
+
+        return result;
     },
         };
     }
@@ -121,7 +142,7 @@ namespace PocketWeb::PocketWebRpc
         // Extend with transaction statistic data
         if (verbose)
         {
-            auto data = request.DbConnection()->ExplorerRepoInst->GetStatistic(last_height - count, last_height);
+            auto data = request.DbConnection()->ExplorerRepoInst->GetBlocksStatistic(last_height - count, last_height);
 
             for (auto& s : data)
             {
@@ -151,7 +172,7 @@ namespace PocketWeb::PocketWebRpc
                 // TODO (team): description
                 "",
                 {
-                    {"blockhash", RPCArg::Type::STR, RPCArg::Optional::NO, "The block hash"},
+                    {"blockhash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "The block hash"},
                     {"blocknumber", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The block number"},
                 },
                 {
@@ -173,9 +194,8 @@ namespace PocketWeb::PocketWebRpc
             blockHash = request.params[0].get_str();
 
         int blockNumber = -1;
-        if (request.params[0].isNum())
-            blockNumber = request.params[0].get_int();
-
+        if (request.params[1].isNum())
+            blockNumber = request.params[1].get_int();
 
         const CBlockIndex* pindex = nullptr;
 
@@ -431,5 +451,4 @@ namespace PocketWeb::PocketWebRpc
     },
         };
     }
-
 }

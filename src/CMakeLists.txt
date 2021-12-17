@@ -835,10 +835,12 @@ add_library(${POCKETCOIN_COMMON_RPC}
         #                   Currently it is using DBConnection that is a part of server.
         #                   This is OK for now because we have shared headers but this should be reworked.
         #                   PocketDB stuff should be extracted to a different lib. Specially "pocketdb/SQLiteConnection.h" 
+        #                   Also sqlite should be publically linked to this new lib and removed from linking here
         rpc/request.h
         rpc/request.cpp
         )
 target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL} univalue)
+target_link_libraries(${POCKETCOIN_COMMON_RPC} PUBLIC sqlite3)
 
 
 ########### Server

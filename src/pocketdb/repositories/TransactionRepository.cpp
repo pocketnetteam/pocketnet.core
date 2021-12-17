@@ -127,7 +127,7 @@ namespace PocketDb
         bool result = false;
 
         string sql = R"sql(
-            select count(*)
+            select 1
             from Transactions
             where Hash = ?
         )sql";
@@ -138,9 +138,7 @@ namespace PocketDb
 
             TryBindStatementText(stmt, 1, hash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = (value >= 1);
+            result = (sqlite3_step(*stmt) == SQLITE_ROW);
 
             FinalizeSqlStatement(*stmt);
         });
@@ -175,6 +173,31 @@ namespace PocketDb
         return result;
     }
 
+    int TransactionRepository::MempoolCount()
+    {
+        int result = 0;
+
+        string sql = R"sql(
+            select count(*)
+            from Transactions
+            where Height isnull
+              and Type != 3
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
+                    result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     void TransactionRepository::Clean()
     {
         TryTransactionStep(__func__, [&]()
@@ -182,6 +205,85 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 delete from Transactions
                 where Height is null
+            )sql");
+
+            TryStepStatement(stmt);
+        });
+    }
+
+    void TransactionRepository::CleanTransaction(const string& hash)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            // Clear Payload table
+            auto stmt = SetupSqlStatement(R"sql(
+                delete from Payload
+                where TxHash = ?
+                  and exists(
+                    select 1
+                    from Transactions t
+                    where t.Hash = Payload.TxHash
+                      and t.Height isnull
+                  )
+            )sql");
+            TryBindStatementText(stmt, 1, hash);
+            TryStepStatement(stmt);
+
+            // Clear TxOutputs table
+            stmt = SetupSqlStatement(R"sql(
+                delete from TxOutputs
+                where TxHash = ?
+                  and exists(
+                    select 1
+                    from Transactions t
+                    where t.Hash = TxOutputs.TxHash
+                      and t.Height isnull
+                  )
+            )sql");
+            TryBindStatementText(stmt, 1, hash);
+            TryStepStatement(stmt);
+
+            // Clear Transactions table
+            stmt = SetupSqlStatement(R"sql(
+                delete from Transactions
+                where Hash = ?
+                  and Height isnull
+            )sql");
+            TryBindStatementText(stmt, 1, hash);
+            TryStepStatement(stmt);
+        });
+    }
+
+    void TransactionRepository::CleanMempool()
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            // Clear Payload table
+            auto stmt = SetupSqlStatement(R"sql(
+                delete from Payload
+                where TxHash in (
+                  select t.Hash
+                  from Transactions t
+                  where t.Height is null
+                )
+            )sql");
+            TryStepStatement(stmt);
+
+            // Clear TxOutputs table
+            stmt = SetupSqlStatement(R"sql(
+                delete from TxOutputs
+                where TxHash in (
+                  select t.Hash
+                  from Transactions t
+                  where t.Height is null
+                )
+            )sql");
+            TryStepStatement(stmt);
+
+            // Clear Transactions table
+            stmt = SetupSqlStatement(R"sql(
+                delete from Transactions
+                where Height isnull
             )sql");
             TryStepStatement(stmt);
         });
@@ -286,7 +388,7 @@ namespace PocketDb
     tuple<bool, PTransactionRef> TransactionRepository::CreateTransactionFromListRow(
         const shared_ptr<sqlite3_stmt*>& stmt, bool includedPayload)
     {
-        // TODO (brangr): move deserialization logic to models
+        // TODO (brangr): move deserialization logic to models ?
 
         auto[ok0, _txType] = TryGetColumnInt(*stmt, 0);
         auto[ok1, txHash] = TryGetColumnString(*stmt, 1);

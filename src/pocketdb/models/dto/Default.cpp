@@ -18,7 +18,10 @@ namespace PocketTx
     }
 
     void Default::Deserialize(const UniValue& src) {}
-    void Default::DeserializePayload(const UniValue& src, const std::shared_ptr<const CTransaction>& tx) {}
+    void Default::DeserializePayload(const UniValue& src)
+    {
+    }
+
     string Default::BuildHash()
     {
         return "";

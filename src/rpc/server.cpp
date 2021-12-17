@@ -134,93 +134,23 @@ std::string CRPCTable::help(const std::string& strCommand, const JSONRPCRequest&
     return strRet;
 }
 
-
-// TODO (brangr): implement help 3
-// static RPCHelpMan help()
-// {
-//     return RPCHelpMan{"help",
-//                 "\nList all commands, or get help for a specified command.\n",
-//                 {
-//                     {"command", RPCArg::Type::STR, /* default */ "all commands", "The command to get help on"},
-//                 },
-//                 RPCResult{
-//                     RPCResult::Type::STR, "", "The help text"
-//                 },
-//                 RPCExamples{""},
-//         [&](const RPCHelpMan& self, const JSONRPCRequest& jsonRequest) -> UniValue
-// {
-//     std::string strCommand;
-//     if (jsonRequest.params.size() > 0)
-//         strCommand = jsonRequest.params[0].get_str();
-//
-//     return tableRPC.help(strCommand, jsonRequest);
-// },
-//     };
-// }
-//
-// static RPCHelpMan getrpcinfo()
-// {
-//     return RPCHelpMan{"getrpcinfo",
-//                 "\nReturns details of the RPC server.\n",
-//                 {},
-//                 RPCResult{
-//                     RPCResult::Type::OBJ, "", "",
-//                     {
-//                         {RPCResult::Type::ARR, "active_commands", "All active commands",
-//                         {
-//                             {RPCResult::Type::OBJ, "", "Information about an active command",
-//                             {
-//                                  {RPCResult::Type::STR, "method", "The name of the RPC command"},
-//                                  {RPCResult::Type::NUM, "duration", "The running time in microseconds"},
-//                             }},
-//                         }},
-//                         {RPCResult::Type::STR, "logpath", "The complete file path to the debug log"},
-//                     }
-//                 },
-//                 RPCExamples{
-//                     HelpExampleCli("getrpcinfo", "")
-//                 + HelpExampleRpc("getrpcinfo", "")},
-//         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-// {
-//     LOCK(g_rpc_server_info.mutex);
-//     UniValue active_commands(UniValue::VARR);
-//     for (const RPCCommandExecutionInfo& info : g_rpc_server_info.active_commands) {
-//         UniValue entry(UniValue::VOBJ);
-//         entry.pushKV("method", info.method);
-//         entry.pushKV("duration", GetTimeMicros() - info.start);
-//         active_commands.push_back(entry);
-//     }
-//
-//     UniValue result(UniValue::VOBJ);
-//     result.pushKV("active_commands", active_commands);
-//
-//     const std::string path = LogInstance().m_file_path.string();
-//     UniValue log_path(UniValue::VSTR, path);
-//     result.pushKV("logpath", log_path);
-//
-//     return result;
-// }
-//     };
-// }
-//
-// clang-format off
-// static const CRPCCommand vRPCCommands[] =
-// { //  category              name                      actor (function)         argNames
-//   //  --------------------- ------------------------  -----------------------  ----------
-//     /* Overall control/query calls */
-//     { "control",            "getrpcinfo",             &getrpcinfo,             {}  },
-//     { "control",            "help",                   &help,                   {"command"}  },
-//     { "control",            "stop",                   &stop,                   {"wait"}  },
-//     { "control",            "uptime",                 &uptime,                 {}  },
-// };
-// clang-format on
-
-CRPCTable::CRPCTable()
+UniValue CRPCTable::help(const JSONRPCRequest& jsonRequest) const
 {
-    // TODO (brangr): implement help 2
-    // for (const auto& c : vRPCCommands) {
-    //     appendCommand(c.name, &c);
-    // }
+    if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
+        throw std::runtime_error(
+             "help ( \"command\" )\n"
+             "\nList all commands, or get help for a specified command.\n"
+             "\nArguments:\n"
+            "1. \"command\"     (string, optional) The command to get help on\n"
+            "\nResult:\n"
+            "\"text\"     (string) The help text\n"
+        );
+
+    std::string strCommand;
+    if (!jsonRequest.params.empty())
+        strCommand = jsonRequest.params[0].get_str();
+
+    return help(strCommand, jsonRequest);
 }
 
 void CRPCTable::appendCommand(const std::string& name, const CRPCCommand* pcmd)
@@ -402,6 +332,12 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
         LOCK(g_rpc_warmup_mutex);
         if (fRPCInWarmup)
             throw JSONRPCError(RPC_IN_WARMUP, rpcWarmupStatus);
+    }
+
+    // TODO (losty-fur): help is a common RPC command. I think we just need to register it in ctor as it had been done in bitcoin.
+    //                   also this will allow to change help() signature to a new RPCHelpMan that will be more correct than use such special case.
+    if (request.strMethod == "help") {
+        return help(request);
     }
 
     // Find method

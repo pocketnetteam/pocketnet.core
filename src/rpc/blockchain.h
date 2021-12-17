@@ -14,6 +14,8 @@
 
 extern RecursiveMutex cs_main;
 
+#include "pocketdb/pocketnet.h"
+
 class CBlock;
 class CBlockIndex;
 class CTxMemPool;
@@ -40,7 +42,7 @@ void RPCNotifyBlockChange(const CBlockIndex*);
 UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIndex* blockindex, bool txDetails = false) LOCKS_EXCLUDED(cs_main);
 
 /** Mempool information to JSON */
-UniValue MempoolInfoToJSON(const CTxMemPool& pool);
+UniValue mempoolInfoToJSON(const CTxMemPool& pool);
 
 /** Mempool to JSON */
 UniValue MempoolToJSON(const CTxMemPool& pool, bool verbose = false, bool include_mempool_sequence = false);

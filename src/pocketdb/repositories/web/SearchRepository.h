@@ -31,7 +31,13 @@ namespace PocketDb
         UniValue SearchTags(const SearchRequest& request);
         vector<int64_t> SearchIds(const SearchRequest& request);
 
-        map<int, string> SearchUsers(const string& searchstr, const vector<int> fieldTypes, bool orderbyrank = false);
+        vector<int64_t> SearchUsers(const SearchRequest& request);
+
+        UniValue GetRecomendedAccountsBySubscriptions(const string& address, int cntOut = 10);
+        UniValue GetRecomendedAccountsByScoresOnSimilarAccounts(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
+        UniValue GetRecomendedAccountsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
+        UniValue GetRecomendedContentsByScoresOnSimilarContents();
+        UniValue GetRecomendedContentsByScoresFromAddress();
     };
 
     typedef shared_ptr<SearchRepository> SearchRepositoryRef;

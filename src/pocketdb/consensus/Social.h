@@ -65,11 +65,13 @@ namespace PocketConsensus
                     addressesForCheck = addresses;
                 }
 
+                // Check registrations in DB
                 if (!addressesForCheck.empty() &&
                     !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck, false))
                     return {false, SocialConsensusResult_NotRegistered};
             }
 
+            // Check limits
             return ValidateLimits(ptx, block);
         }
 

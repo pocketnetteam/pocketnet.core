@@ -34,7 +34,11 @@ namespace PocketConsensus
                 return {false, SocialConsensusResult_DoubleCommentScore};
 
             // Comment should be exists
-            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetCommentTxHash());
+            auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
+                *ptx->GetCommentTxHash(),
+                { CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE }
+            );
+
             if (!lastContentOk && block)
             {
                 // ... or in block
@@ -43,9 +47,8 @@ namespace PocketConsensus
                     if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_COMMENT, CONTENT_COMMENT_EDIT, CONTENT_COMMENT_DELETE}))
                         continue;
 
-                    auto blockPtx = static_pointer_cast<ScoreComment>(blockTx);
-
-                    if (*blockPtx->GetCommentTxHash() == *ptx->GetCommentTxHash())
+                    // TODO (brangr): convert to Comment base class
+                    if (*blockTx->GetString2() == *ptx->GetCommentTxHash())
                     {
                         lastContent = blockTx;
                         break;
@@ -62,6 +65,7 @@ namespace PocketConsensus
                     return {false, SocialConsensusResult_NotFound};
             }
 
+            // TODO (brangr): convert to Comment base class
             auto lastContentPtx = static_pointer_cast<Comment>(lastContent);
 
             // Check score to self
@@ -105,7 +109,6 @@ namespace PocketConsensus
     protected:
         ConsensusValidateResult ValidateBlock(const ScoreCommentRef& ptx, const PocketBlockRef& block) override
         {
-
             // Get count from chain
             int count = GetChainCount(ptx);
 
@@ -115,17 +118,16 @@ namespace PocketConsensus
                 if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACTION_SCORE_COMMENT}))
                     continue;
 
-                auto blockPtx = static_pointer_cast<ScoreComment>(blockTx);
-
-                if (*blockPtx->GetHash() == *ptx->GetHash())
+                if (*blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
+                auto blockPtx = static_pointer_cast<ScoreComment>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                 {
                     if (CheckBlockLimitTime(ptx, blockPtx))
                         count += 1;
 
-                    if (*blockTx->GetHash() == *ptx->GetCommentTxHash())
+                    if (*blockPtx->GetCommentTxHash() == *ptx->GetCommentTxHash())
                         return {false, SocialConsensusResult_DoubleCommentScore};
                 }
             }

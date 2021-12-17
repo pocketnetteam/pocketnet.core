@@ -10,7 +10,7 @@ namespace PocketDb {
 
     void ExplorerRepository::Destroy() {}
 
-    map<int, map<int, int>> ExplorerRepository::GetStatistic(int bottomHeight, int topHeight)
+    map<int, map<int, int>> ExplorerRepository::GetBlocksStatistic(int bottomHeight, int topHeight)
     {
         map<int, map<int, int>> result;
 
@@ -43,89 +43,30 @@ namespace PocketDb {
         return result;
     }
 
-    UniValue ExplorerRepository::GetStatistic(int64_t startTime, int64_t endTime, StatisticDepth depth)
+    UniValue ExplorerRepository::GetTransactionsStatistic(int topHeight, int depth)
     {
-        auto func = __func__;
         UniValue result(UniValue::VOBJ);
 
-        // TODO (brangr): Optimization is needed
-        return result;
-
-        string formatTime;
-        string delimiter;
-        switch (depth)
-        {
-            case StatisticDepth_Day:
-                formatTime = "%Y%m%d%H";
-                delimiter = "3600";
-                break;
-            default:
-            case StatisticDepth_Month:
-                formatTime = "%Y%m%d";
-                delimiter = "604800";
-                break;
-            case StatisticDepth_Year:
-                formatTime = "%Y%m";
-                delimiter = "604800";
-                break;
-        }
-
-        TryTransactionStep(func, [&]()
+        TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select 'txs',
-                    strftime(')sql" + formatTime + R"sql(', datetime(max(t.Time), 'unixepoch')),
-                    t.Type,
-                    count(*)Count
-                from Transactions t indexed by Transactions_Time_Type_Height
-                where   t.Time >= ?
-                    and t.Time < ?
-                group by (t.Time / )sql" + delimiter + R"sql( ), t.Type
-
-                union
-
-                select 'users',
-                    strftime(')sql" + formatTime + R"sql(', datetime(q.MaxTime, 'unixepoch')),
-                    q.Type,
-                    (
-                        select count(*)
-                        from Transactions t indexed by Transactions_Type_Time_Height
-                        where t.Type = q.Type and (t.Time / )sql" + delimiter + R"sql( ) <= q.Time
-                    )Count
-                from (
-                    select (t.Time / )sql" + delimiter + R"sql( )Time, max(t.Time)MaxTime, t.Type, count(*)Cnt
-                    from Transactions t indexed by Transactions_Type_Time_Height
-                    where   t.Type in (100, 101, 102)
-                        and t.Time < ?
-                    group by (t.Time / )sql" + delimiter + R"sql( ), t.Type
-                ) q
-                where q.Time >= (? / )sql" + delimiter + R"sql( )
+                select t.Type, count(*)Count
+                from Transactions t indexed by Transactions_Height_Type
+                where t.Height <= ?
+                  and t.Height > ?
+                group by t.Type
             )sql");
 
-            TryBindStatementInt64(stmt, 1, startTime);
-            TryBindStatementInt64(stmt, 2, endTime);
-            TryBindStatementInt64(stmt, 3, endTime);
-            TryBindStatementInt64(stmt, 4, startTime);
-
-            LogPrint(BCLog::SQL, "%s: %s\n", func, sqlite3_expanded_sql(*stmt));
+            TryBindStatementInt(stmt, 1, topHeight);
+            TryBindStatementInt(stmt, 2, topHeight - depth);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto [ok0, sGroup] = TryGetColumnString(*stmt, 0);
-                auto [ok1, sDate] = TryGetColumnString(*stmt, 1);
-                auto [ok2, sType] = TryGetColumnString(*stmt, 2);
-                auto [ok3, sCount] = TryGetColumnInt(*stmt, 3);
+                auto [okType, type] = TryGetColumnString(*stmt, 0);
+                auto [okCount, count] = TryGetColumnInt(*stmt, 1);
 
-                if (ok0 && ok1 && ok2 && ok3)
-                {
-                    if (result.At(sGroup).isNull())
-                        result.pushKV(sGroup, UniValue(UniValue::VOBJ));
-
-                    if (result.At(sGroup).At(sDate).isNull())
-                        result.At(sGroup).pushKV(sDate, UniValue(UniValue::VOBJ));
-
-                    result.At(sGroup).At(sDate).pushKV(sType, sCount);
-                }
+                if (okType && okCount)
+                    result.pushKV(type, count);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -134,22 +75,53 @@ namespace PocketDb {
         return result;
     }
 
-    tuple<int, int64_t> ExplorerRepository::GetAddressInfo(const string& addressHash)
+    UniValue ExplorerRepository::GetContentStatistic()
+    {
+        UniValue result(UniValue::VOBJ);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select t.Type, count(*)Count
+                from Transactions t indexed by Transactions_Type_Last_Height_Id
+                where t.Type in (100,101,102,200,201)
+                  and t.Last = 1
+                  and t.Height > 0
+                group by t.Type
+            )sql");
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto [okType, type] = TryGetColumnString(*stmt, 0);
+                auto [okCount, count] = TryGetColumnInt(*stmt, 1);
+
+                if (okType && okCount)
+                    result.pushKV(type, count);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    tuple<int, double> ExplorerRepository::GetAddressInfo(const string& addressHash)
     {
         int lastChange = 0;
-        int64_t balance = 0;
+        double balance = 0;
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select Height, Value
-                from Balances
+                from Balances indexed by Balances_AddressHash_Last
                 where AddressHash = ?
+                  and Last = 1
             )sql");
 
             TryBindStatementText(stmt, 1, addressHash);
 
-            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto [ok0, height] = TryGetColumnInt(*stmt, 0);
                 auto [ok1, value] = TryGetColumnInt64(*stmt, 1);
@@ -157,7 +129,7 @@ namespace PocketDb {
                 if (ok0 && ok1)
                 {
                     lastChange = height;
-                    balance = value;
+                    balance = value / 100000000.0;
                 }
             }
 
@@ -170,12 +142,13 @@ namespace PocketDb {
     template<typename T>
     UniValue ExplorerRepository::_getTransactions(T stmtOut)
     {
+        auto func = __func__;
         UniValue result(UniValue::VARR);
         map<string, tuple<UniValue, UniValue, UniValue>> txs;
 
         // Select outputs
         {
-            TryTransactionStep(__func__, [&]()
+            TryTransactionStep(func, [&]()
             {
                 shared_ptr<sqlite3_stmt*> stmt;
                 stmtOut(stmt);
@@ -205,7 +178,7 @@ namespace PocketDb {
                         // Extend transaction with outputs
                         UniValue txOut(UniValue::VOBJ);
                         if (auto [ok, value] = TryGetColumnInt(*stmt, 6); ok) txOut.pushKV("n", value);
-                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 8); ok) txOut.pushKV("value", value);
+                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 8); ok) txOut.pushKV("value", value / 100000000.0);
 
                         {
                             UniValue scriptPubKey(UniValue::VOBJ);
@@ -255,7 +228,7 @@ namespace PocketDb {
                         if (auto [ok, value] = TryGetColumnString(*stmt, 1); ok) txInp.pushKV("txid", value);
                         if (auto [ok, value] = TryGetColumnInt(*stmt, 2); ok) txInp.pushKV("vout", value);
                         if (auto [ok, value] = TryGetColumnString(*stmt, 3); ok) txInp.pushKV("address", value);
-                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 4); ok) txInp.pushKV("value", value);
+                        if (auto [ok, value] = TryGetColumnInt64(*stmt, 4); ok) txInp.pushKV("value", value / 100000000.0);
 
                         get<1>(txs[hash]).push_back(txInp);
                     }
@@ -287,7 +260,7 @@ namespace PocketDb {
                     select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash
                     from (
                         select distinct o.TxHash, o.TxHeight
-                        from TxOutputs o
+                        from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
                         where o.AddressHash = ?
                           and o.SpentHeight is not null
                           and o.TxHeight <= ?
