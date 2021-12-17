@@ -27,7 +27,7 @@ namespace PocketDb
         });
     }
 
-    shared_ptr<PocketBlock> TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs = false, bool includeOutputs = false)
+    shared_ptr<PocketBlock> TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs, bool includeOutputs)
     {
         // TODO (brangr): implement variable payload, inputs & outputs
         auto sql = R"sql(
@@ -76,7 +76,7 @@ namespace PocketDb
         return result;
     }
 
-    shared_ptr<Transaction> TransactionRepository::Get(const string& hash, bool includePayload, bool includeInputs = false, bool includeOutputs = false)
+    shared_ptr<Transaction> TransactionRepository::Get(const string& hash, bool includePayload, bool includeInputs, bool includeOutputs)
     {
         auto lst = List({hash}, includePayload, includeInputs, includeOutputs);
         if (!lst->empty())
