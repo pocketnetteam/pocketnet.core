@@ -43,15 +43,15 @@ const CBaseChainParams& BaseParams()
  */
 std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const std::string& chain)
 {
+    // TODO (losty-fur): probably update ports for onion and signet.
     if (chain == CBaseChainParams::MAIN) {
-        return MakeUnique<CBaseChainParams>("", 37071, 38081, 38082, 38083, 8334 /*TODO (losty): onion port*/);
+        return MakeUnique<CBaseChainParams>("", 37071, 38081, 38082, 38083, 38084);
     } else if (chain == CBaseChainParams::TESTNET) {
-        return MakeUnique<CBaseChainParams>("testnet3", 36061, 39091, 39092, 39093, 18334 /*TODO (losty): onion port*/);
+        return MakeUnique<CBaseChainParams>("testnet3", 36061, 39091, 39092, 39093, 39094);
     } else if (chain == CBaseChainParams::SIGNET) {
-        // TODO (losty): ports for signet??
-        // return MakeUnique<CBaseChainParams>("signet", 38332, 38334 /*TODO (losty): onion port*/);
+        return MakeUnique<CBaseChainParams>("signet", 13031, 14041, 14042, 14043, 14044);
 } else if (chain == CBaseChainParams::REGTEST) {
-        return MakeUnique<CBaseChainParams>("regtest", 11011, 12021, 12022, 12023, 18445 /*TODO (losty): onion port*/);
+        return MakeUnique<CBaseChainParams>("regtest", 11011, 12021, 12022, 12023, 12024);
     }
     throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));
 }
