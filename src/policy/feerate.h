@@ -12,7 +12,7 @@
 #include <string>
 
 const std::string CURRENCY_UNIT = "POC"; // One formatted unit
-const std::string CURRENCY_ATOM = "sat"; // One indivisible minimum value unit // TODO (losty-critical): rename this probably pocketnet
+const std::string CURRENCY_ATOM = "sat"; // One indivisible minimum value unit // TODO (team): rename probably
 
 /* Used to determine type of fee estimation requested */
 enum class FeeEstimateMode {

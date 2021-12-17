@@ -4740,7 +4740,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	txNew.vout.push_back(CTxOut(0, scriptEmpty));
 
 	// Choose coins to use
-	// TODO (losty-critical+): is choosen balance right?
+	// TODO (losty-fur): validate
     // TODO (brangr): предложил бы использовать m_mine_trusted - необходимо тестирование
     // Мы должны использовать только надежные проверенные койны + есть условие, что деньги
     // для стейкинга должны отлежаться больше часа
@@ -4982,8 +4982,7 @@ int64_t CWallet::GetNewMint() const
 uint64_t CWallet::GetStakeWeight() const
 {
 	// Choose coins to use
-	// TODO (losty-critical+): is this correct?
-    // думаю да - нужно тестировать/сверять с текущей версией
+	// TODO (losty-fur): validate this is correct balance
 	int64_t nBalance = GetBalance().m_mine_trusted;
 
 	if (nBalance <= 0) {

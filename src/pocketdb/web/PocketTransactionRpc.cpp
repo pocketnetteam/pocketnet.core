@@ -306,9 +306,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman)
     {
         promise<void> promise;
-        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty+): it seems like maxTxFee is only accesibble from walletInstance->m_default_max_tx_fee but it seems it doesn't even needed here
-        // nMaxRawTxFee думаю нужен, т.к. используется внутри AcceptToMemoryPool
-        // Транзакции создаются клиентом, мы не можем гарантировать валидность платы
+        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty-fur): validate corresponding check is performed in wallet by using walletInstance->m_default_max_tx_fee
         const uint256& txid = tx->GetHash();
 
         { // cs_main scope
@@ -329,8 +327,7 @@ namespace PocketWeb::PocketWebRpc
                 // push to local node and sync with wallets
                 TxValidationState state;
                 if (!AcceptToMemoryPool(mempool, state, tx, ptx,
-                    nullptr /* plTxnReplaced */, false /* bypass_limits */)) // TODO (losty-critical+): is new usage correct?
-                                                                             // вернуть nMaxRawTxFee в этом методе (см выше) + мерж с текущей версией для обработки пейлода pocketTx
+                    nullptr /* plTxnReplaced */, false /* bypass_limits */))
                 {
                     if (state.IsConsensusFailed())
                     {
@@ -384,8 +381,7 @@ namespace PocketWeb::PocketWebRpc
 
         CInv inv(MSG_TX, txid);
         connman.ForEachNode([&inv](CNode* pnode) {
-            // TODO (losty-critical+): PushInventory changed to PushTxInventory. Validate this is correct
-            // похоже на правду, если PushInventory не изменил свою логику в PushTxInventory
+            // TODO (losty-fur): Validate this is working
             pnode->PushTxInventory(inv.hash);
         });
 

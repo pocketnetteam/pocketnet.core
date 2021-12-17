@@ -938,8 +938,7 @@ void PeerManager::InitializeNode(CNode *pnode) {
 
     {
         LOCK(cs_nodestate);
-        // TODO (losty-critical): CNodeState constructing changed. It doesn't require addrName anymore but require flags for inbound and manual connection.
-        // mapNodeStateView.emplace_hint(mapNodeStateView.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, std::move(addrName)));
+        mapNodeStateView.emplace_hint(mapNodeStateView.end(), std::piecewise_construct, std::forward_as_tuple(nodeid), std::forward_as_tuple(addr, pnode->IsInboundConn(), pnode->IsManualConn()));
     }
     
     if (!pnode->IsInboundConn()) {
@@ -1048,16 +1047,20 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats) {
 
 bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
 {
-    LOCK(cs_nodestate);
+    {
+        LOCK(cs_main);
+        CNodeState* state = StateView(nodeid);
+        if (state == nullptr)
+            return false;
+        stats.nSyncHeight = state->pindexBestKnownBlock ? state->pindexBestKnownBlock->nHeight : -1;
+        stats.nCommonHeight = state->pindexLastCommonBlock ? state->pindexLastCommonBlock->nHeight : -1;
+    }
 
-    CNodeState* state = StateView(nodeid);
-    if (state == nullptr)
-        return false;
-
-    // TODO (losty-critical): these fields removed. stats have m_misbehaviuor_score, but state does not have analog
-    // stats.nMisbehavior = state->nMisbehavior;
-    stats.nSyncHeight = state->pindexBestKnownBlock ? state->pindexBestKnownBlock->nHeight : -1;
-    stats.nCommonHeight = state->pindexLastCommonBlock ? state->pindexLastCommonBlock->nHeight : -1;
+    PeerRef peer = GetPeerRef(nodeid);
+    if (peer == nullptr) return false;
+    stats.m_misbehavior_score = WITH_LOCK(peer->m_misbehavior_mutex, return peer->m_misbehavior_score);
+    stats.m_addr_processed = peer->m_addr_processed.load();
+    stats.m_addr_rate_limited = peer->m_addr_rate_limited.load();
 
     return true;
 }

@@ -411,10 +411,8 @@ static RPCHelpMan generateblock()
     uint64_t max_tries{DEFAULT_MAX_TRIES};
     unsigned int extra_nonce{0};
 
-    // TODO (losty-critical+) is 0 legal in this situation?
-    // что-то тут не так, должен вычисляться chainActive.Height() + 1 или около того..
-    // TODO (brangr): ??
-    if (!GenerateBlock(EnsureChainman(request.context), block, pocketBlock, max_tries, extra_nonce, block_hash, 0 /*TODO (losty-critical+) is 0 legal in this situation?*/) || block_hash.IsNull()) {
+    // TODO (brangr): ?? Validate ChainActive().Height() + 1 is working
+    if (!GenerateBlock(EnsureChainman(request.context), block, pocketBlock, max_tries, extra_nonce, block_hash, ChainActive().Height() + 1) || block_hash.IsNull()) {
         throw JSONRPCError(RPC_MISC_ERROR, "Failed to make block.");
     }
 

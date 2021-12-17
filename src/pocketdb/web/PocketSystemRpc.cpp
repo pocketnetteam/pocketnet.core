@@ -95,8 +95,7 @@ namespace PocketWeb::PocketWebRpc
             CNodeStateStats nodeState;
             if (GetNodeStateStats(stats.nodeid, nodeState))
             {
-                // TODO (losty-critical): this field is no longer exists (see corresponding todo in net_processing.cpp GetNodeStateStatsView(...))
-                // obj.pushKV("banscore", nodeState.nMisbehavior);
+                obj.pushKV("banscore", nodeState.m_misbehavior_score);
                 obj.pushKV("synced_headers", nodeState.nSyncHeight);
                 obj.pushKV("synced_blocks", nodeState.nCommonHeight);
             }
