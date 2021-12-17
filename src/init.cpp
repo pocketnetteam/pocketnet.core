@@ -838,6 +838,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (fReindex == 3)
         {
             int i = (int)gArgs.GetArg("-reindex-start", 0);
+            LogPrintf("Start indexing pocketnet part at height %d\n", i);
+
             PocketServices::ChainPostProcessing::Rollback(i);
 
             while (i <= chainActive.Height() && !ShutdownRequested())
