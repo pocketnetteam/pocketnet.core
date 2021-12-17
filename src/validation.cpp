@@ -3040,8 +3040,17 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     else
         pocketBlock = pocketBlockPart;
 
-    if (!pocketBlock)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock); !ok)
     {
+        // if (result == SocialConsensusResult_PocketDataNotFound)
+        // {
+        //     auto[deserializeOk, desPocketBlock] = PocketServices::Serializer::DeserializeBlock(blockConnecting);
+        //     if (deserializeOk)
+        //         PocketDb::TransRepoInst.InsertTransactions(desPocketBlock);
+        //
+        //     return false;
+        // }
+
         pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
         return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
     }
@@ -5578,25 +5587,28 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
 
             CBlock block;
             if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
-                return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight,
-                    pindex->GetBlockHash().ToString());
+                return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s",
+                    pindex->nHeight, pindex->GetBlockHash().ToString());
 
             PocketBlockRef pocketBlock;
             if (!PocketServices::Accessor::GetBlock(block, pocketBlock))
-            {
-                return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s", pindex->nHeight,
-                    pindex->GetBlockHash().ToString());
-            }
+                return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s",
+                    pindex->nHeight, pindex->GetBlockHash().ToString());
+
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock); !ok)
+                return error("VerifyDB(): *** SocialConsensusHelper::Check failed with result %d at %d, hash=%s",
+                    (int)result, pindex->nHeight, pindex->GetBlockHash().ToString());
 
             if (pindex->nStatus & BLOCK_FAILED_MASK)
                 ResetBlockFailureFlags(pindex);
 
             if (!PocketServices::ChainPostProcessing::Rollback(pindex->nHeight))
-                return error("VerifyDB(): failed rollback sqlite database for %s block", pindex->GetBlockHash().ToString());
+                return error("VerifyDB(): failed rollback sqlite database for %s block",
+                    pindex->GetBlockHash().ToString());
 
             if (!g_chainstate.ConnectBlock(block, pocketBlock, state, pindex, coins, chainparams))
-                return error("VerifyDB(): *** found unconnectable block at %d, hash=%s (%s)", pindex->nHeight,
-                    pindex->GetBlockHash().ToString(), FormatStateMessage(state));
+                return error("VerifyDB(): *** found unconnectable block at %d, hash=%s (%s)",
+                    pindex->nHeight, pindex->GetBlockHash().ToString(), FormatStateMessage(state));
         }
     }
 
@@ -5923,7 +5935,7 @@ bool CChainState::LoadGenesisBlock(const CChainParams& chainparams)
 
     try
     {
-        CBlock& block = const_cast<CBlock&>(chainparams.GenesisBlock());
+        const CBlock& block = chainparams.GenesisBlock();
 
         auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(block);
         if (!deserializeOk)
