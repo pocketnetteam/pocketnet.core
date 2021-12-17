@@ -2545,7 +2545,8 @@ bool CWallet::SignTransaction(CMutableTransaction& tx) const
 			return false;
 		}
 		const CWalletTx& wtx = mi->second;
-		// TODO (losty-critical): is this valid usage of Coin()?
+		// TODO (losty-critical+): is this valid usage of Coin()?
+        // Хороший вопрос, нужно тестировать
 		coins[input.prevout] = Coin(wtx.tx->vout[input.prevout.n], wtx.m_confirm.block_height, wtx.IsCoinBase(), wtx.IsCoinStake(), PocketHelpers::TransactionHelper::IsPocketTransaction(wtx.tx));
 	}
 	std::map<int, std::string> input_errors;
@@ -4739,8 +4740,11 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	txNew.vout.push_back(CTxOut(0, scriptEmpty));
 
 	// Choose coins to use
-	// TODO (losty-critical): is choosen balance right?
-	int64_t nBalance = GetBalance().m_mine_immature;
+	// TODO (losty-critical+): is choosen balance right?
+    // TODO (brangr): предложил бы использовать m_mine_trusted - необходимо тестирование
+    // Мы должны использовать только надежные проверенные койны + есть условие, что деньги
+    // для стейкинга должны отлежаться больше часа
+	int64_t nBalance = GetBalance().m_mine_trusted; //.m_mine_immature;
 
 	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
 
@@ -4978,7 +4982,8 @@ int64_t CWallet::GetNewMint() const
 uint64_t CWallet::GetStakeWeight() const
 {
 	// Choose coins to use
-	// TODO (losty-critical): is this correct?
+	// TODO (losty-critical+): is this correct?
+    // думаю да - нужно тестировать/сверять с текущей версией
 	int64_t nBalance = GetBalance().m_mine_trusted;
 
 	if (nBalance <= 0) {

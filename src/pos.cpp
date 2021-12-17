@@ -178,7 +178,12 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     const CTxIn &txin = tx->vin[0];
 
     uint256 hashBlock = uint256();
-    // TODO (losty-critical): GetTransaction usage changed. Validate!
+    // TODO (losty-critical+): GetTransaction usage changed. Validate!
+    // Этот метод может не найти предыдущую транзакцию, т.к. blockIndex = nullptr, а txindex не всегда успевает догонять
+    // Я просмотрел логику CheckStakeKernelHash и в целом нам хватит данных в sqlite db для этой логики + будет быстрее,
+    // чем идти за блоком цепи на диске
+    // TODO (losty): get transaction with outputs from sqlite db (nTime, nValue)
+    // !!! use in src/pocketdb/repositories/TransactionRepository.h - shared_ptr<Transaction> Get(txin.prevout.hash, false, false, true)
     CTransactionRef txPrev = GetTransaction(nullptr, &mempool, txin.prevout.hash, Params().GetConsensus(), hashBlock);
     if (!txPrev)
     {
@@ -242,7 +247,9 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
 {
     arith_uint256 hashProofOfStake, targetProofOfStake;
 
-    // TODO (losty-critical): GetTransaction(...) signature changed. Null mempool and index is probably bad idea!
+    // TODO (losty-critical+): GetTransaction(...) signature changed. Null mempool and index is probably bad idea!
+    // Аналогично что выше, думаю все данные есть в нашей бд
+    // TODO (brangr): get transaction with outputs from sqlite db (nTime, nValue)
     uint256 hashBlock = uint256();
     CTransactionRef txPrev = GetTransaction(nullptr, nullptr, prevout.hash, Params().GetConsensus(), hashBlock);
     if (!txPrev)
@@ -572,7 +579,9 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge, Chai
     {
         // First try finding the previous transaction in database
 
-        // TODO (losty-critical): usage of GetTransaction changed. Need CBlockIndex as first parameter (passed as nullptr in some places) and mempool from node context (GetNodeContext(...))
+        // TODO (losty-critical+): usage of GetTransaction changed. Need CBlockIndex as first parameter (passed as nullptr in some places) and mempool from node context (GetNodeContext(...))
+        // Аналогично что выше, думаю все данные есть в нашей бд
+        // TODO (brangr): get transaction with outputs from sqlite db (nTime, nValue)
         uint256 hashBlock = uint256();
         CTransactionRef txPrev = GetTransaction(nullptr, &mempool, txin.prevout.hash, Params().GetConsensus(), hashBlock);
 

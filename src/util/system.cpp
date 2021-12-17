@@ -72,7 +72,8 @@
 const int64_t nStartupTime = GetTime();
 
 const char * const POCKETCOIN_CONF_FILENAME = "pocketcoin.conf";
-const char * const POCKETCOIN_SETTINGS_FILENAME = "settings.json"; // TODO (losty-critical) ???
+const char * const POCKETCOIN_SETTINGS_FILENAME = "settings.json"; // TODO (losty-critical+) ???
+                                                                   // сам не понял - что-то новенькое)
 
 ArgsManager gArgs;
 

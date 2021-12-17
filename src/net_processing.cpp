@@ -1885,7 +1885,9 @@ void static ProcessGetData(CNode& pfrom, Peer& peer, const CChainParams& chainpa
             int nSendFlags = (inv.IsMsgTx() ? SERIALIZE_TRANSACTION_NO_WITNESS : 0);
             // Join PocketNet data from PocketDB to transaction stream
             std::string txPayloadData;
-            // TODO (losty-critical): A lot reworked here. Validate that this is correct.
+            // TODO (losty-critical+): A lot reworked here. Validate that this is correct.
+            // Выглядит хорошо, логика поиска транзакции сохранилась, полагаю тут важно
+            // чтобы push = false сохранился, если не нашли пейлоад Accessor::GetTransaction
             if (PocketServices::Accessor::GetTransaction(*tx, txPayloadData)) {
                 connman.PushMessage(&pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *tx, txPayloadData));
                 mempool.RemoveUnbroadcastTx(tx->GetHash());
@@ -2198,7 +2200,9 @@ void PeerManager::ProcessOrphanTx(std::set<uint256>& orphan_work_set)
         TxValidationState state;
         std::list<CTransactionRef> removed_txn;
 
-        // TODO (losty-critical): pocket transaction. Currently with passing nullptr this will cause segfault probably
+        // TODO (losty-critical+): pocket transaction. Currently with passing nullptr this will cause segfault probably
+        // AcceptToMemoryPool был расширен, чтобы поднимать из БД данные или пробовать десериализовать то, что можно - 
+        // нужен мерж с актуальной версией
         if (AcceptToMemoryPool(m_mempool, state, porphanTx, nullptr, &removed_txn, false /* bypass_limits */)) {
             LogPrint(BCLog::MEMPOOL, "   accepted orphan tx %s\n", orphanHash.ToString());
             RelayTransaction(orphanHash, porphanTx->GetWitnessHash(), m_connman);
