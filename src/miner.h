@@ -184,7 +184,7 @@ private:
     void onlyUnconfirmed(CTxMemPool::setEntries& testSet);
 
     // Check transaction with AntiBot
-    bool TestTransaction(CTransactionRef& tx);
+    bool TestTransaction(const CTransactionRef& tx);
 
     /** Test if a new package would "fit" in the block */
     bool TestPackage(uint64_t packageSize, int64_t packageSigOpsCost) const;
