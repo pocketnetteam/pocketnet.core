@@ -26,85 +26,123 @@ To start a node independently, you need basic skills of working with the operati
 PocketnetCore is distributed in two ways: binary installer and build from source code.
 
 Minimum system requirements:
-- 8 core CPU
-- 12GB RAM
-- 15GB free disk space
+- 4 core CPU
+- 20GB RAM
+- 25GB free disk space
 - 10Mbps internet connection
 
 
 # Installation
 ## Linux (Ubuntu, Debian, Mint, etc.)
 Install package with root privilegies. To do this, open the terminal in the directory where you downloaded the installer and execute commands:
-```sh
-sudo dpkg -i pocketnetcore_*_linux_x64_setup.deb
+```shell
+$ sudo dpkg -i pocketnetcore_*_linux_x64_setup.deb
 ```
 ## Windows
 Run the `pocketnetcore_*_win_x64_setup.exe` and follow the instructions of the installer.\
 When you first start, the pocketnetcore desktop utility will ask for the location of the blockchain data directory. Default for Windows `%APPDATA%/Pocketcoin`, for linux `~/.pocketcoin`.
 
-
-# Build from source code
-See `doc/build-*.md` files for build instructions.
-
+## Docker
+Make sure that enough resources are allocated in your docker settings for the node to work from the section https://github.com/pocketnetteam/pocketnet.core#usage \
+You can start your node with a single command from Docker.
+```shell
+$ docker run -d \
+    --name=pocketnet.main \
+    -p 37070:37070 \
+    -p 38081:38081 \
+    -p 8087:8087 \
+    -v /var/pocketnet/.data:/home/pocketcoin/.pocketcoin \
+    pocketnetteam/pocketnet.core:latest
+```
+Control
+```shell
+$ docker ps --format '{{.ID}}\t{{.Names}}\t{{.Image}}'
+ea7759a47250    pocketnet.main      pocketnetteam/pocketnet.core:latest
+$
+$ docker exec -it pocketnet.main /bin/sh
+$
+$ pocketcoin-cli --help
+$ pocketcoin-tx --help
+```
 
 # First full synchronization
 To quickly synchronize and minimize traffic costs, you can run an empty node with additional parameters:
 - `-listen=0` - disable the visibility of your node so that other novice nodes can't connect to you to download the blockchain.
 - `-blocksonly=1` - specifies the mode of operation without transaction relay. In this way, the node will load the blocks as a whole, ignoring individual transactions on the network.
+- `-disablewallet=1` - disables wallet mechanisms to speed up the synchronization process
 
 **After full synchronization, it is strongly recommended to disable these settings for the full operation of the node.**
 
 You can get the full list of parameters:
-```sh
-> pocketcoind --help
+```shell
+$ pocketcoind --help
 ```
 
-# Initialize blockhain data via torrent
+# Initialize blockchain data with database checkpoint
 1. Stop the node.
-2. Download database via your torrent client:
-> magnet:?xt=urn:btih:86742995ecc2bb9d3646c9869a0336e2d120a0d7&dn=pocketnet.checkpoint.1113210.tar.gz&tr=udp%3a%2f%2ftracker.openbittorrent.com%3a80%2fannounce
-4. There must be archive tar.gz with 4 directories:
-```
-blocks\
-chainstate\
-indexes\
-pocketdb\
-```
+2. Download database archive:
+    ```
+    # List all snapshots available at
+    https://snapshot.pocketnet.app
+    
+    # Latest snapshot archive
+    https://snapshot.pocketnet.app/latest.tgz
+    ```
+4. There must be archive tgz with 5 directories:
+    ```shell
+    blocks\
+      - ...
+    chainstate\
+      - ...
+    indexes\
+      - ...
+    pocketdb\
+      - main.sqlite3
+      - web.sqlite3
+    checkpoints\
+      - main.sqlite3
+    ```
 4. Clean out everything except **wallet.dat** file, **wallets/** directory and **pocketcoin.conf** config file in the blockchain working directory and unpack the archive:
-```sh
-# for unix
-> cd ~/.pocketcoin/
-> 
-# or for windows
-> cd %APPDATA%\Pocketcoin\
-> 
-# or for macos
-> cd ~/Library/Application\ Support/Pocketcoin/
-> 
-# delete exists DB
-> rm -r ./blocks
-> rm -r ./chainstate
-> rm -r ./indexes
-> rm -r ./pocketdb
->
-# unpack new checkpoint DB
-> tar -xzvf pocketnet.checkpoint.*.tar.gz -C ./
-```
+    ```shell
+    # for unix
+    $ cd ~/.pocketcoin/
+     
+    # or for windows
+    $ cd %APPDATA%\Pocketcoin\
+    
+    # or for macos
+    $ cd ~/Library/Application\ Support/Pocketcoin/
+     
+    # delete exists DB
+    $ rm -r ./blocks
+    $ rm -r ./chainstate
+    $ rm -r ./indexes
+    $ rm -r ./pocketdb
+    $ rm -r ./checkpoints
+    
+    # unpack new checkpoint DB
+    $ tar -xzf latest.tgz -C ./
+    ```
 5. Make sure the folders and files inside are not set to "read only"
 6. Start the node.
 
 **VERY IMPORTANT**: save the **wallet.dat** file or **wallets/** files before cleaning the directory. It is recommended to even save these files somewhere for backup. 
 
 
+# Build from source code
+See `doc/build-*.md` files for build instructions.
+
+
 # Help
 You can get help and useful information from different sources:
 - https://pocketnet.app/help
+- https://github.com/pocketnetteam/pocketnet.core/blob/master/doc/public_access.md
 - https://github.com/pocketnetteam/pocketnet.core/tree/master/doc/help
 - https://github.com/pocketnetteam/pocketnet.core/blob/master/share/examples/pocketcoin.conf
 - Contact section below
 
 # License
-Pocketnet Core is released under the terms of the Apache 2.0 license. See [COPYING](COPYING) for more
+Pocketnet Core is released under the terms of the Apache 2.0 license. See [LICENSE](LICENSE) for more
 information or see https://opensource.org/licenses/Apache-2.0.
 
 # Contacts
