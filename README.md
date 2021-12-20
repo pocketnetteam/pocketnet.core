@@ -26,9 +26,9 @@ To start a node independently, you need basic skills of working with the operati
 PocketnetCore is distributed in two ways: binary installer and build from source code.
 
 Minimum system requirements:
-- 2 core CPU
-- 500MB RAM
-- 50GB free disk space
+- 4 core CPU
+- 20GB RAM
+- 25GB free disk space
 - 10Mbps internet connection
 
 
