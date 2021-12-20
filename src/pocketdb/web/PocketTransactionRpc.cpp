@@ -280,6 +280,7 @@ namespace PocketWeb::PocketWebRpc
         const auto& node = EnsureNodeContext(request.context);
 
         // TODO (losty-critical): validate above is correct. In rawtransaction also used coins from prevouts (ParsePrevouts(...) method). Prevouts came there as rpc parameter
+        //                        see also signrawtransactionwithwallet(...) from wallet/rpcwallet.cpp
         // Fetch previous transactions (inputs):
         std::map<COutPoint, Coin> coins;
         for (const CTxIn& txin : mTx.vin) {
