@@ -26,9 +26,9 @@ To start a node independently, you need basic skills of working with the operati
 PocketnetCore is distributed in two ways: binary installer and build from source code.
 
 Minimum system requirements:
-- 4 core CPU
-- 20GB RAM
-- 25GB free disk space
+- 2 core CPU
+- 500MB RAM
+- 50GB free disk space
 - 10Mbps internet connection
 
 
@@ -87,6 +87,7 @@ $ pocketcoind --help
     
     # Latest snapshot archive
     https://snapshot.pocketnet.app/latest.tgz
+    https://snapshot.pocketnet.app/latest.bz2
     ```
 4. There must be archive tgz with 5 directories:
     ```shell
@@ -121,7 +122,12 @@ $ pocketcoind --help
     $ rm -r ./checkpoints
     
     # unpack new checkpoint DB
+    
+    # for tar.gz archive
     $ tar -xzf latest.tgz -C ./
+    
+    # for bz2 archive
+    $ tar -xjf latest.tgz -C ./
     ```
 5. Make sure the folders and files inside are not set to "read only"
 6. Start the node.
