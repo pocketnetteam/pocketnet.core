@@ -4,10 +4,12 @@
 
 #include "pocketdb/web/PocketTransactionRpc.h"
 #include "consensus/validation.h"
+#include "node/coin.h"
 #include "primitives/transaction.h"
 #include "rpc/blockchain.h"
 #include "script/signingprovider.h"
 #include "util/rbf.h"
+#include "rpc/rawtransaction_util.h"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -275,9 +277,23 @@ namespace PocketWeb::PocketWebRpc
             keystore.AddKey(key);
         }
 
+        const auto& node = EnsureNodeContext(request.context);
+
+        // TODO (losty-critical): validate above is correct. In rawtransaction also used coins from prevouts (ParsePrevouts(...) method). Prevouts came there as rpc parameter
+        // Fetch previous transactions (inputs):
+        std::map<COutPoint, Coin> coins;
+        for (const CTxIn& txin : mTx.vin) {
+            coins[txin.prevout]; // Create empty map entry keyed by prevout.
+        }
+        FindCoins(node, coins);
+
         // Try sign transaction
-        UniValue signResult /* = SignTransaction(mTx, NullUniValue, &keystore, true, NullUniValue)*/;  // TODO (losty-critical): SignTransaction changed. Required vector of coins 
-        if (!signResult["complete"].get_bool()) {
+        UniValue signResult{UniValue::VOBJ};
+        std::map<int, std::string> input_errors;
+
+        bool fSignRes = SignTransaction(mTx, &keystore, coins, SIGHASH_ALL /*Or ParseSighashString(..) or smth.*/, input_errors);  // TODO (losty-critical): SignTransaction changed. Required vector of coins 
+        SignTransactionResultToJSON(mTx, fSignRes, coins, input_errors, signResult);
+        if (!fSignRes) {
             if (signResult.exists("errors"))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid sign: " + signResult["errors"].write());
             else
@@ -293,8 +309,6 @@ namespace PocketWeb::PocketWebRpc
 
         // Set required fields
         ptx->SetAddress(address);
-
-        const auto& node = EnsureNodeContext(request.context);
 
         // TODO (losty-fur): possible null mempool and connman
         // Insert into mempool
