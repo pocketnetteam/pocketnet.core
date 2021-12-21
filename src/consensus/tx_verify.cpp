@@ -172,8 +172,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
 
         // If prev is pocketnet, check that it's matured
         if (nSpendHeight > chainparams.GetConsensus().nHeight_version_1_0_0 && coin.IsPocketTX() && nSpendHeight - coin.nHeight < POCKETNET_MATURITY) {
-            // TODO (losty-critical): POCKETTX_MATURITY should be here
-            return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "bad-txns-premature-spend-of-pocketnet",
+            return state.Invalid(TxValidationResult::TX_POCKET_PREMATURE_SPEND, "bad-txns-premature-spend-of-pocketnet",
                 strprintf("tried to spend %s at depth %d - %d = %d", "pocketnet", nSpendHeight, coin.nHeight, nSpendHeight - coin.nHeight));
         }
         // If prev is coinbase, check that it's matured

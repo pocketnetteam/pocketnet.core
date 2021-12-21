@@ -351,21 +351,19 @@ namespace PocketWeb::PocketWebRpc
                     }
                     else if (state.IsInvalid())
                     {
-                        throw JSONRPCError(RPC_TRANSACTION_REJECTED, state.ToString());
+                        // TODO (losty-critical): probably need something like enum-to-code translation because it would be useful with SocialConsensus codes.
+                        if (state.GetResult() == TxValidationResult::TX_POCKET_PREMATURE_SPEND)
+                        {
+                            throw JSONRPCError(RPC_POCKETTX_MATURITY, state.ToString());
+                        }
+                        else
+                        {
+                            throw JSONRPCError(RPC_TRANSACTION_REJECTED, state.ToString());
+                        }
                     }
                     else
                     {
-                        // TODO (losty+): GetRejectCode is removed. Probably need to add POCKETTX_MATURITY to TxValidationResult, but it seems this code is never using
-                        // RPC_POCKETTX_MATURITY используется в src/consensus/tx_verify.cpp:224 + нужно поднять это условие выше if (state.IsInvalid())
-                        // также необходим мерж с текущими изменениями
-                        // if (state.GetRejectCode() == RPC_POCKETTX_MATURITY)
-                        // {
-                            throw JSONRPCError(RPC_POCKETTX_MATURITY, state.ToString());
-                        // }
-                        // else
-                        // {
-                        //     throw JSONRPCError(RPC_TRANSACTION_ERROR, FormatStateMessage(state));
-                        // }
+                        throw JSONRPCError(RPC_TRANSACTION_ERROR, state.ToString());
                     }
                 }
                 else
