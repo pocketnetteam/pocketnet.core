@@ -177,6 +177,19 @@ namespace PocketDb
                 t.String2 address,
                 p.String2 as name,
                 p.String3 as avatar
+
+                , ifnull((
+                    select r.Value
+                    from Ratings r indexed by Ratings_Type_Id_Last_Height
+                    where r.Type=0 and r.Id=u.Id and r.Last=1)
+                ,0) as Reputation
+
+                , (
+                    select count(*)
+                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
+                ) as SubscribersCount
+
             from Transactions t indexed by Transactions_Type_Last_String1_String2_Height
             cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = t.String2
             cross join Payload p on p.TxHash = u.Hash
@@ -213,6 +226,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
                 result.push_back(record);
             }
 
@@ -236,6 +251,19 @@ namespace PocketDb
             select tOtherContents.String1 as address,
                    p.String2              as name,
                    p.String3              as avatar
+
+                , ifnull((
+                    select r.Value
+                    from Ratings r indexed by Ratings_Type_Id_Last_Height
+                    where r.Type=0 and r.Id=u.Id and r.Last=1)
+                ,0) as Reputation
+
+                , (
+                    select count(*)
+                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
+                ) as SubscribersCount
+
             from Transactions tOtherContents
                      indexed by Transactions_Type_Last_String1_String2_Height
                      cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
@@ -300,6 +328,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
                 result.push_back(record);
             }
 
@@ -323,6 +353,19 @@ namespace PocketDb
             select tOtherContents.String1 as address,
                    p.String2              as name,
                    p.String3              as avatar
+
+                , ifnull((
+                    select r.Value
+                    from Ratings r indexed by Ratings_Type_Id_Last_Height
+                    where r.Type=0 and r.Id=u.Id and r.Last=1)
+                ,0) as Reputation
+
+                , (
+                    select count(*)
+                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
+                ) as SubscribersCount
+
             from Transactions tOtherContents
                      indexed by Transactions_Type_Last_String2_Height
                      join Transactions u on u.String1 = tOtherContents.String1
@@ -385,6 +428,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
                 result.push_back(record);
             }
 
