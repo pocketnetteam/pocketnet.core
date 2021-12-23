@@ -220,7 +220,11 @@ namespace PocketWeb::PocketWebRpc
                 "\nSearch links in DB.\n",
                 {
                     {"links", RPCArg::Type::STR, RPCArg::Optional::NO, "String for search"},
-                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video"},
+                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video",
+                        {
+                            {"contenttype", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum search height. Default is current chain height"},
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10"},
                 },

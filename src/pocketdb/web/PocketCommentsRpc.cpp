@@ -14,7 +14,11 @@ namespace PocketWeb::PocketWebRpc
                     {"postid", RPCArg::Type::NUM, RPCArg::Optional::NO, "Post to get comments from."},
                     {"parentid", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                     {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"commend_ids", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"commend_ids", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"commend_id", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
                 },
                 {
                     // TODO (losty-fur): provide return description

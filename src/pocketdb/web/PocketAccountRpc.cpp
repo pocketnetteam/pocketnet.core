@@ -130,7 +130,11 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getaddressregistration",
                 "\nReturns array of registration dates.\n",
                 {
-                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array of pocketcoin addresses to filter"}
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "A json array of pocketcoin addresses to filter",
+                        {
+                            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    }
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "", 
@@ -284,7 +288,11 @@ namespace PocketWeb::PocketWebRpc
                 "with between minconf and maxconf (inclusive) confirmations.\n"
                 "Optionally filter to only include txouts paid to specified addresses.\n",
                 {
-                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "A json array of pocketcoin addresses to filter"},
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "A json array of pocketcoin addresses to filter",
+                        {
+                            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
+                        }
+                    },
                     {"minconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The minimum confirmations to filter (default=1)"},
                     {"maxconf", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The maximum confirmations to filter (default=9999999)"},
 
@@ -409,7 +417,11 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getuserstatistic",
                 "\nGet user statistic.\n",
                 {
-                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "Addresses for statistic"},
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "Addresses for statistic",
+                        {
+                            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum search height. Default is current chain height"},
                     {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of statistic. Default - whole history"},
                 },

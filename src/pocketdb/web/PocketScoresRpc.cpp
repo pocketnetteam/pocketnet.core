@@ -123,9 +123,17 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getpagescores",
                 "\nGet scores for posts and comments from address.\n",
                 {
-                    {"postHashes", RPCArg::Type::ARR, RPCArg::Optional::NO, ""},
+                    {"postHashes", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
+                        {
+                            {"postHash", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
-                    {"commentHashes", RPCArg::Type::ARR, RPCArg::Optional::NO, ""}
+                    {"commentHashes", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
+                        {
+                            {"commentHash", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    }
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "", 

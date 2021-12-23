@@ -208,7 +208,11 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getcontent",
                 "\nReturns contents for list of ids\n",
                 {
-                    {"ids", RPCArg::Type::ARR, RPCArg::Optional::NO, ""}
+                    {"ids", RPCArg::Type::ARR, RPCArg::Optional::NO, "",
+                        {
+                            {"id", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    }
                 },
                 {
                     // TODO (losty-fur): provide return description
@@ -394,11 +398,31 @@ namespace PocketWeb::PocketWebRpc
                     {"topContentHash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                     {"countOut", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                     {"lang", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"tags", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"contentTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"txIdsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"adrsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"tagsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"tags", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"tag", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                    {"contentTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"contentType", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                    {"txIdsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"txIdExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                    {"adrsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"adrExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                    {"tagsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"tagExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
                     {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                 },
                 {
@@ -458,11 +482,31 @@ namespace PocketWeb::PocketWebRpc
                     {"topContentHash", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                     {"countOut", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                     {"lang", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"tags", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"contentTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"txIdsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"adrsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
-                    {"tagsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
+                    {"tags", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"tag", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                    {"contentTypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"contentType", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                    {"txIdsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"txIdExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                    {"adrsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"adrExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
+                    {"tagsExcluded", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "",
+                        {
+                            {"tagExcluded", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
                     {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                 },
                 {
@@ -564,7 +608,11 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet contents statistic.\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address - сontent author"},
-                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video"},
+                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video",
+                        {
+                            {"contenttype", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum content height. Default is current chain height"},
                     {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of content history for statistics. Default is all history"},
                 },

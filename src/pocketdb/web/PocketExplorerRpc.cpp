@@ -406,7 +406,11 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"gettransactions",
                 "\nGet transactions info.\n",
                 {
-                    {"transactions", RPCArg::Type::ARR, RPCArg::Optional::NO, "Transaction hashes"},
+                    {"transactions", RPCArg::Type::ARR, RPCArg::Optional::NO, "Transaction hashes",
+                        {
+                            {"transaction", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                        }
+                    },
                     {"pageStart", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Row number for start page"},
                     {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
                 },
