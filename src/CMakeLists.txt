@@ -1219,5 +1219,5 @@ target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN
 target_include_directories(${POCKETCOIN_TX} PRIVATE ${SQlite3_INCLUDE_DIR})
 
 if(NOT DISABLE_GUI)
-    # add_subdirectory(qt/)
+    add_subdirectory(qt/)
 endif()
