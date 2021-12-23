@@ -346,12 +346,10 @@ namespace PocketWeb::PocketWebRpc
                 {
                     if (state.IsConsensusFailed())
                     {
-                        // TODO (losty-critical): GetRejectCode removed
-                        // throw JSONRPCError(state.GetRejectCode(), FormatStateMessage(state));
+                        throw JSONRPCError(state.GetRejectCode(), state.ToString());
                     }
                     else if (state.IsInvalid())
                     {
-                        // TODO (losty-critical): probably need something like enum-to-code translation because it would be useful with SocialConsensus codes.
                         if (state.GetResult() == TxValidationResult::TX_POCKET_PREMATURE_SPEND)
                         {
                             throw JSONRPCError(RPC_POCKETTX_MATURITY, state.ToString());

@@ -24,6 +24,9 @@ static constexpr size_t MINIMUM_WITNESS_COMMITMENT{38};
 enum class TxValidationResult {
     TX_RESULT_UNSET = 0,     //!< initial value. Tx has not yet been rejected
     TX_CONSENSUS,            //!< invalid by consensus rules
+    // TODO (losty-fur): probably rename this. 2 below are the same, but first results in node's punishment, second is common situation if current node is much behind others
+    TX_SOCIAL_CONSENSUS,     //!< invalid by social (pocketnet) consensus rules that is critical
+    TX_SOCIAL_UNWARRANT,     //!< invalid by social (pocketnet) rules that is common if current node is much behind others  
     /**
      * Invalid by a change to consensus rules more recent than SegWit.
      * Currently unused as there are no such consensus rule changes, and any download
@@ -54,7 +57,6 @@ enum class TxValidationResult {
      */
     TX_CONFLICT,
     TX_MEMPOOL_POLICY,        //!< violated mempool's fee/size/descendant/RBF/etc limits
-    // TODO (losty-critical): RPC_POCKETTX_MATURITY here!
 };
 
 /** A "reason" why a block was invalid, suitable for determining whether the
@@ -102,23 +104,25 @@ private:
     std::string m_reject_reason;
     std::string m_debug_message;
     bool m_incompleted = false;
+    int m_code = 0;
 public:
     bool Invalid(Result result,
                  const std::string& reject_reason = "",
                  const std::string& debug_message = "",
                  bool incompleted = false,
+                 int code = 0,
                  ModeState modIn = ModeState::M_INVALID)
     {
         m_result = result;
         m_reject_reason = reject_reason;
         m_debug_message = debug_message;
         m_incompleted = incompleted;
+        m_code = code;
         if (m_mode != ModeState::M_ERROR) m_mode = modIn;
         return false;
     }
-    bool ConsensusFailed(unsigned int _chRejectCode, const std::string &_strRejectReason) {
-        // TODO (losty-critical)
-        return false;//Invalid(0, false, _chRejectCode, _strRejectReason, false, "", false, ModeState::M_MODE_CONSENSUS);
+    bool ConsensusFailed(TxValidationResult _txRes,  const std::string &_strRejectReason, unsigned int _chRejectCode = 0) {
+        return Invalid(_txRes, _strRejectReason, "", false, _chRejectCode, ModeState::M_MODE_CONSENSUS);
     }
     bool Error(const std::string& reject_reason)
     {
@@ -132,6 +136,10 @@ public:
     bool IsError() const { return m_mode == ModeState::M_ERROR; }
     bool IsConsensusFailed() const { return m_mode == ModeState::M_MODE_CONSENSUS; }
     Result GetResult() const { return m_result; }
+    int GetRejectCode()
+    {
+        return m_code;
+    }
     std::string GetRejectReason() const { return m_reject_reason; }
     std::string GetDebugMessage() const { return m_debug_message; }
     std::string ToString() const

@@ -1044,15 +1044,13 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     // Check consensus if transaction payload exists
     if (_pocketTx)
     {
-        // TODO (losty-critical): ConsensusFailed should be reworked as well as result should be converted to something else because internal DoS method is removed and int as a resutl is no longer accepted.
-        //                        Probably move SocialConsensusResult to some kind of enum and create a special "state" for it. Or aggregate such errors in TxValidationResult
         // Check transaction with pocketnet base rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx); !ok)
-            return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result)); // TODO (losty-fur):is this error correct?
+            return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result), (int)result); // TODO (losty-fur):is this error correct?
 
         // Check transaction with pocketnet consensus rules
         if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
-            return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result)); // TODO (losty-fur):is this error correct?
+            return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_UNWARRANT, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result), (int)result); // TODO (losty-fur):is this error correct?
     }
 
     // At this point, we believe that all the checks have been carried

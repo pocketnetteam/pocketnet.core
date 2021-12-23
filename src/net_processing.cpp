@@ -1276,6 +1276,7 @@ bool PeerManager::MaybePunishNodeForTx(NodeId nodeid, const TxValidationState& s
         break;
     // The node is providing invalid data:
     case TxValidationResult::TX_CONSENSUS:
+    case TxValidationResult::TX_SOCIAL_CONSENSUS:
         Misbehaving(nodeid, 100, message);
         return true;
     // Conflicting (but not necessarily invalid) data or different policy:
@@ -1289,6 +1290,7 @@ bool PeerManager::MaybePunishNodeForTx(NodeId nodeid, const TxValidationState& s
     case TxValidationResult::TX_WITNESS_STRIPPED:
     case TxValidationResult::TX_CONFLICT:
     case TxValidationResult::TX_MEMPOOL_POLICY:
+    case TxValidationResult::TX_SOCIAL_UNWARRANT:
         break;
     }
     if (message != "") {
