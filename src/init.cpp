@@ -475,7 +475,6 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-skip-validation=<n>", "Skip consensus check and validation before N block logic if running with -reindex or -reindex-chainstate", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-reindex-start", "Start block for -reindex logic (Deafult: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-mempoolclean", "Clean mempool on loading and delete or non blocked transactions from sqlite db", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
-    argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
 
 #if HAVE_SYSTEM
     argsman.AddArg("-startupnotify=<cmd>", "Execute command on startup.", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
