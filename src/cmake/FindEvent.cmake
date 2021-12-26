@@ -144,7 +144,6 @@ if(Event_FOUND AND Event_LIBRARIES AND NOT TARGET Event::event)
     add_library(Event::event INTERFACE IMPORTED)
     set_target_properties(Event::event PROPERTIES
             INTERFACE_INCLUDE_DIRECTORIES "${Event_INCLUDE_DIRS}"
-            IMPORTED_LOCATION "${EVENT_LIB}"
             INTERFACE_LINK_LIBRARIES "${Event_LIBRARIES}"
             )
     if(WIN32)
