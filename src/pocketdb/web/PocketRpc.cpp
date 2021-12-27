@@ -14,11 +14,74 @@ UniValue gettemplate(const JSONRPCRequest& request)
     UniValue aResult(UniValue::VARR);
     return aResult;
 }
+UniValue debug(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "debug\n"
+            "\ndebug.\n");
 
+    std::string txid = request.params[0].get_str();
+    uint256 hash = ParseHashV(txid, "parameter 1");
+    CBlockIndex *blockindex = nullptr;
+
+    CTransactionRef tx;
+    uint256 hash_block;
+    bool found = false;
+    CBlockIndex *pindexSlow = blockindex;
+
+    if (!blockindex)
+    {
+        CTransactionRef ptx = mempool.get(hash);
+        if (ptx)
+        {
+            tx = ptx;
+            found = true;
+        }
+
+        if (g_txindex)
+        {
+            if (g_txindex->FindTx(hash, hash_block, tx))
+                found = true;
+        }
+
+        if (true)
+        { // use coin database to locate block that contains transaction, and scan it
+            const Coin& coin = AccessByTxid(*pcoinsTip, hash);
+            if (!coin.IsSpent()) pindexSlow = chainActive[coin.nHeight];
+        }
+    }
+
+    if (pindexSlow)
+    {
+        CBlock block;
+        if (ReadBlockFromDisk(block, pindexSlow, Params().GetConsensus()))
+        {
+            for (const auto& tx_ : block.vtx)
+            {
+                if (tx_->GetHash() == hash)
+                {
+                    tx = tx_;
+                    hash_block = pindexSlow->GetBlockHash();
+                    found = true;
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < tx->vout.size(); i++)
+    {
+        const CTxOut& txout = tx->vout[i];
+    }
+
+    UniValue aResult(UniValue::VARR);
+    return aResult;
+}
 // @formatter:off
 static const CRPCCommand commands[] =
 {
     {"hidden",       "generatepocketnettransaction",      &GenerateTransaction,             {"address", "privKey", "outCount", "type", "payload"}},
+    {"hidden",       "debug",      &debug,             {"str"}},
 
     // Old methods
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},

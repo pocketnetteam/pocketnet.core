@@ -17,9 +17,9 @@ PocketcoinUnits::PocketcoinUnits(QObject *parent):
 QList<PocketcoinUnits::Unit> PocketcoinUnits::availableUnits()
 {
     QList<PocketcoinUnits::Unit> unitlist;
-    unitlist.append(POC);
-    unitlist.append(mPOC);
-    unitlist.append(uPOC);
+    unitlist.append(PKOIN);
+    unitlist.append(mPKOIN);
+    unitlist.append(uPKOIN);
     unitlist.append(SAT);
     return unitlist;
 }
@@ -28,9 +28,9 @@ bool PocketcoinUnits::valid(int unit)
 {
     switch(unit)
     {
-    case POC:
-    case mPOC:
-    case uPOC:
+    case PKOIN:
+    case mPKOIN:
+    case uPKOIN:
     case SAT:
         return true;
     default:
@@ -42,9 +42,9 @@ QString PocketcoinUnits::longName(int unit)
 {
     switch(unit)
     {
-    case POC: return QString("POC");
-    case mPOC: return QString("mPOC");
-    case uPOC: return QString::fromUtf8("µPOC (bits)");
+    case PKOIN: return QString("PKOIN");
+    case mPKOIN: return QString("mPKOIN");
+    case uPKOIN: return QString::fromUtf8("µPKOIN (bits)");
     case SAT: return QString("Satoshi (sat)");
     default: return QString("???");
     }
@@ -54,7 +54,7 @@ QString PocketcoinUnits::shortName(int unit)
 {
     switch(unit)
     {
-    case uPOC: return QString::fromUtf8("bits");
+    case uPKOIN: return QString::fromUtf8("bits");
     case SAT: return QString("sat");
     default: return longName(unit);
     }
@@ -64,9 +64,9 @@ QString PocketcoinUnits::description(int unit)
 {
     switch(unit)
     {
-    case POC: return QString("Pocketcoins");
-    case mPOC: return QString("Milli-Pocketcoins (1 / 1" THIN_SP_UTF8 "000)");
-    case uPOC: return QString("Micro-Pocketcoins (bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case PKOIN: return QString("Pocketcoins");
+    case mPKOIN: return QString("Milli-Pocketcoins (1 / 1" THIN_SP_UTF8 "000)");
+    case uPKOIN: return QString("Micro-Pocketcoins (bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     case SAT: return QString("Satoshi (sat) (1 / 100" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     default: return QString("???");
     }
@@ -76,9 +76,9 @@ qint64 PocketcoinUnits::factor(int unit)
 {
     switch(unit)
     {
-    case POC: return 100000000;
-    case mPOC: return 100000;
-    case uPOC: return 100;
+    case PKOIN: return 100000000;
+    case mPKOIN: return 100000;
+    case uPKOIN: return 100;
     case SAT: return 1;
     default: return 100000000;
     }
@@ -88,9 +88,9 @@ int PocketcoinUnits::decimals(int unit)
 {
     switch(unit)
     {
-    case POC: return 8;
-    case mPOC: return 5;
-    case uPOC: return 2;
+    case PKOIN: return 8;
+    case mPKOIN: return 5;
+    case uPKOIN: return 2;
     case SAT: return 0;
     default: return 0;
     }
