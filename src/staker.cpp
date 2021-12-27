@@ -151,7 +151,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     {
         // TODO (losty-critical+): conbasescript removed
         // if (!coinbaseScript || coinbaseScript->reserveScript.empty())
-            throw std::runtime_error("No coinbase script available (staking requires a wallet)");
+            // throw std::runtime_error("No coinbase script available (staking requires a wallet)");
 
         while (running)
         {
@@ -198,26 +198,27 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             uint64_t nFees = 0;
             // TODO (losty-fur): possible null mempool
             auto assembler = BlockAssembler(*node.mempool, chainparams);
+
             // TODO (losty-critical+): coinbasescript
-            // auto blocktemplate = assembler.CreateNewBlock(
-            //     coinbaseScript->reserveScript, true, true, &nFees
-            // );
+            auto blocktemplate = assembler.CreateNewBlock(
+                Optional<CScript>(), true, &nFees
+            );
 
-            // auto block = std::make_shared<CBlock>(blocktemplate->block);
+            auto block = std::make_shared<CBlock>(blocktemplate->block);
 
-            // if (signBlock(block, wallet, nFees))
-            // {
-            //     // Extend pocketBlock with coinStake transaction
-            //     if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
-            //         blocktemplate->pocketBlock->emplace_back(ptx);
-            //     // TODO (losty-fur): possible null chainman
-            //     CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
-            //     UninterruptibleSleep(std::chrono::milliseconds{500});
-            // }
-            // else
-            // {
-            //     UninterruptibleSleep(std::chrono::milliseconds{minerSleep});
-            // }
+            if (signBlock(block, wallet, nFees))
+            {
+                // Extend pocketBlock with coinStake transaction
+                if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(block->vtx[1]); ok)
+                    blocktemplate->pocketBlock->emplace_back(ptx);
+                // TODO (losty-fur): possible null chainman
+                CheckStake(block, blocktemplate->pocketBlock, wallet, chainparams, *node.chainman, *node.mempool);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
+            }
+            else
+            {
+                UninterruptibleSleep(std::chrono::milliseconds{minerSleep});
+            }
         }
     }
     catch (const boost::thread_interrupted&)

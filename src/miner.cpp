@@ -101,7 +101,7 @@ void BlockAssembler::resetBlock()
 Optional<int64_t> BlockAssembler::m_last_block_num_txs{};
 Optional<int64_t> BlockAssembler::m_last_block_weight{};
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn,
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const Optional<CScript>& scriptPubKeyIn,
     bool fProofOfStake, uint64_t* pFees)
 {
     int64_t nTimeStart = GetTimeMicros();
@@ -166,7 +166,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout.resize(1);
     if (!fProofOfStake)
     {
-        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+        assert(scriptPubKeyIn);
+        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn.value();
         coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     }
     else
