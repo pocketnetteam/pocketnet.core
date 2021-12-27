@@ -73,6 +73,7 @@ namespace PocketTx
     void Transaction::SetId(int64_t value) { m_id = make_shared<int64_t>(value); }
 
     vector <shared_ptr<TransactionOutput>>& Transaction::Outputs() { return m_outputs; }
+    const vector <shared_ptr<TransactionOutput>>& Transaction::OutputsConst() const { return m_outputs; }
 
     shared_ptr <Payload> Transaction::GetPayload() const { return m_payload; }
     void Transaction::SetPayload(Payload value) { m_payload = make_shared<Payload>(value); }
