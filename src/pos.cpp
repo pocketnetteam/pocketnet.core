@@ -4,6 +4,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "logging.h"
+#include "pocketdb/pocketnet.h"
 #include "txmempool.h"
 #include <boost/range/adaptor/reversed.hpp>
 #include <chain.h>
@@ -178,13 +180,10 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     const CTxIn &txin = tx->vin[0];
 
     uint256 hashBlock = uint256();
-    // TODO (losty-critical+): GetTransaction usage changed. Validate!
-    // Этот метод может не найти предыдущую транзакцию, т.к. blockIndex = nullptr, а txindex не всегда успевает догонять
-    // Я просмотрел логику CheckStakeKernelHash и в целом нам хватит данных в sqlite db для этой логики + будет быстрее,
-    // чем идти за блоком цепи на диске
-    // TODO (losty): get transaction with outputs from sqlite db (nTime, nValue)
-    // !!! use in src/pocketdb/repositories/TransactionRepository.h - shared_ptr<Transaction> Get(txin.prevout.hash, false, false, true)
-    CTransactionRef txPrev = GetTransaction(nullptr, &mempool, txin.prevout.hash, Params().GetConsensus(), hashBlock);
+
+    // TODO (losty-fur): validate
+    LogPrintf("CheckProofOfStake(): DEBUG: getting transaction from sqlite db");
+    auto txPrev = PocketDb::TransRepoInst.Get(txin.prevout.hash.ToString(), false, false, true);
     if (!txPrev)
     {
         return error("CheckProofOfStake() : INFO: read txPrev failed %s",
@@ -224,13 +223,13 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
 
     CBlockIndex *pblockindex = g_chainman.BlockIndex()[hashBlock];
 
-    if (txin.prevout.hash != txPrev->GetHash())
+    if (txin.prevout.hash.ToString() != *txPrev->GetHash())
     {
         return error("CheckProofOfStake(): Coinstake input does not match previous output %s",
             txin.prevout.hash.GetHex());
     }
 
-    if (!CheckStakeKernelHash(pindexPrev, nBits, *pblockindex, txPrev, txin.prevout, tx->nTime, hashProofOfStake,
+    if (!CheckStakeKernelHash(pindexPrev, nBits, *pblockindex, *txPrev, txin.prevout, tx->nTime, hashProofOfStake,
         hashProofOfStakeSource, targetProofOfStake))
     {
         return error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s",
@@ -247,11 +246,11 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
 {
     arith_uint256 hashProofOfStake, targetProofOfStake;
 
-    // TODO (losty-critical+): GetTransaction(...) signature changed. Null mempool and index is probably bad idea!
-    // Аналогично что выше, думаю все данные есть в нашей бд
-    // TODO (brangr): get transaction with outputs from sqlite db (nTime, nValue)
     uint256 hashBlock = uint256();
-    CTransactionRef txPrev = GetTransaction(nullptr, nullptr, prevout.hash, Params().GetConsensus(), hashBlock);
+
+    // TODO (losty-fur): validate
+    LogPrintf("CheckProofOfStake(): DEBUG: getting transaction from sqlite db");
+    auto txPrev = PocketDb::TransRepoInst.Get(prevout.hash.ToString());
     if (!txPrev)
     {
         LogPrintf("CheckKernel : Could not find previous transaction %s\n", prevout.hash.ToString());
@@ -281,18 +280,18 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
         return ("CheckProofOfStake(): Couldn't get Tx Index");
     }
 
-    return CheckStakeKernelHash(pindexPrev, nBits, *pblockindex, txPrev,
+    return CheckStakeKernelHash(pindexPrev, nBits, *pblockindex, *txPrev,
         prevout, nTime, hashProofOfStake, hashProofOfStakeSource, targetProofOfStake);
 }
 #endif
 
 bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockIndex &blockFrom,
-    CTransactionRef const &txPrev, COutPoint const &prevout, unsigned int nTimeTx, arith_uint256 &hashProofOfStake,
+    PocketTx::Transaction const &txPrev, COutPoint const &prevout, unsigned int nTimeTx, arith_uint256 &hashProofOfStake,
     CDataStream &hashProofOfStakeSource, arith_uint256 &targetProofOfStake, bool fPrintProofOfStake)
 {
     unsigned int nTimeBlockFrom = blockFrom.GetBlockTime();
 
-    if (nTimeTx < txPrev->nTime)
+    if (nTimeTx < *txPrev.GetTime())
     {
         LogPrintf(" === ERROR: CheckStakeKernelHash() : nTime violation");
         return error("CheckStakeKernelHash() : nTime violation");
@@ -310,7 +309,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     bnTarget.SetCompact(nBits);
 
     // Weighted target
-    int64_t nValueIn = txPrev->vout[prevout.n].nValue;
+    int64_t nValueIn = *txPrev.OutputsConst()[prevout.n]->GetValue();
     arith_uint256 bnWeight = std::min(
         nValueIn, Params().GetConsensus().nStakeMaximumThreshold);
     bnTarget *= bnWeight;
@@ -323,7 +322,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
     // Calculate hash
     CDataStream ss(SER_GETHASH, 0);
-    ss << nStakeModifier << nTimeBlockFrom << txPrev->nTime << prevout.hash << prevout.n << nTimeTx;
+    ss << nStakeModifier << nTimeBlockFrom << *txPrev.GetTime() << prevout.hash << prevout.n << nTimeTx;
     hashProofOfStakeSource = ss;
     hashProofOfStake = UintToArith256(Hash(ss));
 
@@ -355,7 +354,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
         LogPrintf(
             "CheckStakeKernelHash() : pass modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s\n",
             nStakeModifier,
-            nTimeBlockFrom, txPrev->nTime, prevout.n, nTimeTx,
+            nTimeBlockFrom, txPrev.GetTime(), prevout.n, nTimeTx,
             hashProofOfStake.ToString());
     }
 
@@ -579,16 +578,17 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge, Chai
     {
         // First try finding the previous transaction in database
 
-        // TODO (losty-critical+): usage of GetTransaction changed. Need CBlockIndex as first parameter (passed as nullptr in some places) and mempool from node context (GetNodeContext(...))
-        // Аналогично что выше, думаю все данные есть в нашей бд
-        // TODO (brangr): get transaction with outputs from sqlite db (nTime, nValue)
         uint256 hashBlock = uint256();
-        CTransactionRef txPrev = GetTransaction(nullptr, &mempool, txin.prevout.hash, Params().GetConsensus(), hashBlock);
+
+        // TODO (losty-fur): validate
+        // TODO (losty-critical): can internal fields be null?
+        LogPrintf("DEBUG: getting transaction from sqlite db");
+        auto txPrev = PocketDb::TransRepoInst.Get(txin.prevout.hash.ToString(), false, false, true);
 
         if (!txPrev)
             continue; // previous transaction not in main chain
 
-        if (transaction->nTime < txPrev->nTime)
+        if (transaction->nTime < *txPrev->GetTime())
             return false; // Transaction timestamp violation
 
         if (chainman.BlockIndex().count(hashBlock) == 0)
@@ -599,8 +599,8 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge, Chai
         if (pblockindex->nTime + Params().GetConsensus().nStakeMinAge > transaction->nTime)
             continue; // only count coins meeting min age requirement
 
-        int64_t nValueIn = txPrev->vout[txin.prevout.n].nValue;
-        bnCentSecond += CAmount(nValueIn) * (transaction->nTime - txPrev->nTime) / (COIN / 100);
+        int64_t nValueIn = *txPrev->OutputsConst()[txin.prevout.n]->GetValue();
+        bnCentSecond += CAmount(nValueIn) * (transaction->nTime - *txPrev->GetTime()) / (COIN / 100);
     }
 
 
