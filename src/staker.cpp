@@ -14,6 +14,7 @@
 #include <rpc/blockchain.h>
 #include <node/context.h>
 
+#include "logging.h"
 #include "pocketdb/services/Serializer.h"
 #include "script/signingprovider.h"
 #include "util/threadnames.h"
@@ -264,12 +265,17 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
 
     int64_t nSearchTime = txCoinStake.nTime;
 
+    // TODO (losty-fur): validate this works.
+    LogPrintf("Staker::signBlock: DEBUG: Accessing LegacyScriptPubKeyMan");
+    auto legacyKeyStore = wallet->GetOrCreateLegacyScriptPubKeyMan();
+    assert(legacyKeyStore);
+
     if (nSearchTime > nLastCoinStakeSearchTime)
     {
         int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nLastCoinStakeSearchTime;
         // TODO (losty-critical+): wallet is no longer a CKeyStore. Research what to use here instead
         // Хороший вопрос, нужен более глубокий анализ
-        if (wallet->CreateCoinStake(/* *wallet.get() */ FillableSigningProvider(), block->nBits, nSearchInterval, nFees, txCoinStake, key))
+        if (wallet->CreateCoinStake(*legacyKeyStore, block->nBits, nSearchInterval, nFees, txCoinStake, key))
         {
             if (txCoinStake.nTime >= ::ChainActive().Tip()->GetPastTimeLimit() + 1)
             {
@@ -309,7 +315,7 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
                     const CScript& scriptPubKey = prevTx->tx->vout[n].scriptPubKey;
                     SignatureData sigdata;
                     // TODO (losty-critical+): wallet is now not a CKeyStore and SigningProvider. Is GetSolvingProvider suitable here?
-                    signSuccess = ProduceSignature(*wallet->GetSolvingProvider(scriptPubKey),
+                    signSuccess = ProduceSignature(*legacyKeyStore /* *wallet->GetSolvingProvider(scriptPubKey) */,
                         MutableTransactionSignatureCreator(&txNewConst, i, prevTx->tx->vout[n].nValue, SIGHASH_ALL),
                         scriptPubKey, sigdata);
 
