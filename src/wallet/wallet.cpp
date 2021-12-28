@@ -4,6 +4,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "logging.h"
 #include <wallet/wallet.h>
 
 #include <chain.h>
@@ -2547,6 +2548,7 @@ bool CWallet::SignTransaction(CMutableTransaction& tx) const
 		const CWalletTx& wtx = mi->second;
 		// TODO (losty-critical+): is this valid usage of Coin()?
         // Хороший вопрос, нужно тестировать
+                LogPrintf("CWallet::SignTransaction: DEBUG: creating coin!");
 		coins[input.prevout] = Coin(wtx.tx->vout[input.prevout.n], wtx.m_confirm.block_height, wtx.IsCoinBase(), wtx.IsCoinStake(), PocketHelpers::TransactionHelper::IsPocketTransaction(wtx.tx));
 	}
 	std::map<int, std::string> input_errors;
@@ -4745,6 +4747,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
     // Мы должны использовать только надежные проверенные койны + есть условие, что деньги
     // для стейкинга должны отлежаться больше часа
 	int64_t nBalance = GetBalance().m_mine_trusted; //.m_mine_immature;
+	LogPrintf("CreateCoinStake(): DEBUG: using mine_trusted coins: %d", nBalance);
 
 	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
 
@@ -4984,6 +4987,7 @@ uint64_t CWallet::GetStakeWeight() const
 	// Choose coins to use
 	// TODO (losty-fur): validate this is correct balance
 	int64_t nBalance = GetBalance().m_mine_trusted;
+	LogPrintf("GetStakeWeight: DEBUG: using mine_trusted coins: %d", nBalance);
 
 	if (nBalance <= 0) {
 		return 0;
