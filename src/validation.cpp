@@ -45,6 +45,8 @@
 #include "pocketdb/consensus/Helper.h"
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
+
+boost::mutex WSMutex;
 std::map<std::string, WSUser> WSConnections;
 
 #if defined(NDEBUG)
@@ -3407,6 +3409,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
          sharesLang.pushKV(itl->first, itl->second);
      }
 
+
+     boost::lock_guard<boost::mutex> guard(WSMutex);
      for (auto& connWS : WSConnections)
      {
          UniValue msg(UniValue::VOBJ);
