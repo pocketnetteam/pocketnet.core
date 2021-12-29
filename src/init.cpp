@@ -1557,12 +1557,15 @@ static void StartWS()
                     if (std::find(keys.begin(), keys.end(), "nonce") != keys.end())
                     {
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
+
+                        boost::lock_guard<boost::mutex> guard(WSMutex);
                         WSConnections.erase(connection->ID());
                         WSConnections.insert_or_assign(connection->ID(), wsUser);
                     } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
+                            boost::lock_guard<boost::mutex> guard(WSMutex);
                             WSConnections.erase(connection->ID());
                         }
                     }
@@ -1578,12 +1581,14 @@ static void StartWS()
     ws.on_open = [](std::shared_ptr<WsServer::Connection> connection)
     {
 //        cout << "Server: Opened connection " << connection.get() << endl;
+//        boost::lock_guard<boost::mutex> guard(WSMutex);
 //        if ((std::find(WSConnections.begin(), WSConnections.end(), connection) == WSConnections.end()))
 //            WSConnections.push_back(connection);
     };
 
     ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/)
     {
+        boost::lock_guard<boost::mutex> guard(WSMutex);
         if (WSConnections.find(connection->ID()) != WSConnections.end())
         {
             WSConnections.erase(connection->ID());
@@ -1592,6 +1597,7 @@ static void StartWS()
 
     ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec)
     {
+        boost::lock_guard<boost::mutex> guard(WSMutex);
         if (WSConnections.find(connection->ID()) != WSConnections.end())
         {
             WSConnections.erase(connection->ID());
