@@ -1978,8 +1978,8 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
             TryBindStatementInt(stmt, 3, count);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)

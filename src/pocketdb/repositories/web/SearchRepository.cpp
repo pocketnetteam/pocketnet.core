@@ -439,13 +439,110 @@ namespace PocketDb
         return result;
     }
 
-    UniValue SearchRepository::GetRecomendedContentsByScoresOnSimilarContents()
+    UniValue SearchRepository::GetRecomendedContentsByScoresOnSimilarContents(const string& contentid, const vector<int>& contentTypes, int depth, int cntOut)
     {
-        return UniValue();
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        if (contentid.empty())
+            return result;
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        string sql = R"sql(
+            select tOtherLikes.String2 OtherLikedPost, count(*) cnt
+            from Transactions tOtherLikes
+            where tOtherLikes.Type in (300)
+              and tOtherLikes.Int1 > 3
+              and Last in (1, 0)
+              and tOtherLikes.Height >= (select Height
+                                         from Transactions
+                                         where Type in ( )sql" + contentTypesFilter + R"sql( )
+                                           and String2 = ?
+                                           and Last = 1) - ?
+              and String1 in (
+                select String1 as Liker
+                from Transactions tLikes
+                where tLikes.Type in (300)
+                  and tLikes.Int1 > 3
+                  and tLikes.String2 = ?
+                  and tLikes.Last in (1, 0)
+            )
+              and tOtherLikes.String2 != ?
+            group by tOtherLikes.String2
+            order by count(*) desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+            TryBindStatementText(stmt, i++, contentid);
+            TryBindStatementInt(stmt, i++, depth);
+            TryBindStatementText(stmt, i++, contentid);
+            TryBindStatementText(stmt, i++, contentid);
+            TryBindStatementInt(stmt, i++, cntOut);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("contentid", value);
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
     }
 
-    UniValue SearchRepository::GetRecomendedContentsByScoresFromAddress()
+    UniValue SearchRepository::GetRecomendedContentsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth, int cntOut)
     {
-        return UniValue();
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        if (address.empty())
+            return result;
+
+        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+
+        // string sql = R"sql(
+        //       and Type in ( )sql" + contentTypesFilter + R"sql( )
+        // )sql";
+        //
+        // TryTransactionStep(__func__, [&]()
+        // {
+        //     auto stmt = SetupSqlStatement(sql);
+        //
+        //     int i = 1;
+        //     TryBindStatementText(stmt, i++, address);
+        //     TryBindStatementInt(stmt, i++, nHeight - depth);
+        //     TryBindStatementInt(stmt, i++, nHeight - depth);
+        //     TryBindStatementInt(stmt, i++, nHeight - depth);
+        //     for (const auto& contenttype: contentTypes)
+        //         TryBindStatementInt(stmt, i++, contenttype);
+        //     TryBindStatementText(stmt, i++, address);
+        //     TryBindStatementInt(stmt, i++, nHeight - depth);
+        //     TryBindStatementInt(stmt, i++, cntOut);
+        //
+        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
+        //     {
+        //         UniValue record(UniValue::VOBJ);
+        //         if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
+        //         if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
+        //         if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
+        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
+        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
+        //         result.push_back(record);
+        //     }
+        //
+        //     FinalizeSqlStatement(*stmt);
+        // });
+
+        return result;
     }
 }

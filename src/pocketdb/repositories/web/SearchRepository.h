@@ -36,8 +36,8 @@ namespace PocketDb
         UniValue GetRecomendedAccountsBySubscriptions(const string& address, int cntOut = 10);
         UniValue GetRecomendedAccountsByScoresOnSimilarAccounts(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
         UniValue GetRecomendedAccountsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
-        UniValue GetRecomendedContentsByScoresOnSimilarContents();
-        UniValue GetRecomendedContentsByScoresFromAddress();
+        UniValue GetRecomendedContentsByScoresOnSimilarContents(const string& contentid, const vector<int>& contentTypes, int depth = 1000, int cntOut = 10);
+        UniValue GetRecomendedContentsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
     };
 
     typedef shared_ptr<SearchRepository> SearchRepositoryRef;

@@ -364,7 +364,22 @@ namespace PocketWeb::PocketWebRpc
                 "GetRecomendedContentsByScoresOnSimilarContents"
             );
 
-        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresOnSimilarContents();
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string contentid = request.params[0].get_str();
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int depth = 1000;
+        int cntOut = 10;
+
+        if (request.params.size() > 2 && request.params[2].isNum())
+            depth = request.params[2].get_int();
+
+        if (request.params.size() > 3 && request.params[3].isNum())
+            cntOut = request.params[3].get_int();
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresOnSimilarContents(contentid, contentTypes, depth, cntOut);
     }
 
     UniValue GetRecomendedContentsByScoresFromAddress(const JSONRPCRequest& request)
@@ -374,6 +389,29 @@ namespace PocketWeb::PocketWebRpc
                 "GetRecomendedContentsByScoresFromAddress"
             );
 
-        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresFromAddress();
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int nHeight = chainActive.Height();
+        int depth = 1000;
+        int cntOut = 10;
+
+        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
+            nHeight = request.params[2].get_int();
+
+        if (request.params.size() > 3 && request.params[3].isNum())
+            depth = request.params[3].get_int();
+
+        if (request.params.size() > 4 && request.params[4].isNum())
+            cntOut = request.params[4].get_int();
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
     }
 }
