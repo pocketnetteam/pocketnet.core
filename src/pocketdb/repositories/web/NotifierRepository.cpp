@@ -39,6 +39,37 @@ namespace PocketDb
         return result;
     }
 
+    UniValue NotifierRepository::GetPostInfo(const string& postHash)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            select
+                t.Hash Hash,
+                t.String2 RootHash
+            from Transactions t
+            where t.Type in (200, 201, 202, 203)
+              and t.Hash = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, postHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("hash", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("rootHash", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue NotifierRepository::GetOriginalPostAddressByRepost(const string &repostHash)
     {
         UniValue result(UniValue::VOBJ);

@@ -3232,6 +3232,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
              // Event for new PocketNET transaction
              if (optype == "share" || optype == "video")
              {
+                 auto response = PocketDb::NotifierRepoInst.GetPostInfo(txid);
+                 if (response.exists("hash") && response.exists("rootHash") && response["hash"].get_str() != response["rootHash"].get_str())
+                     continue;
+
                  if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
                  {
                      txidpocketnet += txid + ",";
