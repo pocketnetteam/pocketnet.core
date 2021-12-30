@@ -3230,7 +3230,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
              PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
              // Event for new PocketNET transaction
-             if (optype == "share")
+             if (optype == "share" || optype == "video")
              {
                  if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
                  {
@@ -3359,6 +3359,9 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  auto response = PocketDb::NotifierRepoInst.GetFullCommentInfo(txid);
                  if (response.exists("postHash"))
                  {
+                     if(response["postAddress"].get_str() == addr.first)
+                         continue;
+
                      custom_fields cFields
                      {
                          {"mesType", optype},
@@ -3374,9 +3377,15 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      if (response.exists("commentAvatar"))
                          cFields["avatarFrom"] = response["commentAvatar"].get_str();
 
+                     if (response.exists("donation"))
+                     {
+                         cFields.emplace("donation", "true");
+                         cFields.emplace("amount", response["amount"].get_str());
+                     }
+
                      PrepareWSMessage(messages, "event", response["postAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);
 
-                     if (response.exists("answerAddress"))
+                     if (response.exists("answerAddress") && !response["answerAddress"].get_str().empty())
                      {
                          custom_fields c1Fields
                          {
