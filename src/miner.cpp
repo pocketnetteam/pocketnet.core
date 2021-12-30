@@ -233,7 +233,7 @@ void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
     }
 }
 
-bool BlockAssembler::TestTransaction(const CTransactionRef& tx)
+bool BlockAssembler::TestTransaction(const CTransactionRef& tx, PocketBlockRef& pblockTemplate, PocketBlockRef& pblock)
 {
     auto ptx = PocketDb::TransRepoInst.Get(tx->GetHash().GetHex(), true);
 
@@ -256,7 +256,7 @@ bool BlockAssembler::TestTransaction(const CTransactionRef& tx)
     }
 
     // Validate consensus
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(tx, ptx, pblocktemplate->pocketBlock, chainActive.Height() + 1); !ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(tx, ptx, pblockTemplate, chainActive.Height() + 1); !ok)
     {
         LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with validate result %d\n",
             tx->GetHash().GetHex(), (int) result);
@@ -265,7 +265,8 @@ bool BlockAssembler::TestTransaction(const CTransactionRef& tx)
     }
 
     // All is good - save for descendants
-    pblocktemplate->pocketBlock->push_back(ptx);
+    pblockTemplate->push_back(ptx);
+    pblock->push_back(ptx);
     return true;
 }
 
@@ -525,9 +526,16 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
 
         // Test pocketnet part for all ancestors
         bool testPocketnetPart = true;
+
+        // Temporary pocketblock object for test all transactions
+        PocketBlockRef pblock = make_shared<PocketBlock>(PocketBlock{});
+        PocketBlockRef pblockTemplate = make_shared<PocketBlock>(PocketBlock{});
+        for (const auto& it : *pblocktemplate->pocketBlock)
+            pblockTemplate->push_back(it);
+
         for (CTxMemPool::txiter it : sortedEntries)
         {
-            if (!TestTransaction(it->GetSharedTx()))
+            if (!TestTransaction(it->GetSharedTx(), pblockTemplate, pblock))
             {
                 if (fUsingModified)
                 {
@@ -541,6 +549,10 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         }
         if (!testPocketnetPart)
             continue;
+        
+        // Move tested pocketnet transactions to template block
+        for (const auto& it : *pblock)
+            pblocktemplate->pocketBlock->push_back(it);
 
         // This transaction will make it in; reset the failed counter.
         nConsecutiveFailed = 0;
