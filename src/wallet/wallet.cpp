@@ -4793,13 +4793,13 @@ int64_t CWallet::GetNewMint() const
 	return nTotal;
 }
 
-uint64_t CWallet::GetStakeWeight() const
+tuple<uint64_t, uint64_t> CWallet::GetStakeWeight() const
 {
 	// Choose coins to use
 	int64_t nBalance = GetBalance();
 
 	if (nBalance <= 0) {
-		return 0;
+		return {0, 0};
 	}
 
 	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
@@ -4808,11 +4808,11 @@ uint64_t CWallet::GetStakeWeight() const
 	int64_t nValueIn = 0;
 
 	if (!SelectCoinsForStaking(nBalance, GetTime(), setCoins, nValueIn)) {
-		return 0;
+		return {0, 0};
 	}
 
 	if (setCoins.empty()) {
-		return 0;
+		return {0, 0};
 	}
 
 	uint64_t nWeight = 0;
@@ -4829,6 +4829,6 @@ uint64_t CWallet::GetStakeWeight() const
 			nWeight += std::min(pcoin.first->tx->vout[pcoin.second].nValue, 5000 * COIN);
 	}
 
-	return nWeight;
+	return {nBalance, nWeight};
 }
 

@@ -620,12 +620,15 @@ UniValue getstakinginfo(const JSONRPCRequest &request)
             "Returns an object containing staking-related information.");
 
 #ifdef ENABLE_WALLET
+    uint64_t nBalance = 0;
     uint64_t nWeight = 0;
 
     auto wallets = GetWallets();
 
     for (auto & wallet : wallets) {
-        nWeight = wallet->GetStakeWeight();
+        auto[nBalance, nWeight] = wallet->GetStakeWeight();
+        nBalance += nBalance;
+        nWeight += nWeight;
     }
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
@@ -645,6 +648,7 @@ UniValue getstakinginfo(const JSONRPCRequest &request)
     obj.pushKV("search-interval", Staker::getInstance()->getLastCoinStakeSearchInterval());
 
     obj.pushKV("weight", (uint64_t)nWeight);
+    obj.pushKV("balance", (uint64_t)nBalance);
     obj.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
 
     obj.pushKV("expectedtime", nExpectedTime);
