@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <rpc/blockchain.h>
-
+#include <net.h>
 #include <amount.h>
 #include <chain.h>
 #include <chainparams.h>
@@ -20,6 +20,7 @@
 #include <primitives/transaction.h>
 #include <rpc/server.h>
 #include <script/descriptor.h>
+#include <wallet/wallet.h>
 #include <streams.h>
 #include <sync.h>
 #include <timedata.h>
@@ -2138,6 +2139,31 @@ UniValue scantxoutset(const JSONRPCRequest& request)
     return result;
 }
 
+UniValue blocksonly(const JSONRPCRequest& request)
+{
+    if (request.fHelp)
+        throw std::runtime_error(
+            "blocksonly\n"
+            "Enable/Disable only blocks mode"
+        );
+
+    if (request.params[0].isBool())
+    {
+        bool enable = request.params[0].get_bool();
+
+        fRelayTxes = !enable;
+        gArgs.SoftSetBoolArg("-whitelistrelay", !enable);
+        gArgs.SoftSetBoolArg("-walletbroadcast", !enable);
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("fRelayTxes", fRelayTxes);
+    result.pushKV("whitelistrelay", gArgs.GetBoolArg("-whitelistrelay", DEFAULT_WHITELISTRELAY));
+    result.pushKV("walletbroadcast", gArgs.GetBoolArg("-walletbroadcast", DEFAULT_WALLETBROADCAST));
+
+    return result;
+}
+
 // clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
@@ -2172,6 +2198,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "waitforblock",           &waitforblock,           {"blockhash","timeout"} },
     { "hidden",             "waitforblockheight",     &waitforblockheight,     {"height","timeout"} },
     { "hidden",             "syncwithvalidationinterfacequeue", &syncwithvalidationinterfacequeue, {} },
+    { "hidden",             "blocksonly",             &blocksonly,             {"on/off"} },
 };
 // clang-format on
 
