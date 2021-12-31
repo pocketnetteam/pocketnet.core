@@ -626,9 +626,9 @@ UniValue getstakinginfo(const JSONRPCRequest &request)
     auto wallets = GetWallets();
 
     for (auto & wallet : wallets) {
-        auto[nBalance, nWeight] = wallet->GetStakeWeight();
-        nBalance += nBalance;
-        nWeight += nWeight;
+        auto[balance, weight] = wallet->GetStakeWeight();
+        nBalance += balance;
+        nWeight += weight;
     }
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
