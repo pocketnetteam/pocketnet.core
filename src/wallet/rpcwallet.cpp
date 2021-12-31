@@ -4109,6 +4109,8 @@ int GetsStakeSubTotal(vStakePeriodRange_T& aRange)
 
     vStakePeriodRange_T::iterator vIt;
 
+    LOCK(cs_main);
+
     auto wallets = GetWallets();
 
     for (auto & wallet : wallets) {
