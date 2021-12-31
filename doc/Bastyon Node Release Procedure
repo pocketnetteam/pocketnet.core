@@ -1,0 +1,8 @@
+There are three types of testing:
+1. Blockhcain unit tests (both from Bitcoin and by Bastyon devs)
+2. Load testing, increasing number of registrations, comments, ratings, follows etc. per block and measuring node response time
+3. Simulating front end activity by requesting API to view, simulating large number of users. Geerating node response time with increasing load.
+*For #2/#3 measure median and 99 percentile response time
+4. Combining #2 & #3 simultaneously.
+
+If results of all four tests are at least not inferior to the prior version, release passed the tests.
