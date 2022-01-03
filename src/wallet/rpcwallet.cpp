@@ -531,19 +531,13 @@ static UniValue listaddresses(const JSONRPCRequest& request)
     std::map<std::string, int64_t> balances;
 
     // Build all unique addresses
-    int64_t nTime1 = GetTimeMicros();
     {
         LOCK(pwallet->cs_wallet);
         addresses = pwallet->GetUniqueAddresses();
     }
 
-    int64_t nTime2 = GetTimeMicros();
-    
     // Get actual balances
     auto infos = PocketDb::ExplorerRepoInst.GetAddressesInfo(addresses);
-
-    int64_t nTime3 = GetTimeMicros();
-
     for (const auto& info : infos)
     {
         UniValue itm(UniValue::VOBJ);
@@ -554,15 +548,6 @@ static UniValue listaddresses(const JSONRPCRequest& request)
 
         result.pushKV(info.first, itm);
     }
-
-    int64_t nTime4 = GetTimeMicros();
-
-    LogPrintf("---- %.2fms - %.2fms - %.2fms = %.2fms\n",
-        (nTime2 - nTime1) * 0.001,
-        (nTime3 - nTime2) * 0.001,
-        (nTime4 - nTime3) * 0.001,
-        (nTime4 - nTime1) * 0.001
-    );
 
     return result;
 }
