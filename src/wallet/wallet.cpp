@@ -3487,10 +3487,10 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
 	return balances;
 }
 
-std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings()
+std::set<std::set<CTxDestination>> CWallet::GetAddressGroupings()
 {
 	AssertLockHeld(cs_wallet); // mapWallet
-	std::set< std::set<CTxDestination> > groupings;
+	std::set<std::set<CTxDestination> > groupings;
 	std::set<CTxDestination> grouping;
 
 	for (const auto& walletEntry : mapWallet)
@@ -3578,6 +3578,71 @@ std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings()
 	}
 
 	return ret;
+}
+
+std::vector<std::string> CWallet::GetUniqueAddresses() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
+{
+    std::vector<std::string> addresses;
+
+    for (const auto& walletEntry : mapWallet)
+    {
+        const CWalletTx *pcoin = &walletEntry.second;
+
+        if (pcoin->tx->vin.size() > 0)
+        {
+            bool any_mine = false;
+            // group all input addresses with each other
+            for (const CTxIn& txin : pcoin->tx->vin)
+            {
+                CTxDestination addrDest;
+                if (!IsMine(txin)) /* If this input isn't mine, ignore it */
+                    continue;
+                if (!ExtractDestination(mapWallet.at(txin.prevout.hash).tx->vout[txin.prevout.n].scriptPubKey, addrDest))
+                    continue;
+
+                std::string address = EncodeDestination(addrDest);
+                if (std::find(addresses.begin(), addresses.end(), address) == addresses.end())
+                    addresses.push_back(address);
+
+                any_mine = true;
+            }
+
+            // group change with input addresses
+            if (any_mine)
+            {
+                for (const CTxOut& txout : pcoin->tx->vout)
+                {
+                    if (IsChange(txout))
+                    {
+                        CTxDestination txoutAddrDest;
+                        if (!ExtractDestination(txout.scriptPubKey, txoutAddrDest))
+                            continue;
+
+                        std::string address = EncodeDestination(txoutAddrDest);
+                        if (std::find(addresses.begin(), addresses.end(), address) == addresses.end())
+                            addresses.push_back(address);
+                    }
+                }
+            }
+        }
+
+        // group lone addrs by themselves
+        for (const auto& txout : pcoin->tx->vout)
+        {
+            if (IsMine(txout))
+            {
+                CTxDestination addrDest;
+                if (!ExtractDestination(txout.scriptPubKey, addrDest))
+                    continue;
+                
+                std::string address = EncodeDestination(addrDest);
+                if (std::find(addresses.begin(), addresses.end(), address) == addresses.end())
+                    addresses.push_back(address);
+            }
+        }
+    }
+
+    return addresses;
 }
 
 std::set<CTxDestination> CWallet::GetLabelAddresses(const std::string& label) const

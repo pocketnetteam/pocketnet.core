@@ -151,38 +151,40 @@ namespace PocketDb {
         return result;
     }
 
-    tuple<int, double> ExplorerRepository::GetAddressInfo(const string& addressHash)
+    map<string, tuple<int, int64_t>> ExplorerRepository::GetAddressesInfo(const vector<string>& hashes)
     {
-        int lastChange = 0;
-        double balance = 0;
+        map<string, tuple<int, int64_t>> infos{};
+
+        if (hashes.empty())
+            return infos;
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select Height, Value
+                select AddressHash, Height, Value
                 from Balances indexed by Balances_AddressHash_Last
-                where AddressHash = ?
+                where AddressHash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )
                   and Last = 1
             )sql");
 
-            TryBindStatementText(stmt, 1, addressHash);
+            size_t i = 1;
+            for (auto& hash : hashes)
+                TryBindStatementText(stmt, i++, hash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto [ok0, height] = TryGetColumnInt(*stmt, 0);
-                auto [ok1, value] = TryGetColumnInt64(*stmt, 1);
+                auto [ok0, address] = TryGetColumnString(*stmt, 0);
+                auto [ok1, height] = TryGetColumnInt(*stmt, 1);
+                auto [ok2, value] = TryGetColumnInt64(*stmt, 2);
 
-                if (ok0 && ok1)
-                {
-                    lastChange = height;
-                    balance = value / 100000000.0;
-                }
+                if (ok0 && ok1 && ok2)
+                    infos.emplace(address, make_tuple(height, value));
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        return {lastChange, balance};
+        return infos;
     }
 
     template<typename T>
