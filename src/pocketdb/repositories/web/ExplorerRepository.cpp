@@ -43,18 +43,19 @@ namespace PocketDb {
         return result;
     }
 
-    UniValue ExplorerRepository::GetTransactionsStatistic(int topHeight, int depth)
+    UniValue ExplorerRepository::GetTransactionsStatisticByHours(int topHeight, int depth)
     {
         UniValue result(UniValue::VOBJ);
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select t.Type, count(*)Count
-                from Transactions t indexed by Transactions_Height_Type
-                where t.Height <= ?
-                  and t.Height > ?
-                group by t.Type
+                select (t.Height / 60)Hour, t.Type, count()Count
+                from Transactions t indexed by Transactions_Type_HeightByHour
+                where t.Type in (1,100,103,200,201,204,205,300,301,302,303)
+                  and (t.Height / 60) < (? / 60)
+                  and (t.Height / 60) >= (? / 60)
+                group by (t.Height / 60), t.Type
             )sql");
 
             TryBindStatementInt(stmt, 1, topHeight);
@@ -62,11 +63,56 @@ namespace PocketDb {
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto [okType, type] = TryGetColumnString(*stmt, 0);
-                auto [okCount, count] = TryGetColumnInt(*stmt, 1);
+                auto [okPart, part] = TryGetColumnString(*stmt, 0);
+                auto [okType, type] = TryGetColumnString(*stmt, 1);
+                auto [okCount, count] = TryGetColumnInt(*stmt, 2);
 
-                if (okType && okCount)
-                    result.pushKV(type, count);
+                if (!okPart || !okType || !okCount)
+                    continue;
+
+                if (result.At(part).isNull())
+                    result.pushKV(part, UniValue(UniValue::VOBJ));
+
+                result.At(part).pushKV(type, count);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue ExplorerRepository::GetTransactionsStatisticByDays(int topHeight, int depth)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select (t.Height / 1440)Day, t.Type, count()Count
+                from Transactions t indexed by Transactions_Type_HeightByDay
+                where t.Type in (1,100,103,200,201,204,205,300,301,302,303)
+                  and (t.Height / 1440) < (? / 1440)
+                  and (t.Height / 1440) >= (? / 1440)
+                group by (t.Height / 1440), t.Type
+            )sql");
+
+            TryBindStatementInt(stmt, 1, topHeight);
+            TryBindStatementInt(stmt, 2, topHeight - depth);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto [okPart, part] = TryGetColumnInt(*stmt, 0);
+                auto [okType, type] = TryGetColumnInt(*stmt, 1);
+                auto [okCount, count] = TryGetColumnInt(*stmt, 2);
+
+                if (!okPart || !okType || !okCount)
+                    continue;
+
+                if (result.At(to_string(part)).isNull())
+                    result.pushKV(to_string(part), UniValue(UniValue::VOBJ));
+
+                result.At(to_string(part)).pushKV(to_string(type), count);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -82,7 +128,7 @@ namespace PocketDb {
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select t.Type, count(*)Count
+                select t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_Last_Height_Id
                 where t.Type in (100,101,102,200,201)
                   and t.Last = 1
@@ -105,38 +151,40 @@ namespace PocketDb {
         return result;
     }
 
-    tuple<int, double> ExplorerRepository::GetAddressInfo(const string& addressHash)
+    map<string, tuple<int, int64_t>> ExplorerRepository::GetAddressesInfo(const vector<string>& hashes)
     {
-        int lastChange = 0;
-        double balance = 0;
+        map<string, tuple<int, int64_t>> infos{};
+
+        if (hashes.empty())
+            return infos;
 
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select Height, Value
+                select AddressHash, Height, Value
                 from Balances indexed by Balances_AddressHash_Last
-                where AddressHash = ?
+                where AddressHash in ( )sql" + join(vector<string>(hashes.size(), "?"), ",") + R"sql( )
                   and Last = 1
             )sql");
 
-            TryBindStatementText(stmt, 1, addressHash);
+            size_t i = 1;
+            for (auto& hash : hashes)
+                TryBindStatementText(stmt, i++, hash);
 
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto [ok0, height] = TryGetColumnInt(*stmt, 0);
-                auto [ok1, value] = TryGetColumnInt64(*stmt, 1);
+                auto [ok0, address] = TryGetColumnString(*stmt, 0);
+                auto [ok1, height] = TryGetColumnInt(*stmt, 1);
+                auto [ok2, value] = TryGetColumnInt64(*stmt, 2);
 
-                if (ok0 && ok1)
-                {
-                    lastChange = height;
-                    balance = value / 100000000.0;
-                }
+                if (ok0 && ok1 && ok2)
+                    infos.emplace(address, make_tuple(height, value));
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        return {lastChange, balance};
+        return infos;
     }
 
     template<typename T>

@@ -45,6 +45,8 @@
 #include "pocketdb/consensus/Helper.h"
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
+
+boost::mutex WSMutex;
 std::map<std::string, WSUser> WSConnections;
 
 #if defined(NDEBUG)
@@ -1125,6 +1127,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             {
                 PocketBlock pocketBlock{_pocketTx};
                 PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
+                //LogPrintf("DEBUG InsertTransactions to mempool: %s\n", tx.GetHash().GetHex());
             }
             catch (const std::exception& e)
             {
@@ -2544,7 +2547,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
             // we need to think about marking the block incomplete and requesting it from the network again.
             return false;
-
             //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
         }
         
@@ -3040,8 +3042,17 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     else
         pocketBlock = pocketBlockPart;
 
-    if (!pocketBlock)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock); !ok)
     {
+        // if (result == SocialConsensusResult_PocketDataNotFound)
+        // {
+        //     auto[deserializeOk, desPocketBlock] = PocketServices::Serializer::DeserializeBlock(blockConnecting);
+        //     if (deserializeOk)
+        //         PocketDb::TransRepoInst.InsertTransactions(desPocketBlock);
+        //
+        //     return false;
+        // }
+
         pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
         return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
     }
@@ -3398,6 +3409,8 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
          sharesLang.pushKV(itl->first, itl->second);
      }
 
+
+     boost::lock_guard<boost::mutex> guard(WSMutex);
      for (auto& connWS : WSConnections)
      {
          UniValue msg(UniValue::VOBJ);
@@ -5578,25 +5591,28 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
 
             CBlock block;
             if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
-                return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight,
-                    pindex->GetBlockHash().ToString());
+                return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s",
+                    pindex->nHeight, pindex->GetBlockHash().ToString());
 
             PocketBlockRef pocketBlock;
             if (!PocketServices::Accessor::GetBlock(block, pocketBlock))
-            {
-                return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s", pindex->nHeight,
-                    pindex->GetBlockHash().ToString());
-            }
+                return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s",
+                    pindex->nHeight, pindex->GetBlockHash().ToString());
+
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock); !ok)
+                return error("VerifyDB(): *** SocialConsensusHelper::Check failed with result %d at %d, hash=%s",
+                    (int)result, pindex->nHeight, pindex->GetBlockHash().ToString());
 
             if (pindex->nStatus & BLOCK_FAILED_MASK)
                 ResetBlockFailureFlags(pindex);
 
             if (!PocketServices::ChainPostProcessing::Rollback(pindex->nHeight))
-                return error("VerifyDB(): failed rollback sqlite database for %s block", pindex->GetBlockHash().ToString());
+                return error("VerifyDB(): failed rollback sqlite database for %s block",
+                    pindex->GetBlockHash().ToString());
 
             if (!g_chainstate.ConnectBlock(block, pocketBlock, state, pindex, coins, chainparams))
-                return error("VerifyDB(): *** found unconnectable block at %d, hash=%s (%s)", pindex->nHeight,
-                    pindex->GetBlockHash().ToString(), FormatStateMessage(state));
+                return error("VerifyDB(): *** found unconnectable block at %d, hash=%s (%s)",
+                    pindex->nHeight, pindex->GetBlockHash().ToString(), FormatStateMessage(state));
         }
     }
 
@@ -5923,7 +5939,7 @@ bool CChainState::LoadGenesisBlock(const CChainParams& chainparams)
 
     try
     {
-        CBlock& block = const_cast<CBlock&>(chainparams.GenesisBlock());
+        const CBlock& block = chainparams.GenesisBlock();
 
         auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(block);
         if (!deserializeOk)
@@ -6460,7 +6476,7 @@ bool LoadMempool()
             mempool.PrioritiseTransaction(i.first, i.second);
 
         // Also remove from sqlite db
-        mempool.CleanSQLite(expiredHashes);
+        mempool.CleanSQLite(expiredHashes, "init", MemPoolRemovalReason::EXPIRY);
     }
     catch (const std::exception& e)
     {

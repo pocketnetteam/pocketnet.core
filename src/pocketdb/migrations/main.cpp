@@ -158,6 +158,12 @@ namespace PocketDb
         )sql");
 
         _indexes = R"sql(
+            drop index if exists Payload_String2;
+            drop index if exists Payload_String2_TxHash;
+            drop index if exists Transactions_Height_Time;
+            drop index if exists Transactions_Time_Type_Height;
+            drop index if exists Transactions_Type_Time_Height;
+
             create index if not exists Transactions_Id on Transactions (Id);
             create index if not exists Transactions_Id_Last on Transactions (Id, Last);
             create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
@@ -173,11 +179,10 @@ namespace PocketDb
             create index if not exists Transactions_Type_String1_Height_Time_Int1 on Transactions (Type, String1, Height, Time, Int1);
             create index if not exists Transactions_String1_Last_Height on Transactions (String1, Last, Height);
             create index if not exists Transactions_Last_Id_Height on Transactions (Last, Id, Height);
-            create index if not exists Transactions_Time_Type_Height on Transactions (Time, Type, Height);
-            create index if not exists Transactions_Type_Time_Height on Transactions (Type, Time, Height);
             create index if not exists Transactions_BlockHash on Transactions (BlockHash);
-            create index if not exists Transactions_Height_Time on Transactions (Height, Time);
             create index if not exists Transactions_Height_Id on Transactions (Height, Id);
+            create index if not exists Transactions_Type_HeightByDay on Transactions (Type, (Height / 1440));
+            create index if not exists Transactions_Type_HeightByHour on Transactions (Type, (Height / 60));
 
             create index if not exists TxOutputs_SpentHeight_AddressHash on TxOutputs (SpentHeight, AddressHash);
             create index if not exists TxOutputs_TxHeight_AddressHash on TxOutputs (TxHeight, AddressHash);
@@ -192,8 +197,6 @@ namespace PocketDb
             create index if not exists Ratings_Type_Id_Last_Value on Ratings (Type, Id, Last, Value);
             create index if not exists Ratings_Type_Id_Height_Value on Ratings (Type, Id, Height, Value);
 
-            drop index if exists Payload_String2;
-            create index if not exists Payload_String2_TxHash on Payload (String2, TxHash);
             create index if not exists Payload_String2_nocase_TxHash on Payload (String2 collate nocase, TxHash);
             create index if not exists Payload_String7 on Payload (String7);
             create index if not exists Payload_String1_TxHash on Payload (String1, TxHash);

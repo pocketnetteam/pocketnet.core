@@ -2642,7 +2642,17 @@ namespace PocketDb
 
         if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
         if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
-        //if (!tagsExcluded.empty()) sql += " and t.Id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
+        if (!tagsExcluded.empty())
+        {
+            sql += R"sql( and t.Id not in (
+                select tmEx.ContentId
+                from web.Tags tagEx indexed by Tags_Lang_Value_Id
+                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
+                    on tagEx.Id=tmEx.TagId
+                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
+             ) )sql";
+        }
 
         sql += " order by t.Id desc ";
         sql += " limit ? ";
@@ -2685,9 +2695,14 @@ namespace PocketDb
                 for (const auto& exadr: adrsExcluded)
                     TryBindStatementText(stmt, i++, exadr);
             
-            // if (!tagsExcluded.empty())
-            //     for (const auto& extag: tagsExcluded)
-            //         TryBindStatementText(stmt, i++, extag);
+            if (!tagsExcluded.empty())
+            {
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, i++, extag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
                     
             TryBindStatementInt(stmt, i++, countOut);
 
@@ -2792,7 +2807,17 @@ namespace PocketDb
 
         if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
         if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
-        // if (!tagsExcluded.empty()) sql += " and t.Id not in (select tm.ContentId from web.Tags tag join web.TagsMap tm on tag.Id=tm.TagId where tag.Value in ( " + join(vector<string>(tagsExcluded.size(), "?"), ",") + " )) ";
+        if (!tagsExcluded.empty())
+        {
+            sql += R"sql( and t.Id not in (
+                select tmEx.ContentId
+                from web.Tags tagEx indexed by Tags_Lang_Value_Id
+                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
+                    on tagEx.Id=tmEx.TagId
+                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
+             ) )sql";
+        }
 
         // ---------------------------------------------
         vector<HierarchicalRecord> postsRanks;

@@ -34,11 +34,13 @@
 #include <vector>
 #include <atomic>
 #include <pubkey.h>
+#include <boost/thread/mutex.hpp>
 
 #include "websocket/ws.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 using namespace PocketHelpers;
 
+extern boost::mutex WSMutex;
 extern std::map<std::string, WSUser> WSConnections;
 
 class CBlockIndex;

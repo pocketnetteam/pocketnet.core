@@ -233,7 +233,7 @@ void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)
     }
 }
 
-bool BlockAssembler::TestTransaction(CTransactionRef& tx)
+bool BlockAssembler::TestTransaction(const CTransactionRef& tx, PocketBlockRef& pblockTemplate, PocketBlockRef& pblock)
 {
     auto ptx = PocketDb::TransRepoInst.Get(tx->GetHash().GetHex(), true);
 
@@ -256,7 +256,7 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     }
 
     // Validate consensus
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(tx, ptx, pblocktemplate->pocketBlock, chainActive.Height() + 1); !ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(tx, ptx, pblockTemplate, chainActive.Height() + 1); !ok)
     {
         LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with validate result %d\n",
             tx->GetHash().GetHex(), (int) result);
@@ -265,7 +265,8 @@ bool BlockAssembler::TestTransaction(CTransactionRef& tx)
     }
 
     // All is good - save for descendants
-    pblocktemplate->pocketBlock->push_back(ptx);
+    pblockTemplate->push_back(ptx);
+    pblock->push_back(ptx);
     return true;
 }
 
@@ -397,8 +398,6 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
     indexed_modified_transaction_set mapModifiedTx;
     // Keep track of entries that failed inclusion, to avoid duplicate work
     CTxMemPool::setEntries failedTx;
-    // Candidates for remove bad transactions
-    CTxMemPool::setEntries consensusFailedTx;
 
     // Start by adding all descendants of previously added txs to mapModifiedTx
     // and modifying them for their already included ancestors
@@ -480,9 +479,7 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         }
 
         CTransactionRef tx = iter->GetSharedTx();
-        bool genericTest = TestPackage(packageSize, packageSigOpsCost);
-        bool consensusTest = TestTransaction(tx);
-        if (!genericTest || !consensusTest)
+        if (!TestPackage(packageSize, packageSigOpsCost))
         {
             if (fUsingModified)
             {
@@ -492,9 +489,6 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
                 mapModifiedTx.get<ancestor_score>().erase(modit);
                 failedTx.insert(iter);
             }
-
-            // if (!consensusTest)
-            //     consensusFailedTx.insert(iter);
 
             ++nConsecutiveFailed;
 
@@ -526,18 +520,51 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
             continue;
         }
 
-        // This transaction will make it in; reset the failed counter.
-        nConsecutiveFailed = 0;
-
         // Package can be added. Sort the entries in a valid order.
         std::vector<CTxMemPool::txiter> sortedEntries;
         SortForBlock(ancestors, sortedEntries);
 
+        // Test pocketnet part for all ancestors
+        bool testPocketnetPart = true;
+
+        // Temporary pocketblock object for test all transactions
+        PocketBlockRef pblock = make_shared<PocketBlock>(PocketBlock{});
+        PocketBlockRef pblockTemplate = make_shared<PocketBlock>(PocketBlock{});
+        for (const auto& it : *pblocktemplate->pocketBlock)
+            pblockTemplate->push_back(it);
+
+        for (CTxMemPool::txiter it : sortedEntries)
+        {
+            if (!TestTransaction(it->GetSharedTx(), pblockTemplate, pblock))
+            {
+                if (fUsingModified)
+                {
+                    mapModifiedTx.get<ancestor_score>().erase(modit);
+                    failedTx.insert(iter);
+                }
+
+                testPocketnetPart = false;
+                break;
+            }
+        }
+        if (!testPocketnetPart)
+            continue;
+        
+        // Move tested pocketnet transactions to template block
+        for (const auto& it : *pblock)
+            pblocktemplate->pocketBlock->push_back(it);
+
+        // This transaction will make it in; reset the failed counter.
+        nConsecutiveFailed = 0;
+
         for (size_t i = 0; i < sortedEntries.size(); ++i)
         {
-            AddToBlock(sortedEntries[i]);
+            auto entry = sortedEntries[i];
+
+            AddToBlock(entry);
+
             // Erase from the modified set, if present
-            mapModifiedTx.erase(sortedEntries[i]);
+            mapModifiedTx.erase(entry);
         }
 
         ++nPackagesSelected;
@@ -545,10 +572,6 @@ void BlockAssembler::addPackageTxs(int& nPackagesSelected, int& nDescendantsUpda
         // Update transactions that depend on each of these
         nDescendantsUpdated += UpdatePackagesForAdded(ancestors, mapModifiedTx);
     }
-
-    // Bad transaction should be removed from mempool
-    // for (const auto& entry : consensusFailedTx)
-    //     mempool.removeRecursive(entry->GetTx(), MemPoolRemovalReason::CONSENSUS);
 }
 
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)

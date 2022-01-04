@@ -952,6 +952,7 @@ public:
 
     std::set<std::set<CTxDestination>> GetAddressGroupings() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::map<CTxDestination, CAmount> GetAddressBalances() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    std::vector<std::string> GetUniqueAddresses() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     std::set<CTxDestination> GetLabelAddresses(const std::string& label) const;
 
@@ -1129,7 +1130,7 @@ public:
 
     /** Implement lookup of key origin information through wallet key metadata. */
     bool GetKeyOrigin(const CKeyID& keyid, KeyOriginInfo& info) const override;
-    uint64_t GetStakeWeight() const;
+    tuple<uint64_t, uint64_t> GetStakeWeight() const;
     bool CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int64_t nSearchInterval, int64_t nFees, CMutableTransaction& txNew, CKey& key);
     int64_t GetStake() const;
     int64_t GetNewMint() const;

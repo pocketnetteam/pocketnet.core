@@ -505,6 +505,53 @@ static UniValue listaddressgroupings(const JSONRPCRequest& request)
     return jsonGroupings;
 }
 
+static UniValue listaddresses(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+            "listaddresses\n"
+            "\nLists addresses which have had their common ownership\n"
+            "made public by common use as inputs or as the resulting change\n"
+            "in past transactions"
+        );
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    UniValue result(UniValue::VOBJ);
+    std::vector<std::string> addresses;
+    std::map<std::string, int64_t> balances;
+
+    // Build all unique addresses
+    {
+        LOCK(pwallet->cs_wallet);
+        addresses = pwallet->GetUniqueAddresses();
+    }
+
+    // Get actual balances
+    auto infos = PocketDb::ExplorerRepoInst.GetAddressesInfo(addresses);
+    for (const auto& info : infos)
+    {
+        UniValue itm(UniValue::VOBJ);
+        auto[height, balance] = info.second;
+
+        itm.pushKV("lastChange", height);
+        itm.pushKV("balance", balance);
+
+        result.pushKV(info.first, itm);
+    }
+
+    return result;
+}
+
 static UniValue signmessage(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -4281,6 +4328,70 @@ UniValue importprunedfunds(const JSONRPCRequest& request);
 UniValue removeprunedfunds(const JSONRPCRequest& request);
 UniValue importmulti(const JSONRPCRequest& request);
 
+UniValue getaddressbook(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp)
+        throw std::runtime_error(
+            "getaddressbook\n"
+            "List addresses from addressbook.\n"
+            "Arguments:\n"
+            "1. extend     (bool, optional) - Extended information\n"
+            "2. type       (int, optional) - Type of address - 1: PUBKEY, 2: SEGWIT, 3: BC. (Default - 1)"
+            "3. pageStart  (int, optional) - Pagination start\n"
+            "4. pageSize   (int, optional) - Pagination size\n"
+        );
+
+    bool extend = false;
+    if (request.params[0].isBool())
+        extend = request.params[0].get_bool();
+
+    int addrType = 1;
+    if (request.params[1].isNum())
+        addrType = request.params[1].get_int();
+
+    int pageStart = 0;
+    if (request.params[2].isNum())
+        pageStart = request.params[2].get_int();
+
+    int pageSize = 10;
+    if (request.params[3].isNum())
+        pageSize = request.params[3].get_int();
+
+    // ----------------------------------------------------
+    std::map<std::string, UniValue> addressBook;
+
+    {
+        LOCK(pwallet->cs_wallet);
+        for (const auto& destItem: pwallet->mapAddressBook)
+        {
+            // TODO (brangr): filter by type
+            addressBook.emplace(EncodeDestination(destItem.first), UniValue(UniValue::VOBJ));
+
+            // TODO (brangr): add pagination
+        }
+    }
+    
+    // ----------------------------------------------------
+
+    if (extend)
+    {
+        // TODO (brangr): get private key? balance?
+    }
+
+    // ----------------------------------------------------
+    UniValue result(UniValue::VOBJ);
+    for (const auto& it : addressBook)
+        result.pushKV(it.first, it.second);
+
+    return result;
+}
+
 // clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                                actor (function)                argNames
@@ -4320,6 +4431,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "importwallet",                     &importwallet,                  {"filename"} },
     { "wallet",             "keypoolrefill",                    &keypoolrefill,                 {"newsize"} },
     { "wallet",             "listaddressgroupings",             &listaddressgroupings,          {} },
+    { "wallet",             "listaddresses",                    &listaddresses,                 {} },
     { "wallet",             "listlabels",                       &listlabels,                    {"purpose"} },
     { "wallet",             "listlockunspent",                  &listlockunspent,               {} },
     { "wallet",             "listreceivedbyaddress",            &listreceivedbyaddress,         {"minconf","include_empty","include_watchonly","address_filter"} },
@@ -4345,6 +4457,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","timeout"} },
     { "wallet",             "walletpassphrasechange",           &walletpassphrasechange,        {"oldpassphrase","newpassphrase"} },
     { "wallet",             "walletprocesspsbt",                &walletprocesspsbt,             {"psbt","sign","sighashtype","bip32derivs"} },
+    { "wallet",             "getaddressbook",                   &getaddressbook,                {} },
 };
 // clang-format on
 
