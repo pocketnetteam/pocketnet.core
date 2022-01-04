@@ -274,7 +274,11 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedAccountsBySubscriptions"
+                "getrecomendedaccountsbysubscriptions \"address\", count\n"
+                "\nAccounts recommendations by subscriptions.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address for recommendations\n"
+                "2. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
@@ -295,7 +299,14 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedAccountsBySubscriptions"
+                "getrecomendedaccountsbyscoresonsimilaraccounts \"address\", \"contenttypes\", height, depth, count\n"
+                "\nAccounts recommendations by likes based on address.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address for recommendations\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "4. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
+                "5. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
@@ -328,7 +339,14 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedAccountsByScoresFromAddress"
+                "getrecomendedaccountsbyscoresfromaddress \"address\", \"contenttypes\", height, depth, count\n"
+                "\nAccounts recommendations by likes.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address for recommendations\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "4. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
+                "5. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
@@ -361,7 +379,13 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedContentsByScoresOnSimilarContents"
+                "getrecomendedcontentsbyscoresonsimilarcontents \"contentid\", \"contenttypes\", depth, count\n"
+                "\nContents recommendations by other content.\n"
+                "\nArguments:\n"
+                "1. \"contentid\" (string) Content hash for recommendations\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
+                "4. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
@@ -386,7 +410,14 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedContentsByScoresFromAddress"
+                "getrecomendedcontentsbyscoresfromaddress \"address\", \"contenttypes\", height, depth, count\n"
+                "\nContents recommendations for address by likes.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address for recommendations\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "4. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
+                "5. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
