@@ -952,6 +952,7 @@ public:
 
     std::set<std::set<CTxDestination>> GetAddressGroupings() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::map<CTxDestination, CAmount> GetAddressBalances() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    std::vector<std::string> GetUniqueAddresses() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     std::set<CTxDestination> GetLabelAddresses(const std::string& label) const;
 

@@ -12,6 +12,7 @@ namespace PocketDb
     RatingsRepository RatingsRepoInst(SQLiteDbInst);
     ConsensusRepository ConsensusRepoInst(SQLiteDbInst);
     NotifierRepository NotifierRepoInst(SQLiteDbInst);
+    ExplorerRepository ExplorerRepoInst(SQLiteDbInst);
 
     SQLiteDatabase SQLiteDbCheckpointInst(true);
     CheckpointRepository CheckpointRepoInst(SQLiteDbCheckpointInst);

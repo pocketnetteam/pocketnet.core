@@ -206,11 +206,17 @@ namespace PocketWeb::PocketWebRpc
                 std::string("Invalid address: ") + request.params[0].get_str());
         address = request.params[0].get_str();
 
-        auto[lastChange, balance] = request.DbConnection()->ExplorerRepoInst->GetAddressInfo(address);
-
         UniValue addressInfo(UniValue::VOBJ);
-        addressInfo.pushKV("lastChange", lastChange);
-        addressInfo.pushKV("balance", balance);
+        addressInfo.pushKV("lastChange", 0);
+        addressInfo.pushKV("balance", 0);
+
+        auto info = request.DbConnection()->ExplorerRepoInst->GetAddressesInfo({ address });
+        if (info.find(address) != info.end())
+        {
+            auto[height, balance] = info[address];
+            addressInfo.pushKV("lastChange", height);
+            addressInfo.pushKV("balance", balance / 100000000.0);
+        }
 
         return addressInfo;
     }
