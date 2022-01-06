@@ -505,6 +505,53 @@ static UniValue listaddressgroupings(const JSONRPCRequest& request)
     return jsonGroupings;
 }
 
+static UniValue listaddresses(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+            "listaddresses\n"
+            "\nLists addresses which have had their common ownership\n"
+            "made public by common use as inputs or as the resulting change\n"
+            "in past transactions"
+        );
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    UniValue result(UniValue::VOBJ);
+    std::vector<std::string> addresses;
+    std::map<std::string, int64_t> balances;
+
+    // Build all unique addresses
+    {
+        LOCK(pwallet->cs_wallet);
+        addresses = pwallet->GetUniqueAddresses();
+    }
+
+    // Get actual balances
+    auto infos = PocketDb::ExplorerRepoInst.GetAddressesInfo(addresses);
+    for (const auto& info : infos)
+    {
+        UniValue itm(UniValue::VOBJ);
+        auto[height, balance] = info.second;
+
+        itm.pushKV("lastChange", height);
+        itm.pushKV("balance", balance);
+
+        result.pushKV(info.first, itm);
+    }
+
+    return result;
+}
+
 static UniValue signmessage(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -4386,6 +4433,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "importwallet",                     &importwallet,                  {"filename"} },
     { "wallet",             "keypoolrefill",                    &keypoolrefill,                 {"newsize"} },
     { "wallet",             "listaddressgroupings",             &listaddressgroupings,          {} },
+    { "wallet",             "listaddresses",                    &listaddresses,                 {} },
     { "wallet",             "listlabels",                       &listlabels,                    {"purpose"} },
     { "wallet",             "listlockunspent",                  &listlockunspent,               {} },
     { "wallet",             "listreceivedbyaddress",            &listreceivedbyaddress,         {"minconf","include_empty","include_watchonly","address_filter"} },
@@ -4411,7 +4459,6 @@ static const CRPCCommand commands[] =
     { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","timeout"} },
     { "wallet",             "walletpassphrasechange",           &walletpassphrasechange,        {"oldpassphrase","newpassphrase"} },
     { "wallet",             "walletprocesspsbt",                &walletprocesspsbt,             {"psbt","sign","sighashtype","bip32derivs"} },
-
     { "wallet",             "getaddressbook",                   &getaddressbook,                {} },
 };
 // clang-format on
