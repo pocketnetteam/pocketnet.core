@@ -221,6 +221,45 @@ namespace PocketWeb::PocketWebRpc
         return addressInfo;
     }
 
+    UniValue GetBalanceHistory(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getbalancehistory \"address\" topHeight count\n"
+                "\nGet address balance changes history\n"
+                "\nArguments:\n"
+                "1. address       (string) Address\n"
+                "2. topHeight     (int32) Top height (Inclusive)\n"
+                "3. count         (int32) Count of records\n");
+
+        std::string address;
+        if (request.params.empty() || !request.params[0].isStr())
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address argument");
+
+        auto dest = DecodeDestination(request.params[0].get_str());
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                std::string("Invalid address: ") + request.params[0].get_str());
+        address = request.params[0].get_str();
+
+        auto topHeight = chainActive.Height();
+        if (request.params[1].isNum())
+            topHeight = request.params[1].get_int();
+
+        auto count = 10;
+        if (request.params[2].isNum())
+            count = min(25, request.params[2].get_int());
+
+        auto history = request.DbConnection()->ExplorerRepoInst->GetBalanceHistory(address, topHeight, count);
+
+        UniValue result(UniValue::VOBJ);
+
+        result.pushKV("address", address);
+        result.pushKV("history", history);
+
+        return result;
+    }
+
     UniValue SearchByHash(const JSONRPCRequest& request)
     {
         if (request.fHelp)
