@@ -1,0 +1,33 @@
+name: make check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ feature/sqlite ]
+  pull_request:
+    branches: [ feature/sqlite ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: apt update
+      run: sudo apt-get update
+    - name: install libdb
+      run: sudo apt-get install libdb-dev libdb++-dev
+    - name: Install dependencies
+      run: |
+        sudo apt-get install build-essential libtool autotools-dev automake pkg-config libssl-dev libevent-dev bsdmainutils python3 libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
+    - name: autogen
+      run: ./autogen.sh --enable-tests
+    - name: configure
+      run: ./configure --with-incompatible-bdb --enable-tests
+    - name: make
+      run: make -j8
+    - name: make check
+      run: make check
+    - name: make deploy
+      run: make deploy
