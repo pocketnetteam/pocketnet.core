@@ -15,7 +15,9 @@ jobs:
     - name: apt update
       run: sudo apt-get update
     - name: install libdb
-      run: ./contrib/install_db4.sh `pwd`
+      run: |
+        chmod 777 ./contrib/install_db4.sh 
+        ./contrib/install_db4.sh `pwd`
     - name: install boost
       run: sudo apt-get install libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev
     - name: Install dependencies
