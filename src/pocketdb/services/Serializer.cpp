@@ -134,23 +134,20 @@ namespace PocketServices
         {
             const CTxOut& txout = tx->vout[i];
 
+            auto out = make_shared<TransactionOutput>();
+            out->SetTxHash(tx->GetHash().GetHex());
+            out->SetNumber((int) i);
+            out->SetValue(txout.nValue);
+            out->SetScriptPubKey(HexStr(txout.scriptPubKey));
+
             txnouttype type;
             std::vector <CTxDestination> vDest;
             int nRequired;
             if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))
-            {
                 for (const auto& dest : vDest)
-                {
-                    auto out = make_shared<TransactionOutput>();
-                    out->SetTxHash(tx->GetHash().GetHex());
-                    out->SetNumber((int) i);
                     out->SetAddressHash(EncodeDestination(dest));
-                    out->SetValue(txout.nValue);
-                    out->SetScriptPubKey(HexStr(txout.scriptPubKey));
 
-                    ptx->Outputs().push_back(out);
-                }
-            }
+            ptx->Outputs().push_back(out);
         }
 
         return !ptx->Outputs().empty();

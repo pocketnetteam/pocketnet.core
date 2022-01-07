@@ -1127,7 +1127,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             {
                 PocketBlock pocketBlock{_pocketTx};
                 PocketDb::TransRepoInst.InsertTransactions(pocketBlock);
-                //LogPrintf("DEBUG InsertTransactions to mempool: %s\n", tx.GetHash().GetHex());
             }
             catch (const std::exception& e)
             {
@@ -3044,15 +3043,6 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 
     if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock); !ok)
     {
-        // if (result == SocialConsensusResult_PocketDataNotFound)
-        // {
-        //     auto[deserializeOk, desPocketBlock] = PocketServices::Serializer::DeserializeBlock(blockConnecting);
-        //     if (deserializeOk)
-        //         PocketDb::TransRepoInst.InsertTransactions(desPocketBlock);
-        //
-        //     return false;
-        // }
-
         pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
         return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
     }
