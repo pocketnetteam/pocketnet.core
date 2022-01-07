@@ -398,8 +398,8 @@ namespace PocketDb {
                 limit ?
             )sql");
 
-            size_t i = 1;
-            for (auto& address : addresses)
+            int i = 1;
+            for (const string& address : addresses)
                 TryBindStatementText(stmt, i++, address);
             TryBindStatementInt(stmt, i++, topHeight);
             TryBindStatementInt(stmt, i++, count);
