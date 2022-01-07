@@ -36,7 +36,7 @@ namespace PocketDb
         UniValue GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize);
         UniValue GetBlockTransactions(const string& blockHash, int pageStart, int pageSize);
         UniValue GetTransactions(const vector<string>& transactions, int pageStart, int pageSize);
-        UniValue GetBalanceHistory(const string& address, int topHeight, int count);
+        UniValue GetBalanceHistory(const vector<string>& addresses, int topHeight, int count);
 
     private:
 

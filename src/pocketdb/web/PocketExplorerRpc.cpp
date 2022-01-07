@@ -225,22 +225,46 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw std::runtime_error(
-                "getbalancehistory \"address\" topHeight count\n"
-                "\nGet address balance changes history\n"
+                "getbalancehistory [\"address\", ...] topHeight count\n"
+                "\nGet balance changes history for addresses\n"
                 "\nArguments:\n"
-                "1. address       (string) Address\n"
+                "1. addresses     (array of strings) Addresses for calculate total balance\n"
                 "2. topHeight     (int32) Top height (Inclusive)\n"
-                "3. count         (int32) Count of records\n");
+                "3. count         (int32) Count of records\n\n"
+                "Return:\n"
+                "[ [height, amount], [1000, 500], [999,495], ... ]");
 
-        std::string address;
-        if (request.params.empty() || !request.params[0].isStr())
+        vector<string> addresses;
+        if (!request.params[0].isArray() && !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address argument");
 
-        auto dest = DecodeDestination(request.params[0].get_str());
-        if (!IsValidDestination(dest))
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                std::string("Invalid address: ") + request.params[0].get_str());
-        address = request.params[0].get_str();
+        if (request.params[0].isStr())
+        {
+            auto dest = DecodeDestination(request.params[0].get_str());
+            if (!IsValidDestination(dest))
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                    std::string("Invalid address: ") + request.params[0].get_str());
+
+            addresses.push_back(request.params[0].get_str());
+        }
+
+        if (request.params[0].isArray())
+        {
+            UniValue addrs = request.params[0].get_array();
+            for (unsigned int idx = 0; idx < addrs.size(); idx++)
+            {
+                auto addr = addrs[idx].get_str();
+                auto dest = DecodeDestination(addr);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                        std::string("Invalid address: ") + addr);
+
+                addresses.push_back(addr);
+
+                if (addresses.size() > 100)
+                    break;
+            }
+        }
 
         auto topHeight = chainActive.Height();
         if (request.params[1].isNum())
@@ -250,14 +274,7 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[2].isNum())
             count = min(25, request.params[2].get_int());
 
-        auto history = request.DbConnection()->ExplorerRepoInst->GetBalanceHistory(address, topHeight, count);
-
-        UniValue result(UniValue::VOBJ);
-
-        result.pushKV("address", address);
-        result.pushKV("history", history);
-
-        return result;
+        return request.DbConnection()->ExplorerRepoInst->GetBalanceHistory(addresses, topHeight, count);
     }
 
     UniValue SearchByHash(const JSONRPCRequest& request)
