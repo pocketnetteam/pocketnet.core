@@ -25,7 +25,9 @@ jobs:
     - name: autogen
       run: ./autogen.sh
     - name: configure
-      run: ./configure --with-incompatible-bdb --enable-tests
+      run: |
+        export BDB_PREFIX='/home/runner/work/pocketnet.core/pocketnet.core/db4'
+        ./configure --enable-tests BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" BDB_CFLAGS="-I${BDB_PREFIX}/include"
     - name: make
       run: make -j2
     - name: make check
