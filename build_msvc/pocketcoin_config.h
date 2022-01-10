@@ -29,7 +29,7 @@
 #define COPYRIGHT_HOLDERS_SUBSTITUTION "Pocketnet"
 
 /* Copyright year */
-#define COPYRIGHT_YEAR 2021
+#define COPYRIGHT_YEAR 2022
 
 /* Define to 1 to enable wallet functions */
 #define ENABLE_WALLET 1
