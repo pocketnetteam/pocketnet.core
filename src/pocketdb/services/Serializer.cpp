@@ -144,8 +144,14 @@ namespace PocketServices
             std::vector <CTxDestination> vDest;
             int nRequired;
             if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))
+            {
                 for (const auto& dest : vDest)
                     out->SetAddressHash(EncodeDestination(dest));
+            }
+            else
+            {
+                out->SetAddressHash("");
+            }
 
             ptx->Outputs().push_back(out);
         }
