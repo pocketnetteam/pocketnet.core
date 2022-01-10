@@ -5,17 +5,17 @@
 #ifndef POCKETTX_VIDEO_H
 #define POCKETTX_VIDEO_H
 
-#include "pocketdb/models/dto/Post.h"
+#include "pocketdb/models/dto/Content.h"
 
 namespace PocketTx
 {
     using namespace std;
 
-    class Video : public Post
+    class Video : public Content
     {
     public:
         Video();
-        Video(const std::shared_ptr<const CTransaction>& tx);
+        Video(const CTransactionRef& tx);
         shared_ptr<UniValue> Serialize() const override;
     };
 
