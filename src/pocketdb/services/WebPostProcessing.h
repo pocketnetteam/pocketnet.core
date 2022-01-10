@@ -12,8 +12,8 @@
 
 #include "pocketdb/SQLiteDatabase.h"
 #include "pocketdb/repositories/web/WebRepository.h"
-#include "pocketdb/models/web/Tag.h"
-#include "pocketdb/models/web/Content.h"
+#include "pocketdb/models/web/WebTag.h"
+#include "pocketdb/models/web/WebContent.h"
 
 namespace PocketServices
 {

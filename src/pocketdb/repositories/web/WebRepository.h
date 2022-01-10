@@ -11,8 +11,8 @@
 #include "core_io.h"
 
 #include "pocketdb/repositories/BaseRepository.h"
-#include "pocketdb/models/web/Tag.h"
-#include "pocketdb/models/web/Content.h"
+#include "pocketdb/models/web/WebTag.h"
+#include "pocketdb/models/web/WebContent.h"
 
 namespace PocketDb
 {
@@ -29,11 +29,11 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        vector<Tag> GetContentTags(const string& blockHash);
-        void UpsertContentTags(const vector<Tag>& contentTags);
+        vector<WebTag> GetContentTags(const string& blockHash);
+        void UpsertContentTags(const vector<WebTag>& contentTags);
 
-        vector<Content> GetContent(const string& blockHash);
-        void UpsertContent(const vector<Content>& contentList);
+        vector<WebContent> GetContent(const string& blockHash);
+        void UpsertContent(const vector<WebContent>& contentList);
     };
 
     typedef shared_ptr<WebRepository> WebRepositoryRef;

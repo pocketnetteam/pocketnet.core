@@ -16,13 +16,14 @@
 #include "pocketdb/consensus/social/CommentDelete.hpp"
 #include "pocketdb/consensus/social/Complain.hpp"
 #include "pocketdb/consensus/social/Post.hpp"
+#include "pocketdb/consensus/social/Video.hpp"
+#include "pocketdb/consensus/social/Article.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
 #include "pocketdb/consensus/social/ScoreContent.hpp"
 #include "pocketdb/consensus/social/Subscribe.hpp"
 #include "pocketdb/consensus/social/SubscribeCancel.hpp"
 #include "pocketdb/consensus/social/SubscribePrivate.hpp"
 #include "pocketdb/consensus/social/User.hpp"
-#include "pocketdb/consensus/social/Video.hpp"
 #include "pocketdb/consensus/social/AccountSetting.hpp"
 #include "pocketdb/consensus/social/ContentDelete.hpp"
 
@@ -49,8 +50,9 @@ namespace PocketConsensus
         static bool isConsensusable(TxType txType);
     private:
         static PostConsensusFactory m_postFactory;
-        static UserConsensusFactory m_userFactory;
         static VideoConsensusFactory m_videoFactory;
+        static ArticleConsensusFactory m_articleFactory;
+        static UserConsensusFactory m_userFactory;
         static CommentConsensusFactory m_commentFactory;
         static CommentEditConsensusFactory m_commentEditFactory;
         static CommentDeleteConsensusFactory m_commentDeleteFactory;

@@ -7,9 +7,10 @@
 namespace PocketConsensus
 {
     PostConsensusFactory SocialConsensusHelper::m_postFactory;
+    VideoConsensusFactory SocialConsensusHelper::m_videoFactory;
+    ArticleConsensusFactory SocialConsensusHelper::m_articleFactory;
     AccountSettingConsensusFactory SocialConsensusHelper::m_accountSettingFactory;
     UserConsensusFactory SocialConsensusHelper::m_userFactory;
-    VideoConsensusFactory SocialConsensusHelper::m_videoFactory;
     CommentConsensusFactory SocialConsensusHelper::m_commentFactory;
     CommentEditConsensusFactory SocialConsensusHelper::m_commentEditFactory;
     CommentDeleteConsensusFactory SocialConsensusHelper::m_commentDeleteFactory;

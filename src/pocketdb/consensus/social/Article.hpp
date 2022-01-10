@@ -2,35 +2,32 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_POST_H
-#define POCKETCONSENSUS_POST_H
+#ifndef POCKETCONSENSUS_ARTICLE_H
+#define POCKETCONSENSUS_ARTICLE_H
 
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/Post.h"
+#include "pocketdb/models/dto/Article.h"
 
 namespace PocketConsensus
 {
     using namespace std;
-    typedef shared_ptr<Post> PostRef;
+    typedef shared_ptr<Article> ArticleRef;
     typedef shared_ptr<Content> ContentRef;
 
-    // TODO (brangr) (v0.21.0): extract base class Content for Post, Video and ContentDelete
-    // Also split Post & Video for extract PostEdit & VideoEdit transactions with base class ContentEdit
-
     /*******************************************************************************************************************
-    *  Post consensus base class
+    *  Article consensus base class
     *******************************************************************************************************************/
-    class PostConsensus : public SocialConsensus<Post>
+    class ArticleConsensus : public SocialConsensus<Article>
     {
     public:
-        PostConsensus(int height) : SocialConsensus<Post>(height) {}
-        tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PostRef& ptx, const PocketBlockRef& block) override
+        ArticleConsensus(int height) : SocialConsensus<Article>(height) {}
+        tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const ArticleRef& ptx, const PocketBlockRef& block) override
         {
             // Base validation with calling block or mempool check
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
-            // Check if this post relay another
+            // Check if this Article relay another
             if (!IsEmpty(ptx->GetRelayTxHash()))
             {
                 auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(
@@ -54,7 +51,7 @@ namespace PocketConsensus
 
             return Success;
         }
-        tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PostRef& ptx) override
+        tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const ArticleRef& ptx) override
         {
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
@@ -71,7 +68,7 @@ namespace PocketConsensus
             return mode >= AccountMode_Full ? GetConsensusLimit(ConsensusLimit_full_post) : GetConsensusLimit(ConsensusLimit_trial_post);
         }
 
-        tuple<bool, SocialConsensusResult> ValidateBlock(const PostRef& ptx, const PocketBlockRef& block) override
+        tuple<bool, SocialConsensusResult> ValidateBlock(const ArticleRef& ptx, const PocketBlockRef& block) override
         {
             // Edit posts
             if (ptx->IsEdit())
@@ -106,7 +103,7 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
-        tuple<bool, SocialConsensusResult> ValidateMempool(const PostRef& ptx) override
+        tuple<bool, SocialConsensusResult> ValidateMempool(const ArticleRef& ptx) override
         {
             // Edit posts
             if (ptx->IsEdit())
@@ -123,12 +120,12 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
-        vector<string> GetAddressesForCheckRegistration(const PostRef& ptx) override
+        vector<string> GetAddressesForCheckRegistration(const ArticleRef& ptx) override
         {
             return {*ptx->GetAddress()};
         }
 
-        virtual tuple<bool, SocialConsensusResult> ValidateEdit(const PostRef& ptx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEdit(const ArticleRef& ptx)
         {
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
@@ -159,7 +156,7 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const PostRef& ptx, int count)
+        virtual tuple<bool, SocialConsensusResult> ValidateLimit(const ArticleRef& ptx, int count)
         {
             auto reputationConsensus = PocketConsensus::ReputationConsensusFactoryInst.Instance(Height);
             auto[mode, reputation, balance] = reputationConsensus->GetAccountMode(*ptx->GetAddress());
@@ -171,22 +168,22 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual bool AllowBlockLimitTime(const PostRef& ptx, const PostRef& blockPtx)
+        virtual bool AllowBlockLimitTime(const ArticleRef& ptx, const ArticleRef& blockPtx)
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
-        virtual bool AllowEditWindow(const PostRef& ptx, const ContentRef& originalTx)
+        virtual bool AllowEditWindow(const ArticleRef& ptx, const ContentRef& originalTx)
         {
             return (*ptx->GetTime() - *originalTx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_post_depth);
         }
-        virtual int GetChainCount(const PostRef& ptx)
+        virtual int GetChainCount(const ArticleRef& ptx)
         {
             return ConsensusRepoInst.CountChainPostTime(
                 *ptx->GetAddress(),
                 *ptx->GetTime() - GetConsensusLimit(ConsensusLimit_depth)
             );
         }
-        virtual tuple<bool, SocialConsensusResult> ValidateEditBlock(const PostRef& ptx, const PocketBlockRef& block)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditBlock(const ArticleRef& ptx, const PocketBlockRef& block)
         {
             // Double edit in block not allowed
             for (auto& blockTx : *block)
@@ -206,7 +203,7 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-        virtual tuple<bool, SocialConsensusResult> ValidateEditMempool(const PostRef& ptx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditMempool(const ArticleRef& ptx)
         {
             if (ConsensusRepoInst.CountMempoolPostEdit(*ptx->GetAddress(), *ptx->GetRootTxHash()) > 0)
                 return {false, SocialConsensusResult_DoubleContentEdit};
@@ -214,7 +211,7 @@ namespace PocketConsensus
             // Check edit limit
             return ValidateEditOneLimit(ptx);
         }
-        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const PostRef& ptx)
+        virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const ArticleRef& ptx)
         {
             int count = ConsensusRepoInst.CountChainPostEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
             if (count >= GetConsensusLimit(ConsensusLimit_post_edit_count))
@@ -222,7 +219,7 @@ namespace PocketConsensus
 
             return Success;
         }
-        virtual ConsensusValidateResult ValidatePayloadSize(const PostRef& ptx)
+        virtual ConsensusValidateResult ValidatePayloadSize(const ArticleRef& ptx)
         {
             size_t dataSize =
                 (ptx->GetPayloadUrl() ? ptx->GetPayloadUrl()->size() : 0) +
@@ -259,61 +256,20 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
-    *  Start checkpoint at 1124000 block
-    *******************************************************************************************************************/
-    class PostConsensus_checkpoint_1124000 : public PostConsensus
-    {
-    public:
-        PostConsensus_checkpoint_1124000(int height) : PostConsensus(height) {}
-    protected:
-        bool AllowBlockLimitTime(const PostRef& ptx, const PostRef& blockPtx) override
-        {
-            return true;
-        }
-    };
-
-    /*******************************************************************************************************************
-    *  Start checkpoint at 1180000 block
-    *******************************************************************************************************************/
-    class PostConsensus_checkpoint_1180000 : public PostConsensus_checkpoint_1124000
-    {
-    public:
-        PostConsensus_checkpoint_1180000(int height) : PostConsensus_checkpoint_1124000(height) {}
-    protected:
-        int GetChainCount(const PostRef& ptx) override
-        {
-            return ConsensusRepoInst.CountChainPostHeight(
-                *ptx->GetAddress(),
-                Height - (int) GetConsensusLimit(ConsensusLimit_depth)
-            );
-        }
-        bool AllowEditWindow(const PostRef& ptx, const ContentRef& originalTx) override
-        {
-            auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
-            if (!ok)
-                return false;
-
-            return (Height - originalTxHeight) <= GetConsensusLimit(ConsensusLimit_edit_post_depth);
-        }
-    };
-
-    /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class PostConsensusFactory
+    class ArticleConsensusFactory
     {
     protected:
-        const vector<ConsensusCheckpoint < PostConsensus>> m_rules = {
-            { 0, -1, [](int height) { return make_shared<PostConsensus>(height); }},
-            { 1124000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1124000>(height); }},
-            { 1180000, -1, [](int height) { return make_shared<PostConsensus_checkpoint_1180000>(height); }},
+        const vector<ConsensusCheckpoint < ArticleConsensus>> m_rules = {
+            { 0, 0, [](int height) { return make_shared<ArticleConsensus>(height); }},
         };
     public:
-        shared_ptr<PostConsensus> Instance(int height)
+        shared_ptr<ArticleConsensus> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<PostConsensus>& itm)
+                [&](int target, const ConsensusCheckpoint<ArticleConsensus>& itm)
                 {
                     return target < itm.Height(Params().NetworkIDString());
                 }
@@ -322,4 +278,4 @@ namespace PocketConsensus
     };
 } // namespace PocketConsensus
 
-#endif // POCKETCONSENSUS_POST_H
+#endif // POCKETCONSENSUS_ARTICLE_H

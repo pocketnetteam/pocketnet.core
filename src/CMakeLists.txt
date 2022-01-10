@@ -375,7 +375,6 @@ add_library(${POCKETDB}
         pocketdb/models/dto/ScoreComment.h
         pocketdb/models/dto/Blocking.h
         pocketdb/models/dto/BlockingCancel.h
-        pocketdb/models/dto/Comment.h
         pocketdb/models/dto/CommentEdit.h
         pocketdb/models/dto/CommentDelete.h
         pocketdb/models/dto/Subscribe.h
@@ -395,12 +394,18 @@ add_library(${POCKETDB}
         pocketdb/models/dto/Default.cpp
         pocketdb/models/dto/Coinbase.cpp
         pocketdb/models/dto/Coinstake.cpp
+        pocketdb/models/dto/Content.h
+        pocketdb/models/dto/Content.cpp
         pocketdb/models/dto/Post.cpp
+        pocketdb/models/dto/Video.cpp
+        pocketdb/models/dto/Article.h
+        pocketdb/models/dto/Article.cpp
         pocketdb/models/dto/User.cpp
         pocketdb/models/dto/ScoreContent.cpp
         pocketdb/models/dto/ScoreComment.cpp
         pocketdb/models/dto/Blocking.cpp
         pocketdb/models/dto/BlockingCancel.cpp
+        pocketdb/models/dto/Comment.h
         pocketdb/models/dto/Comment.cpp
         pocketdb/models/dto/CommentEdit.cpp
         pocketdb/models/dto/CommentDelete.cpp
@@ -408,11 +413,10 @@ add_library(${POCKETDB}
         pocketdb/models/dto/SubscribePrivate.cpp
         pocketdb/models/dto/SubscribeCancel.cpp
         pocketdb/models/dto/Complain.cpp
-        pocketdb/models/dto/Video.cpp
         pocketdb/models/dto/AccountSetting.cpp
         pocketdb/models/dto/ContentDelete.cpp
-        pocketdb/models/web/Tag.h
-        pocketdb/models/web/Content.h
+        pocketdb/models/web/WebTag.h
+        pocketdb/models/web/WebContent.h
         pocketdb/models/web/SearchRequest.h
         )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
