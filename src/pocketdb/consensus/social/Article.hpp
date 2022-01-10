@@ -97,8 +97,8 @@ namespace PocketConsensus
                 if (*blockPtx->GetHash() == *ptx->GetHash())
                     continue;
 
-                if (AllowBlockLimitTime(ptx, blockPtx))
-                    count += 1;
+                // if (AllowBlockLimitTime(ptx, blockPtx))
+                //     count += 1;
             }
 
             return ValidateLimit(ptx, count);
