@@ -29,8 +29,8 @@ namespace PocketTx
     #define OR_COMMENT_DELETE "636f6d6d656e7444656c657465"
     #define OR_COMMENT_SCORE "6353636f7265"
 
-    #define OR_VIDEO "766964656f"                      // Post for video hosting
-    #define OR_VERIFICATION "766572696669636174696f6e" // User verification post
+    #define OR_VIDEO "766964656f" // Post for video hosting
+    #define OR_ARTICLE "61727469636c65" // Article Post
 
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
@@ -61,8 +61,8 @@ namespace PocketTx
 
         CONTENT_POST = 200,
         CONTENT_VIDEO = 201,
-        CONTENT_TRANSLATE = 202,
-        CONTENT_SERVERPING = 203,
+        CONTENT_ARTICLE = 202,
+        // CONTENT_SERVERPING = 203,
 
         CONTENT_COMMENT = 204,
         CONTENT_COMMENT_EDIT = 205,
@@ -128,7 +128,7 @@ namespace PocketTx
         {
             return Type == TxType::CONTENT_POST ||
                    Type == TxType::CONTENT_VIDEO ||
-                   Type == TxType::CONTENT_TRANSLATE ||
+                   Type == TxType::CONTENT_ARTICLE ||
                    Type == TxType::CONTENT_DELETE;
         }
 

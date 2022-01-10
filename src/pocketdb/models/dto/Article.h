@@ -1,9 +1,9 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETTX_VIDEO_H
-#define POCKETTX_VIDEO_H
+#ifndef POCKETTX_ARTICLE_H
+#define POCKETTX_ARTICLE_H
 
 #include "pocketdb/models/dto/Post.h"
 
@@ -11,13 +11,13 @@ namespace PocketTx
 {
     using namespace std;
 
-    class Video : public Post
+    class Article : public Post
     {
     public:
-        Video();
-        Video(const CTransactionRef& tx);
+        Article();
+        Article(const CTransactionRef& tx);
     };
 
 } // namespace PocketTx
 
-#endif // POCKETTX_VIDEO_H
+#endif // POCKETTX_ARTICLE_H
