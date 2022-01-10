@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <rpc/blockchain.h>
-
+#include <net.h>
 #include <amount.h>
 #include <blockfilter.h>
 #include <chain.h>
@@ -23,6 +23,7 @@
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <script/descriptor.h>
+#include <wallet/wallet.h>
 #include <streams.h>
 #include <sync.h>
 #include <txdb.h>
@@ -2470,6 +2471,47 @@ static RPCHelpMan dumptxoutset()
     };
 }
 
+RPCHelpMan blocksonly()
+{
+    return RPCHelpMan{
+        "blocksonly",
+        "\nEnable/Disable only blocks mode\n",
+        {
+            {"On/Off", RPCArg::Type::BOOL, RPCArg::Optional::NO, ""},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+                {
+                    {RPCResult::Type::NUM, "coins_written", "the number of coins written in the snapshot"},
+                    {RPCResult::Type::STR_HEX, "base_hash", "the hash of the base of the snapshot"},
+                    {RPCResult::Type::NUM, "base_height", "the height of the base of the snapshot"},
+                    {RPCResult::Type::STR, "path", "the absolute path that the snapshot was written to"},
+                }
+        },
+        RPCExamples{
+            HelpExampleCli("dumptxoutset", "utxo.dat")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    if (request.params[0].isBool())
+    {
+        bool enable = request.params[0].get_bool();
+
+        g_relay_txes = !enable;
+        gArgs.SoftSetBoolArg("-whitelistrelay", !enable);
+        gArgs.SoftSetBoolArg("-walletbroadcast", !enable);
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("fRelayTxes", g_relay_txes);
+    result.pushKV("whitelistrelay", gArgs.GetBoolArg("-whitelistrelay", DEFAULT_WHITELISTRELAY));
+    result.pushKV("walletbroadcast", gArgs.GetBoolArg("-walletbroadcast", DEFAULT_WALLETBROADCAST));
+
+    return result;
+},
+    };
+}
+
 void RegisterBlockchainRPCCommands(CRPCTable &t)
 {
 // clang-format off
@@ -2508,6 +2550,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "waitforblockheight",     &waitforblockheight,     {"height","timeout"} },
     { "hidden",             "syncwithvalidationinterfacequeue", &syncwithvalidationinterfacequeue, {} },
     { "hidden",             "dumptxoutset",           &dumptxoutset,           {"path"} },
+    { "hidden",             "blocksonly",             &blocksonly,             {"on/off"} },
 };
 // clang-format on
     for (const auto& c : commands) {

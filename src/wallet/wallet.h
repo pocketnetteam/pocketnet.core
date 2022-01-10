@@ -1049,6 +1049,7 @@ public:
 
     std::set<std::set<CTxDestination>> GetAddressGroupings() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     std::map<CTxDestination, CAmount> GetAddressBalances() const;
+    std::vector<std::string> GetUniqueAddresses() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     std::set<CTxDestination> GetLabelAddresses(const std::string& label) const;
 
@@ -1214,7 +1215,7 @@ public:
         LogPrint(BCLog::WALLET, ("%s " + fmt).c_str(), GetDisplayName(), parameters...);
     };
 
-    uint64_t GetStakeWeight() const;
+    tuple<uint64_t, uint64_t> GetStakeWeight() const;
     bool CreateCoinStake(const FillableSigningProvider& keystore, unsigned int nBits, int64_t nSearchInterval, int64_t nFees, CMutableTransaction& txNew, CKey& key);
     int64_t GetStake() const;
     int64_t GetNewMint() const;

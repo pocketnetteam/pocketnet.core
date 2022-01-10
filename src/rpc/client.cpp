@@ -59,6 +59,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getblockhash",                  0, "height"},
         {"waitforblockheight",            0, "height"},
         {"waitforblockheight",            1, "timeout"},
+        {"blocksonly",                    0, "on/off"},
         {"waitforblock",                  1, "timeout"},
         {"waitfornewblock",               0, "timeout"},
         {"listtransactions",              1, "count"},

@@ -82,11 +82,21 @@ namespace PocketConsensus
     // Проверяет блок транзакций без привязки к цепи
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Check(const CBlock& block, const PocketBlockRef& pBlock)
     {
+        if (!pBlock)
+        {
+            LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus check failed with result:%d for blk:%s\n",
+                (int)SocialConsensusResult_PocketDataNotFound, block.GetHash().GetHex());
+
+            return {false, SocialConsensusResult_PocketDataNotFound};
+        }
+
+        // Detect block type
         auto coinstakeBlock = find_if(block.vtx.begin(), block.vtx.end(), [&](CTransactionRef const& tx)
         {
             return tx->IsCoinStake();
         }) != block.vtx.end();
 
+        // Check all transactions in block and payload block
         for (const auto& tx : block.vtx)
         {
             // NOT_SUPPORTED transactions not checked

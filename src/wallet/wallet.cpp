@@ -3459,10 +3459,10 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances() const
 	return balances;
 }
 
-std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings() const
+std::set<std::set<CTxDestination>> CWallet::GetAddressGroupings() const
 {
 	AssertLockHeld(cs_wallet);
-	std::set< std::set<CTxDestination> > groupings;
+	std::set<std::set<CTxDestination>> groupings;
 	std::set<CTxDestination> grouping;
 
 	for (const auto& walletEntry : mapWallet)
@@ -3550,6 +3550,71 @@ std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings() const
 	}
 
 	return ret;
+}
+
+std::vector<std::string> CWallet::GetUniqueAddresses() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
+{
+    std::vector<std::string> addresses;
+
+    for (const auto& walletEntry : mapWallet)
+    {
+        const CWalletTx *pcoin = &walletEntry.second;
+
+        if (pcoin->tx->vin.size() > 0)
+        {
+            bool any_mine = false;
+            // group all input addresses with each other
+            for (const CTxIn& txin : pcoin->tx->vin)
+            {
+                CTxDestination addrDest;
+                if (!IsMine(txin)) /* If this input isn't mine, ignore it */
+                    continue;
+                if (!ExtractDestination(mapWallet.at(txin.prevout.hash).tx->vout[txin.prevout.n].scriptPubKey, addrDest))
+                    continue;
+
+                std::string address = EncodeDestination(addrDest);
+                if (std::find(addresses.begin(), addresses.end(), address) == addresses.end())
+                    addresses.push_back(address);
+
+                any_mine = true;
+            }
+
+            // group change with input addresses
+            if (any_mine)
+            {
+                for (const CTxOut& txout : pcoin->tx->vout)
+                {
+                    if (IsChange(txout))
+                    {
+                        CTxDestination txoutAddrDest;
+                        if (!ExtractDestination(txout.scriptPubKey, txoutAddrDest))
+                            continue;
+
+                        std::string address = EncodeDestination(txoutAddrDest);
+                        if (std::find(addresses.begin(), addresses.end(), address) == addresses.end())
+                            addresses.push_back(address);
+                    }
+                }
+            }
+        }
+
+        // group lone addrs by themselves
+        for (const auto& txout : pcoin->tx->vout)
+        {
+            if (IsMine(txout))
+            {
+                CTxDestination addrDest;
+                if (!ExtractDestination(txout.scriptPubKey, addrDest))
+                    continue;
+                
+                std::string address = EncodeDestination(addrDest);
+                if (std::find(addresses.begin(), addresses.end(), address) == addresses.end())
+                    addresses.push_back(address);
+            }
+        }
+    }
+
+    return addresses;
 }
 
 std::set<CTxDestination> CWallet::GetLabelAddresses(const std::string& label) const
@@ -4982,7 +5047,7 @@ int64_t CWallet::GetNewMint() const
 	return nTotal;
 }
 
-uint64_t CWallet::GetStakeWeight() const
+tuple<uint64_t, uint64_t> CWallet::GetStakeWeight() const
 {
 	// Choose coins to use
 	// TODO (losty-fur): validate this is correct balance
@@ -4990,7 +5055,7 @@ uint64_t CWallet::GetStakeWeight() const
 	LogPrintf("GetStakeWeight: DEBUG: using mine_trusted coins: %d", nBalance);
 
 	if (nBalance <= 0) {
-		return 0;
+		return {0, 0};
 	}
 
 	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
@@ -4999,11 +5064,11 @@ uint64_t CWallet::GetStakeWeight() const
 	int64_t nValueIn = 0;
 
 	if (!SelectCoinsForStaking(nBalance, GetTime(), setCoins, nValueIn)) {
-		return 0;
+		return {0, 0};
 	}
 
 	if (setCoins.empty()) {
-		return 0;
+		return {0, 0};
 	}
 
 	uint64_t nWeight = 0;
@@ -5020,6 +5085,6 @@ uint64_t CWallet::GetStakeWeight() const
 			nWeight += std::min(pcoin.first->tx->vout[pcoin.second].nValue, 5000 * COIN);
 	}
 
-	return nWeight;
+	return {nBalance, nWeight};
 }
 

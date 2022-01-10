@@ -269,6 +269,9 @@ namespace PocketDb
               and tOtherContents.String1 != ?
               and tOtherContents.Last = 1
               and tOtherContents.Height >= ?
+              and u.Type in (100,101,102)
+              and u.Last=1
+              and u.Height is not null
             group by tOtherContents.String1
             order by count(*) desc
             limit ?
@@ -353,6 +356,9 @@ namespace PocketDb
               and tOtherContents.String1 != ?
               and tOtherContents.Last = 1
               and tOtherContents.Height >= ?
+              and u.Type in (100,101,102)
+              and u.Last=1
+              and u.Height is not null
             group by tOtherContents.String1
             order by count(*) desc
             limit ?

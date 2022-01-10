@@ -188,6 +188,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue proxies(UniValue::VARR);
         if (!WSConnections.empty()) {
+            boost::lock_guard<boost::mutex> guard(WSMutex);
             for (auto& it : WSConnections) {
                 if (it.second.Service) {
                     UniValue proxy(UniValue::VOBJ);

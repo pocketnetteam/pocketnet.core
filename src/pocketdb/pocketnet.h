@@ -32,6 +32,7 @@ namespace PocketDb
     extern RatingsRepository RatingsRepoInst;
     extern ConsensusRepository ConsensusRepoInst;
     extern NotifierRepository NotifierRepoInst;
+    extern ExplorerRepository ExplorerRepoInst;
 
     extern SQLiteDatabase SQLiteDbCheckpointInst;
     extern CheckpointRepository CheckpointRepoInst;

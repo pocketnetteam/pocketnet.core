@@ -44,9 +44,9 @@ static const CRPCCommand commands[] =
     {"search",          "searchusers",                      &SearchUsers,                   {"keyword", "fieldtypes", "orderbyrank"}},
 
     // Recomendations
-    {"search",          "getrecomendedaccountsbysubscriptions",           &GetRecomendedAccountsBySubscriptions,           {}},
-    {"search",          "getrecomendedaccountsbyscoresonsimilaraccounts", &GetRecomendedAccountsByScoresOnSimilarAccounts, {}},
-    {"search",          "getrecomendedaccountsbyscoresfromaddress",       &GetRecomendedAccountsByScoresFromAddress,       {}},
+    {"search",          "getrecomendedaccountsbysubscriptions",           &GetRecomendedAccountsBySubscriptions,           {"address", "count"}},
+    {"search",          "getrecomendedaccountsbyscoresonsimilaraccounts", &GetRecomendedAccountsByScoresOnSimilarAccounts, {"address", "contenttypes", "height", "depth", "count"}},
+    {"search",          "getrecomendedaccountsbyscoresfromaddress",       &GetRecomendedAccountsByScoresFromAddress,       {"address", "contenttypes", "height", "depth", "count"}},
     {"search",          "getrecomendedcontentsbyscoresonsimilarcontents", &GetRecomendedContentsByScoresOnSimilarContents, {}},
     {"search",          "getrecomendedcontentsbyscoresfromaddress",       &GetRecomendedContentsByScoresFromAddress,       {}},
 
@@ -95,7 +95,9 @@ static const CRPCCommand commands[] =
     {"scores",          "getpagescores",                    &GetPagesScores,                {"postIds", "address", "cmntIds"}},
 
     // Explorer
-    {"explorer",       "getstatistic",                     &GetStatistic,                   {"endTime", "depth"}},
+    {"explorer",       "getstatisticbyhours",              &GetStatisticByHours,            {"topHeight", "depth"}},
+    {"explorer",       "getstatisticbydays",               &GetStatisticByDays,             {"topHeight", "depth"}},
+    {"explorer",       "getstatisticcontent",              &GetStatisticContent,            {}},
     {"explorer",       "getaddressinfo",                   &GetAddressInfo,                 {"address"}},
     {"explorer",       "getcompactblock",                  &GetCompactBlock,                {"blockHash"}},
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},

@@ -822,12 +822,15 @@ static RPCHelpMan getstakinginfo()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
 #ifdef ENABLE_WALLET
+    uint64_t nBalance = 0;
     uint64_t nWeight = 0;
 
     auto wallets = GetWallets();
 
     for (auto & wallet : wallets) {
-        nWeight = wallet->GetStakeWeight();
+        auto[balance, weight] = wallet->GetStakeWeight();
+        nBalance += balance;
+        nWeight += weight;
     }
 
     uint64_t nNetworkWeight = GetPoSKernelPS();
@@ -847,6 +850,7 @@ static RPCHelpMan getstakinginfo()
     obj.pushKV("search-interval", Staker::getInstance()->getLastCoinStakeSearchInterval());
 
     obj.pushKV("weight", (uint64_t)nWeight);
+    obj.pushKV("balance", (uint64_t)nBalance);
     obj.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
 
     obj.pushKV("expectedtime", nExpectedTime);

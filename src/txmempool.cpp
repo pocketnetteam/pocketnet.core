@@ -486,6 +486,9 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     cachedInnerUsage -= it->DynamicMemoryUsage();
     cachedInnerUsage -= memusage::DynamicUsage(it->GetMemPoolParentsConst()) + memusage::DynamicUsage(it->GetMemPoolChildrenConst());
     mapTx.erase(it);
+
+    //LogPrintf("DEBUG removeUnchecked : %s (%d)\n", hash.GetHex(), (int)reason);
+
     nTransactionsUpdated++;
     if (minerPolicyEstimator) { minerPolicyEstimator->removeTx(hash, false); }
 }
@@ -568,7 +571,8 @@ void CTxMemPool::removeRecursive(const CTransaction& origTx, MemPoolRemovalReaso
     RemoveStaged(setAllRemoves, false, reason);
 
     // Also sqlite clean
-    CleanSQLite(removeHashes);
+    // TODO (brangr): !!!!
+    //CleanSQLite(removeHashes, "removeRecursive", reason);
 }
 
 void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMemPoolHeight, int flags)
@@ -623,7 +627,8 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
     RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::REORG);
 
     // Also sqlite clean
-    CleanSQLite(removeHashes);
+    // TODO (brangr): !!!!
+    // CleanSQLite(removeHashes, "removeForReorg", MemPoolRemovalReason::REORG);
 }
 
 void CTxMemPool::removeConflicts(const CTransaction& tx)
@@ -1075,12 +1080,12 @@ void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPool
     }
 }
 
-void CTxMemPool::CleanSQLite(const std::unordered_set<std::string>& hashes)
+void CTxMemPool::CleanSQLite(const std::unordered_set<std::string>& hashes, const std::string& func, MemPoolRemovalReason reason)
 {
     for (const auto& hash : hashes)
     {
         PocketDb::TransRepoInst.CleanTransaction(hash);
-        LogPrint(BCLog::SYNC, "Clean SQLite mempool transaction %s\n", hash);
+        LogPrint(BCLog::SYNC, "%s: Clean SQLite mempool tx %s with reason %d\n", hash, func, (int)reason);
     }
 }
 
@@ -1108,7 +1113,7 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
 
     // Also remove from sqlite db
-    CleanSQLite(removeHashes);
+    CleanSQLite(removeHashes, "expire", MemPoolRemovalReason::EXPIRY);
 
     return stage.size();
 }

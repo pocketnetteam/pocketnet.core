@@ -8,20 +8,22 @@ namespace PocketWeb::PocketWebRpc
 {
     map<string, UniValue> TransactionsStatisticCache;
 
-    RPCHelpMan GetStatistic()
+    RPCHelpMan GetStatisticByHours()
     {
-        return RPCHelpMan{"getstatistic",
+        return RPCHelpMan{"getstatisticbyhours",
                 "\nGet statistics.\n",
                 {
                     {"topheight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Top height (Default: chain height)"},
-                    {"stepsize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Step size - Hour = 60, Day = 1440, Month = 43200 (Default: Day)"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth hours (Maximum: 24 hours)"},
                 },
                 {
                     // TODO (losty-fur): provide return description
                 },
                 RPCExamples{
-                    HelpExampleCli("getstatistic", "") +
-                    HelpExampleRpc("getstatistic", "")
+                    // TODO (losty-fur): provide correct examples
+                    // HelpExampleCli("getstatisticbyhours", "") +
+                    // HelpExampleRpc("getstatisticbyhours", "")
+                    ""
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -29,48 +31,65 @@ namespace PocketWeb::PocketWebRpc
         if (request.params[0].isNum())
             topHeight = std::min(request.params[0].get_int(), topHeight);
 
-        int stepSize = 60;
+        int depth = 24;
         if (request.params[1].isNum())
-        {
-            auto _stepSize = request.params[1].get_int();
-            if (_stepSize == 60 || _stepSize == 1440 || _stepSize == 43200)
-                stepSize = _stepSize;
-        }
+            depth = std::min(request.params[1].get_int(), depth);
+        depth = depth * 60;
 
-        int count = 24;
-        if (stepSize == 1440) count = 30;
-        if (stepSize == 43200) count = 12;
+        return request.DbConnection()->ExplorerRepoInst->GetTransactionsStatisticByHours(topHeight, depth);
+    },
+        };
+    }
 
-        UniValue result(UniValue::VOBJ);
+    RPCHelpMan GetStatisticByDays()
+    {
+        return RPCHelpMan{"getstatisticbydays",
+                "\nGet statistics.\n",
+                {
+                    {"topheight", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Top height (Default: chain height)"},
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth days (Maximum: 30 days)"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-fur): provide correct examples
+                    // HelpExampleCli("getstatisticbydays", "") +
+                    // HelpExampleRpc("getstatisticbydays", "")
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
 
-        // --------------------------------------------------------------------
-        // Get transactions statistic
+        int topHeight = ChainActive().Height() / 10 * 10;
+        if (request.params[0].isNum())
+            topHeight = std::min(request.params[0].get_int(), topHeight);
 
-        UniValue resultTransactions(UniValue::VOBJ);
-        while (count > 0)
-        {
-            string cacheKey = to_string(topHeight) + to_string(stepSize);
-            //if (TransactionsStatisticCache.find(cacheKey) == TransactionsStatisticCache.end())
-            {
-                auto stepData = request.DbConnection()->ExplorerRepoInst->GetTransactionsStatistic(topHeight, stepSize);
-                resultTransactions.pushKV(to_string(topHeight), stepData);
-                //TransactionsStatisticCache.insert_or_assign(cacheKey, stepData);
-            }
+        int depth = 30;
+        if (request.params[1].isNum())
+            depth = std::min(request.params[1].get_int(), depth);
+        depth = depth * 24 * 60;
 
-            // resultTransactions.pushKV(to_string(topHeight), TransactionsStatisticCache[cacheKey]);
+        return request.DbConnection()->ExplorerRepoInst->GetTransactionsStatisticByDays(topHeight, depth);
+    },
+        };
+    }
 
-            topHeight -= stepSize;
-            count -= 1;
-        }
-        result.pushKV("txs", resultTransactions);
-
-        // --------------------------------------------------------------------
-        // Get content statistic
-
-        auto contentResult = request.DbConnection()->ExplorerRepoInst->GetContentStatistic();
-        result.pushKV("content", contentResult);
-
-        return result;
+    RPCHelpMan GetStatisticContent()
+    {
+        return RPCHelpMan{"getstatisticcontent",
+                "\nGet statistics for content transactions\n",
+                {},
+                {
+                    // TODO (losty-fur): provide return description
+                },
+                RPCExamples{
+                    HelpExampleCli("getstatisticcontent", "") +
+                    HelpExampleRpc("getstatisticcontent", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        return request.DbConnection()->ExplorerRepoInst->GetContentStatistic();
     },
         };
     }
@@ -256,11 +275,17 @@ namespace PocketWeb::PocketWebRpc
                 std::string("Invalid address: ") + request.params[0].get_str());
         address = request.params[0].get_str();
 
-        auto[lastChange, balance] = request.DbConnection()->ExplorerRepoInst->GetAddressInfo(address);
-
         UniValue addressInfo(UniValue::VOBJ);
-        addressInfo.pushKV("lastChange", lastChange);
-        addressInfo.pushKV("balance", balance);
+        addressInfo.pushKV("lastChange", 0);
+        addressInfo.pushKV("balance", 0);
+
+        auto info = request.DbConnection()->ExplorerRepoInst->GetAddressesInfo({ address });
+        if (info.find(address) != info.end())
+        {
+            auto[height, balance] = info[address];
+            addressInfo.pushKV("lastChange", height);
+            addressInfo.pushKV("balance", balance / 100000000.0);
+        }
 
         return addressInfo;
     },
