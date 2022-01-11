@@ -194,7 +194,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/ecmult_static_context.
 add_custom_target(have_ecmult ALL DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/ecmult_static_context.h)
 add_dependencies(${PROJECT_NAME} have_ecmult)
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE USE_ECMULT_STATIC_PRECOMPUTATION ENABLE_MODULE_EXTRAKEYS=1 ENABLE_MODULE_SCHNORRSIG=1 SECP256K1_SOURCE_PATH=${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_definitions(${PROJECT_NAME} PRIVATE USE_ECMULT_STATIC_PRECOMPUTATION ENABLE_MODULE_EXTRAKEYS=1 ENABLE_MODULE_SCHNORRSIG=1)
 
 # TODO hardcoded
 add_compile_definitions(

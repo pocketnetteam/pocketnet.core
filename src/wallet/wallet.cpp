@@ -4680,7 +4680,7 @@ void CWallet::AvailableCoinsForStaking(std::vector<COutput>& vCoins, unsigned in
 	vCoins.clear();
 
 	{
-		LOCK2(cs_main, cs_wallet);
+        LOCK(cs_wallet);
 		for (std::map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it) {
 			const CWalletTx* pcoin = &(*it).second;
 			const uint256& wtxid = it->first;
@@ -5023,7 +5023,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 int64_t CWallet::GetStake() const
 {
 	int64_t nTotal = 0;
-	LOCK2(cs_main, cs_wallet);
+    LOCK(cs_wallet);
 	for (std::map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
 	{
 		const CWalletTx* pcoin = &(*it).second;
@@ -5037,7 +5037,7 @@ int64_t CWallet::GetStake() const
 int64_t CWallet::GetNewMint() const
 {
 	int64_t nTotal = 0;
-	LOCK2(cs_main, cs_wallet);
+    LOCK(cs_wallet);
 	for (std::map<uint256, CWalletTx>::const_iterator it = mapWallet.begin(); it != mapWallet.end(); ++it)
 	{
 		const CWalletTx* pcoin = &(*it).second;
@@ -5075,7 +5075,7 @@ tuple<uint64_t, uint64_t> CWallet::GetStakeWeight() const
 
 	int64_t nCurrentTime = GetTime();
 
-	LOCK2(cs_main, cs_wallet);
+    LOCK(cs_wallet);
 	for (auto & pcoin : setCoins)
 	{
 		if (!mapWallet.count(pcoin.first->tx->GetHash())) {
