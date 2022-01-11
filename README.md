@@ -65,6 +65,8 @@ $ pocketcoin-cli --help
 $ pocketcoin-tx --help
 ```
 
+More information : https://hub.docker.com/r/pocketnetteam/pocketnet.core
+
 # First full synchronization
 To quickly synchronize and minimize traffic costs, you can run an empty node with additional parameters:
 - `-listen=0` - disable the visibility of your node so that other novice nodes can't connect to you to download the blockchain.
