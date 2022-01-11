@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/SQLiteDatabase.h"
+#include "util.h"
 
 namespace PocketDb
 {
@@ -135,7 +136,11 @@ namespace PocketDb
                         SQLITE_OPEN_CREATE;
 
             if (isReadOnlyConnect)
+            {
                 flags = SQLITE_OPEN_READONLY;
+                if (gArgs.GetBoolArg("-sqlsharedcache", false))
+                    flags |= SQLITE_OPEN_SHAREDCACHE;
+            }
 
             if (m_db == nullptr)
             {
@@ -162,6 +167,12 @@ namespace PocketDb
                 // if (sqlite3_exec(m_db, "PRAGMA temp_store = memory;", nullptr, nullptr, nullptr) != 0)
                 //     throw std::runtime_error("Failed apply temp_store = memory");
             }
+
+            int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
+            int pageCount = cacheSize * 1024 * 1024 / 4096;
+            string cmd = "PRAGMA cache_size = " + to_string(pageCount) + ";";
+            if (sqlite3_exec(m_db, cmd.c_str(), nullptr, nullptr, nullptr) != 0)
+                throw std::runtime_error("Failed to apply cache size");
         }
         catch (const std::runtime_error&)
         {
