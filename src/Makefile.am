@@ -524,7 +524,6 @@ libpocketcoin_server_a_SOURCES = \
     validationinterface.cpp \
     versionbits.cpp \
     websocket/ws.cpp \
-    utils/html.cpp \
     $(POCKETDB_CPP) \
     $(POCKETCOIN_CORE_H)
 
@@ -732,6 +731,7 @@ libpocketcoin_util_a_SOURCES = \
   util/bytevectorhash.cpp \
   util/error.cpp \
   util/fees.cpp \
+  util/html.cpp \
   util/system.cpp \
   util/message.cpp \
   util/moneystr.cpp \
