@@ -92,6 +92,7 @@ static const CRPCCommand commands[] =
     {"explorer",       "gettransactions",                  &GetTransactions,                {"transactions"}},
     {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address"}},
     {"explorer",       "getblocktransactions",             &GetBlockTransactions,           {"blockHash"}},
+    {"explorer",       "getbalancehistory",                &GetBalanceHistory,              {"address", "topHeight", "count"}},
 
     // System
     {"system",         "getpeerinfo",                      &GetPeerInfo,                    {}},

@@ -382,4 +382,46 @@ namespace PocketDb {
         });
     }
 
+    UniValue ExplorerRepository::GetBalanceHistory(const vector<string>& addresses, int topHeight, int count)
+    {
+        UniValue result(UniValue::VARR);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select b.Height, sum(b.Value)Amount
+                from Balances b indexed by Balances_Height
+                where b.AddressHash in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
+                  and b.Height <= ?
+                group by b.Height
+                order by b.Height desc
+                limit ?
+            )sql");
+
+            int i = 1;
+            for (const string& address : addresses)
+                TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, topHeight);
+            TryBindStatementInt(stmt, i++, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[okHeight, height] = TryGetColumnInt(*stmt, 0); okHeight)
+                {
+                    if (auto[okValue, value] = TryGetColumnInt64(*stmt, 1); okValue)
+                    {
+                        UniValue record(UniValue::VARR);
+                        record.push_back(height);
+                        record.push_back(value);
+                        
+                        result.push_back(record);
+                    }
+                }
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
 }
