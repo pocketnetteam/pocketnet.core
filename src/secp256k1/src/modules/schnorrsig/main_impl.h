@@ -11,7 +11,7 @@
 
 #include "include/secp256k1.h"
 #include "include/secp256k1_schnorrsig.h"
-#include "secp256k1/src/hash.h"
+#include "hash.h"
 
 /* Initializes SHA256 with fixed midstate. This midstate was computed by applying
  * SHA256 to SHA256("BIP0340/nonce")||SHA256("BIP0340/nonce"). */
