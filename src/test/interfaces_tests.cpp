@@ -15,6 +15,7 @@ using interfaces::FoundBlock;
 
 BOOST_FIXTURE_TEST_SUITE(interfaces_tests, TestChain100Setup)
 
+#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(findBlock)
 {
     auto chain = interfaces::MakeChain(m_node);
@@ -46,7 +47,9 @@ BOOST_AUTO_TEST_CASE(findBlock)
 
     BOOST_CHECK(!chain->findBlock({}, FoundBlock()));
 }
+#endif
 
+#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(findFirstBlockWithTimeAndHeight)
 {
     auto chain = interfaces::MakeChain(m_node);
@@ -58,6 +61,7 @@ BOOST_AUTO_TEST_CASE(findFirstBlockWithTimeAndHeight)
     BOOST_CHECK_EQUAL(height, 5);
     BOOST_CHECK(!chain->findFirstBlockWithTimeAndHeight(/* min_time= */ active.Tip()->GetBlockTimeMax() + 1, /* min_height= */ 0));
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(findNextBlock)
 {

@@ -447,7 +447,7 @@ BOOST_AUTO_TEST_CASE(addrman_getaddr)
     BOOST_CHECK_EQUAL(addrman.size(), 2006U);
 }
 
-
+#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(caddrinfo_get_tried_bucket_legacy)
 {
     CAddrManTest addrman;
@@ -502,6 +502,7 @@ BOOST_AUTO_TEST_CASE(caddrinfo_get_tried_bucket_legacy)
     // 8 buckets with legacy grouping
     BOOST_CHECK_EQUAL(buckets.size(), 160U);
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(caddrinfo_get_new_bucket_legacy)
 {

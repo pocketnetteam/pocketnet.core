@@ -576,7 +576,7 @@ BOOST_AUTO_TEST_CASE(ccoins_pocketnet_serialization)
 
     ss2 << cc1;
 
-    std:string ss2_string = ss2.str();
+    std::string ss2_string = ss2.str();
     Coin cc2;
     ss2 >> cc2;
 

@@ -5,13 +5,11 @@
 #include <blockencodings.h>
 #include <consensus/merkle.h>
 #include <chainparams.h>
-#include <script/sign.h>
 #include <pow.h>
 #include <random.h>
 #include <key.h>
-#include <keystore.h>
 
-#include <test/test_pocketcoin.h>
+#include <test/util/setup_common.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -25,12 +23,10 @@ BOOST_FIXTURE_TEST_SUITE(blockencodings_tests, RegTestingSetup)
 static CBlock BuildBlockTestCase() {
     CBlock block;
     CMutableTransaction tx;
-    CBasicKeyStore keystore;
     CKey key;
 
     // Add key to the keystore:
     key.MakeNewKey(0);
-    keystore.AddKey(key);
 
     tx.vin.resize(1);
     tx.vin[0].scriptSig.resize(10);
@@ -80,7 +76,7 @@ BOOST_AUTO_TEST_CASE(SimpleRoundTripTest)
     TestMemPoolEntryHelper entry;
     CBlock block(BuildBlockTestCase());
 
-    CValidationState state;
+    BlockValidationState state;
     BOOST_CHECK_MESSAGE(CheckBlock(block, state, Params().GetConsensus()), "CheckBlock of initial block failed!");
     BOOST_TEST_MESSAGE(block.ToString());
 

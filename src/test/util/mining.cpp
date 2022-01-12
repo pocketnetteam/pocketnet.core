@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "consensus/validation.h"
 #include <test/util/mining.h>
 
 #include <chainparams.h>
@@ -27,12 +28,14 @@ CTxIn MineBlock(const NodeContext& node, const CScript& coinbase_scriptPubKey)
 {
     auto block = PrepareBlock(node, coinbase_scriptPubKey);
 
-    while (!CheckProofOfWork(block->GetHash(), block->nBits, Params().GetConsensus())) {
+    // TODO (losty): is height correct?
+    while (!CheckProofOfWork(block->GetHash(), block->nBits, Params().GetConsensus(), 0)) {
         ++block->nNonce;
         assert(block->nNonce);
     }
 
-    bool processed{Assert(node.chainman)->ProcessNewBlock(Params(), block, true, nullptr)};
+    BlockValidationState state;
+    bool processed{Assert(node.chainman)->ProcessNewBlock(state, Params(), block, nullptr, true, nullptr)};
     assert(processed);
 
     return CTxIn{block->vtx[0]->GetHash(), 0};
