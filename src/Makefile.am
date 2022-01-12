@@ -101,9 +101,9 @@ if BUILD_POCKETCOIN_TX
   bin_PROGRAMS += pocketcoin-tx
 endif
 if ENABLE_WALLET
-if BUILD_POCKETCOIN_WALLET
-  bin_PROGRAMS += pocketcoin-wallet
-endif
+# if BUILD_POCKETCOIN_WALLET
+#   bin_PROGRAMS += pocketcoin-wallet
+# endif
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -844,15 +844,15 @@ pocketcoin_tx_LDADD += $(BOOST_LIBS)
 #
 
 # pocketcoin-wallet binary #
-pocketcoin_wallet_SOURCES = pocketcoin-wallet.cpp
-pocketcoin_wallet_CPPFLAGS = $(pocketcoin_bin_cppflags)
-pocketcoin_wallet_CXXFLAGS = $(pocketcoin_bin_cxxflags)
-pocketcoin_wallet_LDFLAGS = $(pocketcoin_bin_ldflags)
-pocketcoin_wallet_LDADD = $(LIBPOCKETCOIN_WALLET_TOOL) $(pocketcoin_bin_ldadd)
+# pocketcoin_wallet_SOURCES = pocketcoin-wallet.cpp #
+# pocketcoin_wallet_CPPFLAGS = $(pocketcoin_bin_cppflags) #
+# pocketcoin_wallet_CXXFLAGS = $(pocketcoin_bin_cxxflags) #
+# pocketcoin_wallet_LDFLAGS = $(pocketcoin_bin_ldflags) #
+# pocketcoin_wallet_LDADD = $(LIBPOCKETCOIN_WALLET_TOOL) $(pocketcoin_bin_ldadd) #
 
-if TARGET_WINDOWS
-pocketcoin_wallet_SOURCES += pocketcoin-wallet-res.rc
-endif
+# if TARGET_WINDOWS
+# pocketcoin_wallet_SOURCES += pocketcoin-wallet-res.rc
+# endif
 #
 
 # pocketcoinconsensus library #
