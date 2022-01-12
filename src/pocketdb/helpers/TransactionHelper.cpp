@@ -40,6 +40,8 @@ namespace PocketHelpers
             return TxType::CONTENT_ARTICLE;
         // else if (op == OR_SERVER_PING)
         //     return TxType::CONTENT_SERVERPING;
+        else if (op == OR_CONTENT_BOOST)
+            return TxType::CONTENT_BOOST;
         else if (op == OR_CONTENT_DELETE)
             return TxType::CONTENT_DELETE;
         else if (op == OR_SCORE)
@@ -282,6 +284,9 @@ namespace PocketHelpers
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>(tx);
                 break;
+            case CONTENT_BOOST:
+                ptx = make_shared<BoostContent>(tx);
+                break;
             case CONTENT_COMMENT:
                 ptx = make_shared<Comment>(tx);
                 break;
@@ -350,6 +355,9 @@ namespace PocketHelpers
                 break;
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>();
+                break;
+            case CONTENT_BOOST:
+                ptx = make_shared<BoostContent>();
                 break;
             case CONTENT_COMMENT:
                 ptx = make_shared<Comment>();
