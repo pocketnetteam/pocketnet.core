@@ -106,8 +106,6 @@ if (DEFINED WITH_PIC)
     endif ()
 endif ()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 # Check endian headers
 include(CmakeCheckEndian.cmake)
 
@@ -553,7 +551,7 @@ add_library(${POCKETCOIN_COMMON}
         amount.h
         tinyformat.h
         )
-
+target_include_directories(${POCKETCOIN_COMMON} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Pocket DB functional library.
 # It is divided to pocketdb-server part and this functional part
@@ -632,7 +630,7 @@ add_library(${POCKETCOIN_SUPPORT}
         support/allocators/secure.h
         support/allocators/zeroafterfree.h
         )
-
+target_include_directories(${POCKETCOIN_SUPPORT} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Pocketcoin util library
 set(POCKETCOIN_UTIL pocketcoin_util)
@@ -810,6 +808,7 @@ add_library(${POCKETCOIN_SYSTEM} scheduler.cpp
         shutdown.cpp
         )
 target_link_libraries(${POCKETCOIN_SYSTEM} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO})
+target_include_directories(${POCKETCOIN_SYSTEM} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Consensus
 # TODO probably completely move this to server
@@ -841,6 +840,7 @@ add_library(${POCKETCOIN_COMMON_RPC}
         )
 target_link_libraries(${POCKETCOIN_COMMON_RPC} PRIVATE ${POCKETCOIN_CRYPTO} ${POCKETCOIN_UTIL} univalue)
 target_link_libraries(${POCKETCOIN_COMMON_RPC} PUBLIC sqlite3)
+target_include_directories(${POCKETCOIN_COMMON_RPC} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 
 ########### Server
@@ -1221,3 +1221,7 @@ target_include_directories(${POCKETCOIN_TX} PRIVATE ${SQlite3_INCLUDE_DIR})
 if(NOT DISABLE_GUI)
     add_subdirectory(qt/)
 endif()
+
+add_executable(testdb testdb.cpp)
+target_link_libraries(testdb PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event sqlite3 univalue secp256k1 leveldb)
+target_include_directories(testdb PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
