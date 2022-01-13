@@ -12,7 +12,7 @@ namespace PocketTx
         SetType(TxType::CONTENT_BOOST);
     }
 
-    BoostContent::BoostContent(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
+    BoostContent::BoostContent(const CTransactionRef& tx) : Transaction(tx)
     {
         SetType(TxType::CONTENT_BOOST);
     }

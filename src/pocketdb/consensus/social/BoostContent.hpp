@@ -28,7 +28,7 @@ namespace PocketConsensus
                 return {false, baseValidateCode};
 
             // Check exists content transaction
-            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash(), { CONTENT_POST, CONTENT_VIDEO });
+            auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(*ptx->GetContentTxHash(), { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE });
             if (!contentOk)
                 return {false, SocialConsensusResult_NotFound};
 
@@ -39,7 +39,6 @@ namespace PocketConsensus
         }
         ConsensusValidateResult Check(const CTransactionRef& tx, const BoostContentRef& ptx) override
         {
-
             if (auto[baseCheck, baseCheckCode] = SocialConsensus::Check(tx, ptx); !baseCheck)
                 return {false, baseCheckCode};
 
@@ -53,12 +52,10 @@ namespace PocketConsensus
     protected:
         ConsensusValidateResult ValidateBlock(const BoostContentRef& ptx, const PocketBlockRef& block) override
         {
-            // TODO(o1q): Do we need limits?
             return Success;
         }
         ConsensusValidateResult ValidateMempool(const BoostContentRef& ptx) override
         {
-            // TODO(o1q): Do we need limits?
             return Success;
         }
     };
@@ -67,7 +64,7 @@ namespace PocketConsensus
     {
     private:
         const vector<ConsensusCheckpoint < BoostContentConsensus>> m_rules = {
-            //{ 0, 0, [](int height) { return make_shared<BoostContentConsensus>(height); }},
+            { 0, 0, [](int height) { return make_shared<BoostContentConsensus>(height); }},
         };
     public:
         shared_ptr<BoostContentConsensus> Instance(int height)
