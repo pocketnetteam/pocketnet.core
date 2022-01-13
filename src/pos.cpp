@@ -322,7 +322,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
     // Calculate hash
     CDataStream ss(SER_GETHASH, 0);
-    ss << nStakeModifier << nTimeBlockFrom << *txPrev.GetTime() << prevout.hash << prevout.n << nTimeTx;
+    ss << nStakeModifier << nTimeBlockFrom << uint32_t(*txPrev.GetTime()) << prevout.hash << prevout.n << nTimeTx;
     hashProofOfStakeSource = ss;
     hashProofOfStake = UintToArith256(Hash(ss));
 
