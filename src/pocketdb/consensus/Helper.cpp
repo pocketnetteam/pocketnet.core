@@ -179,10 +179,8 @@ namespace PocketConsensus
                 return m_commentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<CommentDelete>(ptx));
             case CONTENT_DELETE:
                 return m_contentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<ContentDelete>(ptx));
-                break;
             case CONTENT_BOOST:
                 return m_boostContentFactory.Instance(0)->Check(tx, static_pointer_cast<BoostContent>(ptx));
-                break;
             case ACTION_SCORE_CONTENT:
                 return m_scoreContentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreContent>(ptx));
             case ACTION_SCORE_COMMENT:
