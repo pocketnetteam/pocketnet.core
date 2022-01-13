@@ -32,7 +32,7 @@ class TxnMallTest(PocketcoinTestFramework):
         disconnect_nodes(self.nodes[2], 1)
 
     def run_test(self):
-        # All nodes should start with 1,250 POC:
+        # All nodes should start with 1,250 PKOIN:
         starting_balance = 1250
         for i in range(4):
             assert_equal(self.nodes[i].getbalance(), starting_balance)
@@ -53,7 +53,7 @@ class TxnMallTest(PocketcoinTestFramework):
         # Coins are sent to node1_address
         node1_address = self.nodes[1].getnewaddress()
 
-        # First: use raw transaction API to send 1240 POC to node1_address,
+        # First: use raw transaction API to send 1240 PKOIN to node1_address,
         # but don't broadcast:
         doublespend_fee = Decimal('-.02')
         rawtx_input_0 = {}
@@ -71,7 +71,7 @@ class TxnMallTest(PocketcoinTestFramework):
         doublespend = self.nodes[0].signrawtransactionwithwallet(rawtx)
         assert_equal(doublespend["complete"], True)
 
-        # Create two spends using 1 50 POC coin each
+        # Create two spends using 1 50 PKOIN coin each
         txid1 = self.nodes[0].sendtoaddress(node1_address, 40)
         txid2 = self.nodes[0].sendtoaddress(node1_address, 20)
 
@@ -83,7 +83,7 @@ class TxnMallTest(PocketcoinTestFramework):
         tx1 = self.nodes[0].gettransaction(txid1)
         tx2 = self.nodes[0].gettransaction(txid2)
 
-        # Node0's balance should be starting balance, plus 50POC for another
+        # Node0's balance should be starting balance, plus 50PKOIN for another
         # matured block, minus 40, minus 20, and minus transaction fees:
         expected = starting_balance + fund_foo_tx["fee"] + fund_bar_tx["fee"]
         if self.options.mine_block:
@@ -122,7 +122,7 @@ class TxnMallTest(PocketcoinTestFramework):
         assert_equal(tx1["confirmations"], -2)
         assert_equal(tx2["confirmations"], -2)
 
-        # Node0's total balance should be starting balance, plus 100POC for
+        # Node0's total balance should be starting balance, plus 100PKOIN for
         # two more matured blocks, minus 1240 for the double-spend, plus fees (which are
         # negative):
         expected = starting_balance + 100 - 1240 + fund_foo_tx["fee"] + fund_bar_tx["fee"] + doublespend_fee

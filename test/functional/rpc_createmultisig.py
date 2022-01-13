@@ -25,7 +25,7 @@ class RpcCreateMultiSigTest(PocketcoinTestFramework):
     def run_test(self):
         node0,node1,node2 = self.nodes
 
-        # 50 POC each, rest will be 25 POC each
+        # 50 PKOIN each, rest will be 25 PKOIN each
         node0.generate(149)
         self.sync_all()
 

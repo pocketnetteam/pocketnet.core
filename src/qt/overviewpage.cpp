@@ -28,7 +28,7 @@ class TxViewDelegate : public QAbstractItemDelegate
     Q_OBJECT
 public:
     explicit TxViewDelegate(const PlatformStyle *_platformStyle, QObject *parent=nullptr):
-        QAbstractItemDelegate(parent), unit(PocketcoinUnits::POC),
+        QAbstractItemDelegate(parent), unit(PocketcoinUnits::PKOIN),
         platformStyle(_platformStyle)
     {
 
@@ -235,7 +235,7 @@ void OverviewPage::setWalletModel(WalletModel *model)
         connect(model, &WalletModel::notifyWatchonlyChanged, this, &OverviewPage::updateWatchOnlyLabels);
     }
 
-    // update the display unit, to not use the default ("POC")
+    // update the display unit, to not use the default ("PKOIN")
     updateDisplayUnit();
 }
 

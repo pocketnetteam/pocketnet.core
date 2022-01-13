@@ -530,7 +530,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     }
 
     // actually update labels
-    int nDisplayUnit = PocketcoinUnits::POC;
+    int nDisplayUnit = PocketcoinUnits::PKOIN;
     if (model && model->getOptionsModel())
         nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
 
