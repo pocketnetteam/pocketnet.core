@@ -88,6 +88,12 @@ namespace PocketDb
         int CountChainPostTime(const string& address, int64_t time);
         int CountChainPostHeight(const string& address, int height);
 
+        int CountMempoolVideo(const string& address);
+        int CountChainVideo(const string& address, int height);
+
+        int CountMempoolArticle(const string& address);
+        int CountChainArticle(const string& address, int height);
+
         int CountMempoolScoreComment(const string& address);
         int CountChainScoreCommentTime(const string& address, int64_t time);
         int CountChainScoreCommentHeight(const string& address, int height);
@@ -101,9 +107,6 @@ namespace PocketDb
         int CountMempoolAccountSetting(const string& address);
         int CountChainAccountSetting(const string& address, int height);
 
-        int CountMempoolVideo(const string& address);
-        int CountChainVideoHeight(const string& address, int height);
-
         int CountChainAccount(TxType txType, const string& address, int height);
 
         int CountMempoolCommentEdit(const string& address, const string& rootTxHash);
@@ -114,6 +117,9 @@ namespace PocketDb
 
         int CountMempoolVideoEdit(const string& address, const string& rootTxHash);
         int CountChainVideoEdit(const string& address, const string& rootTxHash);
+
+        int CountMempoolArticleEdit(const string& address, const string& rootTxHash);
+        int CountChainArticleEdit(const string& address, const string& rootTxHash);
 
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
     };

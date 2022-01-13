@@ -178,7 +178,7 @@ namespace PocketConsensus
         }
         virtual int GetChainCount(const ArticleRef& ptx)
         {
-            return ConsensusRepoInst.CountChainPostHeight(
+            return ConsensusRepoInst.CountChainArticle(
                 *ptx->GetAddress(),
                 Height - (int)GetConsensusLimit(ConsensusLimit_depth)
             );

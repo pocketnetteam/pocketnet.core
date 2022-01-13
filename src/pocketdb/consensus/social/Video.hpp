@@ -163,7 +163,7 @@ namespace PocketConsensus
         virtual int GetChainCount(const VideoRef& ptx)
         {
 
-            return ConsensusRepoInst.CountChainVideoHeight(
+            return ConsensusRepoInst.CountChainVideo(
                 *ptx->GetAddress(),
                 Height - (int)GetConsensusLimit(ConsensusLimit_depth)
             );
