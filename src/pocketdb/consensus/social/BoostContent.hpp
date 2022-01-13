@@ -58,6 +58,10 @@ namespace PocketConsensus
         {
             return Success;
         }
+        vector<string> GetAddressesForCheckRegistration(const BoostContentRef& ptx) override
+        {
+            return {*ptx->GetAddress()};
+        }
     };
 
     class BoostContentConsensusFactory

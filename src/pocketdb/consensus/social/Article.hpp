@@ -214,7 +214,7 @@ namespace PocketConsensus
         virtual tuple<bool, SocialConsensusResult> ValidateEditOneLimit(const ArticleRef& ptx)
         {
             int count = ConsensusRepoInst.CountChainArticleEdit(*ptx->GetAddress(), *ptx->GetRootTxHash());
-            if (count >= GetConsensusLimit(ConsensusLimit_edit_article_count))
+            if (count >= GetConsensusLimit(ConsensusLimit_article_edit_count))
                 return {false, SocialConsensusResult_ContentEditLimit};
 
             return Success;

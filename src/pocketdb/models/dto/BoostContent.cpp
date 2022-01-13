@@ -38,6 +38,12 @@ namespace PocketTx
     {
         if (auto[ok, val] = TryGetStr(src, "content"); ok) SetContentTxHash(val);
     }
+    
+    void BoostContent::DeserializePayload(const UniValue& src)
+    {
+        Transaction::DeserializePayload(src);
+    }
+    
 
     shared_ptr <string> BoostContent::GetAddress() const { return m_string1; }
     void BoostContent::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
@@ -45,10 +51,6 @@ namespace PocketTx
     shared_ptr <string> BoostContent::GetContentTxHash() const { return m_string2; }
     void BoostContent::SetContentTxHash(const string& value) { m_string2 = make_shared<string>(value); }
 
-    void BoostContent::DeserializePayload(const UniValue& src)
-    {
-        Transaction::DeserializePayload(src);
-    }
 
     string BoostContent::BuildHash()
     {
