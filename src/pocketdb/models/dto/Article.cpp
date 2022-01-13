@@ -3,18 +3,18 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include <primitives/transaction.h>
-#include "pocketdb/models/dto/Video.h"
+#include "pocketdb/models/dto/Article.h"
 
 namespace PocketTx
 {
-    Video::Video() : Post()
+    Article::Article() : Post()
     {
-        SetType(TxType::CONTENT_VIDEO);
+        SetType(TxType::CONTENT_ARTICLE);
     }
 
-    Video::Video(const CTransactionRef& tx) : Post(tx)
+    Article::Article(const CTransactionRef& tx) : Post(tx)
     {
-        SetType(TxType::CONTENT_VIDEO);
+        SetType(TxType::CONTENT_ARTICLE);
     }
-    
+
 } // namespace PocketTx

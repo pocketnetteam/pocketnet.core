@@ -7,22 +7,15 @@
 
 namespace PocketTx
 {
-    ContentDelete::ContentDelete() : Transaction()
+    ContentDelete::ContentDelete() : Content()
     {
         SetType(TxType::CONTENT_DELETE);
     }
 
-    ContentDelete::ContentDelete(const CTransactionRef& tx) : Transaction(tx)
+    ContentDelete::ContentDelete(const CTransactionRef& tx) : Content(tx)
     {
         SetType(TxType::CONTENT_DELETE);
     }
-
-    shared_ptr <string> ContentDelete::GetAddress() const { return m_string1; }
-    void ContentDelete::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
-
-    shared_ptr<string> ContentDelete::GetRootTxHash() const { return m_string2; }
-    void ContentDelete::SetRootTxHash(const string& value) { m_string2 = make_shared<string>(value); }
-
 
     shared_ptr <UniValue> ContentDelete::Serialize() const
     {
@@ -30,17 +23,11 @@ namespace PocketTx
 
         result->pushKV("address", *GetAddress());
         
-        // For olf protocol edited content
-        // txid     - original content hash
-        // txidEdit - actual transaction hash
+        // txid - this is original content hash
         result->pushKV("txid", *GetRootTxHash());
-        result->pushKV("txidEdit", *GetHash());
         
         result->pushKV("settings", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "");
         
-        // For compatible with reindexer DB
-        result->pushKV("type", 6);
-
         return result;
     }
 

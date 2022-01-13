@@ -161,56 +161,42 @@ namespace PocketConsensus
         {
             case ACCOUNT_SETTING:
                 return m_accountSettingFactory.Instance(0)->Check(tx, static_pointer_cast<AccountSetting>(ptx));
-                break;
             case ACCOUNT_USER:
                 return m_userFactory.Instance(0)->Check(tx, static_pointer_cast<User>(ptx));
-                break;
             case CONTENT_POST:
                 return m_postFactory.Instance(0)->Check(tx, static_pointer_cast<Post>(ptx));
-                break;
             case CONTENT_VIDEO:
                 return m_videoFactory.Instance(0)->Check(tx, static_pointer_cast<Video>(ptx));
-                break;
+            case CONTENT_ARTICLE:
+                return m_videoFactory.Instance(0)->Check(tx, static_pointer_cast<Article>(ptx));
             case CONTENT_COMMENT:
                 return m_commentFactory.Instance(0)->Check(tx, static_pointer_cast<Comment>(ptx));
-                break;
             case CONTENT_COMMENT_EDIT:
                 return m_commentEditFactory.Instance(0)->Check(tx, static_pointer_cast<CommentEdit>(ptx));
-                break;
             case CONTENT_COMMENT_DELETE:
                 return m_commentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<CommentDelete>(ptx));
-                break;
             case CONTENT_DELETE:
                 return m_contentDeleteFactory.Instance(0)->Check(tx, static_pointer_cast<ContentDelete>(ptx));
-                break;
             case ACTION_SCORE_CONTENT:
                 return m_scoreContentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreContent>(ptx));
-                break;
             case ACTION_SCORE_COMMENT:
                 return m_scoreCommentFactory.Instance(0)->Check(tx, static_pointer_cast<ScoreComment>(ptx));
-                break;
             case ACTION_SUBSCRIBE:
                 return m_subscribeFactory.Instance(0)->Check(tx, static_pointer_cast<Subscribe>(ptx));
-                break;
             case ACTION_SUBSCRIBE_PRIVATE:
                 return m_subscribePrivateFactory.Instance(0)->Check(tx, static_pointer_cast<SubscribePrivate>(ptx));
-                break;
             case ACTION_SUBSCRIBE_CANCEL:
                 return m_subscribeCancelFactory.Instance(0)->Check(tx, static_pointer_cast<SubscribeCancel>(ptx));
-                break;
             case ACTION_BLOCKING:
                 return m_blockingFactory.Instance(0)->Check(tx, static_pointer_cast<Blocking>(ptx));
-                break;
             case ACTION_BLOCKING_CANCEL:
                 return m_blockingCancelFactory.Instance(0)->Check(tx, static_pointer_cast<BlockingCancel>(ptx));
-                break;
             case ACTION_COMPLAIN:
                 return m_complainFactory.Instance(0)->Check(tx, static_pointer_cast<Complain>(ptx));
             // TODO (brangr): future realize types
-            case ACCOUNT_VIDEO_SERVER:
-            case ACCOUNT_MESSAGE_SERVER:
-            case CONTENT_TRANSLATE:
-            case CONTENT_SERVERPING:
+            // case ACCOUNT_VIDEO_SERVER:
+            // case ACCOUNT_MESSAGE_SERVER:
+            // case CONTENT_SERVERPING:
             default:
                 return {true, SocialConsensusResult_Success};
         }
@@ -233,6 +219,8 @@ namespace PocketConsensus
                 return m_postFactory.Instance(height)->Validate(tx, static_pointer_cast<Post>(ptx), pBlock);
             case CONTENT_VIDEO:
                 return m_videoFactory.Instance(height)->Validate(tx, static_pointer_cast<Video>(ptx), pBlock);
+            case CONTENT_ARTICLE:
+                return m_articleFactory.Instance(height)->Validate(tx, static_pointer_cast<Article>(ptx), pBlock);
             case CONTENT_COMMENT:
                 return m_commentFactory.Instance(height)->Validate(tx, static_pointer_cast<Comment>(ptx), pBlock);
             case CONTENT_COMMENT_EDIT:
@@ -258,10 +246,9 @@ namespace PocketConsensus
             case ACTION_COMPLAIN:
                 return m_complainFactory.Instance(height)->Validate(tx, static_pointer_cast<Complain>(ptx), pBlock);
             // TODO (brangr): future realize types
-            case ACCOUNT_VIDEO_SERVER:
-            case ACCOUNT_MESSAGE_SERVER:
-            case CONTENT_TRANSLATE:
-            case CONTENT_SERVERPING:
+            // case ACCOUNT_VIDEO_SERVER:
+            // case ACCOUNT_MESSAGE_SERVER:
+            // case CONTENT_SERVERPING:
             default:
                 return {true, SocialConsensusResult_Success};
         }

@@ -140,8 +140,8 @@ namespace PocketConsensus
         {
             case CONTENT_POST:
             case CONTENT_VIDEO:
-            case CONTENT_TRANSLATE:
-            case CONTENT_SERVERPING:
+            case CONTENT_ARTICLE:
+            // case CONTENT_SERVERPING:
                 return (scoreTime - contentTime) < GetConsensusLimit(ConsensusLimit_scores_depth_modify_reputation);
             default:
                 return true;
