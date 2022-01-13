@@ -538,7 +538,7 @@ static void EnableOrDisableLogCategories(UniValue cats, bool enable) {
 
 static RPCHelpMan logging()
 {
-    return RPCHelpMan{"logging ( +category -category )",
+    return RPCHelpMan{"logging",
             "Gets and sets the logging configuration.\n"
             "When called without an argument, returns the list of categories with status that are currently being debug logged or not.\n"
             "When called with arguments, adds or removes categories from debug logging and return the lists above.\n"
