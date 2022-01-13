@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -32,11 +32,11 @@ namespace PocketDb
         UniValue GetTransactionsStatisticByHours(int topHeight, int depth);
         UniValue GetTransactionsStatisticByDays(int topHeight, int depth);
         UniValue GetContentStatistic();
-
         map<string, tuple<int, int64_t>> GetAddressesInfo(const vector<string>& hashes);
         UniValue GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize);
         UniValue GetBlockTransactions(const string& blockHash, int pageStart, int pageSize);
         UniValue GetTransactions(const vector<string>& transactions, int pageStart, int pageSize);
+        UniValue GetBalanceHistory(const vector<string>& addresses, int topHeight, int count);
 
     private:
 

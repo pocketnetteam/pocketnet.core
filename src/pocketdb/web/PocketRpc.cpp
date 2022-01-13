@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -105,6 +105,7 @@ static const CRPCCommand commands[] =
     {"explorer",       "gettransactions",                  &GetTransactions,                {"transactions"}},
     {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address"}},
     {"explorer",       "getblocktransactions",             &GetBlockTransactions,           {"blockHash"}},
+    {"explorer",       "getbalancehistory",                &GetBalanceHistory,              {"address", "topHeight", "count"}},
 
     // System
     {"system",         "getpeerinfo",                      &GetPeerInfo,                    {}},

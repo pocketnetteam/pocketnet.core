@@ -492,7 +492,7 @@ class RawTransactionsTest(PocketcoinTestFramework):
         if not self.options.descriptors:
             wmulti.importaddress(mSigObj)
 
-        # Send 1.2 POC to msig addr.
+        # Send 1.2 PKOIN to msig addr.
         self.nodes[0].sendtoaddress(mSigObj, 1.2)
         self.nodes[0].generate(1)
         self.sync_all()

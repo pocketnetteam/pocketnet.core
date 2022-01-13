@@ -1,7 +1,6 @@
-// Copyright (c) 2011-2020 The Pocketcoin Core developers
-// Copyright (c) 2021 The Pocketcoin Core developers
-// Distributed under the MIT software license, see the accompanying
-// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+// Copyright (c) 2018-2022 Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
 
 /**
  * See https://www.boost.org/doc/libs/1_71_0/libs/test/doc/html/boost_test/utf_reference/link_references/link_boost_test_module_macro.html

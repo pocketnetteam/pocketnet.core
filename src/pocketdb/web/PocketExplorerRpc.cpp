@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -288,6 +288,70 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return addressInfo;
+    },
+        };
+    }
+
+    RPCHelpMan GetBalanceHistory()
+    {
+        return RPCHelpMan{"getbalancehistory",
+                "\nGet balance changes history for addresses\n",
+                {
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "Addresses for calculate total balance"},
+                    {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::NO, "Top block height (Inclusive)"},
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::NO, "Count of records"},
+                },
+                {
+                    // TODO (losty-fur): provide return description
+                    // "[ [height, amount], [1000, 500], [999,495], ... ]"
+                },
+                RPCExamples{
+                    HelpExampleCli("getbalancehistory", "[\"address\", ...] topHeight count") +
+                    HelpExampleRpc("getbalancehistory", "[\"address\", ...] topHeight count")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        vector<string> addresses;
+        if (!request.params[0].isArray() && !request.params[0].isStr())
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address argument");
+
+        if (request.params[0].isStr())
+        {
+            auto dest = DecodeDestination(request.params[0].get_str());
+            if (!IsValidDestination(dest))
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                    std::string("Invalid address: ") + request.params[0].get_str());
+
+            addresses.push_back(request.params[0].get_str());
+        }
+
+        if (request.params[0].isArray())
+        {
+            UniValue addrs = request.params[0].get_array();
+            for (unsigned int idx = 0; idx < addrs.size(); idx++)
+            {
+                auto addr = addrs[idx].get_str();
+                auto dest = DecodeDestination(addr);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                        std::string("Invalid address: ") + addr);
+
+                addresses.push_back(addr);
+
+                if (addresses.size() > 100)
+                    break;
+            }
+        }
+
+        int topHeight = ChainActive().Height();
+        if (request.params[1].isNum())
+            topHeight = request.params[1].get_int();
+
+        int count = 10;
+        if (request.params[2].isNum())
+            count = min(25, request.params[2].get_int());
+
+        return request.DbConnection()->ExplorerRepoInst->GetBalanceHistory(addresses, topHeight, count);
     },
         };
     }

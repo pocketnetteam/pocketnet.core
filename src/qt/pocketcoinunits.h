@@ -40,9 +40,9 @@ public:
      */
     enum Unit
     {
-        POC,
-        mPOC,
-        uPOC,
+        PKOIN,
+        mPKOIN,
+        uPKOIN,
         SAT
     };
 

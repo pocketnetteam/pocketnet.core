@@ -2945,15 +2945,6 @@ bool CChainState::ConnectTip(BlockValidationState& state, const CChainParams& ch
 
     if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock); !ok)
     {
-        // if (result == SocialConsensusResult_PocketDataNotFound)
-        // {
-        //     auto[deserializeOk, desPocketBlock] = PocketServices::Serializer::DeserializeBlock(blockConnecting);
-        //     if (deserializeOk)
-        //         PocketDb::TransRepoInst.InsertTransactions(desPocketBlock);
-        //
-        //     return false;
-        // }
-
         pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "failed-find-social-payload"); // TODO (losty-fur): is error correct?
     }

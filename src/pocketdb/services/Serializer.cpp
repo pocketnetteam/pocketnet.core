@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -135,23 +135,26 @@ namespace PocketServices
         {
             const CTxOut& txout = tx->vout[i];
 
+            auto out = make_shared<TransactionOutput>();
+            out->SetTxHash(tx->GetHash().GetHex());
+            out->SetNumber((int) i);
+            out->SetValue(txout.nValue);
+            out->SetScriptPubKey(HexStr(txout.scriptPubKey));
+
             TxoutType type;
             std::vector <CTxDestination> vDest;
             int nRequired;
             if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))
             {
                 for (const auto& dest : vDest)
-                {
-                    auto out = make_shared<TransactionOutput>();
-                    out->SetTxHash(tx->GetHash().GetHex());
-                    out->SetNumber((int) i);
                     out->SetAddressHash(EncodeDestination(dest));
-                    out->SetValue(txout.nValue);
-                    out->SetScriptPubKey(HexStr(txout.scriptPubKey));
-
-                    ptx->Outputs().push_back(out);
-                }
             }
+            else
+            {
+                out->SetAddressHash("");
+            }
+
+            ptx->Outputs().push_back(out);
         }
 
         return !ptx->Outputs().empty();

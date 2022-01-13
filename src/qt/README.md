@@ -60,7 +60,7 @@ Represents the view to a single wallet.
 
 * UI elements like PocketcoinAmountField, which inherit from QWidget.
 * `pocketcoinstrings.cpp`: automatically generated
-* `pocketcoinunits.(h/cpp)`: POC / mPOC / etc handling
+* `pocketcoinunits.(h/cpp)`: PKOIN / mPKOIN / etc handling
 * `callback.h`
 * `guiconstants.h`: UI colors, app name, etc
 * `guiutil.h`: several helper functions

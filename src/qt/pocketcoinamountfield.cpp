@@ -122,7 +122,7 @@ public:
 
             const QFontMetrics fm(fontMetrics());
             int h = lineEdit()->minimumSizeHint().height();
-            int w = GUIUtil::TextWidth(fm, PocketcoinUnits::format(PocketcoinUnits::POC, PocketcoinUnits::maxMoney(), false, PocketcoinUnits::SeparatorStyle::ALWAYS));
+            int w = GUIUtil::TextWidth(fm, PocketcoinUnits::format(PocketcoinUnits::PKOIN, PocketcoinUnits::maxMoney(), false, PocketcoinUnits::SeparatorStyle::ALWAYS));
             w += 2; // cursor blinking space
 
             QStyleOptionSpinBox opt;
@@ -148,7 +148,7 @@ public:
     }
 
 private:
-    int currentUnit{PocketcoinUnits::POC};
+    int currentUnit{PocketcoinUnits::PKOIN};
     CAmount singleStep{CAmount(100000)}; // satoshis
     mutable QSize cachedMinimumSizeHint;
     bool m_allow_empty{true};

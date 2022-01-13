@@ -36,7 +36,7 @@ class TxnMallTest(PocketcoinTestFramework):
         else:
             output_type = "legacy"
 
-        # All nodes should start with 1,250 POC:
+        # All nodes should start with 1,250 PKOIN:
         starting_balance = 1250
         for i in range(4):
             assert_equal(self.nodes[i].getbalance(), starting_balance)
@@ -89,7 +89,7 @@ class TxnMallTest(PocketcoinTestFramework):
         tx1 = self.nodes[0].gettransaction(txid1)
         tx2 = self.nodes[0].gettransaction(txid2)
 
-        # Node0's balance should be starting balance, plus 50POC for another
+        # Node0's balance should be starting balance, plus 50PKOIN for another
         # matured block, minus tx1 and tx2 amounts, and minus transaction fees:
         expected = starting_balance + node0_tx1["fee"] + node0_tx2["fee"]
         if self.options.mine_block:
@@ -132,7 +132,7 @@ class TxnMallTest(PocketcoinTestFramework):
         assert_equal(tx1_clone["confirmations"], 2)
         assert_equal(tx2["confirmations"], 1)
 
-        # Check node0's total balance; should be same as before the clone, + 100 POC for 2 matured,
+        # Check node0's total balance; should be same as before the clone, + 100 PKOIN for 2 matured,
         # less possible orphaned matured subsidy
         expected += 100
         if (self.options.mine_block):
