@@ -5,7 +5,7 @@
 #ifndef POCKETTX_CONTENT_DELETE_H
 #define POCKETTX_CONTENT_DELETE_H
 
-#include "pocketdb/models/base/Content.h"
+#include "pocketdb/models/dto/Content.h"
 
 namespace PocketTx
 {

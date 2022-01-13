@@ -92,7 +92,7 @@ namespace PocketServices
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<Tag> contentTags = webRepoInst->GetContentTags(blockHash);
+            vector<WebTag> contentTags = webRepoInst->GetContentTags(blockHash);
             if (contentTags.empty())
                 return;
 
@@ -127,7 +127,7 @@ namespace PocketServices
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<Content> contentList = webRepoInst->GetContent(blockHash);
+            vector<WebContent> contentList = webRepoInst->GetContent(blockHash);
             if (contentList.empty())
                 return;
 

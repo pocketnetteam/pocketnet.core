@@ -23,6 +23,7 @@
 #include "pocketdb/models/dto/Default.h"
 #include "pocketdb/models/dto/Post.h"
 #include "pocketdb/models/dto/Video.h"
+#include "pocketdb/models/dto/Article.h"
 #include "pocketdb/models/dto/Comment.h"
 #include "pocketdb/models/dto/CommentEdit.h"
 #include "pocketdb/models/dto/CommentDelete.h"
