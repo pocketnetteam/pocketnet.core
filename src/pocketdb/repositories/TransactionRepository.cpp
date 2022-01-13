@@ -107,6 +107,11 @@ namespace PocketDb
         bool m_includeInputs = false;
 
         /**
+         * This will bi filled by ProcessTransaction method to allow scip all already parsed single-row columns
+         */
+        int m_skipSingleRowColumnsOffset = 0;
+
+        /**
          * This method parses transaction data, constructs if needed and return construct entry to fill
          */
         tuple<bool, std::shared_ptr<ConstructEntry>> ProcessTransaction(sqlite3_stmt* stmt, const std::string& txHash, int& currentColumn)
@@ -147,10 +152,11 @@ namespace PocketDb
                 // Parsing single joins here results in some optimizing because we will not try to parse them later
                 // only after one check if transaction has already parsed
                 auto singleJoinsRes = ParseSingleJoins(stmt, *currentTx, currentColumn);
+                m_skipSingleRowColumnsOffset = currentColumn;
                 return {singleJoinsRes, currentTx};
             } else {
                 // TODO (losty): Ugly hardcoded.
-                currentColumn = 19;
+                currentColumn = m_skipSingleRowColumnsOffset;
                 return {true, tx->second};
             }
         }
