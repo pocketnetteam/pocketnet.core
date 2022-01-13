@@ -630,6 +630,8 @@ void SetupServerArgs()
 
     // SQLite
     gArgs.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), false, OptionsCategory::SQLITE);
+    gArgs.AddArg("-sqlsharedcache", strprintf("Experimental: enable shared cache for sqlite connections (default: disabled)"), false, OptionsCategory::SQLITE);
+    gArgs.AddArg("-sqlcachesize", strprintf("Experimental: Cache size for SQLite connection in megabytes (default: %d mb)", 5), false, OptionsCategory::SQLITE);
 
 
 #if HAVE_DECL_DAEMON
