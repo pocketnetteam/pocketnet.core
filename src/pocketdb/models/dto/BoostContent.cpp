@@ -23,7 +23,6 @@ namespace PocketTx
 
         result->pushKV("address", GetAddress() ? *GetAddress() : "");
         result->pushKV("contenttxhash", GetContentTxHash() ? *GetContentTxHash() : "");
-        // result->pushKV("value", GetValue() ? *GetValue() : 0);
 
         return result;
     }
@@ -33,13 +32,11 @@ namespace PocketTx
         Transaction::Deserialize(src);
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "contenttxhash"); ok) SetContentTxHash(val);
-        // if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
     }
 
     void BoostContent::DeserializeRpc(const UniValue& src)
     {
         if (auto[ok, val] = TryGetStr(src, "content"); ok) SetContentTxHash(val);
-        // if (auto[ok, val] = TryGetInt64(src, "value"); ok) SetValue(val);
     }
 
     shared_ptr <string> BoostContent::GetAddress() const { return m_string1; }
@@ -47,9 +44,6 @@ namespace PocketTx
 
     shared_ptr <string> BoostContent::GetContentTxHash() const { return m_string2; }
     void BoostContent::SetContentTxHash(const string& value) { m_string2 = make_shared<string>(value); }
-
-    // shared_ptr <int64_t> ScoreContent::GetValue() const { return m_int1; }
-    // void ScoreContent::SetValue(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
     void BoostContent::DeserializePayload(const UniValue& src)
     {
@@ -61,7 +55,6 @@ namespace PocketTx
         std::string data;
 
         data += GetContentTxHash() ? *GetContentTxHash() : "";
-        // data += GetValue() ? std::to_string(*GetValue()) : "";
 
         return Transaction::GenerateHash(data);
     }

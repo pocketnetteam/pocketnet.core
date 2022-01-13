@@ -28,9 +28,6 @@ namespace PocketTx
         shared_ptr<string> GetContentTxHash() const;
         void SetContentTxHash(const string& value);
 
-        // shared_ptr<int64_t> GetValue() const;
-        // void SetValue(int64_t value);
-
         string BuildHash() override;
     };
 }
