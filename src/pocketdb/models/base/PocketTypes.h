@@ -72,7 +72,7 @@ namespace PocketTx
 
         CONTENT_DELETE = 207,
 
-        CONTENT_BOOST = 208,
+        BOOST_CONTENT = 208,
 
         ACTION_SCORE_CONTENT = 300,
         ACTION_SCORE_COMMENT = 301,
@@ -160,6 +160,11 @@ namespace PocketTx
         {
             return Type == TxType::ACTION_SCORE_COMMENT ||
                    Type == TxType::ACTION_SCORE_CONTENT;
+        }
+
+        bool IsBoostContent() const
+        {
+            return Type == TxType::BOOST_CONTENT;
         }
     };
 }

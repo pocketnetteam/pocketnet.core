@@ -9,12 +9,12 @@ namespace PocketTx
 {
     BoostContent::BoostContent() : Transaction()
     {
-        SetType(TxType::CONTENT_BOOST);
+        SetType(TxType::BOOST_CONTENT);
     }
 
     BoostContent::BoostContent(const CTransactionRef& tx) : Transaction(tx)
     {
-        SetType(TxType::CONTENT_BOOST);
+        SetType(TxType::BOOST_CONTENT);
     }
 
     shared_ptr <UniValue> BoostContent::Serialize() const
