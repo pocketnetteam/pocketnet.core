@@ -169,7 +169,7 @@ namespace PocketConsensus
             case CONTENT_VIDEO:
                 return m_videoFactory.Instance(0)->Check(tx, static_pointer_cast<Video>(ptx));
             case CONTENT_ARTICLE:
-                return m_videoFactory.Instance(0)->Check(tx, static_pointer_cast<Article>(ptx));
+                return m_articleFactory.Instance(0)->Check(tx, static_pointer_cast<Article>(ptx));
             case CONTENT_COMMENT:
                 return m_commentFactory.Instance(0)->Check(tx, static_pointer_cast<Comment>(ptx));
             case CONTENT_COMMENT_EDIT:
