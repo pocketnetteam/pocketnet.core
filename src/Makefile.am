@@ -162,7 +162,6 @@ POCKETDB_H = \
     pocketdb/consensus/social/User.hpp \
     pocketdb/consensus/social/AccountSetting.hpp \
     pocketdb/consensus/social/ContentDelete.hpp \
-    pocketdb/consensus/social/BoostContent.hpp \
     \
     pocketdb/models/base/PocketTypes.h \
     pocketdb/models/base/Base.h \
@@ -176,6 +175,7 @@ POCKETDB_H = \
     pocketdb/models/dto/Default.h \
     pocketdb/models/dto/Coinbase.h \
     pocketdb/models/dto/Coinstake.h \
+    pocketdb/models/dto/Content.h \
     pocketdb/models/dto/Post.h \
     pocketdb/models/dto/ContentDelete.h \
     pocketdb/models/dto/BoostContent.h \
@@ -193,7 +193,6 @@ POCKETDB_H = \
     pocketdb/models/dto/SubscribeCancel.h \
     pocketdb/models/dto/Complain.h \
     pocketdb/models/dto/Video.h \
-    pocketdb/models/dto/BoostContent.h \
     pocketdb/models/dto/Article.h \
     \
     pocketdb/models/web/WebTag.h \
@@ -257,6 +256,7 @@ POCKETDB_CPP = \
     pocketdb/models/dto/Default.cpp \
     pocketdb/models/dto/Coinbase.cpp \
     pocketdb/models/dto/Coinstake.cpp \
+    pocketdb/models/dto/Content.cpp \
     pocketdb/models/dto/Post.cpp \
     pocketdb/models/dto/ContentDelete.cpp \
     pocketdb/models/dto/BoostContent.cpp \
