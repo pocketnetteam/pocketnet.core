@@ -152,6 +152,8 @@ POCKETDB_H = \
     pocketdb/consensus/social/Complain.hpp \
     pocketdb/consensus/social/Post.hpp \
     pocketdb/consensus/social/Video.hpp \
+    pocketdb/consensus/social/Article.hpp \
+    pocketdb/consensus/social/BoostContent.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
     pocketdb/consensus/social/ScoreContent.hpp \
     pocketdb/consensus/social/Subscribe.hpp \
@@ -191,9 +193,11 @@ POCKETDB_H = \
     pocketdb/models/dto/SubscribeCancel.h \
     pocketdb/models/dto/Complain.h \
     pocketdb/models/dto/Video.h \
+    pocketdb/models/dto/BoostContent.h \
+    pocketdb/models/dto/Article.h \
     \
-    pocketdb/models/web/Tag.h \
-    pocketdb/models/web/Content.h \
+    pocketdb/models/web/WebTag.h \
+    pocketdb/models/web/WebContent.h \
     pocketdb/models/web/SearchRequest.h
 
 # PocketDb CPP
@@ -269,7 +273,9 @@ POCKETDB_CPP = \
     pocketdb/models/dto/SubscribePrivate.cpp \
     pocketdb/models/dto/SubscribeCancel.cpp \
     pocketdb/models/dto/Complain.cpp \
-    pocketdb/models/dto/Video.cpp
+    pocketdb/models/dto/Video.cpp \
+    pocketdb/models/dto/BoostContent.cpp \
+    pocketdb/models/dto/Article.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \
