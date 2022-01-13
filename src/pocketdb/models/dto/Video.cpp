@@ -7,19 +7,19 @@
 
 namespace PocketTx
 {
-    Video::Video() : Post()
+    Video::Video() : Content()
     {
         SetType(TxType::CONTENT_VIDEO);
     }
 
-    Video::Video(const std::shared_ptr<const CTransaction>& tx) : Post(tx)
+    Video::Video(const CTransactionRef& tx) : Content(tx)
     {
         SetType(TxType::CONTENT_VIDEO);
     }
 
-    shared_ptr <UniValue> Video::Serialize() const
+    shared_ptr<UniValue> Video::Serialize() const
     {
-        auto result = Post::Serialize();
+        auto result = Content::Serialize();
 
         result->pushKV("type", 1);
 
