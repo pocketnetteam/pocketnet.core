@@ -179,16 +179,16 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     // Kernel (input 0) must match the stake hash target per coin age (nBits)
     const CTxIn &txin = tx->vin[0];
 
-    uint256 hashBlock = uint256();
+    std::string hashBlockStr;
 
-    // TODO (losty-fur): validate
-    LogPrintf("CheckProofOfStake(): DEBUG: getting transaction from sqlite db");
-    auto txPrev = PocketDb::TransRepoInst.Get(txin.prevout.hash.ToString(), false, false, true);
+    auto txPrev = PocketDb::TransRepoInst.Get(txin.prevout.hash.ToString(), hashBlockStr, false, false, true);
     if (!txPrev)
     {
         return error("CheckProofOfStake() : INFO: read txPrev failed %s",
             txin.prevout.hash.GetHex()); // previous transaction not in main chain, may occur during initial download
     }
+
+    auto hashBlock = uint256S(hashBlockStr);
 
     if (pvChecks)
     {
@@ -246,16 +246,17 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
 {
     arith_uint256 hashProofOfStake, targetProofOfStake;
 
-    uint256 hashBlock = uint256();
-
     // TODO (losty-fur): validate
     LogPrintf("CheckProofOfStake(): DEBUG: getting transaction from sqlite db");
-    auto txPrev = PocketDb::TransRepoInst.Get(prevout.hash.ToString());
+    std::string hashBlockStr;
+    auto txPrev = PocketDb::TransRepoInst.Get(prevout.hash.ToString(), hashBlockStr);
     if (!txPrev)
     {
         LogPrintf("CheckKernel : Could not find previous transaction %s\n", prevout.hash.ToString());
         return false;
     }
+
+    auto hashBlock = uint256S(hashBlockStr);
 
     if (g_chainman.BlockIndex().count(hashBlock) == 0)
     {
@@ -578,15 +579,15 @@ bool TransactionGetCoinAge(CTransactionRef transaction, uint64_t &nCoinAge, Chai
     {
         // First try finding the previous transaction in database
 
-        uint256 hashBlock = uint256();
-
-        // TODO (losty-fur): validate
+        std::string hashBlockStr;
         // TODO (losty-critical): can internal fields be null?
         LogPrintf("DEBUG: getting transaction from sqlite db");
-        auto txPrev = PocketDb::TransRepoInst.Get(txin.prevout.hash.ToString(), false, false, true);
+        auto txPrev = PocketDb::TransRepoInst.Get(txin.prevout.hash.ToString(), hashBlockStr, false, false, true);
 
         if (!txPrev)
             continue; // previous transaction not in main chain
+
+        auto hashBlock = uint256S(hashBlockStr);
 
         if (transaction->nTime < *txPrev->GetTime())
             return false; // Transaction timestamp violation
