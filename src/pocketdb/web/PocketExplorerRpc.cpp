@@ -297,7 +297,10 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getbalancehistory",
                 "\nGet balance changes history for addresses\n",
                 {
-                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "Addresses for calculate total balance"},
+                    {"addresses", RPCArg::Type::ARR, RPCArg::Optional::NO, "Addresses for calculate total balance",
+                     {
+                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
+                     }},
                     {"topHeight", RPCArg::Type::NUM, RPCArg::Optional::NO, "Top block height (Inclusive)"},
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::NO, "Count of records"},
                 },
