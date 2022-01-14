@@ -11,91 +11,144 @@
 #include <utilstrencodings.h>
 #include <validation.h>
 
-#include <memory>
+
+#include <chrono>
+#include <cstdint>
+#include <iostream>
+#include <sstream>
+#include <vector>
+
+#include <script/sigcache.h>
+#include "pocketdb/SQLiteDatabase.h"
+#include "pocketdb/pocketnet.h"
+
+
+static const char* DEFAULT_BENCH_FILTER = ".*";
+static constexpr int64_t DEFAULT_MIN_TIME_MS{10};
 
 const std::function<std::string(const char*)> G_TRANSLATION_FUN = nullptr;
+static std::unique_ptr<ECCVerifyHandle> globalVerifyHandle;
 
-static const int64_t DEFAULT_BENCH_EVALUATIONS = 5;
-static const char* DEFAULT_BENCH_FILTER = ".*";
-static const char* DEFAULT_BENCH_SCALING = "1.0";
-static const char* DEFAULT_BENCH_PRINTER = "console";
-static const char* DEFAULT_PLOT_PLOTLYURL = "https://cdn.plot.ly/plotly-latest.min.js";
-static const int64_t DEFAULT_PLOT_WIDTH = 1024;
-static const int64_t DEFAULT_PLOT_HEIGHT = 768;
-
-static void SetupBenchArgs()
+// TAWMAZ:
+static void SetupHelpOptions(ArgsManager& args)
 {
-    gArgs.AddArg("-?", "Print this help message and exit", false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-list", "List benchmarks without executing them. Can be combined with -scaling and -filter", false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-evals=<n>", strprintf("Number of measurement evaluations to perform. (default: %u)", DEFAULT_BENCH_EVALUATIONS), false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-filter=<regex>", strprintf("Regular expression filter to select benchmark by name (default: %s)", DEFAULT_BENCH_FILTER), false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-scaling=<n>", strprintf("Scaling factor for benchmark's runtime (default: %u)", DEFAULT_BENCH_SCALING), false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-printer=(console|plot)", strprintf("Choose printer format. console: print data to console. plot: Print results as HTML graph (default: %s)", DEFAULT_BENCH_PRINTER), false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-plot-plotlyurl=<uri>", strprintf("URL to use for plotly.js (default: %s)", DEFAULT_PLOT_PLOTLYURL), false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-plot-width=<x>", strprintf("Plot width in pixel (default: %u)", DEFAULT_PLOT_WIDTH), false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-plot-height=<x>", strprintf("Plot height in pixel (default: %u)", DEFAULT_PLOT_HEIGHT), false, OptionsCategory::OPTIONS);
-
-    // Hidden
-    gArgs.AddArg("-h", "", false, OptionsCategory::HIDDEN);
-    gArgs.AddArg("-help", "", false, OptionsCategory::HIDDEN);
+    args.AddArg("-?", "Print this help message and exit", false, OptionsCategory::OPTIONS);
+    args.AddHiddenArgs({"-h", "-help"});
 }
 
-static fs::path SetDataDir()
+static void SetupBenchArgs(ArgsManager& argsman)
 {
-    fs::path ret = fs::temp_directory_path() / "bench_pocketcoin" / fs::unique_path();
-    fs::create_directories(ret);
-    gArgs.ForceSetArg("-datadir", ret.string());
-    return ret;
+    SetupHelpOptions(argsman);
+
+    argsman.AddArg("-asymptote=<n1,n2,n3,...>", "Test asymptotic growth of the runtime of an algorithm, if supported by the benchmark", false, OptionsCategory::OPTIONS);
+    argsman.AddArg("-filter=<regex>", strprintf("Regular expression filter to select benchmark by name (default: %s)", DEFAULT_BENCH_FILTER), false, OptionsCategory::OPTIONS);
+    argsman.AddArg("-list", "List benchmarks without executing them", false, OptionsCategory::OPTIONS);
+    argsman.AddArg("-min_time=<milliseconds>", strprintf("Minimum runtime per benchmark, in milliseconds (default: %d)", DEFAULT_MIN_TIME_MS), false, OptionsCategory::OPTIONS);
+    argsman.AddArg("-output_csv=<output.csv>", "Generate CSV file with the most important benchmark results", false, OptionsCategory::OPTIONS);
+    argsman.AddArg("-output_json=<output.json>", "Generate JSON file with all benchmark results", false, OptionsCategory::OPTIONS);
+}
+
+// parses a comma separated list like "10,20,30,50"
+static std::vector<double> parseAsymptote(const std::string& str) {
+    std::stringstream ss(str);
+    std::vector<double> numbers;
+    double d;
+    char c;
+    while (ss >> d) {
+        numbers.push_back(d);
+        ss >> c;
+    }
+    return numbers;
 }
 
 int main(int argc, char** argv)
 {
-    SetupBenchArgs();
+    ArgsManager argsman;
+    SetupBenchArgs(argsman);
+    SHA256AutoDetect();
     std::string error;
     if (!gArgs.ParseParameters(argc, argv, error)) {
         fprintf(stderr, "Error parsing command line arguments: %s\n", error.c_str());
         return EXIT_FAILURE;
     }
 
-    if (HelpRequested(gArgs)) {
-        std::cout << gArgs.GetHelpMessage();
+    if (HelpRequested(argsman)) {
+        std::cout << "Usage:  bench_bitcoin [options]\n"
+                     "\n"
+                  << argsman.GetHelpMessage()
+                  << "Description:\n"
+                     "\n"
+                     "  bench_bitcoin executes microbenchmarks. The quality of the benchmark results\n"
+                     "  highly depend on the stability of the machine. It can sometimes be difficult\n"
+                     "  to get stable, repeatable results, so here are a few tips:\n"
+                     "\n"
+                     "  * Use pyperf [1] to disable frequency scaling, turbo boost etc. For best\n"
+                     "    results, use CPU pinning and CPU isolation (see [2]).\n"
+                     "\n"
+                     "  * Each call of run() should do exactly the same work. E.g. inserting into\n"
+                     "    a std::vector doesn't do that as it will reallocate on certain calls. Make\n"
+                     "    sure each run has exactly the same preconditions.\n"
+                     "\n"
+                     "  * If results are still not reliable, increase runtime with e.g.\n"
+                     "    -min_time=5000 to let a benchmark run for at least 5 seconds.\n"
+                     "\n"
+                     "  * bench_bitcoin uses nanobench [3] for which there is extensive\n"
+                     "    documentation available online.\n"
+                     "\n"
+                     "Environment Variables:\n"
+                     "\n"
+                     "  To attach a profiler you can run a benchmark in endless mode. This can be\n"
+                     "  done with the environment variable NANOBENCH_ENDLESS. E.g. like so:\n"
+                     "\n"
+                     "    NANOBENCH_ENDLESS=MuHash ./bench_bitcoin -filter=MuHash\n"
+                     "\n"
+                     "  In rare cases it can be useful to suppress stability warnings. This can be\n"
+                     "  done with the environment variable NANOBENCH_SUPPRESS_WARNINGS, e.g:\n"
+                     "\n"
+                     "    NANOBENCH_SUPPRESS_WARNINGS=1 ./bench_bitcoin\n"
+                     "\n"
+                     "Notes:\n"
+                     "\n"
+                     "  1. pyperf\n"
+                     "     https://github.com/psf/pyperf\n"
+                     "\n"
+                     "  2. CPU pinning & isolation\n"
+                     "     https://pyperf.readthedocs.io/en/latest/system.html\n"
+                     "\n"
+                     "  3. nanobench\n"
+                     "     https://github.com/martinus/nanobench\n"
+                     "\n";
 
         return EXIT_SUCCESS;
     }
 
-    // Set the datadir after parsing the bench options
-    const fs::path bench_datadir{SetDataDir()};
-
     SHA256AutoDetect();
     RandomInit();
     ECC_Start();
-    SetupEnvironment();
+    globalVerifyHandle.reset(new ECCVerifyHandle());
+    //SetupEnvironment();
+    //SetupNetworking();
+    //InitSignatureCache();
+    //InitScriptExecutionCache();
 
-    int64_t evaluations = gArgs.GetArg("-evals", DEFAULT_BENCH_EVALUATIONS);
-    std::string regex_filter = gArgs.GetArg("-filter", DEFAULT_BENCH_FILTER);
-    std::string scaling_str = gArgs.GetArg("-scaling", DEFAULT_BENCH_SCALING);
-    bool is_list_only = gArgs.GetBoolArg("-list", false);
+    SelectParams(CBaseChainParams::REGTEST);
 
-    double scaling_factor;
-    if (!ParseDouble(scaling_str, &scaling_factor)) {
-        fprintf(stderr, "Error parsing scaling factor as double: %s\n", scaling_str.c_str());
-        return EXIT_FAILURE;
-    }
 
-    std::unique_ptr<benchmark::Printer> printer = MakeUnique<benchmark::ConsolePrinter>();
-    std::string printer_arg = gArgs.GetArg("-printer", DEFAULT_BENCH_PRINTER);
-    if ("plot" == printer_arg) {
-        printer.reset(new benchmark::PlotlyPrinter(
-            gArgs.GetArg("-plot-plotlyurl", DEFAULT_PLOT_PLOTLYURL),
-            gArgs.GetArg("-plot-width", DEFAULT_PLOT_WIDTH),
-            gArgs.GetArg("-plot-height", DEFAULT_PLOT_HEIGHT)));
-    }
+    PocketDb::InitSQLite(GetDataDir() / "pocketdb");
 
-    benchmark::BenchRunner::RunAll(*printer, evaluations, scaling_factor, regex_filter, is_list_only);
+    // Go up two directories to access the checkpoints folder, assume we are running in /src/test
+    fs::path checkpointsPath = fs::system_complete("../..");
+    PocketDb::InitSQLiteCheckpoints(checkpointsPath / "checkpoints");
 
-    fs::remove_all(bench_datadir);
+    benchmark::Args args;
+    args.asymptote = parseAsymptote(argsman.GetArg("-asymptote", ""));
+    args.is_list_only = argsman.GetBoolArg("-list", false);
+    args.min_time = std::chrono::milliseconds(argsman.GetArg("-min_time", DEFAULT_MIN_TIME_MS));
+    args.output_csv = argsman.GetArg("-output_csv", "");
+    args.output_json = argsman.GetArg("-output_json", "");
+    args.regex_filter = argsman.GetArg("-filter", DEFAULT_BENCH_FILTER);
 
-    ECC_Stop();
+    benchmark::BenchRunner::RunAll(args);
 
     return EXIT_SUCCESS;
 }

@@ -5,15 +5,15 @@
 #include <bench/bench.h>
 
 #include <support/lockedpool.h>
-
-#include <iostream>
-#include <vector>
+#include <validation.h>
+//#include <iostream>
+//#include <vector>
 
 #define ASIZE 2048
 #define BITER 5000
 #define MSIZE 2048
 
-static void BenchLockedPool(benchmark::State& state)
+static void BenchLockedPool(benchmark::Bench& bench)
 {
     void *synth_base = reinterpret_cast<void*>(0x08000000);
     const size_t synth_size = 1024*1024;
@@ -23,7 +23,7 @@ static void BenchLockedPool(benchmark::State& state)
     for (int x=0; x<ASIZE; ++x)
         addr.push_back(nullptr);
     uint32_t s = 0x12345678;
-    while (state.KeepRunning()) {
+    bench.run([&] {
         for (int x=0; x<BITER; ++x) {
             int idx = s & (addr.size()-1);
             if (s & 0x80000000) {
@@ -37,10 +37,10 @@ static void BenchLockedPool(benchmark::State& state)
             if (lsb)
                 s ^= 0xf00f00f0; // LFSR period 0xf7ffffe0
         }
-    }
+    });
     for (void *ptr: addr)
         b.free(ptr);
     addr.clear();
 }
 
-BENCHMARK(BenchLockedPool, 1300);
+BENCHMARK(BenchLockedPool);

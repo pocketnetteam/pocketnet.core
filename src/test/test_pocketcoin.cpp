@@ -92,30 +92,11 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
 
     InitHTTPServer();
 
-    auto dbBasePath = (GetDataDir() / "pocketdb").string();
-    PocketDb::IntitializeSqlite();
+    PocketDb::InitSQLite(GetDataDir() / "pocketdb");
 
-    PocketDb::PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDb::PocketDbMainMigration>();
-    PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
-    PocketDb::SQLiteDbInst.CreateStructure();
-
-    PocketDb::TransRepoInst.Init();
-    PocketDb::ChainRepoInst.Init();
-    PocketDb::RatingsRepoInst.Init();
-    PocketDb::ConsensusRepoInst.Init();
-    PocketDb::NotifierRepoInst.Init();
-
-    // Open, create structure and close `web` db
-    PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
-    PocketDb::SQLiteDatabase sqliteDbWebInst(false);
-    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration);
-    sqliteDbWebInst.CreateStructure();
-    sqliteDbWebInst.m_connection_mutex.lock();
-    sqliteDbWebInst.Close();
-    sqliteDbWebInst.m_connection_mutex.unlock();
-
-    // Attach `web` db to `main` db
-    PocketDb::SQLiteDbInst.AttachDatabase("web");
+    // Go up two directories to access the checkpoints folder, assume we are running in /src/test
+    fs::path checkpointsPath = fs::system_complete("..");
+    PocketDb::InitSQLiteCheckpoints(checkpointsPath / "checkpoints");
 
     ClearDatadirCache();
 
@@ -137,8 +118,8 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
             throw std::runtime_error(strprintf("ActivateBestChain failed. (%s)", FormatStateMessage(state)));
         }
     }
-    nScriptCheckThreads = 3;
-    for (int i=0; i < nScriptCheckThreads-1; i++)
+    nScriptCheckThreads = 2;
+    for (int i=0; i < nScriptCheckThreads; i++)
         threadGroup.create_thread(&ThreadScriptCheck);
     g_connman = MakeUnique<CConnman>(0x1337, 0x1337); // Deterministic randomness for tests.
     connman = g_connman.get();

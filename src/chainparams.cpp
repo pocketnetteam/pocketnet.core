@@ -304,12 +304,13 @@ public:
         consensus.BIP65Height = 1351; // BIP65 activated on regtest (Used in rpc activation tests)
         consensus.BIP66Height = 1251; // BIP66 activated on regtest (Used in rpc activation tests)
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 10 * 60;
+        consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // two weeks
+        consensus.nPowTargetSpacing = 1 * 30;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 144;       // Faster than normal for regtest (144 instead of 2016)
+        consensus.nMinerConfirmationWindow = 100;
+        consensus.nPosFirstBlock = 200;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -319,6 +320,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].bit = 1;
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
@@ -333,9 +335,9 @@ public:
         nDefaultPort = 36060;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1548092268, 11314, 0x1f00ffff, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1548092268, 11314, 0x207FFFFF, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0000cdd933b357fb4b50d90fd920d7be04c6eebe787668290c8487e00ac70883"));
+        assert(consensus.hashGenesisBlock == uint256S("0x32ec6aac201dd2125b6af44eaf904d6aa31664e74c8585a63e66572e09a5dcb3"));
         assert(genesis.hashMerkleRoot == uint256S("0xaced9fcaba8f66be3d4d51a95cb048dda6611b8f2d2bf4541d9e2e16c07ee1c9"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.

@@ -21,7 +21,7 @@ static const unsigned int QUEUE_BATCH_SIZE = 128;
 // This Benchmark tests the CheckQueue with a slightly realistic workload,
 // where checks all contain a prevector that is indirect 50% of the time
 // and there is a little bit of work done between calls to Add.
-static void CCheckQueueSpeedPrevectorJob(benchmark::State& state)
+static void CCheckQueueSpeedPrevectorJob(benchmark::Bench& bench)
 {
     struct PrevectorJob {
         prevector<PREVECTOR_SIZE, uint8_t> p;
@@ -41,7 +41,7 @@ static void CCheckQueueSpeedPrevectorJob(benchmark::State& state)
     for (auto x = 0; x < std::max(MIN_CORES, GetNumCores()); ++x) {
        tg.create_thread([&]{queue.Thread();});
     }
-    while (state.KeepRunning()) {
+    bench.unit("block").run([&] {
         // Make insecure_rand here so that each iteration is identical.
         FastRandomContext insecure_rand(true);
         CCheckQueueControl<PrevectorJob> control(&queue);
@@ -55,8 +55,8 @@ static void CCheckQueueSpeedPrevectorJob(benchmark::State& state)
         // control waits for completion by RAII, but
         // it is done explicitly here for clarity
         control.Wait();
-    }
+    });
     tg.interrupt_all();
     tg.join_all();
 }
-BENCHMARK(CCheckQueueSpeedPrevectorJob, 1400);
+BENCHMARK(CCheckQueueSpeedPrevectorJob);

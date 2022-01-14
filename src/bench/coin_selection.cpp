@@ -102,5 +102,5 @@ static void BnBExhaustion(benchmark::State& state)
     }
 }
 
-BENCHMARK(CoinSelection, 650);
-BENCHMARK(BnBExhaustion, 650);
+BENCHMARK(CoinSelection);
+BENCHMARK(BnBExhaustion);
