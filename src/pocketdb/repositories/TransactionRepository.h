@@ -37,7 +37,11 @@ namespace PocketDb
         //  Base transaction operations
         void InsertTransactions(PocketBlock& pocketBlock);
         shared_ptr<PocketBlock> List(const vector<string>& txHashes, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
+        // Overload with block hashes map. Key is transaction hash and value is block hash. Only block hashes for requested transactions are collected
+        shared_ptr<PocketBlock> List(const vector<string>& txHashes, map<string, string>& blockHashes, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
         shared_ptr<Transaction> Get(const string& hash, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
+        // Overload with block hash for requested transaction
+        shared_ptr<Transaction> Get(const string& hash, string& blockHash, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
         shared_ptr<TransactionOutput> GetTxOutput(const string& txHash, int number);
 
         bool Exists(const string& hash);

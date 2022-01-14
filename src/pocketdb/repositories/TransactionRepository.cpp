@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/repositories/TransactionRepository.h"
+#include "pocketdb/helpers/TransactionHelper.h"
 
 namespace PocketDb
 {
@@ -31,16 +32,16 @@ namespace PocketDb
             // It is controlled inside below methods
             int currentColumn = 0;
 
-            auto [ok1, constructResult] = ProcessTransaction(stmt, txHash, currentColumn);
-            if (!ok1 || constructResult == nullptr) {
+            auto [ok1, txEntry] = ProcessTransaction(stmt, txHash, currentColumn);
+            if (!ok1 || txEntry == nullptr) {
                 return false;
             }
 
             // The order of below functions is necessary. It should correspond to order of joins in query.
-            if (m_includeOutputs && !ParseOutput(stmt, *constructResult, currentColumn)) {
+            if (m_includeOutputs && !ParseOutput(stmt, *txEntry, currentColumn)) {
                 return false;
             }
-            if (m_includeInputs && !ParseInput(stmt, *constructResult, currentColumn)) {
+            if (m_includeInputs && !ParseInput(stmt, *txEntry, currentColumn)) {
                 return false;
             }
             
@@ -48,28 +49,34 @@ namespace PocketDb
         }
 
         /**
-         * Constructs all collected data to PocketBlock format
+         * Constructs all collected data to PocketBlock format.
+         * blockHashes is filled with block hashes corresponding to all collected transactions, where key is tx hash
+         * and value is blockhash.
+         * 
          */
-        PocketBlock GetResult()
+        PocketBlock GetResult(std::map<std::string, std::string>& blockHashes)
         {
             PocketBlock result;
-            for (auto& constructResultPair: m_constructed) {
-                auto& constructResult = *constructResultPair.second;
+            std::map<std::string, std::string> blockHashesRes;
+            for (auto& txEntryPair: m_constructed) {
+                auto& txEntry = *txEntryPair.second;
 
-                auto tx = constructResult.tx;
-                if (constructResult.payload.has_value()) {
-                    tx->SetPayload(constructResult.payload.value());
+                auto tx = txEntry.tx;
+                if (txEntry.payload.has_value()) {
+                    tx->SetPayload(txEntry.payload.value());
                 }
 
                 auto& outputs = tx->Outputs();
                 outputs.clear();
-                outputs.reserve(constructResult.outputs.size());
-                for (const auto& outputPair: constructResult.outputs) {
+                outputs.reserve(txEntry.outputs.size());
+                for (const auto& outputPair: txEntry.outputs) {
                     outputs.emplace_back(outputPair.second);
                 }
 
                 result.emplace_back(tx);
+                blockHashesRes.insert({*tx->GetHash(), txEntry.blockHash});
             }
+            blockHashes = std::move(blockHashesRes);
             return result;
         }
     private:
@@ -94,6 +101,10 @@ namespace PocketDb
              * Map for outputs where key is "Number" from TxOutputs table
              */
             std::map<int64_t, std::shared_ptr<TransactionOutput>> outputs;
+            /**
+             * Block hash for current transaction
+             */
+            std::string blockHash; 
 
             // TODO (team): Inputs here too
         };
@@ -134,6 +145,9 @@ namespace PocketDb
                 ptx->SetTime(nTime);
                 ptx->SetHash(txHash);
 
+                // Creating construct entry that will be associated with current transaction and filled with payload, outputs, inputs, etc inside
+                auto txEntry = std::make_shared<ConstructEntry>();
+
                 if (auto[ok, value] = TryGetColumnInt(stmt, 3); ok) ptx->SetLast(value == 1);
                 if (auto[ok, value] = TryGetColumnInt64(stmt, 4); ok) ptx->SetId(value);
                 if (auto[ok, value] = TryGetColumnString(stmt, 5); ok) ptx->SetString1(value);
@@ -142,18 +156,17 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) ptx->SetString4(value);
                 if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) ptx->SetString5(value);
                 if (auto[ok, value] = TryGetColumnInt64(stmt, 10); ok) ptx->SetInt1(value);
+                if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) txEntry->blockHash = value;
 
-                // Creating construct entry that will be associated with current transaction and filled with payload, outputs, inputs, etc inside
-                auto currentTx = std::make_shared<ConstructEntry>();
-                currentTx->tx = std::move(ptx);
-                m_constructed.insert({txHash, currentTx});
+                txEntry->tx = std::move(ptx);
+                m_constructed.insert({txHash, txEntry});
 
-                currentColumn = 11;
+                currentColumn = 12;
                 // Parsing single joins here results in some optimizing because we will not try to parse them later
                 // only after one check if transaction has already parsed
-                auto singleJoinsRes = ParseSingleJoins(stmt, *currentTx, currentColumn);
+                auto singleJoinsRes = ParseSingleJoins(stmt, *txEntry, currentColumn);
                 m_skipSingleRowColumnsOffset = currentColumn;
-                return {singleJoinsRes, currentTx};
+                return {singleJoinsRes, txEntry};
             } else {
                 // TODO (losty): Ugly hardcoded.
                 currentColumn = m_skipSingleRowColumnsOffset;
@@ -254,6 +267,11 @@ namespace PocketDb
 
     shared_ptr<PocketBlock> TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs, bool includeOutputs)
     {
+        map<string, string> pulp;
+        return List(txHashes, pulp, includePayload, includeInputs, includeOutputs);
+    }
+    shared_ptr<PocketBlock> TransactionRepository::List(const vector<string>& txHashes, map<string, string>& blockHashes, bool includePayload, bool includeInputs, bool includeOutputs)
+    {
         // TODO (brangr): implement variable inputs
         auto sql = R"sql(
             SELECT
@@ -267,7 +285,8 @@ namespace PocketDb
                 t.String3,
                 t.String4,
                 t.String5,
-                t.Int1
+                t.Int1,
+                t.BlockHash
         )sql" +
         // Payload part
         (includePayload ? std::string(R"sql(,
@@ -329,20 +348,31 @@ namespace PocketDb
             FinalizeSqlStatement(*stmt);
 
             if (res) {
-                result = std::make_shared<PocketBlock>(std::move(constructor.GetResult()));
+                result = std::make_shared<PocketBlock>(std::move(constructor.GetResult(blockHashes)));
             }
         });
 
         return result;
     }
 
-    shared_ptr<Transaction> TransactionRepository::Get(const string& hash, bool includePayload, bool includeInputs, bool includeOutputs)
+    shared_ptr<Transaction> TransactionRepository::Get(const string& hash, string& blockHash, bool includePayload, bool includeInputs, bool includeOutputs)
     {
-        auto lst = List({hash}, includePayload, includeInputs, includeOutputs);
-        if (lst && !lst->empty())
+        map<string, string> blockHashes;
+        auto lst = List({hash}, blockHashes, includePayload, includeInputs, includeOutputs);
+        auto blockHashItr = blockHashes.find(hash);
+        if (lst && !lst->empty() && blockHashItr != blockHashes.end()) {
+            blockHash = blockHashItr->second;
             return lst->front();
+        }
 
         return nullptr;
+    }
+
+    shared_ptr<Transaction> TransactionRepository::Get(const string& hash, bool includePayload, bool includeInputs, bool includeOutputs)
+    {
+        // Here List overload without block hashes can be used directly if we want to pedantically improve performance due to parasitic single-element map access.
+        string pulp;
+        return Get(hash, pulp, includePayload, includeInputs, includeOutputs);
     }
 
     shared_ptr<TransactionOutput> TransactionRepository::GetTxOutput(const string& txHash, int number)
