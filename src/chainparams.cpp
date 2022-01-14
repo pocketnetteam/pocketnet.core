@@ -185,7 +185,7 @@ public:
     CTestNetParams()
     {
         strNetworkID = CBaseChainParams::TESTNET;
-        networkId = NetworkRegTest;
+        networkId = NetworkTest;
         consensus.signet_blocks = false; // TODO (losty): may be change??
         consensus.signet_challenge.clear(); // TODO (losty): may be change??
         consensus.nSubsidyHalvingInterval = 2100000;
@@ -196,9 +196,9 @@ public:
 
         consensus.BIP65Height = 0; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 0; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-        consensus.CSVHeight = 770112; // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb //TODO (losty): may be change???
-        consensus.SegwitHeight = 834624; // 00000000002b980fcd729daaa248fd9316a5200e9b367f4ff2c42453e84201ca //TODO (losty): may be change???
-        consensus.MinBIP9WarningHeight = 836640; // segwit activation height + miner confirmation window //TODO (losty): may be change???
+        consensus.CSVHeight = 1; // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb //TODO (losty): may be change???
+        consensus.SegwitHeight = 1; // 00000000002b980fcd729daaa248fd9316a5200e9b367f4ff2c42453e84201ca //TODO (losty): may be change???
+        consensus.MinBIP9WarningHeight = 1; // segwit activation height + miner confirmation window //TODO (losty): may be change???
         consensus.powLimit = ArithToUint256(~arith_uint256(0) >> 16);
         consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60;
         consensus.nPowTargetSpacing = 1 * 30;
