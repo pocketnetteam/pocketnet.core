@@ -3,7 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/SQLiteDatabase.h"
-#include "util.h"
+#include "util/system.h"
 
 namespace PocketDb
 {
