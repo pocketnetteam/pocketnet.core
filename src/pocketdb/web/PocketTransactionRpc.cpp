@@ -146,8 +146,6 @@ namespace PocketWeb::PocketWebRpc
             CTxDestination destination = DecodeDestination(name_);
             if (!IsValidDestination(destination))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + name_);
-            if (!destinations.insert(destination).second)
-                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
 
             CScript scriptPubKey = GetScriptForDestination(destination);
             CAmount nAmount = outputs[name_].get_int64();
@@ -198,6 +196,11 @@ namespace PocketWeb::PocketWebRpc
         // Get payload object
         UniValue txPayload = request.params[4].get_obj();
 
+        // Fee
+        int64_t fee = 1;
+        if (request.params[5].isNum())
+            fee = request.params[5].get_int64();
+
         // Build template for transaction
         auto txType = PocketHelpers::TransactionHelper::ConvertOpReturnToType(txTypeHex);
         shared_ptr<Transaction> _ptx = PocketHelpers::TransactionHelper::CreateInstance(txType);
@@ -210,16 +213,21 @@ namespace PocketWeb::PocketWebRpc
         // Get unspents
         vector<pair<string, uint32_t>> mempoolInputs;
         vector<string> addresses {address};
-        auto unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents(addresses, chainActive.Height(), mempoolInputs);
+        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents(addresses, chainActive.Height(), mempoolInputs);
 
         // Build inputs
+        int64_t totalAmount = 0;
         UniValue _inputs(UniValue::VARR);
-        _inputs.push_back(unsp[0]);
+        int i = 0;
+        while ((totalAmount + outputCount) <= fee && i < unsp.size())
+        {
+            totalAmount += unsp[i]["amountSat"].get_int64();
+            _inputs.push_back(unsp[i]);
+        }
 
         // Build outputs
         UniValue _outputs(UniValue::VARR);
-        auto totalAmount = unsp[0]["amountSat"].get_int64();
-        auto chunkAmount = totalAmount / outputCount;
+        auto chunkAmount = (totalAmount - fee) / outputCount;
         for (int i = 0; i < outputCount; i++)
         {
             UniValue _output_address(UniValue::VOBJ);

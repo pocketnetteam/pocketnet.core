@@ -70,6 +70,7 @@ public:
 
     bool getBool() const { return isTrue(); }
     void getObjMap(std::map<std::string,UniValue>& kv) const;
+    std::map<std::string,UniValue> getObjMap() const;
     bool checkObject(const std::map<std::string,UniValue::VType>& memberTypes) const;
     const UniValue& operator[](const std::string& key) const;
     UniValue& At(const std::string& key);
