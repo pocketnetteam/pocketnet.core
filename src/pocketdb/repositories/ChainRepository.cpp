@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -23,22 +23,24 @@ namespace PocketDb
 
                 // Account and Content must have unique ID
                 // Also all edited transactions must have Last=(0/1) field
-                {
-                    if (txInfo.IsAccount())
-                        IndexAccount(txInfo.Hash);
+                if (txInfo.IsAccount())
+                    IndexAccount(txInfo.Hash);
 
-                    if (txInfo.IsContent())
-                        IndexContent(txInfo.Hash);
+                if (txInfo.IsContent())
+                    IndexContent(txInfo.Hash);
 
-                    if (txInfo.IsComment())
-                        IndexComment(txInfo.Hash);
+                if (txInfo.IsComment())
+                    IndexComment(txInfo.Hash);
 
-                    if (txInfo.IsBlocking())
-                        IndexBlocking(txInfo.Hash);
+                if (txInfo.IsBlocking())
+                    IndexBlocking(txInfo.Hash);
 
-                    if (txInfo.IsSubscribe())
-                        IndexSubscribe(txInfo.Hash);
-                }
+                if (txInfo.IsSubscribe())
+                    IndexSubscribe(txInfo.Hash);
+
+                // Calculate and save fee for future selects
+                if (txInfo.IsBoostContent())
+                    IndexBoostContent(txInfo.Hash);
             }
 
             int64_t nTime2 = GetTimeMicros();
@@ -404,6 +406,30 @@ namespace PocketDb
 
         // Clear old last records for set new last
         ClearOldLast(txHash);
+    }
+    
+    void ChainRepository::IndexBoostContent(const string& txHash)
+    {
+        // Set transaction fee
+        auto stmt = SetupSqlStatement(R"sql(
+            update Transactions
+            set Int1 =
+              (
+                (
+                  select sum(i.Value)
+                  from TxOutputs i indexed by TxOutputs_SpentTxHash
+                  where i.SpentTxHash = Transactions.Hash
+                ) - (
+                  select sum(o.Value)
+                  from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                  where TxHash = Transactions.Hash
+                )
+              )
+            where Transactions.Hash = ?
+              and Transactions.Type in (202)
+        )sql");
+        TryBindStatementText(stmt, 1, txHash);
+        TryStepStatement(stmt);
     }
 
     void ChainRepository::ClearOldLast(const string& txHash)

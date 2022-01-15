@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -18,11 +18,13 @@
 
 #include "pocketdb/models/dto/Blocking.h"
 #include "pocketdb/models/dto/BlockingCancel.h"
+#include "pocketdb/models/dto/BoostContent.h"
 #include "pocketdb/models/dto/Coinbase.h"
 #include "pocketdb/models/dto/Coinstake.h"
 #include "pocketdb/models/dto/Default.h"
 #include "pocketdb/models/dto/Post.h"
 #include "pocketdb/models/dto/Video.h"
+#include "pocketdb/models/dto/Article.h"
 #include "pocketdb/models/dto/Comment.h"
 #include "pocketdb/models/dto/CommentEdit.h"
 #include "pocketdb/models/dto/CommentDelete.h"

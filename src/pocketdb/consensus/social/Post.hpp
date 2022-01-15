@@ -1,9 +1,9 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_POSTT_H
-#define POCKETCONSENSUS_POSTT_H
+#ifndef POCKETCONSENSUS_POST_H
+#define POCKETCONSENSUS_POST_H
 
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/Post.h"
@@ -12,6 +12,7 @@ namespace PocketConsensus
 {
     using namespace std;
     typedef shared_ptr<Post> PostRef;
+    typedef shared_ptr<Content> ContentRef;
 
     // TODO (brangr) (v0.21.0): extract base class Content for Post, Video and ContentDelete
     // Also split Post & Video for extract PostEdit & VideoEdit transactions with base class ContentEdit
@@ -141,7 +142,7 @@ namespace PocketConsensus
             if (!lastContentOk || !originalTxOk)
                 return {false, SocialConsensusResult_NotFound};
 
-            const auto originalPtx = static_pointer_cast<Post>(originalTx);
+            const auto originalPtx = static_pointer_cast<Content>(originalTx);
 
             // Change type not allowed
             if (*originalTx->GetType() != *ptx->GetType())
@@ -174,7 +175,7 @@ namespace PocketConsensus
         {
             return *blockPtx->GetTime() <= *ptx->GetTime();
         }
-        virtual bool AllowEditWindow(const PostRef& ptx, const PostRef& originalTx)
+        virtual bool AllowEditWindow(const PostRef& ptx, const ContentRef& originalTx)
         {
             return (*ptx->GetTime() - *originalTx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_post_depth);
         }
@@ -286,7 +287,7 @@ namespace PocketConsensus
                 Height - (int) GetConsensusLimit(ConsensusLimit_depth)
             );
         }
-        bool AllowEditWindow(const PostRef& ptx, const PostRef& originalTx) override
+        bool AllowEditWindow(const PostRef& ptx, const ContentRef& originalTx) override
         {
             auto[ok, originalTxHeight] = ConsensusRepoInst.GetTransactionHeight(*originalTx->GetHash());
             if (!ok)
@@ -321,4 +322,4 @@ namespace PocketConsensus
     };
 } // namespace PocketConsensus
 
-#endif // POCKETCONSENSUS_POSTT_H
+#endif // POCKETCONSENSUS_POST_H

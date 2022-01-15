@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2016 The Pocketcoin Core developers
+# Copyright (c) 2013-2016 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -167,6 +167,8 @@ POCKETDB_H = \
     pocketdb/consensus/social/Complain.hpp \
     pocketdb/consensus/social/Post.hpp \
     pocketdb/consensus/social/Video.hpp \
+    pocketdb/consensus/social/Article.hpp \
+    pocketdb/consensus/social/BoostContent.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
     pocketdb/consensus/social/ScoreContent.hpp \
     pocketdb/consensus/social/Subscribe.hpp \
@@ -188,8 +190,10 @@ POCKETDB_H = \
     pocketdb/models/dto/Default.h \
     pocketdb/models/dto/Coinbase.h \
     pocketdb/models/dto/Coinstake.h \
+    pocketdb/models/dto/Content.h \
     pocketdb/models/dto/Post.h \
     pocketdb/models/dto/ContentDelete.h \
+    pocketdb/models/dto/BoostContent.h \
     pocketdb/models/dto/AccountSetting.h \
     pocketdb/models/dto/User.h \
     pocketdb/models/dto/ScoreContent.h \
@@ -204,9 +208,10 @@ POCKETDB_H = \
     pocketdb/models/dto/SubscribeCancel.h \
     pocketdb/models/dto/Complain.h \
     pocketdb/models/dto/Video.h \
+    pocketdb/models/dto/Article.h \
     \
-    pocketdb/models/web/Tag.h \
-    pocketdb/models/web/Content.h \
+    pocketdb/models/web/WebTag.h \
+    pocketdb/models/web/WebContent.h \
     pocketdb/models/web/SearchRequest.h
 
 # PocketDb CPP
@@ -266,8 +271,10 @@ POCKETDB_CPP = \
     pocketdb/models/dto/Default.cpp \
     pocketdb/models/dto/Coinbase.cpp \
     pocketdb/models/dto/Coinstake.cpp \
+    pocketdb/models/dto/Content.cpp \
     pocketdb/models/dto/Post.cpp \
     pocketdb/models/dto/ContentDelete.cpp \
+    pocketdb/models/dto/BoostContent.cpp \
     pocketdb/models/dto/AccountSetting.cpp \
     pocketdb/models/dto/User.cpp \
     pocketdb/models/dto/ScoreContent.cpp \
@@ -281,7 +288,9 @@ POCKETDB_CPP = \
     pocketdb/models/dto/SubscribePrivate.cpp \
     pocketdb/models/dto/SubscribeCancel.cpp \
     pocketdb/models/dto/Complain.cpp \
-    pocketdb/models/dto/Video.cpp
+    pocketdb/models/dto/Video.cpp \
+    pocketdb/models/dto/BoostContent.cpp \
+    pocketdb/models/dto/Article.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \

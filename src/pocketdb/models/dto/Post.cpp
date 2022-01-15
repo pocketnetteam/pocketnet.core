@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -7,12 +7,12 @@
 
 namespace PocketTx
 {
-    Post::Post() : Transaction()
+    Post::Post() : Content()
     {
         SetType(TxType::CONTENT_POST);
     }
 
-    Post::Post(const std::shared_ptr<const CTransaction>& tx) : Transaction(tx)
+    Post::Post(const CTransactionRef& tx) : Content(tx)
     {
         SetType(TxType::CONTENT_POST);
     }
@@ -39,13 +39,6 @@ namespace PocketTx
         result->pushKV("message", (m_payload && m_payload->GetString3()) ? *m_payload->GetString3() : "");
         result->pushKV("url", (m_payload && m_payload->GetString7()) ? *m_payload->GetString7() : "");
         result->pushKV("settings", (m_payload && m_payload->GetString6()) ? *m_payload->GetString6() : "");
-
-        result->pushKV("type", 0);
-        result->pushKV("caption_", "");
-        result->pushKV("message_", "");
-        result->pushKV("scoreSum", 0);
-        result->pushKV("scoreCnt", 0);
-        result->pushKV("reputation", 0);
 
         UniValue vImages(UniValue::VARR);
         if (m_payload && m_payload->GetString5())
@@ -108,17 +101,8 @@ namespace PocketTx
         if (auto[ok, val] = TryGetStr(src, "settings"); ok) m_payload->SetString6(val);
     }
     
-
-    shared_ptr<string> Post::GetAddress() const { return m_string1; }
-    void Post::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }
-
-    shared_ptr<string> Post::GetRootTxHash() const { return m_string2; }
-    void Post::SetRootTxHash(const string& value) { m_string2 = make_shared<string>(value); }
-
     shared_ptr<string> Post::GetRelayTxHash() const { return m_string3; }
     void Post::SetRelayTxHash(const string& value) { m_string3 = make_shared<string>(value); }
-
-    bool Post::IsEdit() const { return *m_string2 != *m_hash; }
 
     shared_ptr<string> Post::GetPayloadLang() const { return GetPayload() ? GetPayload()->GetString1() : nullptr; }
     shared_ptr<string> Post::GetPayloadCaption() const { return GetPayload() ? GetPayload()->GetString2() : nullptr; }
@@ -165,4 +149,5 @@ namespace PocketTx
 
         return Transaction::GenerateHash(data);
     }
+
 } // namespace PocketTx

@@ -34,7 +34,7 @@ Options menu.  You will be prompted to enter a passphrase, which
 will be used as the key to encrypt your wallet and will be needed
 every time you wish to send Pocketcoins.  If you lose this passphrase,
 you will lose access to spend all of the pocketcoins in your wallet,
-no one, not even the Pocketcoin developers can recover your Pocketcoins.
+no one, not even the Bitcoin developers can recover your Pocketcoins.
 This means you are responsible for your own security, store your
 passphrase in a secure location and do not forget it.
 

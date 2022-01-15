@@ -1,3 +1,7 @@
+// Copyright (c) 2018-2022 The Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 #include "pocketdb/migrations/main.h"
 
 namespace PocketDb
@@ -40,6 +44,7 @@ namespace PocketDb
                 -- Subscribe.AddressHash
                 -- Blocking.AddressHash
                 -- Complain.AddressHash
+                -- Boost.AddressHash
                 String1   text   null,
 
                 -- AccountUser.ReferrerAddressHash
@@ -52,6 +57,7 @@ namespace PocketDb
                 -- Subscribe.AddressToHash
                 -- Blocking.AddressToHash
                 -- Complain.PostTxHash
+                -- Boost.ContentTxHash
                 String2   text   null,
 
                 -- ContentPost.RelayTxHash

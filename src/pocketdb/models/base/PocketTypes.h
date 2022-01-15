@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -29,8 +29,8 @@ namespace PocketTx
     #define OR_COMMENT_DELETE "636f6d6d656e7444656c657465"
     #define OR_COMMENT_SCORE "6353636f7265"
 
-    #define OR_VIDEO "766964656f"                      // Post for video hosting
-    #define OR_VERIFICATION "766572696669636174696f6e" // User verification post
+    #define OR_VIDEO "766964656f" // Post for video hosting
+    #define OR_ARTICLE "61727469636c65" // Article Post
 
     #define OR_POLL "706f6c6c"                                // Polling post
     #define OR_POLL_SCORE "706f6c6c53636f7265"                // Score for poll posts
@@ -42,6 +42,8 @@ namespace PocketTx
     #define OR_SERVER_PING "73657276657250696e67"          // Server ping over Posts
 
     #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
+
+    #define OR_CONTENT_BOOST "636f6e74656e74426f6f7374" // Boost content
 
     #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
 
@@ -61,14 +63,16 @@ namespace PocketTx
 
         CONTENT_POST = 200,
         CONTENT_VIDEO = 201,
-        CONTENT_TRANSLATE = 202,
-        CONTENT_SERVERPING = 203,
+        CONTENT_ARTICLE = 202,
+        // CONTENT_SERVERPING = 203,
 
         CONTENT_COMMENT = 204,
         CONTENT_COMMENT_EDIT = 205,
         CONTENT_COMMENT_DELETE = 206,
 
         CONTENT_DELETE = 207,
+
+        BOOST_CONTENT = 208,
 
         ACTION_SCORE_CONTENT = 300,
         ACTION_SCORE_COMMENT = 301,
@@ -128,7 +132,7 @@ namespace PocketTx
         {
             return Type == TxType::CONTENT_POST ||
                    Type == TxType::CONTENT_VIDEO ||
-                   Type == TxType::CONTENT_TRANSLATE ||
+                   Type == TxType::CONTENT_ARTICLE ||
                    Type == TxType::CONTENT_DELETE;
         }
 
@@ -156,6 +160,11 @@ namespace PocketTx
         {
             return Type == TxType::ACTION_SCORE_COMMENT ||
                    Type == TxType::ACTION_SCORE_CONTENT;
+        }
+
+        bool IsBoostContent() const
+        {
+            return Type == TxType::BOOST_CONTENT;
         }
     };
 }
