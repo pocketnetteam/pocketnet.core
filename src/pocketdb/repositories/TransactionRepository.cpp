@@ -189,15 +189,22 @@ namespace PocketDb
 
         bool ParsePayload(sqlite3_stmt* stmt, ConstructEntry& result, int& currentColumn)
         {
+            auto skip = [&]() { currentColumn += 8; return true; };
             if (result.payload.has_value()) {
-                // Skipping payload columns because they have been already parsed
-                currentColumn+= 8;
-                return true;
+                // Already have parse this payload, skip
+                return skip();
+            }
+
+            bool ok0;
+            std::string txHash;
+            if (std::tie(ok0, txHash) = TryGetColumnString(stmt, currentColumn); !ok0) {
+                // Assuming missing hash is missing payload that is a legal situation even if we request it.
+                return skip();
             }
 
             auto payload = Payload();
 
-            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetTxHash(value); currentColumn++;
+            payload.SetTxHash(txHash); currentColumn++;
             if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString1(value); currentColumn++;
             if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString2(value); currentColumn++;
             if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString3(value); currentColumn++;
