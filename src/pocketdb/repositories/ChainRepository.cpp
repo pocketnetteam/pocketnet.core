@@ -426,7 +426,7 @@ namespace PocketDb
                 )
               )
             where Transactions.Hash = ?
-              and Transactions.Type in (202)
+              and Transactions.Type in (208)
         )sql");
         TryBindStatementText(stmt, 1, txHash);
         TryStepStatement(stmt);

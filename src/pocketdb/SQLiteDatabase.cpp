@@ -168,6 +168,7 @@ namespace PocketDb
                 //     throw std::runtime_error("Failed apply temp_store = memory");
             }
 
+            // TODO (tawmaz): Not working for existed database
             // int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
             // int pageCount = cacheSize * 1024 * 1024 / 4096;
             // string cmd = "PRAGMA cache_size = " + to_string(pageCount) + ";";

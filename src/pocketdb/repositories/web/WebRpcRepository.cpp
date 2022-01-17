@@ -1465,7 +1465,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetUnspents(vector<string>& addresses, int height,
+    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height,
         vector<pair<string, uint32_t>>& mempoolInputs)
     {
         UniValue result(UniValue::VARR);
@@ -1978,8 +1978,8 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, 1, address);
-            TryBindStatementInt(stmt, 2, height);
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
             TryBindStatementInt(stmt, 3, count);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
@@ -2020,7 +2020,12 @@ namespace PocketDb
                 c.String1 as addrFrom,
                 c.String3 as posttxid,
                 c.String4 as  parentid,
-                c.String5 as  answerid
+                c.String5 as  answerid,
+                (
+                    select o.Value
+                    from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                    where o.TxHash = c.Hash and o.AddressHash = p.String1 and o.AddressHash != c.String1
+                ) as Donate
             from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
             join Transactions c indexed by Transactions_Type_Last_String3_Height
                 on c.Type in (204, 205) and c.Height > ? and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
@@ -2059,6 +2064,11 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("posttxid", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) record.pushKV("parentid", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("answerid", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok)
+                {
+                    record.pushKV("donation", "true");
+                    record.pushKV("amount", value);
+                }
 
                 result.push_back(record);
             }

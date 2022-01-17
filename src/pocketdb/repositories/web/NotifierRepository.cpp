@@ -39,6 +39,37 @@ namespace PocketDb
         return result;
     }
 
+    UniValue NotifierRepository::GetPostInfo(const string& postHash)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            select
+                t.Hash Hash,
+                t.String2 RootHash
+            from Transactions t
+            where t.Type in (200, 201, 202, 203)
+              and t.Hash = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, postHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("hash", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("rootHash", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue NotifierRepository::GetOriginalPostAddressByRepost(const string &repostHash)
     {
         UniValue result(UniValue::VOBJ);
@@ -294,7 +325,12 @@ namespace PocketDb
                 content.String1 ContentAddress,
                 answer.String1 AnswerAddress,
                 p.String2 as commentName,
-                p.String3 as commentAvatar
+                p.String3 as commentAvatar,
+                (
+                    select o.Value
+                    from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                    where o.TxHash = comment.Hash and o.AddressHash = content.String1 and o.AddressHash != comment.String1
+                ) as Donate
             from Transactions comment -- sqlite_autoindex_Transactions_1 (Hash)
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = comment.String1
             join Payload p on p.TxHash = u.Hash
@@ -325,6 +361,11 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) result.pushKV("answerAddress", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) result.pushKV("commentName", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) result.pushKV("commentAvatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok)
+                {
+                    result.pushKV("donation", "true");
+                    result.pushKV("amount", value);
+                }
             }
 
             FinalizeSqlStatement(*stmt);

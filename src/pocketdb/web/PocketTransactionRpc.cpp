@@ -245,29 +245,34 @@ namespace PocketWeb::PocketWebRpc
         // Deserialize params
         _ptx->SetHash("");
         _ptx->DeserializeRpc(txPayload);
-
+        auto& node = EnsureNodeContext(request.context);
+        // TODO (losty): probably bad assert like this
+        assert(node.mempool);
         // Get unspents
         vector<pair<string, uint32_t>> mempoolInputs;
-        vector<string> addresses {address};
-        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents(addresses, ChainActive().Height(), mempoolInputs);
+        node.mempool->GetAllInputs(mempoolInputs);
+        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActive().Height(), mempoolInputs);
 
         // Build inputs
         int64_t totalAmount = 0;
         UniValue _inputs(UniValue::VARR);
         int i = 0;
-        while ((totalAmount + outputCount) <= fee && i < unsp.size())
+        while (totalAmount <= (fee + outputCount) && i < unsp.size())
         {
             totalAmount += unsp[i]["amountSat"].get_int64();
             _inputs.push_back(unsp[i]);
+            i += 1;
         }
 
         // Build outputs
         UniValue _outputs(UniValue::VARR);
-        auto chunkAmount = (totalAmount - fee) / outputCount;
+        int64_t returned = totalAmount - fee;
+        int64_t chunkAmount = (totalAmount - fee) / outputCount;
         for (int i = 0; i < outputCount; i++)
         {
+            returned -= chunkAmount;
             UniValue _output_address(UniValue::VOBJ);
-            _output_address.pushKV(address, chunkAmount - (i + 1 == outputCount ? 1 : 0));
+            _output_address.pushKV(address, chunkAmount + (i + 1 == outputCount ? returned : 0));
             _outputs.push_back(_output_address);
         }
 
@@ -284,8 +289,6 @@ namespace PocketWeb::PocketWebRpc
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key");
             keystore.AddKey(key);
         }
-
-        const auto& node = EnsureNodeContext(request.context);
 
         // TODO (losty-critical): validate above is correct. In rawtransaction also used coins from prevouts (ParsePrevouts(...) method). Prevouts came there as rpc parameter
         //                        see also signrawtransactionwithwallet(...) from wallet/rpcwallet.cpp
@@ -332,6 +335,8 @@ namespace PocketWeb::PocketWebRpc
     {
         promise<void> promise;
         // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty-fur): validate corresponding check is performed in wallet by using walletInstance->m_default_max_tx_fee
+        // if (*ptx->GetType() == PocketTx::BOOST_CONTENT)
+        //    nMaxRawTxFee = 0;
         const uint256& txid = tx->GetHash();
 
         { // cs_main scope

@@ -18,6 +18,7 @@ namespace PocketDb
         void Destroy() override;
 
         UniValue GetPostLang(const string& postHash);
+        UniValue GetPostInfo(const string& postHash);
         UniValue GetOriginalPostAddressByRepost(const string& repostHash);
         UniValue GetPrivateSubscribeAddressesByAddressTo(const string& addressTo);
         UniValue GetUserReferrerAddress(const string& userHash);

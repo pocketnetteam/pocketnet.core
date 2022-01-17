@@ -222,7 +222,7 @@ namespace PocketWeb::PocketWebRpc
                     {"links", RPCArg::Type::STR, RPCArg::Optional::NO, "String for search"},
                     {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video",
                         {
-                            {"contenttype", RPCArg::Type::STR, RPCArg::Optional::NO, ""}   
+                            {"contenttype", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
                         }
                     },
                     {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum search height. Default is current chain height"},
@@ -275,7 +275,7 @@ namespace PocketWeb::PocketWebRpc
     {
         return RPCHelpMan{"SearchContents",
                 "\n\n", // TODO (team): provide description
-                {   
+                {
                     // TODO (team): args
                 },
                 {
@@ -328,18 +328,19 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetRecomendedAccountsBySubscriptions()
     {
-        return RPCHelpMan{"GetRecomendedAccountsBySubscriptions",
-                "\n\n", // TODO (team): provide description
-                {   
-                    // TODO (team): args
+        return RPCHelpMan{"getrecomendedaccountsbysubscriptions",
+                "\nAccounts recommendations by subscriptions.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address for recommendations"},
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10"},
                 },
                 {
                     // TODO (losty-fur): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
-                    HelpExampleCli("GetRecomendedAccountsBySubscriptions", "") +
-                    HelpExampleRpc("GetRecomendedAccountsBySubscriptions", "")
+                    HelpExampleCli("getrecomendedaccountsbysubscriptions", "") +
+                    HelpExampleRpc("getrecomendedaccountsbysubscriptions", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -362,17 +363,25 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetRecomendedAccountsByScoresOnSimilarAccounts()
     {
         return RPCHelpMan{"getrecomendedaccountsbyscoresonsimilaraccounts",
-                "\n\n", // TODO (team): provide description
-                {   
-                    // TODO (team): args
+                "\nAccounts recommendations by likes based on address.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address for recommendations" },
+                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video",
+                        {
+                            {"contenttype", RPCArg::Type::STR, RPCArg::Optional::NO, "" },
+                        }
+                    },
+                    {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum search height. Default is current chain height" },
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of statistic. Default 1000 blocks" },
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10" },
                 },
                 {
                     // TODO (losty-fur): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
-                    HelpExampleCli("getrecomendedaccountsbyscoresonsimilaraccounts", "") +
-                    HelpExampleRpc("getrecomendedaccountsbyscoresonsimilaraccounts", "")
+                    HelpExampleCli("getrecomendedaccountsbyscoresonsimilaraccounts", "\"address\", \"contenttypes\", height, depth, count") +
+                    HelpExampleRpc("getrecomendedaccountsbyscoresonsimilaraccounts", "\"address\", \"contenttypes\", height, depth, count")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -406,18 +415,26 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetRecomendedAccountsByScoresFromAddress()
     {
-        return RPCHelpMan{"GetRecomendedAccountsByScoresFromAddress",
-                "\n\n", // TODO (team): provide description
-                {   
-                    // TODO (team): args
+        return RPCHelpMan{"getrecomendedaccountsbyscoresfromaddress",
+                "\nAccounts recommendations by likes.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address for recommendations" },
+                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video",
+                        {
+                            {"contenttype", RPCArg::Type::STR, RPCArg::Optional::NO, "" }
+                        }
+                    },
+                    {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum search height. Default is current chain height" },
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of statistic. Default 1000 blocks" },
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10" },
                 },
                 {
                     // TODO (losty-fur): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
-                    HelpExampleCli("GetRecomendedAccountsByScoresFromAddress", "") +
-                    HelpExampleRpc("GetRecomendedAccountsByScoresFromAddress", "")
+                    HelpExampleCli("getrecomendedaccountsbyscoresfromaddress", "\"address\", \"contenttypes\", height, depth, count") +
+                    HelpExampleRpc("getrecomendedaccountsbyscoresfromaddress", "\"address\", \"contenttypes\", height, depth, count")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -451,44 +468,97 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetRecomendedContentsByScoresOnSimilarContents()
     {
-        return RPCHelpMan{"GetRecomendedContentsByScoresOnSimilarContents",
+        return RPCHelpMan{"getrecomendedcontentsbyscoresonsimilarcontents",
                 "\n\n", // TODO (team): provide description
-                {   
-                    // TODO (team): args
+                {
+                    {"contentid", RPCArg::Type::STR, RPCArg::Optional::NO, "Content hash for recommendations" },
+                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video",
+                        {
+                            {"contenttype", RPCArg::Type::STR, RPCArg::Optional::NO, "" }
+                        }
+                    },
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of statistic. Default 1000 blocks" },
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10" },
                 },
                 {
                     // TODO (losty-fur): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
-                    HelpExampleCli("GetRecomendedContentsByScoresOnSimilarContents", "") +
-                    HelpExampleRpc("GetRecomendedContentsByScoresOnSimilarContents", "")
+                    HelpExampleCli("getrecomendedcontentsbyscoresonsimilarcontents", "\"contentid\", \"contenttypes\", depth, count") +
+                    HelpExampleRpc("getrecomendedcontentsbyscoresonsimilarcontents", "\"contentid\", \"contenttypes\", depth, count")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresOnSimilarContents();
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string contentid = request.params[0].get_str();
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int depth = 1000;
+        int cntOut = 10;
+
+        if (request.params.size() > 2 && request.params[2].isNum())
+            depth = request.params[2].get_int();
+
+        if (request.params.size() > 3 && request.params[3].isNum())
+            cntOut = request.params[3].get_int();
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresOnSimilarContents(contentid, contentTypes, depth, cntOut);
     },
         };
     }
 
     RPCHelpMan GetRecomendedContentsByScoresFromAddress()
     {
-        return RPCHelpMan{"GetRecomendedContentsByScoresFromAddress",
-                "\n\n", // TODO (team): provide description
-                {   
-                    // TODO (team): args
+        return RPCHelpMan{"getrecomendedcontentsbyscoresfromaddress",
+                "\nContents recommendations for address by likes.\n", // TODO (team): provide description
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address for recommendations" },
+                    {"contenttypes", RPCArg::Type::ARR, RPCArg::Optional::OMITTED_NAMED_ARG, "type(s) of content posts/video",
+                        {
+                            {"contenttype", RPCArg::Type::STR, RPCArg::Optional::NO, "" }
+                        }
+                    },
+                    {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Maximum search height. Default is current chain height" },
+                    {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of statistic. Default 1000 blocks" },
+                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10" },
                 },
                 {
                     // TODO (losty-fur): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
-                    HelpExampleCli("GetRecomendedContentsByScoresFromAddress", "") +
-                    HelpExampleRpc("GetRecomendedContentsByScoresFromAddress", "")
+                    HelpExampleCli("getrecomendedcontentsbyscoresfromaddress", "\"address\", \"contenttypes\", height, depth, count") +
+                    HelpExampleRpc("getrecomendedcontentsbyscoresfromaddress", "\"address\", \"contenttypes\", height, depth, count")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresFromAddress();
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int nHeight = ChainActive().Height();
+        int depth = 1000;
+        int cntOut = 10;
+
+        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
+            nHeight = request.params[2].get_int();
+
+        if (request.params.size() > 3 && request.params[3].isNum())
+            depth = request.params[3].get_int();
+
+        if (request.params.size() > 4 && request.params[4].isNum())
+            cntOut = request.params[4].get_int();
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
     },
         };
     }
