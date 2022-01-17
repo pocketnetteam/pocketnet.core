@@ -17,6 +17,7 @@
 #include "logging.h"
 #include "pocketdb/services/Serializer.h"
 #include "script/signingprovider.h"
+#include "shutdown.h"
 #include "util/threadnames.h"
 #include "util/time.h"
 
@@ -69,7 +70,7 @@ void Staker::startWorkers(
 
 void Staker::run(const util::Ref& context, CChainParams const& chainparams, boost::thread_group& threadGroup)
 {
-    while (true)
+    while (!ShutdownRequested())
     {
         auto wallets = GetWallets();
 
