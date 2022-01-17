@@ -1225,8 +1225,8 @@ namespace PocketDb
 
             cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
                 on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = s.String1
-
-            cross join Ratings r indexed by Ratings_Type_Id_Last_Value
+            
+            left join Ratings r indexed by Ratings_Type_Id_Last_Value
                 on r.Type = 0 and r.Last = 1 and r.Id = u.Id
 
             cross join Payload p on p.TxHash = u.Hash
