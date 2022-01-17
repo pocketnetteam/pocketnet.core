@@ -52,7 +52,7 @@ namespace PocketDb {
             auto stmt = SetupSqlStatement(R"sql(
                 select (t.Height / 60)Hour, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByHour
-                where t.Type in (1,100,103,200,201,204,205,300,301,302,303)
+                where t.Type in (1,100,103,200,201,202,204,205,208,300,301,302,303)
                   and (t.Height / 60) < (? / 60)
                   and (t.Height / 60) >= (? / 60)
                 group by (t.Height / 60), t.Type
@@ -91,7 +91,7 @@ namespace PocketDb {
             auto stmt = SetupSqlStatement(R"sql(
                 select (t.Height / 1440)Day, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByDay
-                where t.Type in (1,100,103,200,201,204,205,300,301,302,303)
+                where t.Type in (1,100,103,200,201,202,204,205,208,300,301,302,303)
                   and (t.Height / 1440) < (? / 1440)
                   and (t.Height / 1440) >= (? / 1440)
                 group by (t.Height / 1440), t.Type
@@ -130,7 +130,7 @@ namespace PocketDb {
             auto stmt = SetupSqlStatement(R"sql(
                 select t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_Last_Height_Id
-                where t.Type in (100,101,102,200,201)
+                where t.Type in (100,101,102,200,201,202,208)
                   and t.Last = 1
                   and t.Height > 0
                 group by t.Type
