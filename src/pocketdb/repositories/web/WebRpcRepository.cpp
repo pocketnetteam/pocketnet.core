@@ -864,8 +864,24 @@ namespace PocketDb
 
                 sc.Int1 as MyScore,
 
-                (select count(1) from Transactions s indexed by Transactions_Type_Last_String4_Height
-                    where s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
+                (
+                    select count(1)
+                    from Transactions s indexed by Transactions_Type_Last_String4_Height
+                    where s.Type in (204, 205)
+                      and s.Height is not null
+                      and s.String4 = c.String2
+                      and s.Last = 1
+                      -- exclude commenters blocked by the author of the post
+                      and not exists (
+                        select 1
+                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                        where b.Type in (305)
+                            and b.Last = 1
+                            and b.Height > 0
+                            and b.String1 = t.String1
+                            and b.String2 = s.String1
+                      )
+                ) AS ChildrenCount,
 
                 o.Value as Donate
 
@@ -888,6 +904,7 @@ namespace PocketDb
                 and c.Height is not null
                 and c.Last = 1
                 and c.String3 = ?
+                -- exclude commenters blocked by the author of the post
                 and not exists (
                   select 1
                   from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
@@ -1002,8 +1019,24 @@ namespace PocketDb
 
                 sc.Int1 as MyScore,
 
-                (select count(1) from Transactions s indexed by Transactions_Type_Last_String4_Height
-                    where s.Type in (204, 205) and s.Height is not null and s.String4 = c.String2 and s.Last = 1) AS ChildrenCount,
+                (
+                    select count(1)
+                    from Transactions s indexed by Transactions_Type_Last_String4_Height
+                    where s.Type in (204, 205)
+                      and s.Height is not null
+                      and s.String4 = c.String2
+                      and s.Last = 1
+                      -- exclude commenters blocked by the author of the post
+                      and not exists (
+                        select 1
+                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                        where b.Type in (305)
+                            and b.Last = 1
+                            and b.Height > 0
+                            and b.String1 = t.String1
+                            and b.String2 = s.String1
+                      )
+                ) AS ChildrenCount,
 
                 o.Value as Donate,
 
@@ -1151,10 +1184,6 @@ namespace PocketDb
 
         if (!commentHashes.empty())
         {
-            string commentHashesWhere;
-            if (!commentHashes.empty())
-                commentHashesWhere = " and c.String2 in (" + join(vector<string>(commentHashes.size(), "?"), ",") + ")";
-
             string sql = R"sql(
                 select
                     c.String2 as RootTxHash,
@@ -1170,12 +1199,14 @@ namespace PocketDb
                     msc.Int1 AS MyScore
 
                 from Transactions c indexed by Transactions_Type_Last_String2_Height
+
                 left join Transactions msc indexed by Transactions_Type_String1_String2_Height
                     on msc.Type in (301) and msc.Height is not null and msc.String2 = c.String2 and msc.String1 = ?
+
                 where c.Type in (204, 205)
                     and c.Last = 1
                     and c.Height is not null
-                    )sql" + commentHashesWhere + R"sql(
+                    and c.String2 in ( )sql" + join(vector<string>(commentHashes.size(), "?"), ",") + R"sql( )
             )sql";
 
             TryTransactionStep(func, [&]()
@@ -1184,8 +1215,8 @@ namespace PocketDb
 
                 int i = 1;
                 TryBindStatementText(stmt, i++, addressHash);
-                for (const auto& commentHashe: commentHashes)
-                    TryBindStatementText(stmt, i++, commentHashe);
+                for (const auto& commentHash: commentHashes)
+                    TryBindStatementText(stmt, i++, commentHash);
 
                 while (sqlite3_step(*stmt) == SQLITE_ROW)
                 {
@@ -2284,17 +2315,33 @@ namespace PocketDb
                 p.String5 as Images,
                 p.String6 as Settings,
 
-                (select count(*) from Transactions scr indexed by Transactions_Type_Last_String2_Height
+                (select count() from Transactions scr indexed by Transactions_Type_Last_String2_Height
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2) as ScoresCount,
 
                 ifnull((select sum(scr.Int1) from Transactions scr indexed by Transactions_Type_Last_String2_Height
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2),0) as ScoresSum,
 
-                (select count(*) from Transactions rep indexed by Transactions_Type_Last_String3_Height
+                (select count() from Transactions rep indexed by Transactions_Type_Last_String3_Height
                     where rep.Type in (200,201) and rep.Last = 1 and rep.Height is not null and rep.String3 = t.String2) as Reposted,
 
-                (select count(*) from Transactions com indexed by Transactions_Type_Last_String3_Height
-                    where com.Type in (204,205) and com.Last = 1 and com.Height is not null and com.String3 = t.String2) as CommentsCount,
+                (
+                    select count()
+                    from Transactions s indexed by Transactions_Type_Last_String4_Height
+                    where s.Type in (204, 205)
+                      and s.Height is not null
+                      and s.String3 = t.String2
+                      and s.Last = 1
+                      -- exclude commenters blocked by the author of the post
+                      and not exists (
+                        select 1
+                        from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
+                        where b.Type in (305)
+                            and b.Last = 1
+                            and b.Height > 0
+                            and b.String1 = t.String1
+                            and b.String2 = s.String1
+                      )
+                ) AS CommentsCount,
                 
                 ifnull((select scr.Int1 from Transactions scr indexed by Transactions_Type_Last_String1_String2_Height
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String1 = ? and scr.String2 = t.String2),0) as MyScore
