@@ -1465,7 +1465,7 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetUnspents(vector<string>& addresses, int height,
+    UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height,
         vector<pair<string, uint32_t>>& mempoolInputs)
     {
         UniValue result(UniValue::VARR);

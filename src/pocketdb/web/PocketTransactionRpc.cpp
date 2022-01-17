@@ -212,14 +212,14 @@ namespace PocketWeb::PocketWebRpc
 
         // Get unspents
         vector<pair<string, uint32_t>> mempoolInputs;
-        vector<string> addresses {address};
-        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents(addresses, chainActive.Height(), mempoolInputs);
+        mempool.GetAllInputs(mempoolInputs);
+        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, chainActive.Height(), mempoolInputs);
 
         // Build inputs
         int64_t totalAmount = 0;
         UniValue _inputs(UniValue::VARR);
         int i = 0;
-        while ((totalAmount + outputCount) <= fee && i < unsp.size())
+        while (totalAmount <= (fee + outputCount) && i < unsp.size())
         {
             totalAmount += unsp[i]["amountSat"].get_int64();
             _inputs.push_back(unsp[i]);
@@ -234,7 +234,7 @@ namespace PocketWeb::PocketWebRpc
         {
             returned -= chunkAmount;
             UniValue _output_address(UniValue::VOBJ);
-            _output_address.pushKV(address, (i + 1 == outputCount ? returned : chunkAmount));
+            _output_address.pushKV(address, chunkAmount + (i + 1 == outputCount ? returned : 0));
             _outputs.push_back(_output_address);
         }
 
