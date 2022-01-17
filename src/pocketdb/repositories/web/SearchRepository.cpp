@@ -174,7 +174,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                t.String2 address,
+                recommendation.address,
                 p.String2 as name,
                 p.String3 as avatar
 
@@ -189,26 +189,30 @@ namespace PocketDb
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
                 ) as SubscribersCount
-
-            from Transactions t indexed by Transactions_Type_Last_String1_String2_Height
-            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = t.String2
-            cross join Payload p on p.TxHash = u.Hash
-            where t.Last = 1
-                and t.Type in (302,303)
-                and t.Height is not null
-                and t.String2 != ?
-                and t.String1 in (select s.String1
-                                  from Transactions s indexed by Transactions_Type_Last_String2_Height
-                                  where s.Type in (302,303)
-                                    and s.Last = 1
-                                    and s.Height is not null
-                                    and s.String2 = ?)
-                and u.Type in (100,101,102)
-                and u.Last=1
-                and u.Height is not null
+            from (
+                select
+                    t.String2 address
+                from Transactions t indexed by Transactions_Type_Last_String1_String2_Height
+                where t.Last = 1
+                    and t.Type in (302,303)
+                    and t.Height is not null
+                    and t.String2 != ?
+                    and t.String1 in (select s.String1
+                                      from Transactions s indexed by Transactions_Type_Last_String2_Height
+                                      where s.Type in (302,303)
+                                        and s.Last = 1
+                                        and s.Height is not null
+                                        and s.String2 = ?)
                 group by t.String2
                 order by count(*) desc
                 limit ?
+            )recommendation
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = recommendation.address
+                and u.Type in (100,101,102)
+                and u.Last=1
+                and u.Height is not null
+            cross join Payload p on p.TxHash = u.Hash
+
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -248,7 +252,7 @@ namespace PocketDb
         string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
 
         string sql = R"sql(
-            select tOtherContents.String1 as address,
+            select recommendation.address,
                    p.String2              as name,
                    p.String3              as avatar
 
@@ -263,46 +267,49 @@ namespace PocketDb
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
                 ) as SubscribersCount
-
-            from Transactions tOtherContents
-                     indexed by Transactions_Type_Last_String1_String2_Height
-                     cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                                on u.String1 = tOtherContents.String1
-                     cross join Payload p on p.TxHash = u.Hash
-            where tOtherContents.String2 in (
-                select tOtherLikes.String2 as OtherLikedContent
-                from Transactions tOtherlikes
-                where tOtherLikes.String1 in (
-                    select tLikes.String1 as Liker
-                    from Transactions tLikes
-                    where tLikes.String2 in (
-                        select tContents.String2 as BloggerContent
-                        from Transactions tContents
-                        where tContents.Type in ( )sql" + contentTypesFilter + R"sql( )
-                          and tContents.Last = 1
-                          and tContents.String1 = ?
-                          and tContents.Height >= ?
+            from (
+                select
+                    tOtherContents.String1 as address
+                from Transactions tOtherContents
+                         indexed by Transactions_Type_Last_String1_String2_Height
+                where tOtherContents.String2 in (
+                    select tOtherLikes.String2 as OtherLikedContent
+                    from Transactions tOtherlikes
+                    where tOtherLikes.String1 in (
+                        select tLikes.String1 as Liker
+                        from Transactions tLikes
+                        where tLikes.String2 in (
+                            select tContents.String2 as BloggerContent
+                            from Transactions tContents
+                            where tContents.Type in ( )sql" + contentTypesFilter + R"sql( )
+                              and tContents.Last = 1
+                              and tContents.String1 = ?
+                              and tContents.Height >= ?
+                        )
+                          and tLikes.Type in (300)
+                          and tLikes.Last in (1, 0)
+                          and tLikes.Int1 > 3
+                          and tLikes.Height >= ?
                     )
-                      and tLikes.Type in (300)
-                      and tLikes.Last in (1, 0)
-                      and tLikes.Int1 > 3
-                      and tLikes.Height >= ?
+                      and tOtherLikes.Type in (300)
+                      and tOtherLikes.Last in (1, 0)
+                      and tOtherLikes.Int1 > 3
+                      and tOtherLikes.Height >= ?
                 )
-                  and tOtherLikes.Type in (300)
-                  and tOtherLikes.Last in (1, 0)
-                  and tOtherLikes.Int1 > 3
-                  and tOtherLikes.Height >= ?
-            )
-              and tOtherContents.Type in ( )sql" + contentTypesFilter + R"sql( )
-              and tOtherContents.String1 != ?
-              and tOtherContents.Last = 1
-              and tOtherContents.Height >= ?
-              and u.Type in (100,101,102)
-              and u.Last=1
-              and u.Height is not null
-            group by tOtherContents.String1
-            order by count(*) desc
-            limit ?
+                  and tOtherContents.Type in ( )sql" + contentTypesFilter + R"sql( )
+                  and tOtherContents.String1 != ?
+                  and tOtherContents.Last = 1
+                  and tOtherContents.Height >= ?
+                group by tOtherContents.String1
+                order by count(*) desc
+                limit ?
+            )recommendation
+             cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                      on u.String1 = recommendation.address
+                      and u.Type in (100,101,102)
+                      and u.Last=1
+                      and u.Height is not null
+             cross join Payload p on p.TxHash = u.Hash
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -350,7 +357,7 @@ namespace PocketDb
         string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
 
         string sql = R"sql(
-            select tOtherContents.String1 as address,
+            select recommendation.address,
                    p.String2              as name,
                    p.String3              as avatar
 
@@ -365,46 +372,49 @@ namespace PocketDb
                     from Transactions subs indexed by Transactions_Type_Last_String2_Height
                     where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
                 ) as SubscribersCount
-
-            from Transactions tOtherContents
-                     indexed by Transactions_Type_Last_String2_Height
-                     join Transactions u on u.String1 = tOtherContents.String1
-                     join Payload p on p.TxHash = u.Hash
-            where tOtherContents.String2 in (
-                select tOtherLikes.String2 as OtherLikedContent
-                from Transactions tOtherlikes
-                where tOtherLikes.String1 in (
-                    select tLikes.String1 as Liker
-                    from Transactions tLikes
-                    where tLikes.String2 in (
-                        select tAddressLikes.String2 as ContentsLikedByAddress
-                        from Transactions tAddressLikes
-                        where tAddressLikes.String1 = ?
-                          and tAddressLikes.Type in (300)
-                          and tAddressLikes.Last in (1, 0)
-                          and tAddressLikes.Int1 > 3
-                          and tAddressLikes.Height >= ?
+            from (
+                select
+                        tOtherContents.String1 as address
+                from Transactions tOtherContents
+                         indexed by Transactions_Type_Last_String2_Height
+                where tOtherContents.String2 in (
+                    select tOtherLikes.String2 as OtherLikedContent
+                    from Transactions tOtherlikes
+                    where tOtherLikes.String1 in (
+                        select tLikes.String1 as Liker
+                        from Transactions tLikes
+                        where tLikes.String2 in (
+                            select tAddressLikes.String2 as ContentsLikedByAddress
+                            from Transactions tAddressLikes
+                            where tAddressLikes.String1 = ?
+                              and tAddressLikes.Type in (300)
+                              and tAddressLikes.Last in (1, 0)
+                              and tAddressLikes.Int1 > 3
+                              and tAddressLikes.Height >= ?
+                        )
+                          and tLikes.Type in (300)
+                          and tLikes.Last in (1, 0)
+                          and tLikes.Int1 > 3
+                          and tLikes.Height >= ?
                     )
-                      and tLikes.Type in (300)
-                      and tLikes.Last in (1, 0)
-                      and tLikes.Int1 > 3
-                      and tLikes.Height >= ?
+                      and tOtherLikes.Type in (300)
+                      and tOtherLikes.Last in (1, 0)
+                      and tOtherLikes.Int1 > 3
+                      and tOtherLikes.Height >= ?
                 )
-                  and tOtherLikes.Type in (300)
-                  and tOtherLikes.Last in (1, 0)
-                  and tOtherLikes.Int1 > 3
-                  and tOtherLikes.Height >= ?
-            )
-              and tOtherContents.Type in ( )sql" + contentTypesFilter + R"sql( )
-              and tOtherContents.String1 != ?
-              and tOtherContents.Last = 1
-              and tOtherContents.Height >= ?
-              and u.Type in (100,101,102)
-              and u.Last=1
-              and u.Height is not null
-            group by tOtherContents.String1
-            order by count(*) desc
-            limit ?
+                  and tOtherContents.Type in ( )sql" + contentTypesFilter + R"sql( )
+                  and tOtherContents.String1 != ?
+                  and tOtherContents.Last = 1
+                  and tOtherContents.Height >= ?
+                group by tOtherContents.String1
+                order by count(*) desc
+                limit ?
+            )recommendation
+            cross join Transactions u on u.String1 = recommendation.address
+                    and u.Type in (100,101,102)
+                    and u.Last=1
+                    and u.Height is not null
+            cross join Payload p on p.TxHash = u.Hash
         )sql";
 
         TryTransactionStep(__func__, [&]()
