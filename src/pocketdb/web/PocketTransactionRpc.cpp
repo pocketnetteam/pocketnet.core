@@ -223,15 +223,18 @@ namespace PocketWeb::PocketWebRpc
         {
             totalAmount += unsp[i]["amountSat"].get_int64();
             _inputs.push_back(unsp[i]);
+            i += 1;
         }
 
         // Build outputs
         UniValue _outputs(UniValue::VARR);
-        auto chunkAmount = (totalAmount - fee) / outputCount;
+        int64_t returned = totalAmount - fee;
+        int64_t chunkAmount = (totalAmount - fee) / outputCount;
         for (int i = 0; i < outputCount; i++)
         {
+            returned -= chunkAmount;
             UniValue _output_address(UniValue::VOBJ);
-            _output_address.pushKV(address, chunkAmount - (i + 1 == outputCount ? 1 : 0));
+            _output_address.pushKV(address, (i + 1 == outputCount ? returned : chunkAmount));
             _outputs.push_back(_output_address);
         }
 
@@ -276,9 +279,12 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
+        const uint256& txid = tx->GetHash();
+
         promise<void> promise;
         CAmount nMaxRawTxFee = maxTxFee;
-        const uint256& txid = tx->GetHash();
+        if (*ptx->GetType() == PocketTx::BOOST_CONTENT)
+            nMaxRawTxFee = 0;
 
         { // cs_main scope
             LOCK(cs_main);
