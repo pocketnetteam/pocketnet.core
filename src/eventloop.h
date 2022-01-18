@@ -37,7 +37,7 @@ public:
     void Interrupt()
     {
         m_fRunning = false;
-        m_cv.notify_one();
+        m_cv.notify_all();
     }
 private:
     std::atomic_bool m_fRunning{true};
