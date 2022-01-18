@@ -341,6 +341,7 @@ add_library(${POCKETCOIN_COMMON}
         undo.h
         span.h
         prevector.h
+        protectedmap.h
         compat.h
         compat/byteswap.h
         compat/endian.h

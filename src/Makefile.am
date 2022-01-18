@@ -339,6 +339,7 @@ POCKETCOIN_CORE_H = \
     policy/rbf.h \
     pos.h \
     pow.h \
+    protectedmap.h \
     protocol.h \
     random.h \
     reverse_iterator.h \
