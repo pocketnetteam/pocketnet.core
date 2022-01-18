@@ -2591,7 +2591,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Extend WEB database
-    if (gArgs.GetBoolArg("-api", false) && enablePocketConnect)
+    if (gArgs.GetBoolArg("-api", true) && enablePocketConnect)
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
 
     // -----------------------------------------------------------------------------------------------------------------

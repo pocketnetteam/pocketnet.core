@@ -604,29 +604,23 @@ void SetupServerArgs()
     gArgs.AddArg("-publicrpcport=<port>", strprintf("Listen for public JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->PublicRPCPort(), testnetBaseParams->PublicRPCPort(), regtestBaseParams->PublicRPCPort()), false, OptionsCategory::RPC);
     gArgs.AddArg("-staticrpcport=<port>", strprintf("Listen for static JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->StaticRPCPort(), testnetBaseParams->StaticRPCPort(), regtestBaseParams->StaticRPCPort()), false, OptionsCategory::RPC);
     gArgs.AddArg("-restport=<port>", strprintf("Listen for static REST connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->RestPort(), testnetBaseParams->RestPort(), regtestBaseParams->RestPort()), false, OptionsCategory::RPC);
+    gArgs.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), false, OptionsCategory::RPC);
+
     gArgs.AddArg("-rpcserialversion", strprintf("Sets the serialization of raw transaction or block hex returned in non-verbose mode, non-segwit(0) or segwit(1) (default: %d)", DEFAULT_RPC_SERIALIZE_VERSION), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT), true, OptionsCategory::RPC);
-
     gArgs.AddArg("-rpcthreads=<n>", strprintf("Set the number of threads to service RPC (MAIN) calls (default: %d)", DEFAULT_HTTP_THREADS), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcpublicthreads=<n>", strprintf("Set the number of threads to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_THREADS), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcstaticthreads=<n>", strprintf("Set the number of threads to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_THREADS), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcpostthreads=<n>", strprintf("Set the number of threads to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_THREADS), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcrestthreads=<n>", strprintf("Set the number of threads to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_THREADS), false, OptionsCategory::RPC);
-
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::RPC);
-
     gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcpublicworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (PUBLIC) calls (default: %d)", DEFAULT_HTTP_PUBLIC_WORKQUEUE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcstaticworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcpostworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcrestworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_WORKQUEUE), false, OptionsCategory::RPC);
-
     gArgs.AddArg("-statdepth=<n>", strprintf("Set the depth of the work queue for statistic in seconds (default: %ds)", 60), false, OptionsCategory::RPC);
-
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
-
-    gArgs.AddArg("-wsuse", "Accept WebSocket connections", false, OptionsCategory::RPC);
-    gArgs.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), false, OptionsCategory::RPC);
 
     // SQLite
     gArgs.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), false, OptionsCategory::SQLITE);
@@ -872,7 +866,7 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         }
 
         // .. only web DB
-        if (fReindex == 5 && gArgs.GetBoolArg("-api", false))
+        if (fReindex == 5 && gArgs.GetBoolArg("-api", true))
         {
             LogPrintf("Building a Web database: 0%%\n");
 
@@ -1729,7 +1723,7 @@ bool AppInitMain()
 
     PocketWeb::PocketFrontendInst.Init();
 
-    if (gArgs.GetBoolArg("-api", false))
+    if (gArgs.GetBoolArg("-api", true))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     // ********************************************************* Step 4b: Additional settings
@@ -2290,7 +2284,7 @@ bool AppInitMain()
     // ********************************************************* Step 13: finished
 
     // Start WebSocket server
-    if (gArgs.GetBoolArg("-wsuse", false)) InitWS();
+    if (gArgs.GetBoolArg("-api", true)) InitWS();
 
     gStatEngineInstance.Run(threadGroup);
 
