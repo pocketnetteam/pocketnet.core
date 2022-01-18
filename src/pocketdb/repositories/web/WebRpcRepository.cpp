@@ -2326,7 +2326,7 @@ namespace PocketDb
 
                 (
                     select count()
-                    from Transactions s indexed by Transactions_Type_Last_String4_Height
+                    from Transactions s indexed by Transactions_Type_Last_String3_Height
                     where s.Type in (204, 205)
                       and s.Height is not null
                       and s.String3 = t.String2
