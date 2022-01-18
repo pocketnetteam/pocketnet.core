@@ -19,7 +19,7 @@ namespace PocketDb
             from Transactions p indexed by Transactions_BlockHash
             join Payload pp on pp.TxHash = p.Hash
             join json_each(pp.String4)
-            where p.Type in (200, 201)
+            where p.Type in (200, 201, 202)
               and p.Last = 1
               and p.BlockHash = ?
         )sql";
@@ -121,7 +121,7 @@ namespace PocketDb
             from Transactions t indexed by Transactions_BlockHash
             join Payload p on p.TxHash = t.Hash
             where t.BlockHash = ?
-              and t.Type in (100, 101, 102, 200, 201, 204, 205)
+              and t.Type in (100, 101, 102, 200, 201, 202, 204, 205)
        )sql";
        
        TryTransactionStep(__func__, [&]()
@@ -174,6 +174,10 @@ namespace PocketDb
                     //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
 
                     break;
+                
+                // TODO (brangr): parse JSON for indexing
+                // case CONTENT_ARTICLE:
+
                 // case CONTENT_COMMENT:
                 // case CONTENT_COMMENT_EDIT:
 

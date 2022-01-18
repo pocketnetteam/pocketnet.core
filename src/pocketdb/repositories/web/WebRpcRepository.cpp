@@ -1586,7 +1586,7 @@ namespace PocketDb
                    count(*) as cnt
             from Transactions c
             join Payload p on p.TxHash = c.Hash
-            where c.Type in (200, 201)
+            where c.Type in (200, 201, 202)
               and c.Last = 1
               and c.Height is not null
               and c.Height > ?
@@ -1630,7 +1630,7 @@ namespace PocketDb
         string sqlCount = R"sql(
             select count(*)
             from Transactions
-            where Type in (200, 201)
+            where Type in (200, 201, 202)
               and Last = 1
               and Height is not null
               and Height > ?
@@ -1658,7 +1658,7 @@ namespace PocketDb
                        Time,
                        Height
                 from Transactions
-                where Type in (200, 201)
+                where Type in (200, 201, 202)
                   and Last = 1
                   and Height is not null
                   and Height > ?
@@ -1726,7 +1726,7 @@ namespace PocketDb
             left join Ratings r indexed by Ratings_Type_Id_Last_Height
                 on r.Type = 2 and r.Last = 1 and r.Id = t.Id
 
-            where t.Type in (200, 201)
+            where t.Type in (200, 201, 202)
                 and t.Last = 1
                 and t.String1 = ?
             order by t.Height desc
@@ -1784,7 +1784,7 @@ namespace PocketDb
                 r.Height
             from Transactions r
             join Transactions p on p.Hash = r.String3 and p.String1 = ?
-            where r.Type in (200, 201)
+            where r.Type in (200, 201, 202)
               and r.Last = 1
               and r.Height is not null
               and r.Height > ?
@@ -1832,7 +1832,7 @@ namespace PocketDb
             from Transactions c indexed by Transactions_Type_Last_String1_Height_Id
             join Transactions s indexed by Transactions_Type_Last_String2_Height
                 on s.Type in (300) and s.Last in (0,1) and s.String2 = c.String2 and s.Height is not null and s.Height > ?
-            where c.Type in (200, 201)
+            where c.Type in (200, 201, 202)
               and c.Last = 1
               and c.Height is not null
               and c.String1 = ?
@@ -2060,7 +2060,7 @@ namespace PocketDb
             from Transactions p indexed by Transactions_Type_Last_String1_String2_Height
             join Transactions c indexed by Transactions_Type_Last_String3_Height
                 on c.Type in (204, 205) and c.Height > ? and c.Last = 1 and c.String3 = p.String2 and c.String1 != p.String1
-            where p.Type in (200, 201)
+            where p.Type in (200, 201, 202)
               and p.Last = 1
               and p.Height is not null
               and p.String1 = ?
@@ -2348,8 +2348,7 @@ namespace PocketDb
 
             from Transactions t indexed by Transactions_Last_Id_Height
             left join Payload p on t.Hash = p.TxHash
-            where t.Type in (200, 201, 207)
-              and t.Height is not null
+            where t.Height is not null
               and t.Last = 1
               and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
         )sql";
