@@ -35,6 +35,8 @@
 #include <script/sigcache.h>
 #include <script/standard.h>
 #include <shutdown.h>
+#include <eventloop.h>
+#include <websocket/notifyprocessor.h>
 #ifdef ENABLE_WALLET
 #include <staker.h>
 #endif
@@ -88,6 +90,9 @@ std::unique_ptr<CConnman> g_connman;
 std::unique_ptr<PeerLogicValidation> peerLogic;
 Statistic::RequestStatEngine gStatEngineInstance;
 
+std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
+std::shared_ptr<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>> notifyClientsThread;
+std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -234,6 +239,9 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroup.interrupt_all();
     threadGroup.join_all();
+    if (notifyClientsThread) {
+        notifyClientsThread->Stop();
+    }
 
     // After the threads that potentially access these pointers have been stopped,
     // destruct and reset all to nullptr.
@@ -1559,16 +1567,12 @@ static void StartWS()
                     if (std::find(keys.begin(), keys.end(), "nonce") != keys.end())
                     {
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
-
-                        boost::lock_guard<boost::mutex> guard(WSMutex);
-                        WSConnections.erase(connection->ID());
-                        WSConnections.insert_or_assign(connection->ID(), wsUser);
+                        WSConnections->insert_or_assign(connection->ID(), wsUser);
                     } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
-                            boost::lock_guard<boost::mutex> guard(WSMutex);
-                            WSConnections.erase(connection->ID());
+                            WSConnections->erase(connection->ID());
                         }
                     }
                 }
@@ -1590,20 +1594,12 @@ static void StartWS()
 
     ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/)
     {
-        boost::lock_guard<boost::mutex> guard(WSMutex);
-        if (WSConnections.find(connection->ID()) != WSConnections.end())
-        {
-            WSConnections.erase(connection->ID());
-        }
+        WSConnections->erase(connection->ID());
     };
 
     ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec)
     {
-        boost::lock_guard<boost::mutex> guard(WSMutex);
-        if (WSConnections.find(connection->ID()) != WSConnections.end())
-        {
-            WSConnections.erase(connection->ID());
-        }
+        WSConnections->erase(connection->ID());
     };
 
     server.start();
@@ -1611,6 +1607,11 @@ static void StartWS()
 
 static void InitWS()
 {
+    WSConnections = std::make_shared<ProtectedMap<std::string, WSUser>>();
+    auto notifyProcessor = std::make_shared<NotifyBlockProcessor>(WSConnections);
+    notifyClientsQueue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
+    notifyClientsThread = std::make_shared<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>(notifyClientsQueue, notifyProcessor);
+    notifyClientsThread->Start();
     std::thread server_thread(&StartWS);
     server_thread.detach();
 }
