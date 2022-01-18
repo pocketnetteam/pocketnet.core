@@ -330,6 +330,7 @@ endif ()
 set(POCKETCOIN_COMMON pocketcoin_common)
 add_library(${POCKETCOIN_COMMON}
         cuckoocache.h
+        eventloop.h
         indirectmap.h
         limitedmap.h
         memusage.h
