@@ -182,9 +182,15 @@ public:
      */
     void Stop()
     {
+        if (!m_fRunning) {
+            // Already stopped
+            return;
+        }
         m_fRunning = false;
         m_queue->Interrupt();
-        m_thread.join();
+        if (m_thread.joinable()) {
+            m_thread.join();
+        }
     }
 
     ~QueueEventLoopThread()
