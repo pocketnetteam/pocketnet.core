@@ -1,6 +1,8 @@
 #ifndef POCKETCOIN_EVENTLOOP_H
 #define POCKETCOIN_EVENTLOOP_H
 
+#include <util.h>
+
 #include <functional>
 #include <queue>
 #include <mutex>
@@ -8,6 +10,7 @@
 #include <memory>
 #include <atomic>
 #include <thread>
+#include <optional>
 
 
 /**
@@ -111,10 +114,13 @@ public:
         m_queueProcessor = std::move(queueProcessor);
     }
 
-    void Start()
+    void Start(std::optional<std::string> name = std::nullopt)
     {
         m_fRunning = true;
-        m_thread = std::thread([&fRunning = m_fRunning, queue = m_queue, queueProcessor = m_queueProcessor](){
+        m_thread = std::thread([name, &fRunning = m_fRunning, queue = m_queue, queueProcessor = m_queueProcessor](){
+            if (name) {
+                RenameThread(name->c_str());
+            }
             while (fRunning) {
                 T entry;
                 auto res = queue->GetNext(entry);
