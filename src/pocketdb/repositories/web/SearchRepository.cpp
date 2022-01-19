@@ -460,19 +460,21 @@ namespace PocketDb
         string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
 
         string sql = R"sql(
-            select tOtherLikes.String2 OtherScoredContent, count(*) cnt
-            from Transactions OtherRaters
+            select OtherRaters.String2 OtherScoredContent, count(*) cnt
+            from Transactions OtherRaters indexed by Transactions_Type_Last_String1_Height_Id
+            cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
+                on OtherRaters.String2 = Contents.String2 and Contents.Last = 1 and Contents.Type in ( )sql" + contentTypesFilter + R"sql( ) and Contents.Height > 0
             where OtherRaters.Type in (300)
               and OtherRaters.Int1 > 3
               and OtherRaters.Last in (1, 0)
               and OtherRaters.Height >= (select Height
-                                         from Transactions
+                                         from Transactions indexed by Transactions_Type_Last_String2_Height
                                          where Type in ( )sql" + contentTypesFilter + R"sql( )
                                            and String2 = ?
                                            and Last = 1) - ?
               and OtherRaters.String1 in (
                 select String1 as Rater
-                from Transactions Raters
+                from Transactions Raters indexed by Transactions_Type_Last_String2_Height
                 where Raters.Type in (300)
                   and Raters.Int1 > 3
                   and Raters.String2 = ?
@@ -489,6 +491,8 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
 
             int i = 1;
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
             TryBindStatementText(stmt, i++, contentid);
@@ -522,13 +526,15 @@ namespace PocketDb
 
         string sql = R"sql(
             select OtherRaters.String2 as OtherScoredContent, count(*) cnt
-            from Transactions OtherRaters
-            where tOtherLikes.String1 in (
+            from Transactions OtherRaters indexed by Transactions_Type_Last_String1_Height_Id
+            cross join Transactions Contents indexed by Transactions_Type_Last_String2_Height
+                on OtherRaters.String2 = Contents.String2 and Contents.Last = 1 and Contents.Type in ( )sql" + contentTypesFilter + R"sql( ) and Contents.Height > 0
+            where OtherRaters.String1 in (
                 select Scores.String1 as Rater
-                from Transactions Scores
+                from Transactions Scores indexed by Transactions_Type_Last_String2_Height
                 where Scores.String2 in (
                     select addressScores.String2 as ContentsScoredByAddress
-                    from Transactions addressScores
+                    from Transactions addressScores indexed by Transactions_Type_Last_String1_Height_Id
                     where addressScores.String1 = ?
                       and addressScores.Type in (300)
                       and addressScores.Last in (1, 0)
@@ -548,36 +554,29 @@ namespace PocketDb
             order by count(*) desc
             limit ?
         )sql";
-        //and Type in ( )sql" + contentTypesFilter + R"sql( )
-        //
-        // TryTransactionStep(__func__, [&]()
-        // {
-        //     auto stmt = SetupSqlStatement(sql);
-        //
-        //     int i = 1;
-        //     TryBindStatementText(stmt, i++, address);
-        //     TryBindStatementInt(stmt, i++, nHeight - depth);
-        //     TryBindStatementInt(stmt, i++, nHeight - depth);
-        //     TryBindStatementInt(stmt, i++, nHeight - depth);
-        //     for (const auto& contenttype: contentTypes)
-        //         TryBindStatementInt(stmt, i++, contenttype);
-        //     TryBindStatementText(stmt, i++, address);
-        //     TryBindStatementInt(stmt, i++, nHeight - depth);
-        //     TryBindStatementInt(stmt, i++, cntOut);
-        //
-        //     while (sqlite3_step(*stmt) == SQLITE_ROW)
-        //     {
-        //         UniValue record(UniValue::VOBJ);
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
-        //         if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
-        //         if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
-        //         result.push_back(record);
-        //     }
-        //
-        //     FinalizeSqlStatement(*stmt);
-        // });
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& contenttype: contentTypes)
+               TryBindStatementInt(stmt, i++, contenttype);
+            TryBindStatementText(stmt, i++, address);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
+            TryBindStatementInt(stmt, i++, cntOut);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("contentid", value);
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
 
         return result;
     }
