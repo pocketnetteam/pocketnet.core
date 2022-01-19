@@ -78,6 +78,7 @@ public:
 
     size_t Size()
     {
+        std::unique_lock<std::mutex> lock(m_mutex);
         return m_queue.size();
     }
 protected:
