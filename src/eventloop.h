@@ -186,6 +186,11 @@ public:
         m_thread.join();
     }
 
+    ~QueueEventLoopThread()
+    {
+        Stop();
+    }
+
 private:
     std::thread m_thread;
     std::shared_ptr<Queue<T>> m_queue;
