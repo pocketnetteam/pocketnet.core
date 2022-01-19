@@ -13,6 +13,7 @@
 #include <optional>
 
 
+// TODO (losty-fur): interface for queue
 /**
  * Thread safe queue class
  * 
