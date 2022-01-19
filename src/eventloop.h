@@ -79,7 +79,7 @@ public:
     size_t Size()
     {
         std::unique_lock<std::mutex> lock(m_mutex);
-        return m_queue.size();
+        return _Size();
     }
 protected:
     // Override following methods to define special queue restrictions, e.x. max queue length.
@@ -91,6 +91,10 @@ protected:
     }
     virtual bool GetPostConditionCheck() {
         return true;
+    }
+    size_t _Size()
+    {
+        return m_queue.size();
     }
 private:
     std::queue<T> m_queue;
@@ -108,7 +112,7 @@ public:
 protected:
     bool AddConditionCheck() override
     {
-        return this->Size() < m_maxDepth;
+        return this->_Size() < m_maxDepth;
     }   
 private:
     size_t m_maxDepth;
