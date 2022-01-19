@@ -460,26 +460,26 @@ namespace PocketDb
         string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
 
         string sql = R"sql(
-            select tOtherLikes.String2 OtherLikedPost, count(*) cnt
-            from Transactions tOtherLikes
-            where tOtherLikes.Type in (300)
-              and tOtherLikes.Int1 > 3
-              and Last in (1, 0)
-              and tOtherLikes.Height >= (select Height
+            select tOtherLikes.String2 OtherScoredContent, count(*) cnt
+            from Transactions OtherRaters
+            where OtherRaters.Type in (300)
+              and OtherRaters.Int1 > 3
+              and OtherRaters.Last in (1, 0)
+              and OtherRaters.Height >= (select Height
                                          from Transactions
                                          where Type in ( )sql" + contentTypesFilter + R"sql( )
                                            and String2 = ?
                                            and Last = 1) - ?
-              and String1 in (
-                select String1 as Liker
-                from Transactions tLikes
-                where tLikes.Type in (300)
-                  and tLikes.Int1 > 3
-                  and tLikes.String2 = ?
-                  and tLikes.Last in (1, 0)
+              and OtherRaters.String1 in (
+                select String1 as Rater
+                from Transactions Raters
+                where Raters.Type in (300)
+                  and Raters.Int1 > 3
+                  and Raters.String2 = ?
+                  and Raters.Last in (1, 0)
             )
-              and tOtherLikes.String2 != ?
-            group by tOtherLikes.String2
+              and OtherRaters.String2 != ?
+            group by OtherRaters.String2
             order by count(*) desc
             limit ?
         )sql";
@@ -520,9 +520,35 @@ namespace PocketDb
 
         string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
 
-        // string sql = R"sql(
-        //       and Type in ( )sql" + contentTypesFilter + R"sql( )
-        // )sql";
+        string sql = R"sql(
+            select OtherRaters.String2 as OtherScoredContent, count(*) cnt
+            from Transactions OtherRaters
+            where tOtherLikes.String1 in (
+                select Scores.String1 as Rater
+                from Transactions Scores
+                where Scores.String2 in (
+                    select addressScores.String2 as ContentsScoredByAddress
+                    from Transactions addressScores
+                    where addressScores.String1 = ?
+                      and addressScores.Type in (300)
+                      and addressScores.Last in (1, 0)
+                      and addressScores.Int1 > 3
+                      and addressScores.Height >= ?
+                )
+                  and Scores.Type in (300)
+                  and Scores.Last in (1, 0)
+                  and Scores.Int1 > 3
+                  and Scores.Height >= ?
+            )
+              and OtherRaters.Type in (300)
+              and OtherRaters.Last in (1, 0)
+              and OtherRaters.Int1 > 3
+              and OtherRaters.Height >= ?
+            group by OtherRaters.String2
+            order by count(*) desc
+            limit ?
+        )sql";
+        //and Type in ( )sql" + contentTypesFilter + R"sql( )
         //
         // TryTransactionStep(__func__, [&]()
         // {
