@@ -1,6 +1,7 @@
 #ifndef POCKETCOIN_EVENTLOOP_H
 #define POCKETCOIN_EVENTLOOP_H
 
+#include <functional>
 #include <queue>
 #include <mutex>
 #include <condition_variable>
@@ -8,17 +9,33 @@
 #include <atomic>
 #include <thread>
 
+
+/**
+ * Thread safe queue class
+ * 
+ * @tparam T - queue entry
+ */
 template<class T>
 class Queue
 {
 public:
+    /**
+    * Pop the next object from queue.
+    * If queue is empty - blocks current thread until new value comes to queue
+    * 
+    * @param out - poped element
+    * @return true if element was filled
+    * @return false if element was not filled
+    */
     bool GetNext(T& out)
     {
         std::unique_lock<std::mutex> lock(m_mutex);
-        while (m_fRunning && m_queue.empty()) {
+        if (m_queue.empty()) {
             m_cv.wait(lock);
         }
-        if (!m_fRunning || m_queue.empty()) {
+        if (m_queue.empty()) {
+            // Just return false because if we are here - queue waiting was interrupted and wi need to unblock waiting threads.
+            // False indicates that there is no out value and thread can call GetNext() again if it was not expected to interrupt.
             return false;
         }
         out = std::forward<T>(m_queue.front());
@@ -36,20 +53,53 @@ public:
     }
     void Interrupt()
     {
-        m_fRunning = false;
+        // This just simply unblocks all threads that are waiting for value.
+        // If there are multiple threads working with a single queue this will have the following workflow:
+        // 1) All threads that are waiting in GetNext() will be unblocked.
+        // 2) Threads that are not going to be stopped will again call GetNext() and continue waiting for value
+        // 3) Thread that calls this method and want to stop will be unblocked and able to end queue processing
+        //    by not call GetNext() again.
         m_cv.notify_all();
     }
 private:
-    std::atomic_bool m_fRunning{true};
     std::queue<T> m_queue;
     std::mutex m_mutex;
     std::condition_variable m_cv;
 };
 
+/**
+ * Queue processor that will be called on every queue element
+ * in an event loop. Concrete processor should inherit this interface and DI into
+ * QueueEventLoopThread so event loop will use it ti process new queue entries.
+ * 
+ * @tparam T 
+ */
 template<class T>
 class IQueueProcessor {
 public:
     virtual void Process(T entry) = 0;
+};
+
+/**
+ * Functional based queue processor that accepts functor in ctor and simply delegates all
+ * entry procession to it
+ * 
+ * @tparam T 
+ */
+template<class T>
+class FunctionalBaseQueueProcessor : public IQueueProcessor<T>
+{
+public:
+    explicit FunctionalBaseQueueProcessor(std::function<void(T)> func)
+        : m_func(std::move(func))
+    {}
+
+    void Process(T entry) override
+    {
+        m_func(std::forward<T>(entry));
+    }
+private:
+    std::function<void(T)> m_func;
 };
 
 template<class T>
@@ -68,13 +118,18 @@ public:
             while (fRunning) {
                 T entry;
                 auto res = queue->GetNext(entry);
-                if (res) {
+                // If res is false - someone else interrupts queue and if current thread still wants to run just call GetNext() again
+                if (res && fRunning) {
                     queueProcessor->Process(std::forward<T>(entry));
                 }
             }
         });
     }
 
+    /**
+     * Stopping and joining current thread.
+     * Affects only current thread and still allows other threads process queue
+     */
     void Stop()
     {
         m_fRunning = false;
