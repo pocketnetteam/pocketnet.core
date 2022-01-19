@@ -33,6 +33,9 @@ public:
     bool GetNext(T& out)
     {
         std::unique_lock<std::mutex> lock(m_mutex);
+        if (!GetPostConditionCheck()) {
+            return false;
+        }
         if (m_queue.empty()) {
             m_cv.wait(lock);
         }
@@ -41,18 +44,25 @@ public:
             // False indicates that there is no out value and thread can call GetNext() again if it was not expected to interrupt.
             return false;
         }
+        if (!GetPostConditionCheck()) {
+            return false;
+        }
         out = std::forward<T>(m_queue.front());
         m_queue.pop();
         return true;
     }
 
-    void Add(T entry)
+    bool Add(T entry)
     {
         {
             std::unique_lock<std::mutex> lock(m_mutex);
+            if (!AddConditionCheck()) {
+                return false;
+            }
             m_queue.push(std::forward<T>(entry));
         }
         m_cv.notify_one();
+        return true;
     }
     void Interrupt()
     {
@@ -64,10 +74,42 @@ public:
         //    by not call GetNext() again.
         m_cv.notify_all();
     }
+
+    size_t Size()
+    {
+        return m_queue.size();
+    }
+protected:
+    // Override following methods to define special queue restrictions, e.x. max queue length.
+    virtual bool AddConditionCheck() {
+        return true;
+    }
+    virtual bool GetPreconditionCheck() {
+        return true;
+    }
+    virtual bool GetPostConditionCheck() {
+        return true;
+    }
 private:
     std::queue<T> m_queue;
     std::mutex m_mutex;
     std::condition_variable m_cv;
+};
+
+template<class T>
+class QueueLimited : public Queue<T>
+{
+public:
+    QueueLimited(size_t _maxDepth)
+        : m_maxDepth(std::move(_maxDepth))
+    {}
+protected:
+    bool AddConditionCheck() override
+    {
+        return this->Size() < m_maxDepth;
+    }   
+private:
+    size_t m_maxDepth;
 };
 
 /**
