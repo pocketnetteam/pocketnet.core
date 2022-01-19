@@ -244,6 +244,9 @@ namespace PocketDb {
                             txOut.pushKV("scriptPubKey", scriptPubKey);
                         }
 
+                        if (auto [ok, spentheight] = TryGetColumnInt(*stmt, 10); ok)
+                            txOut.pushKV("spent", spentheight);
+
                         get<2>(txs[hash]).push_back(txOut);
                     }
                 }
@@ -303,14 +306,13 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select t.Hash, ptxs.RowNum, t.Type, t.Height, t.BlockHash, t.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey
+                select t.Hash, ptxs.RowNum, t.Type, t.Height, t.BlockHash, t.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey, o.SpentHeight
                 from (
                     select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash
                     from (
                         select distinct o.TxHash, o.TxHeight
                         from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
                         where o.AddressHash = ?
-                          and o.SpentHeight is not null
                           and o.TxHeight <= ?
                     ) txs
                 ) ptxs
@@ -332,7 +334,7 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey, o.SpentHeight
                 from (
                     select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
                     from (
@@ -357,7 +359,7 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey, o.SpentHeight
                 from (
                     select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
                     from (
