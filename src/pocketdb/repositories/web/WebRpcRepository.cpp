@@ -742,14 +742,19 @@ namespace PocketDb
                     -- Last comment for content record
                     (
                         select c1.Id
+                        
                         from Transactions c1 indexed by Transactions_Type_Last_String3_Height
+
                         left join TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
-                            on o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1
+                            on o.TxHash = c1.Hash and o.AddressHash = t.String1 and o.AddressHash != c1.String1 and o.Value > ?
+
                         where c1.Type in (204, 205)
                           and c1.Last = 1
                           and c1.Height is not null
                           and c1.String3 = t.String2
                           and c1.String4 is null
+
+                          -- exclude commenters blocked by the author of the post 
                           and not exists (
                             select 1
                             from Transactions b indexed by Transactions_Type_Last_String1_Height_Id
@@ -759,6 +764,7 @@ namespace PocketDb
                               and b.String1 = t.String1
                               and b.String2 = c1.String1
                           )
+
                         order by o.Value desc, c1.Id desc
                         limit 1
                     )commentId
@@ -782,7 +788,7 @@ namespace PocketDb
             int i = 1;
 
             TryBindStatementText(stmt, i++, address);
-
+            TryBindStatementInt64(stmt, i++, (int64_t)(0.5 * COIN));
             for (int64_t id : ids)
                 TryBindStatementInt64(stmt, i++, id);
 
