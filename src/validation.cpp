@@ -3154,7 +3154,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
      int sharesCnt = 0;
     std::map<std::string, std::map<std::string, int>> contentLangCnt;
      std::string txidpocketnet;
-     std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
+    std::string addrespocketnet = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
 
      for (const auto& tx : block.vtx) {
          std::map<std::string, std::pair<int, int64_t>> addrs;
