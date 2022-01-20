@@ -98,7 +98,7 @@
 
 static bool fFeeEstimatesInitialized = false;
 static const bool DEFAULT_PROXYRANDOMIZE = true;
-static const bool DEFAULT_API_ENABLE = false;
+static const bool DEFAULT_API_ENABLE = true;
 static const bool DEFAULT_REST_ENABLE = false;
 static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
@@ -625,6 +625,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-rpccookiefile=<loc>", "Location of the auth cookie. Relative paths will be prefixed by a net-specific datadir location. (default: data dir)", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcpassword=<pw>", "Password for JSON-RPC connections", ArgsManager::ALLOW_ANY | ArgsManager::SENSITIVE, OptionsCategory::RPC);
     argsman.AddArg("-rpcport=<port>", strprintf("Listen for JSON-RPC connections on <port> (default: %u, testnet: %u, signet: %u, regtest: %u)", defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort(), signetBaseParams->RPCPort(), regtestBaseParams->RPCPort()), ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::RPC);
+    argsman.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-publicrpcport=<port>", strprintf("Listen for public JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->PublicRPCPort(), testnetBaseParams->PublicRPCPort(), regtestBaseParams->PublicRPCPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-staticrpcport=<port>", strprintf("Listen for static JSON-RPC connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->StaticRPCPort(), testnetBaseParams->StaticRPCPort(), regtestBaseParams->StaticRPCPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-restport=<port>", strprintf("Listen for static REST connections on <port> (default: %u, testnet: %u, regtest: %u)", defaultBaseParams->RestPort(), testnetBaseParams->RestPort(), regtestBaseParams->RestPort()), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
@@ -644,11 +645,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-rpcstaticworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcpostworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcrestworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_WORKQUEUE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
-
     argsman.AddArg("-server", "Accept command line and JSON-RPC commands", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
-
-    argsman.AddArg("-wsuse", "Accept WebSocket connections", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
-    argsman.AddArg("-wsport=<port>", strprintf("Listen for WebSocket connections on <port> (default: %u)", 8087), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
 
     // SQLite
     argsman.AddArg("-sqltimeout", strprintf("Timeout for ReadOnly sql querys (default: %ds)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SQLITE);
@@ -859,7 +856,7 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
         }
 
         // .. only web DB
-        if (fReindex == 5 && args.GetBoolArg("-api", false))
+        if (fReindex == 5 && args.GetBoolArg("-api", true))
         {
             LogPrintf("Building a Web database: 0%%\n");
 
@@ -1662,7 +1659,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
 
     PocketWeb::PocketFrontendInst.Init();
 
-    if (args.GetBoolArg("-api", false))
+    if (args.GetBoolArg("-api", true))
         PocketServices::WebPostProcessorInst.Start(threadGroup);
 
     // ********************************************************* Step 4b: Additional settings
@@ -2327,7 +2324,7 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     // ********************************************************* Step 13: finished
 
     // Start WebSocket server
-    if (args.GetBoolArg("-wsuse", false)) InitWS();
+    if (args.GetBoolArg("-api", true)) InitWS();
 
     gStatEngineInstance.Run(threadGroup, context);
 

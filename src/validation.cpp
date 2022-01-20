@@ -2526,7 +2526,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Extend WEB database
-    if (gArgs.GetBoolArg("-api", false) && enablePocketConnect)
+    if (gArgs.GetBoolArg("-api", true) && enablePocketConnect)
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -3027,9 +3027,9 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
      std::map<std::string, std::vector<UniValue>> messages;
      uint256 _block_hash = block.GetHash();
      int sharesCnt = 0;
-     std::map<std::string, int> sharesCntLang;
+    std::map<std::string, std::map<std::string, int>> contentLangCnt;
      std::string txidpocketnet;
-     std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
+    std::string addrespocketnet = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
 
      for (const auto& tx : block.vtx) {
          std::map<std::string, std::pair<int, int64_t>> addrs;
@@ -3038,7 +3038,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
          std::string optype;
 
          // Get all addresses from tx outs and check OP_RETURN
-         for (int i = 0; i < tx->vout.size(); i++) {
+             for (int i = 0; i < tx->vout.size(); i++) {
              const CTxOut& txout = tx->vout[i];
              //-------------------------
              if (txout.scriptPubKey[0] == OP_RETURN) {
@@ -3056,11 +3056,20 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          {
                              std::string lang = response["lang"].get_str();
 
-                             auto itl = sharesCntLang.find(lang);
-                             if (itl != sharesCntLang.end())
-                                 itl->second += 1;
-                             else
-                                 sharesCntLang.emplace(lang, 1);
+                             contentLangCnt[OR_POST][lang] += 1;
+                         }
+                     }
+                     else if (spl[1] == OR_VIDEO) {
+                         optype = "video";
+                         sharesCnt += 1;
+
+                         auto response = PocketDb::NotifierRepoInst.GetPostLang(txid);
+
+                         if (response.exists("lang"))
+                         {
+                             std::string lang = response["lang"].get_str();
+
+                             contentLangCnt[OR_VIDEO][lang] += 1;
                          }
                      }
                      // else if (spl[1] == OR_POSTEDIT)
@@ -3291,11 +3300,14 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
      }
 
      // Send all WS clients messages
-     UniValue sharesLang(UniValue::VOBJ);
-     for (std::map<std::string, int>::iterator itl = sharesCntLang.begin(); itl != sharesCntLang.end(); ++itl)
-     {
-         sharesLang.pushKV(itl->first, itl->second);
-     }
+    UniValue contentsLang(UniValue::VOBJ);
+    for (const auto& itemContent : contentLangCnt){
+        UniValue langContents(UniValue::VOBJ);
+        for (const auto& itemLang : itemContent.second) {
+            langContents.pushKV(itemLang.first, itemLang.second);
+        }
+        contentsLang.pushKV(TransactionHelper::TxStringType(PocketHelpers::TransactionHelper::ConvertOpReturnToType(itemContent.first)), langContents);
+    }
 
 
      boost::lock_guard<boost::mutex> guard(WSMutex);
@@ -3308,7 +3320,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
          msg.pushKV("time", std::to_string(block.nTime));
          msg.pushKV("height", blockIndex->nHeight);
          msg.pushKV("shares", sharesCnt);
-         msg.pushKV("sharesLang", sharesLang);
+         msg.pushKV("contentsLang", contentsLang);
 
          auto countResponse = PocketDb::NotifierRepoInst.GetPostCountFromMySubscribes(connWS.second.Address, blockIndex->nHeight);
          if (countResponse.exists("count"))
