@@ -3359,6 +3359,25 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  auto response = PocketDb::NotifierRepoInst.GetFullCommentInfo(txid);
                  if (response.exists("postHash"))
                  {
+                     if (response.exists("answerAddress") && !response["answerAddress"].get_str().empty())
+                     {
+                         custom_fields c1Fields
+                             {
+                                 {"mesType", optype},
+                                 {"addrFrom", addr.first},
+                                 {"nameFrom", response["commentName"].get_str()},
+                                 {"posttxid", response["postHash"].get_str()},
+                                 {"parentid", response["parentHash"].get_str()},
+                                 {"answerid", response["answerHash"].get_str()},
+                                 {"reason", "answer"},
+                             };
+
+                         if (response.exists("commentAvatar"))
+                             c1Fields.emplace("avatarFrom",response["commentAvatar"].get_str());
+
+                         PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
+                     }
+
                      if(response["postAddress"].get_str() == addr.first)
                          continue;
 
@@ -3383,25 +3402,6 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      }
 
                      PrepareWSMessage(messages, "event", response["postAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);
-
-                     if (response.exists("answerAddress") && !response["answerAddress"].get_str().empty())
-                     {
-                         custom_fields c1Fields
-                         {
-                             {"mesType", optype},
-                             {"addrFrom", addr.first},
-                             {"nameFrom", response["commentName"].get_str()},
-                             {"posttxid", response["postHash"].get_str()},
-                             {"parentid", response["parentHash"].get_str()},
-                             {"answerid", response["answerHash"].get_str()},
-                             {"reason", "answer"},
-                         };
-
-                         if (response.exists("commentAvatar"))
-                             cFields.emplace("avatarFrom",response["commentAvatar"].get_str());
-
-                         PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
-                     }
                  }
              }
          }
