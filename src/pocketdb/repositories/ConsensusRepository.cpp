@@ -722,7 +722,7 @@ namespace PocketDb
                 and s.Time >= ?
                 and s.Int1 in ( )sql" + join(values | transformed(static_cast<std::string(*)(int)>(std::to_string)), ",") + R"sql( )
                 and s.Hash != ?
-            where c.Type in (200,201,207)
+            where c.Type in (200,201,202,207)
               and c.String1 = ?
               and c.Height is not null
               and c.Last = 1
@@ -1773,7 +1773,7 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
-                where Type in (200,201,207)
+                where Type in (200,201,202,207)
                     and Height is null
                     and String1 = ?
                     and String2 = ?

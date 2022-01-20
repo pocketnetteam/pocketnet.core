@@ -427,7 +427,7 @@ namespace PocketDb
                 , ifnull((
                     select count(1)
                     from Transactions po indexed by Transactions_Type_Last_String1_Height_Id
-                    where po.Type in (200,201) and po.Last=1 and po.Height is not null and po.String1=u.String1)
+                    where po.Type in (200,201,202) and po.Last=1 and po.Height is not null and po.String1=u.String1)
                 ,0) as PostsCount
 
                 , ifnull((
@@ -619,7 +619,7 @@ namespace PocketDb
             from Transactions c indexed by Transactions_Height_Id
 
             cross join Transactions p indexed by Transactions_Type_Last_String2_Height
-              on p.Type in (200,201) and p.Last = 1 and p.Height > 0 and p.String2 = c.String3
+              on p.Type in (200,201,202) and p.Last = 1 and p.Height > 0 and p.String2 = c.String3
 
             cross join Payload pp indexed by Payload_String1_TxHash
               on pp.TxHash = p.Hash and pp.String1 = ?
@@ -771,7 +771,7 @@ namespace PocketDb
 
                 from Transactions t indexed by Transactions_Last_Id_Height
 
-                where t.Type in (200,201,207)
+                where t.Type in (200,201,202,207)
                     and t.Last = 1
                     and t.Height is not null
                     and t.Id in ( )sql" + join(vector<string>(ids.size(), "?"), ",") + R"sql( )
@@ -898,7 +898,7 @@ namespace PocketDb
             join Payload pl ON pl.TxHash = c.Hash
 
             join Transactions t indexed by Transactions_Type_Last_String2_Height
-                on t.Type in (200,201) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
+                on t.Type in (200,201,202) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
 
             left join Transactions sc indexed by Transactions_Type_String1_String2_Height
                 on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
@@ -1059,7 +1059,7 @@ namespace PocketDb
             join Payload pl ON pl.TxHash = c.Hash
 
             join Transactions t indexed by Transactions_Type_Last_String2_Height
-                on t.Type in (200,201) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
+                on t.Type in (200,201,202) and t.Last = 1 and t.Height is not null and t.String2 = c.String3
 
             left join Transactions sc indexed by Transactions_Type_String1_String2_Height
                 on sc.Type in (301) and sc.Height is not null and sc.String2 = c.String2 and sc.String1 = ?
@@ -2328,7 +2328,7 @@ namespace PocketDb
                     where scr.Type = 300 and scr.Last in (0,1) and scr.Height is not null and scr.String2 = t.String2),0) as ScoresSum,
 
                 (select count() from Transactions rep indexed by Transactions_Type_Last_String3_Height
-                    where rep.Type in (200,201) and rep.Last = 1 and rep.Height is not null and rep.String3 = t.String2) as Reposted,
+                    where rep.Type in (200,201,202) and rep.Last = 1 and rep.Height is not null and rep.String3 = t.String2) as Reposted,
 
                 (
                     select count()
@@ -3061,7 +3061,7 @@ namespace PocketDb
               and t.Id in (
                 select tr.Id
                 from Transactions tr indexed by Transactions_Type_Last_Height_Id
-                where tr.Type in (200,201)
+                where tr.Type in (200,201,202)
                   and tr.Last = 1
                   and tr.Height > ?
                 order by random()
