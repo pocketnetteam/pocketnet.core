@@ -3254,11 +3254,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                              {"mesType",    "reshare"},
                              {"txidRepost", response["hash"].get_str()},
                              {"addrFrom",   response["addressRepost"].get_str()},
-                             {"nameFrom",   response["nameRepost"].get_str()},
-                             {"avatarFrom",   ""}
+                             {"nameFrom",   response["nameRepost"].get_str()}
                          };
                          if (response.exists("avatarRepost"))
-                             cFields["avatarFrom"] = response["avatarRepost"].get_str();
+                             cFields.emplace("avatarFrom",response["avatarRepost"].get_str());
 
                          PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                      }
@@ -3272,11 +3271,11 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      custom_fields cFields{
                              {"mesType", "postfromprivate"},
                              {"addrFrom", addr.first},
-                             {"nameFrom",   subscribesResponse[i]["nameFrom"].get_str()},
-                             {"avatarFrom",   ""}};
+                             {"nameFrom",   subscribesResponse[i]["nameFrom"].get_str()}
+                     };
 
                      if (subscribesResponse[i].exists("avatarFrom"))
-                         cFields["avatarFrom"] = subscribesResponse[i]["avatarFrom"].get_str();
+                         cFields.emplace("avatarFrom",response["avatarFrom"].get_str());
 
                      PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                  }
@@ -3290,11 +3289,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
-                         {"nameFrom", response["referralName"].get_str()},
-                         {"avatarFrom", ""}
+                         {"nameFrom", response["referralName"].get_str()}
                      };
                      if (response.exists("referralAvatar"))
-                         cFields["avatarFrom"] = response["referralAvatar"].get_str();
+                         cFields.emplace("avatarFrom",response["referralAvatar"].get_str());
 
                      PrepareWSMessage(messages, "event", response["referrerAddress"].get_str(), txid, txtime, cFields);
                  }
@@ -3309,13 +3307,12 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          {"mesType", optype},
                          {"addrFrom", addr.first},
                          {"nameFrom", response["scoreName"].get_str()},
-                         {"avatarFrom", ""},
                          {"posttxid", response["postTxHash"].get_str()},
                          {"upvoteVal", response["value"].get_str()}
                      };
 
                      if (response.exists("scoreAvatar"))
-                         cFields["avatarFrom"] = response["scoreAvatar"].get_str();
+                         cFields.emplace("avatarFrom",response["scoreAvatar"].get_str());
 
                      PrepareWSMessage(messages, "event", response["postAddress"].get_str(), txid, txtime, cFields);
                  }
@@ -3329,12 +3326,11 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
-                         {"nameFrom", response["nameFrom"].get_str()},
-                         {"avatarFrom", ""}
+                         {"nameFrom", response["nameFrom"].get_str()}
                      };
 
                      if (response.exists("avatarFrom"))
-                         cFields["avatarFrom"] = response["avatarFrom"].get_str();
+                         cFields.emplace("avatarFrom",response["avatarFrom"].get_str());
 
                      PrepareWSMessage(messages, "event", response["addressTo"].get_str(), txid, txtime, cFields);
                  }
@@ -3349,13 +3345,12 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          {"mesType", optype},
                          {"addrFrom", addr.first},
                          {"nameFrom", response["scoreCommentName"].get_str()},
-                         {"avatarFrom", ""},
                          {"commentid", response["commentHash"].get_str()},
                          {"upvoteVal", response["value"].get_str()}
                      };
 
                      if (response.exists("scoreCommentAvatar"))
-                         cFields["avatarFrom"] = response["scoreCommentAvatar"].get_str();
+                         cFields.emplace("avatarFrom",response["scoreCommentAvatar"].get_str());
 
                      PrepareWSMessage(messages, "event", response["commentAddress"].get_str(), txid, txtime, cFields);
                  }
@@ -3373,7 +3368,6 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          {"mesType", optype},
                          {"addrFrom", addr.first},
                          {"nameFrom", response["commentName"].get_str()},
-                         {"avatarFrom", ""},
                          {"posttxid", response["postHash"].get_str()},
                          {"parentid", response["parentHash"].get_str()},
                          {"answerid", response["answerHash"].get_str()},
@@ -3381,7 +3375,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      };
 
                      if (response.exists("commentAvatar"))
-                         cFields["avatarFrom"] = response["commentAvatar"].get_str();
+                         cFields.emplace("avatarFrom",response["commentAvatar"].get_str());
 
                      if (response.exists("donation"))
                      {
@@ -3398,7 +3392,6 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                              {"mesType", optype},
                              {"addrFrom", addr.first},
                              {"nameFrom", response["commentName"].get_str()},
-                             {"avatarFrom", ""},
                              {"posttxid", response["postHash"].get_str()},
                              {"parentid", response["parentHash"].get_str()},
                              {"answerid", response["answerHash"].get_str()},
@@ -3406,7 +3399,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          };
 
                          if (response.exists("commentAvatar"))
-                             cFields["avatarFrom"] = response["commentAvatar"].get_str();
+                             cFields.emplace("avatarFrom",response["commentAvatar"].get_str());
 
                          PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
                      }
