@@ -3143,8 +3143,9 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
      uint256 _block_hash = block.GetHash();
      int sharesCnt = 0;
     std::map<std::string, std::map<std::string, int>> contentLangCnt;
-     std::string txidpocketnet;
+    std::string txidpocketnet;
     std::string addrespocketnet = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
+    auto pocketnetaccinfo = PocketDb::NotifierRepoInst.GetAccountInfoByAddress(addrespocketnet);
 
      for (const auto& tx : block.vtx) {
          std::map<std::string, std::pair<int, int64_t>> addrs;
@@ -3461,6 +3462,9 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      UniValue m(UniValue::VOBJ);
                      m.pushKV("msg", "sharepocketnet");
                      m.pushKV("time", std::to_string(block.nTime));
+                     m.pushKV("addrFrom", addrespocketnet);
+                     if (pocketnetaccinfo.exists("name")) m.pushKV("nameFrom", pocketnetaccinfo["name"].get_str());
+                     if (pocketnetaccinfo.exists("avatar")) m.pushKV("avatarFrom", pocketnetaccinfo["avatar"].get_str());
                      m.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
                      connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
                  }

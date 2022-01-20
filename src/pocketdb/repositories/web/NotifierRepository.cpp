@@ -10,6 +10,42 @@ namespace PocketDb
 
     void NotifierRepository::Destroy() {}
 
+    UniValue NotifierRepository::GetAccountInfoByAddress(const string& address)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            select u.String1 as Address,
+                p.String2 as Name,
+                p.String3 as Avatar
+            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+            cross join Payload p on p.TxHash = u.Hash
+            where u.Type in (100,101,102)
+              and u.Last=1
+              and u.Last=1
+              and u.Height is not null
+              and u.String1 = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("avatar", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue NotifierRepository::GetPostLang(const string &postHash)
     {
         UniValue result(UniValue::VOBJ);
