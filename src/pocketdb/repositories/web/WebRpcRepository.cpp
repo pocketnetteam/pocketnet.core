@@ -1660,7 +1660,7 @@ namespace PocketDb
         if (resultCount > 0)
         {
             string sql = R"sql(
-                select Hash,
+                select String2,
                        Time,
                        Height
                 from Transactions
