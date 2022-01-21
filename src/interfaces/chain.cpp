@@ -133,7 +133,8 @@ public:
     {
         if (m_wrapped_command) {
             m_wrapped_command = nullptr;
-            g_socket->m_table_rpc.removeCommand(m_command.name, &m_command);
+            if (g_socket)
+                g_socket->m_table_rpc.removeCommand(m_command.name, &m_command);
         }
     }
 
