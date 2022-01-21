@@ -120,9 +120,9 @@ namespace PocketDb
                 from Transactions t indexed by Transactions_Hash_Height
                 left join Payload p on t.Hash = p.TxHash
                 where t.Type in (200,201,202,203,204)
-                    and t.Hash = ?
-                    and t.String2 = ?
-                    and t.Height is not null
+                  and t.Hash = ?
+                  and t.String2 = ?
+                  and t.Height is not null
             )sql";
 
             auto stmt = SetupSqlStatement(sql);
@@ -305,8 +305,8 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 SELECT String1
                 FROM Transactions
-                WHERE   Hash = ?
-                    and Height is not null
+                WHERE Hash = ?
+                  and Height is not null
             )sql");
 
             TryBindStatementText(stmt, 1, postHash);
@@ -330,10 +330,10 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 SELECT count(*)
                 FROM Transactions
-                WHERE   Type in (307)
-                    and String1 = ?
-                    and String2 = ?
-                    and Height is not null
+                WHERE Type in (307)
+                  and String1 = ?
+                  and String2 = ?
+                  and Height is not null
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -417,8 +417,8 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = ?
-                and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
-                and r.Last = 1
+              and r.Id = (SELECT u.Id FROM Transactions u WHERE u.Type in (100, 101, 102) and u.Height is not null and u.Last = 1 and u.String1 = ? LIMIT 1)
+              and r.Last = 1
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -445,8 +445,8 @@ namespace PocketDb
             select r.Value
             from Ratings r
             where r.Type = ?
-                and r.Id = ?
-                and r.Last = 1
+              and r.Id = ?
+              and r.Last = 1
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -473,7 +473,7 @@ namespace PocketDb
             select min(Height)
             from Transactions
             where Type in (100, 101, 102)
-            and Id = ?
+              and Id = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -602,11 +602,11 @@ namespace PocketDb
         string sql = R"sql(
             select u.String1, u.String2
             from Transactions u
-            where   u.Type in (100, 101, 102)
-                and u.Height is not null
-                and u.Height >= ?
-                and u.Height = (select min(u1.Height) from Transactions u1 where u1.Type in (100, 101, 102) and u1.Height is not null and u1.String1=u.String1)
-                and u.String2 is not null
+            where u.Type in (100, 101, 102)
+              and u.Height is not null
+              and u.Height >= ?
+              and u.Height = (select min(u1.Height) from Transactions u1 where u1.Type in (100, 101, 102) and u1.Height is not null and u1.String1=u.String1)
+              and u.String2 is not null
         )sql";
 
         sql += " and u.AddressHash in ( ";
@@ -678,8 +678,8 @@ namespace PocketDb
         string sql = R"sql(
             select count(1)
             from Ratings r
-            where   r.Type = ?
-                and r.Id = ?
+            where r.Type = ?
+              and r.Id = ?
         )sql";
 
         TryTransactionStep(__func__, [&]()
@@ -814,9 +814,9 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select Height
                 from Transactions
-                where   String1 = ?
-                    and Last = 1
-                    and Height is not null
+                where String1 = ?
+                  and Last = 1
+                  and Height is not null
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -840,8 +840,8 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select t.Height
                 from Transactions t
-                where   t.Hash = ?
-                    and t.Height is not null
+                where t.Hash = ?
+                  and t.Height is not null
             )sql");
 
             TryBindStatementText(stmt, 1, hash);
@@ -869,9 +869,9 @@ namespace PocketDb
                 select count(*)
                 from Transactions
                 where Type in (305, 306)
-                    and Height is null
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -896,9 +896,9 @@ namespace PocketDb
                 select count(*)
                 from Transactions
                 where Type in (302, 303, 304)
-                    and Height is null
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1060,11 +1060,11 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(R"sql(
                 select count(*)
                 from Transactions
-                where   Type in (307)
-                    and Height is not null
-                    and Height >= ?
-                    and String1 = ?
-                    and Hash = String2
+                where Type in (307)
+                  and Height is not null
+                  and Height >= ?
+                  and String1 = ?
+                  and Hash = String2
             )sql");
 
             TryBindStatementInt(stmt, 1, height);
@@ -1172,9 +1172,9 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (201)
-                    and Height is null
-                    and String1 = ?
-                    and Hash = String2
+                  and Height is null
+                  and String1 = ?
+                  and Hash = String2
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1226,9 +1226,9 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_Height_Time_Int1
                 where Type in (202)
-                    and Height is null
-                    and String1 = ?
-                    and Hash = String2
+                  and Height is null
+                  and String1 = ?
+                  and Hash = String2
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1440,8 +1440,8 @@ namespace PocketDb
                 select count(*)
                 from Transactions
                 where Type in (100)
-                    and Height is null
-                    and String1 = ?
+                  and Height is null
+                  and String1 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1466,8 +1466,8 @@ namespace PocketDb
                 select count(*)
                 from Transactions
                 where Type in (103)
-                    and Height is null
-                    and String1 = ?
+                  and Height is null
+                  and String1 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1550,9 +1550,9 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (204,205,206)
-                    and Height is null
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1577,10 +1577,10 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (204,205,206)
-                    and Height is not null
-                    and Hash != String2
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is not null
+                  and Hash != String2
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1606,9 +1606,9 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200,207)
-                    and Height is null
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1633,10 +1633,10 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200)
-                    and Height is not null
-                    and Hash != String2
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is not null
+                  and Hash != String2
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1662,9 +1662,9 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (201,207)
-                    and Height is null
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1689,10 +1689,10 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (201)
-                    and Height is not null
-                    and Hash != String2
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is not null
+                  and Hash != String2
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1718,9 +1718,9 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (202,207)
-                    and Height is null
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1745,10 +1745,10 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (202)
-                    and Height is not null
-                    and Hash != String2
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is not null
+                  and Hash != String2
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
@@ -1774,9 +1774,9 @@ namespace PocketDb
                 select count(*)
                 from Transactions indexed by Transactions_Type_String1_String2_Height
                 where Type in (200,201,202,207)
-                    and Height is null
-                    and String1 = ?
-                    and String2 = ?
+                  and Height is null
+                  and String1 = ?
+                  and String2 = ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);

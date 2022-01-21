@@ -27,21 +27,6 @@ namespace PocketConsensus
             if (auto[baseValidate, baseValidateCode] = SocialConsensus::Validate(tx, ptx, block); !baseValidate)
                 return {false, baseValidateCode};
 
-            // Check if this Article relay another
-            if (!IsEmpty(ptx->GetRelayTxHash()))
-            {
-                auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(
-                    *ptx->GetRelayTxHash(),
-                    { CONTENT_ARTICLE, CONTENT_DELETE }
-                );
-
-                if (!relayOk && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
-                    return {false, SocialConsensusResult_RelayContentNotFound};
-
-                if (relayOk && *relayTx->GetType() == CONTENT_DELETE)
-                    return {false, SocialConsensusResult_RepostDeletedContent};
-            }
-
             // Check payload size
             if (auto[ok, code] = ValidatePayloadSize(ptx); !ok)
                 return {false, code};
@@ -58,6 +43,9 @@ namespace PocketConsensus
 
             // Check required fields
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+
+            // Repost not allowed
+            if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
 
             return Success;
         }

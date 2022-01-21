@@ -92,7 +92,7 @@ namespace PocketTx
     {
         RATING_ACCOUNT = 0,
         RATING_ACCOUNT_LIKERS = 1,
-        RATING_POST = 2,
+        RATING_CONTENT = 2,
         RATING_COMMENT = 3,
     };
 

@@ -2477,11 +2477,10 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
                 (int)result, pindex->GetBlockHash().GetHex());
 
-            // TODO (team): We do not mark the block invalid for situations where the chain can be rebuilt.
+            // We do not mark the block invalid for situations where the chain can be rebuilt.
             // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
             // we need to think about marking the block incomplete and requesting it from the network again.
-            return false;
-            //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
+            return state.DoS(200, false, REJECT_INCOMPLETE, "failed-validate-social-consensus", false, "", true);
         }
         
         LogPrint(BCLog::CONSENSUS, "--- Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
@@ -3245,6 +3244,25 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  auto response = PocketDb::NotifierRepoInst.GetFullCommentInfo(txid);
                  if (response.exists("postHash"))
                  {
+                     if (response.exists("answerAddress") && !response["answerAddress"].get_str().empty())
+                     {
+                         custom_fields c1Fields
+                             {
+                                 {"mesType", optype},
+                                 {"addrFrom", addr.first},
+                                 {"nameFrom", response["commentName"].get_str()},
+                                 {"posttxid", response["postHash"].get_str()},
+                                 {"parentid", response["parentHash"].get_str()},
+                                 {"answerid", response["answerHash"].get_str()},
+                                 {"reason", "answer"},
+                             };
+
+                         if (response.exists("commentAvatar"))
+                             c1Fields.emplace("avatarFrom",response["commentAvatar"].get_str());
+
+                         PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
+                     }
+
                      if(response["postAddress"].get_str() == addr.first)
                          continue;
 
@@ -3269,25 +3287,6 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      }
 
                      PrepareWSMessage(messages, "event", response["postAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);
-
-                     if (response.exists("answerAddress") && !response["answerAddress"].get_str().empty())
-                     {
-                         custom_fields c1Fields
-                         {
-                             {"mesType", optype},
-                             {"addrFrom", addr.first},
-                             {"nameFrom", response["commentName"].get_str()},
-                             {"posttxid", response["postHash"].get_str()},
-                             {"parentid", response["parentHash"].get_str()},
-                             {"answerid", response["answerHash"].get_str()},
-                             {"reason", "answer"},
-                         };
-
-                         if (response.exists("commentAvatar"))
-                             cFields.emplace("avatarFrom",response["commentAvatar"].get_str());
-
-                         PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
-                     }
                  }
              }
          }
