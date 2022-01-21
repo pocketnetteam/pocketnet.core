@@ -2,6 +2,7 @@
 #define POCKETCOIN_EVENTLOOP_H
 
 #include <util.h>
+#include <logging.h>
 
 #include <functional>
 #include <queue>
@@ -11,6 +12,7 @@
 #include <atomic>
 #include <thread>
 #include <optional>
+#include <exception>
 
 
 // TODO (losty-fur): interface for queue
@@ -170,11 +172,16 @@ public:
                 RenameThread(name->c_str());
             }
             while (fRunning) {
-                T entry;
-                auto res = queue->GetNext(entry);
-                // If res is false - someone else interrupts queue and if current thread still wants to run just call GetNext() again
-                if (res && fRunning) {
-                    queueProcessor->Process(std::forward<T>(entry));
+                try {
+                    T entry;
+                    auto res = queue->GetNext(entry);
+                    // If res is false - someone else interrupts queue and if current thread still wants to run just call GetNext() again
+                    if (res && fRunning) {
+                        queueProcessor->Process(std::forward<T>(entry));
+                    }
+                } catch (const std::exception& e) {
+                    fRunning = false;
+                    LogPrintf("Shutting down %s event loop thread because of exception: %s", name.value_or(""), e.what());
                 }
             }
         });
