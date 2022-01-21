@@ -155,7 +155,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
         // if (!coinbaseScript || coinbaseScript->reserveScript.empty())
             // throw std::runtime_error("No coinbase script available (staking requires a wallet)");
 
-        while (running)
+        while (running && !ShutdownRequested())
         {
             auto wallet = GetWallet(walletName);
 
