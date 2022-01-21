@@ -385,7 +385,7 @@ bool InitHTTPServer()
 #endif
 
     // Additional pocketnet seocket
-    if (gArgs.GetBoolArg("-api", false))
+    if (gArgs.GetBoolArg("-api", true))
     {
         g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
         RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);

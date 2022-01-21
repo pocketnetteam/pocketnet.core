@@ -41,9 +41,10 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
     std::map<std::string, std::vector<UniValue>> messages;
     uint256 _block_hash = block.GetHash();
     int sharesCnt = 0;
-    std::map<std::string, int> sharesCntLang;
+    std::map<std::string, std::map<std::string, int>> contentLangCnt;
     std::string txidpocketnet;
-    std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
+    std::string addrespocketnet = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
+    auto pocketnetaccinfo = PocketDb::NotifierRepoInst.GetAccountInfoByAddress(addrespocketnet);
 
     for (const auto& tx : block.vtx) {
         std::map<std::string, std::pair<int, int64_t>> addrs;
@@ -52,7 +53,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         std::string optype;
 
         // Get all addresses from tx outs and check OP_RETURN
-        for (int i = 0; i < tx->vout.size(); i++) {
+            for (int i = 0; i < tx->vout.size(); i++) {
             const CTxOut& txout = tx->vout[i];
             //-------------------------
             if (txout.scriptPubKey[0] == OP_RETURN) {
@@ -66,14 +67,24 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
 
                         auto response = PocketDb::NotifierRepoInst.GetPostLang(txid);
 
-                        if (response.exists("lang")) {
+                        if (response.exists("lang"))
+                        {
                             std::string lang = response["lang"].get_str();
 
-                            auto itl = sharesCntLang.find(lang);
-                            if (itl != sharesCntLang.end())
-                                itl->second += 1;
-                            else
-                                sharesCntLang.emplace(lang, 1);
+                            contentLangCnt[OR_POST][lang] += 1;
+                        }
+                    }
+                    else if (spl[1] == OR_VIDEO) {
+                        optype = "video";
+                        sharesCnt += 1;
+
+                        auto response = PocketDb::NotifierRepoInst.GetPostLang(txid);
+
+                        if (response.exists("lang"))
+                        {
+                            std::string lang = response["lang"].get_str();
+
+                            contentLangCnt[OR_VIDEO][lang] += 1;
                         }
                     }
                     // else if (spl[1] == OR_POSTEDIT)
@@ -108,7 +119,8 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             }
         }
 
-        for (auto const& addr : addrs) {
+        for (auto const& addr : addrs)
+        {
             // Event for new transaction
             custom_fields cTrFields{
                 {"nout", std::to_string(addr.second.first)},
@@ -119,116 +131,161 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
             // Event for new PocketNET transaction
-            if (optype == "share" || optype == "video") {
+            if (optype == "share" || optype == "video")
+            {
                 auto response = PocketDb::NotifierRepoInst.GetPostInfo(txid);
                 if (response.exists("hash") && response.exists("rootHash") && response["hash"].get_str() != response["rootHash"].get_str())
                     continue;
 
-                if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos) {
+                if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
+                {
                     txidpocketnet += txid + ",";
-                } else {
+                }
+                else
+                {
                     auto response = PocketDb::NotifierRepoInst.GetOriginalPostAddressByRepost(txid);
-                    if (response.exists("hash")) {
+                    if (response.exists("hash"))
+                    {
                         std::string address = response["address"].get_str();
 
-                        custom_fields cFields{
-                            {"mesType", "reshare"},
+                        custom_fields cFields
+                        {
+                            {"mesType",    "reshare"},
                             {"txidRepost", response["hash"].get_str()},
-                            {"addrFrom", response["addressRepost"].get_str()},
-                            {"nameFrom", response["nameRepost"].get_str()},
-                            {"avatarFrom", ""}};
+                            {"addrFrom",   response["addressRepost"].get_str()},
+                            {"nameFrom",   response["nameRepost"].get_str()}
+                        };
                         if (response.exists("avatarRepost"))
-                            cFields["avatarFrom"] = response["avatarRepost"].get_str();
+                            cFields.emplace("avatarFrom",response["avatarRepost"].get_str());
 
                         PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                     }
                 }
 
                 auto subscribesResponse = PocketDb::NotifierRepoInst.GetPrivateSubscribeAddressesByAddressTo(addr.first);
-                for (size_t i = 0; i < subscribesResponse.size(); ++i) {
+                for (size_t i = 0; i < subscribesResponse.size(); ++i)
+                {
                     auto address = subscribesResponse[i]["addressTo"].get_str();
 
                     custom_fields cFields{
-                        {"mesType", "postfromprivate"},
-                        {"addrFrom", addr.first},
-                        {"nameFrom", subscribesResponse[i]["nameFrom"].get_str()},
-                        {"avatarFrom", ""}};
+                            {"mesType", "postfromprivate"},
+                            {"addrFrom", addr.first},
+                            {"nameFrom",   subscribesResponse[i]["nameFrom"].get_str()}
+                    };
 
                     if (subscribesResponse[i].exists("avatarFrom"))
-                        cFields["avatarFrom"] = subscribesResponse[i]["avatarFrom"].get_str();
+                        cFields.emplace("avatarFrom",response["avatarFrom"].get_str());
 
                     PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                 }
-            } else if (optype == "userInfo") {
+            }
+            else if (optype == "userInfo")
+            {
                 auto response = PocketDb::NotifierRepoInst.GetUserReferrerAddress(txid);
-                if (response.exists("referrerAddress")) {
-                    custom_fields cFields{
+                if (response.exists("referrerAddress"))
+                {
+                    custom_fields cFields
+                    {
                         {"mesType", optype},
                         {"addrFrom", addr.first},
-                        {"nameFrom", response["referralName"].get_str()},
-                        {"avatarFrom", ""}};
+                        {"nameFrom", response["referralName"].get_str()}
+                    };
                     if (response.exists("referralAvatar"))
-                        cFields["avatarFrom"] = response["referralAvatar"].get_str();
+                        cFields.emplace("avatarFrom",response["referralAvatar"].get_str());
 
                     PrepareWSMessage(messages, "event", response["referrerAddress"].get_str(), txid, txtime, cFields);
                 }
-            } else if (optype == "upvoteShare") {
+            }
+            else if (optype == "upvoteShare")
+            {
                 auto response = PocketDb::NotifierRepoInst.GetPostInfoAddressByScore(txid);
-                if (response.exists("postTxHash")) {
-                    custom_fields cFields{
+                if (response.exists("postTxHash"))
+                {
+                    custom_fields cFields
+                    {
                         {"mesType", optype},
                         {"addrFrom", addr.first},
                         {"nameFrom", response["scoreName"].get_str()},
-                        {"avatarFrom", ""},
                         {"posttxid", response["postTxHash"].get_str()},
-                        {"upvoteVal", response["value"].get_str()}};
+                        {"upvoteVal", response["value"].get_str()}
+                    };
 
                     if (response.exists("scoreAvatar"))
-                        cFields["avatarFrom"] = response["scoreAvatar"].get_str();
+                        cFields.emplace("avatarFrom",response["scoreAvatar"].get_str());
 
                     PrepareWSMessage(messages, "event", response["postAddress"].get_str(), txid, txtime, cFields);
                 }
-            } else if (optype == "subscribe" || optype == "subscribePrivate" || optype == "unsubscribe") {
+            }
+            else if (optype == "subscribe" || optype == "subscribePrivate" || optype == "unsubscribe")
+            {
                 auto response = PocketDb::NotifierRepoInst.GetSubscribeAddressTo(txid);
-                if (response.exists("addressTo")) {
-                    custom_fields cFields{
+                if (response.exists("addressTo"))
+                {
+                    custom_fields cFields
+                    {
                         {"mesType", optype},
                         {"addrFrom", addr.first},
-                        {"nameFrom", response["nameFrom"].get_str()},
-                        {"avatarFrom", ""}};
+                        {"nameFrom", response["nameFrom"].get_str()}
+                    };
 
                     if (response.exists("avatarFrom"))
-                        cFields["avatarFrom"] = response["avatarFrom"].get_str();
+                        cFields.emplace("avatarFrom",response["avatarFrom"].get_str());
 
                     PrepareWSMessage(messages, "event", response["addressTo"].get_str(), txid, txtime, cFields);
                 }
-            } else if (optype == "cScore") {
+            }
+            else if (optype == "cScore")
+            {
                 auto response = PocketDb::NotifierRepoInst.GetCommentInfoAddressByScore(txid);
-                if (response.exists("commentHash")) {
-                    custom_fields cFields{
+                if (response.exists("commentHash"))
+                {
+                    custom_fields cFields
+                    {
                         {"mesType", optype},
                         {"addrFrom", addr.first},
                         {"nameFrom", response["scoreCommentName"].get_str()},
-                        {"avatarFrom", ""},
                         {"commentid", response["commentHash"].get_str()},
-                        {"upvoteVal", response["value"].get_str()}};
+                        {"upvoteVal", response["value"].get_str()}
+                    };
 
                     if (response.exists("scoreCommentAvatar"))
-                        cFields["avatarFrom"] = response["scoreCommentAvatar"].get_str();
+                        cFields.emplace("avatarFrom",response["scoreCommentAvatar"].get_str());
 
                     PrepareWSMessage(messages, "event", response["commentAddress"].get_str(), txid, txtime, cFields);
                 }
-            } else if (optype == "comment" || optype == "commentEdit" || optype == "commentDelete") {
+            }
+            else if (optype == "comment" || optype == "commentEdit" || optype == "commentDelete")
+            {
                 auto response = PocketDb::NotifierRepoInst.GetFullCommentInfo(txid);
-                if (response.exists("postHash")) {
-                    if (response["postAddress"].get_str() == addr.first)
+                if (response.exists("postHash"))
+                {
+                    if (response.exists("answerAddress") && !response["answerAddress"].get_str().empty())
+                    {
+                        custom_fields c1Fields
+                            {
+                                {"mesType", optype},
+                                {"addrFrom", addr.first},
+                                {"nameFrom", response["commentName"].get_str()},
+                                {"posttxid", response["postHash"].get_str()},
+                                {"parentid", response["parentHash"].get_str()},
+                                {"answerid", response["answerHash"].get_str()},
+                                {"reason", "answer"},
+                            };
+
+                        if (response.exists("commentAvatar"))
+                            c1Fields.emplace("avatarFrom",response["commentAvatar"].get_str());
+
+                        PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
+                    }
+
+                    if(response["postAddress"].get_str() == addr.first)
                         continue;
 
-                    custom_fields cFields{
+                    custom_fields cFields
+                    {
                         {"mesType", optype},
                         {"addrFrom", addr.first},
                         {"nameFrom", response["commentName"].get_str()},
-                        {"avatarFrom", ""},
                         {"posttxid", response["postHash"].get_str()},
                         {"parentid", response["parentHash"].get_str()},
                         {"answerid", response["answerHash"].get_str()},
@@ -236,41 +293,28 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     };
 
                     if (response.exists("commentAvatar"))
-                        cFields["avatarFrom"] = response["commentAvatar"].get_str();
+                        cFields.emplace("avatarFrom",response["commentAvatar"].get_str());
 
-                    if (response.exists("donation")) {
+                    if (response.exists("donation"))
+                    {
                         cFields.emplace("donation", "true");
                         cFields.emplace("amount", response["amount"].get_str());
                     }
 
                     PrepareWSMessage(messages, "event", response["postAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);
-
-                    if (response.exists("answerAddress") && !response["answerAddress"].get_str().empty()) {
-                        custom_fields c1Fields{
-                            {"mesType", optype},
-                            {"addrFrom", addr.first},
-                            {"nameFrom", response["commentName"].get_str()},
-                            {"avatarFrom", ""},
-                            {"posttxid", response["postHash"].get_str()},
-                            {"parentid", response["parentHash"].get_str()},
-                            {"answerid", response["answerHash"].get_str()},
-                            {"reason", "answer"},
-                        };
-
-                        if (response.exists("commentAvatar"))
-                            cFields["avatarFrom"] = response["commentAvatar"].get_str();
-
-                        PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
-                    }
                 }
             }
         }
     }
 
-    // Send all WS clients messages
-    UniValue sharesLang(UniValue::VOBJ);
-    for (std::map<std::string, int>::iterator itl = sharesCntLang.begin(); itl != sharesCntLang.end(); ++itl) {
-        sharesLang.pushKV(itl->first, itl->second);
+     // Send all WS clients messages
+    UniValue contentsLang(UniValue::VOBJ);
+    for (const auto& itemContent : contentLangCnt){
+        UniValue langContents(UniValue::VOBJ);
+        for (const auto& itemLang : itemContent.second) {
+            langContents.pushKV(itemLang.first, itemLang.second);
+        }
+        contentsLang.pushKV(TransactionHelper::TxStringType(PocketHelpers::TransactionHelper::ConvertOpReturnToType(itemContent.first)), langContents);
     }
 
     auto send = [&](std::pair<const std::string, WSUser>& connWS) {
@@ -281,37 +325,54 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         msg.pushKV("time", std::to_string(block.nTime));
         msg.pushKV("height", blockIndex->nHeight);
         msg.pushKV("shares", sharesCnt);
-        msg.pushKV("sharesLang", sharesLang);
+        msg.pushKV("contentsLang", contentsLang);
 
         auto countResponse = PocketDb::NotifierRepoInst.GetPostCountFromMySubscribes(connWS.second.Address, blockIndex->nHeight);
-        if (countResponse.exists("count")) {
+        if (countResponse.exists("count"))
+        {
             msg.pushKV("sharesSubscr", countResponse["count"].get_int());
         }
 
-        if (blockIndex->nHeight > connWS.second.Block) {
-            try {
+        if (blockIndex->nHeight > connWS.second.Block)
+        {
+            try
+            {
                 connWS.second.Connection->send(msg.write(), [](const SimpleWeb::error_code& ec) {});
-            } catch (const std::exception& e) {
+            }
+            catch (const std::exception& e)
+            {
                 LogPrintf("Error: CChainState::NotifyWSClients (1) - %s\n", e.what());
             }
 
-            if (txidpocketnet != "") {
-                try {
+            if (txidpocketnet != "")
+            {
+                try
+                {
                     UniValue m(UniValue::VOBJ);
                     m.pushKV("msg", "sharepocketnet");
                     m.pushKV("time", std::to_string(block.nTime));
+                    m.pushKV("addrFrom", addrespocketnet);
+                    if (pocketnetaccinfo.exists("name")) m.pushKV("nameFrom", pocketnetaccinfo["name"].get_str());
+                    if (pocketnetaccinfo.exists("avatar")) m.pushKV("avatarFrom", pocketnetaccinfo["avatar"].get_str());
                     m.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
                     connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
-                } catch (const std::exception& e) {
+                }
+                catch (const std::exception& e)
+                {
                     LogPrintf("Error: CChainState::NotifyWSClients (1) - %s\n", e.what());
                 }
             }
 
-            if (messages.find(connWS.second.Address) != messages.end()) {
-                for (auto m : messages[connWS.second.Address]) {
-                    try {
+            if (messages.find(connWS.second.Address) != messages.end())
+            {
+                for (auto m : messages[connWS.second.Address])
+                {
+                    try
+                    {
                         connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
-                    } catch (const std::exception& e) {
+                    }
+                    catch (const std::exception& e)
+                    {
                         LogPrintf("Error: CChainState::NotifyWSClients (2) - %s\n", e.what());
                     }
                 }

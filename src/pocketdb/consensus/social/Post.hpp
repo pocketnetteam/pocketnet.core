@@ -35,7 +35,7 @@ namespace PocketConsensus
             {
                 auto[relayOk, relayTx] = PocketDb::ConsensusRepoInst.GetLastContent(
                     *ptx->GetRelayTxHash(),
-                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+                    { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE }
                 );
 
                 if (!relayOk && !CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_RelayContentNotFound))
@@ -132,7 +132,7 @@ namespace PocketConsensus
         {
             auto[lastContentOk, lastContent] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE }
             );
             if (lastContentOk && *lastContent->GetType() != CONTENT_POST)
                 return {false, SocialConsensusResult_NotAllowed};

@@ -25,7 +25,7 @@ namespace PocketWeb::PocketWebRpc
         }
 
         if (types.empty())
-            types = {CONTENT_POST, CONTENT_VIDEO};
+            types = {CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE};
     }
 
     void ParseRequestTags(const UniValue& value, vector<string>& tags)

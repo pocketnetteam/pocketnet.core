@@ -85,6 +85,7 @@ namespace PocketWeb::PocketWebRpc
         // Search posts in caption, message and urls
         if (type == "posts")
         {
+            // TODO (brangr): realize search indexing
             searchRequest.TxTypes = { CONTENT_POST, CONTENT_VIDEO };
             searchRequest.FieldTypes = {
                 ContentFieldType_ContentPostCaption,
