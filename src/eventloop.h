@@ -193,12 +193,12 @@ public:
      */
     void Stop()
     {
-        if (!m_fRunning) {
-            // Already stopped
-            return;
+        if (m_fRunning) {
+            m_fRunning = false;
+            m_queue->Interrupt();
         }
-        m_fRunning = false;
-        m_queue->Interrupt();
+        // Try join anyway because otherwise there could be a situation when thread is stopped but not joined
+        // that is a bad practise.
         if (m_thread.joinable()) {
             m_thread.join();
         }
