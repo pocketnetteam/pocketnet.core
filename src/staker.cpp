@@ -267,7 +267,6 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
     int64_t nSearchTime = txCoinStake.nTime;
 
     // TODO (losty-fur): validate this works.
-    LogPrintf("Staker::signBlock: DEBUG: Accessing LegacyScriptPubKeyMan");
     auto legacyKeyStore = wallet->GetOrCreateLegacyScriptPubKeyMan();
     assert(legacyKeyStore);
 
