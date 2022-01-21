@@ -3274,7 +3274,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      };
 
                      if (subscribesResponse[i].exists("avatarFrom"))
-                         cFields.emplace("avatarFrom",response["avatarFrom"].get_str());
+                         cFields.emplace("avatarFrom",subscribesResponse[i]["avatarFrom"].get_str());
 
                      PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                  }
