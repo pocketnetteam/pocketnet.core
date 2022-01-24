@@ -376,6 +376,34 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
     }
 
+    UniValue GetRecomendedAccountsByTags(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "getrecomendedaccountsbytags \"tags\", count\n"
+                "\nAccounts recommendations by tags.\n"
+                "\nArguments:\n"
+                "1. \"tags\" (array of strings) Tags for recommendations\n"
+                "2. \"count\" (int, optional) Number of resulting records. Default 10\n"
+            );
+
+        vector<string> tags;
+        if (request.params.size() > 0)
+            ParseRequestTags(request.params[0], tags);
+
+        if (tags.empty())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, string("There are no tags in the input parameters."));
+
+        int nHeight = chainActive.Height();
+        int depth = 60 * 24 * 30; // about 1 month
+
+        int cntOut = 10;
+        if (request.params.size() > 1 && request.params[1].isNum())
+            cntOut = request.params[1].get_int();
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByTags(tags, nHeight, depth, cntOut);
+    }
+
     UniValue GetRecomendedContentsByScoresOnSimilarContents(const JSONRPCRequest& request)
     {
         if (request.fHelp)

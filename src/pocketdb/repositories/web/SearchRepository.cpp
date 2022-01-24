@@ -449,6 +449,89 @@ namespace PocketDb
         return result;
     }
 
+    UniValue SearchRepository::GetRecomendedAccountsByTags(const vector<string>& tags, int nHeight, int depth, int cntOut)
+    {
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        if (tags.empty())
+            return result;
+
+        string tagsFilter = join(vector<string>(tags.size(), "?"), ",");
+
+        string sql = R"sql(
+            select
+                recommendation.address,
+                p.String2 as name,
+                p.String3 as avatar
+
+                , ifnull((
+                    select r.Value
+                    from Ratings r indexed by Ratings_Type_Id_Last_Height
+                    where r.Type=0 and r.Id=u.Id and r.Last=1)
+                ,0) as Reputation
+
+                , (
+                    select count(*)
+                    from Transactions subs indexed by Transactions_Type_Last_String2_Height
+                    where subs.Type in (302,303) and subs.Height is not null and subs.Last = 1 and subs.String2 = u.String1
+                ) as SubscribersCount
+            from (
+                select authors.string1 address
+                from (
+                         select c.String1
+                         from Transactions sc indexed by Transactions_Type_Last_Height_Id
+                          cross join Transactions c indexed by Transactions_Type_Last_String2_Height
+                             on c.String2 = sc.String2 and c.Type in (200, 201) and c.Height > 0 and c.Last = 1
+                                 and c.id in (select tm.ContentId
+                                              from web.Tags tag indexed by Tags_Lang_Value_Id
+                                              join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                                                on tag.Id = tm.TagId
+                                              where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( ))
+                         where sc.Type in (300)
+                           and sc.Last in (0, 1)
+                           and sc.Height > ?
+                           and sc.Int1 = 5
+                    ) authors
+                group by authors.string1
+                order by count(*) desc
+                limit ?
+            )recommendation
+            cross join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = recommendation.address
+                and u.Type in (100,101,102)
+                and u.Last=1
+                and u.Height is not null
+            cross join Payload p on p.TxHash = u.Hash
+
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const auto& tag: tags)
+                TryBindStatementText(stmt, i++, tag);
+            TryBindStatementInt(stmt, i++, nHeight - depth);
+            TryBindStatementInt(stmt, i++, cntOut);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) record.pushKV("avatar", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("reputation", value / 10.0);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 4); ok) record.pushKV("subscribers_count", value);
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue SearchRepository::GetRecomendedContentsByScoresOnSimilarContents(const string& contentid, const vector<int>& contentTypes, int depth, int cntOut)
     {
         auto func = __func__;
