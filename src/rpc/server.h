@@ -108,7 +108,7 @@ public:
     CRPCCommand(std::string category, std::string name_in, RpcMethodFnType fn, std::vector<std::string> args_in)
         : CRPCCommand(
               category,
-              fn().m_name,
+              name_in, // TODO (losty): missorresponding names // fn().m_name,
               [fn](const JSONRPCRequest& request, UniValue& result, bool) { result = fn().HandleRequest(request); return true; },
               fn().GetArgNames(),
               intptr_t(fn))

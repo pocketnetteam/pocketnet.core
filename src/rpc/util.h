@@ -349,7 +349,7 @@ public:
      * the user is asking for help information, and throw help when appropriate.
      */
     inline void Check(const JSONRPCRequest& request) const {
-        if (request.fHelp || !IsValidNumArgs(request.params.size())) {
+        if (request.fHelp) /* TODO (losty): this check should be readded when all rpc parameters will be fixed: || !IsValidNumArgs(request.params.size())) */ {
             throw std::runtime_error(ToString());
         }
     }
