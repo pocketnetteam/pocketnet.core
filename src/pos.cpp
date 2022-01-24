@@ -247,7 +247,7 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
     arith_uint256 hashProofOfStake, targetProofOfStake;
 
     std::string hashBlockStr;
-    auto txPrev = PocketDb::TransRepoInst.Get(prevout.hash.ToString(), hashBlockStr);
+    auto txPrev = PocketDb::TransRepoInst.Get(prevout.hash.ToString(), hashBlockStr, false, false, true);
     if (!txPrev)
     {
         LogPrintf("CheckKernel : Could not find previous transaction %s\n", prevout.hash.ToString());
