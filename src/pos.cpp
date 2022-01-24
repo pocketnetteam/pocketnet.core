@@ -246,8 +246,6 @@ bool CheckKernel(CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, con
 {
     arith_uint256 hashProofOfStake, targetProofOfStake;
 
-    // TODO (losty-fur): validate
-    LogPrintf("CheckProofOfStake(): DEBUG: getting transaction from sqlite db");
     std::string hashBlockStr;
     auto txPrev = PocketDb::TransRepoInst.Get(prevout.hash.ToString(), hashBlockStr);
     if (!txPrev)

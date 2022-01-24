@@ -4811,8 +4811,6 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
     // Мы должны использовать только надежные проверенные койны + есть условие, что деньги
     // для стейкинга должны отлежаться больше часа
 	int64_t nBalance = GetBalance().m_mine_trusted; //.m_mine_immature;
-	LogPrintf("CreateCoinStake(): DEBUG: using mine_trusted coins: %d\n", nBalance);
-
 	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
 
 	std::set<std::pair<const CWalletTx*, unsigned int> > setCoins;
