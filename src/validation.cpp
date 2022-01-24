@@ -2480,7 +2480,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             // We do not mark the block invalid for situations where the chain can be rebuilt.
             // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
             // we need to think about marking the block incomplete and requesting it from the network again.
-            return state.DoS(200, false, REJECT_INCOMPLETE, "failed-validate-social-consensus", false, "", true);
+            // TODO (losty): change this error.
+            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "failed-validate-social-consensus", "", 0x60);
         }
         
         LogPrint(BCLog::CONSENSUS, "--- Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
