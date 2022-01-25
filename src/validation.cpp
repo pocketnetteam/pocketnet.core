@@ -2548,7 +2548,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             return state.DoS(200, false, REJECT_INCOMPLETE, "failed-validate-social-consensus", false, "", true);
         }
         
-        LogPrint(BCLog::CONSENSUS, "--- Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
+        LogPrint(BCLog::CONSENSUS, "    Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
 
         nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
@@ -2569,7 +2569,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         try
         {
             PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
-            LogPrint(BCLog::SYNC, "--- Block indexed: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
+            LogPrint(BCLog::SYNC, "    Block indexed: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
         }
         catch (const std::exception& e)
         {
@@ -4984,6 +4984,8 @@ bool ProcessNewBlock(CValidationState& state,
             if (_pindex)
                 if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock, _pindex->nHeight); ok)
                     ret = true;
+
+            LogPrint(BCLog::CONSENSUS, "    Block checked: %d BH: %s\n", _pindex->nHeight, pblock->GetHash().GetHex());
         }
 
         int64_t nTime4 = GetTimeMicros();
