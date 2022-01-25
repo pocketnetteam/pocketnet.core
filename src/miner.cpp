@@ -247,7 +247,7 @@ bool BlockAssembler::TestTransaction(const CTransactionRef& tx, PocketBlockRef& 
     }
 
     // Check consensus
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(tx, ptx); !ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(tx, ptx, chainActive.Height() + 1); !ok)
     {
         LogPrint(BCLog::CONSENSUS, "Warning: build block skip transaction %s with check result %d\n",
             tx->GetHash().GetHex(), (int) result);

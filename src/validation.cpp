@@ -1081,7 +1081,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         if (_pocketTx)
         {
             // Check transaction with pocketnet base rules
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx); !ok)
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, chainActive.Height() + 1); !ok)
                 return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
 
             // Check transaction with pocketnet consensus rules
@@ -3040,7 +3040,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     else
         pocketBlock = pocketBlockPart;
 
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock); !ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock, pindexNew->nHeight); !ok)
     {
         pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
         return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
@@ -4978,8 +4978,12 @@ bool ProcessNewBlock(CValidationState& state,
         // Also check pocket block with general pocketnet consensus rules
         if (ret)
         {
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock); !ok)
-                ret = false;
+            ret = false;
+            CBlockIndex* _pindex = LookupBlockIndex(pblock->GetHash());
+
+            if (_pindex)
+                if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock, _pindex->nHeight); ok)
+                    ret = true;
         }
 
         int64_t nTime4 = GetTimeMicros();
@@ -5610,7 +5614,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
                 return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s",
                     pindex->nHeight, pindex->GetBlockHash().ToString());
 
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock); !ok)
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock, pindex->nHeight); !ok)
                 return error("VerifyDB(): *** SocialConsensusHelper::Check failed with result %d at %d, hash=%s",
                     (int)result, pindex->nHeight, pindex->GetBlockHash().ToString());
 

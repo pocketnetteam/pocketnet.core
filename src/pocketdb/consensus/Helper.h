@@ -42,12 +42,12 @@ namespace PocketConsensus
         static tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PTransactionRef& ptx, int height);
         static tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PTransactionRef& ptx, PocketBlockRef& pBlock, int height);
         // Проверяет блок транзакций без привязки к цепи
-        static tuple<bool, SocialConsensusResult> Check(const CBlock& block, const PocketBlockRef& pBlock);
+        static tuple<bool, SocialConsensusResult> Check(const CBlock& block, const PocketBlockRef& pBlock, int height);
         // Проверяет транзакцию без привязки к цепи
-        static tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PTransactionRef& ptx);
+        static tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PTransactionRef& ptx, int height);
     protected:
         static tuple<bool, SocialConsensusResult> validate(const CTransactionRef& tx, const PTransactionRef& ptx, const PocketBlockRef& pBlock, int height);
-        static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx);
+        static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx, int height);
         static bool isConsensusable(TxType txType);
     private:
         static PostConsensusFactory m_postFactory;
