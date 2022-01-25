@@ -117,44 +117,12 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
     const auto& node = EnsureNodeContext(context);
     bool running = true;
     int nLastCoinStakeSearchInterval = 0;
-    // TODO (losty-critical+): CReverseScript is removed as well as GetScriptForMining().
-    // auto coinbaseScript = std::make_shared<CReserveScript>();
 
     auto wallet = GetWallet(walletName);
     if (!wallet) { return; }
-    // wallet->GetScriptForMining(coinbaseScript); // TODO (losty-critical+): this method deleted
-
-    // эта логика похоже должна заменить wallet->GetScriptForMining
-    // По сути нам нужен адрес из кошелька взять
-
-    // ---------------------------------------------
-
-    // CScript coinbase_script;
-    // std::string error;
-
-    // if (!getScriptFromDescriptor(address_or_descriptor, coinbase_script, error)) {
-    //     const auto destination = DecodeDestination(address_or_descriptor);
-    //     if (!IsValidDestination(destination)) {
-    //         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address or descriptor");
-    //     }
-
-    //     coinbase_script = GetScriptForDestination(destination);
-    // }
-
-    // ---------------------------------------------
-
-    // или вот так еще используют
-
-    // CScript coinbase_script = GetScriptForDestination(destination);
-
-    // ---------------------------------------------
 
     try
     {
-        // TODO (losty-critical+): conbasescript removed
-        // if (!coinbaseScript || coinbaseScript->reserveScript.empty())
-            // throw std::runtime_error("No coinbase script available (staking requires a wallet)");
-
         while (running && !ShutdownRequested())
         {
             auto wallet = GetWallet(walletName);
@@ -201,7 +169,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
             // TODO (losty-fur): possible null mempool
             auto assembler = BlockAssembler(*node.mempool, chainparams);
 
-            // TODO (losty-critical+): coinbasescript
+            // TODO (losty): passing here nullopt because coinbase script is only usefull for mining blocks
             auto blocktemplate = assembler.CreateNewBlock(
                 Optional<CScript>(), true, &nFees
             );
@@ -266,15 +234,12 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
 
     int64_t nSearchTime = txCoinStake.nTime;
 
-    // TODO (losty-fur): validate this works.
     auto legacyKeyStore = wallet->GetOrCreateLegacyScriptPubKeyMan();
     assert(legacyKeyStore);
 
     if (nSearchTime > nLastCoinStakeSearchTime)
     {
         int64_t nSearchInterval = nBestHeight + 1 > 0 ? 1 : nSearchTime - nLastCoinStakeSearchTime;
-        // TODO (losty-critical+): wallet is no longer a CKeyStore. Research what to use here instead
-        // Хороший вопрос, нужен более глубокий анализ
         if (wallet->CreateCoinStake(*legacyKeyStore, block->nBits, nSearchInterval, nFees, txCoinStake, key))
         {
             if (txCoinStake.nTime >= ::ChainActive().Tip()->GetPastTimeLimit() + 1)
@@ -314,8 +279,7 @@ bool Staker::signBlock(std::shared_ptr<CBlock> block, std::shared_ptr<CWallet> w
                     auto prevTx = wallet->GetWalletTx(prevHash);
                     const CScript& scriptPubKey = prevTx->tx->vout[n].scriptPubKey;
                     SignatureData sigdata;
-                    // TODO (losty-critical+): wallet is now not a CKeyStore and SigningProvider. Is GetSolvingProvider suitable here?
-                    signSuccess = ProduceSignature(*legacyKeyStore /* *wallet->GetSolvingProvider(scriptPubKey) */,
+                    signSuccess = ProduceSignature(*legacyKeyStore,
                         MutableTransactionSignatureCreator(&txNewConst, i, prevTx->tx->vout[n].nValue, SIGHASH_ALL),
                         scriptPubKey, sigdata);
 

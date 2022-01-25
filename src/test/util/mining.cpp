@@ -28,7 +28,7 @@ CTxIn MineBlock(const NodeContext& node, const CScript& coinbase_scriptPubKey)
 {
     auto block = PrepareBlock(node, coinbase_scriptPubKey);
 
-    // TODO (losty): is height correct?
+    // TODO (losty-critical): is height correct?
     while (!CheckProofOfWork(block->GetHash(), block->nBits, Params().GetConsensus(), 0)) {
         ++block->nNonce;
         assert(block->nNonce);

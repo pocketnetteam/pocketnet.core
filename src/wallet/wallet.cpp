@@ -2545,7 +2545,7 @@ bool CWallet::SignTransaction(CMutableTransaction& tx) const
 			return false;
 		}
 		const CWalletTx& wtx = mi->second;
-		// TODO (losty-critical+): is this valid usage of Coin()?
+		// TODO (losty-fur): seems good
         // Хороший вопрос, нужно тестировать
                 LogPrintf("CWallet::SignTransaction: DEBUG: creating coin!");
 		coins[input.prevout] = Coin(wtx.tx->vout[input.prevout.n], wtx.m_confirm.block_height, wtx.IsCoinBase(), wtx.IsCoinStake(), PocketHelpers::TransactionHelper::IsPocketTransaction(wtx.tx));
@@ -4806,10 +4806,6 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 	txNew.vout.push_back(CTxOut(0, scriptEmpty));
 
 	// Choose coins to use
-	// TODO (losty-fur): validate
-    // TODO (brangr): предложил бы использовать m_mine_trusted - необходимо тестирование
-    // Мы должны использовать только надежные проверенные койны + есть условие, что деньги
-    // для стейкинга должны отлежаться больше часа
 	int64_t nBalance = GetBalance().m_mine_trusted; //.m_mine_immature;
 	std::set<std::pair<const CWalletTx*, unsigned int> > vwtxPrev;
 
@@ -5047,7 +5043,6 @@ int64_t CWallet::GetNewMint() const
 tuple<uint64_t, uint64_t> CWallet::GetStakeWeight() const
 {
 	// Choose coins to use
-	// TODO (losty-fur): validate this is correct balance
 	int64_t nBalance = GetBalance().m_mine_trusted;
 	LogPrintf("GetStakeWeight: DEBUG: using mine_trusted coins: %d", nBalance);
 

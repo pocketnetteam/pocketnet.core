@@ -348,8 +348,7 @@ public:
         if (banNode) {
             // Clear the points and ban the node
             points.clear();
-            // TODO (losty-fur): Validate error is correct.
-            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "header-spam", "ban node for sending spam");
+            return state.Invalid(BlockValidationResult::BLOCK_SPAM, "header-spam", "ban node for sending spam");
         }
 
         return ret;
@@ -1252,6 +1251,7 @@ bool PeerManager::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationSt
     case BlockValidationResult::BLOCK_INVALID_HEADER:
     case BlockValidationResult::BLOCK_CHECKPOINT:
     case BlockValidationResult::BLOCK_INVALID_PREV:
+    case BlockValidationResult::BLOCK_SPAM:
         Misbehaving(nodeid, 100, message);
         return true;
     // Conflicting (but not necessarily invalid) data or different policy:
@@ -1261,6 +1261,7 @@ bool PeerManager::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationSt
         return true;
     case BlockValidationResult::BLOCK_RECENT_CONSENSUS_CHANGE:
     case BlockValidationResult::BLOCK_TIME_FUTURE:
+    case BlockValidationResult::BLOCK_INCOMPLETE: // TODO (losty): validate we do not want punish in this case
         break;
     }
     if (message != "") {
@@ -1291,6 +1292,7 @@ bool PeerManager::MaybePunishNodeForTx(NodeId nodeid, const TxValidationState& s
     case TxValidationResult::TX_CONFLICT:
     case TxValidationResult::TX_MEMPOOL_POLICY:
     case TxValidationResult::TX_SOCIAL_UNWARRANT:
+    case TxValidationResult::TX_POCKET_SQLITE:
         break;
     }
     if (message != "") {
@@ -1891,9 +1893,6 @@ void static ProcessGetData(CNode& pfrom, Peer& peer, const CChainParams& chainpa
             int nSendFlags = (inv.IsMsgTx() ? SERIALIZE_TRANSACTION_NO_WITNESS : 0);
             // Join PocketNet data from PocketDB to transaction stream
             std::string txPayloadData;
-            // TODO (losty-critical+): A lot reworked here. Validate that this is correct.
-            // Выглядит хорошо, логика поиска транзакции сохранилась, полагаю тут важно
-            // чтобы push = false сохранился, если не нашли пейлоад Accessor::GetTransaction
             if (PocketServices::Accessor::GetTransaction(*tx, txPayloadData)) {
                 connman.PushMessage(&pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *tx, txPayloadData));
                 mempool.RemoveUnbroadcastTx(tx->GetHash());
@@ -2206,9 +2205,6 @@ void PeerManager::ProcessOrphanTx(std::set<uint256>& orphan_work_set)
         TxValidationState state;
         std::list<CTransactionRef> removed_txn;
 
-        // TODO (losty-critical+): pocket transaction. Currently with passing nullptr this will cause segfault probably
-        // AcceptToMemoryPool был расширен, чтобы поднимать из БД данные или пробовать десериализовать то, что можно - 
-        // нужен мерж с актуальной версией
         if (AcceptToMemoryPool(m_mempool, state, porphanTx, nullptr, &removed_txn, false /* bypass_limits */)) {
             LogPrint(BCLog::MEMPOOL, "   accepted orphan tx %s\n", orphanHash.ToString());
             RelayTransaction(orphanHash, porphanTx->GetWitnessHash(), m_connman);
@@ -3413,7 +3409,6 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
     if (msg_type == NetMsgType::CMPCTBLOCK)
     {
         // Ignore cmpctblock received while importing
-        // TODO (losty-fur): reindex stuff?
         if (fImporting || IsChainReindex()) {
             LogPrint(BCLog::NET, "Unexpected cmpctblock message received from peer %d\n", pfrom.GetId());
             return;

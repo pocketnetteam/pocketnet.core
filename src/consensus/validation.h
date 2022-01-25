@@ -57,6 +57,7 @@ enum class TxValidationResult {
      */
     TX_CONFLICT,
     TX_MEMPOOL_POLICY,        //!< violated mempool's fee/size/descendant/RBF/etc limits
+    TX_POCKET_SQLITE,         //!< error during operations with pocket sqlite db
 };
 
 /** A "reason" why a block was invalid, suitable for determining whether the
@@ -82,7 +83,8 @@ enum class BlockValidationResult {
     BLOCK_INVALID_PREV,      //!< A block this one builds on is invalid
     BLOCK_TIME_FUTURE,       //!< block timestamp was > 2 hours in the future (or our clock is bad)
     BLOCK_CHECKPOINT,        //!< the block failed to meet one of our checkpoints
-    // BLOCK_INCOMPLETE         //!< TODO (losty-critical): this is for sure needed somewhere but i forgot where
+    BLOCK_INCOMPLETE,        //!< possible situation when block is invalid but chain can be rebuilt so do not mark block as invalid
+    BLOCK_SPAM,              //!< error on spam detected
 };
 
 
