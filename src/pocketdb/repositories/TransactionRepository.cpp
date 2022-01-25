@@ -168,7 +168,6 @@ namespace PocketDb
                 m_skipSingleRowColumnsOffset = currentColumn;
                 return {singleJoinsRes, txEntry};
             } else {
-                // TODO (losty): Ugly hardcoded.
                 currentColumn = m_skipSingleRowColumnsOffset;
                 return {true, tx->second};
             }
