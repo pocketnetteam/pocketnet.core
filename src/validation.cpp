@@ -4978,14 +4978,16 @@ bool ProcessNewBlock(CValidationState& state,
         // Also check pocket block with general pocketnet consensus rules
         if (ret)
         {
-            ret = false;
+            int checkHeight = chainActive.Height() + 1;
+            
             CBlockIndex* _pindex = LookupBlockIndex(pblock->GetHash());
-
             if (_pindex)
-                if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock, _pindex->nHeight); ok)
-                    ret = true;
+                checkHeight = _pindex->nHeight;
 
-            LogPrint(BCLog::CONSENSUS, "    Block checked: %d BH: %s\n", _pindex->nHeight, pblock->GetHash().GetHex());
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock, checkHeight); !ok)
+                ret = false;
+                
+            LogPrint(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, pblock->GetHash().GetHex());
         }
 
         int64_t nTime4 = GetTimeMicros();
