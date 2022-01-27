@@ -215,7 +215,7 @@ namespace PocketWeb::PocketWebRpc
                     }
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getcontent", "ids[]") +
@@ -267,7 +267,7 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "A pocketcoin addresses to filter"}
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                     // {RPCResult::Type::ARR, "", "", {}}
                 },
                 RPCExamples{
@@ -295,7 +295,7 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getprofilefeed", "") +
@@ -315,7 +315,7 @@ namespace PocketWeb::PocketWebRpc
                 "",
                 {},
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     ""
@@ -426,10 +426,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): more examples
+                    // TODO (losty-rpc): more examples
                     HelpExampleCli("GetHistoricalFeed", "123123123123") +
                     HelpExampleRpc("GetHistoricalFeed", "123123123123")
                 },
@@ -510,10 +510,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): more examples
+                    // TODO (losty-rpc): more examples
                     HelpExampleCli("GetHierarchicalFeed", "1231231414") +
                     HelpExampleRpc("GetHierarchicalFeed", "1231231414")
                 },
@@ -564,7 +564,7 @@ namespace PocketWeb::PocketWebRpc
                     // TODO (team): provide arguments description
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getsubscribesfeed", "") +
@@ -617,7 +617,7 @@ namespace PocketWeb::PocketWebRpc
                     {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of content history for statistics. Default is all history"},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getcontentsstatistic", "") +
@@ -666,13 +666,13 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"GetRandomPost",
                 "\nGet contents statistic.\n",
                 {
-                    // TODO (losty-fur): provide args description
+                    // TODO (losty-rpc): provide args description
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur)
+                    // TODO (losty-rpc)
                     HelpExampleCli("GetRandomPost", "") +
                     HelpExampleRpc("GetRandomPost", "")
                 },

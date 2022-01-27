@@ -805,7 +805,7 @@ static RPCHelpMan getstakinginfo()
                     RPCResult::Type::OBJ, "", "",
                     {
                         {
-                            // TODO (losty-fur) improve descriptions
+                            // TODO (losty-rpc) improve descriptions
                             { RPCResult::Type::BOOL, "enabled", "If staking is enabled" },
                             { RPCResult::Type::BOOL, "staking", "If current block is staking" },
                             { RPCResult::Type::STR, "errors", "Errors. Empty if there is no error" },

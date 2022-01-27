@@ -21,7 +21,7 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, "Filter by address"},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("search", "\"keyword\", \"type\", topBlock, pageStart, pageSize, \"address\"") +
@@ -177,13 +177,13 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"SearchUsers",
                 "\nSearch users in DB.\n",
                 {
-                    // TODO (losty-fur): update argumants probably?
+                    // TODO (losty-rpc): update argumants probably?
                     {"keyword", RPCArg::Type::STR, RPCArg::Optional::NO, "String for search"},
                     {"fieldtype", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                     {"orderbyrank", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("SearchUsers", "\"keyword\", \"fieldtype\", orderbyrank") +
@@ -230,7 +230,7 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10"},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("searchlinks", "[\"links\", ...], \"contenttypes\", height, count") +
@@ -280,7 +280,7 @@ namespace PocketWeb::PocketWebRpc
                     // TODO (team): args
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
@@ -336,7 +336,7 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10"},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
@@ -377,7 +377,7 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10" },
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
@@ -430,7 +430,7 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10" },
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
@@ -482,7 +482,7 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10" },
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples
@@ -527,7 +527,7 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Number of resulting records. Default 10" },
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     // TODO (team): examples

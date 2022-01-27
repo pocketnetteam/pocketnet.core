@@ -3250,7 +3250,7 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
         // Deserialize pocket part if exists
         auto[deserializeOk, pocketTx] = PocketServices::Serializer::DeserializeTransaction(ptx, vRecv);
-        // TODO (losty-fur): Validate error correct
+        // TODO (losty-error): Validate error correct
         if (!deserializeOk)
             state.Invalid(TxValidationResult::TX_CONSENSUS, "Deserialize"); // T
 

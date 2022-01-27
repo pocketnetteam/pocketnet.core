@@ -51,14 +51,14 @@ namespace PocketWeb::PocketWebRpc
                 "\nReturn Pocketnet user profile.\n",
                 {
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
-                    {"shortForm", /* TODO (losty-fur): is this really string? */RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
+                    {"shortForm", /* TODO (losty-rpc): is this really string? */RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                     
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("getuserprofile", "123123abd123 1") +
                     HelpExampleRpc("getuserprofile", "123123abd123 1") +
                     HelpExampleCli("getuserprofile", "123123abd123") +
@@ -108,10 +108,10 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("getuseraddress", "") +
                     HelpExampleRpc("getuseraddress", "")
                 },
@@ -151,7 +151,7 @@ namespace PocketWeb::PocketWebRpc
                     },
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("getaddressregistration", "[\"addresses\",...]") +
                     HelpExampleRpc("getaddressregistration", "[\"addresses\",...]")
                 },
@@ -191,10 +191,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("getuserstate", "ad123ab123fd") +
                     HelpExampleRpc("getuserstate", "ad123ab123fd")
                 },
@@ -298,10 +298,10 @@ namespace PocketWeb::PocketWebRpc
 
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("txunspent", "") +
                     HelpExampleRpc("txunspent", "")
                 },
@@ -394,10 +394,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""}
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("getaccountsetting", "123abacf12") +
                     HelpExampleRpc("getaccountsetting", "123abacf12")
                 },
@@ -426,10 +426,10 @@ namespace PocketWeb::PocketWebRpc
                     {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth of statistic. Default - whole history"},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("getuserstatistic", "[\"addresses\", ...], height, depth") +
                     HelpExampleRpc("getuserstatistic", "[\"addresses\", ...], height, depth")
                 },
@@ -494,10 +494,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("GetAccountSubscribes", "\"address\"") +
                     HelpExampleRpc("GetAccountSubscribes", "\"address\"")
                 },
@@ -520,10 +520,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("GetAccountSubscribers", "\"address\"") +
                     HelpExampleRpc("GetAccountSubscribers", "\"address\"")
                 },
@@ -546,10 +546,10 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-fur): provide correct examples
+                    // TODO (losty-rpc): provide correct examples
                     HelpExampleCli("GetAccountBlockings", "\"address\"") +
                     HelpExampleRpc("GetAccountBlockings", "\"address\"")
                 },

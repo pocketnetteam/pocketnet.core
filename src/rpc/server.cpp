@@ -334,7 +334,7 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
             throw JSONRPCError(RPC_IN_WARMUP, rpcWarmupStatus);
     }
 
-    // TODO (losty-fur): help is a common RPC command. I think we just need to register it in ctor as it had been done in bitcoin.
+    // TODO (losty-rpc): help is a common RPC command. I think we just need to register it in ctor as it had been done in bitcoin.
     //                   also this will allow to change help() signature to a new RPCHelpMan that will be more correct than use such special case.
     if (request.strMethod == "help") {
         return help(request);

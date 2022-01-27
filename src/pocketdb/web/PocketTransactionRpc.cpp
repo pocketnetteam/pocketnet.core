@@ -19,13 +19,13 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet transaction data.\n"
                 "in BIP 141 (witness data is discounted).\n",
                 {
-                    // TODO (losty-fur): provide arguments description
+                    // TODO (losty-rpc): provide arguments description
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    "" // TODO (losty-fur): provide examples
+                    "" // TODO (losty-rpc): provide examples
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -69,13 +69,13 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet transaction data.\n"
                 "in BIP 141 (witness data is discounted).\n",
                 {
-                    // TODO (losty-fur): provide arguments description
+                    // TODO (losty-rpc): provide arguments description
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    "" // TODO (losty-fur): provide examples
+                    "" // TODO (losty-rpc): provide examples
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -198,13 +198,13 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"generatetransaction",
                 "\nAdd new pocketnet transaction.\n",
                 {
-                    // TODO (losty-fur): provide arguments description
+                    // TODO (losty-rpc): provide arguments description
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    "" // TODO (losty-fur): provide examples
+                    "" // TODO (losty-rpc): provide examples
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {

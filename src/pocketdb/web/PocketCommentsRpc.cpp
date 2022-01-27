@@ -21,7 +21,7 @@ namespace PocketWeb::PocketWebRpc
                     },
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getcomments", "\"postid\", \"parentid\", \"address\", [\"commend_id\",\"commend_id\",...]") +
@@ -75,7 +75,7 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
                 },
                 {
-                    // TODO (losty-fur): provide return description
+                    // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getlastcomments", "") +
