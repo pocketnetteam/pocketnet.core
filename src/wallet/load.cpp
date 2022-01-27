@@ -155,8 +155,7 @@ void UnloadWallets()
         auto wallet = wallets.back();
         wallets.pop_back();
         std::vector<bilingual_str> warnings;
-        // TODO (losty-fur): optional issue
-        RemoveWallet(wallet, Optional<bool>(), warnings);
+        RemoveWallet(wallet, nullopt, warnings);
         UnloadWallet(std::move(wallet));
     }
 }

@@ -5,22 +5,25 @@
 #ifndef POCKETCOIN_OPTIONAL_H
 #define POCKETCOIN_OPTIONAL_H
 
+// This file existed for providing "optional" functional for c++11 compiler that is used by bitcoin.
+// Pocketnet is using c++17 so this functional is not even needed.
+// However, these functions are still here to provide more similarity with bitcoin code but adapted to use STL's optional
+
 #include <utility>
 
-#include <boost/optional.hpp>
+#include <optional>
 
-//! Substitute for C++17 std::optional
 template <typename T>
-using Optional = boost::optional<T>;
+using Optional = std::optional<T>;
 
-//! Substitute for C++17 std::make_optional
+// Here boolean condition is removed because it causes conflicts with STL's make_optional.
+// Optional is initialized empty by default or use "= nullopt" to explicitly initialize empty
 template <typename T>
-Optional<T> MakeOptional(bool condition, T&& value)
+Optional<T> MakeOptional(T&& value)
 {
-    return boost::make_optional(condition, std::forward<T>(value));
+    return std::make_optional(std::forward<T>(value));
 }
 
-//! Substitute for C++17 std::nullopt
-static auto& nullopt = boost::none;
+using std::nullopt;
 
 #endif // POCKETCOIN_OPTIONAL_H

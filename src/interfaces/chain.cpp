@@ -155,7 +155,7 @@ public:
         if (height >= 0) {
             return height;
         }
-        return Optional<int>{};
+        return nullopt;
     }
     Optional<int> getBlockHeight(const uint256& hash) override
     {
@@ -164,7 +164,7 @@ public:
         if (block && ::ChainActive().Contains(block)) {
             return block->nHeight;
         }
-        return Optional<int>{};
+        return nullopt;
     }
     uint256 getBlockHash(int height) override
     {
@@ -187,7 +187,7 @@ public:
             if (hash) *hash = block->GetBlockHash();
             return block->nHeight;
         }
-        return Optional<int>{};
+        return nullopt;
     }
     CBlockLocator getTipLocator() override
     {
@@ -205,7 +205,7 @@ public:
         if (CBlockIndex* fork = FindForkInGlobalIndex(::ChainActive(), locator)) {
             return fork->nHeight;
         }
-        return Optional<int>{};
+        return nullopt;
     }
     bool findBlock(const uint256& hash, const FoundBlock& block) override
     {

@@ -171,7 +171,7 @@ void Staker::worker(const util::Ref& context, CChainParams const& chainparams, s
 
             // TODO (losty): passing here nullopt because coinbase script is only usefull for mining blocks
             auto blocktemplate = assembler.CreateNewBlock(
-                Optional<CScript>(), true, &nFees
+                nullopt, true, &nFees
             );
 
             auto block = std::make_shared<CBlock>(blocktemplate->block);

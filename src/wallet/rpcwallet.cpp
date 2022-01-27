@@ -348,7 +348,7 @@ static RPCHelpMan getrawchangeaddress()
         throw JSONRPCError(RPC_WALLET_ERROR, "Error: This wallet has no available keys");
     }
 
-    OutputType output_type = pwallet->m_default_change_type.get_value_or(pwallet->m_default_address_type);
+    OutputType output_type = pwallet->m_default_change_type.value_or(pwallet->m_default_address_type);
     if (!request.params[0].isNull()) {
         if (!ParseOutputType(request.params[0].get_str(), output_type)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, strprintf("Unknown address type '%s'", request.params[0].get_str()));
@@ -1684,7 +1684,7 @@ static RPCHelpMan listsinceblock()
     LOCK(wallet.cs_wallet);
 
     // The way the 'height' is initialized is just a workaround for the gcc bug #47679 since version 4.6.0.
-    Optional<int> height = MakeOptional(false, int()); // Height of the specified block or the common ancestor, if the block provided was in a deactivated chain.
+    Optional<int> height; // Height of the specified block or the common ancestor, if the block provided was in a deactivated chain.
     Optional<int> altheight; // Height of the specified block, even if it's in a deactivated chain.
     int target_confirms = 1;
     isminefilter filter = ISMINE_SPENDABLE;
@@ -2721,8 +2721,7 @@ static RPCHelpMan loadwallet()
     options.require_existing = true;
     bilingual_str error;
     std::vector<bilingual_str> warnings;
-    // TODO (losty-fur): consider nullopt correct usage. Change all Optional<bool>{} to nullopt after
-    Optional<bool> load_on_start = request.params[1].isNull() ? Optional<bool>{} : Optional<bool>(request.params[1].get_bool());
+    Optional<bool> load_on_start = request.params[1].isNull() ? nullopt : Optional<bool>(request.params[1].get_bool());
     std::shared_ptr<CWallet> const wallet = LoadWallet(*context.chain, name, load_on_start, options, status, error, warnings);
     if (!wallet) {
         // Map bad format to not found, since bad format is returned when the
@@ -2872,7 +2871,7 @@ static RPCHelpMan createwallet()
     options.create_flags = flags;
     options.create_passphrase = passphrase;
     bilingual_str error;
-    Optional<bool> load_on_start = request.params[6].isNull() ? Optional<bool>{} : Optional<bool>(request.params[6].get_bool());
+    Optional<bool> load_on_start = request.params[6].isNull() ? nullopt : Optional<bool>(request.params[6].get_bool());
     std::shared_ptr<CWallet> wallet = CreateWallet(*context.chain, request.params[0].get_str(), load_on_start, options, status, error, warnings);
     if (!wallet) {
         RPCErrorCode code = status == DatabaseStatus::FAILED_ENCRYPT ? RPC_WALLET_ENCRYPTION_FAILED : RPC_WALLET_ERROR;
@@ -2924,7 +2923,7 @@ static RPCHelpMan unloadwallet()
     // Note that any attempt to load the same wallet would fail until the wallet
     // is destroyed (see CheckUniqueFileid).
     std::vector<bilingual_str> warnings;
-    Optional<bool> load_on_start = request.params[1].isNull() ? Optional<bool>{} : Optional<bool>(request.params[1].get_bool());
+    Optional<bool> load_on_start = request.params[1].isNull() ? nullopt : Optional<bool>(request.params[1].get_bool());
     if (!RemoveWallet(wallet, load_on_start, warnings)) {
         throw JSONRPCError(RPC_MISC_ERROR, "Requested wallet already unloaded");
     }
@@ -3702,7 +3701,7 @@ static RPCHelpMan rescanblockchain()
     }
 
     int start_height = 0;
-    Optional<int> stop_height = MakeOptional(false, int());
+    Optional<int> stop_height;
     uint256 start_block;
     {
         LOCK(pwallet->cs_wallet);
