@@ -2115,9 +2115,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     // Check proof of stake
     if (block.nBits != GetNextWorkRequired(pindex->pprev, &block, chainparams.GetConsensus()))
     {
-        // TODO (losty-error): was 1 dos
         error("ContextualCheckBlock() : incorrect %s at height %d (%d)", !block.IsProofOfStake() ? "proof-of-work" : "proof-of-stake", pindex->pprev->nHeight, block.nBits);
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-diffbits");
+        return state.Invalid(BlockValidationResult::BLOCK_STAKE_BITS, "bad-diffbits");
     }
 
     arith_uint256 hashProof;
@@ -2142,9 +2141,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     }
 
     if (!pindex->SetStakeEntropyBit(block.GetStakeEntropyBit())) {
-        // TODO (losty-error): was 1 dos
         error("ContextualCheckBlock() : SetStakeEntropyBit() failed");
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-entropy-bit");
+        return state.Invalid(BlockValidationResult::BLOCK_STAKE_BITS, "bad-entropy-bit");
     }
 
     // Record proof hash value
@@ -2153,9 +2151,8 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
     uint64_t nStakeModifier = 0;
     bool fGeneratedStakeModifier = false;
     if (!ComputeNextStakeModifier(pindex->pprev, nStakeModifier, fGeneratedStakeModifier)) {
-        // TODO (losty-error): was 1 dos
         error("ContextualCheckBlock() : ComputeNextStakeModifier() failed");
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-stake-modifier");
+        return state.Invalid(BlockValidationResult::BLOCK_STAKE_BITS, "bad-stake-modifier");
     }
 
     pindex->SetStakeModifier(nStakeModifier, fGeneratedStakeModifier);
@@ -2372,7 +2369,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
                 if (view.GetValueIn(tx) < Params().GetConsensus().nStakeMinimumThreshold)
                 {
-                    // TODO (losty-error): was 100 dos
                     error("ConnectBlock(): Stake input is below threshold");
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-stake-inputs");
                 }
@@ -2449,7 +2445,6 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         {
             int64_t nCalculatedStakeReward = GetProofOfStakeReward(pindex->nHeight, nFees, chainparams.GetConsensus());
             if (nStakeReward > nCalculatedStakeReward) {
-                // TODO (losty-error): was 100 dos
                 error("ConnectBlock() : coinstake pays too much(actual=%d vs calculated=%d)", nStakeReward, nCalculatedStakeReward);
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
             }
@@ -4137,13 +4132,11 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     {
         // Second transaction must be coinstake, the rest must not be
         if (block.vtx.empty() || !block.vtx[1]->IsCoinStake()) {
-            // TODO (losty-error): was 100 dos.
             error("CheckBlock() : second tx is not coinstake");
             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
         }
         for (unsigned int i = 2; i < block.vtx.size(); i++)
             if (block.vtx[i]->IsCoinStake()) {
-                // TODO (losty-error): was 100 dos
                 error("CheckBlock() : more than one coinstake");
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
             }
@@ -4420,20 +4413,19 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     }
 
     if (block.IsProofOfWork() && nHeight > Params().GetConsensus().nPosFirstBlock) {
-        // TODO (losty-error): was 10 dos
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "check-pow-height", "pow-mined blocks not allowed");
+        // TODO (losty-fur): was 10 dos but now will be punished with 100
+        return state.Invalid(BlockValidationResult::BLOCK_CHECKPOINT, "check-pow-height", "pow-mined blocks not allowed");
     }
 
     if (block.IsProofOfStake() && nHeight < Params().GetConsensus().nPosFirstBlock) {
-        // TODO (losty-error): was 10 dos
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "check-pos-height", "pos-mined blocks not allowed");
+        // TODO (losty-fur): was 10 dos but now will be punished with 100
+        return state.Invalid(BlockValidationResult::BLOCK_CHECKPOINT, "check-pos-height", "pos-mined blocks not allowed");
     }
 
     // Check CheckCoinStakeTimestamp
-    // TODO (losty-error): was 0 dos
     if (block.IsProofOfStake() &&
         !CheckCoinStakeTimestamp(nHeight, block.GetBlockTime(), (int64_t) block.vtx[1]->nTime))
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "check-coinstake-timestamp", "coinstake timestamp violation");
+        return state.Invalid(BlockValidationResult::BLOCK_TIMESTAMP_INVALID, "check-coinstake-timestamp", "coinstake timestamp violation");
 
     int64_t nLockTimeCutoff = (nLockTimeFlags & LOCKTIME_MEDIAN_TIME_PAST)
                               ? pindexPrev->GetMedianTimePast()
@@ -4532,7 +4524,6 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
             {
                 if (!isJson)
                 {
-                    // TODO (losty-error): was 100 dos
                     error("CheckBlock() : coinbase output amount greater than 0 for proof-of-stake block. proof of work not allowed.");
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS);
                 }

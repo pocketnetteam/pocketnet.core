@@ -85,6 +85,8 @@ enum class BlockValidationResult {
     BLOCK_CHECKPOINT,        //!< the block failed to meet one of our checkpoints
     BLOCK_INCOMPLETE,        //!< possible situation when block is invalid but chain can be rebuilt so do not mark block as invalid
     BLOCK_SPAM,              //!< error on spam detected
+    BLOCK_STAKE_BITS,        //!< error in validating stake bits. Punish with score 1
+    BLOCK_TIMESTAMP_INVALID, //!< incorrect stake timestamp
 };
 
 

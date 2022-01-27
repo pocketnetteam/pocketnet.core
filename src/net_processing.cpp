@@ -1259,9 +1259,13 @@ bool PeerManager::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationSt
         // TODO: Handle this much more gracefully (10 DoS points is super arbitrary)
         Misbehaving(nodeid, 10, message);
         return true;
+    case BlockValidationResult::BLOCK_STAKE_BITS:
+        Misbehaving(nodeid, 1, message);
+        return true;
     case BlockValidationResult::BLOCK_RECENT_CONSENSUS_CHANGE:
     case BlockValidationResult::BLOCK_TIME_FUTURE:
     case BlockValidationResult::BLOCK_INCOMPLETE: // TODO (losty): validate we do not want punish in this case
+    case BlockValidationResult::BLOCK_TIMESTAMP_INVALID:
         break;
     }
     if (message != "") {
@@ -3250,9 +3254,8 @@ void PeerManager::ProcessMessage(CNode& pfrom, const std::string& msg_type, CDat
 
         // Deserialize pocket part if exists
         auto[deserializeOk, pocketTx] = PocketServices::Serializer::DeserializeTransaction(ptx, vRecv);
-        // TODO (losty-error): Validate error correct
         if (!deserializeOk)
-            state.Invalid(TxValidationResult::TX_CONSENSUS, "Deserialize"); // T
+            state.Invalid(TxValidationResult::TX_POCKET_SQLITE, "Deserialize"); // T
 
 
         if (!state.IsInvalid() &&
