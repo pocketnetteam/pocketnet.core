@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -52,7 +52,7 @@ namespace PocketDb {
             auto stmt = SetupSqlStatement(R"sql(
                 select (t.Height / 60)Hour, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByHour
-                where t.Type in (1,100,103,200,201,204,205,300,301,302,303)
+                where t.Type in (1,100,103,200,201,202,204,205,208,300,301,302,303)
                   and (t.Height / 60) < (? / 60)
                   and (t.Height / 60) >= (? / 60)
                 group by (t.Height / 60), t.Type
@@ -91,7 +91,7 @@ namespace PocketDb {
             auto stmt = SetupSqlStatement(R"sql(
                 select (t.Height / 1440)Day, t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_HeightByDay
-                where t.Type in (1,100,103,200,201,204,205,300,301,302,303)
+                where t.Type in (1,100,103,200,201,202,204,205,208,300,301,302,303)
                   and (t.Height / 1440) < (? / 1440)
                   and (t.Height / 1440) >= (? / 1440)
                 group by (t.Height / 1440), t.Type
@@ -130,7 +130,7 @@ namespace PocketDb {
             auto stmt = SetupSqlStatement(R"sql(
                 select t.Type, count()Count
                 from Transactions t indexed by Transactions_Type_Last_Height_Id
-                where t.Type in (100,101,102,200,201)
+                where t.Type in (100,101,102,200,201,202,208)
                   and t.Last = 1
                   and t.Height > 0
                 group by t.Type
@@ -244,6 +244,9 @@ namespace PocketDb {
                             txOut.pushKV("scriptPubKey", scriptPubKey);
                         }
 
+                        if (auto [ok, spentheight] = TryGetColumnInt(*stmt, 10); ok)
+                            txOut.pushKV("spent", spentheight);
+
                         get<2>(txs[hash]).push_back(txOut);
                     }
                 }
@@ -303,14 +306,13 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select t.Hash, ptxs.RowNum, t.Type, t.Height, t.BlockHash, t.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey
+                select t.Hash, ptxs.RowNum, t.Type, t.Height, t.BlockHash, t.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey, o.SpentHeight
                 from (
                     select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash
                     from (
                         select distinct o.TxHash, o.TxHeight
                         from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
                         where o.AddressHash = ?
-                          and o.SpentHeight is not null
                           and o.TxHeight <= ?
                     ) txs
                 ) ptxs
@@ -332,7 +334,7 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey, o.SpentHeight
                 from (
                     select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
                     from (
@@ -357,7 +359,7 @@ namespace PocketDb {
         return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
         {
             stmt = SetupSqlStatement(R"sql(
-                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey
+                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey, o.SpentHeight
                 from (
                     select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
                     from (

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -36,8 +36,9 @@ namespace PocketDb
         UniValue GetRecomendedAccountsBySubscriptions(const string& address, int cntOut = 10);
         UniValue GetRecomendedAccountsByScoresOnSimilarAccounts(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
         UniValue GetRecomendedAccountsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
-        UniValue GetRecomendedContentsByScoresOnSimilarContents();
-        UniValue GetRecomendedContentsByScoresFromAddress();
+        UniValue GetRecomendedAccountsByTags(const vector<string>& tags, int nHeight, int depth = 1000, int cntOut = 10);
+        UniValue GetRecomendedContentsByScoresOnSimilarContents(const string& contentid, const vector<int>& contentTypes, int depth = 1000, int cntOut = 10);
+        UniValue GetRecomendedContentsByScoresFromAddress(const string& address, const vector<int>& contentTypes, int nHeight, int depth = 1000, int cntOut = 10);
     };
 
     typedef shared_ptr<SearchRepository> SearchRepositoryRef;

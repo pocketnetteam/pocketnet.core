@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -57,7 +57,7 @@ namespace PocketConsensus
             // Check exists content transaction
             auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetPostTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE }
             );
 
             if (!contentOk)

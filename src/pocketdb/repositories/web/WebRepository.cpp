@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -10,16 +10,16 @@ namespace PocketDb
 
     void WebRepository::Destroy() {}
 
-    vector<Tag> WebRepository::GetContentTags(const string& blockHash)
+    vector<WebTag> WebRepository::GetContentTags(const string& blockHash)
     {
-        vector<Tag> result;
+        vector<WebTag> result;
 
         string sql = R"sql(
             select distinct p.Id, pp.String1, json_each.value
             from Transactions p indexed by Transactions_BlockHash
             join Payload pp on pp.TxHash = p.Hash
             join json_each(pp.String4)
-            where p.Type in (200, 201)
+            where p.Type in (200, 201, 202)
               and p.Last = 1
               and p.BlockHash = ?
         )sql";
@@ -40,7 +40,7 @@ namespace PocketDb
                 auto[okValue, value] = TryGetColumnString(*stmt, 2);
                 if (!okValue) continue;
 
-                result.emplace_back(Tag(id, lang, value));
+                result.emplace_back(WebTag(id, lang, value));
             }
 
             FinalizeSqlStatement(*stmt);
@@ -49,7 +49,7 @@ namespace PocketDb
         return result;
     }
 
-    void WebRepository::UpsertContentTags(const vector<Tag>& contentTags)
+    void WebRepository::UpsertContentTags(const vector<WebTag>& contentTags)
     {
         // build distinct lists
         vector<int> ids;
@@ -103,9 +103,9 @@ namespace PocketDb
         });
     }
 
-    vector<Content> WebRepository::GetContent(const string& blockHash)
+    vector<WebContent> WebRepository::GetContent(const string& blockHash)
     {
-        vector<Content> result;
+        vector<WebContent> result;
 
         string sql = R"sql(
             select
@@ -121,7 +121,7 @@ namespace PocketDb
             from Transactions t indexed by Transactions_BlockHash
             join Payload p on p.TxHash = t.Hash
             where t.BlockHash = ?
-              and t.Type in (100, 101, 102, 200, 201, 204, 205)
+              and t.Type in (100, 101, 102, 200, 201, 202, 204, 205)
        )sql";
        
        TryTransactionStep(__func__, [&]()
@@ -141,45 +141,49 @@ namespace PocketDb
                 case ACCOUNT_USER:
 
                     if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
-                        result.emplace_back(Content(id, ContentFieldType_AccountUserName, string2));
+                        result.emplace_back(WebContent(id, ContentFieldType_AccountUserName, string2));
 
                     if (auto[ok, string4] = TryGetColumnString(*stmt, 5); ok)    
-                        result.emplace_back(Content(id, ContentFieldType_AccountUserAbout, string4));
+                        result.emplace_back(WebContent(id, ContentFieldType_AccountUserAbout, string4));
 
                     // if (auto[ok, string5] = TryGetColumnString(*stmt, 6); ok)
-                    //     result.emplace_back(Content(id, ContentFieldType_AccountUserUrl, string5));
+                    //     result.emplace_back(WebContent(id, ContentFieldType_AccountUserUrl, string5));
 
                     break;
                 case CONTENT_POST:
 
                     if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentPostCaption, string2));
+                        result.emplace_back(WebContent(id, ContentFieldType_ContentPostCaption, string2));
                     
                     if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentPostMessage, string3));
+                        result.emplace_back(WebContent(id, ContentFieldType_ContentPostMessage, string3));
 
                     // if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
-                    //     result.emplace_back(Content(id, ContentFieldType_ContentPostUrl, string7));
+                    //     result.emplace_back(WebContent(id, ContentFieldType_ContentPostUrl, string7));
 
                     break;
                 case CONTENT_VIDEO:
 
                     if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentVideoCaption, string2));
+                        result.emplace_back(WebContent(id, ContentFieldType_ContentVideoCaption, string2));
 
                     if (auto[ok, string3] = TryGetColumnString(*stmt, 4); ok)
-                        result.emplace_back(Content(id, ContentFieldType_ContentVideoMessage, string3));
+                        result.emplace_back(WebContent(id, ContentFieldType_ContentVideoMessage, string3));
 
                     // if (auto[ok, string7] = TryGetColumnString(*stmt, 8); ok)
-                    //     result.emplace_back(Content(id, ContentFieldType_ContentVideoUrl, string7));
+                    //     result.emplace_back(WebContent(id, ContentFieldType_ContentVideoUrl, string7));
 
                     break;
+                
+                // TODO (brangr): parse JSON for indexing
+                // case CONTENT_ARTICLE:
+
                 // case CONTENT_COMMENT:
                 // case CONTENT_COMMENT_EDIT:
 
                     // TODO (brangr): implement extract message from JSON
                     // if (auto[ok, string1] = TryGetColumnString(*stmt, 2); ok)
-                    //     result.emplace_back(Content(id, ContentFieldType_CommentMessage, string1));
+                    //     result.emplace_back(WebContent(id, ContentFieldType_CommentMessage, string1));
 
                     // break;
                 default:
@@ -193,7 +197,7 @@ namespace PocketDb
         return result;
     }
 
-    void WebRepository::UpsertContent(const vector<Content>& contentList)
+    void WebRepository::UpsertContent(const vector<WebContent>& contentList)
     {
         auto func = __func__;
 

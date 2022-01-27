@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2022 The Pocketcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -450,7 +450,7 @@ bool InitHTTPServer()
 #endif
 
     // Additional pocketnet seocket
-    if (gArgs.GetBoolArg("-api", false))
+    if (gArgs.GetBoolArg("-api", true))
     {
         g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
         RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);

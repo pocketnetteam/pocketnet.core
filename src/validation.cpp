@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1081,7 +1081,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         if (_pocketTx)
         {
             // Check transaction with pocketnet base rules
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx); !ok)
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, chainActive.Height() + 1); !ok)
                 return state.ConsensusFailed((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
 
             // Check transaction with pocketnet consensus rules
@@ -2542,14 +2542,13 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
             LogPrintf("WARNING: SocialConsensus validating failed with result %d for block %s\n",
                 (int)result, pindex->GetBlockHash().GetHex());
 
-            // TODO (team): We do not mark the block invalid for situations where the chain can be rebuilt.
+            // We do not mark the block invalid for situations where the chain can be rebuilt.
             // There is a danger of a fork in this case or endless attempts to connect an invalid or destroyed block - 
             // we need to think about marking the block incomplete and requesting it from the network again.
-            return false;
-            //return state.DoS(100, error("ConnectBlock() : failed check social consensus - maybe database corrupted"));
+            return state.DoS(200, false, REJECT_INCOMPLETE, "failed-validate-social-consensus", false, "", true);
         }
         
-        LogPrint(BCLog::CONSENSUS, "--- Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
+        LogPrint(BCLog::CONSENSUS, "    Block validated: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
 
         nTime5 = GetTimeMicros();
         nTimeVerify += nTime5 - nTime4;
@@ -2570,7 +2569,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
         try
         {
             PocketServices::ChainPostProcessing::Index(block, pindex->nHeight);
-            LogPrint(BCLog::SYNC, "--- Block indexed: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
+            LogPrint(BCLog::SYNC, "    Block indexed: %d BH: %s\n", pindex->nHeight, block.GetHash().GetHex());
         }
         catch (const std::exception& e)
         {
@@ -2591,7 +2590,7 @@ bool CChainState::ConnectBlock(const CBlock& block, const PocketBlockRef& pocket
 
     // -----------------------------------------------------------------------------------------------------------------
     // Extend WEB database
-    if (gArgs.GetBoolArg("-api", false) && enablePocketConnect)
+    if (gArgs.GetBoolArg("-api", true) && enablePocketConnect)
         PocketServices::WebPostProcessorInst.Enqueue(block.GetHash().GetHex());
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -3041,7 +3040,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     else
         pocketBlock = pocketBlockPart;
 
-    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock); !ok)
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(blockConnecting, pocketBlock, pindexNew->nHeight); !ok)
     {
         pindexNew->nStatus &= ~BLOCK_HAVE_DATA;
         return state.DoS(200, false, REJECT_INCOMPLETE, "failed-find-social-payload", false, "", true);
@@ -3142,9 +3141,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
      std::map<std::string, std::vector<UniValue>> messages;
      uint256 _block_hash = block.GetHash();
      int sharesCnt = 0;
-     std::map<std::string, int> sharesCntLang;
-     std::string txidpocketnet;
-     std::string addrespocketnet = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
+    std::map<std::string, std::map<std::string, int>> contentLangCnt;
+    std::string txidpocketnet;
+    std::string addrespocketnet = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
+    auto pocketnetaccinfo = PocketDb::NotifierRepoInst.GetAccountInfoByAddress(addrespocketnet);
 
      for (const auto& tx : block.vtx) {
          std::map<std::string, std::pair<int, int64_t>> addrs;
@@ -3153,7 +3153,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
          std::string optype;
 
          // Get all addresses from tx outs and check OP_RETURN
-         for (int i = 0; i < tx->vout.size(); i++) {
+             for (int i = 0; i < tx->vout.size(); i++) {
              const CTxOut& txout = tx->vout[i];
              //-------------------------
              if (txout.scriptPubKey[0] == OP_RETURN) {
@@ -3171,11 +3171,20 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          {
                              std::string lang = response["lang"].get_str();
 
-                             auto itl = sharesCntLang.find(lang);
-                             if (itl != sharesCntLang.end())
-                                 itl->second += 1;
-                             else
-                                 sharesCntLang.emplace(lang, 1);
+                             contentLangCnt[OR_POST][lang] += 1;
+                         }
+                     }
+                     else if (spl[1] == OR_VIDEO) {
+                         optype = "video";
+                         sharesCnt += 1;
+
+                         auto response = PocketDb::NotifierRepoInst.GetPostLang(txid);
+
+                         if (response.exists("lang"))
+                         {
+                             std::string lang = response["lang"].get_str();
+
+                             contentLangCnt[OR_VIDEO][lang] += 1;
                          }
                      }
                      // else if (spl[1] == OR_POSTEDIT)
@@ -3222,8 +3231,12 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
              PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
              // Event for new PocketNET transaction
-             if (optype == "share")
+             if (optype == "share" || optype == "video")
              {
+                 auto response = PocketDb::NotifierRepoInst.GetPostInfo(txid);
+                 if (response.exists("hash") && response.exists("rootHash") && response["hash"].get_str() != response["rootHash"].get_str())
+                     continue;
+
                  if (addr.first == addrespocketnet && txidpocketnet.find(txid) == std::string::npos)
                  {
                      txidpocketnet += txid + ",";
@@ -3240,11 +3253,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                              {"mesType",    "reshare"},
                              {"txidRepost", response["hash"].get_str()},
                              {"addrFrom",   response["addressRepost"].get_str()},
-                             {"nameFrom",   response["nameRepost"].get_str()},
-                             {"avatarFrom",   ""}
+                             {"nameFrom",   response["nameRepost"].get_str()}
                          };
                          if (response.exists("avatarRepost"))
-                             cFields["avatarFrom"] = response["avatarRepost"].get_str();
+                             cFields.emplace("avatarFrom",response["avatarRepost"].get_str());
 
                          PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                      }
@@ -3258,11 +3270,11 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      custom_fields cFields{
                              {"mesType", "postfromprivate"},
                              {"addrFrom", addr.first},
-                             {"nameFrom",   subscribesResponse[i]["nameFrom"].get_str()},
-                             {"avatarFrom",   ""}};
+                             {"nameFrom",   subscribesResponse[i]["nameFrom"].get_str()}
+                     };
 
                      if (subscribesResponse[i].exists("avatarFrom"))
-                         cFields["avatarFrom"] = subscribesResponse[i]["avatarFrom"].get_str();
+                         cFields.emplace("avatarFrom",subscribesResponse[i]["avatarFrom"].get_str());
 
                      PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                  }
@@ -3276,11 +3288,10 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
-                         {"nameFrom", response["referralName"].get_str()},
-                         {"avatarFrom", ""}
+                         {"nameFrom", response["referralName"].get_str()}
                      };
                      if (response.exists("referralAvatar"))
-                         cFields["avatarFrom"] = response["referralAvatar"].get_str();
+                         cFields.emplace("avatarFrom",response["referralAvatar"].get_str());
 
                      PrepareWSMessage(messages, "event", response["referrerAddress"].get_str(), txid, txtime, cFields);
                  }
@@ -3295,13 +3306,12 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          {"mesType", optype},
                          {"addrFrom", addr.first},
                          {"nameFrom", response["scoreName"].get_str()},
-                         {"avatarFrom", ""},
                          {"posttxid", response["postTxHash"].get_str()},
                          {"upvoteVal", response["value"].get_str()}
                      };
 
                      if (response.exists("scoreAvatar"))
-                         cFields["avatarFrom"] = response["scoreAvatar"].get_str();
+                         cFields.emplace("avatarFrom",response["scoreAvatar"].get_str());
 
                      PrepareWSMessage(messages, "event", response["postAddress"].get_str(), txid, txtime, cFields);
                  }
@@ -3315,12 +3325,11 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
-                         {"nameFrom", response["nameFrom"].get_str()},
-                         {"avatarFrom", ""}
+                         {"nameFrom", response["nameFrom"].get_str()}
                      };
 
                      if (response.exists("avatarFrom"))
-                         cFields["avatarFrom"] = response["avatarFrom"].get_str();
+                         cFields.emplace("avatarFrom",response["avatarFrom"].get_str());
 
                      PrepareWSMessage(messages, "event", response["addressTo"].get_str(), txid, txtime, cFields);
                  }
@@ -3335,13 +3344,12 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                          {"mesType", optype},
                          {"addrFrom", addr.first},
                          {"nameFrom", response["scoreCommentName"].get_str()},
-                         {"avatarFrom", ""},
                          {"commentid", response["commentHash"].get_str()},
                          {"upvoteVal", response["value"].get_str()}
                      };
 
                      if (response.exists("scoreCommentAvatar"))
-                         cFields["avatarFrom"] = response["scoreCommentAvatar"].get_str();
+                         cFields.emplace("avatarFrom",response["scoreCommentAvatar"].get_str());
 
                      PrepareWSMessage(messages, "event", response["commentAddress"].get_str(), txid, txtime, cFields);
                  }
@@ -3351,12 +3359,33 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                  auto response = PocketDb::NotifierRepoInst.GetFullCommentInfo(txid);
                  if (response.exists("postHash"))
                  {
+                     if (response.exists("answerAddress") && !response["answerAddress"].get_str().empty())
+                     {
+                         custom_fields c1Fields
+                             {
+                                 {"mesType", optype},
+                                 {"addrFrom", addr.first},
+                                 {"nameFrom", response["commentName"].get_str()},
+                                 {"posttxid", response["postHash"].get_str()},
+                                 {"parentid", response["parentHash"].get_str()},
+                                 {"answerid", response["answerHash"].get_str()},
+                                 {"reason", "answer"},
+                             };
+
+                         if (response.exists("commentAvatar"))
+                             c1Fields.emplace("avatarFrom",response["commentAvatar"].get_str());
+
+                         PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
+                     }
+
+                     if(response["postAddress"].get_str() == addr.first)
+                         continue;
+
                      custom_fields cFields
                      {
                          {"mesType", optype},
                          {"addrFrom", addr.first},
                          {"nameFrom", response["commentName"].get_str()},
-                         {"avatarFrom", ""},
                          {"posttxid", response["postHash"].get_str()},
                          {"parentid", response["parentHash"].get_str()},
                          {"answerid", response["answerHash"].get_str()},
@@ -3364,40 +3393,29 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      };
 
                      if (response.exists("commentAvatar"))
-                         cFields["avatarFrom"] = response["commentAvatar"].get_str();
+                         cFields.emplace("avatarFrom",response["commentAvatar"].get_str());
+
+                     if (response.exists("donation"))
+                     {
+                         cFields.emplace("donation", "true");
+                         cFields.emplace("amount", response["amount"].get_str());
+                     }
 
                      PrepareWSMessage(messages, "event", response["postAddress"].get_str(), response["rootHash"].get_str(), txtime, cFields);
-
-                     if (response.exists("answerAddress"))
-                     {
-                         custom_fields c1Fields
-                         {
-                             {"mesType", optype},
-                             {"addrFrom", addr.first},
-                             {"nameFrom", response["commentName"].get_str()},
-                             {"avatarFrom", ""},
-                             {"posttxid", response["postHash"].get_str()},
-                             {"parentid", response["parentHash"].get_str()},
-                             {"answerid", response["answerHash"].get_str()},
-                             {"reason", "answer"},
-                         };
-
-                         if (response.exists("commentAvatar"))
-                             cFields["avatarFrom"] = response["commentAvatar"].get_str();
-
-                         PrepareWSMessage(messages, "event", response["answerAddress"].get_str(), response["rootHash"].get_str(), txtime, c1Fields);
-                     }
                  }
              }
          }
      }
 
      // Send all WS clients messages
-     UniValue sharesLang(UniValue::VOBJ);
-     for (std::map<std::string, int>::iterator itl = sharesCntLang.begin(); itl != sharesCntLang.end(); ++itl)
-     {
-         sharesLang.pushKV(itl->first, itl->second);
-     }
+    UniValue contentsLang(UniValue::VOBJ);
+    for (const auto& itemContent : contentLangCnt){
+        UniValue langContents(UniValue::VOBJ);
+        for (const auto& itemLang : itemContent.second) {
+            langContents.pushKV(itemLang.first, itemLang.second);
+        }
+        contentsLang.pushKV(TransactionHelper::TxStringType(PocketHelpers::TransactionHelper::ConvertOpReturnToType(itemContent.first)), langContents);
+    }
 
 
      boost::lock_guard<boost::mutex> guard(WSMutex);
@@ -3410,7 +3428,7 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
          msg.pushKV("time", std::to_string(block.nTime));
          msg.pushKV("height", blockIndex->nHeight);
          msg.pushKV("shares", sharesCnt);
-         msg.pushKV("sharesLang", sharesLang);
+         msg.pushKV("contentsLang", contentsLang);
 
          auto countResponse = PocketDb::NotifierRepoInst.GetPostCountFromMySubscribes(connWS.second.Address, blockIndex->nHeight);
          if (countResponse.exists("count"))
@@ -3436,6 +3454,9 @@ void CChainState::NotifyWSClients(const CBlock& block, CBlockIndex* blockIndex)
                      UniValue m(UniValue::VOBJ);
                      m.pushKV("msg", "sharepocketnet");
                      m.pushKV("time", std::to_string(block.nTime));
+                     m.pushKV("addrFrom", addrespocketnet);
+                     if (pocketnetaccinfo.exists("name")) m.pushKV("nameFrom", pocketnetaccinfo["name"].get_str());
+                     if (pocketnetaccinfo.exists("avatar")) m.pushKV("avatarFrom", pocketnetaccinfo["avatar"].get_str());
                      m.pushKV("txids", txidpocketnet.substr(0, txidpocketnet.size() - 1));
                      connWS.second.Connection->send(m.write(), [](const SimpleWeb::error_code& ec) {});
                  }
@@ -4957,8 +4978,16 @@ bool ProcessNewBlock(CValidationState& state,
         // Also check pocket block with general pocketnet consensus rules
         if (ret)
         {
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock); !ok)
+            int checkHeight = chainActive.Height() + 1;
+            
+            CBlockIndex* _pindex = LookupBlockIndex(pblock->GetHash());
+            if (_pindex)
+                checkHeight = _pindex->nHeight;
+
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock, checkHeight); !ok)
                 ret = false;
+                
+            LogPrint(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, pblock->GetHash().GetHex());
         }
 
         int64_t nTime4 = GetTimeMicros();
@@ -5589,7 +5618,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView* coinsview,
                 return error("VerifyDB(): *** PocketServices::GetBlock failed at %d, hash=%s",
                     pindex->nHeight, pindex->GetBlockHash().ToString());
 
-            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock); !ok)
+            if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(block, pocketBlock, pindex->nHeight); !ok)
                 return error("VerifyDB(): *** SocialConsensusHelper::Check failed with result %d at %d, hash=%s",
                     (int)result, pindex->nHeight, pindex->GetBlockHash().ToString());
 

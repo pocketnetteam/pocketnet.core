@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -168,11 +168,12 @@ namespace PocketDb
                 //     throw std::runtime_error("Failed apply temp_store = memory");
             }
 
-            int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
-            int pageCount = cacheSize * 1024 * 1024 / 4096;
-            string cmd = "PRAGMA cache_size = " + to_string(pageCount) + ";";
-            if (sqlite3_exec(m_db, cmd.c_str(), nullptr, nullptr, nullptr) != 0)
-                throw std::runtime_error("Failed to apply cache size");
+            // TODO (tawmaz): Not working for existed database
+            // int cacheSize = gArgs.GetArg("-sqlcachesize", 5);
+            // int pageCount = cacheSize * 1024 * 1024 / 4096;
+            // string cmd = "PRAGMA cache_size = " + to_string(pageCount) + ";";
+            // if (sqlite3_exec(m_db, cmd.c_str(), nullptr, nullptr, nullptr) != 0)
+            //     throw std::runtime_error("Failed to apply cache size");
         }
         catch (const std::runtime_error&)
         {

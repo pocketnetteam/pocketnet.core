@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -89,7 +89,7 @@ namespace PocketDb
 
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
 
-        UniValue GetUnspents(vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
+        UniValue GetUnspents(const vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
 
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
