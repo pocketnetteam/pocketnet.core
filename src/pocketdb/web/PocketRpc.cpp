@@ -19,6 +19,7 @@ UniValue gettemplate(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 {
     {"hidden",       "generatepocketnettransaction",      &GenerateTransaction,             {"address", "privKey", "outCount", "type", "payload"}},
+    {"hidden",       "generatepocketnetaddress",          &GenerateAddress,                 {}},
 
     // Old methods
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
