@@ -365,9 +365,9 @@ set(RES_MOVIES res/movies/spinner-000.png
 set(POCKETCOIN_RC res/pocketcoin-qt-res.rc)
 
 # Compiling ts files
-qt5_create_translation(QT_QM_COMPILED ${QT_TS} OPTIONS)
+qt5_add_translation(QT_QM_COMPILED ${QT_TS} OPTIONS)
 configure_file(pocketcoin_locale.qrc ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
-add_custom_target(translations_available ALL DEPENDS ${QT_QM_COMPILED_PATHS})
+add_custom_target(translations_available ALL DEPENDS ${QT_QM_COMPILED})
 
 # Compiling resources
 qt5_add_resources(QT_QRC_COMPILED ${QT_QRC} OPTIONS -name pocketcoin)
