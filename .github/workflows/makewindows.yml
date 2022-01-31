@@ -29,7 +29,8 @@ jobs:
         sudo make -j4 HOST=x86_64-w64-mingw32 
     - name: autogen
       run: |
-        cd ..
+        pwd
+        ls -l
         ./autogen.sh
     - name: configure
       run: |
