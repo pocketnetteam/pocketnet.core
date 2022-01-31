@@ -40,5 +40,9 @@ jobs:
       run: make -j2
     - uses: actions/upload-artifact@v2
       with:
-        name: package
-        path: pocketnet*.exe
+        name: ppocketcoin-windows
+        path: |
+          src/qt/pocketcoin-qt.exe
+          src/pocketcoin-cli.exe
+          src/pocketcoin-tx.exe
+          src/pocketcoind.exe
