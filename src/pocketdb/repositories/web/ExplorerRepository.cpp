@@ -128,7 +128,7 @@ namespace PocketDb {
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(R"sql(
-                select (u.Height / 1440)
+                select (u.Height / 60)
                   ,(
                     select
                       count()
@@ -138,7 +138,7 @@ namespace PocketDb {
                     and u1.Last = 1
                   )cnt
                 from Transactions u indexed by Transactions_Type_HeightByHour
-                where u.Type in (100)
+                where u.Type in (3)
                   and (u.Height / 60) <= (? / 60)
                   and (u.Height / 60) > (? / 60)
 
@@ -157,7 +157,7 @@ namespace PocketDb {
                 if (!okPart || !okCount)
                     continue;
 
-                result.pushKV(to_string(part), count);
+                result.pushKV(part, count);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -185,7 +185,7 @@ namespace PocketDb {
 
                 from Transactions u indexed by Transactions_Type_HeightByDay
                 
-                where u.Type in (100)
+                where u.Type in (3)
                   and (u.Height / 1440) <= (? / 1440)
                   and (u.Height / 1440) > (? / 1440)
                 
@@ -198,13 +198,13 @@ namespace PocketDb {
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                auto [okPart, part] = TryGetColumnInt(*stmt, 0);
+                auto [okPart, part] = TryGetColumnString(*stmt, 0);
                 auto [okCount, count] = TryGetColumnInt(*stmt, 1);
 
                 if (!okPart || !okCount)
                     continue;
 
-                result.pushKV(to_string(part), count);
+                result.pushKV(part, count);
             }
 
             FinalizeSqlStatement(*stmt);
