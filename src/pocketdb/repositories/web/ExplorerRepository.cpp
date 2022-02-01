@@ -121,6 +121,98 @@ namespace PocketDb {
         return result;
     }
 
+    UniValue ExplorerRepository::GetContentStatisticByHours(int topHeight, int depth)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select (u.Height / 1440)
+                  ,(
+                    select
+                      count()
+                    from Transactions u1 indexed by Transactions_Type_Last_Height_Id
+                    where u1.Type in (100)
+                    and u1.Height <= u.Height
+                    and u1.Last = 1
+                  )cnt
+                from Transactions u indexed by Transactions_Type_HeightByHour
+                where u.Type in (100)
+                  and (u.Height / 60) <= (? / 60)
+                  and (u.Height / 60) > (? / 60)
+
+                group by (u.Height / 60)
+                order by (u.Height / 60) desc
+            )sql");
+
+            TryBindStatementInt(stmt, 1, topHeight);
+            TryBindStatementInt(stmt, 2, topHeight - depth);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto [okPart, part] = TryGetColumnString(*stmt, 0);
+                auto [okCount, count] = TryGetColumnInt(*stmt, 1);
+
+                if (!okPart || !okCount)
+                    continue;
+
+                result.pushKV(to_string(part), count);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue ExplorerRepository::GetContentStatisticByDays(int topHeight, int depth)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select (u.Height / 1440)
+                  ,(
+                    select
+                      count()
+                    from Transactions u1 indexed by Transactions_Type_Last_Height_Id
+                    where u1.Type in (100)
+                    and u1.Height <= u.Height
+                    and u1.Last = 1
+                  )cnt
+
+                from Transactions u indexed by Transactions_Type_HeightByDay
+                
+                where u.Type in (100)
+                  and (u.Height / 1440) <= (? / 1440)
+                  and (u.Height / 1440) > (? / 1440)
+                
+                group by (u.Height / 1440)
+                order by (u.Height / 1440) desc
+            )sql");
+
+            TryBindStatementInt(stmt, 1, topHeight);
+            TryBindStatementInt(stmt, 2, topHeight - depth);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto [okPart, part] = TryGetColumnInt(*stmt, 0);
+                auto [okCount, count] = TryGetColumnInt(*stmt, 1);
+
+                if (!okPart || !okCount)
+                    continue;
+
+                result.pushKV(to_string(part), count);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue ExplorerRepository::GetContentStatistic()
     {
         UniValue result(UniValue::VOBJ);
