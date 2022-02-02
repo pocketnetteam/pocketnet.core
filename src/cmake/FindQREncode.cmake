@@ -89,7 +89,15 @@ macro(findpackage_qrencode_get_lib _QRENCODE_OUTPUT_VARNAME _TARGET_QRENCODE_LIB
 endmacro()
 
 # Find and set the paths of the specific library to the variable
-findpackage_qrencode_get_lib(QRENCODE_LIB "qrencoded")
+if (MSVC)
+# dirty hack. MSVC requires all dependencies to be built with same configurations as target project.
+# Because of pocketcoin supports only debug builds due to runtime assertions, all external dependencies for MSVC build should be built with debug too.
+# Because of libqrencode has different names for debug and release versions (at least with vcpkg and build from source), we just hardcode it here to use debug version.
+    findpackage_qrencode_get_lib(QRENCODE_LIB "qrencoded")
+else()
+# Linux doesn't care for build configurations of external dependencies and even doesn't provide debug versions with package managers. So just use find libqrencode as common
+    findpackage_qrencode_get_lib(QRENCODE_LIB "qrencode")
+endif()
 
 # Needed for find_package_handle_standard_args()
 include(FindPackageHandleStandardArgs)
