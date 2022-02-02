@@ -97,14 +97,7 @@ if (ENABLE_ASM)
     add_compile_definitions(USE_ASM=1)
 endif ()
 
-# Hack to use default cmake's fpic settings if not specified
-if (DEFINED WITH_PIC)
-    if (WITH_PIC)
-        set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-    else ()
-        set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
-    endif ()
-endif ()
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Check endian headers
 include(CmakeCheckEndian.cmake)

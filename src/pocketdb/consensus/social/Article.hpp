@@ -47,10 +47,16 @@ namespace PocketConsensus
             // Repost not allowed
             if (!IsEmpty(ptx->GetRelayTxHash())) return {false, SocialConsensusResult_NotAllowed};
 
-            return Success;
+            return EnableAccept();
         }
 
     protected:
+    
+        virtual ConsensusValidateResult EnableAccept()
+        {
+            return {false, SocialConsensusResult_NotAllowed};
+        }
+
         virtual int64_t GetLimit(AccountMode mode)
         {
             return mode >= AccountMode_Full ? GetConsensusLimit(ConsensusLimit_full_article) : GetConsensusLimit(ConsensusLimit_trial_article);
@@ -242,6 +248,20 @@ namespace PocketConsensus
             return Success;
         }
     };
+    
+    /*******************************************************************************************************************
+    *  Enable accept transaction
+    *******************************************************************************************************************/
+    class ArticleConsensus_checkpoint_accept : public ArticleConsensus
+    {
+    public:
+        ArticleConsensus_checkpoint_accept(int height) : ArticleConsensus(height) {}
+    protected:
+        ConsensusValidateResult EnableAccept()
+        {
+            return Success;
+        }
+    };
 
     /*******************************************************************************************************************
     *  Factory for select actual rules version
@@ -250,7 +270,8 @@ namespace PocketConsensus
     {
     protected:
         const vector<ConsensusCheckpoint < ArticleConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<ArticleConsensus>(height); }},
+            {       0,      0, [](int height) { return make_shared<ArticleConsensus>(height); }},
+            { 1586000, 528000, [](int height) { return make_shared<ArticleConsensus_checkpoint_accept>(height); }},
         };
     public:
         shared_ptr<ArticleConsensus> Instance(int height)

@@ -37,6 +37,9 @@ namespace PocketWeb::PocketWebRpc
     // Get address scores -> Get scored contents -> Get Scores to these contents -> Get scores accounts -> Get their scores -> Get their scored contents -> Get these contents Authors
     RPCHelpMan GetRecomendedAccountsByScoresFromAddress();
 
+    // Accounts recommendations based on tags
+    RPCHelpMan GetRecomendedAccountsByTags();
+
     // Contents recommendations by others contents
     // Get some contents that were liked by people who've seen this content (not long ago - several blocks ago)
     // This should be run only if Content already has >XXXX likes
