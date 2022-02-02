@@ -6,6 +6,8 @@
 #define SRC_POCKETTRANSACTIONRPC_H
 
 #include "rpc/server.h"
+#include "wallet/rpcwallet.h"
+#include "wallet/wallet.h"
 #include "init.h"
 #include "validation.h"
 #include "consensus/validation.h"
@@ -27,6 +29,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetTransaction(const JSONRPCRequest& request);
     UniValue EstimateSmartFee(const JSONRPCRequest& request);
     UniValue GenerateTransaction(const JSONRPCRequest& request);
+    UniValue GenerateAddress(const JSONRPCRequest& request);
 }
 
 #endif //SRC_POCKETTRANSACTIONRPC_H

@@ -277,6 +277,53 @@ namespace PocketWeb::PocketWebRpc
         //return ctx.ToString();
     }
 
+    UniValue GenerateAddress(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "generateaddress\n"
+                "\nCreate new pocketnet address.\n"
+            );
+
+        if (Params().NetworkIDString() != CBaseChainParams::TESTNET)
+            throw runtime_error("Only for testnet\n");
+
+        std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+        CWallet* const pwallet = wallet.get();
+
+        if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+            return NullUniValue;
+        }
+
+        // // Amount for full address
+        // CAmount nAmount = 2000;
+
+        UniValue result(UniValue::VOBJ);
+
+        LOCK2(cs_main, pwallet->cs_wallet);
+
+        // Create address
+        bool fCompressed = pwallet->CanSupportFeature(FEATURE_COMPRPUBKEY); // default to compressed public keys if we want 0.6.0 wallets
+        CKey secretKey;
+        secretKey.MakeNewKey(fCompressed);
+        CPubKey pubkey = secretKey.GetPubKey();
+
+        OutputType output_type = pwallet->m_default_address_type;
+        CTxDestination dest = GetDestinationForKey(pubkey, output_type);
+        auto addressDest = EncodeDestination(dest);
+
+        // // Send money
+        // CCoinControl coin_control;
+        // mapValue_t mapValue;
+        // auto tx = SendMoney(pwallet, dest, nAmount, false, coin_control, std::move(mapValue));
+
+
+        result.pushKV("address", addressDest);
+        result.pushKV("privkey", EncodeSecret(secretKey));
+        //result.pushKV("refill", tx->GetHash().GetHex());
+        return result;
+    }
+
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx)
     {
         const uint256& txid = tx->GetHash();
