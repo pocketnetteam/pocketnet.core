@@ -1209,12 +1209,12 @@ target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event
 add_library(libpocketcoin_cli rpc/client.h rpc/client.cpp)
 target_link_libraries(libpocketcoin_cli PRIVATE univalue ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC})
 target_include_directories(libpocketcoin_cli PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-set(POCKETCOIN_CLI pocketcoin_cli)
+set(POCKETCOIN_CLI pocketcoin-cli)
 add_executable(${POCKETCOIN_CLI} pocketcoin-cli.cpp )
 target_link_libraries(${POCKETCOIN_CLI} PRIVATE ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC} univalue Event::event libpocketcoin_cli)
 target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
 
-set(POCKETCOIN_TX pocketcoin_tx)
+set(POCKETCOIN_TX pocketcoin-tx)
 add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
 target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} ${POCKETDB} ${POCKETCOIN_CRYPTO} ${POCKETCOIN_CONSENSUS} univalue sqlite3)
 
