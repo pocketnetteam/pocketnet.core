@@ -272,6 +272,8 @@ public:
 
         bech32_hrp = "bc";
 
+        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
+
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
         m_is_test_chain = true; // TODO (losty+): may be change??? - brangr: почему бы и нет)

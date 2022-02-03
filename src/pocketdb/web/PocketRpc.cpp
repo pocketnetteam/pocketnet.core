@@ -32,6 +32,7 @@ RPCHelpMan gettemplate()
 static const CRPCCommand commands[] =
 {
     {"hidden",       "generatepocketnettransaction",      &GenerateTransaction,             {"address", "privKey", "outCount", "type", "payload"}},
+    {"hidden",       "generatepocketnetaddress",          &GenerateAddress,                 {}},
 
     // Old methods
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
@@ -98,7 +99,8 @@ static const CRPCCommand commands[] =
     // Explorer
     {"explorer",       "getstatisticbyhours",              &GetStatisticByHours,            {"topHeight", "depth"}},
     {"explorer",       "getstatisticbydays",               &GetStatisticByDays,             {"topHeight", "depth"}},
-    {"explorer",       "getstatisticcontent",              &GetStatisticContent,            {}},
+    {"explorer",       "getstatisticcontentbyhours",       &GetStatisticContentByHours,     {"topHeight", "depth"}},
+    {"explorer",       "getstatisticcontentbydays",        &GetStatisticContentByDays,      {"topHeight", "depth"}},
     {"explorer",       "getaddressinfo",                   &GetAddressInfo,                 {"address"}},
     {"explorer",       "getcompactblock",                  &GetCompactBlock,                {"blockHash"}},
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},

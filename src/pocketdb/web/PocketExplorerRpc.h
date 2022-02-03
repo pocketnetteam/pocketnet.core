@@ -16,7 +16,8 @@ namespace PocketWeb::PocketWebRpc
 
     RPCHelpMan GetStatisticByHours();
     RPCHelpMan GetStatisticByDays();
-    RPCHelpMan GetStatisticContent();
+    RPCHelpMan GetStatisticContentByHours();
+    RPCHelpMan GetStatisticContentByDays();
     RPCHelpMan GetLastBlocks();
     RPCHelpMan GetCompactBlock();
     RPCHelpMan GetAddressInfo();

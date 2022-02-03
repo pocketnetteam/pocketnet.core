@@ -6,6 +6,8 @@
 #define SRC_POCKETTRANSACTIONRPC_H
 
 #include "rpc/server.h"
+#include "wallet/rpcwallet.h"
+#include "wallet/wallet.h"
 #include "init.h"
 #include "validation.h"
 #include "consensus/validation.h"
@@ -25,6 +27,7 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetTransaction();
     RPCHelpMan EstimateSmartFee();
     RPCHelpMan GenerateTransaction();
+    RPCHelpMan GenerateAddress();
 }
 
 #endif //SRC_POCKETTRANSACTIONRPC_H

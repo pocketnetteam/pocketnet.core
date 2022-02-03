@@ -75,21 +75,66 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
-    RPCHelpMan GetStatisticContent()
+    RPCHelpMan GetStatisticContentByHours()
     {
-        return RPCHelpMan{"getstatisticcontent",
-                "\nGet statistics for content transactions\n",
+        return RPCHelpMan{"getstatisticcontentbyhours",
+                "\nGet statistics for content transactions grouped by hours\n",
                 {},
                 {
                     // TODO (losty-rpc): provide return description
                 },
                 RPCExamples{
-                    HelpExampleCli("getstatisticcontent", "") +
-                    HelpExampleRpc("getstatisticcontent", "")
+                    // TODO (losty-rpc): examples
+                    HelpExampleCli("getstatisticcontentbyhours", "") +
+                    HelpExampleRpc("getstatisticcontentbyhours", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
-        return request.DbConnection()->ExplorerRepoInst->GetContentStatistic();
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getstatisticcontentbyhours\n"
+                "\nGet statistics for content transactions grouped by hours\n"
+            );
+
+        int topHeight = ChainActive().Height() / 10 * 10;
+        if (request.params[0].isNum())
+            topHeight = std::min(request.params[0].get_int(), topHeight);
+
+        int depth = 24;
+        if (request.params[1].isNum())
+            depth = std::min(request.params[1].get_int(), depth);
+        depth = depth * 60;
+
+        return request.DbConnection()->ExplorerRepoInst->GetContentStatisticByHours(topHeight, depth);
+    },
+        };
+    }
+
+    RPCHelpMan GetStatisticContentByDays()
+    {
+        return RPCHelpMan{"getstatisticcontentbydays",
+                "\nGet statistics for content transactions grouped by days\n",
+                {},
+                {
+                    // TODO (losty-rpc): provide return description
+                },
+                RPCExamples{
+                    // TODO (losty-rpc): examples
+                    HelpExampleCli("getstatisticcontentbydays", "") +
+                    HelpExampleRpc("getstatisticcontentbydays", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        int topHeight = ChainActive().Height() / 10 * 10;
+        if (request.params[0].isNum())
+            topHeight = std::min(request.params[0].get_int(), topHeight);
+
+        int depth = 30;
+        if (request.params[1].isNum())
+            depth = std::min(request.params[1].get_int(), depth);
+        depth = depth * 24 * 60;
+
+        return request.DbConnection()->ExplorerRepoInst->GetContentStatisticByDays(topHeight, depth);
     },
         };
     }
