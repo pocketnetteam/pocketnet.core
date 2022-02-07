@@ -15,6 +15,8 @@
 #include "pocketdb/models/base/TransactionOutput.h"
 
 class CTransaction;
+// Multiple typedefs are legal (second one is in primitives/transaction.h)
+typedef std::shared_ptr<const CTransaction> CTransactionRef;
 
 namespace PocketTx
 {
