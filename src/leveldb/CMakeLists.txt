@@ -116,6 +116,10 @@ target_include_directories(leveldb PUBLIC include/)
 target_compile_definitions(leveldb PUBLIC LEVELDB_ATOMIC_PRESENT)
 
 
+if (APPLE)
+    add_compile_definitions(OS_MACOSX=1)
+endif()
+
 add_library(memenv  helpers/memenv/memenv.h
                     helpers/memenv/memenv.cc)
 target_link_libraries(memenv PRIVATE leveldb)
