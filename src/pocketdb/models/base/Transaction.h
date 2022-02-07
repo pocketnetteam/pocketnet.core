@@ -14,6 +14,8 @@
 #include "pocketdb/models/base/Payload.h"
 #include "pocketdb/models/base/TransactionOutput.h"
 
+class CTransaction;
+
 namespace PocketTx
 {
     using namespace std;
