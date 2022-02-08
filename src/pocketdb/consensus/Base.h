@@ -152,6 +152,18 @@ namespace PocketConsensus
         AccountMode_Pro = 2
     };
 
+    // Bitmask values for the account badge
+    enum AccountUserBadge
+    {
+        None            = 1 << 0,
+        Minnow          = 1 << 1,
+        Sturgeon        = 1 << 2,
+        Shark           = 1 << 3,
+        Whale           = 1 << 4,
+        Barracuda       = 1 << 5,
+        VideoExtend     = 1 << 6,
+    };
+
     enum ConsensusLimit
     {
         ConsensusLimit_threshold_reputation,
@@ -221,6 +233,7 @@ namespace PocketConsensus
     typedef map<ConsensusLimit, map<NetworkId, map<int, int64_t>>> ConsensusLimits;
 
     static inline ConsensusLimits m_consensus_limits = {
+
         // ConsensusLimit_bad_reputation
         {
             ConsensusLimit_bad_reputation,
@@ -487,6 +500,43 @@ namespace PocketConsensus
                 }
             }
         },
+        // ConsensusLimit_trial_comment
+        {
+            ConsensusLimit_trial_comment,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 150}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 150}
+                    }
+                }
+            }
+        },
+        // ConsensusLimit_trial_comment_score
+        {
+            ConsensusLimit_trial_comment_score,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 300}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 300}
+                    }
+                }
+            }
+        },
+                
         // ConsensusLimit_full_post
         {
             ConsensusLimit_full_post,
@@ -578,6 +628,43 @@ namespace PocketConsensus
                 }
             }
         },
+        // ConsensusLimit_full_comment
+        {
+            ConsensusLimit_full_comment,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 300}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 300}
+                    }
+                }
+            }
+        },
+        // ConsensusLimit_full_comment_score
+        {
+            ConsensusLimit_full_comment_score,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 600}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 600}
+                    }
+                }
+            }
+        },
+        
         // ConsensusLimit_pro_video
         {
             ConsensusLimit_pro_video,
@@ -913,78 +1000,7 @@ namespace PocketConsensus
                 }
             }
         },
-        // ConsensusLimit_trial_comment
-        {
-            ConsensusLimit_trial_comment,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 150}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 150}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_trial_comment_score
-        {
-            ConsensusLimit_trial_comment_score,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 300}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 300}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_comment
-        {
-            ConsensusLimit_full_comment,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 300}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 300}
-                    }
-                }
-            }
-        },
-        // ConsensusLimit_full_comment_score
-        {
-            ConsensusLimit_full_comment_score,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 600}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 600}
-                    }
-                }
-            }
-        },
+        
         // ConsensusLimit_max_comment_size
         {
             ConsensusLimit_max_comment_size,
@@ -1077,6 +1093,9 @@ namespace PocketConsensus
                 }
             }
         },
+    
+        // TODO (brangr) !!! : New Account Badges limits
+
     };
 
     /*********************************************************************************************/

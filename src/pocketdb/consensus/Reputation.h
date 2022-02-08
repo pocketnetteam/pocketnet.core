@@ -12,7 +12,7 @@ namespace PocketConsensus
     using namespace std;
 
     // ------------------------------------------
-    // Consensus checkpoint at 0 block
+    // General rules
     class ReputationConsensus : public BaseConsensus
     {
     protected:
@@ -27,48 +27,61 @@ namespace PocketConsensus
 
         virtual AccountMode GetAccountMode(int reputation, int64_t balance);
         virtual tuple<AccountMode, int, int64_t> GetAccountMode(string& address);
+        virtual int GetAccountUserBadges(string& address);
+
         virtual bool AllowModifyReputation(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
         virtual bool AllowModifyOldPosts(int64_t scoreTime, int64_t contentTime, TxType contentType);
+
         virtual void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers);
     };
 
     // ------------------------------------------
-    // Consensus checkpoint at 151600 block
-    class ReputationConsensus_checkpoint_151600 : public ReputationConsensus
+    // Fix select Address of Score
+    class ReputationConsensus_checkpoint_SelectAddressScoreContent : public ReputationConsensus
     {
     public:
-        explicit ReputationConsensus_checkpoint_151600(int height) : ReputationConsensus(height) {}
+        explicit ReputationConsensus_checkpoint_SelectAddressScoreContent(int height) : ReputationConsensus(height) {}
     protected:
         tuple<int, string> SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery) override;
     };
 
     // ------------------------------------------
-    // Consensus checkpoint at 1180000 block
-    class ReputationConsensus_checkpoint_1180000 : public ReputationConsensus_checkpoint_151600
+    // Fix minimum likers count
+    class ReputationConsensus_checkpoint_GetMinLikers : public ReputationConsensus_checkpoint_SelectAddressScoreContent
     {
     public:
-        explicit ReputationConsensus_checkpoint_1180000(int height) : ReputationConsensus_checkpoint_151600(height) {}
+        explicit ReputationConsensus_checkpoint_GetMinLikers(int height) : ReputationConsensus_checkpoint_SelectAddressScoreContent(height) {}
     protected:
         int64_t GetMinLikers(int addressId) override;
     };
 
     // ------------------------------------------
-    // Consensus checkpoint at 1324655 block
-    class ReputationConsensus_checkpoint_1324655 : public ReputationConsensus_checkpoint_1180000
+    // Fix account mode select
+    class ReputationConsensus_checkpoint_GetAccountMode : public ReputationConsensus_checkpoint_GetMinLikers
     {
     public:
-        explicit ReputationConsensus_checkpoint_1324655(int height) : ReputationConsensus_checkpoint_1180000(height) {}
+        explicit ReputationConsensus_checkpoint_GetAccountMode(int height) : ReputationConsensus_checkpoint_GetMinLikers(height) {}
         AccountMode GetAccountMode(int reputation, int64_t balance) override;
     };
 
     // ------------------------------------------
-    // Consensus checkpoint at 1324655_2 block
-    class ReputationConsensus_checkpoint_1324655_2 : public ReputationConsensus_checkpoint_1324655
+    // Fix calculate account likers
+    class ReputationConsensus_checkpoint_PrepareAccountLikers : public ReputationConsensus_checkpoint_GetAccountMode
     {
     public:
-        explicit ReputationConsensus_checkpoint_1324655_2(int height) : ReputationConsensus_checkpoint_1324655(height) {}
+        explicit ReputationConsensus_checkpoint_PrepareAccountLikers(int height) : ReputationConsensus_checkpoint_GetAccountMode(height) {}
         void PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers) override;
     };
+
+    // ------------------------------------------
+    // New AccountUser badges - https://github.com/pocketnetteam/pocketnet.core/issues/186
+    class ReputationConsensus_checkpoint_AccountUserBadges : public ReputationConsensus_checkpoint_PrepareAccountLikers
+    {
+    public:
+        explicit ReputationConsensus_checkpoint_AccountUserBadges(int height) : ReputationConsensus_checkpoint_PrepareAccountLikers(height) {}
+        int GetAccountUserBadges(string& address) override;
+    };
+
 
     // ------------------------------------------
     //  Factory for select actual rules version
@@ -77,10 +90,12 @@ namespace PocketConsensus
     private:
         const vector<ConsensusCheckpoint<ReputationConsensus>> m_rules = {
             {0,       -1,    [](int height) { return make_shared<ReputationConsensus>(height); }},
-            {151600,  -1,    [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
-            {1180000, 0,     [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
-            {1324655, 65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
-            {1324655, 75000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655_2>(height); }},
+            {151600,  -1,    [](int height) { return make_shared<ReputationConsensus_checkpoint_SelectAddressScoreContent>(height); }},
+            {1180000, 0,     [](int height) { return make_shared<ReputationConsensus_checkpoint_GetMinLikers>(height); }},
+            {1324655, 65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_GetAccountMode>(height); }},
+            {1324655, 75000, [](int height) { return make_shared<ReputationConsensus_checkpoint_PrepareAccountLikers>(height); }},
+            // TODO (brangr) !!! : set height
+            {9999999999, 9999999999, [](int height) { return make_shared<ReputationConsensus_checkpoint_AccountUserBadges>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)

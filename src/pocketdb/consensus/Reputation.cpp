@@ -163,16 +163,12 @@ namespace PocketConsensus
         }
     }
 
-    // ------------------------------------
-    // Consensus checkpoint at 151600 block
-    tuple<int, string> ReputationConsensus_checkpoint_151600::SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
+    tuple<int, string> ReputationConsensus_checkpoint_SelectAddressScoreContent::SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
     {
         return make_tuple(scoreData->ScoreAddressId, scoreData->ScoreAddressHash);
     }
 
-    // -------------------------------------
-    // Consensus checkpoint at 1180000 block
-    int64_t ReputationConsensus_checkpoint_1180000::GetMinLikers(int addressId)
+    int64_t ReputationConsensus_checkpoint_GetMinLikers::GetMinLikers(int addressId)
     {
         auto minLikersCount = GetConsensusLimit(ConsensusLimit_threshold_likers_count);
         auto accountRegistrationHeight = PocketDb::ConsensusRepoInst.GetAccountRegistrationHeight(addressId);
@@ -182,9 +178,7 @@ namespace PocketConsensus
         return minLikersCount;
     }
 
-    // -------------------------------------
-    // Consensus checkpoint at 1324655 block
-    AccountMode ReputationConsensus_checkpoint_1324655::GetAccountMode(int reputation, int64_t balance)
+    AccountMode ReputationConsensus_checkpoint_GetAccountMode::GetAccountMode(int reputation, int64_t balance)
     {
         if (reputation >= GetConsensusLimit(ConsensusLimit_threshold_reputation)
             || balance >= GetConsensusLimit(ConsensusLimit_threshold_balance))
@@ -200,10 +194,7 @@ namespace PocketConsensus
         }
     }
 
-    // ---------------------------------------
-    // Consensus checkpoint at 1324655_2 block
-    void ReputationConsensus_checkpoint_1324655_2::PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc,
-        map<int, vector<int>>& accountLikers)
+    void ReputationConsensus_checkpoint_PrepareAccountLikers::PrepareAccountLikers(map<int, vector<int>>& accountLikersSrc, map<int, vector<int>>& accountLikers)
     {
         for (const auto& account : accountLikersSrc)
             for (const auto& likerId : account.second)
@@ -211,7 +202,15 @@ namespace PocketConsensus
                     accountLikers[account.first].emplace_back(likerId);
     }
 
-    // --------------------------------------
+    int ReputationConsensus_checkpoint_AccountUserBadges::GetAccountUserBadges(string& address)
+    {
+        // TODO (brangr) !!! : implement select user account data and build bit mask
+
+
+
+
+    }
+
     ReputationConsensusFactory ReputationConsensusFactoryInst;
 
 }
