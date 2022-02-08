@@ -137,11 +137,6 @@ namespace PocketConsensus
             return {};
         }
 
-        vector<TxType> GetAllowedAccounts() const override
-        {
-            return {ACCOUNT_VIDEO_SERVER};
-        }
-
         virtual ConsensusValidateResult ValidateEdit(const VideoServerRef& ptx)
         {
             // First user account transaction allowed without next checks
