@@ -158,6 +158,7 @@ namespace PocketConsensus
                 return Success;
 
             // We allow edit profile only with delay
+            // TODO (losty-video): a lot same logic as for User transaction is used in this file. Validate if something should be diverged from User.
             if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_user_depth))
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
