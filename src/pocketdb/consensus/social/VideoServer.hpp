@@ -15,7 +15,7 @@ namespace PocketConsensus
     typedef shared_ptr<VideoServer> VideoServerRef;
 
     /*******************************************************************************************************************
-    *  User consensus base class
+    *  Video server consensus base class
     *******************************************************************************************************************/
     class VideoServerConsensus : public SocialConsensus<VideoServer>
     {
@@ -87,7 +87,7 @@ namespace PocketConsensus
                 {
                     auto data = ptx->PreBuildHash();
                     LogPrint(BCLog::CONSENSUS, "--- %s\n", data);
-                    LogPrint(BCLog::CONSENSUS, "Warning: FailedOpReturn for USER %s: %s | %s != %s\n",
+                    LogPrint(BCLog::CONSENSUS, "Warning: FailedOpReturn for Video Server %s: %s | %s != %s\n",
                         *ptx->GetHash(), ptxORHash, ptxORHashRef, txORHash);
                     //if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
                     //    return {false, SocialConsensusResult_FailedOpReturn};
@@ -132,7 +132,7 @@ namespace PocketConsensus
 
             return Success;
         }
-        vector<string> GetAddressesForCheckRegistration(const VideoServerRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const VideoServerRef& ptx) override
         {
             return {};
         }
@@ -187,7 +187,7 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class UserConsensusFactory
+    class VideoServerConsensusFactory
     {
     private:
         const vector<ConsensusCheckpoint < VideoServerConsensus>> m_rules = {
