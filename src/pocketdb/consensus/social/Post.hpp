@@ -123,9 +123,9 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
-        vector<string> GetAddressesForCheckRegistration(const PostRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const PostRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            return {{*ptx->GetAddress(), ACCOUNT_USER}};
         }
 
         virtual tuple<bool, SocialConsensusResult> ValidateEdit(const PostRef& ptx)

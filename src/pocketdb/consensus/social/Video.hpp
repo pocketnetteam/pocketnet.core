@@ -112,9 +112,10 @@ namespace PocketConsensus
 
             return ValidateLimit(ptx, count);
         }
-        vector<string> GetAddressesForCheckRegistration(const VideoRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const VideoRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            // TODO (losty-video): user or account server???
+            return {{*ptx->GetAddress(), ACCOUNT_USER}};
         }
 
         virtual ConsensusValidateResult ValidateEdit(const VideoRef& ptx)

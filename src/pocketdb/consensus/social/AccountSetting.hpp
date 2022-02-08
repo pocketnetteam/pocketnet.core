@@ -76,9 +76,9 @@ namespace PocketConsensus
             int count = GetChainCount(ptx);
             return ValidateLimit(ptx, count);
         }
-        vector<string> GetAddressesForCheckRegistration(const AccountSettingRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const AccountSettingRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            return {{*ptx->GetAddress(), ACCOUNT_USER}};
         }
     
     

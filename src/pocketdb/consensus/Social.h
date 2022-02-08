@@ -34,22 +34,22 @@ namespace PocketConsensus
         {
             // TODO (team): optimize algorithm
             // Account must be registered
-            vector<string> addressesForCheck;
-            vector<string> addresses = GetAddressesForCheckRegistration(ptx);
+            vector<pair<string, TxType>> addressesForCheck;
+            vector<pair<string, TxType>> addresses = GetAddressesForCheckRegistration(ptx);
             if (!addresses.empty())
             {
                 // First check block - maybe user registration this?
                 if (block)
                 {
-                    for (const string& address : addresses)
+                    for (const auto& address : addresses)
                     {
                         bool inBlock = false;
                         for (auto& blockTx: *block)
                         {
-                            if (!TransactionHelper::IsIn(*blockTx->GetType(), {ACCOUNT_USER}))
+                            if (!TransactionHelper::IsIn(*blockTx->GetType(), {address.second}))
                                 continue;
 
-                            if (*blockTx->GetString1() == address)
+                            if (*blockTx->GetString1() == address.first)
                             {
                                 inBlock = true;
                                 break;
@@ -66,9 +66,12 @@ namespace PocketConsensus
                 }
 
                 // Check registrations in DB
-                if (!addressesForCheck.empty() &&
-                    !PocketDb::ConsensusRepoInst.ExistsUserRegistrations(addressesForCheck, false))
-                    return {false, SocialConsensusResult_NotRegistered};
+                for(const auto& address : addressesForCheck) {
+                    // TODO (losty-video): a bit weird that we requrie to cycle in loop here, but still there are at most 2 addresses it should matter nothing
+                    if (!PocketDb::ConsensusRepoInst.ExistsUserRegistration(address.first, address.second, false)) {
+                        return {false, SocialConsensusResult_NotRegistered};
+                    }
+                }
             }
 
             // Check limits
@@ -115,7 +118,7 @@ namespace PocketConsensus
         }
 
         // Get addresses from transaction for check registration
-        virtual vector<string> GetAddressesForCheckRegistration(const shared_ptr<T>& tx) = 0;
+        virtual vector<pair<string, TxType>> GetAddressesForCheckRegistration(const shared_ptr<T>& tx) = 0;
 
         // Check empty pointer
         bool IsEmpty(const shared_ptr<string>& ptr) const

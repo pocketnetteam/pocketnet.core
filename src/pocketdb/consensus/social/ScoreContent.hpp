@@ -145,9 +145,9 @@ namespace PocketConsensus
             // Check count
             return ValidateLimit(ptx, count);
         }
-        vector<string> GetAddressesForCheckRegistration(const ScoreContentRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const ScoreContentRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            return {{*ptx->GetAddress(), ACCOUNT_USER}};
         }
 
         virtual int64_t GetScoresLimit(AccountMode mode)

@@ -62,9 +62,9 @@ namespace PocketConsensus
         {
             return Success;
         }
-        vector<string> GetAddressesForCheckRegistration(const BoostContentRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const BoostContentRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            return {{*ptx->GetAddress(), ACCOUNT_USER}};
         }
     };
 

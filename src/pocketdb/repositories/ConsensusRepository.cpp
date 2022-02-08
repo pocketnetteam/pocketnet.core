@@ -191,20 +191,17 @@ namespace PocketDb
         return {tx != nullptr, tx};
     }
 
-    bool ConsensusRepository::ExistsUserRegistrations(vector<string>& addresses, bool mempool)
+    bool ConsensusRepository::ExistsUserRegistration(const string& address, TxType regType, bool mempool)
     {
         auto result = false;
-
-        if (addresses.empty())
-            return result;
 
         // Build sql string
         string sql = R"sql(
             select count(distinct(String1))
             from Transactions
-            where Type in (100, 101, 102)
-              and String1 in ( )sql" + join(vector<string>(addresses.size(), "?"), ",") + R"sql( )
-              )sql" + (mempool ? "" : " and Height is not null ") + R"sql(
+            where Type = ?
+              and String1 in ( ? )
+              )sql" + (mempool ? "" : std::string(" and Height is not null ")) + R"sql(
         )sql";
 
         // Execute
@@ -212,12 +209,12 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
-            for (size_t i = 0; i < addresses.size(); i++)
-                TryBindStatementText(stmt, (int)i + 1, addresses[i]);
+            TryBindStatementInt(stmt, 1, regType);
+            TryBindStatementText(stmt, 2, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
-                    result = (value == (int) addresses.size());
+                    result = true;
 
             FinalizeSqlStatement(*stmt);
         });

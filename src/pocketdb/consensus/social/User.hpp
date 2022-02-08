@@ -135,7 +135,7 @@ namespace PocketConsensus
 
             return Success;
         }
-        vector<string> GetAddressesForCheckRegistration(const UserRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const UserRef& ptx) override
         {
             return {};
         }

@@ -90,9 +90,9 @@ namespace PocketConsensus
 
             return Success;
         }
-        vector<string> GetAddressesForCheckRegistration(const SubscribeRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const SubscribeRef& ptx) override
         {
-            return {*ptx->GetAddress(), *ptx->GetAddressTo()};
+            return {{*ptx->GetAddress(), ACCOUNT_USER}, {*ptx->GetAddressTo(), ACCOUNT_USER}};
         }
     };
 

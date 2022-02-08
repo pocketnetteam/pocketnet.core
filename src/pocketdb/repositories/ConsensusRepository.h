@@ -69,7 +69,7 @@ namespace PocketDb
         // Exists
         bool ExistsComplain(const string& postHash, const string& address);
         bool ExistsScore(const string& address, const string& contentHash, TxType type, bool mempool);
-        bool ExistsUserRegistrations(vector<string>& addresses, bool mempool);
+        bool ExistsUserRegistration(const string& address, TxType regType, bool mempool);
         bool ExistsAnotherByName(const string& address, const string& name);
 
         // get counts in "mempool" - Height is null

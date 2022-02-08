@@ -126,9 +126,9 @@ namespace PocketConsensus
             count += ConsensusRepoInst.CountMempoolComment(*ptx->GetAddress());
             return ValidateLimit(ptx, count);
         }
-        vector<string> GetAddressesForCheckRegistration(const CommentRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const CommentRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            return {{*ptx->GetAddress(), ACCOUNT_USER}};
         }
 
         virtual int64_t GetLimit(AccountMode mode) { 

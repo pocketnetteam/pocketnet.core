@@ -80,9 +80,10 @@ namespace PocketConsensus
 
             return Success;
         }
-        vector<string> GetAddressesForCheckRegistration(const BlockingRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const BlockingRef& ptx) override
         {
-            return {*ptx->GetAddress(), *ptx->GetAddressTo()};
+            // TODO (losty-video): probably not only user?
+            return {{*ptx->GetAddress(), ACCOUNT_USER}, {*ptx->GetAddressTo(), ACCOUNT_USER}};
         }
     };
 

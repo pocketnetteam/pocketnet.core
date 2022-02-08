@@ -152,9 +152,9 @@ namespace PocketConsensus
 
             return Success;
         }
-        vector<string> GetAddressesForCheckRegistration(const CommentEditRef& ptx) override
+        vector<pair<string, TxType>> GetAddressesForCheckRegistration(const CommentEditRef& ptx) override
         {
-            return {*ptx->GetAddress()};
+            return {{*ptx->GetAddress(), ACCOUNT_USER}};
         }
 
         virtual bool AllowEditWindow(const CommentEditRef& ptx, const CommentEditRef& blockPtx)
