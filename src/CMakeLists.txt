@@ -364,6 +364,7 @@ add_library(${POCKETDB}
         pocketdb/models/dto/Coinstake.h
         pocketdb/models/dto/Post.h
         pocketdb/models/dto/User.h
+        pocketdb/models/dto/VideoServer.h
         pocketdb/models/dto/ScoreContent.h
         pocketdb/models/dto/ScoreComment.h
         pocketdb/models/dto/Blocking.h
@@ -395,6 +396,7 @@ add_library(${POCKETDB}
         pocketdb/models/dto/Article.h
         pocketdb/models/dto/Article.cpp
         pocketdb/models/dto/User.cpp
+        pocketdb/models/dto/VideoServer.cpp
         pocketdb/models/dto/ScoreContent.cpp
         pocketdb/models/dto/ScoreComment.cpp
         pocketdb/models/dto/Blocking.cpp
@@ -801,6 +803,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/SubscribeCancel.hpp
         pocketdb/consensus/social/SubscribePrivate.hpp
         pocketdb/consensus/social/User.hpp
+        pocketdb/consensus/social/VideoServer.hpp
         pocketdb/consensus/social/AccountSetting.hpp
         pocketdb/consensus/social/ContentDelete.hpp
         pocketdb/consensus/social/BoostContent.hpp

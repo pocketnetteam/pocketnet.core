@@ -27,6 +27,7 @@
 #include "pocketdb/consensus/social/User.hpp"
 #include "pocketdb/consensus/social/AccountSetting.hpp"
 #include "pocketdb/consensus/social/ContentDelete.hpp"
+#include "pocketdb/consensus/social/VideoServer.hpp"
 
 namespace PocketConsensus
 {
@@ -68,6 +69,7 @@ namespace PocketConsensus
         static AccountSettingConsensusFactory m_accountSettingFactory;
         static ContentDeleteConsensusFactory m_contentDeleteFactory;
         static BoostContentConsensusFactory m_boostContentFactory;
+        static VideoServerConsensusFactory m_videoServerFactory;
     };
 }
 

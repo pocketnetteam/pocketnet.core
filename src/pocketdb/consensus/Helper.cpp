@@ -11,6 +11,7 @@ namespace PocketConsensus
     ArticleConsensusFactory SocialConsensusHelper::m_articleFactory;
     AccountSettingConsensusFactory SocialConsensusHelper::m_accountSettingFactory;
     UserConsensusFactory SocialConsensusHelper::m_userFactory;
+    VideoServerConsensusFactory SocialConsensusHelper::m_videoServerFactory;
     CommentConsensusFactory SocialConsensusHelper::m_commentFactory;
     CommentEditConsensusFactory SocialConsensusHelper::m_commentEditFactory;
     CommentDeleteConsensusFactory SocialConsensusHelper::m_commentDeleteFactory;
@@ -165,6 +166,8 @@ namespace PocketConsensus
                 return m_accountSettingFactory.Instance(height)->Check(tx, static_pointer_cast<AccountSetting>(ptx));
             case ACCOUNT_USER:
                 return m_userFactory.Instance(height)->Check(tx, static_pointer_cast<User>(ptx));
+            case ACCOUNT_VIDEO_SERVER:
+                return m_videoServerFactory.Instance(height)->Check(tx, static_pointer_cast<VideoServer>(ptx));
             case CONTENT_POST:
                 return m_postFactory.Instance(height)->Check(tx, static_pointer_cast<Post>(ptx));
             case CONTENT_VIDEO:
@@ -219,6 +222,8 @@ namespace PocketConsensus
                 return m_accountSettingFactory.Instance(height)->Validate(tx, static_pointer_cast<AccountSetting>(ptx), pBlock);
             case ACCOUNT_USER:
                 return m_userFactory.Instance(height)->Validate(tx, static_pointer_cast<User>(ptx), pBlock);
+            case ACCOUNT_VIDEO_SERVER:
+                return m_videoServerFactory.Instance(height)->Validate(tx, static_pointer_cast<VideoServer>(ptx), pBlock);
             case CONTENT_POST:
                 return m_postFactory.Instance(height)->Validate(tx, static_pointer_cast<Post>(ptx), pBlock);
             case CONTENT_VIDEO:

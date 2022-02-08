@@ -127,6 +127,8 @@ namespace PocketHelpers
                 return "AccountSettings";
             case TxType::ACCOUNT_USER:
                 return "Users";
+            case TxType::ACCOUNT_VIDEO_SERVER:
+                return "VideoServer";
             case TxType::CONTENT_POST:
             case TxType::CONTENT_VIDEO:
             case TxType::CONTENT_ARTICLE:
@@ -277,6 +279,9 @@ namespace PocketHelpers
             case ACCOUNT_USER:
                 ptx = make_shared<User>(tx);
                 break;
+            case ACCOUNT_VIDEO_SERVER:
+                ptx = make_shared<VideoServer>(tx);
+                break;
             case CONTENT_POST:
                 ptx = make_shared<Post>(tx);
                 break;
@@ -351,6 +356,9 @@ namespace PocketHelpers
                 break;
             case ACCOUNT_USER:
                 ptx = make_shared<User>();
+                break;
+            case ACCOUNT_VIDEO_SERVER:
+                ptx = make_shared<VideoServer>();
                 break;
             case CONTENT_POST:
                 ptx = make_shared<Post>();
@@ -440,6 +448,8 @@ namespace PocketHelpers
                 return "unsubscribe";
             case PocketTx::ACCOUNT_USER:
                 return "userInfo";
+            case PocketTx::ACCOUNT_VIDEO_SERVER:
+                return "videoServer";
             case PocketTx::CONTENT_COMMENT:
                 return "comment";
             case PocketTx::CONTENT_COMMENT_EDIT:

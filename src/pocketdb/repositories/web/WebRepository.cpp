@@ -138,6 +138,7 @@ namespace PocketDb
 
                 switch ((TxType)type)
                 {
+                // TODO (losty-video): video case here
                 case ACCOUNT_USER:
 
                     if (auto[ok, string2] = TryGetColumnString(*stmt, 3); ok)

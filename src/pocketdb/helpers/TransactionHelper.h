@@ -37,6 +37,7 @@
 #include "pocketdb/models/dto/ScoreContent.h"
 #include "pocketdb/models/dto/ScoreComment.h"
 #include "pocketdb/models/dto/ContentDelete.h"
+#include "pocketdb/models/dto/VideoServer.h"
 
 namespace PocketHelpers
 {
