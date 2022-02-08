@@ -415,6 +415,7 @@ add_library(${POCKETDB}
         pocketdb/models/web/SearchRequest.h
         )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
+target_include_directories(${POCKETDB} PRIVATE ${Boost_INCLUDE_DIRS})
 
 
 # Pocketcoin support library
