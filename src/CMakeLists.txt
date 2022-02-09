@@ -804,9 +804,6 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/ContentDelete.hpp
         pocketdb/consensus/social/BoostContent.hpp
         pocketdb/consensus/Helper.cpp
-        pocketdb/consensus/Base.cpp
-        pocketdb/consensus/Lottery.cpp
-        pocketdb/consensus/Reputation.cpp
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event leveldb OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})

@@ -1102,10 +1102,20 @@ namespace PocketConsensus
     class BaseConsensus
     {
     public:
-        BaseConsensus();
-        explicit BaseConsensus(int height);
+        BaseConsensus() = default;
+
+        explicit BaseConsensus(int height)
+        {
+            Height = height;
+        }
+
         virtual ~BaseConsensus() = default;
-        int64_t GetConsensusLimit(ConsensusLimit type) const;
+
+        int64_t GetConsensusLimit(ConsensusLimit type) const
+        {
+            return (--m_consensus_limits[type][Params().NetworkID()].upper_bound(Height))->second;
+        }
+        
     protected:
         int Height = 0;
     };
