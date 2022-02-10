@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -52,15 +52,44 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->ExplorerRepoInst->GetTransactionsStatisticByDays(topHeight, depth);
     }
 
-    UniValue GetStatisticContent(const JSONRPCRequest& request)
+    UniValue GetStatisticContentByHours(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw std::runtime_error(
-                "getstatisticcontent\n"
-                "\nGet statistics for content transactions\n"
+                "getstatisticcontentbyhours\n"
+                "\nGet statistics for content transactions grouped by hours\n"
             );
 
-        return request.DbConnection()->ExplorerRepoInst->GetContentStatistic();
+        int topHeight = chainActive.Height() / 10 * 10;
+        if (request.params[0].isNum())
+            topHeight = std::min(request.params[0].get_int(), topHeight);
+
+        int depth = 24;
+        if (request.params[1].isNum())
+            depth = std::min(request.params[1].get_int(), depth);
+        depth = depth * 60;
+
+        return request.DbConnection()->ExplorerRepoInst->GetContentStatisticByHours(topHeight, depth);
+    }
+
+    UniValue GetStatisticContentByDays(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw std::runtime_error(
+                "getstatisticcontentbydays\n"
+                "\nGet statistics for content transactions grouped by days\n"
+            );
+
+        int topHeight = chainActive.Height() / 10 * 10;
+        if (request.params[0].isNum())
+            topHeight = std::min(request.params[0].get_int(), topHeight);
+
+        int depth = 30;
+        if (request.params[1].isNum())
+            depth = std::min(request.params[1].get_int(), depth);
+        depth = depth * 24 * 60;
+
+        return request.DbConnection()->ExplorerRepoInst->GetContentStatisticByDays(topHeight, depth);
     }
 
     UniValue GetLastBlocks(const JSONRPCRequest& request)

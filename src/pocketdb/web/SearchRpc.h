@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -37,6 +37,9 @@ namespace PocketWeb::PocketWebRpc
     // Get some Accounts that were scored by people who've scored like address  (not long ago - several blocks ago)
     // Get address scores -> Get scored contents -> Get Scores to these contents -> Get scores accounts -> Get their scores -> Get their scored contents -> Get these contents Authors
     UniValue GetRecomendedAccountsByScoresFromAddress(const JSONRPCRequest& request);
+
+    // Accounts recommendations based on tags
+    UniValue GetRecomendedAccountsByTags(const JSONRPCRequest& request);
 
     // Contents recommendations by others contents
     // Get some contents that were liked by people who've seen this content (not long ago - several blocks ago)

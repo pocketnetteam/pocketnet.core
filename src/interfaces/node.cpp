@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The Pocketcoin Core developers
+// Copyright (c) 2018-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -211,7 +211,12 @@ class NodeImpl : public Node
         req.URI = uri;
         return g_socket->m_table_rpc.execute(req);
     }
-    std::vector<std::string> listRpcCommands() override { return g_socket->m_table_rpc.listCommands(); }
+    std::vector<std::string> listRpcCommands() override {
+        if (g_socket)
+            return g_socket->m_table_rpc.listCommands();
+        else
+            return vector<string>();;
+    }
     void rpcSetTimerInterfaceIfUnset(RPCTimerInterface* iface) override { RPCSetTimerInterfaceIfUnset(iface); }
     void rpcUnsetTimerInterface(RPCTimerInterface* iface) override { RPCUnsetTimerInterface(iface); }
     bool getUnspentOutput(const COutPoint& output, Coin& coin) override

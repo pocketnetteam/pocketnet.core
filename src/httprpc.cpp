@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018 The Pocketcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -182,7 +182,13 @@ void StopHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
     
-    g_socket->UnregisterHTTPHandler("/", true);
+    if (g_socket)
+    {
+        g_socket->UnregisterHTTPHandler("/", true);
+        if (g_wallet_init_interface.HasWalletSupport()) {
+            g_socket->UnregisterHTTPHandler("/wallet/", false);
+        }
+    }
 
     if (g_webSocket)
     {
@@ -190,10 +196,6 @@ void StopHTTPRPC()
         g_webSocket->UnregisterHTTPHandler("/", false);
     }
 
-    if (g_wallet_init_interface.HasWalletSupport()) {
-        g_socket->UnregisterHTTPHandler("/wallet/", false);
-    }
-    
     if (httpRPCTimerInterface) {
         RPCUnsetTimerInterface(httpRPCTimerInterface.get());
         httpRPCTimerInterface.reset();

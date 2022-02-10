@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -19,6 +19,7 @@ UniValue gettemplate(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 {
     {"hidden",       "generatepocketnettransaction",      &GenerateTransaction,             {"address", "privKey", "outCount", "type", "payload"}},
+    {"hidden",       "generatepocketnetaddress",          &GenerateAddress,                 {}},
 
     // Old methods
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
@@ -34,8 +35,9 @@ static const CRPCCommand commands[] =
     {"search",          "getrecomendedaccountsbysubscriptions",           &GetRecomendedAccountsBySubscriptions,           {"address", "count"}},
     {"search",          "getrecomendedaccountsbyscoresonsimilaraccounts", &GetRecomendedAccountsByScoresOnSimilarAccounts, {"address", "contenttypes", "height", "depth", "count"}},
     {"search",          "getrecomendedaccountsbyscoresfromaddress",       &GetRecomendedAccountsByScoresFromAddress,       {"address", "contenttypes", "height", "depth", "count"}},
-    {"search",          "getrecomendedcontentsbyscoresonsimilarcontents", &GetRecomendedContentsByScoresOnSimilarContents, {}},
-    {"search",          "getrecomendedcontentsbyscoresfromaddress",       &GetRecomendedContentsByScoresFromAddress,       {}},
+    {"search",          "getrecomendedaccountsbytags",                    &GetRecomendedAccountsByTags,                    {"tags", "count"}},
+    {"search",          "getrecomendedcontentsbyscoresonsimilarcontents", &GetRecomendedContentsByScoresOnSimilarContents, {"contentid", "contenttypes", "depth", "count"}},
+    {"search",          "getrecomendedcontentsbyscoresfromaddress",       &GetRecomendedContentsByScoresFromAddress,       {"address", "contenttypes", "height", "depth", "count"}},
 
     // WebSocket
     {"websocket",       "getmissedinfo",                    &GetMissedInfo,                 {"address", "blocknumber"}},
@@ -84,7 +86,8 @@ static const CRPCCommand commands[] =
     // Explorer
     {"explorer",       "getstatisticbyhours",              &GetStatisticByHours,            {"topHeight", "depth"}},
     {"explorer",       "getstatisticbydays",               &GetStatisticByDays,             {"topHeight", "depth"}},
-    {"explorer",       "getstatisticcontent",              &GetStatisticContent,            {}},
+    {"explorer",       "getstatisticcontentbyhours",       &GetStatisticContentByHours,     {"topHeight", "depth"}},
+    {"explorer",       "getstatisticcontentbydays",        &GetStatisticContentByDays,      {"topHeight", "depth"}},
     {"explorer",       "getaddressinfo",                   &GetAddressInfo,                 {"address"}},
     {"explorer",       "getcompactblock",                  &GetCompactBlock,                {"blockHash"}},
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},

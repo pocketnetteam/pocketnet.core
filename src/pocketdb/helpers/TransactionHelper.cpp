@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -36,8 +36,10 @@ namespace PocketHelpers
             return TxType::CONTENT_POST;
         else if (op == OR_VIDEO)
             return TxType::CONTENT_VIDEO;
-        else if (op == OR_SERVER_PING)
-            return TxType::CONTENT_SERVERPING;
+        else if (op == OR_ARTICLE)
+            return TxType::CONTENT_ARTICLE;
+        else if (op == OR_CONTENT_BOOST)
+            return TxType::BOOST_CONTENT;
         else if (op == OR_CONTENT_DELETE)
             return TxType::CONTENT_DELETE;
         else if (op == OR_SCORE)
@@ -118,6 +120,7 @@ namespace PocketHelpers
 
     string TransactionHelper::ConvertToReindexerTable(const Transaction& transaction)
     {
+        // TODO (brangr) (v0.21.0): need remove for next generation serialization
         switch (*transaction.GetType())
         {
             case TxType::ACCOUNT_SETTING:
@@ -126,6 +129,7 @@ namespace PocketHelpers
                 return "Users";
             case TxType::CONTENT_POST:
             case TxType::CONTENT_VIDEO:
+            case TxType::CONTENT_ARTICLE:
             case TxType::CONTENT_DELETE:
                 return "Posts";
             case TxType::CONTENT_COMMENT:
@@ -145,6 +149,8 @@ namespace PocketHelpers
             case TxType::ACTION_SUBSCRIBE_PRIVATE:
             case TxType::ACTION_SUBSCRIBE:
                 return "Subscribes";
+            case TxType::BOOST_CONTENT:
+                return "Boosts";
             default:
                 return "";
         }
@@ -277,8 +283,14 @@ namespace PocketHelpers
             case CONTENT_VIDEO:
                 ptx = make_shared<Video>(tx);
                 break;
+            case CONTENT_ARTICLE:
+                ptx = make_shared<Article>(tx);
+                break;
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>(tx);
+                break;
+            case BOOST_CONTENT:
+                ptx = make_shared<BoostContent>(tx);
                 break;
             case CONTENT_COMMENT:
                 ptx = make_shared<Comment>(tx);
@@ -346,8 +358,14 @@ namespace PocketHelpers
             case CONTENT_VIDEO:
                 ptx = make_shared<Video>();
                 break;
+            case CONTENT_ARTICLE:
+                ptx = make_shared<Article>();
+                break;
             case CONTENT_DELETE:
                 ptx = make_shared<ContentDelete>();
+                break;
+            case BOOST_CONTENT:
+                ptx = make_shared<BoostContent>();
                 break;
             case CONTENT_COMMENT:
                 ptx = make_shared<Comment>();
@@ -408,10 +426,10 @@ namespace PocketHelpers
                 return "share";
             case PocketTx::CONTENT_VIDEO:
                 return "video";
-            case PocketTx::CONTENT_SERVERPING:
-                return "serverPing";
-            case PocketTx::CONTENT_TRANSLATE:
-                return "translate";
+            case PocketTx::CONTENT_ARTICLE:
+                return "article";
+            case PocketTx::ACCOUNT_SETTING:
+                return "accSet";
             case PocketTx::ACTION_SCORE_CONTENT:
                 return "upvoteShare";
             case PocketTx::ACTION_SUBSCRIBE:
@@ -430,6 +448,8 @@ namespace PocketHelpers
                 return "commentDelete";
             case PocketTx::ACTION_SCORE_COMMENT:
                 return "cScore";
+            case PocketTx::BOOST_CONTENT:
+                return "contentBoost";
             default:
                 return "";
         }
@@ -440,8 +460,8 @@ namespace PocketHelpers
         if (type == "contentDelete" || type == OR_CONTENT_DELETE) return TxType::CONTENT_DELETE;
         else if (type == "share" || type == "shareEdit" || type == OR_POST || type == OR_POSTEDIT) return TxType::CONTENT_POST;
         else if (type == "video" || type == OR_VIDEO) return TxType::CONTENT_VIDEO;
-        else if (type == "serverPing" || type == OR_SERVER_PING) return TxType::CONTENT_SERVERPING;
-        else if (type == "translate" || type == OR_TRANSLATE) return TxType::CONTENT_TRANSLATE;
+        else if (type == "article" || type == OR_ARTICLE) return TxType::CONTENT_ARTICLE;
+        else if (type == "accSet" || type == OR_ACCOUNT_SETTING) return TxType::ACCOUNT_SETTING;
         else if (type == "upvoteShare" || type == OR_SCORE) return TxType::ACTION_SCORE_CONTENT;
         else if (type == "subscribe" || type == OR_SUBSCRIBE) return TxType::ACTION_SUBSCRIBE;
         else if (type == "subscribePrivate" || type == OR_SUBSCRIBEPRIVATE) return TxType::ACTION_SUBSCRIBE_PRIVATE;
@@ -451,7 +471,7 @@ namespace PocketHelpers
         else if (type == "commentEdit" || type == OR_COMMENT_EDIT) return TxType::CONTENT_COMMENT_EDIT;
         else if (type == "commentDelete" || type == OR_COMMENT_DELETE) return TxType::CONTENT_COMMENT_DELETE;
         else if (type == "cScore" || type == OR_COMMENT_SCORE) return TxType::ACTION_SCORE_COMMENT;
+        else if (type == "contentBoost" || type == OR_CONTENT_BOOST) return TxType::BOOST_CONTENT;
         else return TxType::NOT_SUPPORTED;
-        //TODO (o1q): check if other types are needed - AccountSetting
     }
 }

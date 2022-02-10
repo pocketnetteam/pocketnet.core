@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -29,7 +29,7 @@ namespace PocketConsensus
             // Actual content not deleted
             auto[ok, actuallTx] = ConsensusRepoInst.GetLastContent(
                 *ptx->GetRootTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE }
             );
 
             if (!ok)
@@ -62,7 +62,7 @@ namespace PocketConsensus
         {
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE}))
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), {CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE}))
                     continue;
 
                 if (*blockTx->GetHash() == *ptx->GetHash())

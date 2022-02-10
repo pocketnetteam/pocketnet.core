@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -85,6 +85,7 @@ namespace PocketWeb::PocketWebRpc
         // Search posts in caption, message and urls
         if (type == "posts")
         {
+            // TODO (brangr): realize search indexing
             searchRequest.TxTypes = { CONTENT_POST, CONTENT_VIDEO };
             searchRequest.FieldTypes = {
                 ContentFieldType_ContentPostCaption,
@@ -274,7 +275,11 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedAccountsBySubscriptions"
+                "getrecomendedaccountsbysubscriptions \"address\", count\n"
+                "\nAccounts recommendations by subscriptions.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address for recommendations\n"
+                "2. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
@@ -295,7 +300,14 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedAccountsBySubscriptions"
+                "getrecomendedaccountsbyscoresonsimilaraccounts \"address\", \"contenttypes\", height, depth, count\n"
+                "\nAccounts recommendations by likes based on address.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address for recommendations\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "4. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
+                "5. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
@@ -328,7 +340,14 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedAccountsByScoresFromAddress"
+                "getrecomendedaccountsbyscoresfromaddress \"address\", \"contenttypes\", height, depth, count\n"
+                "\nAccounts recommendations by likes.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address for recommendations\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "4. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
+                "5. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
         RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
@@ -357,23 +376,102 @@ namespace PocketWeb::PocketWebRpc
         return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
     }
 
+    UniValue GetRecomendedAccountsByTags(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "getrecomendedaccountsbytags \"tags\", count\n"
+                "\nAccounts recommendations by tags.\n"
+                "\nArguments:\n"
+                "1. \"tags\" (array of strings) Tags for recommendations\n"
+                "2. \"count\" (int, optional) Number of resulting records. Default 10\n"
+            );
+
+        vector<string> tags;
+        if (request.params.size() > 0)
+            ParseRequestTags(request.params[0], tags);
+
+        if (tags.empty())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, string("There are no tags in the input parameters."));
+
+        int nHeight = chainActive.Height();
+        int depth = 60 * 24 * 30; // about 1 month
+
+        int cntOut = 10;
+        if (request.params.size() > 1 && request.params[1].isNum())
+            cntOut = request.params[1].get_int();
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedAccountsByTags(tags, nHeight, depth, cntOut);
+    }
+
     UniValue GetRecomendedContentsByScoresOnSimilarContents(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedContentsByScoresOnSimilarContents"
+                "getrecomendedcontentsbyscoresonsimilarcontents \"contentid\", \"contenttypes\", depth, count\n"
+                "\nContents recommendations by other content.\n"
+                "\nArguments:\n"
+                "1. \"contentid\" (string) Content hash for recommendations\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
+                "4. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
-        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresOnSimilarContents();
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string contentid = request.params[0].get_str();
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int depth = 1000;
+        int cntOut = 10;
+
+        if (request.params.size() > 2 && request.params[2].isNum())
+            depth = request.params[2].get_int();
+
+        if (request.params.size() > 3 && request.params[3].isNum())
+            cntOut = request.params[3].get_int();
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresOnSimilarContents(contentid, contentTypes, depth, cntOut);
     }
 
     UniValue GetRecomendedContentsByScoresFromAddress(const JSONRPCRequest& request)
     {
         if (request.fHelp)
             throw runtime_error(
-                "GetRecomendedContentsByScoresFromAddress"
+                "getrecomendedcontentsbyscoresfromaddress \"address\", \"contenttypes\", height, depth, count\n"
+                "\nContents recommendations for address by likes.\n"
+                "\nArguments:\n"
+                "1. \"address\" (string) Address for recommendations\n"
+                "2. \"contenttypes\" (string or array of strings, optional) type(s) of content posts/video\n"
+                "3. \"height\"  (int, optional) Maximum search height. Default is current chain height\n"
+                "4. \"depth\" (int, optional) Depth of statistic. Default 1000 blocks\n"
+                "5. \"count\" (int, optional) Number of resulting records. Default 10\n"
             );
 
-        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresFromAddress();
+        RPCTypeCheckArgument(request.params[0], UniValue::VSTR);
+        string address = request.params[0].get_str();
+        CTxDestination dest = DecodeDestination(address);
+
+        if (!IsValidDestination(dest))
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[1], contentTypes);
+
+        int nHeight = chainActive.Height();
+        int depth = 1000;
+        int cntOut = 10;
+
+        if (request.params.size() > 2 && request.params[2].isNum() && request.params[2].get_int() > 0)
+            nHeight = request.params[2].get_int();
+
+        if (request.params.size() > 3 && request.params[3].isNum())
+            depth = request.params[3].get_int();
+
+        if (request.params.size() > 4 && request.params[4].isNum())
+            cntOut = request.params[4].get_int();
+
+        return request.DbConnection()->SearchRepoInst->GetRecomendedContentsByScoresFromAddress(address, contentTypes, nHeight, depth, cntOut);
     }
 }
