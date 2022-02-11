@@ -4,6 +4,7 @@
 
 #include "pocketdb/SQLiteDatabase.h"
 #include "util/system.h"
+#include "pocketdb/pocketnet.h"
 
 namespace PocketDb
 {
@@ -18,7 +19,7 @@ namespace PocketDb
         LogPrintf("%s: %d; Message: %s\n", __func__, code, msg);
     }
 
-    void IntitializeSqlite()
+    static void InitializeSqlite()
     {
         LogPrintf("SQLite usage version: %d\n", (int)sqlite3_libversion_number());
 
@@ -41,6 +42,56 @@ namespace PocketDb
         if (ret != SQLITE_OK)
             throw std::runtime_error(
                 strprintf("%s: %d; Failed to initialize SQLite: %s\n", __func__, ret, sqlite3_errstr(ret)));
+    }
+
+    void InitSQLite(fs::path path)
+    {
+        auto dbBasePath = path.string();
+
+        InitializeSqlite();
+        PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDbMainMigration>();
+        PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
+        SQLiteDbInst.CreateStructure();
+
+        TransRepoInst.Init();
+        ChainRepoInst.Init();
+        RatingsRepoInst.Init();
+        ConsensusRepoInst.Init();
+        NotifierRepoInst.Init();
+
+        // Open, create structure and close `web` db
+        PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();
+        SQLiteDatabase sqliteDbWebInst(false);
+        sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, gArgs.GetArg("-reindex", 0) == 5);
+        sqliteDbWebInst.CreateStructure();
+        sqliteDbWebInst.Close();
+
+        // Attach `web` db to `main` db
+        SQLiteDbInst.AttachDatabase("web");
+    }
+
+    void InitSQLiteCheckpoints(fs::path path)
+    {
+        auto checkpointDbName = Params().NetworkIDString();
+        int i = 0;
+
+        // Look for checkpoints directory in current folder or up to two directories up.
+        while (i < 3 && !fs::exists((path / "checkpoints" / (checkpointDbName + ".sqlite3")).string()))
+        {
+            path = path / "..";
+            i++;
+        }
+        if (!fs::exists((path / "checkpoints" / (checkpointDbName + ".sqlite3")).string()))
+        {
+            LogPrintf("Checkpoint DB %s not found!\nDownload actual DB file from %s and place to %s directory.\n",
+                (path / (checkpointDbName + ".sqlite3")).string(),
+                "https://github.com/pocketnetteam/pocketnet.core/tree/master/checkpoints/" + checkpointDbName + ".sqlite3",
+                path.string()
+            );
+
+            throw std::runtime_error("Unable to start server. Checkpoints DB not found. See debug log for details.");
+        }
+        SQLiteDbCheckpointInst.Init((path / "checkpoints").string(), checkpointDbName);
     }
 
     SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)

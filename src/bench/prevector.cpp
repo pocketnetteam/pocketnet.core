@@ -1,13 +1,18 @@
 // Copyright (c) 2015-2022 The Bitcoin Core developers
+// Copyright (c) 2018-2022 The Pocketcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <bench/bench.h>
+#include <vector>
 #include <prevector.h>
+#include <reverse_iterator.h>
 #include <serialize.h>
 #include <streams.h>
 #include <type_traits>
 
 #include <bench/bench.h>
+#include <validation.h>
 
 // GCC 4.8 is missing some C++11 type_traits,
 // https://www.gnu.org/software/gcc/gcc-5/changes.html
@@ -22,11 +27,11 @@ struct nontrivial_t {
     nontrivial_t() :x(-1) {}
     SERIALIZE_METHODS(nontrivial_t, obj) { READWRITE(obj.x); }
 };
-static_assert(!IS_TRIVIALLY_CONSTRUCTIBLE<nontrivial_t>::value,
+static_assert(!std::is_trivially_default_constructible<nontrivial_t>::value,
               "expected nontrivial_t to not be trivially constructible");
 
 typedef unsigned char trivial_t;
-static_assert(IS_TRIVIALLY_CONSTRUCTIBLE<trivial_t>::value,
+static_assert(std::is_trivially_default_constructible<trivial_t>::value,
               "expected trivial_t to be trivially constructible");
 
 template <typename T>

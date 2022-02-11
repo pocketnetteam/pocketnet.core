@@ -14,6 +14,7 @@
 #include <script/standard.h>
 #include <util/check.h>
 #include <validation.h>
+#include <pocketdb/services/Serializer.h>
 
 CTxIn generatetoaddress(const NodeContext& node, const std::string& address)
 {
@@ -35,7 +36,10 @@ CTxIn MineBlock(const NodeContext& node, const CScript& coinbase_scriptPubKey)
     }
 
     BlockValidationState state;
-    bool processed{Assert(node.chainman)->ProcessNewBlock(state, Params(), block, nullptr, true, nullptr)};
+    auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(*block);
+
+    auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
+    bool processed{Assert(node.chainman)->ProcessNewBlock(state, Params(), block, pocketBlockRef, true, nullptr)};
     assert(processed);
 
     return CTxIn{block->vtx[0]->GetHash(), 0};

@@ -7,8 +7,8 @@
 #include <crypto/sha256.h>
 #include <util/strencodings.h>
 #include <util/system.h>
-
-#include <memory>
+#include <pocketdb/SQLiteDatabase.h>
+#include <chainparams.h>
 
 static const char* DEFAULT_BENCH_FILTER = ".*";
 
