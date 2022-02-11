@@ -6,6 +6,251 @@
 
 namespace PocketDb
 {
+    class TransactionReconstructor : public RowAccessor
+    {
+    public:
+        TransactionReconstructor(bool includePayload, bool includeOutputs, bool includeInputs)
+            : m_includePayload(includePayload), m_includeOutputs(includeOutputs), m_includeInputs(includeInputs)
+        {}
+        TransactionReconstructor() = delete;
+
+        /**
+         * Pass a new row for reconstructor to collect all necessary data from it.
+         * @param stmt - sqlite stmt. Null is not allowed and will potentially cause a segfault
+         * Returns boolean result of collecting data. If false is returned - all data inside reconstructor is possibly corrupted due to bad input (missing columns, etc)
+         * and it should not be used anymore
+         */
+        bool FeedRow(sqlite3_stmt* stmt)
+        {
+            auto[ok0, txHash] = TryGetColumnString(stmt, 1);
+            if (!ok0) {
+                return false;
+            }
+
+            // Using columns counter because other columns numbers depend on include* flags
+            // It is controlled inside below methods
+            int currentColumn = 0;
+
+            auto [ok1, txEntry] = ProcessTransaction(stmt, txHash, currentColumn);
+            if (!ok1 || txEntry == nullptr) {
+                return false;
+            }
+
+            // The order of below functions is necessary. It should correspond to order of joins in query.
+            if (m_includeOutputs && !ParseOutput(stmt, *txEntry, currentColumn)) {
+                return false;
+            }
+            if (m_includeInputs && !ParseInput(stmt, *txEntry, currentColumn)) {
+                return false;
+            }
+            
+            return true;
+        }
+
+        /**
+         * Constructs all collected data to PocketBlock format.
+         * blockHashes is filled with block hashes corresponding to all collected transactions, where key is tx hash
+         * and value is blockhash.
+         * 
+         */
+        PocketBlock GetResult(map<string, string>& blockHashes)
+        {
+            PocketBlock result;
+            map<string, string> blockHashesRes;
+            for (auto& txEntryPair: m_constructed) {
+                auto& txEntry = *txEntryPair.second;
+
+                auto tx = txEntry.tx;
+                if (txEntry.payload.has_value()) {
+                    tx->SetPayload(txEntry.payload.value());
+                }
+
+                auto& outputs = tx->Outputs();
+                outputs.clear();
+                outputs.reserve(txEntry.outputs.size());
+                for (const auto& outputPair: txEntry.outputs) {
+                    outputs.emplace_back(outputPair.second);
+                }
+
+                result.emplace_back(tx);
+                blockHashesRes.insert({*tx->GetHash(), txEntry.blockHash});
+            }
+            blockHashes = move(blockHashesRes);
+            return result;
+        }
+    private:
+        /**
+         * Used to collect all data for constructing transaction.
+         * It is needed to avoid duplicates of payload and outputs in case of multiple joins because it uses optional and map
+         * instead of object and vector in Transaction.
+         */
+        class ConstructEntry
+        {
+        public:
+            /**
+             * Transaction is going to be filled only with data from "Transactions" table
+             */
+            PTransactionRef tx;
+            /**
+             * Will be null and not included to transaction during constructing if includePayload == false.
+             * Otherwise, will be included even if there is no payload for transaction
+             */
+            optional<Payload> payload;
+            /**
+             * Map for outputs where key is "Number" from TxOutputs table
+             */
+            map<int64_t, shared_ptr<TransactionOutput>> outputs;
+            /**
+             * Map for inputs
+             */
+            map<tuple<int64_t, int>, shared_ptr<TransactionInput>> outputs;
+            /**
+             * Block hash for current transaction
+             */
+            string blockHash;
+        };
+        /**
+         * Map that is filled on every FeedRow(). TxHash is used as a key.
+         */
+        map<string, shared_ptr<ConstructEntry>> m_constructed;
+
+        bool m_includePayload = false;
+        bool m_includeOutputs = false;
+        bool m_includeInputs = false;
+
+        /**
+         * This will bi filled by ProcessTransaction method to allow scip all already parsed single-row columns
+         */
+        int m_skipSingleRowColumnsOffset = 0;
+
+        /**
+         * This method parses transaction data, constructs if needed and return construct entry to fill
+         */
+        tuple<bool, shared_ptr<ConstructEntry>> ProcessTransaction(sqlite3_stmt* stmt, const string& txHash, int& currentColumn)
+        {
+            auto tx = m_constructed.find(txHash);
+            if (tx == m_constructed.end()) {
+                // Transaction's columns are hardcoded because they are always the same and should always be presented.
+                // Probably this can be generalized in future
+                auto[ok1, _txType] = TryGetColumnInt(stmt, 0);
+                auto[ok2, nTime] = TryGetColumnInt64(stmt, 2);
+
+                if (!ok1 || !ok2)
+                    return {false, nullptr};
+
+                auto txType = static_cast<TxType>(_txType);
+                auto ptx = PocketHelpers::TransactionHelper::CreateInstance(txType);
+                if (ptx == nullptr)
+                    return {false, nullptr};
+                
+                ptx->SetTime(nTime);
+                ptx->SetHash(txHash);
+
+                // Creating construct entry that will be associated with current transaction and filled with payload, outputs, inputs, etc inside
+                auto txEntry = make_shared<ConstructEntry>();
+
+                if (auto[ok, value] = TryGetColumnInt(stmt, 3); ok) ptx->SetLast(value == 1);
+                if (auto[ok, value] = TryGetColumnInt64(stmt, 4); ok) ptx->SetId(value);
+                if (auto[ok, value] = TryGetColumnString(stmt, 5); ok) ptx->SetString1(value);
+                if (auto[ok, value] = TryGetColumnString(stmt, 6); ok) ptx->SetString2(value);
+                if (auto[ok, value] = TryGetColumnString(stmt, 7); ok) ptx->SetString3(value);
+                if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) ptx->SetString4(value);
+                if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) ptx->SetString5(value);
+                if (auto[ok, value] = TryGetColumnInt64(stmt, 10); ok) ptx->SetInt1(value);
+                if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) txEntry->blockHash = value;
+
+                txEntry->tx = move(ptx);
+                m_constructed.insert({txHash, txEntry});
+
+                currentColumn = 12;
+                // Parsing single joins here results in some optimizing because we will not try to parse them later
+                // only after one check if transaction has already parsed
+                auto singleJoinsRes = ParseSingleJoins(stmt, *txEntry, currentColumn);
+                m_skipSingleRowColumnsOffset = currentColumn;
+                return {singleJoinsRes, txEntry};
+            } else {
+                currentColumn = m_skipSingleRowColumnsOffset;
+                return {true, tx->second};
+            }
+        }
+
+        /**
+         * This method is used inside ProcessTransaction to optimize and collect all one-row joins
+         * only once at time collecting transaction data.
+         */
+        bool ParseSingleJoins(sqlite3_stmt* stmt, ConstructEntry& result, int& currentColumn)
+        {
+            if (m_includePayload && !ParsePayload(stmt, result, currentColumn)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        bool ParsePayload(sqlite3_stmt* stmt, ConstructEntry& result, int& currentColumn)
+        {
+            auto skip = [&]() { currentColumn += 8; return true; };
+            if (result.payload.has_value()) {
+                // Already have parse this payload, skip
+                return skip();
+            }
+
+            bool ok0;
+            string txHash;
+            if (tie(ok0, txHash) = TryGetColumnString(stmt, currentColumn); !ok0) {
+                // Assuming missing hash is missing payload that is a legal situation even if we request it.
+                return skip();
+            }
+
+            auto payload = Payload();
+
+            payload.SetTxHash(txHash); currentColumn++;
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString1(value); currentColumn++;
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString2(value); currentColumn++;
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString3(value); currentColumn++;
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString4(value); currentColumn++;
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString5(value); currentColumn++;
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString6(value); currentColumn++;
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) payload.SetString7(value); currentColumn++;
+
+            result.payload = move(payload);
+
+            return true;
+        }
+
+        bool ParseOutput(sqlite3_stmt* stmt, ConstructEntry& result, int& currentColumn)
+        {
+            auto[ok0, number] = TryGetColumnInt64(stmt, currentColumn); currentColumn++;
+            if (!ok0) {
+                return false;
+            }
+
+            if (result.outputs.find(number) != result.outputs.end()) {
+                // Skipping output's columns because they have been already parsed
+                currentColumn+=4;
+                return true;
+            }
+
+            auto output = make_shared<TransactionOutput>();
+            output->SetNumber(number);
+
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) output->SetTxHash(value); currentColumn++;
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) output->SetAddressHash(value); currentColumn++;
+            if (auto[ok, value] = TryGetColumnInt64(stmt, currentColumn); ok) output->SetValue(value); currentColumn++;
+            if (auto[ok, value] = TryGetColumnString(stmt, currentColumn); ok) output->SetScriptPubKey(value); currentColumn++;
+
+            result.outputs.insert({number, move(output)});
+
+            return true;
+        }
+        
+        bool ParseInput(sqlite3_stmt* stmt, ConstructEntry& result, int& currentColumn)
+        {
+            // TODO (team): Implement this
+            return true;
+        }
+    };
+
     void TransactionRepository::InsertTransactions(PocketBlock& pocketBlock)
     {
         TryTransactionStep(__func__, [&]()
@@ -30,8 +275,15 @@ namespace PocketDb
         });
     }
 
-    shared_ptr<PocketBlock> TransactionRepository::List(const vector<string>& txHashes, bool includePayload)
+    PocketBlockRef TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs, bool includeOutputs)
     {
+        map<string, string> pulp;
+        return List(txHashes, pulp, includePayload, includeInputs, includeOutputs);
+    }
+
+    PocketBlockRef TransactionRepository::List(const vector<string>& txHashes, map<string, string>& blockHashes, bool includePayload, bool includeInputs, bool includeOutputs)
+    {
+        // TODO (brangr): implement variable inputs
         auto sql = R"sql(
             SELECT
                 t.Type,
@@ -45,6 +297,10 @@ namespace PocketDb
                 t.String4,
                 t.String5,
                 t.Int1,
+                t.BlockHash
+        )sql" +
+        // Payload part
+        (includePayload ? string(R"sql(,
                 p.TxHash pHash,
                 p.String1 pString1,
                 p.String2 pString2,
@@ -53,12 +309,35 @@ namespace PocketDb
                 p.String5 pString5,
                 p.String6 pString6,
                 p.String7 pString7
+        )sql") : "") +
+        // 
+        // Outputs part
+        (includeOutputs ? string(R"sql(,
+                o.Number,
+                o.TxHash,
+                o.AddressHash,
+                o.Value,
+                o.ScriptPubKey
+        )sql") : "") +
+        // 
+        R"sql(
             FROM Transactions t
+        )sql" +
+        // Payload part
+        (includePayload ? string(R"sql(
             LEFT JOIN Payload p on t.Hash = p.TxHash
+        )sql") : "") +
+        //
+        // Outputs part
+        (includeOutputs ? string(R"sql(
+            CROSS JOIN TxOutputs o on t.Hash = o.TxHash
+        )sql") : "") +
+        //
+        R"sql(
             WHERE t.Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
         )sql";
 
-        auto result = make_shared<PocketBlock>(PocketBlock{});
+        PocketBlockRef result;
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
@@ -66,28 +345,48 @@ namespace PocketDb
             for (size_t i = 0; i < txHashes.size(); i++)
                 TryBindStatementText(stmt, (int) i + 1, txHashes[i]);
 
+            TransactionReconstructor constructor(includePayload, includeOutputs, includeInputs);
+            bool res = true;
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, includePayload); ok)
-                    result->push_back(transaction);
+                if (!constructor.FeedRow(*stmt)) {
+                    // TODO (losty): error here
+                    res = false;
+                    break;
+                }
             }
 
             FinalizeSqlStatement(*stmt);
+
+            if (res) {
+                result = make_shared<PocketBlock>(move(constructor.GetResult(blockHashes)));
+            }
         });
 
         return result;
     }
 
-    shared_ptr<Transaction> TransactionRepository::Get(const string& hash, bool includePayload)
+    PTransactionRef TransactionRepository::Get(const string& hash, string& blockHash, bool includePayload, bool includeInputs, bool includeOutputs)
     {
-        auto lst = List({hash}, includePayload);
-        if (!lst->empty())
+        map<string, string> blockHashes;
+        auto lst = List({hash}, blockHashes, includePayload, includeInputs, includeOutputs);
+        auto blockHashItr = blockHashes.find(hash);
+        if (lst && !lst->empty() && blockHashItr != blockHashes.end()) {
+            blockHash = blockHashItr->second;
             return lst->front();
+        }
 
         return nullptr;
     }
 
-    shared_ptr<TransactionOutput> TransactionRepository::GetTxOutput(const string& txHash, int number)
+    PTransactionRef TransactionRepository::Get(const string& hash, bool includePayload, bool includeInputs, bool includeOutputs)
+    {
+        // Here List overload without block hashes can be used directly if we want to pedantically improve performance due to parasitic single-element map access.
+        string pulp;
+        return Get(hash, pulp, includePayload, includeInputs, includeOutputs);
+    }
+
+    PTransactionOutputRef TransactionRepository::GetTxOutput(const string& txHash, int number)
     {
         auto sql = R"sql(
             SELECT

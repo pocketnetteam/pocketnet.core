@@ -24,6 +24,7 @@ namespace PocketDb
     using boost::algorithm::join;
     using boost::adaptors::transformed;
 
+    using namespace std;
     using namespace PocketTx;
     using namespace PocketHelpers;
 
@@ -36,11 +37,13 @@ namespace PocketDb
 
         //  Base transaction operations
         void InsertTransactions(PocketBlock& pocketBlock);
-
-        shared_ptr<PocketBlock> List(const vector<string>& txHashes, bool includePayload = false);
-        shared_ptr<Transaction> Get(const string& hash, bool includePayload = false);
-
-        shared_ptr<TransactionOutput> GetTxOutput(const string& txHash, int number);
+        PocketBlockRef List(const vector<string>& txHashes, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
+        // Overload with block hashes map. Key is transaction hash and value is block hash. Only block hashes for requested transactions are collected
+        PocketBlockRef List(const vector<string>& txHashes, map<string, string>& blockHashes, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
+        PTransactionRef Get(const string& hash, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
+        // Overload with block hash for requested transaction
+        PTransactionRef Get(const string& hash, string& blockHash, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
+        PTransactionOutputRef GetTxOutput(const string& txHash, int number);
 
         bool Exists(const string& hash);
         bool ExistsInChain(const string& hash);
