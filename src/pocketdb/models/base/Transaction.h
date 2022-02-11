@@ -12,6 +12,7 @@
 #include <crypto/sha256.h>
 
 #include "pocketdb/models/base/Payload.h"
+#include "pocketdb/models/base/TransactionInput.h"
 #include "pocketdb/models/base/TransactionOutput.h"
 
 namespace PocketTx
@@ -68,6 +69,7 @@ namespace PocketTx
         shared_ptr<int64_t> GetId() const;
         void SetId(int64_t value);
 
+        vector<shared_ptr<TransactionInput>>& Inputs();
         vector<shared_ptr<TransactionOutput>>& Outputs();
 
         shared_ptr<Payload> GetPayload() const;
@@ -87,6 +89,7 @@ namespace PocketTx
         shared_ptr<string> m_string5 = nullptr;
         shared_ptr<int64_t> m_int1 = nullptr;
         shared_ptr<Payload> m_payload = nullptr;
+        vector<shared_ptr<TransactionInput>> m_inputs;
         vector<shared_ptr<TransactionOutput>> m_outputs;
 
         void GeneratePayload();
