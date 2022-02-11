@@ -343,14 +343,11 @@ namespace PocketDb
                 )
             )sql");
 
-            TryBindStatementText(stmt, 1, ptx->GetHash());
+            TryBindStatementText(stmt, 1, output->GetTxHash());
             TryBindStatementInt64(stmt, 2, output->GetNumber());
             TryBindStatementText(stmt, 3, output->GetAddressHash());
             TryBindStatementInt64(stmt, 4, output->GetValue());
             TryBindStatementText(stmt, 5, output->GetScriptPubKey());
-            TryBindStatementText(stmt, 6, ptx->GetHash());
-            TryBindStatementInt64(stmt, 7, output->GetNumber());
-            TryBindStatementText(stmt, 8, output->GetAddressHash());
 
             TryStepStatement(stmt);
         }
