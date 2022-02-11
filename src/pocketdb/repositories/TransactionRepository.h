@@ -46,6 +46,7 @@ namespace PocketDb
         int MempoolCount();
 
         void CleanTransaction(const string& hash);
+        void CleanExpiredTransactions(int64_t time);
         void CleanMempool();
         void Clean();
 

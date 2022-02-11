@@ -4,6 +4,7 @@
 
 #include <bench/bench.h>
 #include <consensus/validation.h>
+#include <consensus/merkle.h>
 #include <crypto/sha256.h>
 #include <test/util/mining.h>
 #include <test/util/setup_common.h>
@@ -11,17 +12,17 @@
 #include <txmempool.h>
 #include <validation.h>
 #include <miner.h>
-#include <consensus/merkle.h>
+#include <pow.h>
 
 
 #include <vector>
 #include "pocketdb/services/Serializer.h"
 
 
-static std::shared_ptr<CBlock> StakeBlock(const NodeContext& node, const CScript& coinbase_scriptPubKey)
+static std::shared_ptr<CBlock> StakeBlock(CTxMemPool &mempool, const CScript& coinbase_scriptPubKey)
 {
     auto block = std::make_shared<CBlock>(
-        BlockAssembler{*Assert(node.mempool), Params()}
+        BlockAssembler(mempool, Params())
             .CreateNewBlock(coinbase_scriptPubKey, /*fProofOfStake */ true)
             ->block);
 
@@ -32,11 +33,33 @@ static std::shared_ptr<CBlock> StakeBlock(const NodeContext& node, const CScript
 }
 
 
+static CTxIn MineBlock(NodeContext &node, const CScript& coinbase_scriptPubKey)
+{
+    auto block = PrepareBlock(node, coinbase_scriptPubKey);
+
+    while (!CheckProofOfWork(block->GetHash(), block->nBits, Params().GetConsensus(), 0)) {
+        ++block->nNonce;
+        assert(block->nNonce);
+    }
+
+    BlockValidationState state;
+    UniValue pocketData;
+    bool ignored;
+    auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(*block);
+    auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
+    bool processed = node.chainman->ProcessNewBlock(state, Params(), block, pocketBlockRef, true, &ignored);
+    assert(processed);
+
+    return CTxIn{block->vtx[0]->GetHash(), 0};
+}
+
+
 static void AssembleBlock(benchmark::Bench& bench)
 {
     TestingSetup test_setup{
         CBaseChainParams::REGTEST,
-        /* extra_args */ {
+        /* extra_args */
+        {
             "-nodebuglogfile",
             "-nodebug",
         },

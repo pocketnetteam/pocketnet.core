@@ -2100,6 +2100,7 @@ BOOST_AUTO_TEST_CASE(test_tracked_vector)
     BOOST_CHECK_EQUAL(v8[2].copies, 0);
 }
 
+#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(message_sign)
 {
     const std::array<unsigned char, 32> privkey_bytes = {
@@ -2135,7 +2136,9 @@ BOOST_AUTO_TEST_CASE(message_sign)
 
     BOOST_CHECK_EQUAL(expected_signature, generated_signature);
 }
+#endif
 
+#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(message_verify)
 {
     BOOST_CHECK_EQUAL(
@@ -2187,6 +2190,7 @@ BOOST_AUTO_TEST_CASE(message_verify)
             "Trust me"),
         MessageVerificationResult::OK);
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(message_hash)
 {

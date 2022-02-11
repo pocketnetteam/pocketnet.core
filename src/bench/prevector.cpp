@@ -3,6 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <bench/bench.h>
+#include <vector>
 #include <prevector.h>
 #include <reverse_iterator.h>
 #include <serialize.h>
@@ -10,6 +12,7 @@
 #include <type_traits>
 
 #include <bench/bench.h>
+#include <validation.h>
 
 // GCC 4.8 is missing some C++11 type_traits,
 // https://www.gnu.org/software/gcc/gcc-5/changes.html
