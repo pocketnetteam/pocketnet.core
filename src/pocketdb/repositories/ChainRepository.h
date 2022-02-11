@@ -45,6 +45,10 @@ namespace PocketDb
         // Erase all calculated data great or equals block
         bool Rollback(int height);
 
+        // Get hash value of Transaction of a given row in the database, used to validate
+        // the Transaction SQLite database against the transactions in the block chain
+        std::vector<string>  GetTransactionHashes();
+
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);
 

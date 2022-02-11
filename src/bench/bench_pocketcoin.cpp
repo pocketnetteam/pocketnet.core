@@ -7,18 +7,8 @@
 #include <crypto/sha256.h>
 #include <util/strencodings.h>
 #include <util/system.h>
-
-
-#include <chrono>
-#include <cstdint>
-#include <iostream>
-#include <sstream>
-#include <vector>
-
-#include <script/sigcache.h>
-#include "pocketdb/SQLiteDatabase.h"
-#include "pocketdb/pocketnet.h"
-
+#include <pocketdb/SQLiteDatabase.h>
+#include <chainparams.h>
 
 static const char* DEFAULT_BENCH_FILTER = ".*";
 static constexpr int64_t DEFAULT_MIN_TIME_MS{10};

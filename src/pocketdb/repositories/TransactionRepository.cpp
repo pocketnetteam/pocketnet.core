@@ -459,6 +459,29 @@ namespace PocketDb
         });
     }
 
+    // Remove all transactions and PocketNet payloads which are older than the specified time
+    // and have not yet been added to a block 
+    void TransactionRepository::CleanExpiredTransactions(int64_t time)
+    {
+        TryTransactionStep(__func__, [&]()
+        {
+            std::vector<std::string> hashes;
+
+            // Get list of expired transaction hashes which have not been added to a block
+            auto stmt = SetupSqlStatement(R"sql(
+                select Hash, Time from Transactions t where t.Hash isnull and t.Height isnull and t.Time < ?
+            )sql");
+            TryBindStatementInt64(stmt, 1, time);
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+                hashes.push_back( std::string(reinterpret_cast<const char*>(sqlite3_column_text(*stmt, 0))) );
+
+            for (std::string hash : hashes)
+            {
+                CleanTransaction(hash);
+            }
+        });
+    }
+
     void TransactionRepository::CleanMempool()
     {
         TryTransactionStep(__func__, [&]()

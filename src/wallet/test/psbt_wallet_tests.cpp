@@ -13,6 +13,7 @@
 
 BOOST_FIXTURE_TEST_SUITE(psbt_wallet_tests, WalletTestingSetup)
 
+#ifdef DISABLED_TEST
 BOOST_AUTO_TEST_CASE(psbt_updater_test)
 {
     auto spk_man = m_wallet.GetOrCreateLegacyScriptPubKeyMan();
@@ -73,6 +74,7 @@ BOOST_AUTO_TEST_CASE(psbt_updater_test)
     SignatureData sigdata;
     BOOST_CHECK(spk_man->FillPSBT(psbtx, SIGHASH_ALL, true, true) != TransactionError::OK);
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(parse_hd_keypath)
 {

@@ -834,18 +834,18 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
 
     // Check tx-size (non-standard if transaction weight is > MAX_STANDARD_TX_WEIGHT)
     t.vin.clear();
-    t.vin.resize(2438); // size per input (empty scriptSig): 41 bytes
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << std::vector<unsigned char>(19, 0); // output size: 30 bytes
-    // tx header:                12 bytes =>     48 vbytes
-    // 2438 inputs: 2438*41 = 99958 bytes => 399832 vbytes
-    //    1 output:              30 bytes =>    120 vbytes
+    t.vin.resize(2437); // size per input (empty scriptSig): 41 bytes
+    t.vout[0].scriptPubKey = CScript() << OP_RETURN << std::vector<unsigned char>(56, 0); // output size: 67 bytes
+    // tx header:                16 bytes =>     64 vbytes
+    // 2437 inputs: 2437*41 = 99917 bytes => 399668 vbytes
+    //    1 output:              67 bytes =>    268 vbytes
     //                      ===============================
     //                                total: 400000 vbytes
     BOOST_CHECK_EQUAL(GetTransactionWeight(CTransaction(t)), 400000);
     BOOST_CHECK(IsStandardTx(CTransaction(t), reason));
 
     // increase output size by one byte, so we end up with 400004 vbytes
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << std::vector<unsigned char>(20, 0); // output size: 31 bytes
+    t.vout[0].scriptPubKey = CScript() << OP_RETURN << std::vector<unsigned char>(57, 0); // output size: 68 bytes
     BOOST_CHECK_EQUAL(GetTransactionWeight(CTransaction(t)), 400004);
     reason.clear();
     BOOST_CHECK(!IsStandardTx(CTransaction(t), reason));

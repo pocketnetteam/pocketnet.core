@@ -14,6 +14,7 @@
 #include <script/standard.h>
 #include <util/check.h>
 #include <validation.h>
+#include <pocketdb/services/Serializer.h>
 
 #include "pocketdb/services/Serializer.h"
 

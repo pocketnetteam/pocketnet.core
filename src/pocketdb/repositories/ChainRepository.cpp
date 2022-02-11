@@ -94,6 +94,26 @@ namespace PocketDb
         }
     }
 
+    std::vector<string>  ChainRepository::GetTransactionHashes()
+    {
+        std::vector<string> hashes;
+
+        string sql = R"sql(select Hash from Transactions)sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    hashes.push_back(value);
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return hashes;
+    }
+
     tuple<bool, bool> ChainRepository::ExistsBlock(const string& blockHash, int height)
     {
         bool exists = false;

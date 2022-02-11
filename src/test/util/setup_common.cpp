@@ -9,6 +9,7 @@
 #include <consensus/consensus.h>
 #include <consensus/params.h>
 #include <consensus/validation.h>
+#include <consensus/merkle.h>
 #include <crypto/sha256.h>
 #include <init.h>
 #include <interfaces/chain.h>
@@ -36,6 +37,7 @@
 #include <walletinitinterface.h>
 #include "httpserver.h"
 #include <init.h>
+#include <index/txindex.h>
 #include "pocketdb/helpers/TransactionHelper.h"
 
 using namespace PocketHelpers;
@@ -50,6 +52,8 @@ UrlDecodeFn* const URL_DECODE = nullptr;
 FastRandomContext g_insecure_rand_ctx;
 /** Random context to get unique temp data dirs. Separate from g_insecure_rand_ctx, which can be seeded from a const env var */
 static FastRandomContext g_insecure_rand_ctx_temp_path;
+
+static int64_t g_mocktime;
 
 /** Return the unsigned from the environment var if available, otherwise 0 */
 static uint256 GetUintFromEnv(const std::string& env_name)
@@ -77,7 +81,7 @@ std::ostream& operator<<(std::ostream& os, const uint256& num)
 }
 
 BasicTestingSetup::BasicTestingSetup(const std::string& chainName, const std::vector<const char*>& extra_args)
-    : m_path_root{fs::temp_directory_path() / "test_common_" PACKAGE_NAME / g_insecure_rand_ctx_temp_path.rand256().ToString()}
+    : m_path_root{fs::temp_directory_path() / "test_common_pocketnet" / g_insecure_rand_ctx_temp_path.rand256().ToString()}
 {
     const std::vector<const char*> arguments = Cat(
         {
@@ -141,9 +145,7 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
 
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
 
-    // Go up two directories to access the checkpoints folder, assume we are running in /src/test
-    fs::path checkpointsPath = fs::system_complete("..");
-    PocketDb::InitSQLiteCheckpoints(checkpointsPath / "checkpoints");
+    PocketDb::InitSQLiteCheckpoints(fs::system_complete("."));
 
     m_node.scheduler = MakeUnique<CScheduler>();
 
@@ -157,8 +159,10 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
     m_node.mempool = MakeUnique<CTxMemPool>(&::feeEstimator);
     m_node.mempool->setSanityCheck(1.0);
 
+    assert(!m_node.chainman);
     m_node.chainman = &::g_chainman;
     m_node.chainman->InitializeChainstate(*m_node.mempool);
+
     ::ChainstateActive().InitCoinsDB(
         /* cache_size_bytes */ 1 << 23, /* in_memory */ true, /* should_wipe */ false);
     assert(!::ChainstateActive().CanFlushToDisk());
@@ -182,16 +186,17 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
 
     m_node.banman = MakeUnique<BanMan>(GetDataDir() / "banlist.dat", nullptr, DEFAULT_MISBEHAVING_BANTIME);
     m_node.connman = MakeUnique<CConnman>(0x1337, 0x1337); // Deterministic randomness for tests.
+
     m_node.peerman = MakeUnique<PeerManager>(chainparams, *m_node.connman, m_node.banman.get(), *m_node.scheduler, *m_node.chainman, *m_node.mempool);
-    {
-        CConnman::Options options;
-        options.m_msgproc = m_node.peerman.get();
-        m_node.connman->Init(options);
-    }
+    RegisterValidationInterface(m_node.peerman.get());
+
+    g_txindex = MakeUnique<TxIndex>(0, false, IsChainReindex());
+    g_txindex->Start();
 }
 
 TestingSetup::~TestingSetup()
 {
+    g_txindex->Stop();
     if (m_node.scheduler) m_node.scheduler->stop();
     threadGroup.interrupt_all();
     threadGroup.join_all();
@@ -205,13 +210,25 @@ TestingSetup::~TestingSetup()
     m_node.scheduler.reset();
     m_node.chainman->Reset();
     m_node.chainman = nullptr;
+    if (g_txindex) g_txindex->Stop();
+    threadGroup.interrupt_all();
+    threadGroup.join_all();
+
+    g_txindex.reset();
+
     pblocktree.reset();
+
     ShutdownPocketServices();
+
+    UnregisterAllValidationInterfaces();
+
     PocketDb::SQLiteDbInst.Cleanup();
 }
 
 TestChain100Setup::TestChain100Setup()
 {
+    g_mocktime = GetTime();
+    SetMockTime(g_mocktime);
     // Generate a 100-block chain:
     coinbaseKey.MakeNewKey(true);
     CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
@@ -225,31 +242,45 @@ TestChain100Setup::TestChain100Setup()
 CBlock TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey)
 {
     const CChainParams& chainparams = Params();
+    auto& active = ChainActive();
     CTxMemPool empty_pool;
+
+    SetMockTime(++g_mocktime);
+
     CBlock block = BlockAssembler(empty_pool, chainparams).CreateNewBlock(scriptPubKey)->block;
 
-    Assert(block.vtx.size() == 1);
-    for (const CMutableTransaction& tx : txns) {
-        block.vtx.push_back(MakeTransactionRef(tx));
+    // Replace mempool-selected txns with just coinbase plus passed-in txns:
+    if (!txns.empty())
+    {
+        block.vtx.resize(1);
+        for (const CMutableTransaction& tx : txns)
+            block.vtx.push_back(MakeTransactionRef(tx));
     }
-    RegenerateCommitments(block);
+
+    // IncrementExtraNonce creates a valid coinbase and merkleRoot
+    {
+        LOCK(cs_main);
+        unsigned int extraNonce = 0;
+        IncrementExtraNonce(&block, active.Tip(), extraNonce);
+    }
 
     while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus(), ChainActive().Height())) ++block.nNonce;
 
-    std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
-    BlockValidationState state;
-    std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
-    //auto pocketBlockRef = std::make_shared<PocketBlock>(pblocktemplate->pocketBlock);
-    bool fNewBlock = false;
+    auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(block);
+    assert(deserializeOk);
 
-    // Assert(m_node.chainman)->ProcessNewBlock(state, chainparams, shared_pblock,  pocketBlockRef, true, fNewblock);
+    BlockValidationState state;
+    auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
+    bool fNewBlock = false;
+ 
+    bool ret = m_node.chainman->ProcessNewBlock(state, chainparams, std::make_shared<CBlock>(block), pocketBlockRef, true, &fNewBlock);
+    assert(ret);
 
     return block;
 }
 
 TestChain100Setup::~TestChain100Setup()
 {
-    gArgs.ForceSetArg("-segwitheight", "0");
 }
 
 CTxMemPoolEntry TestMemPoolEntryHelper::FromTx(const CMutableTransaction& tx)

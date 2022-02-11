@@ -236,6 +236,7 @@ BOOST_FIXTURE_TEST_CASE(importmulti_rescan, TestChain100Setup)
     }
 }
 
+#ifdef DISABLED_TEST
 // Verify importwallet RPC starts rescan at earliest block with timestamp
 // greater or equal than key birthday. Previously there was a bug where
 // importwallet RPC would start the scan at the latest block with timestamp less
@@ -308,6 +309,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 
     SetMockTime(0);
 }
+#endif
 
 // Check that GetImmatureCredit() returns a newly calculated value instead of
 // the cached value after a MarkDirty() call.
