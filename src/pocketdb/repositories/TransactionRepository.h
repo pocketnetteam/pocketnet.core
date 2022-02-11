@@ -51,6 +51,7 @@ namespace PocketDb
         void Clean();
 
     private:
+        void InsertTransactionInputs(const PTransactionRef& ptx);
         void InsertTransactionOutputs(const PTransactionRef& ptx);
         void InsertTransactionPayload(const PTransactionRef& ptx);
         void InsertTransactionModel(const PTransactionRef& ptx);

@@ -356,6 +356,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Base.h
         pocketdb/models/base/Payload.h
         pocketdb/models/base/Transaction.h
+        pocketdb/models/base/TransactionInput.h
         pocketdb/models/base/TransactionOutput.h
         pocketdb/models/base/Rating.h
         pocketdb/models/base/ReturnDtoModels.h
@@ -383,6 +384,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Base.cpp
         pocketdb/models/base/Payload.cpp
         pocketdb/models/base/Transaction.cpp
+        pocketdb/models/base/TransactionInput.cpp
         pocketdb/models/base/TransactionOutput.cpp
         pocketdb/models/base/Rating.cpp
         pocketdb/models/dto/Default.cpp

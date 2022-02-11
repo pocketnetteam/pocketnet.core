@@ -15,6 +15,9 @@ namespace PocketDb
                 // Insert general transaction
                 InsertTransactionModel(ptx);
 
+                // Inputs
+                InsertTransactionOutputs(ptx);
+
                 // Outputs
                 InsertTransactionOutputs(ptx);
 
@@ -289,25 +292,54 @@ namespace PocketDb
         });
     }
 
+    void TransactionRepository::InsertTransactionInputs(const PTransactionRef& ptx)
+    {
+        for (const auto& input: ptx->Inputs())
+        {
+            // Build transaction output
+            auto stmt = SetupSqlStatement(R"sql(
+                INSERT OR IGNORE INTO TxInputs
+                (
+                    SpentTxHash,
+                    TxHash,
+                    Number
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?
+                )
+            )sql");
+
+            TryBindStatementText(stmt, 1, input->GetSpentTxHash());
+            TryBindStatementText(stmt, 2, input->GetTxHash());
+            TryBindStatementInt64(stmt, 3, input->GetNumber());
+
+            TryStepStatement(stmt);
+        }
+    }
+    
     void TransactionRepository::InsertTransactionOutputs(const PTransactionRef& ptx)
     {
         for (const auto& output: ptx->Outputs())
         {
             // Build transaction output
             auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO TxOutputs (
+                INSERT OR IGNORE INTO TxOutputs (
                     TxHash,
                     Number,
                     AddressHash,
                     Value,
                     ScriptPubKey
-                ) SELECT ?,?,?,?,?
-                WHERE NOT EXISTS (
-                    select 1
-                    from TxOutputs o
-                    where o.TxHash = ?
-                        and o.Number = ?
-                        and o.AddressHash = ?
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
                 )
             )sql");
 
