@@ -48,6 +48,9 @@ namespace PocketTx
         shared_ptr<bool> GetLast() const;
         void SetLast(bool value);
 
+        shared_ptr<int64_t> GetId() const;
+        void SetId(int64_t value);
+
         shared_ptr<string> GetString1() const;
         void SetString1(string value);
 
@@ -66,9 +69,6 @@ namespace PocketTx
         shared_ptr<int64_t> GetInt1() const;
         void SetInt1(int64_t value);
 
-        shared_ptr<int64_t> GetId() const;
-        void SetId(int64_t value);
-
         vector<shared_ptr<TransactionInput>>& Inputs();
         vector<shared_ptr<TransactionOutput>>& Outputs();
 
@@ -80,8 +80,8 @@ namespace PocketTx
         shared_ptr<TxType> m_type = nullptr;
         shared_ptr<string> m_hash = nullptr;
         shared_ptr<int64_t> m_time = nullptr;
-        shared_ptr<int64_t> m_id = nullptr;
         shared_ptr<bool> m_last = nullptr;
+        shared_ptr<int64_t> m_id = nullptr;
         shared_ptr<string> m_string1 = nullptr;
         shared_ptr<string> m_string2 = nullptr;
         shared_ptr<string> m_string3 = nullptr;
