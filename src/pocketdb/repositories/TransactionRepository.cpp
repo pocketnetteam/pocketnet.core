@@ -40,7 +40,7 @@ namespace PocketDb
 
                 ptx->SetHash(txHash);
                 m_transactions.emplace(txHash, ptx);
-                
+
                 if (!blockHash.empty())
                     m_blockHashes.emplace(txHash, blockHash);
                 break;
@@ -203,7 +203,7 @@ namespace PocketDb
                 InsertTransactionModel(ptx);
 
                 // Inputs
-                InsertTransactionOutputs(ptx);
+                InsertTransactionInputs(ptx);
 
                 // Outputs
                 InsertTransactionOutputs(ptx);
