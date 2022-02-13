@@ -27,6 +27,7 @@ namespace PocketTx
         explicit Transaction(const std::shared_ptr<const CTransaction>& tx);
 
         virtual shared_ptr<UniValue> Serialize() const;
+        virtual UniValue Serialize() const;
 
         virtual void Deserialize(const UniValue& src);
         virtual void DeserializeRpc(const UniValue& src);
@@ -44,6 +45,12 @@ namespace PocketTx
 
         shared_ptr<int64_t> GetTime() const;
         void SetTime(int64_t value);
+
+        shared_ptr<int64_t> GetHeight() const;
+        void SetHeight(int64_t value);
+
+        shared_ptr<string> GetBlockHash() const;
+        void SetBlockHash(string value);
 
         shared_ptr<bool> GetLast() const;
         void SetLast(bool value);
@@ -80,6 +87,8 @@ namespace PocketTx
         shared_ptr<TxType> m_type = nullptr;
         shared_ptr<string> m_hash = nullptr;
         shared_ptr<int64_t> m_time = nullptr;
+        shared_ptr<int64_t> m_height = nullptr;
+        shared_ptr<string> m_blockhash = nullptr;
         shared_ptr<bool> m_last = nullptr;
         shared_ptr<int64_t> m_id = nullptr;
         shared_ptr<string> m_string1 = nullptr;
