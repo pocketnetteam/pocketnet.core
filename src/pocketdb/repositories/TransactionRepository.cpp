@@ -88,8 +88,8 @@ namespace PocketDb
 
         /**
          * This method parses transaction data, constructs if needed and return construct entry to fill
-         * Index:   0  1     2     3     4          5     6   7        8        9        10       11       12    13    14
-         * Columns: 0, Hash, Type, Time, BlockHash, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
+         * Index:   0  1     2     3     4          5       6     7   8        9        10       11       12       13    14    15
+         * Columns: 0, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
          */
         tuple<bool, PTransactionRef> ParseTransaction(sqlite3_stmt* stmt, const string& txHash, string& blockHash)
         {
@@ -106,22 +106,23 @@ namespace PocketDb
 
             // Optional fields
             if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) blockHash = value;
-            if (auto[ok, value] = TryGetColumnInt(stmt, 5); ok) ptx->SetLast(value == 1);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) ptx->SetId(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 7); ok) ptx->SetString1(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) ptx->SetString2(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) ptx->SetString3(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) ptx->SetString4(value);
-            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) ptx->SetString5(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 14); ok) ptx->SetInt1(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) ptx->SetHeight(value);
+            if (auto[ok, value] = TryGetColumnInt(stmt, 6); ok) ptx->SetLast(value == 1);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 7); ok) ptx->SetId(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) ptx->SetString1(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) ptx->SetString2(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) ptx->SetString3(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) ptx->SetString4(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) ptx->SetString5(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) ptx->SetInt1(value);
 
             return {true, ptx};
         }
 
         /**
          * Parse Payload
-         * Index:   0  1       2     3     4     5     6     7        8        9        10       11       12       13       14
-         * Columns: 1, TxHash, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
+         * Index:   0  1       2     3     4     5     6     7     8        9        10       11       12       13       14       15
+         * Columns: 1, TxHash, null, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
          */
         bool ParsePayload(sqlite3_stmt* stmt, PTransactionRef& ptx, const string& txHash)
         {
@@ -129,14 +130,14 @@ namespace PocketDb
             Payload payload;
             payload.SetTxHash(txHash);
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 7); ok) { payload.SetString1(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { payload.SetString2(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { payload.SetString3(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { payload.SetString4(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { payload.SetString5(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { payload.SetString6(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { payload.SetString7(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 14); ok) { payload.SetInt1(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { payload.SetString1(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { payload.SetString2(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { payload.SetString3(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { payload.SetString4(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { payload.SetString5(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { payload.SetString6(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) { payload.SetString7(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) { payload.SetInt1(value); empty = false; }
 
             ptx->SetPayload(payload);
             return !empty;
@@ -144,8 +145,8 @@ namespace PocketDb
 
         /**
          * Parse Inputs
-         * Index:   0  1            2     3     4       5       6     7     8     9     10    11    12    13    14
-         * Columns: 2, SpentTxHash, null, null, TxHash, Number, null, null, null, null, null, null, null, null, null
+         * Index:   0  1              2     3     4         5         6        7     8              9     10    11    12    13    14    15
+         * Columns: 2, i.SpentTxHash, null, null, i.TxHash, i.Number, o.Value, null, o.AddressHash, null, null, null, null, null, null, null
          */
         bool ParseInput(sqlite3_stmt* stmt, PTransactionRef& ptx, const string& txHash)
         {
@@ -160,14 +161,17 @@ namespace PocketDb
             if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) input->SetNumber(value);
             else incomplete = true;
 
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) input->SetValue(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 8); ok) input->SetAddressHash(value);
+
             ptx->Inputs().push_back(input);
             return !incomplete;
         }
 
         /**
          * Parse Outputs
-         * Index:   0  1       2     3       4            5      6     7     8     9             10    11    12    13    14
-         * Columns: 3, TxHash, null, Number, AddressHash, Value, null, null, null, ScriptPubKey, null, null, null, null, null
+         * Index:   0  1       2     3       4            5      6     7     8     9     10            11    12    13    14    15
+         * Columns: 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, null, null
          */
         bool ParseOutput(sqlite3_stmt* stmt, PTransactionRef& ptx, const string& txHash)
         {
@@ -185,7 +189,7 @@ namespace PocketDb
             if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) output->SetValue(value);
             else incomplete = true;
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) output->SetScriptPubKey(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) output->SetScriptPubKey(value);
             else incomplete = true;
 
             ptx->Outputs().push_back(output);
@@ -227,7 +231,7 @@ namespace PocketDb
     {
         string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
         auto sql = R"sql(
-            select 0, Hash, Type, Time, BlockHash, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
+            select 0, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
             from Transactions
             where Hash in ( )sql" + txReplacers + R"sql( )
         )sql" +
@@ -235,7 +239,7 @@ namespace PocketDb
         // Payload part
         (includePayload ? string(R"sql(
             union
-            select 1, TxHash, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
+            select 1, TxHash, null, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
             from Payload
             where TxHash in ( )sql" + txReplacers + R"sql( )
         )sql") : "") +
@@ -243,15 +247,16 @@ namespace PocketDb
         // Inputs part
         (includeInputs ? string(R"sql(
             union
-            select 2, SpentTxHash, null, null, TxHash, Number, null, null, null, null, null, null, null, null, null
-            from TxInputs
-            where SpentTxHash in ( )sql" + txReplacers + R"sql( )
+            select 2, i.SpentTxHash, null, null, i.TxHash, i.Number, o.Value, null, o.AddressHash, null, null, null, null, null, null, null
+            from TxInputs i
+            join TxOutputs o on o.TxHash = i.TxHash and o.Number = i.Number
+            where i.SpentTxHash in ( )sql" + txReplacers + R"sql( )
         )sql") : "") +
         
         // Outputs part
         (includeOutputs ? string(R"sql(
             union
-            select 3, TxHash, null, Number, AddressHash, Value, null, null, null, ScriptPubKey, null, null, null, null, null
+            select 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, null, null
             from TxOutputs
             where TxHash in ( )sql" + txReplacers + R"sql( )
         )sql") : "");
