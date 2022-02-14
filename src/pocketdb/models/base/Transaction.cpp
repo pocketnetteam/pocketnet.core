@@ -18,6 +18,18 @@ namespace PocketTx
         SetTime(tx->nTime);
     }
 
+    shared_ptr <UniValue> Transaction::Serialize() const
+    {
+        auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
+        
+        result->pushKV("txid", *GetHash());
+        result->pushKV("time", *GetTime());
+        result->pushKV("block", 0);
+        result->pushKV("last", false);
+
+        return result;
+    }
+
     void Transaction::Deserialize(const UniValue& src) {}
 
     void Transaction::DeserializeRpc(const UniValue& src) {}
