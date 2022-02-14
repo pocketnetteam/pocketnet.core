@@ -412,11 +412,43 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 2 && request.params[2].isNum())
             pageSize = request.params[2].get_int();
 
-        return request.DbConnection()->ExplorerRepoInst->GetBlockTransactions(
+        auto txHashes = request.DbConnection()->ExplorerRepoInst->GetBlockTransactions(
             blockHash,
             pageStart,
             pageSize
         );
+
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List(transactions, false, true, true);
+
+        UniValue result(UniValue::VARR);
+        for (const auto& ptx : *pBlock)
+        {
+            UniValue utx = _constructTransaction(ptx);
+            result.push_back(utx);
+        }
+
+        return result;
+    }
+    
+    UniValue GetTransaction(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "getrawtransaction\n"
+                "\nGet transaction data.\n"
+            );
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+        string txHash = request.params[0].get_str();
+
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List({ txHash }, false, true, true);
+        if (pBlock->empty())
+            return UniValue(UniValue::VOBJ);
+
+        UniValue result(UniValue::VARR);
+        const auto& ptx = (*pBlock)[0];
+
+        return _constructTransaction(ptx);
     }
 
     UniValue GetTransactions(const JSONRPCRequest& request)
@@ -452,52 +484,58 @@ namespace PocketWeb::PocketWebRpc
         UniValue result(UniValue::VARR);
         for (const auto& ptx : *pBlock)
         {
-            // General TX information
-            UniValue utx(UniValue::VOBJ);
-
-            utx.pushKV("txid", *ptx->GetHash());
-            utx.pushKV("type", *ptx->GetType());
-            if (ptx->GetHeight()) utx.pushKV("height", *ptx->GetHeight());
-            if (ptx->GetBlockHash()) utx.pushKV("blockHash", *ptx->GetBlockHash());
-            utx.pushKV("nTime", *ptx->GetTime());
-
-            // Inputs
-            utx.pushKV("vin", UniValue(UniValue::VARR));
-            for (const auto& inp : ptx->Inputs())
-            {
-                UniValue uinp(UniValue::VOBJ);
-
-                uinp.pushKV("txid", *inp->GetSpentTxHash());
-                uinp.pushKV("vout", *inp->GetNumber());
-                if (inp->GetAddressHash()) uinp.pushKV("address", *inp->GetAddressHash());
-                if (inp->GetValue()) uinp.pushKV("value", *inp->GetValue() / 100000000.0);
-
-                utx.At("vin").push_back(uinp);
-            }
-
-            // Inputs
-            utx.pushKV("vout", UniValue(UniValue::VARR));
-            for (const auto& out : ptx->Outputs())
-            {
-                UniValue uout(UniValue::VOBJ);
-                uout.pushKV("n", *out->GetNumber());
-                uout.pushKV("value", *out->GetValue() / 100000000.0);
-
-                UniValue scriptPubKey(UniValue::VOBJ);
-                UniValue addresses(UniValue::VARR);
-                addresses.push_back(*out->GetAddressHash());
-                scriptPubKey.pushKV("addresses", addresses);
-                scriptPubKey.pushKV("hex", *out->GetScriptPubKey());
-                uout.pushKV("scriptPubKey", scriptPubKey);
-
-                if (out->GetSpentHeight()) uout.pushKV("spent", *out->GetSpentHeight());
-
-                utx.At("vout").push_back(uout);
-            }
-
+            UniValue utx = _constructTransaction(ptx);
             result.push_back(utx);
         }
 
         return result;
+    }
+
+    UniValue _constructTransaction(const PTransactionRef& ptx)
+    {
+        // General TX information
+        UniValue utx(UniValue::VOBJ);
+
+        utx.pushKV("txid", *ptx->GetHash());
+        utx.pushKV("type", *ptx->GetType());
+        if (ptx->GetHeight()) utx.pushKV("height", *ptx->GetHeight());
+        if (ptx->GetBlockHash()) utx.pushKV("blockHash", *ptx->GetBlockHash());
+        utx.pushKV("nTime", *ptx->GetTime());
+
+        // Inputs
+        utx.pushKV("vin", UniValue(UniValue::VARR));
+        for (const auto& inp : ptx->Inputs())
+        {
+            UniValue uinp(UniValue::VOBJ);
+
+            uinp.pushKV("txid", *inp->GetSpentTxHash());
+            uinp.pushKV("vout", *inp->GetNumber());
+            if (inp->GetAddressHash()) uinp.pushKV("address", *inp->GetAddressHash());
+            if (inp->GetValue()) uinp.pushKV("value", *inp->GetValue() / 100000000.0);
+
+            utx.At("vin").push_back(uinp);
+        }
+
+        // Inputs
+        utx.pushKV("vout", UniValue(UniValue::VARR));
+        for (const auto& out : ptx->Outputs())
+        {
+            UniValue uout(UniValue::VOBJ);
+            uout.pushKV("n", *out->GetNumber());
+            uout.pushKV("value", *out->GetValue() / 100000000.0);
+
+            UniValue scriptPubKey(UniValue::VOBJ);
+            UniValue addresses(UniValue::VARR);
+            addresses.push_back(*out->GetAddressHash());
+            scriptPubKey.pushKV("addresses", addresses);
+            scriptPubKey.pushKV("hex", *out->GetScriptPubKey());
+            uout.pushKV("scriptPubKey", scriptPubKey);
+
+            if (out->GetSpentHeight()) uout.pushKV("spent", *out->GetSpentHeight());
+
+            utx.At("vout").push_back(uout);
+        }
+
+        return utx;
     }
 }

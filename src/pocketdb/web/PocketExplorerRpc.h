@@ -26,7 +26,10 @@ namespace PocketWeb::PocketWebRpc
     UniValue SearchByHash(const JSONRPCRequest& request);
     UniValue GetAddressTransactions(const JSONRPCRequest& request);
     UniValue GetBlockTransactions(const JSONRPCRequest& request);
+    UniValue GetTransaction(const JSONRPCRequest& request);
     UniValue GetTransactions(const JSONRPCRequest& request);
+
+    UniValue _constructTransaction(const PTransactionRef& ptx);
 }
 
 

@@ -104,7 +104,7 @@ static const CRPCCommand commands[] =
     {"system",         "getcoininfo",                      &GetCoinInfo,                    {"height"}},
 
     // Transactions
-    {"transaction",    "getrawtransaction",                &GetTransaction,                 {"txid"}},
+    {"transaction",    "getrawtransaction",                &GetTransaction,                 {"transactions"}},
     {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },
 };
 // @formatter:on
