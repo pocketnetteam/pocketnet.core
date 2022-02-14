@@ -34,15 +34,11 @@ namespace PocketDb
             switch (partType)
             {
             case 0: {
-                string blockHash;
-                auto[ok, ptx] = ParseTransaction(stmt, txHash, blockHash);
+                auto[ok, ptx] = ParseTransaction(stmt, txHash);
                 if (!ok) return false;
 
                 ptx->SetHash(txHash);
                 m_transactions.emplace(txHash, ptx);
-
-                if (!blockHash.empty())
-                    m_blockHashes.emplace(txHash, blockHash);
                 break;
             }
             case 1: {
@@ -69,29 +65,26 @@ namespace PocketDb
 
         /**
          * Return contructed block.
-         * blockHashes is filled with block hashes corresponding to all collected transactions, where key is tx hash and value is blockhash.
          */
-        PocketBlockRef GetResult(map<string, string>& blockHashes)
+        PocketBlockRef GetResult()
         {
             PocketBlockRef pocketBlock = make_shared<PocketBlock>();
             for (const auto[txHash, ptx] : m_transactions)
                 pocketBlock->push_back(ptx);
 
-            blockHashes = m_blockHashes;
             return pocketBlock;
         }
 
     private:
 
         map<string, PTransactionRef> m_transactions;
-        map<string, string> m_blockHashes;
 
         /**
          * This method parses transaction data, constructs if needed and return construct entry to fill
          * Index:   0  1     2     3     4          5       6     7   8        9        10       11       12       13    14    15
          * Columns: 0, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
          */
-        tuple<bool, PTransactionRef> ParseTransaction(sqlite3_stmt* stmt, const string& txHash, string& blockHash)
+        tuple<bool, PTransactionRef> ParseTransaction(sqlite3_stmt* stmt, const string& txHash)
         {
             // Try get Type and create pocket transaction instance
             auto[okType, txType] = TryGetColumnInt(stmt, 2);
@@ -105,7 +98,7 @@ namespace PocketDb
             else return {false, nullptr};
 
             // Optional fields
-            if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) blockHash = value;
+            if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) ptx->SetBlockHash(value);
             if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) ptx->SetHeight(value);
             if (auto[ok, value] = TryGetColumnInt(stmt, 6); ok) ptx->SetLast(value == 1);
             if (auto[ok, value] = TryGetColumnInt64(stmt, 7); ok) ptx->SetId(value);
@@ -226,12 +219,6 @@ namespace PocketDb
 
     PocketBlockRef TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs, bool includeOutputs)
     {
-        map<string, string> blockHashes;
-        return List(txHashes, blockHashes, includePayload, includeInputs, includeOutputs);
-    }
-
-    PocketBlockRef TransactionRepository::List(const vector<string>& txHashes, map<string, string>& blockHashes, bool includePayload, bool includeInputs, bool includeOutputs)
-    {
         string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
         auto sql = R"sql(
             select 0, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
@@ -296,29 +283,16 @@ namespace PocketDb
             FinalizeSqlStatement(*stmt);
         });
 
-        return reconstructor.GetResult(blockHashes);
-    }
-
-    PTransactionRef TransactionRepository::Get(const string& hash, string& blockHash, bool includePayload, bool includeInputs, bool includeOutputs)
-    {
-        map<string, string> blockHashes;
-        auto lst = List({ hash }, blockHashes, includePayload, includeInputs, includeOutputs);
-        if (lst && !lst->empty())
-        {
-            auto blockHashItr = blockHashes.find(hash);
-            if (blockHashItr != blockHashes.end())
-                blockHash = blockHashItr->second;
-
-            return lst->front();
-        }
-
-        return nullptr;
+        return reconstructor.GetResult();
     }
 
     PTransactionRef TransactionRepository::Get(const string& hash, bool includePayload, bool includeInputs, bool includeOutputs)
     {
-        string blockhash;
-        return Get(hash, blockhash, includePayload, includeInputs, includeOutputs);
+        auto lst = List({ hash }, includePayload, includeInputs, includeOutputs);
+        if (lst && !lst->empty())
+            return lst->front();
+
+        return nullptr;
     }
 
     PTransactionOutputRef TransactionRepository::GetTxOutput(const string& txHash, int number)
