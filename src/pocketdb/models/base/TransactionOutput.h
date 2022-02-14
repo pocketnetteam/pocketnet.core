@@ -30,6 +30,12 @@ namespace PocketTx
         
         shared_ptr<string> GetScriptPubKey() const;
         void SetScriptPubKey(string value);
+        
+        shared_ptr<string> GetSpentTxHash() const;
+        void SetSpentTxHash(string value);
+
+        shared_ptr<int64_t> GetSpentHeight() const;
+        void SetSpentHeight(int64_t value);
 
     protected:
         shared_ptr<string> m_txHash = nullptr;
@@ -37,6 +43,8 @@ namespace PocketTx
         shared_ptr<string> m_addressHash = nullptr;
         shared_ptr<int64_t> m_value = nullptr;
         shared_ptr<string> m_scriptPubKey = nullptr;
+        shared_ptr<string> m_spentTxHash = nullptr;
+        shared_ptr<int64_t> m_spentHeight = nullptr;
     };
 
 } // namespace PocketTx

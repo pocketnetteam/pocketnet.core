@@ -38,10 +38,10 @@ namespace PocketTx
     void Transaction::SetTime(int64_t value) { m_time = make_shared<int64_t>(value); }
 
     shared_ptr<int64_t> Transaction::GetHeight() const { return m_height; }
-    void Transaction::SetHeight(int64_t value) { m_blockhash = make_shared<string>(value); }
+    void Transaction::SetHeight(int64_t value) { m_height = make_shared<int64_t>(value); }
 
-    shared_ptr<string> Transaction::GetBlockHash() const;
-    void Transaction::SetBlockHash(string value);
+    shared_ptr<string> Transaction::GetBlockHash() const { return m_blockhash; }
+    void Transaction::SetBlockHash(string value) { m_blockhash = make_shared<string>(value); }
 
     shared_ptr<bool> Transaction::GetLast() const { return m_last; }
     void Transaction::SetLast(bool value) { m_last = make_shared<bool>(value); }

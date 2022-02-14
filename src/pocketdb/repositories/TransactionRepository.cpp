@@ -162,7 +162,7 @@ namespace PocketDb
             else incomplete = true;
 
             if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) input->SetValue(value);
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 8); ok) input->SetAddressHash(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) input->SetAddressHash(value);
 
             ptx->Inputs().push_back(input);
             return !incomplete;
@@ -170,8 +170,8 @@ namespace PocketDb
 
         /**
          * Parse Outputs
-         * Index:   0  1       2     3       4            5      6     7     8     9     10            11    12    13    14    15
-         * Columns: 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, null, null
+         * Index:   0  1       2     3       4            5      6     7     8     9     10            11    12    13    14           15
+         * Columns: 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, SpentTxHash, SpentHeight
          */
         bool ParseOutput(sqlite3_stmt* stmt, PTransactionRef& ptx, const string& txHash)
         {
@@ -191,6 +191,9 @@ namespace PocketDb
 
             if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) output->SetScriptPubKey(value);
             else incomplete = true;
+
+            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) output->SetSpentTxHash(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) output->SetSpentHeight(value);
 
             ptx->Outputs().push_back(output);
             return !incomplete;
@@ -256,7 +259,7 @@ namespace PocketDb
         // Outputs part
         (includeOutputs ? string(R"sql(
             union
-            select 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, null, null
+            select 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, SpentTxHash, SpentHeight
             from TxOutputs
             where TxHash in ( )sql" + txReplacers + R"sql( )
         )sql") : "");
