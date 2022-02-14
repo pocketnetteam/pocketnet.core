@@ -338,8 +338,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("commentHash", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("value", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("commentAddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("scoreCommentName", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("scoreCommentAvatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("scoreCommentName", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("scoreCommentAvatar", value);
             }
 
             FinalizeSqlStatement(*stmt);

@@ -90,6 +90,11 @@ namespace PocketWeb::PocketWebRpc
 
         // ---------------------------------------------------------------------
 
+        // Subscribers/unsubscribers
+        result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedSubscribers(address, blockNumber, cntResult));
+
+        // ---------------------------------------------------------------------
+
         // Scores to comments
         result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedCommentsScores(address, blockNumber, cntResult));
 
