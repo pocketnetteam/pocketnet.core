@@ -32,10 +32,10 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        tuple<bool, PTransactionRef> GetLastAccount(const string& address);
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);
 
+        tuple<bool, int64_t> GetLastAccounTime(const string& address);
         tuple<bool, int64_t> GetLastAccountHeight(const string& address);
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
 
