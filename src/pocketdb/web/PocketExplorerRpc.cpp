@@ -378,12 +378,28 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 3 && request.params[3].isNum())
             pageSize = request.params[3].get_int();
 
-        return request.DbConnection()->ExplorerRepoInst->GetAddressTransactions(
+        auto txHashesOrdered = request.DbConnection()->ExplorerRepoInst->GetAddressTransactions(
             address,
             pageInitBlock,
             pageStart,
             pageSize
         );
+
+        vector<string> txHashes;
+        for(const auto& hashOrdered : txHashesOrdered)
+            txHashes.push_back(hashOrdered.first);
+
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List(txHashes, false, true, true);
+
+        UniValue result(UniValue::VARR);
+        for (const auto& ptx : *pBlock)
+        {
+            UniValue utx = _constructTransaction(ptx);
+            utx.pushKV("rowNumber", txHashesOrdered[*ptx->GetHash()]);
+            result.push_back(utx);
+        }
+
+        return result;
     }
 
     UniValue GetBlockTransactions(const JSONRPCRequest& request)
@@ -412,18 +428,23 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 2 && request.params[2].isNum())
             pageSize = request.params[2].get_int();
 
-        auto txHashes = request.DbConnection()->ExplorerRepoInst->GetBlockTransactions(
+        auto txHashesOrdered = request.DbConnection()->ExplorerRepoInst->GetBlockTransactions(
             blockHash,
             pageStart,
             pageSize
         );
 
-        auto pBlock = request.DbConnection()->TransactionRepoInst->List(transactions, false, true, true);
+        vector<string> txHashes;
+        for(const auto& hashOrdered : txHashesOrdered)
+            txHashes.push_back(hashOrdered.first);
+
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List(txHashes, false, true, true);
 
         UniValue result(UniValue::VARR);
         for (const auto& ptx : *pBlock)
         {
             UniValue utx = _constructTransaction(ptx);
+            utx.pushKV("rowNumber", txHashesOrdered[*ptx->GetHash()]);
             result.push_back(utx);
         }
 

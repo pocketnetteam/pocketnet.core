@@ -393,57 +393,69 @@ namespace PocketDb {
         return result;
     }
 
-    UniValue ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize)
+    map<string, int> ExplorerRepository::GetAddressTransactions(const string& address, int pageInitBlock, int pageStart, int pageSize)
     {
-        return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
+        map<string, int> txHashes;
+
+        TryTransactionStep(__func__, [&]()
         {
-            stmt = SetupSqlStatement(R"sql(
-                select t.Hash, ptxs.RowNum, t.Type, t.Height, t.BlockHash, t.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey, o.SpentHeight
-                from (
-                    select ROW_NUMBER() OVER (order by txs.TxHeight desc, txs.TxHash asc) RowNum, txs.TxHash
-                    from (
-                        select distinct o.TxHash, o.TxHeight
-                        from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
-                        where o.AddressHash = ?
-                          and o.TxHeight <= ?
-                    ) txs
-                ) ptxs
-                join TxOutputs o on o.TxHash = ptxs.TxHash
-                join Transactions t on t.Hash = ptxs.TxHash
-                where RowNum >= ? and RowNum < ?
-                group by t.Hash, o.Number
+            auto stmt = SetupSqlStatement(R"sql(
+                select distinct o.TxHash
+                from TxOutputs o indexed by TxOutputs_AddressHash_TxHeight_SpentHeight
+                join Transactions t on t.Hash = o.TxHash
+                where o.AddressHash = ?
+                  and o.TxHeight <= ?
+                order by o.TxHeight desc, t.BlockNum desc
+                limit ?, ?
             )sql");
 
             TryBindStatementText(stmt, 1, address);
             TryBindStatementInt(stmt, 2, pageInitBlock);
             TryBindStatementInt(stmt, 3, pageStart);
-            TryBindStatementInt(stmt, 4, pageStart + pageSize);
+            TryBindStatementInt(stmt, 4, pageSize);
+
+            int i = 0;
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    txHashes.emplace(value, i++);
+            }
+
+            FinalizeSqlStatement(*stmt);
         });
+
+        return txHashes;
     }
 
-    UniValue ExplorerRepository::GetBlockTransactions(const string& blockHash, int pageStart, int pageSize)
+    map<string, int> ExplorerRepository::GetBlockTransactions(const string& blockHash, int pageStart, int pageSize)
     {
-        return _getTransactions([&](shared_ptr<sqlite3_stmt*>& stmt)
+        map<string, int> txHashes;
+
+        TryTransactionStep(__func__, [&]()
         {
-            stmt = SetupSqlStatement(R"sql(
-                select ptxs.Hash, ptxs.RowNum, ptxs.Type, ptxs.Height, ptxs.BlockHash, ptxs.Time, o.Number, json_group_array(o.AddressHash), o.Value, o.ScriptPubKey, o.SpentHeight
-                from (
-                    select ROW_NUMBER() OVER (order by txs.BlockNum asc) RowNum, txs.Hash, txs.Type, txs.Height, txs.BlockHash, txs.Time
-                    from (
-                        select t.Hash, t.Type, t.Height, t.BlockNum, t.BlockHash, t.Time
-                        from Transactions t indexed by Transactions_BlockHash
-                        where t.BlockHash = ?
-                    ) txs
-                ) ptxs
-                join TxOutputs o on o.TxHash = ptxs.Hash
-                where RowNum >= ? and RowNum < ?
-                group by ptxs.Hash, o.Number
+            auto stmt = SetupSqlStatement(R"sql(
+                select t.Hash
+                from Transactions t indexed by Transactions_BlockHash
+                where t.BlockHash = ?
+                order by t.BlockNum desc
+                limit ?, ?
             )sql");
 
             TryBindStatementText(stmt, 1, blockHash);
             TryBindStatementInt(stmt, 2, pageStart);
-            TryBindStatementInt(stmt, 3, pageStart + pageSize);
+            TryBindStatementInt(stmt, 3, pageSize);
+
+            int i = 0;
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok)
+                    txHashes.emplace(value, i++);
+            }
+
+            FinalizeSqlStatement(*stmt);
         });
+
+        return txHashes;
     }
     
     UniValue ExplorerRepository::GetTransactions(const vector<string>& transactions, int pageStart, int pageSize)
