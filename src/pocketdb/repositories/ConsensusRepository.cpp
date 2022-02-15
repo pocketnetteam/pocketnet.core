@@ -755,7 +755,7 @@ namespace PocketDb
         return result;
     }
 
-    tuple<bool, int64_t> ConsensusRepository::GetLastAccounTime(const string& address)
+    tuple<bool, int64_t> ConsensusRepository::GetLastAccountTime(const string& address)
     {
         tuple<bool, int64_t> result = {false, 0};
 
