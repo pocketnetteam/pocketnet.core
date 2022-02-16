@@ -714,6 +714,8 @@ add_library(${POCKETCOIN_SERVER}
         rpc/server.h
         rpc/util.cpp
         rpc/util.h
+        rpc/cache.cpp
+        rpc/cache.h
         walletinitinterface.h
         pocketdb/helpers/PocketnetHelper.h
         pocketdb/helpers/TransactionHelper.h
