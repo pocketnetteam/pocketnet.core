@@ -8,6 +8,7 @@
 
 #include <amount.h>
 #include <rpc/protocol.h>
+#include <rpc/cache.h>
 #include <uint256.h>
 #include <list>
 #include <map>
@@ -148,6 +149,7 @@ class CRPCTable
 {
 private:
     std::map<std::string, const CRPCCommand*> mapCommands;
+    std::unique_ptr<RPCCache> cache {new RPCCache()};
 public:
     const CRPCCommand* operator[](const std::string& name) const;
     std::string help(const std::string& name, const JSONRPCRequest& helpreq) const;

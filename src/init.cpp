@@ -619,6 +619,8 @@ void SetupServerArgs()
     gArgs.AddArg("-rpcstaticworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcpostworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcrestworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpccachesize=<n>", strprintf("Maximum amount of memory in megabytes allowed for RPCcache usage (default: %d MB)", 64), false, OptionsCategory::RPC);
+
     gArgs.AddArg("-statdepth=<n>", strprintf("Set the depth of the work queue for statistic in seconds (default: %ds)", 60), false, OptionsCategory::RPC);
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
 
