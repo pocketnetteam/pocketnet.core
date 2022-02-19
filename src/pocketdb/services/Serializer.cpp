@@ -82,7 +82,11 @@ namespace PocketServices
         if (!ptx)
             return nullptr;
 
-        // Build outputs & inputs
+        // Build inputs
+        if (!buildInputs(tx, ptx))
+            return nullptr;
+
+        // Build outputs
         if (!buildOutputs(tx, ptx))
             return nullptr;
 
@@ -118,7 +122,11 @@ namespace PocketServices
         if (!ptx)
             return nullptr;
 
-        // Build outputs & inputs
+        // Build inputs
+        if (!buildInputs(tx, ptx))
+            return nullptr;
+
+        // Build outputs
         if (!buildOutputs(tx, ptx))
             return nullptr;
 
@@ -126,16 +134,35 @@ namespace PocketServices
         return ptx;
     }
 
+    bool Serializer::buildInputs(const CTransactionRef& tx, shared_ptr <Transaction>& ptx)
+    {
+        string spentTxHash = tx->GetHash().GetHex();
+
+        for (size_t i = 0; i < tx->vin.size(); i++)
+        {
+            const CTxIn& txin = tx->vin[i];
+
+            auto inp = make_shared<TransactionInput>();
+            inp->SetSpentTxHash(spentTxHash);
+            inp->SetTxHash(txin.prevout.hash.GetHex());
+            inp->SetNumber(txin.prevout.n);
+            
+            ptx->Inputs().push_back(inp);
+        }
+
+        return !ptx->Inputs().empty();
+    }
 
     bool Serializer::buildOutputs(const CTransactionRef& tx, shared_ptr <Transaction>& ptx)
     {
-        // indexing Outputs
+        string txHash = tx->GetHash().GetHex();
+
         for (size_t i = 0; i < tx->vout.size(); i++)
         {
             const CTxOut& txout = tx->vout[i];
 
             auto out = make_shared<TransactionOutput>();
-            out->SetTxHash(tx->GetHash().GetHex());
+            out->SetTxHash(txHash);
             out->SetNumber((int) i);
             out->SetValue(txout.nValue);
             out->SetScriptPubKey(HexStr(txout.scriptPubKey));
