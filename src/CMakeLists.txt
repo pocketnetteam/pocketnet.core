@@ -95,14 +95,7 @@ if (ENABLE_ASM)
     add_compile_definitions(USE_ASM=1)
 endif ()
 
-# Hack to use default cmake's fpic settings if not specified
-if (DEFINED WITH_PIC)
-    if (WITH_PIC)
-        set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-    else ()
-        set(CMAKE_POSITION_INDEPENDENT_CODE OFF)
-    endif ()
-endif ()
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -365,6 +358,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Base.h
         pocketdb/models/base/Payload.h
         pocketdb/models/base/Transaction.h
+        pocketdb/models/base/TransactionInput.h
         pocketdb/models/base/TransactionOutput.h
         pocketdb/models/base/Rating.h
         pocketdb/models/base/ReturnDtoModels.h
@@ -392,6 +386,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Base.cpp
         pocketdb/models/base/Payload.cpp
         pocketdb/models/base/Transaction.cpp
+        pocketdb/models/base/TransactionInput.cpp
         pocketdb/models/base/TransactionOutput.cpp
         pocketdb/models/base/Rating.cpp
         pocketdb/models/dto/Default.cpp
@@ -725,6 +720,8 @@ add_library(${POCKETCOIN_SERVER}
         rpc/server.h
         rpc/util.cpp
         rpc/util.h
+        rpc/cache.h
+        rpc/cache.cpp
         walletinitinterface.h
         pocketdb/helpers/PocketnetHelper.h
         pocketdb/helpers/TransactionHelper.h
@@ -820,9 +817,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/Reputation.cpp
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event leveldb OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
-target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${SQlite3_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
+target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue)
-target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${SQlite3_INCLUDE_DIR})
 
 if (NOT DISABLE_WALLET)
     target_sources(${POCKETCOIN_SERVER} PRIVATE
@@ -891,7 +887,7 @@ endif ()
 set(POCKETCOIND pocketcoind)
 add_executable(${POCKETCOIND} pocketcoind.cpp)
 target_link_libraries(${POCKETCOIND} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_COMMON_RPC} ${POCKETDB} ${POCKETCOIN_UTIL} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_SYSTEM} OpenSSL::Crypto ${CRYPT32} Event::event sqlite3 univalue secp256k1 memenv)
-target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS} ${SQlite3_INCLUDE_DIR})
+target_include_directories(${POCKETCOIND} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 
 add_library(libpocketcoin_cli rpc/client.h rpc/client.cpp)
 target_link_libraries(libpocketcoin_cli PRIVATE univalue ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON_RPC})
@@ -903,7 +899,6 @@ target_include_directories(${POCKETCOIN_CLI} PRIVATE ${Event_INCLUDE_DIRS})
 set(POCKETCOIN_TX pocketcoin_tx)
 add_executable(${POCKETCOIN_TX} pocketcoin-tx.cpp)
 target_link_libraries(${POCKETCOIN_TX} PRIVATE ${POCKETCOIN_SERVER} ${POCKETCOIN_UTIL} ${POCKETDB} ${POCKETCOIN_CRYPTO} ${POCKETCOIN_CONSENSUS} univalue sqlite3)
-target_include_directories(${POCKETCOIN_TX} PRIVATE ${SQlite3_INCLUDE_DIR})
 
 if(NOT DISABLE_GUI)
     add_subdirectory(qt/)

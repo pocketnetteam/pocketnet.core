@@ -17,7 +17,8 @@ namespace PocketWeb::PocketWebRpc
 
     UniValue GetStatisticByHours(const JSONRPCRequest& request);
     UniValue GetStatisticByDays(const JSONRPCRequest& request);
-    UniValue GetStatisticContent(const JSONRPCRequest& request);
+    UniValue GetStatisticContentByHours(const JSONRPCRequest& request);
+    UniValue GetStatisticContentByDays(const JSONRPCRequest& request);
     UniValue GetLastBlocks(const JSONRPCRequest& request);
     UniValue GetCompactBlock(const JSONRPCRequest& request);
     UniValue GetAddressInfo(const JSONRPCRequest& request);
@@ -25,7 +26,10 @@ namespace PocketWeb::PocketWebRpc
     UniValue SearchByHash(const JSONRPCRequest& request);
     UniValue GetAddressTransactions(const JSONRPCRequest& request);
     UniValue GetBlockTransactions(const JSONRPCRequest& request);
+    UniValue GetTransaction(const JSONRPCRequest& request);
     UniValue GetTransactions(const JSONRPCRequest& request);
+
+    UniValue _constructTransaction(const PTransactionRef& ptx);
 }
 
 

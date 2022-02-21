@@ -38,6 +38,9 @@ namespace PocketWeb::PocketWebRpc
     // Get address scores -> Get scored contents -> Get Scores to these contents -> Get scores accounts -> Get their scores -> Get their scored contents -> Get these contents Authors
     UniValue GetRecomendedAccountsByScoresFromAddress(const JSONRPCRequest& request);
 
+    // Accounts recommendations based on tags
+    UniValue GetRecomendedAccountsByTags(const JSONRPCRequest& request);
+
     // Contents recommendations by others contents
     // Get some contents that were liked by people who've seen this content (not long ago - several blocks ago)
     // This should be run only if Content already has >XXXX likes

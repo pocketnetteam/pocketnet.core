@@ -860,10 +860,10 @@ namespace PocketDb
                 c.String5 as AnswerTxHash,
 
                 (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1 and sc.Last in (0,1)) as ScoreUp,
+                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.String2 and sc.Int1 = 1 and sc.Last in (0,1)) as ScoreUp,
 
                 (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1 and sc.Last in (0,1)) as ScoreDown,
+                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.String2 and sc.Int1 = -1 and sc.Last in (0,1)) as ScoreDown,
 
                 (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,
@@ -1015,10 +1015,10 @@ namespace PocketDb
                 c.String5 as AnswerTxHash,
 
                 (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = 1 and sc.Last in (0,1)) as ScoreUp,
+                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.String2 and sc.Int1 = 1 and sc.Last in (0,1)) as ScoreUp,
 
                 (select count(1) from Transactions sc indexed by Transactions_Type_Last_String2_Height
-                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.Hash and sc.Int1 = -1 and sc.Last in (0,1)) as ScoreDown,
+                    where sc.Type=301 and sc.Height is not null and sc.String2 = c.String2 and sc.Int1 = -1 and sc.Last in (0,1)) as ScoreDown,
 
                 (select r.Value from Ratings r indexed by Ratings_Type_Id_Last_Height
                     where r.Id=c.Id and r.Type=3 and r.Last=1) as Reputation,

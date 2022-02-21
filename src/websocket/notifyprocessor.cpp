@@ -174,7 +174,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                     };
 
                     if (subscribesResponse[i].exists("avatarFrom"))
-                        cFields.emplace("avatarFrom",response["avatarFrom"].get_str());
+                        cFields.emplace("avatarFrom",subscribesResponse[i]["avatarFrom"].get_str());
 
                     PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
                 }

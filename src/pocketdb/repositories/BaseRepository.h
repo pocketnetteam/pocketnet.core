@@ -18,7 +18,32 @@ namespace PocketDb
     using namespace std;
     using namespace PocketHelpers;
 
-    class BaseRepository
+    class RowAccessor
+    {
+    public:
+        tuple<bool, std::string> TryGetColumnString(sqlite3_stmt* stmt, int index)
+        {
+            return sqlite3_column_type(stmt, index) == SQLITE_NULL
+                   ? make_tuple(false, "")
+                   : make_tuple(true, std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, index))));
+        }
+
+        tuple<bool, int64_t> TryGetColumnInt64(sqlite3_stmt* stmt, int index)
+        {
+            return sqlite3_column_type(stmt, index) == SQLITE_NULL
+                   ? make_tuple(false, (int64_t) 0)
+                   : make_tuple(true, (int64_t) sqlite3_column_int64(stmt, index));
+        }
+
+        tuple<bool, int> TryGetColumnInt(sqlite3_stmt* stmt, int index)
+        {
+            return sqlite3_column_type(stmt, index) == SQLITE_NULL
+                   ? make_tuple(false, 0)
+                   : make_tuple(true, sqlite3_column_int(stmt, index));
+        }
+    };
+
+    class BaseRepository : protected RowAccessor
     {
     private:
 
@@ -181,27 +206,6 @@ namespace PocketDb
             if (!CheckValidResult(stmt, res))
                 throw std::runtime_error(strprintf("%s: Failed bind SQL statement - index:%d value:%d\n",
                     __func__, index, value));
-        }
-
-        tuple<bool, std::string> TryGetColumnString(sqlite3_stmt* stmt, int index)
-        {
-            return sqlite3_column_type(stmt, index) == SQLITE_NULL
-                   ? make_tuple(false, "")
-                   : make_tuple(true, std::string(reinterpret_cast<const char*>(sqlite3_column_text(stmt, index))));
-        }
-
-        tuple<bool, int64_t> TryGetColumnInt64(sqlite3_stmt* stmt, int index)
-        {
-            return sqlite3_column_type(stmt, index) == SQLITE_NULL
-                   ? make_tuple(false, (int64_t) 0)
-                   : make_tuple(true, (int64_t) sqlite3_column_int64(stmt, index));
-        }
-
-        tuple<bool, int> TryGetColumnInt(sqlite3_stmt* stmt, int index)
-        {
-            return sqlite3_column_type(stmt, index) == SQLITE_NULL
-                   ? make_tuple(false, 0)
-                   : make_tuple(true, sqlite3_column_int(stmt, index));
         }
 
         void SetLastInsertRowId(int64_t value)

@@ -102,14 +102,12 @@ namespace PocketWeb::PocketWebRpc
         vector<string> txIds;
         for (const auto& tx: missedTransactions)
             txIds.push_back(tx.first);
-        auto transactionsInfo = request.DbConnection()->ExplorerRepoInst->GetTransactions(txIds, 1, (int) txIds.size());
 
-        // Extend missed transactions
-        for (size_t i = 0; i < transactionsInfo.size(); i++)
+        auto transactionsInfo = request.DbConnection()->TransactionRepoInst->List(txIds, false, true, true);
+        for (const auto& txInfo : *transactionsInfo)
         {
-            auto txInfo = transactionsInfo.At(i);
-            missedTransactions[txInfo["txid"].get_str()].pushKV("txinfo", txInfo);
-            result.push_back(transactionsInfo[i]);
+            auto utx = _constructTransaction(txInfo);
+            result.push_back(utx);
         }
 
         // ---------------------------------------------------------------------

@@ -13,6 +13,7 @@
 #include <ui_interface.h>
 #include <util.h>
 #include <utilstrencodings.h>
+#include <init.h>
 
 #include <boost/bind.hpp>
 #include <boost/signals2/signal.hpp>
@@ -447,20 +448,34 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
 
     const CRPCCommand *pcmd =  (*it).second;
     g_rpcSignals.PreCommand(*pcmd);
+    auto start = gStatEngineInstance.GetCurrentSystemTime();
 
-    try
-    {
-        // Execute, convert arguments to array if necessary
-        if (request.params.isObject()) {
-            return pcmd->actor(transformNamedArguments(request, pcmd->argNames));
-        } else {
-            return pcmd->actor(request);
+    // See if this request reply is cached
+    UniValue ret = cache->GetRpcCache(request);
+    if (ret.isNull()) {
+        try
+        {
+            // Execute, convert arguments to array if necessary
+            if (request.params.isObject()) {
+                    ret = pcmd->actor(transformNamedArguments(request, pcmd->argNames));
+                } else {
+                    ret = pcmd->actor(request);
+            }
+                // Save return value in cache for later
+                cache->PutRpcCache(request, ret);
+        }
+        catch (const std::exception& e)
+        {
+            throw JSONRPCError(RPC_MISC_ERROR, e.what());
         }
     }
-    catch (const std::exception& e)
-    {
-        throw JSONRPCError(RPC_MISC_ERROR, e.what());
-    }
+
+    auto stop = gStatEngineInstance.GetCurrentSystemTime();
+
+    auto diff = (stop - start);
+    LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", request.strMethod, request.peerAddr.substr(0, request.peerAddr.find(':')), diff.count());
+
+    return ret;
 }
 
 std::vector<std::string> CRPCTable::listCommands() const

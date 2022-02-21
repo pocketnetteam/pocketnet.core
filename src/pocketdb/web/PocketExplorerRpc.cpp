@@ -11,7 +11,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetStatisticByHours(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getstatisticbyhours (topHeight, depth)\n"
                 "\nGet statistics\n"
                 "\nArguments:\n"
@@ -20,11 +20,11 @@ namespace PocketWeb::PocketWebRpc
 
         int topHeight = chainActive.Height() / 10 * 10;
         if (request.params[0].isNum())
-            topHeight = std::min(request.params[0].get_int(), topHeight);
+            topHeight = min(request.params[0].get_int(), topHeight);
 
         int depth = 24;
         if (request.params[1].isNum())
-            depth = std::min(request.params[1].get_int(), depth);
+            depth = min(request.params[1].get_int(), depth);
         depth = depth * 60;
 
         return request.DbConnection()->ExplorerRepoInst->GetTransactionsStatisticByHours(topHeight, depth);
@@ -33,7 +33,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetStatisticByDays(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getstatisticbydays (topHeight, depth)\n"
                 "\nGet statistics\n"
                 "\nArguments:\n"
@@ -42,31 +42,60 @@ namespace PocketWeb::PocketWebRpc
 
         int topHeight = chainActive.Height() / 10 * 10;
         if (request.params[0].isNum())
-            topHeight = std::min(request.params[0].get_int(), topHeight);
+            topHeight = min(request.params[0].get_int(), topHeight);
 
         int depth = 30;
         if (request.params[1].isNum())
-            depth = std::min(request.params[1].get_int(), depth);
+            depth = min(request.params[1].get_int(), depth);
         depth = depth * 24 * 60;
 
         return request.DbConnection()->ExplorerRepoInst->GetTransactionsStatisticByDays(topHeight, depth);
     }
 
-    UniValue GetStatisticContent(const JSONRPCRequest& request)
+    UniValue GetStatisticContentByHours(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
-                "getstatisticcontent\n"
-                "\nGet statistics for content transactions\n"
+            throw runtime_error(
+                "getstatisticcontentbyhours\n"
+                "\nGet statistics for content transactions grouped by hours\n"
             );
 
-        return request.DbConnection()->ExplorerRepoInst->GetContentStatistic();
+        int topHeight = chainActive.Height() / 10 * 10;
+        if (request.params[0].isNum())
+            topHeight = min(request.params[0].get_int(), topHeight);
+
+        int depth = 24;
+        if (request.params[1].isNum())
+            depth = min(request.params[1].get_int(), depth);
+        depth = depth * 60;
+
+        return request.DbConnection()->ExplorerRepoInst->GetContentStatisticByHours(topHeight, depth);
+    }
+
+    UniValue GetStatisticContentByDays(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "getstatisticcontentbydays\n"
+                "\nGet statistics for content transactions grouped by days\n"
+            );
+
+        int topHeight = chainActive.Height() / 10 * 10;
+        if (request.params[0].isNum())
+            topHeight = min(request.params[0].get_int(), topHeight);
+
+        int depth = 30;
+        if (request.params[1].isNum())
+            depth = min(request.params[1].get_int(), depth);
+        depth = depth * 24 * 60;
+
+        return request.DbConnection()->ExplorerRepoInst->GetContentStatisticByDays(topHeight, depth);
     }
 
     UniValue GetLastBlocks(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getlastblocks ( count, last_height, verbosity )\n"
                 "\nGet N last blocks.\n"
                 "\nArguments:\n"
@@ -98,7 +127,7 @@ namespace PocketWeb::PocketWebRpc
         // Collect general block information
         CBlockIndex* pindex = chainActive[last_height];
         int i = count;
-        std::map<int, UniValue> blocks;
+        map<int, UniValue> blocks;
         while (pindex && i-- > 0)
         {
             UniValue oblock(UniValue::VOBJ);
@@ -125,7 +154,7 @@ namespace PocketWeb::PocketWebRpc
                     blocks[s.first].pushKV("types", UniValue(UniValue::VOBJ));
 
                 for (auto& d : s.second)
-                    blocks[s.first].At("types").pushKV(std::to_string(d.first), d.second);
+                    blocks[s.first].At("types").pushKV(to_string(d.first), d.second);
             }
         }
 
@@ -139,7 +168,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetCompactBlock(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getcompactblock \"blockhash\" or \"blocknumber\" \n"
                 "\nArguments:\n"
                 "1. \"blockhash\"          (string, optional) The block by hash\n"
@@ -190,20 +219,20 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetAddressInfo(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getaddressinfo \"address\"\n"
                 "\nGet address summary information\n"
                 "\nArguments:\n"
                 "1. \"address\"    (string) Address\n");
 
-        std::string address;
+        string address;
         if (request.params.empty() || !request.params[0].isStr())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address argument");
 
         auto dest = DecodeDestination(request.params[0].get_str());
         if (!IsValidDestination(dest))
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                std::string("Invalid address: ") + request.params[0].get_str());
+                string("Invalid address: ") + request.params[0].get_str());
         address = request.params[0].get_str();
 
         UniValue addressInfo(UniValue::VOBJ);
@@ -224,7 +253,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue GetBalanceHistory(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "getbalancehistory [\"address\", ...] topHeight count\n"
                 "\nGet balance changes history for addresses\n"
                 "\nArguments:\n"
@@ -243,7 +272,7 @@ namespace PocketWeb::PocketWebRpc
             auto dest = DecodeDestination(request.params[0].get_str());
             if (!IsValidDestination(dest))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                    std::string("Invalid address: ") + request.params[0].get_str());
+                    string("Invalid address: ") + request.params[0].get_str());
 
             addresses.push_back(request.params[0].get_str());
         }
@@ -257,7 +286,7 @@ namespace PocketWeb::PocketWebRpc
                 auto dest = DecodeDestination(addr);
                 if (!IsValidDestination(dest))
                     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                        std::string("Invalid address: ") + addr);
+                        string("Invalid address: ") + addr);
 
                 addresses.push_back(addr);
 
@@ -280,7 +309,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue SearchByHash(const JSONRPCRequest& request)
     {
         if (request.fHelp)
-            throw std::runtime_error(
+            throw runtime_error(
                 "checkstringtype \"string\"\n"
                 "\nCheck type of input string - address, block or tx id.\n"
                 "\nArguments:\n"
@@ -322,7 +351,7 @@ namespace PocketWeb::PocketWebRpc
     {
         if (request.fHelp)
         {
-            throw std::runtime_error(
+            throw runtime_error(
                 "getaddresstransactions [address, pageInitBlock, pageStart, pageSize]\n"
                 "\nGet transactions info.\n"
                 "\nArguments:\n"
@@ -349,19 +378,35 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 3 && request.params[3].isNum())
             pageSize = request.params[3].get_int();
 
-        return request.DbConnection()->ExplorerRepoInst->GetAddressTransactions(
+        auto txHashesOrdered = request.DbConnection()->ExplorerRepoInst->GetAddressTransactions(
             address,
             pageInitBlock,
             pageStart,
             pageSize
         );
+
+        vector<string> txHashes;
+        for(const auto& hashOrdered : txHashesOrdered)
+            txHashes.push_back(hashOrdered.first);
+
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List(txHashes, false, true, true);
+
+        UniValue result(UniValue::VARR);
+        for (const auto& ptx : *pBlock)
+        {
+            UniValue utx = _constructTransaction(ptx);
+            utx.pushKV("rowNumber", txHashesOrdered[*ptx->GetHash()]);
+            result.push_back(utx);
+        }
+
+        return result;
     }
 
     UniValue GetBlockTransactions(const JSONRPCRequest& request)
     {
         if (request.fHelp)
         {
-            throw std::runtime_error(
+            throw runtime_error(
                 "getblocktransactions [blockHash, pageStart, pageSize]\n"
                 "\nGet transactions info.\n"
                 "\nArguments:\n"
@@ -383,55 +428,135 @@ namespace PocketWeb::PocketWebRpc
         if (request.params.size() > 2 && request.params[2].isNum())
             pageSize = request.params[2].get_int();
 
-        return request.DbConnection()->ExplorerRepoInst->GetBlockTransactions(
+        auto txHashesOrdered = request.DbConnection()->ExplorerRepoInst->GetBlockTransactions(
             blockHash,
             pageStart,
             pageSize
         );
+
+        vector<string> txHashes;
+        for(const auto& hashOrdered : txHashesOrdered)
+            txHashes.push_back(hashOrdered.first);
+
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List(txHashes, false, true, true);
+
+        UniValue result(UniValue::VARR);
+        for (const auto& ptx : *pBlock)
+        {
+            UniValue utx = _constructTransaction(ptx);
+            utx.pushKV("rowNumber", txHashesOrdered[*ptx->GetHash()]);
+            result.push_back(utx);
+        }
+
+        return result;
+    }
+    
+    UniValue GetTransaction(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "getrawtransaction\n"
+                "\nGet transaction data.\n"
+            );
+
+        RPCTypeCheck(request.params, {UniValue::VSTR});
+        string txHash = request.params[0].get_str();
+
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List({ txHash }, false, true, true);
+        if (pBlock->empty())
+            return UniValue(UniValue::VOBJ);
+
+        UniValue result(UniValue::VARR);
+        const auto& ptx = (*pBlock)[0];
+
+        return _constructTransaction(ptx);
     }
 
     UniValue GetTransactions(const JSONRPCRequest& request)
     {
         if (request.fHelp)
         {
-            throw std::runtime_error(
+            throw runtime_error(
                 "gettransactions [transactions[], pageStart, pageSize]\n"
                 "\nGet transactions info.\n"
                 "\nArguments:\n"
                 "1. \"transactions\"  (array, required) Transaction hashes\n"
-                "2. \"pageStart\"     (number) Row number for start page\n"
-                "3. \"pageSize\"      (number) Page size\n"
             );
         }
 
-        std::vector<std::string> transactions;
+        vector<string> transactions;
         if (request.params[0].isStr())
+        {
             transactions.push_back(request.params[0].get_str());
+        }
         else if (request.params[0].isArray())
         {
             UniValue atransactions = request.params[0].get_array();
             for (unsigned int idx = 0; idx < atransactions.size(); idx++)
-            {
                 transactions.push_back(atransactions[idx].get_str());
-            }
         }
         else
         {
             throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid inputs params");
         }
 
-        int pageStart = 1;
-        if (request.params.size() > 1 && request.params[1].isNum())
-            pageStart = request.params[1].get_int();
+        auto pBlock = request.DbConnection()->TransactionRepoInst->List(transactions, false, true, true);
 
-        int pageSize = 10;
-        if (request.params.size() > 2 && request.params[2].isNum())
-            pageSize = request.params[2].get_int();
+        UniValue result(UniValue::VARR);
+        for (const auto& ptx : *pBlock)
+        {
+            UniValue utx = _constructTransaction(ptx);
+            result.push_back(utx);
+        }
 
-        return request.DbConnection()->ExplorerRepoInst->GetTransactions(
-            transactions,
-            pageStart,
-            pageSize
-        );
+        return result;
+    }
+
+    UniValue _constructTransaction(const PTransactionRef& ptx)
+    {
+        // General TX information
+        UniValue utx(UniValue::VOBJ);
+
+        utx.pushKV("txid", *ptx->GetHash());
+        utx.pushKV("type", *ptx->GetType());
+        if (ptx->GetHeight()) utx.pushKV("height", *ptx->GetHeight());
+        if (ptx->GetBlockHash()) utx.pushKV("blockHash", *ptx->GetBlockHash());
+        utx.pushKV("nTime", *ptx->GetTime());
+
+        // Inputs
+        utx.pushKV("vin", UniValue(UniValue::VARR));
+        for (const auto& inp : ptx->Inputs())
+        {
+            UniValue uinp(UniValue::VOBJ);
+
+            uinp.pushKV("txid", *inp->GetSpentTxHash());
+            uinp.pushKV("vout", *inp->GetNumber());
+            if (inp->GetAddressHash()) uinp.pushKV("address", *inp->GetAddressHash());
+            if (inp->GetValue()) uinp.pushKV("value", *inp->GetValue() / 100000000.0);
+
+            utx.At("vin").push_back(uinp);
+        }
+
+        // Inputs
+        utx.pushKV("vout", UniValue(UniValue::VARR));
+        for (const auto& out : ptx->Outputs())
+        {
+            UniValue uout(UniValue::VOBJ);
+            uout.pushKV("n", *out->GetNumber());
+            uout.pushKV("value", *out->GetValue() / 100000000.0);
+
+            UniValue scriptPubKey(UniValue::VOBJ);
+            UniValue addresses(UniValue::VARR);
+            addresses.push_back(*out->GetAddressHash());
+            scriptPubKey.pushKV("addresses", addresses);
+            scriptPubKey.pushKV("hex", *out->GetScriptPubKey());
+            uout.pushKV("scriptPubKey", scriptPubKey);
+
+            if (out->GetSpentHeight()) uout.pushKV("spent", *out->GetSpentHeight());
+
+            utx.At("vout").push_back(uout);
+        }
+
+        return utx;
     }
 }

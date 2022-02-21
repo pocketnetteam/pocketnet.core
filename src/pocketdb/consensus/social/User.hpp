@@ -156,12 +156,12 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateEditLimit(const UserRef& ptx)
         {
             // First user account transaction allowed without next checks
-            auto[prevOk, prevTx] = ConsensusRepoInst.GetLastAccount(*ptx->GetAddress());
+            auto[prevOk, prevTime] = ConsensusRepoInst.GetLastAccountTime(*ptx->GetAddress());
             if (!prevOk)
                 return Success;
 
             // We allow edit profile only with delay
-            if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_user_depth))
+            if ((*ptx->GetTime() - prevTime) <= GetConsensusLimit(ConsensusLimit_edit_user_depth))
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
             return Success;

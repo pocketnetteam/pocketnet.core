@@ -844,7 +844,7 @@ namespace PocketConsensus
                 {
                     NetworkMain,
                     {
-                        {0, 60000}
+                        {0, 120000}
                     }
                 },
                 {

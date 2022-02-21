@@ -44,7 +44,10 @@ namespace PocketHelpers
     using namespace PocketTx;
 
     // Accumulate transactions in block
+    typedef PocketTx::Transaction PTransaction;
     typedef shared_ptr<PocketTx::Transaction> PTransactionRef;
+    typedef shared_ptr<PocketTx::TransactionInput> PTransactionInputRef;
+    typedef shared_ptr<PocketTx::TransactionOutput> PTransactionOutputRef;
     typedef vector<PTransactionRef> PocketBlock;
     typedef shared_ptr<PocketBlock> PocketBlockRef;
 

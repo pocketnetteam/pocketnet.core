@@ -19,6 +19,7 @@ UniValue gettemplate(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 {
     {"hidden",       "generatepocketnettransaction",      &GenerateTransaction,             {"address", "privKey", "outCount", "type", "payload"}},
+    {"hidden",       "generatepocketnetaddress",          &GenerateAddress,                 {}},
 
     // Old methods
     {"artifacts", "getrecommendedposts",              &gettemplate,                       {"address", "count", "height", "lang", "contenttypes"}},
@@ -34,6 +35,7 @@ static const CRPCCommand commands[] =
     {"search",          "getrecomendedaccountsbysubscriptions",           &GetRecomendedAccountsBySubscriptions,           {"address", "count"}},
     {"search",          "getrecomendedaccountsbyscoresonsimilaraccounts", &GetRecomendedAccountsByScoresOnSimilarAccounts, {"address", "contenttypes", "height", "depth", "count"}},
     {"search",          "getrecomendedaccountsbyscoresfromaddress",       &GetRecomendedAccountsByScoresFromAddress,       {"address", "contenttypes", "height", "depth", "count"}},
+    {"search",          "getrecomendedaccountsbytags",                    &GetRecomendedAccountsByTags,                    {"tags", "count"}},
     {"search",          "getrecomendedcontentsbyscoresonsimilarcontents", &GetRecomendedContentsByScoresOnSimilarContents, {"contentid", "contenttypes", "depth", "count"}},
     {"search",          "getrecomendedcontentsbyscoresfromaddress",       &GetRecomendedContentsByScoresFromAddress,       {"address", "contenttypes", "height", "depth", "count"}},
 
@@ -84,14 +86,15 @@ static const CRPCCommand commands[] =
     // Explorer
     {"explorer",       "getstatisticbyhours",              &GetStatisticByHours,            {"topHeight", "depth"}},
     {"explorer",       "getstatisticbydays",               &GetStatisticByDays,             {"topHeight", "depth"}},
-    {"explorer",       "getstatisticcontent",              &GetStatisticContent,            {}},
+    {"explorer",       "getstatisticcontentbyhours",       &GetStatisticContentByHours,     {"topHeight", "depth"}},
+    {"explorer",       "getstatisticcontentbydays",        &GetStatisticContentByDays,      {"topHeight", "depth"}},
     {"explorer",       "getaddressinfo",                   &GetAddressInfo,                 {"address"}},
     {"explorer",       "getcompactblock",                  &GetCompactBlock,                {"blockHash"}},
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
     {"explorer",       "searchbyhash",                     &SearchByHash,                   {"value"}},
     {"explorer",       "gettransactions",                  &GetTransactions,                {"transactions"}},
-    {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address"}},
-    {"explorer",       "getblocktransactions",             &GetBlockTransactions,           {"blockHash"}},
+    {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address", "pageStart", "pageSize"}},
+    {"explorer",       "getblocktransactions",             &GetBlockTransactions,           {"blockHash", "pageStart", "pageSize"}},
     {"explorer",       "getbalancehistory",                &GetBalanceHistory,              {"address", "topHeight", "count"}},
 
     // System
@@ -101,7 +104,7 @@ static const CRPCCommand commands[] =
     {"system",         "getcoininfo",                      &GetCoinInfo,                    {"height"}},
 
     // Transactions
-    {"transaction",    "getrawtransaction",                &GetTransaction,                 {"txid"}},
+    {"transaction",    "getrawtransaction",                &GetTransaction,                 {"transactions"}},
     {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },
 };
 // @formatter:on

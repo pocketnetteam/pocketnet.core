@@ -46,10 +46,14 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
 
-            return Success;
+            return EnableAccept();
         }
 
     protected:
+        virtual ConsensusValidateResult EnableAccept()
+        {
+            return {false, SocialConsensusResult_NotAllowed};
+        }
         ConsensusValidateResult ValidateBlock(const BoostContentRef& ptx, const PocketBlockRef& block) override
         {
             return Success;
@@ -64,11 +68,26 @@ namespace PocketConsensus
         }
     };
 
+    /*******************************************************************************************************************
+    *  Enable accept transaction
+    *******************************************************************************************************************/
+    class BoostContentConsensus_checkpoint_accept : public BoostContentConsensus
+    {
+    public:
+        BoostContentConsensus_checkpoint_accept(int height) : BoostContentConsensus(height) {}
+    protected:
+        ConsensusValidateResult EnableAccept()
+        {
+            return Success;
+        }
+    };
+
     class BoostContentConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint < BoostContentConsensus>> m_rules = {
-            { 0, 0, [](int height) { return make_shared<BoostContentConsensus>(height); }},
+        const vector<ConsensusCheckpoint<BoostContentConsensus>> m_rules = {
+            {       0,      0, [](int height) { return make_shared<BoostContentConsensus>(height); }},
+            { 1586000, 528100, [](int height) { return make_shared<BoostContentConsensus_checkpoint_accept>(height); }},
         };
     public:
         shared_ptr<BoostContentConsensus> Instance(int height)
