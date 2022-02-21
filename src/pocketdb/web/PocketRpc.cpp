@@ -106,8 +106,8 @@ static const CRPCCommand commands[] =
     {"explorer",       "getlastblocks",                    &GetLastBlocks,                  {"count", "lastHeight", "verbose"}},
     {"explorer",       "searchbyhash",                     &SearchByHash,                   {"value"}},
     {"explorer",       "gettransactions",                  &GetTransactions,                {"transactions"}},
-    {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address"}},
-    {"explorer",       "getblocktransactions",             &GetBlockTransactions,           {"blockHash"}},
+    {"explorer",       "getaddresstransactions",           &GetAddressTransactions,         {"address", "pageStart", "pageSize"}},
+    {"explorer",       "getblocktransactions",             &GetBlockTransactions,           {"blockHash", "pageStart", "pageSize"}},
     {"explorer",       "getbalancehistory",                &GetBalanceHistory,              {"address", "topHeight", "count"}},
 
     // System
@@ -117,7 +117,7 @@ static const CRPCCommand commands[] =
     {"system",         "getcoininfo",                      &GetCoinInfo,                    {"height"}},
 
     // Transactions
-    {"transaction",    "getrawtransaction",                &GetTransaction,                 {"txid"}},
+    {"transaction",    "getrawtransaction",                &GetTransaction,                 {"transactions"}},
     {"transaction",    "estimatesmartfee",                 &EstimateSmartFee,               {"conf_target", "estimate_mode"} },
 };
 // @formatter:on

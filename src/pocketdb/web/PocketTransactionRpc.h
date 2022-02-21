@@ -24,7 +24,6 @@ namespace PocketWeb::PocketWebRpc
 {
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman);
     RPCHelpMan AddTransaction();
-    RPCHelpMan GetTransaction();
     RPCHelpMan EstimateSmartFee();
     RPCHelpMan GenerateTransaction();
     RPCHelpMan GenerateAddress();

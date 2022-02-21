@@ -20,5 +20,11 @@ namespace PocketTx
     
     shared_ptr <string> TransactionOutput::GetScriptPubKey() const { return m_scriptPubKey; }
     void TransactionOutput::SetScriptPubKey(string value) { m_scriptPubKey = make_shared<string>(value); }
+        
+    shared_ptr<string> TransactionOutput::GetSpentTxHash() const { return m_spentTxHash; }
+    void TransactionOutput::SetSpentTxHash(string value) { m_spentTxHash = make_shared<string>(value); }
+
+    shared_ptr<int64_t> TransactionOutput::GetSpentHeight() const { return m_spentHeight; }
+    void TransactionOutput::SetSpentHeight(int64_t value) { m_spentHeight = make_shared<int64_t>(value); }
 
 } // namespace PocketTx

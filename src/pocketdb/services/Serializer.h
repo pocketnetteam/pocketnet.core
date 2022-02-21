@@ -52,6 +52,7 @@ namespace PocketServices
     private:
         static shared_ptr<Transaction> buildInstance(const CTransactionRef& tx, const UniValue& src);
         static shared_ptr<Transaction> buildInstanceRpc(const CTransactionRef& tx, const UniValue& src);
+        static bool buildInputs(const CTransactionRef& tx, shared_ptr<Transaction>& ptx);
         static bool buildOutputs(const CTransactionRef& tx, shared_ptr<Transaction>& ptx);
         static UniValue parseStream(CDataStream& stream);
         static tuple<bool, PocketBlock> deserializeBlock(const CBlock& block, UniValue& pocketData);

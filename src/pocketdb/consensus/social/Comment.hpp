@@ -32,10 +32,7 @@ namespace PocketConsensus
             if (!IsEmpty(ptx->GetParentTxHash()))
             {
                 // TODO (brangr): replace to check exists not deleted comment
-                auto[ok, parentTx] = ConsensusRepoInst.GetLastContent(
-                    *ptx->GetParentTxHash(),
-                    { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
-                );
+                auto[ok, parentTx] = ConsensusRepoInst.GetLastContent(*ptx->GetParentTxHash(), { CONTENT_COMMENT, CONTENT_COMMENT_EDIT });
 
                 if (!ok)
                     return {false, SocialConsensusResult_InvalidParentComment};

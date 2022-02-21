@@ -40,56 +40,6 @@ namespace PocketDb
         return result;
     }
 
-    // Select all user profile edit transaction in chain
-    // Transactions.Height is not null
-    tuple<bool, PTransactionRef> ConsensusRepository::GetLastAccount(const string& address)
-    {
-        PTransactionRef tx = nullptr;
-
-        TryTransactionStep(__func__, [&]()
-        {
-            string sql = R"sql(
-                SELECT
-                    t.Type,
-                    t.Hash,
-                    t.Time,
-                    t.Last,
-                    t.Id,
-                    t.String1,
-                    t.String2,
-                    t.String3,
-                    t.String4,
-                    t.String5,
-                    t.Int1,
-                    p.TxHash pHash,
-                    p.String1 pString1,
-                    p.String2 pString2,
-                    p.String3 pString3,
-                    p.String4 pString4,
-                    p.String5 pString5,
-                    p.String6 pString6,
-                    p.String7 pString7
-                FROM Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-                LEFT JOIN Payload p on t.Hash = p.TxHash
-                WHERE t.Type in (100, 101, 102)
-                    and t.String1 = ?
-                    and t.Last = 1
-                    and t.Height is not null
-            )sql";
-
-            auto stmt = SetupSqlStatement(sql);
-            TryBindStatementText(stmt, 1, address);
-
-            if (sqlite3_step(*stmt) == SQLITE_ROW)
-                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, true); ok)
-                    tx = transaction;
-
-            FinalizeSqlStatement(*stmt);
-        });
-
-        return {tx != nullptr, tx};
-    }
-
     tuple<bool, PTransactionRef> ConsensusRepository::GetFirstContent(const string& rootHash)
     {
         PTransactionRef tx = nullptr;
@@ -798,6 +748,32 @@ namespace PocketDb
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)
                     result = value;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    tuple<bool, int64_t> ConsensusRepository::GetLastAccountTime(const string& address)
+    {
+        tuple<bool, int64_t> result = {false, 0};
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(R"sql(
+                select Time
+                from Transactions
+                where String1 = ?
+                  and Last = 1
+                  and Height is not null
+            )sql");
+
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
+                    result = {true, value};
 
             FinalizeSqlStatement(*stmt);
         });

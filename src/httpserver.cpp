@@ -20,6 +20,7 @@
 #include <future>
 #include <rpc/register.h>
 #include <walletinitinterface.h>
+#include "eventloop.h"
 
 #ifdef EVENT__HAVE_NETINET_IN_H
 #include <netinet/in.h>
@@ -35,82 +36,27 @@
 /** Maximum size of http request (request line + headers) */
 static const size_t MAX_HEADERS_SIZE = 8192;
 
-/** Simple work queue for distributing work over multiple threads.
- * Work items are simply callable objects.
- */
-template<typename WorkItem>
-class WorkQueue
+class ExecutorSqlite : public IQueueProcessor<std::unique_ptr<HTTPClosure>>
 {
-private:
-    /** Mutex protects entire object */
-    Mutex cs;
-    std::condition_variable cond;
-    std::deque<std::unique_ptr<WorkItem>> queue;
-    bool running;
-    size_t maxDepth;
-
 public:
-    explicit WorkQueue(size_t _maxDepth) : running(true), maxDepth(_maxDepth)
+    explicit ExecutorSqlite(bool selfDbConnection)
     {
-
-    }
-
-    /** Precondition: worker threads have all stopped (they have been joined).
-     */
-    ~WorkQueue()
-    {
-    }
-
-    /** Enqueue a work item */
-    bool Enqueue(WorkItem *item)
-    {
-        LOCK(cs);
-
-        if (queue.size() >= maxDepth)
-            return false;
-
-        queue.emplace_back(std::unique_ptr<WorkItem>(item));
-        cond.notify_one();
-
-        return true;
-    }
-
-    /** Thread function */
-    void Run(bool selfDbConnection)
-    {
-        DbConnectionRef sqliteConnection;
         if (selfDbConnection)
-            sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
-
-        while (true)
-        {
-            std::unique_ptr<WorkItem> i;
-            {
-                WAIT_LOCK(cs, lock);
-                while (running && queue.empty())
-                    cond.wait(lock);
-                if (!running)
-                    break;
-                i = std::move(queue.front());
-                queue.pop_front();
-            }
-            (*i)(sqliteConnection);
-        }
+            m_sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
     }
-
-    /** Interrupt and exit loops */
-    void Interrupt()
+    void Process(std::unique_ptr<HTTPClosure> closure) override
     {
-        LOCK(cs);
-        running = false;
-        cond.notify_all();
+        (*closure)(m_sqliteConnection);
     }
+private:
+    DbConnectionRef m_sqliteConnection;
 };
+
 
 struct HTTPPathHandler
 {
     HTTPPathHandler(std::string _prefix, bool _exactMatch, HTTPRequestHandler _handler,
-                    WorkQueue<HTTPClosure>* _queue) :
+                    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> _queue) :
         prefix(_prefix), exactMatch(_exactMatch), handler(_handler), queue(_queue)
     {
     }
@@ -118,7 +64,7 @@ struct HTTPPathHandler
     std::string prefix;
     bool exactMatch;
     HTTPRequestHandler handler;
-    WorkQueue<HTTPClosure>* queue;
+    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue;
 };
 
 /** HTTP module state */
@@ -218,7 +164,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
             }
         }
     }
-    std::unique_ptr<HTTPRequest> hreq(new HTTPRequest(req));
+    std::shared_ptr<HTTPRequest> hreq = std::make_shared<HTTPRequest>(req);
 
     LogPrint(BCLog::HTTP, "Received a %s request for %s from %s\n",
         RequestMethodString(hreq->GetRequestMethod()), hreq->GetURI(), hreq->GetPeer().ToString());
@@ -272,16 +218,12 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     // Dispatch to worker thread
     if (i != iend)
     {
-        std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
+        auto item = std::make_unique<HTTPWorkItem>(hreq, path, i->handler);
 
-        if (i->queue->Enqueue(item.get()))
-        {
-            item.release();
-        }
-        else
+        if (!i->queue->Add(std::move(item)))
         {
             LogPrint(BCLog::RPCERROR, "WARNING: request rejected because http work queue depth exceeded.\n");
-            item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded");
+            hreq->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded");
         }
     }
     else
@@ -368,13 +310,6 @@ static bool HTTPBindAddresses()
     }
 
     return bindAddresses;
-}
-
-/** Simple wrapper to set thread name and run work queue */
-static void HTTPWorkQueueRun(WorkQueue<HTTPClosure> *queue, bool selfDbConnection, int worker_num)
-{
-    util::ThreadRename(strprintf("pocketcoin-httpworker.%i", worker_num));
-    queue->Run(selfDbConnection);
 }
 
 /** libevent event log callback */
@@ -616,7 +551,7 @@ HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, boo
         evhttp_cmd_type::EVHTTP_REQ_OPTIONS
     );
 
-    m_workQueue = new WorkQueue<HTTPClosure>(queueDepth);
+    m_workQueue = std::make_shared<QueueLimited<std::unique_ptr<HTTPClosure>>>(queueDepth);
     LogPrintf("HTTP: creating work queue of depth %d\n", queueDepth);
 
     // transfer ownership to eventBase/HTTP via .release()
@@ -632,10 +567,16 @@ HTTPSocket::~HTTPSocket()
     }
 }
 
-void HTTPSocket::StartThreads(WorkQueue<HTTPClosure>* queue, int threadCount, bool selfDbConnection)
+void HTTPSocket::StartThreads(std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection)
 {
-    for (int i = 0; i < threadCount; i++)
-        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, queue, selfDbConnection, i);
+    for (int i = 0; i < threadCount; i++) {
+        // Creating exec processor for every thread to guarantee each thread will have its own sqliteConnection.
+        // If unique sqliteConnection for each thread is not required, execProcessor can be shared between threads
+        auto execProcessor = std::make_shared<ExecutorSqlite>(selfDbConnection);
+        auto thread = std::make_shared<QueueEventLoopThread<std::unique_ptr<HTTPClosure>>>(queue, std::move(execProcessor));
+        thread->Start(strprintf("pocketcoin-httpworker.%i", i));
+        m_thread_http_workers.emplace_back(thread);
+    }
 }
 
 void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
@@ -645,16 +586,15 @@ void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
 
 void HTTPSocket::StopHTTPSocket()
 {
-    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-
-    for (auto &thread: m_thread_http_workers)
-        thread.join();
-
-    m_thread_http_workers.clear();
+    // Interrupting socket here because stop without interrupting is illegal.
+    if (!m_thread_http_workers.empty()) {
+        InterruptHTTPSocket();
+    }
+    // Resetting queue as it has done previously that restricts running this socket again.
+    // However this doesn't affect current rpc handlers because they handle their own shared_ptr of queue, but adding new rpc handlers
+    // is UB after this call.
+    m_workQueue.reset();
     
-    delete m_workQueue;
-    m_workQueue = nullptr;
-
     // Unlisten sockets, these are what make the event loop running, which means
     // that after this and all connections are closed the event loop will quit.
     for (evhttp_bound_socket *socket : m_boundSockets)
@@ -672,8 +612,13 @@ void HTTPSocket::InterruptHTTPSocket()
         evhttp_set_gencb(m_eventHTTP, http_reject_request_cb, nullptr);
     }
 
-    if (m_workQueue)
-        m_workQueue->Interrupt();
+    // Do not clear queue so if we want to start again call StartHTTPSocket
+    // and new threads will be created to process already exists queue.
+    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
+    for (auto &thread: m_thread_http_workers)
+        thread->Stop();
+
+    m_thread_http_workers.clear();
 }
 
 void HTTPSocket::BindAddress(std::string ipAddr, int port)
@@ -700,7 +645,7 @@ int HTTPSocket::GetAddressCount()
 }
 
 void HTTPSocket::RegisterHTTPHandler(const std::string &prefix, bool exactMatch,
-                                     const HTTPRequestHandler &handler, WorkQueue<HTTPClosure>* _queue)
+                                     const HTTPRequestHandler &handler, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> _queue)
 {
     LogPrint(BCLog::HTTP, "Registering HTTP handler for %s (exactmatch %d)\n", prefix, exactMatch);
     m_pathHandlers.emplace_back(prefix, exactMatch, handler, _queue);
@@ -846,7 +791,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& 
 HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess)
     : HTTPSocket(base, timeout, queueDepth, publicAccess)
 {
-    m_workPostQueue = new WorkQueue<HTTPClosure>(queuePostDepth);
+    m_workPostQueue = std::make_shared<QueueLimited<std::unique_ptr<HTTPClosure>>>(queuePostDepth);
     LogPrintf("HTTP: creating work post queue of depth %d\n", queuePostDepth);
 }
 
@@ -862,16 +807,12 @@ void HTTPWebSocket::StopHTTPSocket()
 {   
     HTTPSocket::StopHTTPSocket();
 
-    delete m_workPostQueue;
-    m_workPostQueue = nullptr;
+    m_workPostQueue.reset();
 }
 
 void HTTPWebSocket::InterruptHTTPSocket()
 {
     HTTPSocket::InterruptHTTPSocket();
-
-    if (m_workPostQueue)
-        m_workPostQueue->Interrupt();
 }
 
 HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, std::function<void()> _handler) :

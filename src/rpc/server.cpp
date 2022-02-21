@@ -10,6 +10,7 @@
 #include <sync.h>
 #include <util/strencodings.h>
 #include <util/system.h>
+#include <init.h>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -29,7 +30,7 @@ static RPCTimerInterface* timerInterface = nullptr;
 /* Map of name to timer. */
 static Mutex g_deadline_timers_mutex;
 static std::map<std::string, std::unique_ptr<RPCTimerBase> > deadlineTimers GUARDED_BY(g_deadline_timers_mutex);
-static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& request, UniValue& result, bool last_handler);
+static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& request, UniValue& result, bool last_handler, RPCCache* cache);
 
 struct RPCCommandExecutionInfo
 {
@@ -342,10 +343,11 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
 
     // Find method
     auto it = mapCommands.find(request.strMethod);
+    // TODO (losty): Now it is legal to have more than one rpc command with same name. Only first one found works, but probably this coult break cache
     if (it != mapCommands.end()) {
         UniValue result;
         for (const auto& command : it->second) {
-            if (ExecuteCommand(*command, request, result, &command == &it->second.back())) {
+            if (ExecuteCommand(*command, request, result, &command == &it->second.back(), cache.get())) {
                 return result;
             }
         }
@@ -353,22 +355,35 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
     throw JSONRPCError(RPC_METHOD_NOT_FOUND, "Method not found");
 }
 
-static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& request, UniValue& result, bool last_handler)
+static bool ExecuteCommand(const CRPCCommand& command, const JSONRPCRequest& request, UniValue& result, bool last_handler, RPCCache* cache)
 {
-    try
-    {
-        RPCCommandExecution execution(request.strMethod);
-        // Execute, convert arguments to array if necessary
-        if (request.params.isObject()) {
-            return command.actor(transformNamedArguments(request, command.argNames), result, last_handler);
-        } else {
-            return command.actor(request, result, last_handler);
+    auto start = gStatEngineInstance.GetCurrentSystemTime();
+    auto ret = cache->GetRpcCache(request);
+    if (ret.isNull()) {
+        try
+        {
+            RPCCommandExecution execution(request.strMethod);
+            // Execute, convert arguments to array if necessary
+            if (request.params.isObject()) {
+                return command.actor(transformNamedArguments(request, command.argNames), result, last_handler);
+            } else {
+                return command.actor(request, result, last_handler);
+            }
+        }
+        catch (const std::exception& e)
+        {
+            throw JSONRPCError(RPC_MISC_ERROR, e.what());
         }
     }
-    catch (const std::exception& e)
-    {
-        throw JSONRPCError(RPC_MISC_ERROR, e.what());
-    }
+    
+
+    auto stop = gStatEngineInstance.GetCurrentSystemTime();
+
+    auto diff = (stop - start);
+    LogPrint(BCLog::RPC, "RPC Method time %s (%s) - %ldms\n", request.strMethod, request.peerAddr.substr(0, request.peerAddr.find(':')), diff.count());
+
+    result = std::move(ret);
+    return true;
 }
 
 std::vector<std::string> CRPCTable::listCommands() const

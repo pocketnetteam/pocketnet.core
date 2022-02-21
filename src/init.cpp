@@ -46,6 +46,8 @@
 #include <script/sigcache.h>
 #include <script/standard.h>
 #include <shutdown.h>
+#include <eventloop.h>
+#include <websocket/notifyprocessor.h>
 #ifdef ENABLE_WALLET
 #include <staker.h>
 #endif
@@ -103,6 +105,10 @@ static const bool DEFAULT_REST_ENABLE = false;
 static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 Statistic::RequestStatEngine gStatEngineInstance;
+
+std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
+std::shared_ptr<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>> notifyClientsThread;
+std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -264,6 +270,9 @@ void Shutdown(NodeContext& node)
     if (g_load_block.joinable()) g_load_block.join();
     threadGroup.interrupt_all();
     threadGroup.join_all();
+    if (notifyClientsThread) {
+        notifyClientsThread->Stop();
+    }
 
     // After the threads that potentially access these pointers have been stopped,
     // destruct and reset all to nullptr.
@@ -645,6 +654,7 @@ void SetupServerArgs(NodeContext& node)
     argsman.AddArg("-rpcstaticworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcpostworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcrestworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_WORKQUEUE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+    argsman.AddArg("-rpccachesize=<n>", strprintf("Maximum amount of memory in megabytes allowed for RPCcache usage (default: %d MB)", 64), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-server", "Accept command line and JSON-RPC commands", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
 
     // SQLite
@@ -1462,16 +1472,12 @@ static void StartWS()
                     if (std::find(keys.begin(), keys.end(), "nonce") != keys.end())
                     {
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
-
-                        boost::lock_guard<boost::mutex> guard(WSMutex);
-                        WSConnections.erase(connection->ID());
-                        WSConnections.insert_or_assign(connection->ID(), wsUser);
+                        WSConnections->insert_or_assign(connection->ID(), wsUser);
                     } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
-                            boost::lock_guard<boost::mutex> guard(WSMutex);
-                            WSConnections.erase(connection->ID());
+                            WSConnections->erase(connection->ID());
                         }
                     }
                 }
@@ -1493,20 +1499,12 @@ static void StartWS()
 
     ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/)
     {
-        boost::lock_guard<boost::mutex> guard(WSMutex);
-        if (WSConnections.find(connection->ID()) != WSConnections.end())
-        {
-            WSConnections.erase(connection->ID());
-        }
+        WSConnections->erase(connection->ID());
     };
 
     ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec)
     {
-        boost::lock_guard<boost::mutex> guard(WSMutex);
-        if (WSConnections.find(connection->ID()) != WSConnections.end())
-        {
-            WSConnections.erase(connection->ID());
-        }
+        WSConnections->erase(connection->ID());
     };
 
     server.start();
@@ -1514,6 +1512,11 @@ static void StartWS()
 
 static void InitWS()
 {
+    WSConnections = std::make_shared<ProtectedMap<std::string, WSUser>>();
+    auto notifyProcessor = std::make_shared<NotifyBlockProcessor>(WSConnections);
+    notifyClientsQueue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
+    notifyClientsThread = std::make_shared<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>(notifyClientsQueue, notifyProcessor);
+    notifyClientsThread->Start();
     std::thread server_thread(&StartWS);
     server_thread.detach();
 }

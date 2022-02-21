@@ -189,7 +189,7 @@ namespace PocketDb
 
         try
         {
-            LogPrintf("Creating Sqlite database `%s` structure..\n", m_file_path);
+            LogPrintf("Migration Sqlite database `%s` structure..\n", m_file_path);
 
             if (sqlite3_get_autocommit(m_db) == 0)
                 throw std::runtime_error(strprintf("%s: Database `%s` not opened?\n", __func__, m_file_path));
@@ -198,16 +198,22 @@ namespace PocketDb
             for (const auto& tbl : m_db_migration->Tables())
                 tables += tbl + "\n";
             if (!BulkExecute(tables))
-                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure\n", __func__, m_file_path));
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (Tables)\n", __func__, m_file_path));
 
             std::string views;
             for (const auto& vw : m_db_migration->Views())
                 views += vw + "\n";
             if (!BulkExecute(views))
-                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure\n", __func__, m_file_path));
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (Views)\n", __func__, m_file_path));
+
+            if (!BulkExecute(m_db_migration->PreProcessing()))
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (PreProcessing)\n", __func__, m_file_path));
 
             if (!BulkExecute(m_db_migration->Indexes()))
-                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure\n", __func__, m_file_path));
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (Indexes)\n", __func__, m_file_path));
+
+            if (!BulkExecute(m_db_migration->PostProcessing()))
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (PostProcessing)\n", __func__, m_file_path));
         }
         catch (const std::exception& ex)
         {

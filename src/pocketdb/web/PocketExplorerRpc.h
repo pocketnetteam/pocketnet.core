@@ -25,7 +25,10 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan SearchByHash();
     RPCHelpMan GetAddressTransactions();
     RPCHelpMan GetBlockTransactions();
+    RPCHelpMan GetTransaction();
     RPCHelpMan GetTransactions();
+
+    UniValue _constructTransaction(const PTransactionRef& ptx);
 }
 
 

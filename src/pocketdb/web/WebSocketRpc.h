@@ -8,6 +8,7 @@
 #include "rpc/server.h"
 #include "logging.h"
 #include "validation.h"
+#include "pocketdb/web/PocketExplorerRpc.h"
 
 namespace PocketWeb::PocketWebRpc
 {

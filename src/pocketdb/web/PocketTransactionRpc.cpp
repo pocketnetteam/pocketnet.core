@@ -63,34 +63,6 @@ namespace PocketWeb::PocketWebRpc
         return estimatesmartfee();
     }
 
-    RPCHelpMan GetTransaction()
-    {
-        return RPCHelpMan{"getrawtransaction",
-                "\nGet transaction data.\n"
-                "in BIP 141 (witness data is discounted).\n",
-                {
-                    // TODO (losty-rpc): provide arguments description
-                },
-                {
-                    // TODO (losty-rpc): provide return description
-                },
-                RPCExamples{
-                    "" // TODO (losty-rpc): provide examples
-                },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-    {
-        RPCTypeCheck(request.params, {UniValue::VSTR});
-        string txid = request.params[0].get_str();
-
-        UniValue txs = request.DbConnection()->ExplorerRepoInst->GetTransactions({ txid }, 1, 2);
-        if (txs.empty())
-            return UniValue(UniValue::VOBJ);
-
-        return txs[0];
-    },
-        };
-    }
-
     CMutableTransaction ConstructPocketnetTransaction(const UniValue& inputs_in, const CTxOut& dataOut,
         const UniValue& outputs_in, const UniValue& locktime, const UniValue& rbf)
     {
