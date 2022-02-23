@@ -21,12 +21,28 @@
 
 #include <list>
 #include <vector>
+#include "pocketdb/services/Serializer.h"
+
+
+static std::shared_ptr<CBlock> StakeBlock(const CScript& coinbase_scriptPubKey)
+{
+    auto block = std::make_shared<CBlock>(
+        BlockAssembler{Params()}
+            .CreateNewBlock(coinbase_scriptPubKey, /* fMineWitnessTx */ true, /*fProofOfStake */ true)
+            ->block);
+
+    block->nTime = ::chainActive.Tip()->GetMedianTimePast() + 1;
+    block->hashMerkleRoot = BlockMerkleRoot(*block);
+
+    return block;
+}
+
 
 static std::shared_ptr<CBlock> PrepareBlock(const CScript& coinbase_scriptPubKey)
 {
     auto block = std::make_shared<CBlock>(
         BlockAssembler{Params()}
-            .CreateNewBlock(coinbase_scriptPubKey, /* fMineWitnessTx */ true)
+            .CreateNewBlock(coinbase_scriptPubKey, /* fMineWitnessTx */ true, /*fProofOfStake */ false)
             ->block);
 
     block->nTime = ::chainActive.Tip()->GetMedianTimePast() + 1;
@@ -45,14 +61,19 @@ static CTxIn MineBlock(const CScript& coinbase_scriptPubKey)
         assert(block->nNonce);
     }
 
-    bool processed{ProcessNewBlock(Params(), block, true)};
+    CValidationState state;
+    UniValue pocketData;
+    bool ignored;
+    auto[deserializeOk, pocketBlock] = PocketServices::Serializer::DeserializeBlock(*block);
+    auto pocketBlockRef = std::make_shared<PocketBlock>(pocketBlock);
+    bool processed{ProcessNewBlock(state, Params(), block, pocketBlockRef, true, true, &ignored)};
     assert(processed);
 
     return CTxIn{block->vtx[0]->GetHash(), 0};
 }
 
 
-static void AssembleBlock(benchmark::State& state)
+static void AssembleBlock(benchmark::Bench& bench)
 {
     const std::vector<unsigned char> op_true{OP_TRUE};
     CScriptWitness witness;
@@ -62,10 +83,6 @@ static void AssembleBlock(benchmark::State& state)
     CSHA256().Write(&op_true[0], op_true.size()).Finalize(witness_program.begin());
 
     const CScript SCRIPT_PUB{CScript(OP_0) << std::vector<unsigned char>{witness_program.begin(), witness_program.end()}};
-
-    // Switch to regtest so we can mine faster
-    // Also segwit is active, so we can include witness transactions
-    SelectParams(CBaseChainParams::REGTEST);
 
     InitScriptExecutionCache();
 
@@ -103,14 +120,20 @@ static void AssembleBlock(benchmark::State& state)
 
         for (const auto& txr : txs) {
             CValidationState state;
-            bool ret{::AcceptToMemoryPool(::mempool, state, txr, nullptr /* pfMissingInputs */, nullptr /* plTxnReplaced */, false /* bypass_limits */, /* nAbsurdFee */ 0)};
+            bool ret{::AcceptToMemoryPool(::mempool, state, txr, 
+                nullptr /* pocketTx */,
+                nullptr /* pfMissingInputs */,
+                nullptr /* plTxnReplaced */,
+                false /* bypass_limits */,
+                0 /* nAbsurdFee */,
+                false /* test_accept */)};
             assert(ret);
         }
     }
 
-    while (state.KeepRunning()) {
-        PrepareBlock(SCRIPT_PUB);
-    }
+    bench.run([&] {
+        StakeBlock(SCRIPT_PUB);
+    });
 
     thread_group.interrupt_all();
     thread_group.join_all();
@@ -118,4 +141,4 @@ static void AssembleBlock(benchmark::State& state)
     GetMainSignals().UnregisterBackgroundSignalScheduler();
 }
 
-BENCHMARK(AssembleBlock, 700);
+BENCHMARK(AssembleBlock);

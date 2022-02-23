@@ -7,6 +7,7 @@
 #if defined(HAVE_CONSENSUS_LIB)
 #include <script/pocketcoinconsensus.h>
 #endif
+#include <validation.h>
 #include <script/script.h>
 #include <script/sign.h>
 #include <script/standard.h>
@@ -51,7 +52,7 @@ static CMutableTransaction BuildSpendingTransaction(const CScript& scriptSig, co
 
 // Microbenchmark for verification of a basic P2WPKH script. Can be easily
 // modified to measure performance of other types of scripts.
-static void VerifyScriptBench(benchmark::State& state)
+static void VerifyScriptBench(benchmark::Bench& bench)
 {
     const int flags = SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH;
     const int witnessversion = 0;
@@ -81,7 +82,7 @@ static void VerifyScriptBench(benchmark::State& state)
     witness.stack.push_back(ToByteVector(pubkey));
 
     // Benchmark.
-    while (state.KeepRunning()) {
+    bench.run([&] {
         ScriptError err;
         bool success = VerifyScript(
             txSpend.vin[0].scriptSig,
@@ -103,7 +104,7 @@ static void VerifyScriptBench(benchmark::State& state)
             (const unsigned char*)stream.data(), stream.size(), 0, flags, nullptr);
         assert(csuccess == 1);
 #endif
-    }
+    });
 }
 
-BENCHMARK(VerifyScriptBench, 6300);
+BENCHMARK(VerifyScriptBench);
