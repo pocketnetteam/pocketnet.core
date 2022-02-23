@@ -53,7 +53,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
         std::string optype;
 
         // Get all addresses from tx outs and check OP_RETURN
-            for (int i = 0; i < tx->vout.size(); i++) {
+        for (int i = 0; i < tx->vout.size(); i++) {
             const CTxOut& txout = tx->vout[i];
             //-------------------------
             if (txout.scriptPubKey[0] == OP_RETURN) {
