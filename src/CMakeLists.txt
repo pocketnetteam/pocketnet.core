@@ -323,6 +323,7 @@ endif ()
 set(POCKETCOIN_COMMON pocketcoin_common)
 add_library(${POCKETCOIN_COMMON}
         cuckoocache.h
+        eventloop.h
         indirectmap.h
         limitedmap.h
         memusage.h
@@ -333,6 +334,7 @@ add_library(${POCKETCOIN_COMMON}
         undo.h
         span.h
         prevector.h
+        protectedmap.h
         compat.h
         compat/byteswap.h
         compat/endian.h
@@ -652,6 +654,8 @@ add_library(${POCKETCOIN_SERVER}
         key_io.cpp
         websocket/ws.h
         websocket/ws.cpp
+        websocket/notifyprocessor.h
+        websocket/notifyprocessor.cpp
         validation.h
         validation.cpp
         validationinterface.h

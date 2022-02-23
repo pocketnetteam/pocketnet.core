@@ -307,6 +307,7 @@ POCKETCOIN_CORE_H = \
     core_io.h \
     core_memusage.h \
     cuckoocache.h \
+    eventloop.h \
     fs.h \
     httprpc.h \
     httpserver.h \
@@ -340,6 +341,7 @@ POCKETCOIN_CORE_H = \
     policy/rbf.h \
     pos.h \
     pow.h \
+    protectedmap.h \
     protocol.h \
     random.h \
     reverse_iterator.h \
@@ -402,6 +404,7 @@ POCKETCOIN_CORE_H = \
     zmq/zmqpublishnotifier.h \
     zmq/zmqrpc.h \
     websocket/ws.h \
+    websocket/notifyprocessor.h \
     utils/html.h \
     $(POCKETDB_H)
 
@@ -465,6 +468,7 @@ libpocketcoin_server_a_SOURCES = \
     validationinterface.cpp \
     versionbits.cpp \
     websocket/ws.cpp \
+    websocket/notifyprocessor.cpp \
     utils/html.cpp \
     $(POCKETDB_CPP) \
     $(POCKETCOIN_CORE_H)

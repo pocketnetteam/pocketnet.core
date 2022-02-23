@@ -6,6 +6,7 @@
 #ifndef POCKETCOIN_VALIDATION_H
 #define POCKETCOIN_VALIDATION_H
 
+#include "eventloop.h"
 #if defined(HAVE_CONFIG_H)
 
 #include <config/pocketcoin-config.h>
@@ -22,6 +23,7 @@
 #include <sync.h>
 #include <versionbits.h>
 #include <streams.h>
+#include <protectedmap.h>
 
 #include <algorithm>
 #include <exception>
@@ -40,8 +42,8 @@
 #include "pocketdb/helpers/TransactionHelper.h"
 using namespace PocketHelpers;
 
-extern boost::mutex WSMutex;
-extern std::map<std::string, WSUser> WSConnections;
+extern std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
+extern std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
 
 class CBlockIndex;
 
