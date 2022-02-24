@@ -22,6 +22,8 @@
 #include <walletinitinterface.h>
 #include "eventloop.h"
 
+#include "rpcapi/rpcapi.h"
+
 #ifdef EVENT__HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #ifdef _XOPEN_SOURCE_EXTENDED
