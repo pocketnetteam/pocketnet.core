@@ -51,7 +51,6 @@ bench_bench_pocketcoin_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(EVENT_
 bench_bench_pocketcoin_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bench_bench_pocketcoin_LDADD = \
   $(LIBPOCKETCOIN_SERVER) \
-  $(LIBPOCKETCOIN_CLI) \
   $(LIBPOCKETCOIN_WALLET) \
   $(LIBPOCKETCOIN_COMMON) \
   $(LIBPOCKETCOIN_UTIL) \
@@ -77,10 +76,10 @@ if ENABLE_ZMQ
 bench_bench_pocketcoin_LDADD += $(LIBPOCKETCOIN_ZMQ) $(ZMQ_LIBS)
 endif
 
-# if ENABLE_WALLET
-# bench_bench_pocketcoin_SOURCES += bench/coin_selection.cpp
-# bench_bench_pocketcoin_SOURCES += bench/wallet_balance.cpp
-# endif
+if ENABLE_WALLET
+  bench_bench_pocketcoin_SOURCES += bench/coin_selection.cpp
+  bench_bench_pocketcoin_SOURCES += bench/wallet_balance.cpp
+endif
 
 bench_bench_pocketcoin_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(MINIUPNPC_LIBS) $(SQLITE_LIBS)
 bench_bench_pocketcoin_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
