@@ -9,7 +9,7 @@ static const unsigned int MAX_CACHE_SIZE_MB = 64;
 
 RPCCache::RPCCache() 
 {
-    m_blockHeight = ChainActive().Height();
+    m_blockHeight = 0;
     m_maxCacheSize = gArgs.GetArg("-rpccachesize", MAX_CACHE_SIZE_MB) * 1024 * 1024;
 }
 
