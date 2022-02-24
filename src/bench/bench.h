@@ -18,16 +18,17 @@
 /*
  * Usage:
 
-static void CODE_TO_TIME(benchmark::Bench& bench)
+static void NameOfYourBenchmarkFunction(benchmark::Bench& bench)
 {
-    ... do any setup needed...
-    nanobench::Config().run([&] {
-       ... do stuff you want to time...
+    ...do any setup needed...
+    bench.run([&] {
+         ...do stuff you want to time; refer to src/bench/nanobench.h
+            for more information and the options that can be passed here...
     });
-    ... do any cleanup needed...
+    ...do any cleanup needed...
 }
 
-BENCHMARK(CODE_TO_TIME);
+BENCHMARK(NameOfYourBenchmarkFunction);
 
  */
 
@@ -38,11 +39,12 @@ using ankerl::nanobench::Bench;
 typedef std::function<void(Bench&)> BenchFunction;
 
 struct Args {
-    std::string regex_filter;
     bool is_list_only;
+    std::chrono::milliseconds min_time;
     std::vector<double> asymptote;
     std::string output_csv;
     std::string output_json;
+    std::string regex_filter;
 };
 
 class BenchRunner

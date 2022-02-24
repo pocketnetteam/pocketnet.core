@@ -10,9 +10,27 @@
 #include <test/util/wallet.h>
 #include <txmempool.h>
 #include <validation.h>
+#include <miner.h>
+#include <consensus/merkle.h>
 
 
 #include <vector>
+#include "pocketdb/services/Serializer.h"
+
+
+static std::shared_ptr<CBlock> StakeBlock(const NodeContext& node, const CScript& coinbase_scriptPubKey)
+{
+    auto block = std::make_shared<CBlock>(
+        BlockAssembler{*Assert(node.mempool), Params()}
+            .CreateNewBlock(coinbase_scriptPubKey, /*fProofOfStake */ true)
+            ->block);
+
+    block->nTime = ::ChainActive().Tip()->GetMedianTimePast() + 1;
+    block->hashMerkleRoot = BlockMerkleRoot(*block);
+
+    return block;
+}
+
 
 static void AssembleBlock(benchmark::Bench& bench)
 {
@@ -49,13 +67,13 @@ static void AssembleBlock(benchmark::Bench& bench)
 
         for (const auto& txr : txs) {
             TxValidationState state;
-            bool ret{::AcceptToMemoryPool(*test_setup.m_node.mempool, state, txr,, nullptr, nullptr /* plTxnReplaced */, false /* bypass_limits */)};
+            bool ret{::AcceptToMemoryPool(*test_setup.m_node.mempool, state, txr, nullptr, nullptr /* plTxnReplaced */, false /* bypass_limits */)};
             assert(ret);
         }
     }
 
     bench.run([&] {
-        PrepareBlock(test_setup.m_node, SCRIPT_PUB);
+        StakeBlock(test_setup.m_node, SCRIPT_PUB);
     });
 }
 

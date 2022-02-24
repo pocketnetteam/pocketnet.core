@@ -139,30 +139,11 @@ TestingSetup::TestingSetup(const std::string& chainName, const std::vector<const
     // instead of unit tests, but for now we need these here.
     InitHTTPServer(m_node);
 
-    auto dbBasePath = (GetDataDir() / "pocketdb").string();
-    PocketDb::IntitializeSqlite();
+    PocketDb::InitSQLite(GetDataDir() / "pocketdb");
 
-    PocketDb::PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDb::PocketDbMainMigration>();
-    PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
-    PocketDb::SQLiteDbInst.CreateStructure();
-
-    PocketDb::TransRepoInst.Init();
-    PocketDb::ChainRepoInst.Init();
-    PocketDb::RatingsRepoInst.Init();
-    PocketDb::ConsensusRepoInst.Init();
-    PocketDb::NotifierRepoInst.Init();
-
-    // Open, create structure and close `web` db
-    PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
-    PocketDb::SQLiteDatabase sqliteDbWebInst(false);
-    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration);
-    sqliteDbWebInst.CreateStructure();
-    sqliteDbWebInst.m_connection_mutex.lock();
-    sqliteDbWebInst.Close();
-    sqliteDbWebInst.m_connection_mutex.unlock();
-
-    // Attach `web` db to `main` db
-    PocketDb::SQLiteDbInst.AttachDatabase("web");
+    // Go up two directories to access the checkpoints folder, assume we are running in /src/test
+    fs::path checkpointsPath = fs::system_complete("..");
+    PocketDb::InitSQLiteCheckpoints(checkpointsPath / "checkpoints");
 
     m_node.scheduler = MakeUnique<CScheduler>();
 

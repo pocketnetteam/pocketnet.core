@@ -1621,44 +1621,9 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
 
         // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB...").translated);
-    auto dbBasePath = (GetDataDir() / "pocketdb").string();
-
-    PocketDb::IntitializeSqlite();
-
-    PocketDb::PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDb::PocketDbMainMigration>();
-    PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
-    PocketDb::SQLiteDbInst.CreateStructure();
-
-    PocketDb::TransRepoInst.Init();
-    PocketDb::ChainRepoInst.Init();
-    PocketDb::RatingsRepoInst.Init();
-    PocketDb::ConsensusRepoInst.Init();
-    PocketDb::NotifierRepoInst.Init();
-
-    // Open, create structure and close `web` db
-    PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
-    PocketDb::SQLiteDatabase sqliteDbWebInst(false);
-    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, args.GetArg("-reindex", 0) == 5);
-    sqliteDbWebInst.CreateStructure();
-    sqliteDbWebInst.Close();
-
-    // Attach `web` db to `main` db
-    PocketDb::SQLiteDbInst.AttachDatabase("web");
-
-    // Intialize Checkpoints DB
-    auto checkpointDbName = Params().NetworkIDString();
-    auto checkpointDbPath = (GetDataDir() / "checkpoints");
-    if (!fs::exists((checkpointDbPath / (checkpointDbName + ".sqlite3")).string()))
-    {
-        LogPrintf("Checkpoint DB %s not found!\nDownload actual DB file from %s and place to %s directory.\n",
-            (checkpointDbPath / (checkpointDbName + ".sqlite3")).string(),
-            "https://github.com/pocketnetteam/pocketnet.core/tree/master/checkpoints/" + checkpointDbName + ".sqlite3",
-            checkpointDbPath.string()
-        );
-
-        return InitError(_("Unable to start server. Checkpoints DB not found. See debug log for details."));
-    }
-    PocketDb::SQLiteDbCheckpointInst.Init(checkpointDbPath.string(), checkpointDbName);
+    
+    PocketDb::InitSQLite(GetDataDir() / "pocketdb");
+    PocketDb::InitSQLiteCheckpoints(GetDataDir()  / "checkpoints");
 
     PocketWeb::PocketFrontendInst.Init();
 

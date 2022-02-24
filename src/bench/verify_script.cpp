@@ -7,6 +7,7 @@
 #if defined(HAVE_CONSENSUS_LIB)
 #include <script/pocketcoinconsensus.h>
 #endif
+#include <validation.h>
 #include <script/script.h>
 #include <script/standard.h>
 #include <streams.h>

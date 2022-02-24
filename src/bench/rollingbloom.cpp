@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-
 #include <bench/bench.h>
+#include <validation.h>
 #include <bloom.h>
 
 static void RollingBloom(benchmark::Bench& bench)
