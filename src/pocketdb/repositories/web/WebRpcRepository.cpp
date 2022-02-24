@@ -2925,8 +2925,13 @@ namespace PocketDb
                     TryBindStatementText(stmt, i++, exadr);
             
             if (!tagsExcluded.empty())
+            {
                 for (const auto& extag: tagsExcluded)
                     TryBindStatementText(stmt, i++, extag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
 
             // ---------------------------------------------
             
