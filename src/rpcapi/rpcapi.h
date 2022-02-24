@@ -69,7 +69,7 @@ class RequestHandlerPod
 {
 public:
     RequestHandlerPod(std::vector<PathRequestHandlerEntry> handlers, int queueLimit);
-    bool Process(const util::Ref& context, const std::string& strURI, const std::optional<std::string>& body, std::shared_ptr<IReplier> replier);
+    bool Process(const util::Ref& context, const std::string& strURI, const std::optional<std::string>& body, const std::shared_ptr<IReplier>& replier);
 
     bool Start(int nThreads);
 
