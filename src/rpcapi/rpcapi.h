@@ -2,6 +2,7 @@
 #define POCKETCOIN_RPCAPI_H
 
 
+#include "pocketdb/SQLiteConnection.h"
 #include "rpc/server.h"
 #include "util/ref.h"
 #include "eventloop.h"
@@ -25,29 +26,29 @@ public:
 class IRequestHandler
 {
 public:
-    virtual void Exec(const util::Ref& context, const std::string& strURI, const std::optional<std::string>& body, const std::shared_ptr<IReplier>& replier) = 0;
+    virtual void Exec(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier, const DbConnectionRef& sqliteConnection) = 0;
 };
 
 class RPCTableFunctionalHandler : public IRequestHandler
 {
 public:
-    RPCTableFunctionalHandler(std::shared_ptr<const CRPCTable> table, const std::function<void(const util::Ref&, const std::string&, const std::optional<std::string>&, const CRPCTable& table, std::shared_ptr<IReplier>)>& func);
-    void Exec(const util::Ref& context, const std::string& strURI, const std::optional<std::string>& body, const std::shared_ptr<IReplier>& replier) override;
+    RPCTableFunctionalHandler(std::shared_ptr<const CRPCTable> table, const std::function<void(const util::Ref&, const std::string&, const std::string&, const CRPCTable& table, std::shared_ptr<IReplier>, const DbConnectionRef&)>& func);
+    void Exec(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier, const DbConnectionRef& sqliteConnection) override;
 
 private:
     std::shared_ptr<const CRPCTable> m_table;
-    std::function<void(const util::Ref&, const std::string&, const std::optional<std::string>&, const CRPCTable&, std::shared_ptr<IReplier>)> m_func;
+    std::function<void(const util::Ref&, const std::string&, const std::string&, const CRPCTable&, std::shared_ptr<IReplier>, const DbConnectionRef& sqliteConnection)> m_func;
 };
 
 class WorkItem {
 public:
-    WorkItem(const util::Ref& context, const std::string& strURI, const std::optional<std::string>& body, std::shared_ptr<IReplier> replier, std::shared_ptr<IRequestHandler> handler);
-    void Exec();
+    WorkItem(const util::Ref& context, const std::string& strURI, const std::string& body, std::shared_ptr<IReplier> replier, std::shared_ptr<IRequestHandler> handler);
+    void Exec(const DbConnectionRef& sqliteConnection);
 
 private:
     util::Ref m_context;
     std::string m_strURI;
-    std::optional<std::string> m_body;
+    std::string m_body;
     std::shared_ptr<IReplier> m_replier;
     std::shared_ptr<IRequestHandler> m_handler;
 };
@@ -63,15 +64,17 @@ class WorkItemExecutor : public IQueueProcessor<WorkItem>
 {
 public:
     void Process(WorkItem entry) override;
+private:
+    DbConnectionRef m_sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
 };
 
 class RequestHandlerPod
 {
 public:
-    RequestHandlerPod(std::vector<PathRequestHandlerEntry> handlers, int queueLimit);
-    bool Process(const util::Ref& context, const std::string& strURI, const std::optional<std::string>& body, const std::shared_ptr<IReplier>& replier);
+    RequestHandlerPod(std::vector<PathRequestHandlerEntry> handlers, int queueLimit, int nThreads);
+    bool Process(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier);
 
-    bool Start(int nThreads);
+    bool Start();
 
     void Interrupt();
 
@@ -82,6 +85,39 @@ private:
     std::shared_ptr<QueueLimited<WorkItem>> m_queue;
     std::vector<PathRequestHandlerEntry> m_handlers;
     std::vector<QueueEventLoopThread<WorkItem>> m_workers;
+    int m_numThreads;
+};
+
+class ReuestProcessor
+{
+public:
+    ReuestProcessor(const util::Ref &context, std::vector<RequestHandlerPod> pods)
+        : m_pods(std::move(pods)),
+          m_context(context)
+    {}
+    bool Process(const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier)
+    {
+        for (auto& pod : m_pods)
+        {
+            // TODO (losty-nat): right handler can be found but request rejected because of queue overflow. Probably handle this inside pod.
+            if (pod.Process(m_context, strURI, body, replier)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    void Start()
+    {
+        for (auto& pod: m_pods) {
+            pod.Start();
+        }
+    }
+
+private:
+    std::vector<RequestHandlerPod> m_pods;
+    util::Ref m_context;
 };
 
 #endif // POCKETCOIN_RPCAPI_H
