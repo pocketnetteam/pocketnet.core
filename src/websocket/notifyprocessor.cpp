@@ -87,8 +87,21 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                             contentLangCnt[OR_VIDEO][lang] += 1;
                         }
                     }
-                    // else if (spl[1] == OR_POSTEDIT)
-                    // 	optype = "shareEdit";
+                    else if (spl[1] == OR_ARTICLE) {
+                        optype = "article";
+                        sharesCnt += 1;
+
+                        auto response = PocketDb::NotifierRepoInst.GetPostLang(txid);
+
+                        if (response.exists("lang"))
+                        {
+                            std::string lang = response["lang"].get_str();
+
+                            contentLangCnt[OR_ARTICLE][lang] += 1;
+                        }
+                    }
+                    else if (spl[1] == OR_CONTENT_BOOST)
+                        optype = "contentBoost";
                     else if (spl[1] == OR_SCORE)
                         optype = "upvoteShare";
                     else if (spl[1] == OR_SUBSCRIBE)
@@ -131,7 +144,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
             PrepareWSMessage(messages, "transaction", addr.first, txid, txtime, cTrFields);
 
             // Event for new PocketNET transaction
-            if (optype == "share" || optype == "video")
+            if (optype == "share" || optype == "video" || "article")
             {
                 auto response = PocketDb::NotifierRepoInst.GetPostInfo(txid);
                 if (response.exists("hash") && response.exists("rootHash") && response["hash"].get_str() != response["rootHash"].get_str())
@@ -177,6 +190,30 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
                         cFields.emplace("avatarFrom",subscribesResponse[i]["avatarFrom"].get_str());
 
                     PrepareWSMessage(messages, "event", address, txid, txtime, cFields);
+                }
+            }
+            else if (optype == "contentBoost")
+            {
+                auto response = PocketDb::NotifierRepoInst.GetBoostInfo(txid);
+                if (response.exists("contentHash"))
+                {
+                    if(response["contentAddress"].get_str() == addr.first)
+                        continue;
+
+                    custom_fields cFields
+                        {
+                            {"mesType", optype},
+                            {"addrFrom", addr.first},
+                            {"nameFrom", response["boostName"].get_str()},
+                            {"boostAmount", response["boostAmount"].get_str()},
+                            {"posttxid", response["contentHash"].get_str()},
+                            {"reason", "boost"},
+                        };
+
+                    if (response.exists("boostAvatar"))
+                        cFields.emplace("avatarFrom",response["boostAvatar"].get_str());
+
+                    PrepareWSMessage(messages, "event", response["contentAddress"].get_str(), txid, txtime, cFields);
                 }
             }
             else if (optype == "userInfo")

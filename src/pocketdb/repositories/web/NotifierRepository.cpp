@@ -106,6 +106,53 @@ namespace PocketDb
         return result;
     }
 
+    UniValue NotifierRepository::GetBoostInfo(const string& boostHash)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            select
+                tBoost.Hash Hash,
+                tBoost.String2 rootHash,
+                tBoost.String1 boostAddress,
+                tBoost.Int1 boostAmount,
+                p.String2 as boostName,
+                p.String3 as boostAvatar,
+                tContent.String1 as contentAddress,
+                tContent.String2 as contentHash
+            from Transactions tBoost
+            join Transaction tContent indexed by Transactions_Type_Last_String2_Height on tContent.String2=tBoost.String2
+                and tContent.Last = 1 and tContent.Height > 0 and
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = tBoost.String1
+            join Payload p on p.TxHash = u.Hash
+            where tBoost.Type in (208)
+              and tBoost.Hash = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, boostHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("hash", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("rootHash", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("boostAddress", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 3); ok) result.pushKV("boostAmount", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("boostName", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) result.pushKV("boostAvatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) result.pushKV("contentAddress", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) result.pushKV("contentHash", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue NotifierRepository::GetOriginalPostAddressByRepost(const string &repostHash)
     {
         UniValue result(UniValue::VOBJ);
