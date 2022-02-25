@@ -241,18 +241,6 @@ namespace PocketConsensus
     {
     public:
         UserConsensus_checkpoint_login_limitation(int height) : UserConsensus_checkpoint_1381841(height) {}
-    private:
-        char _allowedSymbols[37] = { 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9','_' };
-
-        bool _allCharactersAllowed(const string& s)
-        {
-            int n = s.length();
-            for (int i = 1; i < n; i++)
-                if (!strchr(_allowedSymbols, s[i]))
-                    return false;
-        
-            return true;
-        }
 
     protected:
         ConsensusValidateResult CheckLogin(const UserRef& ptx) override
@@ -266,7 +254,7 @@ namespace PocketConsensus
             if (name.size() > 20)
                 return {false, SocialConsensusResult_NicknameLong};
             
-            if (!_allCharactersAllowed(name))
+            if (!all_of(name.begin(), name.end(), [](unsigned char ch) { return ::isalnum(ch) || ch == '_'; }))
                 return {false, SocialConsensusResult_Failed};
 
             return Success;
