@@ -11,42 +11,56 @@ namespace PocketWeb::PocketWebRpc
     void ParseFeedRequest(const JSONRPCRequest& request, int& topHeight, string& topContentHash, int& countOut, string& lang, vector<string>& tags,
         vector<int>& contentTypes, vector<string>& txIdsExcluded, vector<string>& adrsExcluded, vector<string>& tagsExcluded, string& address)
     {
+        int paramPos = 0;
+
         topHeight = chainActive.Height();
-        if (request.params.size() > 0 && request.params[0].isNum() && request.params[0].get_int() > 0)
-            topHeight = request.params[0].get_int();
+        if (request.params.size() > paramPos && request.params[paramPos].isNum() && request.params[paramPos].get_int() > 0)
+            topHeight = request.params[paramPos].get_int();
+        paramPos++;
 
-        if (request.params.size() > 1 && request.params[1].isStr())
-            topContentHash = request.params[1].get_str();
-
-        countOut = 10;
-        if (request.params.size() > 2 && request.params[2].isNum())
+        if (topContentHash != "skip")
         {
-            countOut = request.params[2].get_int();
-            if (countOut > 10)
-                countOut = 10;
+            if (request.params.size() > paramPos && request.params[paramPos].isStr())
+                topContentHash = request.params[paramPos].get_str();
+            paramPos++;
+        }
+
+        if (countOut != -999)
+        {
+            countOut = 10;
+            if (request.params.size() > paramPos && request.params[paramPos].isNum())
+            {
+                countOut = request.params[paramPos].get_int();
+                if (countOut > 10)
+                    countOut = 10;
+            }
+            paramPos++;
         }
 
         lang = "en";
-        if (request.params.size() > 3 && request.params[3].isStr())
-            lang = request.params[3].get_str();
+        if (request.params.size() > paramPos && request.params[paramPos].isStr())
+            lang = request.params[paramPos].get_str();
+        paramPos++;
 
         // tags
-        if (request.params.size() > 4)
-            ParseRequestTags(request.params[4], tags);
+        if (request.params.size() > paramPos)
+            ParseRequestTags(request.params[paramPos], tags);
+        paramPos++;
 
         // content types
-        ParseRequestContentTypes(request.params[5], contentTypes);
+        ParseRequestContentTypes(request.params[paramPos], contentTypes);
+        paramPos++;
 
         // exclude ids
-        if (request.params.size() > 6)
+        if (request.params.size() > paramPos)
         {
-            if (request.params[6].isStr())
+            if (request.params[paramPos].isStr())
             {
-                txIdsExcluded.push_back(request.params[6].get_str());
+                txIdsExcluded.push_back(request.params[paramPos].get_str());
             }
-            else if (request.params[6].isArray())
+            else if (request.params[paramPos].isArray())
             {
-                UniValue txids = request.params[6].get_array();
+                UniValue txids = request.params[paramPos].get_array();
                 for (unsigned int idx = 0; idx < txids.size(); idx++)
                 {
                     string txidEx = boost::trim_copy(txids[idx].get_str());
@@ -58,17 +72,18 @@ namespace PocketWeb::PocketWebRpc
                 }
             }
         }
+        paramPos++;
 
         // exclude addresses
-        if (request.params.size() > 7)
+        if (request.params.size() > paramPos)
         {
-            if (request.params[7].isStr())
+            if (request.params[paramPos].isStr())
             {
-                adrsExcluded.push_back(request.params[7].get_str());
+                adrsExcluded.push_back(request.params[paramPos].get_str());
             }
-            else if (request.params[7].isArray())
+            else if (request.params[paramPos].isArray())
             {
-                UniValue adrs = request.params[7].get_array();
+                UniValue adrs = request.params[paramPos].get_array();
                 for (unsigned int idx = 0; idx < adrs.size(); idx++)
                 {
                     string adrEx = boost::trim_copy(adrs[idx].get_str());
@@ -80,38 +95,25 @@ namespace PocketWeb::PocketWebRpc
                 }
             }
         }
+        paramPos++;
 
         // exclude tags
-        if (request.params.size() > 8)
+        if (request.params.size() > paramPos)
+            ParseRequestTags(request.params[paramPos], tagsExcluded);
+        paramPos++;
+
+        if (address != "skip")
         {
-            if (request.params[8].isStr())
+            // address for person output
+            if (request.params.size() > paramPos)
             {
-                tagsExcluded.push_back(request.params[8].get_str());
+                RPCTypeCheckArgument(request.params[paramPos], UniValue::VSTR);
+                address = request.params[paramPos].get_str();
+                CTxDestination dest = DecodeDestination(address);
+
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
             }
-            else if (request.params[8].isArray())
-            {
-                UniValue tagsEx = request.params[8].get_array();
-                for (unsigned int idx = 0; idx < tagsEx.size(); idx++)
-                {
-                    string tgsEx = boost::trim_copy(tagsEx[idx].get_str());
-                    if (!tgsEx.empty())
-                        tagsExcluded.push_back(tgsEx);
-
-                    if (tagsExcluded.size() > 100)
-                        break;
-                }
-            }
-        }
-
-        // address for person output
-        if (request.params.size() > 9)
-        {
-            RPCTypeCheckArgument(request.params[9], UniValue::VSTR);
-            address = request.params[9].get_str();
-            CTxDestination dest = DecodeDestination(address);
-
-            if (!IsValidDestination(dest))
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
         }
     }
 
@@ -402,6 +404,47 @@ namespace PocketWeb::PocketWebRpc
 
         result.pushKV("height", topHeight);
         result.pushKV("contents", content);
+        return result;
+    }
+
+    UniValue GetBoostFeed(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetHierarchicalFeed\n"
+                "topHeight           (int) - ???\n"
+                "lang                (string, optional) - ???\n"
+                "tags                (vector<string>, optional) - ???\n"
+                "contentTypes        (vector<int>, optional) - ???\n"
+                "txIdsExcluded       (vector<string>, optional) - ???\n"
+                "adrsExcluded        (vector<string>, optional) - ???\n"
+                "tagsExcluded        (vector<string>, optional) - ???\n"
+            );
+
+        int topHeight;
+        string lang;
+        vector<string> tags;
+        vector<int> contentTypes;
+        vector<string> txIdsExcluded;
+        vector<string> adrsExcluded;
+        vector<string> tagsExcluded;
+
+        string skipString = "skip";
+        int skipInt =  -999;
+        ParseFeedRequest(request, topHeight, skipString, skipInt, lang, tags, contentTypes, txIdsExcluded,
+            adrsExcluded, tagsExcluded, skipString);
+
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
+        UniValue result(UniValue::VOBJ);
+        UniValue boosts = request.DbConnection()->WebRpcRepoInst->GetBoostFeed(
+            topHeight, lang, tags, contentTypes,
+            txIdsExcluded, adrsExcluded, tagsExcluded,
+            badReputationLimit);
+
+        result.pushKV("height", topHeight);
+        result.pushKV("boosts", boosts);
         return result;
     }
 
