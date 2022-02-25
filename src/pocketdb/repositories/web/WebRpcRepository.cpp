@@ -3117,6 +3117,148 @@ namespace PocketDb
         return result;
     }
 
+    UniValue WebRpcRepository::GetBoostFeed(int topHeight,
+        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        int badReputationLimit)
+    {
+        auto func = __func__;
+        UniValue result(UniValue::VARR);
+
+        // --------------------------------------------
+
+        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
+
+        string langFilter;
+        if (!lang.empty())
+            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = tc.Hash and p.String1 = ? ";
+
+        string sql = R"sql(
+            select
+                t.Id,
+                tb.String2,
+                sum(tb.Int1) as sumBoost
+
+            from Transactions tb indexed by Transactions_Type_Last_String2_Height
+            join Transactions tc indexed by Transactions_Type_Last_String2_Height
+                on tc.String2 = tb.String2 and tc.Last = 1 and tc.Type in )sql" + contentTypesWhere + R"sql( and tc.Height > 0
+                and tc.String3 is null--?????
+
+            )sql" + langFilter + R"sql(
+
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+
+            left join Ratings ur indexed by Ratings_Type_Id_Last_Height
+                on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
+
+            where tb.Type = 208
+                and tb.Last in (0, 1)
+                and tb.Height > ?
+                and tb.Height <= ?
+
+                -- Do not show posts from users with low reputation
+                and ifnull(ur.Value,0) > ?
+
+                )sql";
+
+        if (!tags.empty())
+        {
+            sql += R"sql(
+                and tc.id in (
+                    select tm.ContentId
+                    from web.Tags tag indexed by Tags_Lang_Value_Id
+                    join web.TagsMap tm indexed by TagsMap_TagId_ContentId
+                        on tag.Id = tm.TagId
+                    where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
+                )
+            )sql";
+        }
+
+        if (!txidsExcluded.empty()) sql += " and tc.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+        if (!adrsExcluded.empty()) sql += " and tc.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!tagsExcluded.empty())
+        {
+            sql += R"sql( and tc.Id not in (
+                select tmEx.ContentId
+                from web.Tags tagEx indexed by Tags_Lang_Value_Id
+                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
+                    on tagEx.Id=tmEx.TagId
+                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
+             ) )sql";
+        }
+
+        sql += " group by tb.String2";
+        sql += " order by sum(tb.Int1) desc";
+
+        // ---------------------------------------------
+
+        vector<int64_t> ids;
+
+        TryTransactionStep(func, [&]()
+        {
+            int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            for (const auto& contenttype: contentTypes)
+                TryBindStatementInt(stmt, i++, contenttype);
+
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+
+            TryBindStatementInt(stmt, i++, topHeight);
+            TryBindStatementInt(stmt, i++, topHeight - cntBlocksForResult);
+
+            TryBindStatementInt(stmt, i++, badReputationLimit);
+
+            if (!tags.empty())
+            {
+                for (const auto& tag: tags)
+                    TryBindStatementText(stmt, i++, tag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            if (!txidsExcluded.empty())
+                for (const auto& extxid: txidsExcluded)
+                    TryBindStatementText(stmt, i++, extxid);
+
+            if (!adrsExcluded.empty())
+                for (const auto& exadr: adrsExcluded)
+                    TryBindStatementText(stmt, i++, exadr);
+
+            if (!tagsExcluded.empty())
+            {
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, i++, extag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            // ---------------------------------------------
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[ok0, contentId] = TryGetColumnInt64(*stmt, 0);
+                auto[ok1, contentHash] = TryGetColumnString(*stmt, 1);
+                auto[ok2, sumBoost] = TryGetColumnInt64(*stmt, 2);
+                UniValue boost(UniValue::VOBJ);
+                boost.pushKV("id", contentId);
+                boost.pushKV("txid", contentHash);
+                boost.pushKV("boost", sumBoost);
+                result.push_back(boost);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        // Complete!
+        return result;
+    }
+
     // ------------------------------------------------------
 
     vector<int64_t> WebRpcRepository::GetRandomContentIds(const string& lang, int count, int height)
