@@ -280,11 +280,11 @@ namespace PocketConsensus
     class UserConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint < UserConsensus>> m_rules = {
+        const vector<ConsensusCheckpoint<UserConsensus>> m_rules = {
             {       0,     -1, [](int height) { return make_shared<UserConsensus>(height); }},
             { 1180000,      0, [](int height) { return make_shared<UserConsensus_checkpoint_1180000>(height); }},
             { 1381841, 162000, [](int height) { return make_shared<UserConsensus_checkpoint_1381841>(height); }},
-            { 9999999, 629000, [](int height) { return make_shared<UserConsensus_checkpoint_login_limitation>(height); }},
+            { 1629000, 630000, [](int height) { return make_shared<UserConsensus_checkpoint_login_limitation>(height); }},
         };
     public:
         shared_ptr<UserConsensus> Instance(int height)
