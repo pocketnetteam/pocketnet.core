@@ -64,23 +64,6 @@ namespace PocketConsensus
         }
         ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
         {
-            auto ptxORHash = ptx->BuildHash();
-            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
-
-            if (ptxORHash != txORHash)
-            {
-                auto ptxORHashRef = ptx->BuildHash(false);
-                if (ptxORHashRef != txORHash)
-                {
-                    auto data = ptx->PreBuildHash();
-                    LogPrint(BCLog::CONSENSUS, "--- %s\n", data);
-                    LogPrint(BCLog::CONSENSUS, "Warning: FailedOpReturn for USER %s: %s | %s != %s\n",
-                        *ptx->GetHash(), ptxORHash, ptxORHashRef, txORHash);
-                    //if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                    //    return {false, SocialConsensusResult_FailedOpReturn};
-                }
-            }
-
             return Success;
         }
 
@@ -102,6 +85,9 @@ namespace PocketConsensus
                     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoDoubleInBlock))
                         return {false, SocialConsensusResult_ChangeInfoDoubleInBlock};
                 }
+
+                if (auto[ok, result] = ValidateBlockDuplicateName(ptx, blockPtx); !ok)
+                    return {false, result};
             }
 
             if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
@@ -188,6 +174,11 @@ namespace PocketConsensus
 
             return Success;
         }
+    
+        virtual ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx)
+        {
+            return Success;
+        }
     };
 
     /*******************************************************************************************************************
@@ -259,6 +250,54 @@ namespace PocketConsensus
 
             return Success;
         }
+        // TODO (brangr): move to base class after this checkpoint
+        ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx) override
+        {
+            auto ptxName = *ptx->GetPayloadName();
+            boost::algorithm::to_lower(ptxName);
+
+            auto blockPtxName = *blockPtx->GetPayloadName();
+            boost::algorithm::to_lower(blockPtxName);
+
+            if (ptxName == blockPtxName)
+                return {false, SocialConsensusResult_NicknameDouble};
+
+            return Success;
+        }
+        // TODO (brangr): move to base class after this checkpoint
+        ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
+        {
+            auto ptxORHash = ptx->BuildHash();
+            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
+            if (ptxORHash == txORHash)
+                return Success;
+
+            // if (!IsEmpty(ptx->GetReferrerAddress()))
+            // {
+            //     auto ptxORHashRef = ptx->BuildHash(false);
+            //     if (ptxORHashRef == txORHash)
+            //         return Success;
+            // }
+                
+            // if (auto[ok, referrer] = ConsensusRepoInst.GetReferrer(*ptx->GetAddress()); ok)
+            // {
+            //     auto ptxReferrer = make_shared<User>(*ptx);
+            //     ptxReferrer->SetReferrerAddress(referrer);
+            //     auto ptxORHashRef = ptx->BuildHash();
+            //     if (ptxORHashRef == txORHash)
+            //         return Success;
+            // }
+
+            if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
+                return Success;
+
+            auto data = ptx->PreBuildHash();
+            LogPrint(BCLog::CONSENSUS, "--- %s\n", data);
+            LogPrint(BCLog::CONSENSUS, "Warning: FailedOpReturn for USER (2) %s: %s != %s\n",
+                *ptx->GetHash(), ptxORHash, txORHash);
+
+            return {false, SocialConsensusResult_FailedOpReturn};
+        }
     };
 
 
@@ -272,7 +311,7 @@ namespace PocketConsensus
             {       0,     -1, [](int height) { return make_shared<UserConsensus>(height); }},
             { 1180000,      0, [](int height) { return make_shared<UserConsensus_checkpoint_1180000>(height); }},
             { 1381841, 162000, [](int height) { return make_shared<UserConsensus_checkpoint_1381841>(height); }},
-            { 1629000, 630000, [](int height) { return make_shared<UserConsensus_checkpoint_login_limitation>(height); }},
+            { 1629000, 650000, [](int height) { return make_shared<UserConsensus_checkpoint_login_limitation>(height); }}, // ~ 03/25/2022
         };
     public:
         shared_ptr<UserConsensus> Instance(int height)
