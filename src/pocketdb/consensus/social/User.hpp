@@ -5,6 +5,8 @@
 #ifndef POCKETCONSENSUS_USER_HPP
 #define POCKETCONSENSUS_USER_HPP
 
+#include <boost/algorithm/string.hpp>
+
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/User.h"
 
@@ -50,34 +52,16 @@ namespace PocketConsensus
             // Check payload
             if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
 
-            // TODO (brangr): enable with fork height
-            //if (IsEmpty(ptx->GetPayloadName())) return {false, SocialConsensusResult_Failed};
-
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
                 return make_tuple(false, SocialConsensusResult_ReferrerSelf);
 
-            // Maximum length for user name
-            auto name = *ptx->GetPayloadName();
-
-            // TODO (brangr): enable with fork height
-            // if (name.empty() || name.size() > 35)
-            // {
-            //     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
-            //         return {false, SocialConsensusResult_NicknameLong};
-            // }
-
-            // Trim spaces
-            if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
-            {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(),
-                    SocialConsensusResult_Failed))
-                    return {false, SocialConsensusResult_Failed};
-            }
+            // Name check
+            if (auto[ok, result] = CheckLogin(ptx); !ok)
+                return {false, result};
 
             return Success;
         }
-
         ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
         {
             auto ptxORHash = ptx->BuildHash();
@@ -189,6 +173,21 @@ namespace PocketConsensus
 
             return Success;
         }
+    
+        virtual ConsensusValidateResult CheckLogin(const UserRef& ptx)
+        {
+            auto name = *ptx->GetPayloadName();
+
+            // Trim spaces
+            if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
+            {
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(),
+                    SocialConsensusResult_Failed))
+                    return {false, SocialConsensusResult_Failed};
+            }
+
+            return Success;
+        }
     };
 
     /*******************************************************************************************************************
@@ -236,15 +235,56 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
+    *  Limitations for username
+    *******************************************************************************************************************/
+    class UserConsensus_checkpoint_login_limitation : public UserConsensus_checkpoint_1381841
+    {
+    public:
+        UserConsensus_checkpoint_login_limitation(int height) : UserConsensus_checkpoint_1381841(height) {}
+    private:
+        char _allowedSymbols[37] = { 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9','_' };
+
+        bool _allCharactersAllowed(const string& s)
+        {
+            int n = s.length();
+            for (int i = 1; i < n; i++)
+                if (!strchr(_allowedSymbols, s[i]))
+                    return false;
+        
+            return true;
+        }
+
+    protected:
+        ConsensusValidateResult CheckLogin(const UserRef& ptx) override
+        {
+            if (IsEmpty(ptx->GetPayloadName()))
+                return {false, SocialConsensusResult_Failed};
+
+            auto name = *ptx->GetPayloadName();
+            boost::algorithm::to_lower(name);
+
+            if (name.size() > 35)
+                return {false, SocialConsensusResult_NicknameLong};
+            
+            if (!_allCharactersAllowed(name))
+                return {false, SocialConsensusResult_Failed};
+
+            return Success;
+        }
+    };
+
+
+    /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
     class UserConsensusFactory
     {
     private:
         const vector<ConsensusCheckpoint < UserConsensus>> m_rules = {
-            { 0, -1, [](int height) { return make_shared<UserConsensus>(height); }},
-            { 1180000, 0, [](int height) { return make_shared<UserConsensus_checkpoint_1180000>(height); }},
+            {       0,     -1, [](int height) { return make_shared<UserConsensus>(height); }},
+            { 1180000,      0, [](int height) { return make_shared<UserConsensus_checkpoint_1180000>(height); }},
             { 1381841, 162000, [](int height) { return make_shared<UserConsensus_checkpoint_1381841>(height); }},
+            { 9999999, 629000, [](int height) { return make_shared<UserConsensus_checkpoint_login_limitation>(height); }},
         };
     public:
         shared_ptr<UserConsensus> Instance(int height)
