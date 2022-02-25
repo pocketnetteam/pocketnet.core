@@ -1,4 +1,4 @@
-#include "notifyprocessor.h"
+#include "websocket/notifyprocessor.h"
 
 #include "validation.h"
 #include "primitives/block.h"
