@@ -131,6 +131,10 @@ namespace PocketWeb::PocketWebRpc
 
         // ---------------------------------------------------------------------
 
+        result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedBoosts(address, blockNumber, cntResult));
+
+        // ---------------------------------------------------------------------
+
         return result;
     }
 }
