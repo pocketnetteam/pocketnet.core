@@ -35,6 +35,8 @@
 #include <script/sigcache.h>
 #include <script/standard.h>
 #include <shutdown.h>
+#include <eventloop.h>
+#include <websocket/notifyprocessor.h>
 #ifdef ENABLE_WALLET
 #include <staker.h>
 #endif
@@ -88,6 +90,9 @@ std::unique_ptr<CConnman> g_connman;
 std::unique_ptr<PeerLogicValidation> peerLogic;
 Statistic::RequestStatEngine gStatEngineInstance;
 
+std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
+std::shared_ptr<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>> notifyClientsThread;
+std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -234,6 +239,9 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroup.interrupt_all();
     threadGroup.join_all();
+    if (notifyClientsThread) {
+        notifyClientsThread->Stop();
+    }
 
     // After the threads that potentially access these pointers have been stopped,
     // destruct and reset all to nullptr.
@@ -619,6 +627,8 @@ void SetupServerArgs()
     gArgs.AddArg("-rpcstaticworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (STATIC) calls (default: %d)", DEFAULT_HTTP_STATIC_WORKQUEUE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcpostworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (POST) calls (default: %d)", DEFAULT_HTTP_POST_WORKQUEUE), false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcrestworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC (REST) calls (default: %d)", DEFAULT_HTTP_REST_WORKQUEUE), false, OptionsCategory::RPC);
+    gArgs.AddArg("-rpccachesize=<n>", strprintf("Maximum amount of memory in megabytes allowed for RPCcache usage (default: %d MB)", 64), false, OptionsCategory::RPC);
+
     gArgs.AddArg("-statdepth=<n>", strprintf("Set the depth of the work queue for statistic in seconds (default: %ds)", 60), false, OptionsCategory::RPC);
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
 
@@ -1553,16 +1563,12 @@ static void StartWS()
                     if (std::find(keys.begin(), keys.end(), "nonce") != keys.end())
                     {
                         WSUser wsUser = {connection, _addr, block, ip, service, mainPort, wssPort};
-
-                        boost::lock_guard<boost::mutex> guard(WSMutex);
-                        WSConnections.erase(connection->ID());
-                        WSConnections.insert_or_assign(connection->ID(), wsUser);
+                        WSConnections->insert_or_assign(connection->ID(), wsUser);
                     } else if (std::find(keys.begin(), keys.end(), "msg") != keys.end())
                     {
                         if (val["msg"].get_str() == "unsubscribe")
                         {
-                            boost::lock_guard<boost::mutex> guard(WSMutex);
-                            WSConnections.erase(connection->ID());
+                            WSConnections->erase(connection->ID());
                         }
                     }
                 }
@@ -1584,20 +1590,12 @@ static void StartWS()
 
     ws.on_close = [](std::shared_ptr<WsServer::Connection> connection, int status, const std::string& /*reason*/)
     {
-        boost::lock_guard<boost::mutex> guard(WSMutex);
-        if (WSConnections.find(connection->ID()) != WSConnections.end())
-        {
-            WSConnections.erase(connection->ID());
-        }
+        WSConnections->erase(connection->ID());
     };
 
     ws.on_error = [](std::shared_ptr<WsServer::Connection> connection, const SimpleWeb::error_code& ec)
     {
-        boost::lock_guard<boost::mutex> guard(WSMutex);
-        if (WSConnections.find(connection->ID()) != WSConnections.end())
-        {
-            WSConnections.erase(connection->ID());
-        }
+        WSConnections->erase(connection->ID());
     };
 
     server.start();
@@ -1605,6 +1603,11 @@ static void StartWS()
 
 static void InitWS()
 {
+    WSConnections = std::make_shared<ProtectedMap<std::string, WSUser>>();
+    auto notifyProcessor = std::make_shared<NotifyBlockProcessor>(WSConnections);
+    notifyClientsQueue = std::make_shared<Queue<std::pair<CBlock, CBlockIndex*>>>();
+    notifyClientsThread = std::make_shared<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>>(notifyClientsQueue, notifyProcessor);
+    notifyClientsThread->Start();
     std::thread server_thread(&StartWS);
     server_thread.detach();
 }
@@ -1682,44 +1685,9 @@ bool AppInitMain()
 
     // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB..."));
-    auto dbBasePath = (GetDataDir() / "pocketdb").string();
 
-    PocketDb::IntitializeSqlite();
-
-    PocketDb::PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDb::PocketDbMainMigration>();
-    PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
-    PocketDb::SQLiteDbInst.CreateStructure();
-
-    PocketDb::TransRepoInst.Init();
-    PocketDb::ChainRepoInst.Init();
-    PocketDb::RatingsRepoInst.Init();
-    PocketDb::ConsensusRepoInst.Init();
-    PocketDb::NotifierRepoInst.Init();
-
-    // Open, create structure and close `web` db
-    PocketDb::PocketDbMigrationRef webDbMigration = std::make_shared<PocketDb::PocketDbWebMigration>();
-    PocketDb::SQLiteDatabase sqliteDbWebInst(false);
-    sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, gArgs.GetArg("-reindex", 0) == 5);
-    sqliteDbWebInst.CreateStructure();
-    sqliteDbWebInst.Close();
-
-    // Attach `web` db to `main` db
-    PocketDb::SQLiteDbInst.AttachDatabase("web");
-
-    // Intialize Checkpoints DB
-    auto checkpointDbName = Params().NetworkIDString();
-    auto checkpointDbPath = (GetDataDir() / "checkpoints");
-    if (!fs::exists((checkpointDbPath / (checkpointDbName + ".sqlite3")).string()))
-    {
-        LogPrintf("Checkpoint DB %s not found!\nDownload actual DB file from %s and place to %s directory.\n",
-            (checkpointDbPath / (checkpointDbName + ".sqlite3")).string(),
-            "https://github.com/pocketnetteam/pocketnet.core/tree/master/checkpoints/" + checkpointDbName + ".sqlite3",
-            checkpointDbPath.string()
-        );
-
-        return InitError(_("Unable to start server. Checkpoints DB not found. See debug log for details."));
-    }
-    PocketDb::SQLiteDbCheckpointInst.Init(checkpointDbPath.string(), checkpointDbName);
+    PocketDb::InitSQLite(GetDataDir() / "pocketdb");
+    PocketDb::InitSQLiteCheckpoints(GetDataDir()  / "checkpoints");
 
     PocketWeb::PocketFrontendInst.Init();
 

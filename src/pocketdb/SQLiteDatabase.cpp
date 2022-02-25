@@ -3,6 +3,7 @@
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/SQLiteDatabase.h"
+#include "pocketdb/pocketnet.h"
 #include "util.h"
 
 namespace PocketDb
@@ -18,7 +19,7 @@ namespace PocketDb
         LogPrintf("%s: %d; Message: %s\n", __func__, code, msg);
     }
 
-    void IntitializeSqlite()
+    static void InitializeSqlite()
     {
         LogPrintf("SQLite usage version: %d\n", (int)sqlite3_libversion_number());
 
@@ -41,6 +42,50 @@ namespace PocketDb
         if (ret != SQLITE_OK)
             throw std::runtime_error(
                 strprintf("%s: %d; Failed to initialize SQLite: %s\n", __func__, ret, sqlite3_errstr(ret)));
+    }
+
+    void InitSQLite(fs::path path)
+    {
+        auto dbBasePath = path.string();
+
+        InitializeSqlite();
+        PocketDbMigrationRef mainDbMigration = std::make_shared<PocketDbMainMigration>();
+        PocketDb::SQLiteDbInst.Init(dbBasePath, "main", mainDbMigration);
+        SQLiteDbInst.CreateStructure();
+
+        TransRepoInst.Init();
+        ChainRepoInst.Init();
+        RatingsRepoInst.Init();
+        ConsensusRepoInst.Init();
+        NotifierRepoInst.Init();
+
+        // Open, create structure and close `web` db
+        PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();
+        SQLiteDatabase sqliteDbWebInst(false);
+        sqliteDbWebInst.Init(dbBasePath, "web", webDbMigration, gArgs.GetArg("-reindex", 0) == 5);
+        sqliteDbWebInst.CreateStructure();
+        sqliteDbWebInst.Close();
+
+        // Attach `web` db to `main` db
+        SQLiteDbInst.AttachDatabase("web");
+    }
+
+    void InitSQLiteCheckpoints(fs::path path)
+    {
+        // Intialize Checkpoints DB
+        auto checkpointDbName = Params().NetworkIDString();
+        if (!fs::exists((path / (checkpointDbName + ".sqlite3")).string()))
+        {
+            LogPrintf("Checkpoint DB %s not found!\nDownload actual DB file from %s and place to %s directory.\n",
+                (path / (checkpointDbName + ".sqlite3")).string(),
+                "https://github.com/pocketnetteam/pocketnet.core/tree/master/checkpoints/" + checkpointDbName + ".sqlite3",
+                path.string()
+            );
+
+            throw std::runtime_error(_("Unable to start server. Checkpoints DB not found. See debug log for details."));
+        }
+        SQLiteDbCheckpointInst.Init(path.string(), checkpointDbName);
+
     }
 
     SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)
@@ -189,7 +234,7 @@ namespace PocketDb
 
         try
         {
-            LogPrintf("Creating Sqlite database `%s` structure..\n", m_file_path);
+            LogPrintf("Migration Sqlite database `%s` structure..\n", m_file_path);
 
             if (sqlite3_get_autocommit(m_db) == 0)
                 throw std::runtime_error(strprintf("%s: Database `%s` not opened?\n", __func__, m_file_path));
@@ -198,16 +243,22 @@ namespace PocketDb
             for (const auto& tbl : m_db_migration->Tables())
                 tables += tbl + "\n";
             if (!BulkExecute(tables))
-                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure\n", __func__, m_file_path));
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (Tables)\n", __func__, m_file_path));
 
             std::string views;
             for (const auto& vw : m_db_migration->Views())
                 views += vw + "\n";
             if (!BulkExecute(views))
-                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure\n", __func__, m_file_path));
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (Views)\n", __func__, m_file_path));
+
+            if (!BulkExecute(m_db_migration->PreProcessing()))
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (PreProcessing)\n", __func__, m_file_path));
 
             if (!BulkExecute(m_db_migration->Indexes()))
-                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure\n", __func__, m_file_path));
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (Indexes)\n", __func__, m_file_path));
+
+            if (!BulkExecute(m_db_migration->PostProcessing()))
+                throw std::runtime_error(strprintf("%s: Failed to create database `%s` structure (PostProcessing)\n", __func__, m_file_path));
         }
         catch (const std::exception& ex)
         {

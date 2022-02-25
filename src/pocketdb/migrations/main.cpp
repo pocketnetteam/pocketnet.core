@@ -141,6 +141,15 @@ namespace PocketDb
         )sql");
 
         _tables.emplace_back(R"sql(
+            create table if not exists TxInputs
+            (
+                SpentTxHash text not null,
+                TxHash text not null,
+                Number int not null
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
             create table if not exists Ratings
             (
                 Type   int not null,
@@ -163,7 +172,28 @@ namespace PocketDb
             );
         )sql");
 
+
+        _preProcessing = R"sql(
+            
+            insert into TxInputs
+            (
+                SpentTxHash,
+                TxHash,
+                Number
+            )
+            select
+                o.SpentTxHash,
+                o.TxHash,
+                o.Number
+            from TxOutputs o indexed by TxOutputs_SpentTxHash
+            where o.SpentTxHash is not null
+              and not exists (select i.ROWID from TxInputs i)
+
+        )sql";
+
+
         _indexes = R"sql(
+
             drop index if exists Payload_String2;
             drop index if exists Payload_String2_TxHash;
             drop index if exists Transactions_Height_Time;
@@ -196,6 +226,8 @@ namespace PocketDb
             create index if not exists TxOutputs_TxHash_AddressHash_Value on TxOutputs (TxHash, AddressHash, Value);
             create index if not exists TxOutputs_AddressHash_TxHeight_SpentHeight on TxOutputs (AddressHash, TxHeight, SpentHeight);
 
+            create unique index if not exists TxInputs_SpentTxHash_TxHash_Number on TxInputs (SpentTxHash, TxHash, Number);
+
             create index if not exists Ratings_Last_Id_Height on Ratings (Last, Id, Height);
             create index if not exists Ratings_Height_Last on Ratings (Height, Last);
             create index if not exists Ratings_Type_Id_Value on Ratings (Type, Id, Value);
@@ -211,6 +243,11 @@ namespace PocketDb
             create index if not exists Balances_AddressHash_Last_Height on Balances (AddressHash, Last, Height);
             create index if not exists Balances_Last_Value on Balances (Last, Value);
             create index if not exists Balances_AddressHash_Last on Balances (AddressHash, Last);
+
+        )sql";
+
+        _postProcessing = R"sql(
+
         )sql";
     }
 }

@@ -21,7 +21,7 @@
 #include <boost/test/unit_test.hpp>
 
 // Tests these internal-to-net_processing.cpp methods:
-extern bool AddOrphanTx(const CTransactionRef& tx, NodeId peer);
+extern bool AddOrphanTx(const CTransactionRef& tx, const PTransactionRef& pocketTx, NodeId peer);
 extern void EraseOrphansFor(NodeId peer);
 extern unsigned int LimitOrphanTxSize(unsigned int nMaxOrphans);
 extern void Misbehaving(NodeId nodeid, int howmuch, const std::string& message="");
@@ -351,7 +351,7 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
         tx.vout[0].nValue = 1*CENT;
         tx.vout[0].scriptPubKey = GetScriptForDestination(key.GetPubKey().GetID());
 
-        AddOrphanTx(MakeTransactionRef(tx), i);
+        AddOrphanTx(MakeTransactionRef(tx), nullptr, i);
     }
 
     // ... and 50 that depend on other orphans:
@@ -368,7 +368,7 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
         tx.vout[0].scriptPubKey = GetScriptForDestination(key.GetPubKey().GetID());
         SignSignature(keystore, *txPrev, tx, 0, SIGHASH_ALL);
 
-        AddOrphanTx(MakeTransactionRef(tx), i);
+        AddOrphanTx(MakeTransactionRef(tx), nullptr, i);
     }
 
     // This really-big orphan should be ignored:
@@ -392,7 +392,7 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
         for (unsigned int j = 1; j < tx.vin.size(); j++)
             tx.vin[j].scriptSig = tx.vin[0].scriptSig;
 
-        BOOST_CHECK(!AddOrphanTx(MakeTransactionRef(tx), i));
+        BOOST_CHECK(!AddOrphanTx(MakeTransactionRef(tx), nullptr, i));
     }
 
     LOCK2(cs_main, g_cs_orphans);

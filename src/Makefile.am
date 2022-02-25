@@ -167,6 +167,7 @@ POCKETDB_H = \
     pocketdb/models/base/Base.h \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/Transaction.h \
+    pocketdb/models/base/TransactionInput.h \
     pocketdb/models/base/TransactionOutput.h \
     pocketdb/models/base/Rating.h \
     pocketdb/models/base/Payload.h \
@@ -235,6 +236,7 @@ POCKETDB_CPP = \
     pocketdb/models/base/Base.cpp \
     pocketdb/models/base/Payload.cpp \
     pocketdb/models/base/Transaction.cpp \
+    pocketdb/models/base/TransactionInput.cpp \
     pocketdb/models/base/TransactionOutput.cpp \
     pocketdb/models/base/Rating.cpp \
     pocketdb/models/base/Payload.cpp \
@@ -305,6 +307,7 @@ POCKETCOIN_CORE_H = \
     core_io.h \
     core_memusage.h \
     cuckoocache.h \
+    eventloop.h \
     fs.h \
     httprpc.h \
     httpserver.h \
@@ -338,11 +341,13 @@ POCKETCOIN_CORE_H = \
     policy/rbf.h \
     pos.h \
     pow.h \
+    protectedmap.h \
     protocol.h \
     random.h \
     reverse_iterator.h \
     reverselock.h \
     rpc/blockchain.h \
+    rpc/cache.h \
     rpc/client.h \
     rpc/mining.h \
     rpc/protocol.h \
@@ -399,6 +404,7 @@ POCKETCOIN_CORE_H = \
     zmq/zmqpublishnotifier.h \
     zmq/zmqrpc.h \
     websocket/ws.h \
+    websocket/notifyprocessor.h \
     utils/html.h \
     $(POCKETDB_H)
 
@@ -443,6 +449,7 @@ libpocketcoin_server_a_SOURCES = \
     pow.cpp \
     rest.cpp \
     rpc/blockchain.cpp \
+    rpc/cache.cpp \
     rpc/mining.cpp \
     rpc/misc.cpp \
     rpc/net.cpp \
@@ -461,6 +468,7 @@ libpocketcoin_server_a_SOURCES = \
     validationinterface.cpp \
     versionbits.cpp \
     websocket/ws.cpp \
+    websocket/notifyprocessor.cpp \
     utils/html.cpp \
     $(POCKETDB_CPP) \
     $(POCKETCOIN_CORE_H)
@@ -797,9 +805,9 @@ if ENABLE_TESTS
 include Makefile.test.include
 endif
 
-# if ENABLE_BENCH
-# include Makefile.bench.include
-# endif
+if ENABLE_BENCH
+include Makefile.bench.include
+endif
 
 if ENABLE_QT
 include Makefile.qt.include

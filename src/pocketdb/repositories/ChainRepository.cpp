@@ -19,6 +19,7 @@ namespace PocketDb
                 UpdateTransactionHeight(blockHash, txInfo.BlockNumber, height, txInfo.Hash);
 
                 // The outputs are needed for the explorer
+                // TODO (brangr) (v0.20.19+): replace with update inputs spent with TxInputs table over loop
                 UpdateTransactionOutputs(txInfo, height);
 
                 // Account and Content must have unique ID

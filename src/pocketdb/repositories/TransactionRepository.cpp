@@ -6,6 +6,193 @@
 
 namespace PocketDb
 {
+    class TransactionReconstructor : public RowAccessor
+    {
+    public:
+        TransactionReconstructor() {};
+
+        /**
+         * Pass a new row for reconstructor to collect all necessary data from it.
+         * @param stmt - sqlite stmt. Null is not allowed and will potentially cause a segfault
+         * Returns boolean result of collecting data. If false is returned - all data inside reconstructor is possibly corrupted due to bad input (missing columns, etc)
+         * and it should not be used anymore
+         * 
+         * Columns: PartType (0), TxHash (1), ...
+         * PartTypes: 0 Tx, 1 Payload, 2 Input, 3 Output
+         */
+        bool FeedRow(sqlite3_stmt* stmt)
+        {
+            auto[okPartType, partType] = TryGetColumnInt(stmt, 0);
+            if (!okPartType) return false;
+
+            auto[okTxHash, txHash] = TryGetColumnString(stmt, 1);
+            if (!okTxHash) return false;
+
+            if (partType >= 1 && partType <= 3 && m_transactions.find(txHash) == m_transactions.end())
+                return false;
+
+            switch (partType)
+            {
+            case 0: {
+                auto[ok, ptx] = ParseTransaction(stmt, txHash);
+                if (!ok) return false;
+
+                ptx->SetHash(txHash);
+                m_transactions.emplace(txHash, ptx);
+                break;
+            }
+            case 1: {
+                if (!ParsePayload(stmt, m_transactions[txHash], txHash))
+                    return false;
+                break;
+            }
+            case 2: {
+                if (!ParseInput(stmt, m_transactions[txHash], txHash))
+                    return false;
+                break;
+            }
+            case 3: {
+                if (!ParseOutput(stmt, m_transactions[txHash], txHash))
+                    return false;
+                break;
+            }
+            default:
+                return false;
+            }
+
+            return true;
+        }
+
+        /**
+         * Return contructed block.
+         */
+        PocketBlockRef GetResult()
+        {
+            PocketBlockRef pocketBlock = make_shared<PocketBlock>();
+            for (const auto[txHash, ptx] : m_transactions)
+                pocketBlock->push_back(ptx);
+
+            return pocketBlock;
+        }
+
+    private:
+
+        map<string, PTransactionRef> m_transactions;
+
+        /**
+         * This method parses transaction data, constructs if needed and return construct entry to fill
+         * Index:   0  1     2     3     4          5       6     7   8        9        10       11       12       13    14    15
+         * Columns: 0, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
+         */
+        tuple<bool, PTransactionRef> ParseTransaction(sqlite3_stmt* stmt, const string& txHash)
+        {
+            // Try get Type and create pocket transaction instance
+            auto[okType, txType] = TryGetColumnInt(stmt, 2);
+            if (!okType) return {false, nullptr};
+            
+            PTransactionRef ptx = PocketHelpers::TransactionHelper::CreateInstance(static_cast<TxType>(txType));
+            if (!ptx) return {false, nullptr};
+
+            // Required fields
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 3); ok) ptx->SetTime(value);
+            else return {false, nullptr};
+
+            // Optional fields
+            if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) ptx->SetBlockHash(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) ptx->SetHeight(value);
+            if (auto[ok, value] = TryGetColumnInt(stmt, 6); ok) ptx->SetLast(value == 1);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 7); ok) ptx->SetId(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) ptx->SetString1(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) ptx->SetString2(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) ptx->SetString3(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) ptx->SetString4(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) ptx->SetString5(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) ptx->SetInt1(value);
+
+            return {true, ptx};
+        }
+
+        /**
+         * Parse Payload
+         * Index:   0  1       2     3     4     5     6     7     8        9        10       11       12       13       14       15
+         * Columns: 1, TxHash, null, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
+         */
+        bool ParsePayload(sqlite3_stmt* stmt, PTransactionRef& ptx, const string& txHash)
+        {
+            bool empty = true;
+            Payload payload;
+            payload.SetTxHash(txHash);
+
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { payload.SetString1(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { payload.SetString2(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { payload.SetString3(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { payload.SetString4(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { payload.SetString5(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { payload.SetString6(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) { payload.SetString7(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) { payload.SetInt1(value); empty = false; }
+
+            ptx->SetPayload(payload);
+            return !empty;
+        }
+
+        /**
+         * Parse Inputs
+         * Index:   0  1              2     3     4         5         6        7     8              9     10    11    12    13    14    15
+         * Columns: 2, i.SpentTxHash, null, null, i.TxHash, i.Number, o.Value, null, o.AddressHash, null, null, null, null, null, null, null
+         */
+        bool ParseInput(sqlite3_stmt* stmt, PTransactionRef& ptx, const string& txHash)
+        {
+            bool incomplete = false;
+
+            PTransactionInputRef input = make_shared<TransactionInput>();
+            input->SetSpentTxHash(txHash);
+
+            if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) input->SetTxHash(value);
+            else incomplete = true;
+
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) input->SetNumber(value);
+            else incomplete = true;
+
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 6); ok) input->SetValue(value);
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) input->SetAddressHash(value);
+
+            ptx->Inputs().push_back(input);
+            return !incomplete;
+        }
+
+        /**
+         * Parse Outputs
+         * Index:   0  1       2     3       4            5      6     7     8     9     10            11    12    13    14           15
+         * Columns: 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, SpentTxHash, SpentHeight
+         */
+        bool ParseOutput(sqlite3_stmt* stmt, PTransactionRef& ptx, const string& txHash)
+        {
+            bool incomplete = false;
+
+            PTransactionOutputRef output = make_shared<TransactionOutput>();
+            output->SetTxHash(txHash);
+
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 3); ok) output->SetNumber(value);
+            else incomplete = true;
+
+            if (auto[ok, value] = TryGetColumnString(stmt, 4); ok) output->SetAddressHash(value);
+            else incomplete = true;
+
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 5); ok) output->SetValue(value);
+            else incomplete = true;
+
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) output->SetScriptPubKey(value);
+            else incomplete = true;
+
+            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) output->SetSpentTxHash(value);
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) output->SetSpentHeight(value);
+
+            ptx->Outputs().push_back(output);
+            return !incomplete;
+        }
+    };
+
     void TransactionRepository::InsertTransactions(PocketBlock& pocketBlock)
     {
         TryTransactionStep(__func__, [&]()
@@ -14,6 +201,9 @@ namespace PocketDb
             {
                 // Insert general transaction
                 InsertTransactionModel(ptx);
+
+                // Inputs
+                InsertTransactionInputs(ptx);
 
                 // Outputs
                 InsertTransactionOutputs(ptx);
@@ -27,64 +217,85 @@ namespace PocketDb
         });
     }
 
-    shared_ptr<PocketBlock> TransactionRepository::List(const vector<string>& txHashes, bool includePayload)
+    PocketBlockRef TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs, bool includeOutputs)
     {
+        string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
         auto sql = R"sql(
-            SELECT
-                t.Type,
-                t.Hash,
-                t.Time,
-                t.Last,
-                t.Id,
-                t.String1,
-                t.String2,
-                t.String3,
-                t.String4,
-                t.String5,
-                t.Int1,
-                p.TxHash pHash,
-                p.String1 pString1,
-                p.String2 pString2,
-                p.String3 pString3,
-                p.String4 pString4,
-                p.String5 pString5,
-                p.String6 pString6,
-                p.String7 pString7
-            FROM Transactions t
-            LEFT JOIN Payload p on t.Hash = p.TxHash
-            WHERE t.Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
-        )sql";
+            select 0, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
+            from Transactions
+            where Hash in ( )sql" + txReplacers + R"sql( )
+        )sql" +
 
-        auto result = make_shared<PocketBlock>(PocketBlock{});
+        // Payload part
+        (includePayload ? string(R"sql(
+            union
+            select 1, TxHash, null, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
+            from Payload
+            where TxHash in ( )sql" + txReplacers + R"sql( )
+        )sql") : "") +
+
+        // Inputs part
+        (includeInputs ? string(R"sql(
+            union
+            select 2, i.SpentTxHash, null, null, i.TxHash, i.Number, o.Value, null, o.AddressHash, null, null, null, null, null, null, null
+            from TxInputs i
+            join TxOutputs o on o.TxHash = i.TxHash and o.Number = i.Number
+            where i.SpentTxHash in ( )sql" + txReplacers + R"sql( )
+        )sql") : "") +
+        
+        // Outputs part
+        (includeOutputs ? string(R"sql(
+            union
+            select 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, SpentTxHash, SpentHeight
+            from TxOutputs
+            where TxHash in ( )sql" + txReplacers + R"sql( )
+        )sql") : "");
+        
+        TransactionReconstructor reconstructor;
+
         TryTransactionStep(__func__, [&]()
         {
             auto stmt = SetupSqlStatement(sql);
+            size_t i = 1;
 
-            for (size_t i = 0; i < txHashes.size(); i++)
-                TryBindStatementText(stmt, (int) i + 1, txHashes[i]);
+            for (auto& txHash : txHashes)
+                TryBindStatementText(stmt, i++, txHash);
+            
+            if (includePayload)
+                for (auto& txHash : txHashes)
+                    TryBindStatementText(stmt, i++, txHash);
+
+            if (includeInputs)
+                for (auto& txHash : txHashes)
+                    TryBindStatementText(stmt, i++, txHash);
+
+            if (includeOutputs)
+                for (auto& txHash : txHashes)
+                    TryBindStatementText(stmt, i++, txHash);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
-                if (auto[ok, transaction] = CreateTransactionFromListRow(stmt, includePayload); ok)
-                    result->push_back(transaction);
+                // TODO (brangr): maybe throw exception if errors?
+                if (!reconstructor.FeedRow(*stmt))
+                    break;
             }
 
             FinalizeSqlStatement(*stmt);
         });
 
-        return result;
+        return reconstructor.GetResult();
     }
 
-    shared_ptr<Transaction> TransactionRepository::Get(const string& hash, bool includePayload)
+    PTransactionRef TransactionRepository::Get(const string& hash, bool includePayload, bool includeInputs, bool includeOutputs)
     {
-        auto lst = List({hash}, includePayload);
-        if (!lst->empty())
+        auto lst = List({ hash }, includePayload, includeInputs, includeOutputs);
+        if (lst && !lst->empty())
             return lst->front();
 
         return nullptr;
     }
 
-    shared_ptr<TransactionOutput> TransactionRepository::GetTxOutput(const string& txHash, int number)
+    PTransactionOutputRef TransactionRepository::GetTxOutput(const string& txHash, int number)
     {
         auto sql = R"sql(
             SELECT
@@ -289,36 +500,62 @@ namespace PocketDb
         });
     }
 
+    void TransactionRepository::InsertTransactionInputs(const PTransactionRef& ptx)
+    {
+        for (const auto& input: ptx->Inputs())
+        {
+            // Build transaction output
+            auto stmt = SetupSqlStatement(R"sql(
+                INSERT OR IGNORE INTO TxInputs
+                (
+                    SpentTxHash,
+                    TxHash,
+                    Number
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?
+                )
+            )sql");
+
+            TryBindStatementText(stmt, 1, input->GetSpentTxHash());
+            TryBindStatementText(stmt, 2, input->GetTxHash());
+            TryBindStatementInt64(stmt, 3, input->GetNumber());
+
+            TryStepStatement(stmt);
+        }
+    }
+    
     void TransactionRepository::InsertTransactionOutputs(const PTransactionRef& ptx)
     {
         for (const auto& output: ptx->Outputs())
         {
             // Build transaction output
             auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO TxOutputs (
+                INSERT OR IGNORE INTO TxOutputs (
                     TxHash,
                     Number,
                     AddressHash,
                     Value,
                     ScriptPubKey
-                ) SELECT ?,?,?,?,?
-                WHERE NOT EXISTS (
-                    select 1
-                    from TxOutputs o
-                    where o.TxHash = ?
-                        and o.Number = ?
-                        and o.AddressHash = ?
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
                 )
             )sql");
 
-            TryBindStatementText(stmt, 1, ptx->GetHash());
+            TryBindStatementText(stmt, 1, output->GetTxHash());
             TryBindStatementInt64(stmt, 2, output->GetNumber());
             TryBindStatementText(stmt, 3, output->GetAddressHash());
             TryBindStatementInt64(stmt, 4, output->GetValue());
             TryBindStatementText(stmt, 5, output->GetScriptPubKey());
-            TryBindStatementText(stmt, 6, ptx->GetHash());
-            TryBindStatementInt64(stmt, 7, output->GetNumber());
-            TryBindStatementText(stmt, 8, output->GetAddressHash());
 
             TryStepStatement(stmt);
         }
