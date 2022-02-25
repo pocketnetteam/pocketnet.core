@@ -482,7 +482,7 @@ namespace PocketDb
                          select c.String1
                          from Transactions sc indexed by Transactions_Type_Last_Height_Id
                           cross join Transactions c indexed by Transactions_Type_Last_String2_Height
-                             on c.String2 = sc.String2 and c.Type in (200, 201) and c.Height > 0 and c.Last = 1
+                             on c.String2 = sc.String2 and c.Type in (200, 201, 202) and c.Height > 0 and c.Last = 1
                                  and c.id in (select tm.ContentId
                                               from web.Tags tag indexed by Tags_Lang_Value_Id
                                               join web.TagsMap tm indexed by TagsMap_TagId_ContentId

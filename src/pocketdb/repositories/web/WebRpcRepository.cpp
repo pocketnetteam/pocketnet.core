@@ -2192,6 +2192,68 @@ namespace PocketDb
         return result;
     }
 
+    vector<UniValue> WebRpcRepository::GetMissedBoosts(const string& address, int height, int count)
+    {
+        vector<UniValue> result;
+
+        string sql = R"sql(
+            select
+                tBoost.String1 as boostAddress,
+                tBoost.Hash,
+                tBoost.Time,
+                tBoost.Height,
+                tBoost.String2 as contenttxid,
+                tBoost.Int1 as boostAmount,
+                p.String2 as boostName,
+                p.String3 as boostAvatar
+            from Transactions tBoost indexed by Transactions_Type_Last_Height_Id
+            join Transactions tContent indexed by Transactions_Type_Last_String1_String2_Height
+                on tContent.String2=tBoost.String2 and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202)
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+                on u.String1 = tBoost.String1 and u.Type in (100) and u.Last = 1 and u.Height > 0
+            join Payload p
+                on p.TxHash = u.Hash
+            where tBoost.Type in (208)
+              and tBoost.Last in (0, 1)
+              and tBoost.Height > ?
+              and tContent.String1 = ?
+            order by tBoost.Time desc
+            limit ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementInt(stmt, 1, height);
+            TryBindStatementText(stmt, 2, address);
+            TryBindStatementInt(stmt, 3, count);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                UniValue record(UniValue::VOBJ);
+
+                record.pushKV("addr", address);
+                record.pushKV("msg", "event");
+                record.pushKV("mesType", "contentBoost");
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) record.pushKV("addrFrom", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) record.pushKV("txid", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) record.pushKV("time", value);
+                if (auto[ok, value] = TryGetColumnInt(*stmt, 3); ok) record.pushKV("nblock", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) record.pushKV("posttxid", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) record.pushKV("boostAmount", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) record.pushKV("nameFrom", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) record.pushKV("avatarFrom", value);
+
+                result.push_back(record);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue WebRpcRepository::SearchLinks(const vector<string>& links, const vector<int>& contentTypes,
         const int nHeight, const int countOut)
     {
