@@ -263,7 +263,7 @@ namespace PocketConsensus
             auto name = *ptx->GetPayloadName();
             boost::algorithm::to_lower(name);
 
-            if (name.size() > 35)
+            if (name.size() > 20)
                 return {false, SocialConsensusResult_NicknameLong};
             
             if (!_allCharactersAllowed(name))
