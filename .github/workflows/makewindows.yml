@@ -1,0 +1,48 @@
+name: make windows
+
+on:
+  workflow_dispatch:
+    branches: [ $default-branch, 0.20, 0.21 ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install general dependencies
+      run: |
+        sudo apt update
+        sudo apt upgrade
+        sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils curl git
+    - name: install the mingw-w64 cross-compilation tool chain
+      run: sudo apt install g++-mingw-w64-x86-64
+    - name: update compiler alternatives
+      run: echo "1" | sudo update-alternatives --config x86_64-w64-mingw32-g++ 
+    - name: make dependencies
+      run: |
+        cd depends
+        sudo chmod +x config.guess
+        sudo chmod +x config.site.in
+        sudo chmod +x config.sub
+        sudo make -j4 HOST=x86_64-w64-mingw32 
+    - name: autogen
+      run: |
+        pwd
+        ls -l
+        ./autogen.sh
+    - name: configure
+      run: |
+        export BDB_PREFIX='/home/runner/work/pocketnet.core/pocketnet.core/db4'
+        CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/
+    - name: make
+      run: make -j2
+    - uses: actions/upload-artifact@v2
+      with:
+        name: pocketcoin-windows
+        path: |
+          src/qt/pocketcoin-qt.exe
+          src/pocketcoin-cli.exe
+          src/pocketcoin-tx.exe
+          src/pocketcoind.exe

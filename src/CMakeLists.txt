@@ -323,6 +323,7 @@ endif ()
 set(POCKETCOIN_COMMON pocketcoin_common)
 add_library(${POCKETCOIN_COMMON}
         cuckoocache.h
+        eventloop.h
         indirectmap.h
         limitedmap.h
         memusage.h
@@ -333,6 +334,7 @@ add_library(${POCKETCOIN_COMMON}
         undo.h
         span.h
         prevector.h
+        protectedmap.h
         compat.h
         compat/byteswap.h
         compat/endian.h
@@ -356,6 +358,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Base.h
         pocketdb/models/base/Payload.h
         pocketdb/models/base/Transaction.h
+        pocketdb/models/base/TransactionInput.h
         pocketdb/models/base/TransactionOutput.h
         pocketdb/models/base/Rating.h
         pocketdb/models/base/ReturnDtoModels.h
@@ -383,6 +386,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Base.cpp
         pocketdb/models/base/Payload.cpp
         pocketdb/models/base/Transaction.cpp
+        pocketdb/models/base/TransactionInput.cpp
         pocketdb/models/base/TransactionOutput.cpp
         pocketdb/models/base/Rating.cpp
         pocketdb/models/dto/Default.cpp
@@ -650,6 +654,8 @@ add_library(${POCKETCOIN_SERVER}
         key_io.cpp
         websocket/ws.h
         websocket/ws.cpp
+        websocket/notifyprocessor.h
+        websocket/notifyprocessor.cpp
         validation.h
         validation.cpp
         validationinterface.h
@@ -714,6 +720,8 @@ add_library(${POCKETCOIN_SERVER}
         rpc/server.h
         rpc/util.cpp
         rpc/util.h
+        rpc/cache.h
+        rpc/cache.cpp
         walletinitinterface.h
         pocketdb/helpers/PocketnetHelper.h
         pocketdb/helpers/TransactionHelper.h

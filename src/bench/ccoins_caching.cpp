@@ -53,7 +53,7 @@ SetupDummyInputs(CBasicKeyStore& keystoreRet, CCoinsViewCache& coinsRet)
 // characteristics than e.g. reindex timings. But that's not a requirement of
 // every benchmark."
 // (https://github.com/pocketcoin/pocketcoin/issues/7883#issuecomment-224807484)
-static void CCoinsCaching(benchmark::State& state)
+static void CCoinsCaching(benchmark::Bench& bench)
 {
     CBasicKeyStore keystore;
     CCoinsView coinsDummy;
@@ -76,12 +76,12 @@ static void CCoinsCaching(benchmark::State& state)
     t1.vout[0].scriptPubKey << OP_1;
 
     // Benchmark.
-    while (state.KeepRunning()) {
+    bench.run([&] {
         bool success = AreInputsStandard(t1, coins);
         assert(success);
         CAmount value = coins.GetValueIn(t1);
         assert(value == (50 + 21 + 22) * CENT);
-    }
+    });
 }
 
-BENCHMARK(CCoinsCaching, 170 * 1000);
+BENCHMARK(CCoinsCaching);

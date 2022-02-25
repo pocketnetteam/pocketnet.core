@@ -2205,7 +2205,7 @@ namespace PocketDb
 
         string sql = R"sql(
             select t.Id
-            from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
+            from Transactions t indexed by Transactions_Hash_Height
             join Payload p indexed by Payload_String7 on p.TxHash = t.Hash
             where t.Type in ( )sql" + contentTypesWhere + R"sql( )
                 and t.Height <= ?
@@ -3001,8 +3001,13 @@ namespace PocketDb
                     TryBindStatementText(stmt, i++, exadr);
             
             if (!tagsExcluded.empty())
+            {
                 for (const auto& extag: tagsExcluded)
                     TryBindStatementText(stmt, i++, extag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
 
             // ---------------------------------------------
             
