@@ -126,15 +126,17 @@ public:
             }
         };
         // TODO (losty-fur): g_socket can possibly be null. Need some kind of segfault protection. Probably in a more generic way because this problem occurs many places
-        g_socket->m_table_rpc.appendCommand(m_command.name, &m_command);
+        // TODO (losty-nat)
+        // g_socket->m_table_rpc.appendCommand(m_command.name, &m_command);
     }
 
     void disconnect() final
     {
         if (m_wrapped_command) {
             m_wrapped_command = nullptr;
-            if (g_socket)
-                g_socket->m_table_rpc.removeCommand(m_command.name, &m_command);
+            // TODO (losty-nat)
+            // if (g_socket)
+                // g_socket->m_table_rpc.removeCommand(m_command.name, &m_command);
         }
     }
 

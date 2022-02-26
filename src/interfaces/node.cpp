@@ -222,12 +222,14 @@ public:
         req.params = params;
         req.strMethod = command;
         req.URI = uri;
-        return g_socket->m_table_rpc.execute(req);
+        // TODO (losty-nat)
+        // return g_socket->m_table_rpc.execute(req);
     }
     std::vector<std::string> listRpcCommands() override {
-        if (g_socket)
-            return g_socket->m_table_rpc.listCommands();
-        else
+        // TODO (losty-nat)
+        // if (g_socket)
+            // return g_socket->m_table_rpc.listCommands();
+        // else
             return vector<string>();;
     }
     void rpcSetTimerInterfaceIfUnset(RPCTimerInterface* iface) override { RPCSetTimerInterfaceIfUnset(iface); }

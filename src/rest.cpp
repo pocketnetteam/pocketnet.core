@@ -23,6 +23,7 @@
 #include <validation.h>
 #include <version.h>
 #include <pos.h>
+#include <httprpc.h>
 
 #include <boost/algorithm/string.hpp>
 #include <univalue.h>
@@ -792,9 +793,10 @@ static bool rest_topaddresses(const util::Ref& context, HTTPRequest* req, const 
             count = 1000;
     }
 
-    auto result = req->DbConnection()->WebRpcRepoInst->GetTopAddresses(count);
+    // TODO (losty-nat)
+    // auto result = req->DbConnection()->WebRpcRepoInst->GetTopAddresses(count);
     req->WriteHeader("Content-Type", "application/json");
-    req->WriteReply(HTTP_OK, result.write() + "\n");
+    // req->WriteReply(HTTP_OK, result.write() + "\n");
     return true;
 }
 
@@ -1082,32 +1084,35 @@ static const struct
     {"/rest/blockhash",          rest_blockhash},
 };
 
-void StartREST(const util::Ref& context)
+void RPC::StartREST(const util::Ref& context)
 {
     if(g_restSocket)
         for (const auto& up : uri_prefixes) {
             auto handler = [&context, up](HTTPRequest* req, const std::string& prefix) { return up.handler(context, req, prefix); };
-            g_restSocket->RegisterHTTPHandler(up.prefix, false, handler, g_restSocket->m_workQueue);
+            // TODO (losty-nat)
+            // g_restSocket->RegisterHTTPHandler(up.prefix, false, handler, g_restSocket->m_workQueue);
         }
     if(g_staticSocket)
     {
         // TODO (losty-fur): passing context to get_static_web may be useful.
         auto handler = [&context](HTTPRequest* req, const std::string& prefix) { return get_static_web(context, req, prefix); };
-        g_staticSocket->RegisterHTTPHandler("/", false, handler, g_staticSocket->m_workQueue);
+        // TODO (losty-nat)
+        // g_staticSocket->RegisterHTTPHandler("/", false, handler, g_staticSocket->m_workQueue);
 
     }
 }
 
-void InterruptREST()
+void RPC::InterruptREST()
 {
 }
 
-void StopREST()
+void RPC::StopREST()
 {
-    if (g_restSocket)
-        for (auto uri_prefixe: uri_prefixes)
-            g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
+    // TODO (losty-nat)
+    // if (g_restSocket)
+    //     for (auto uri_prefixe: uri_prefixes)
+    //         g_restSocket->UnregisterHTTPHandler(uri_prefixe.prefix, false);
 
-    if (g_staticSocket)
-        g_staticSocket->UnregisterHTTPHandler("/", false);
+    // if (g_staticSocket)
+    //     g_staticSocket->UnregisterHTTPHandler("/", false);
 }

@@ -109,6 +109,7 @@ Statistic::RequestStatEngine gStatEngineInstance;
 std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
 std::shared_ptr<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>> notifyClientsThread;
 std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
+RPC g_rpc;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -203,9 +204,9 @@ void ShutdownPocketServices()
 void Interrupt(NodeContext& node)
 {
     InterruptHTTPServer();
-    InterruptHTTPRPC();
+    g_rpc.InterruptHTTPRPC();
     InterruptRPC();
-    InterruptREST();
+    g_rpc.InterruptREST();
     InterruptTorControl();
     InterruptMapPort();
     if (node.connman)
@@ -227,8 +228,8 @@ void Shutdown(NodeContext& node)
     PocketServices::WebPostProcessorInst.Stop();
     gStatEngineInstance.Stop();
 
-    StopHTTPRPC();
-    StopREST();
+    g_rpc.StopHTTPRPC();
+    g_rpc.StopREST();
     StopRPC();
     StopHTTPServer();
 
@@ -972,13 +973,16 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
     const ArgsManager& args = *Assert(node.args);
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
-    if (!InitHTTPServer(context))
+    if (!g_rpc.Init(gArgs, context)) {
+        return false;
+    }
+    if (!InitHTTPServer(context, g_rpc.GetPrivateRequestProcessor(), g_rpc.GetWebRequestProcessor()))
         return false;
     StartRPC();
     node.rpc_interruption_point = RpcInterruptionPoint;
-    if (!StartHTTPRPC(context))
+    if (!g_rpc.StartHTTPRPC())
         return false;
-    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST(context);
+    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) g_rpc.StartREST(context);
     StartHTTPServer();
     return true;
 }

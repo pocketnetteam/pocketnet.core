@@ -66,8 +66,8 @@ bool RequestHandlerPod::Start()
     }
 
     for (int i = 0; i < m_numThreads; i++) {
-        QueueEventLoopThread<WorkItem> worker(m_queue, std::make_shared<WorkItemExecutor>());
-        worker.Start();
+        auto worker = std::make_shared<QueueEventLoopThread<WorkItem>>(m_queue, std::make_shared<WorkItemExecutor>());
+        worker->Start();
         m_workers.emplace_back(std::move(worker));
     }
 
@@ -78,7 +78,7 @@ bool RequestHandlerPod::Start()
 void RequestHandlerPod::Interrupt()
 {
     for (auto& worker : m_workers) {
-        worker.Stop();
+        worker->Stop();
     }
     m_workers.clear();
 }

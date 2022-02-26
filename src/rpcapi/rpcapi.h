@@ -2,6 +2,7 @@
 #define POCKETCOIN_RPCAPI_H
 
 
+#include "init.h"
 #include "pocketdb/SQLiteConnection.h"
 #include "rpc/server.h"
 #include "util/ref.h"
@@ -18,9 +19,10 @@
 class IReplier
 {
 public:
-    virtual void WriteReply(int nStatus, const std::string& reply) = 0;
+    virtual void WriteReply(int nStatus, const std::string& reply = "") = 0;
     virtual void WriteHeader(const std::string& hdr, const std::string& value) = 0;
     virtual bool GetAuthCredentials(std::string& out) = 0;
+    virtual Statistic::RequestTime GetCreated() const = 0;
 };
 
 class IRequestHandler
@@ -42,6 +44,7 @@ private:
 
 class WorkItem {
 public:
+    WorkItem() = default;
     WorkItem(const util::Ref& context, const std::string& strURI, const std::string& body, std::shared_ptr<IReplier> replier, std::shared_ptr<IRequestHandler> handler);
     void Exec(const DbConnectionRef& sqliteConnection);
 
@@ -84,23 +87,28 @@ public:
 private:
     std::shared_ptr<QueueLimited<WorkItem>> m_queue;
     std::vector<PathRequestHandlerEntry> m_handlers;
-    std::vector<QueueEventLoopThread<WorkItem>> m_workers;
+    std::vector<std::shared_ptr<QueueEventLoopThread<WorkItem>>> m_workers;
     int m_numThreads;
 };
 
-class ReuestProcessor
+class IRequestProcessor
 {
 public:
-    ReuestProcessor(const util::Ref &context, std::vector<RequestHandlerPod> pods)
-        : m_pods(std::move(pods)),
-          m_context(context)
+    virtual bool Process(const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier) = 0;
+};
+
+class RequestProcessor : public IRequestProcessor
+{
+public:
+    RequestProcessor(const util::Ref &context)
+        : m_context(context)
     {}
-    bool Process(const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier)
+    bool Process(const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier) override
     {
         for (auto& pod : m_pods)
         {
             // TODO (losty-nat): right handler can be found but request rejected because of queue overflow. Probably handle this inside pod.
-            if (pod.Process(m_context, strURI, body, replier)) {
+            if (pod->Process(m_context, strURI, body, replier)) {
                 return true;
             }
         }
@@ -111,12 +119,17 @@ public:
     void Start()
     {
         for (auto& pod: m_pods) {
-            pod.Start();
+            pod->Start();
         }
     }
 
+    void RegisterPod(std::shared_ptr<RequestHandlerPod> pod)
+    {
+        m_pods.emplace_back(std::move(pod));
+    }
+
 private:
-    std::vector<RequestHandlerPod> m_pods;
+    std::vector<std::shared_ptr<RequestHandlerPod>> m_pods;
     util::Ref m_context;
 };
 
