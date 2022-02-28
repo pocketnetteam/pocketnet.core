@@ -126,6 +126,11 @@ namespace PocketDb
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
             int badReputationLimit);
 
+        UniValue GetBoostFeed(int topHeight, const string& lang,
+            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+            int badReputationLimit);
+
         UniValue GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes);
 
         vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);

@@ -82,25 +82,7 @@ namespace PocketWeb::PocketWebRpc
 
         // exclude tags
         if (request.params.size() > 8)
-        {
-            if (request.params[8].isStr())
-            {
-                tagsExcluded.push_back(request.params[8].get_str());
-            }
-            else if (request.params[8].isArray())
-            {
-                UniValue tagsEx = request.params[8].get_array();
-                for (unsigned int idx = 0; idx < tagsEx.size(); idx++)
-                {
-                    string tgsEx = boost::trim_copy(tagsEx[idx].get_str());
-                    if (!tgsEx.empty())
-                        tagsExcluded.push_back(tgsEx);
-
-                    if (tagsExcluded.size() > 100)
-                        break;
-                }
-            }
-        }
+            ParseRequestTags(request.params[8], tagsExcluded);
 
         // address for person output
         if (request.params.size() > 9)
@@ -250,7 +232,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileFeed(
-            address_feed, topHeight, topContentId, countOut, lang, tags, contentTypes,
+            address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded, address);
 
         result.pushKV("height", topHeight);
@@ -429,6 +411,49 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
+    UniValue GetBoostFeed(const JSONRPCRequest& request)
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "GetHierarchicalFeed\n"
+                "topHeight           (int) - ???\n"
+                "topContentHash      (string, not supported) - ???\n"
+                "countOut            (int, not supported) - ???\n"
+                "lang                (string, optional) - ???\n"
+                "tags                (vector<string>, optional) - ???\n"
+                "contentTypes        (vector<int>, optional) - ???\n"
+                "txIdsExcluded       (vector<string>, optional) - ???\n"
+                "adrsExcluded        (vector<string>, optional) - ???\n"
+                "tagsExcluded        (vector<string>, optional) - ???\n"
+            );
+
+        int topHeight;
+        string lang;
+        vector<string> tags;
+        vector<int> contentTypes;
+        vector<string> txIdsExcluded;
+        vector<string> adrsExcluded;
+        vector<string> tagsExcluded;
+
+        string skipString = "";
+        int skipInt =  0;
+        ParseFeedRequest(request, topHeight, skipString, skipInt, lang, tags, contentTypes, txIdsExcluded,
+            adrsExcluded, tagsExcluded, skipString);
+
+        auto reputationConsensus = ReputationConsensusFactoryInst.Instance(chainActive.Height());
+        auto badReputationLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_bad_reputation);
+
+        UniValue result(UniValue::VOBJ);
+        UniValue boosts = request.DbConnection()->WebRpcRepoInst->GetBoostFeed(
+            topHeight, lang, tags, contentTypes,
+            txIdsExcluded, adrsExcluded, tagsExcluded,
+            badReputationLimit);
+
+        result.pushKV("height", topHeight);
+        result.pushKV("boosts", boosts);
+        return result;
+    }
+
     UniValue GetSubscribesFeed(const JSONRPCRequest& request)
     {
         if (request.fHelp)
@@ -474,7 +499,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(
-            address_feed, topHeight, topContentId, countOut, lang, tags, contentTypes,
+            address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded, address);
 
         result.pushKV("height", topHeight);
