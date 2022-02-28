@@ -110,9 +110,13 @@ namespace PocketDb
         
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
         
-        UniValue GetProfileFeed(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
+        UniValue GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
         
-        UniValue GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
+        UniValue GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
 
         UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,

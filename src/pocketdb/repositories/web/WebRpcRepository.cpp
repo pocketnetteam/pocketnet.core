@@ -2598,31 +2598,39 @@ namespace PocketDb
         return result;
     }
 
-    UniValue WebRpcRepository::GetProfileFeed(const string& addressFrom, const string& addressTo, int64_t topContentId,
-        int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
+    UniValue WebRpcRepository::GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
+        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const string& address)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
 
-        if (addressTo.empty())
+        if (addressFeed.empty())
             return result;
 
         // ---------------------------------------------
 
-        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
 
-        string topContentIdFilter;
+        string contentIdWhere;
         if (topContentId > 0)
-            topContentIdFilter = " and t.Id < ? ";
+            contentIdWhere = " and t.Id < ? ";
+
+        string langFilter;
+        if (!lang.empty())
+            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = t.Hash and p.String1 = ? ";
 
         string sql = R"sql(
             select t.Id
             from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
-            where t.Type in ( )sql" + contentTypesFilter + R"sql( )
+            )sql" + langFilter + R"sql(
+            where t.Type in ( )sql" + contentTypesWhere + R"sql( )
                 and t.Height > 0
+                and t.Height <= ?
                 and t.Last = 1
                 and t.String1 = ?
-                )sql" + topContentIdFilter + R"sql(
+                )sql" + contentIdWhere   + R"sql(
         )sql";
 
         if (!tags.empty())
@@ -2634,8 +2642,23 @@ namespace PocketDb
                     join web.TagsMap tm indexed by TagsMap_TagId_ContentId
                         on tag.Id = tm.TagId
                     where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
                 )
             )sql";
+        }
+
+        if (!txidsExcluded.empty()) sql += " and t.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+        if (!adrsExcluded.empty()) sql += " and t.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!tagsExcluded.empty())
+        {
+            sql += R"sql( and t.Id not in (
+                select tmEx.ContentId
+                from web.Tags tagEx indexed by Tags_Lang_Value_Id
+                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
+                    on tagEx.Id=tmEx.TagId
+                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
+             ) )sql";
         }
 
         sql += " order by t.Id desc ";
@@ -2646,22 +2669,48 @@ namespace PocketDb
         vector<int64_t> ids;
         TryTransactionStep(func, [&]()
         {
-            auto stmt = SetupSqlStatement(sql);
-            
             int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
+
+            TryBindStatementInt(stmt, i++, topHeight);
             
-            TryBindStatementText(stmt, i++, addressTo);
+            TryBindStatementText(stmt, i++, addressFeed);
 
             if (topContentId > 0)
                 TryBindStatementInt64(stmt, i++, topContentId);
 
             if (!tags.empty())
+            {
                 for (const auto& tag: tags)
                     TryBindStatementText(stmt, i++, tag);
 
-            TryBindStatementInt(stmt, i++, count);
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            if (!txidsExcluded.empty())
+                for (const auto& extxid: txidsExcluded)
+                    TryBindStatementText(stmt, i++, extxid);
+
+            if (!adrsExcluded.empty())
+                for (const auto& exadr: adrsExcluded)
+                    TryBindStatementText(stmt, i++, exadr);
+
+            if (!tagsExcluded.empty())
+            {
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, i++, extag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            TryBindStatementInt(stmt, i++, countOut);
 
             // ---------------------------------------------
 
@@ -2674,36 +2723,46 @@ namespace PocketDb
             FinalizeSqlStatement(*stmt);
         });
 
-        if (ids.empty())
-            return result;
+        // Get content data
+        if (!ids.empty())
+        {
+            auto contents = GetContentsData(ids, address);
+            result.push_backV(contents);
+        }
 
-        auto contents = GetContentsData(ids, addressFrom);
-        result.push_backV(contents);
-
+        // Complete!
         return result;
     }
 
-    UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count,
-        const string& lang, const vector<string>& tags, const vector<int>& contentTypes)
+    UniValue WebRpcRepository::GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight,
+        const string& lang, const vector<string>& tags, const vector<int>& contentTypes,
+        const vector<string>& txidsExcluded, const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+        const string& address)
     {
         auto func = __func__;
         UniValue result(UniValue::VARR);
 
-        if (addressFrom.empty())
+        if (addressFeed.empty())
             return result;
 
         // ---------------------------------------------------
 
-        string contentTypesFilter = join(vector<string>(contentTypes.size(), "?"), ",");
+        string contentTypesWhere = " ( " + join(vector<string>(contentTypes.size(), "?"), ",") + " ) ";
 
-        string topContentIdFilter;
+        string contentIdWhere;
         if (topContentId > 0)
-            topContentIdFilter = " and cnt.Id < ? ";
+            contentIdWhere = " and cnt.Id < ? ";
+
+        string langFilter;
+        if (!lang.empty())
+            langFilter += " join Payload p indexed by Payload_String1_TxHash on p.TxHash = cnt.Hash and p.String1 = ? ";
 
         string sql = R"sql(
             select cnt.Id
 
             from Transactions cnt indexed by Transactions_Type_Last_String1_Height_Id
+
+            )sql" + langFilter + R"sql(
 
             join Transactions subs indexed by Transactions_Type_Last_String1_String2_Height
                 on subs.Type in (302,303)
@@ -2712,11 +2771,12 @@ namespace PocketDb
                and subs.String1 = ?
                and subs.String2 = cnt.String1
 
-            where cnt.Type in ( )sql" + contentTypesFilter + R"sql( )
+            where cnt.Type in ( )sql" + contentTypesWhere + R"sql( )
               and cnt.Last = 1
               and cnt.Height > 0
+              and cnt.Height <= ?
             
-            )sql" + topContentIdFilter + R"sql(
+            )sql" + contentIdWhere + R"sql(
 
         )sql";
 
@@ -2729,10 +2789,25 @@ namespace PocketDb
                     join web.TagsMap tm indexed by TagsMap_TagId_ContentId
                         on tag.Id = tm.TagId
                     where tag.Value in ( )sql" + join(vector<string>(tags.size(), "?"), ",") + R"sql( )
+                        )sql" + (!lang.empty() ? " and tag.Lang = ? " : "") + R"sql(
                 )
             )sql";
         }
-        
+
+        if (!txidsExcluded.empty()) sql += " and cnt.String2 not in ( " + join(vector<string>(txidsExcluded.size(), "?"), ",") + " ) ";
+        if (!adrsExcluded.empty()) sql += " and cnt.String1 not in ( " + join(vector<string>(adrsExcluded.size(), "?"), ",") + " ) ";
+        if (!tagsExcluded.empty())
+        {
+            sql += R"sql( and cnt.Id not in (
+                select tmEx.ContentId
+                from web.Tags tagEx indexed by Tags_Lang_Value_Id
+                join web.TagsMap tmEx indexed by TagsMap_TagId_ContentId
+                    on tagEx.Id=tmEx.TagId
+                where tagEx.Value in ( )sql" + join(vector<string>(tagsExcluded.size(), "?"), ",") + R"sql( )
+                    )sql" + (!lang.empty() ? " and tagEx.Lang = ? " : "") + R"sql(
+             ) )sql";
+        }
+
         sql += " order by cnt.Id desc ";
         sql += " limit ? ";
 
@@ -2744,19 +2819,45 @@ namespace PocketDb
             int i = 1;
             auto stmt = SetupSqlStatement(sql);
 
-            TryBindStatementText(stmt, i++, addressFrom);
+            if (!lang.empty()) TryBindStatementText(stmt, i++, lang);
+
+            TryBindStatementText(stmt, i++, addressFeed);
 
             for (const auto& contenttype: contentTypes)
                 TryBindStatementInt(stmt, i++, contenttype);
-                            
+
+            TryBindStatementInt(stmt, i++, topHeight);
+
             if (topContentId > 0)
-                TryBindStatementInt(stmt, i++, topContentId);
-                
+                TryBindStatementInt64(stmt, i++, topContentId);
+
             if (!tags.empty())
+            {
                 for (const auto& tag: tags)
                     TryBindStatementText(stmt, i++, tag);
 
-            TryBindStatementInt(stmt, i++, count);
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            if (!txidsExcluded.empty())
+                for (const auto& extxid: txidsExcluded)
+                    TryBindStatementText(stmt, i++, extxid);
+
+            if (!adrsExcluded.empty())
+                for (const auto& exadr: adrsExcluded)
+                    TryBindStatementText(stmt, i++, exadr);
+
+            if (!tagsExcluded.empty())
+            {
+                for (const auto& extag: tagsExcluded)
+                    TryBindStatementText(stmt, i++, extag);
+
+                if (!lang.empty())
+                    TryBindStatementText(stmt, i++, lang);
+            }
+
+            TryBindStatementInt(stmt, i++, countOut);
 
             // ---------------------------------------------
 
@@ -2769,12 +2870,14 @@ namespace PocketDb
             FinalizeSqlStatement(*stmt);
         });
 
-        if (ids.empty())
-            return result;
+        // Get content data
+        if (!ids.empty())
+        {
+            auto contents = GetContentsData(ids, address);
+            result.push_backV(contents);
+        }
 
-        auto contents = GetContentsData(ids, addressFrom);
-        result.push_backV(contents);
-
+        // Complete!
         return result;
     }
 
