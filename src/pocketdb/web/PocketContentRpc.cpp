@@ -393,6 +393,8 @@ namespace PocketWeb::PocketWebRpc
             throw runtime_error(
                 "GetHierarchicalFeed\n"
                 "topHeight           (int) - ???\n"
+                "topContentHash      (string, not supported) - ???\n"
+                "countOut            (int, not supported) - ???\n"
                 "lang                (string, optional) - ???\n"
                 "tags                (vector<string>, optional) - ???\n"
                 "contentTypes        (vector<int>, optional) - ???\n"

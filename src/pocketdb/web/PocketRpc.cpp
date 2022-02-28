@@ -48,7 +48,7 @@ static const CRPCCommand commands[] =
     {"contents",        "gethistoricalstrip",               &GetHistoricalFeed,             {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     {"contents",        "gethierarchicalfeed",              &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     {"contents",        "gethierarchicalstrip",             &GetHierarchicalFeed,           {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
-    {"contents",        "getboostfeed",                     &GetBoostFeed,                  {"topHeight", "lang", "tags", "contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded"}},
+    {"contents",        "getboostfeed",                     &GetBoostFeed,                  {"topHeight","topContentHash","countOut","lang","tags","contentTypes","txIdsExcluded","adrsExcluded","tagsExcluded","address"}},
     {"contents",        "getrawtransactionwithmessagebyid", &GetContent,                    {"ids", "address"}},
     {"contents",        "getcontent",                       &GetContent,                    {"ids", "address"}},
     {"contents",        "getrawtransactionwithmessage",     &FeedSelector,                  {"address_from", "address_to", "start_txid", "count", "lang", "tags", "contenttypes"}},
