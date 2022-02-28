@@ -107,10 +107,13 @@ namespace PocketWeb::PocketWebRpc
         {
             RPCTypeCheckArgument(request.params[9], UniValue::VSTR);
             address = request.params[9].get_str();
-            CTxDestination dest = DecodeDestination(address);
+            if (!address.empty())
+            {
+                CTxDestination dest = DecodeDestination(address);
 
-            if (!IsValidDestination(dest))
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address);
+            }
         }
 
         // feed's address
@@ -118,10 +121,13 @@ namespace PocketWeb::PocketWebRpc
         {
             RPCTypeCheckArgument(request.params[10], UniValue::VSTR);
             address_feed = request.params[10].get_str();
-            CTxDestination dest = DecodeDestination(address_feed);
+            if (!address_feed.empty())
+            {
+                CTxDestination dest = DecodeDestination(address_feed);
 
-            if (!IsValidDestination(dest))
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address_feed);
+                if (!IsValidDestination(dest))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, string("Invalid Pocketcoin address: ") + address_feed);
+            }
         }
     }
 
