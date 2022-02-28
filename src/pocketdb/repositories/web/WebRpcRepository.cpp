@@ -2487,7 +2487,7 @@ namespace PocketDb
             select t.Id
             from Transactions t indexed by Transactions_Type_Last_String1_Height_Id
             )sql" + langFilter + R"sql(
-            where t.Type in ( )sql" + contentTypesWhere + R"sql( )
+            where t.Type in )sql" + contentTypesWhere + R"sql(
                 and t.Height > 0
                 and t.Height <= ?
                 and t.Last = 1
@@ -2633,7 +2633,7 @@ namespace PocketDb
                and subs.String1 = ?
                and subs.String2 = cnt.String1
 
-            where cnt.Type in ( )sql" + contentTypesWhere + R"sql( )
+            where cnt.Type in )sql" + contentTypesWhere + R"sql(
               and cnt.Last = 1
               and cnt.Height > 0
               and cnt.Height <= ?

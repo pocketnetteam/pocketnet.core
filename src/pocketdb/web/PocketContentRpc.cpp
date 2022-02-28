@@ -232,7 +232,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileFeed(
-            address_feed, topHeight, topContentId, countOut, lang, tags, contentTypes,
+            address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded, address);
 
         result.pushKV("height", topHeight);
@@ -499,7 +499,7 @@ namespace PocketWeb::PocketWebRpc
 
         UniValue result(UniValue::VOBJ);
         UniValue content = request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(
-            address_feed, topHeight, topContentId, countOut, lang, tags, contentTypes,
+            address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
             txIdsExcluded, adrsExcluded, tagsExcluded, address);
 
         result.pushKV("height", topHeight);
