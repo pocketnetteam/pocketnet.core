@@ -101,6 +101,8 @@ namespace PocketDb
         map<string, UniValue> GetMissedTransactions(const string& address, int height, int count);
         vector<UniValue> GetMissedCommentAnswers(const string& address, int height, int count);
         vector<UniValue> GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count);
+        vector<UniValue> GetMissedSubscribers(const string& address, int height, int count);
+        vector<UniValue> GetMissedBoosts(const string& address, int height, int count);
 
         UniValue SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut);
 

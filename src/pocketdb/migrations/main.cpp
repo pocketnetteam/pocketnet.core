@@ -74,6 +74,7 @@ namespace PocketDb
                 -- ScoreContent.Value
                 -- ScoreComment.Value
                 -- Complain.Reason
+                -- Boost.Amount
                 Int1      int    null
             );
         )sql");
