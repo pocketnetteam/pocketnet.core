@@ -4,7 +4,6 @@
 
 #include <bench/bench.h>
 #include <blockfilter.h>
-#include <validation.h>
 
 static void ConstructGCSFilter(benchmark::Bench& bench)
 {

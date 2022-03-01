@@ -83,7 +83,7 @@ if ENABLE_WALLET
   bench_bench_pocketcoin_SOURCES += bench/wallet_balance.cpp
 endif
 
-bench_bench_pocketcoin_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
+bench_bench_pocketcoin_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(MINIUPNPC_LIBS) $(SQLITE_LIBS)
 bench_bench_pocketcoin_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 CLEAN_POCKETCOIN_BENCH = bench/*.gcda bench/*.gcno $(GENERATED_BENCH_FILES)
