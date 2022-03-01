@@ -335,7 +335,6 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     }
 }
 
-/* Intermittent test failures with this test case, investigate */
 BOOST_AUTO_TEST_CASE(TransactionsRequestSerializationTest) {
     BlockTransactionsRequest req1;
     req1.blockhash = InsecureRand256();
