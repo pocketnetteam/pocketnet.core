@@ -5,11 +5,9 @@
 #ifndef POCKETCOIN_HTTPRPC_H
 #define POCKETCOIN_HTTPRPC_H
 
-#include <string>
-#include <map>
-#include <boost/thread.hpp>
-#include "init.h"
 #include "rpcapi/rpcapi.h"
+#include "util/system.h"
+#include "util/ref.h"
 
 namespace util {
 class Ref;

@@ -38,6 +38,9 @@
 /** Maximum size of http request (request line + headers) */
 static const size_t MAX_HEADERS_SIZE = 8192;
 
+/* Stored RPC timer interface (for unregistration) */
+static std::unique_ptr<HTTPRPCTimerInterface> httpRPCTimerInterface;
+
 class ExecutorSqlite : public IQueueProcessor<std::unique_ptr<HTTPClosure>>
 {
 public:
@@ -375,6 +378,10 @@ bool UpdateHTTPServerLogging(bool enable)
 void StartHTTPServer()
 {
     g_thread_http = std::thread(ThreadHTTP, eventBase);
+    struct event_base* eventBase = EventBase();
+    assert(eventBase);
+    httpRPCTimerInterface = MakeUnique<HTTPRPCTimerInterface>(eventBase);
+    RPCSetTimerInterface(httpRPCTimerInterface.get());
 }
 
 void InterruptHTTPServer()
@@ -420,6 +427,11 @@ void StopHTTPServer()
         eventBase = nullptr;
     }
     LogPrint(BCLog::HTTP, "Stopped HTTP server\n");
+
+    if (httpRPCTimerInterface) {
+        RPCUnsetTimerInterface(httpRPCTimerInterface.get());
+        httpRPCTimerInterface.reset();
+    }
 }
 
 struct event_base *EventBase()

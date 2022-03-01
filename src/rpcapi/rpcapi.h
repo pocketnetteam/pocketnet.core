@@ -7,6 +7,7 @@
 #include "rpc/server.h"
 #include "util/ref.h"
 #include "eventloop.h"
+#include "rpcapi/rpcprocessor.h"
 
 #include <functional>
 #include <memory>
@@ -25,34 +26,40 @@ public:
     virtual Statistic::RequestTime GetCreated() const = 0;
 };
 
+struct RequestContext
+{
+    util::Ref context;
+    std::string path;
+    std::string body;
+    std::shared_ptr<IReplier> replier;
+};
+
 class IRequestHandler
 {
 public:
-    virtual void Exec(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier, const DbConnectionRef& sqliteConnection) = 0;
+    virtual void Exec(const RequestContext& reqContext, const DbConnectionRef& sqliteConnection) = 0;
 };
 
 class RPCTableFunctionalHandler : public IRequestHandler
 {
 public:
-    RPCTableFunctionalHandler(std::shared_ptr<const CRPCTable> table, const std::function<void(const util::Ref&, const std::string&, const std::string&, const CRPCTable& table, std::shared_ptr<IReplier>, const DbConnectionRef&)>& func);
-    void Exec(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier, const DbConnectionRef& sqliteConnection) override;
+    RPCTableFunctionalHandler(std::shared_ptr<const CRPCTable> table, const std::function<void(const RequestContext& reqContext, const CRPCTable&, const DbConnectionRef&)>& func);
+    void Exec(const RequestContext& reqContext, const DbConnectionRef& sqliteConnection) override;
 
 private:
     std::shared_ptr<const CRPCTable> m_table;
-    std::function<void(const util::Ref&, const std::string&, const std::string&, const CRPCTable&, std::shared_ptr<IReplier>, const DbConnectionRef& sqliteConnection)> m_func;
+    std::function<void(const RequestContext& reqContext, const CRPCTable&, const DbConnectionRef& sqliteConnection)> m_func;
 };
 
-class WorkItem {
+
+class RequestWorkItem : public IWorkItem {
 public:
-    WorkItem() = default;
-    WorkItem(const util::Ref& context, const std::string& strURI, const std::string& body, std::shared_ptr<IReplier> replier, std::shared_ptr<IRequestHandler> handler);
-    void Exec(const DbConnectionRef& sqliteConnection);
+    RequestWorkItem() = default;
+    RequestWorkItem(RequestContext reqContext, std::shared_ptr<IRequestHandler> handler);
+    void Exec(const DbConnectionRef& sqliteConnection) override;
 
 private:
-    util::Ref m_context;
-    std::string m_strURI;
-    std::string m_body;
-    std::shared_ptr<IReplier> m_replier;
+    RequestContext m_reqContext;
     std::shared_ptr<IRequestHandler> m_handler;
 };
 
@@ -63,14 +70,11 @@ struct PathRequestHandlerEntry
     std::shared_ptr<IRequestHandler> requestHandler;
 };
 
-class WorkItemExecutor : public IQueueProcessor<WorkItem>
-{
-public:
-    void Process(WorkItem entry) override;
-private:
-    DbConnectionRef m_sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
-};
 
+/**
+ * The pod represents a pack of handlers that are attached to only one queue.
+ * Pod is also controlling workers for a single queue
+ */
 class RequestHandlerPod
 {
 public:
@@ -85,10 +89,16 @@ public:
     void Stop();
 
 private:
-    std::shared_ptr<QueueLimited<WorkItem>> m_queue;
+    std::shared_ptr<QueueLimited<std::unique_ptr<IWorkItem>>> m_queue;
     std::vector<PathRequestHandlerEntry> m_handlers;
-    std::vector<std::shared_ptr<QueueEventLoopThread<WorkItem>>> m_workers;
+    std::vector<std::shared_ptr<QueueEventLoopThread<std::unique_ptr<IWorkItem>>>> m_workers;
     int m_numThreads;
+};
+
+class IRequestsController {
+public:
+    virtual void Start() = 0;
+    virtual void Stop() = 0;
 };
 
 class IRequestProcessor
@@ -97,6 +107,10 @@ public:
     virtual bool Process(const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier) = 0;
 };
 
+/**
+ * Simple agregator to generalize manipulation with pods and provide node context to them.
+ * Has 2 interfaces: control and 
+ */
 class RequestProcessor : public IRequestProcessor
 {
 public:
@@ -120,6 +134,13 @@ public:
     {
         for (auto& pod: m_pods) {
             pod->Start();
+        }
+    }
+
+    void Stop()
+    {
+        for (auto& pod: m_pods) {
+            pod->Stop();
         }
     }
 

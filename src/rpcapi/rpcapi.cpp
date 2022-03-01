@@ -1,41 +1,31 @@
 #include "rpcapi.h"
 
-RPCTableFunctionalHandler::RPCTableFunctionalHandler(std::shared_ptr<const CRPCTable> table, const std::function<void(const util::Ref&, const std::string&, const std::string&, const CRPCTable& table, std::shared_ptr<IReplier>, const DbConnectionRef&)>& func)
+RPCTableFunctionalHandler::RPCTableFunctionalHandler(std::shared_ptr<const CRPCTable> table, const std::function<void(const RequestContext& reqContext, const CRPCTable&, const DbConnectionRef&)>& func)
     : m_table(std::move(table)),
       m_func(func)
 {}
 
 
-void RPCTableFunctionalHandler::Exec(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier, const DbConnectionRef& sqliteConnection)
+void RPCTableFunctionalHandler::Exec(const RequestContext& reqContext, const DbConnectionRef& sqliteConnection)
 {
-    m_func(context, strURI, body, *m_table, replier, sqliteConnection);
+    m_func(reqContext, *m_table, sqliteConnection);
 }
 
 
-WorkItem::WorkItem(const util::Ref& context, const std::string& strURI, const std::string& body, std::shared_ptr<IReplier> replier, std::shared_ptr<IRequestHandler> handler)
-    : m_context(context),
-      m_strURI(strURI),
-      m_body(body),
-      m_replier(std::move(replier)),
+RequestWorkItem::RequestWorkItem(RequestContext reqContext, std::shared_ptr<IRequestHandler> handler)
+    : m_reqContext(std::move(reqContext)),
       m_handler(std::move(handler))
 {}
 
 
-void WorkItem::Exec(const DbConnectionRef& sqliteConnection)
+void RequestWorkItem::Exec(const DbConnectionRef& sqliteConnection)
 {
-    m_handler->Exec(m_context, m_strURI, m_body, m_replier, sqliteConnection);
+    m_handler->Exec(m_reqContext, sqliteConnection);
 }
-
-
-void WorkItemExecutor::Process(WorkItem entry)
-{
-    entry.Exec(m_sqliteConnection);
-}
-
 
 RequestHandlerPod::RequestHandlerPod(std::vector<PathRequestHandlerEntry> handlers, int queueLimit, int nThreads)
     : m_handlers(std::move(handlers)),
-      m_queue(std::make_shared<QueueLimited<WorkItem>>(queueLimit)),
+      m_queue(std::make_shared<QueueLimited<std::unique_ptr<IWorkItem>>>(queueLimit)),
       m_numThreads(nThreads)
 {}
 
@@ -50,7 +40,8 @@ bool RequestHandlerPod::Process(const util::Ref& context, const std::string& str
             match = (strURI.substr(0, pathHandler.prefix.size()) == pathHandler.prefix);
 
         if (match) {
-            m_queue->Add(WorkItem(context, strURI.substr(pathHandler.prefix.size()), body, replier, pathHandler.requestHandler));
+            RequestContext reqContext{context, strURI.substr(pathHandler.prefix.size()), body, replier};
+            m_queue->Add(std::make_unique<RequestWorkItem>(std::move(reqContext), pathHandler.requestHandler));
             return true;
         }
     }
@@ -66,7 +57,7 @@ bool RequestHandlerPod::Start()
     }
 
     for (int i = 0; i < m_numThreads; i++) {
-        auto worker = std::make_shared<QueueEventLoopThread<WorkItem>>(m_queue, std::make_shared<WorkItemExecutor>());
+        auto worker = std::make_shared<QueueEventLoopThread<std::unique_ptr<IWorkItem>>>(m_queue, std::make_shared<WorkItemExecutor>());
         worker->Start();
         m_workers.emplace_back(std::move(worker));
     }

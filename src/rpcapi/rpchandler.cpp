@@ -9,6 +9,8 @@
 #include "interfaces/chain.h"
 
 
+// TODO (losty-nat): refactor this!
+
 static bool InitRPCAuthentication(const ArgsManager& args, std::string& strRPCUserColonPass)
 {
     if (args.GetArg("-rpcpassword", "").empty()) {
@@ -118,7 +120,7 @@ static inline std::string gen_random(const int len) {
 
 }
 
-static void JSONErrorReply(IReplier* replier, const UniValue& objError, const UniValue& id)
+static void JSONErrorReply(const std::shared_ptr<IReplier>& replier, const UniValue& objError, const UniValue& id)
 {
     // Send error reply from json-rpc error object
     int nStatus = HTTP_INTERNAL_SERVER_ERROR;
@@ -138,7 +140,7 @@ static void JSONErrorReply(IReplier* replier, const UniValue& objError, const Un
 class RPCTableExecutor
 {
 public:
-    static bool ProcessRPC(const util::Ref& context, const std::string& strURI, const std::string& body, const DbConnectionRef& sqliteConnection, IReplier* req, const CRPCTable& table)
+    static bool ProcessRPC(const RequestContext& reqContext, const CRPCTable& table, const DbConnectionRef& sqliteConnection)
     {
         // JSONRPC handles only POST
         // TODO (losty-nat): handle this
@@ -154,16 +156,16 @@ public:
         auto start = gStatEngineInstance.GetCurrentSystemTime();
         bool executeSuccess = true;
 
-        JSONRPCRequest jreq(context);
+        JSONRPCRequest jreq(reqContext.context);
         try
         {
             UniValue valRequest;
 
-            if (!valRequest.read(body))
+            if (!valRequest.read(reqContext.body))
                 throw JSONRPCError(RPC_PARSE_ERROR, "Parse error");
 
             // Set the URI
-            jreq.URI = strURI;
+            jreq.URI = reqContext.path;
             std::string strReply;
 
             // singleton request
@@ -203,19 +205,19 @@ public:
                 }
             }
 
-            req->WriteHeader("Content-Type", "application/json");
-            req->WriteReply(HTTP_OK, strReply);
+            reqContext.replier->WriteHeader("Content-Type", "application/json");
+            reqContext.replier->WriteReply(HTTP_OK, strReply);
         }
         catch (const UniValue& objError)
         {
             LogPrint(BCLog::RPCERROR, "Exception %s\n", objError.write());
-            JSONErrorReply(req, objError, jreq.id);
+            JSONErrorReply(reqContext.replier, objError, jreq.id);
             executeSuccess = false;
         }
         catch (const std::exception& e)
         {
             LogPrint(BCLog::RPCERROR, "Exception 2 %s\n", JSONRPCError(RPC_PARSE_ERROR, e.what()).write());
-            JSONErrorReply(req, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
+            JSONErrorReply(reqContext.replier, JSONRPCError(RPC_PARSE_ERROR, e.what()), jreq.id);
             executeSuccess = false;
         }
 
@@ -227,7 +229,7 @@ public:
             gStatEngineInstance.AddSample(
                 Statistic::RequestSample{
                     uri,
-                    req->GetCreated(),
+                    reqContext.replier->GetCreated(),
                     start,
                     finish,
                     peer,
@@ -283,16 +285,16 @@ std::pair<std::shared_ptr<RequestProcessor>, std::shared_ptr<RequestProcessor>> 
         // TODO (losty-nat): log error
         return {nullptr, nullptr};
     }
-    std::function<void(const util::Ref& context, const std::string& strURI, const std::string& body, const CRPCTable& table, std::shared_ptr<IReplier> replier, const DbConnectionRef& sqliteConnection)> authFunc = [authorizer = std::make_shared<Authorizer>(strRPCUserColonPass)](const util::Ref& context, const std::string& strURI, const std::string& body, const CRPCTable& table, std::shared_ptr<IReplier> replier, const DbConnectionRef& sqliteConnection) mutable {
+    auto authFunc = [authorizer = std::make_shared<Authorizer>(strRPCUserColonPass)](const RequestContext& reqContext, const CRPCTable& table, const DbConnectionRef& sqliteConnection) mutable {
         // TODO (losty-nat): peer from replier
         // auto peerAddr = req->GetPeer().ToString();
         // Check authorization
         std::string authStr;
 
-        if (!replier->GetAuthCredentials(authStr)) {
+        if (!reqContext.replier->GetAuthCredentials(authStr)) {
             LogPrint(BCLog::RPC, "WARNING: Request without authorization header\n");
-            replier->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
-            replier->WriteReply(HTTP_UNAUTHORIZED);
+            reqContext.replier->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
+            reqContext.replier->WriteReply(HTTP_UNAUTHORIZED);
             return false;
         }
 
@@ -306,16 +308,16 @@ std::pair<std::shared_ptr<RequestProcessor>, std::shared_ptr<RequestProcessor>> 
             */
             UninterruptibleSleep(std::chrono::milliseconds{250});
 
-            replier->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
-            replier->WriteReply(HTTP_UNAUTHORIZED);
+            reqContext.replier->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
+            reqContext.replier->WriteReply(HTTP_UNAUTHORIZED);
             return false;
         }
 
-        return RPCTableExecutor::ProcessRPC(context, strURI, body, sqliteConnection, replier.get(), table);
+        return RPCTableExecutor::ProcessRPC(reqContext, table, sqliteConnection);
     };
     auto handlerPrivate = std::make_shared<RPCTableFunctionalHandler>(privateTable, authFunc);
-    std::function<void(const util::Ref& context, const std::string& strURI, const std::string& body, const CRPCTable& table, std::shared_ptr<IReplier> replier, const DbConnectionRef& sqliteConnection)> commonFunc = [](const util::Ref& context, const std::string& strURI, const std::string& body, const CRPCTable& table, std::shared_ptr<IReplier> replier, const DbConnectionRef& sqliteConnection) {
-        return RPCTableExecutor::ProcessRPC(context, strURI, body, sqliteConnection, replier.get(), table);
+    auto commonFunc = [](const RequestContext& reqContext, const CRPCTable& table, const DbConnectionRef& sqliteConnection) {
+        return RPCTableExecutor::ProcessRPC(reqContext, table, sqliteConnection);
     };
 
     auto privateRequestProcessor = std::make_shared<RequestProcessor>(context);

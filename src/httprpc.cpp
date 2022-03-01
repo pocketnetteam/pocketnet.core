@@ -2,28 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "httprpc.h"
+
 #include "rpcapi/rpcapi.h"
 #include "rpcapi/rpchandler.h"
-#include "util/time.h"
-#include <chrono>
-#include <httprpc.h>
 
-#include <httpserver.h>
-#include <rpc/protocol.h>
-#include <rpc/server.h>
-#include <node/ui_interface.h>
-#include <util/system.h>
-#include <util/strencodings.h>
-#include <util/ref.h>
-#include <walletinitinterface.h>
-#include <memory>
-#include <boost/algorithm/string.hpp> // boost::trim
-#include <crypto/hmac_sha256.h>
-
-/* Stored RPC timer interface (for unregistration) */
-static std::unique_ptr<HTTPRPCTimerInterface> httpRPCTimerInterface;
-
-/* Pre-base64-encoded authentication token */
 
 bool RPC::Init(const ArgsManager& args, const util::Ref& context)
 {
@@ -49,10 +32,6 @@ bool RPC::StartHTTPRPC()
         m_webRpcProcessor->Start();
     }
 
-    struct event_base* eventBase = EventBase();
-    assert(eventBase);
-    httpRPCTimerInterface = MakeUnique<HTTPRPCTimerInterface>(eventBase);
-    RPCSetTimerInterface(httpRPCTimerInterface.get());
     return true;
 }
 
@@ -64,24 +43,7 @@ void RPC::InterruptHTTPRPC()
 void RPC::StopHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
-    
-    // TODO (losty-nat): unregistering handlers!
-    // if (g_socket)
-    // {
-    //     g_socket->UnregisterHTTPHandler("/", true);
-    //     if (g_wallet_init_interface.HasWalletSupport()) {
-    //         g_socket->UnregisterHTTPHandler("/wallet/", false);
-    //     }
-    // }
 
-    // if (g_webSocket)
-    // {
-    //     g_webSocket->UnregisterHTTPHandler("/post/", false);
-    //     g_webSocket->UnregisterHTTPHandler("/", false);
-    // }
-
-    if (httpRPCTimerInterface) {
-        RPCUnsetTimerInterface(httpRPCTimerInterface.get());
-        httpRPCTimerInterface.reset();
-    }
+    m_rpcProcessor->Stop();
+    m_webRpcProcessor->Stop();
 }
