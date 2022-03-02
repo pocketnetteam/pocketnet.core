@@ -15,6 +15,7 @@ public:
     // TODO (losty-nat): probably there should be more generalization to process requests that do not require sqlite connection.
     //                   It is not currently the case because each request requires it but will be a good improvement.
     virtual void Exec(const DbConnectionRef& sqliteConnection) = 0;
+    virtual ~IWorkItem() = default;
 };
 
 /**

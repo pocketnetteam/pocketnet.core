@@ -24,6 +24,7 @@ public:
     virtual void WriteHeader(const std::string& hdr, const std::string& value) = 0;
     virtual bool GetAuthCredentials(std::string& out) = 0;
     virtual Statistic::RequestTime GetCreated() const = 0;
+    virtual ~IReplier() = default;
 };
 
 struct RequestContext
@@ -38,6 +39,7 @@ class IRequestHandler
 {
 public:
     virtual void Exec(const RequestContext& reqContext, const DbConnectionRef& sqliteConnection) = 0;
+    virtual ~IRequestHandler() = default;
 };
 
 class RPCTableFunctionalHandler : public IRequestHandler
@@ -113,12 +115,14 @@ class IRequestsController {
 public:
     virtual void Start() = 0;
     virtual void Stop() = 0;
+    virtual ~IRequestsController() = default;
 };
 
 class IRequestProcessor
 {
 public:
     virtual bool Process(const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier) = 0;
+    virtual ~IRequestProcessor() = default;
 };
 
 /**
