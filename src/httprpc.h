@@ -13,6 +13,7 @@ namespace util {
 class Ref;
 } // namespace util
 
+// TODO (losty-nat): dirty hack to allow rpchandlers and node interface mutate table.
 extern std::shared_ptr<CRPCTable> g_privateTable;
 
 class RPC
