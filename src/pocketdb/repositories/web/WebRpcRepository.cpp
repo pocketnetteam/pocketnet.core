@@ -3301,27 +3301,27 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                t.Id,
-                tb.String2,
+                tc.Id contentId,
+                tb.String2 contentHash,
                 sum(tb.Int1) as sumBoost
 
             from Transactions tb indexed by Transactions_Type_Last_String2_Height
             join Transactions tc indexed by Transactions_Type_Last_String2_Height
                 on tc.String2 = tb.String2 and tc.Last = 1 and tc.Type in )sql" + contentTypesWhere + R"sql( and tc.Height > 0
-                and tc.String3 is null--?????
+                --and tc.String3 is null--?????
 
             )sql" + langFilter + R"sql(
 
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id
-                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = t.String1
+                on u.Type in (100) and u.Last = 1 and u.Height > 0 and u.String1 = tc.String1
 
             left join Ratings ur indexed by Ratings_Type_Id_Last_Height
                 on ur.Type = 0 and ur.Last = 1 and ur.Id = u.Id
 
             where tb.Type = 208
                 and tb.Last in (0, 1)
-                and tb.Height > ?
                 and tb.Height <= ?
+                and tb.Height > ?
 
                 -- Do not show posts from users with low reputation
                 and ifnull(ur.Value,0) > ?
@@ -3356,7 +3356,7 @@ namespace PocketDb
              ) )sql";
         }
 
-        sql += " group by tb.String2";
+        sql += " group by tc.Id, tb.String2";
         sql += " order by sum(tb.Int1) desc";
 
         // ---------------------------------------------
@@ -3405,6 +3405,7 @@ namespace PocketDb
             }
 
             // ---------------------------------------------
+            LogPrintf(sqlite3_expanded_sql(*stmt));
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
