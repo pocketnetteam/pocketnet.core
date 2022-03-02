@@ -64,6 +64,7 @@
 #include <util/threadnames.h>
 #include <util/translation.h>
 #include <validation.h>
+#include <rest.h>
 
 #include <validationinterface.h>
 #include <walletinitinterface.h>
@@ -110,6 +111,7 @@ std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
 std::shared_ptr<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>> notifyClientsThread;
 std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
 RPC g_rpc;
+Rest g_rest;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -206,7 +208,7 @@ void Interrupt(NodeContext& node)
     InterruptHTTPServer();
     g_rpc.InterruptHTTPRPC();
     InterruptRPC();
-    g_rpc.InterruptREST();
+    g_rest.InterruptREST();
     InterruptTorControl();
     InterruptMapPort();
     if (node.connman)
@@ -229,7 +231,7 @@ void Shutdown(NodeContext& node)
     gStatEngineInstance.Stop();
 
     g_rpc.StopHTTPRPC();
-    g_rpc.StopREST();
+    g_rest.StopREST();
     StopRPC();
     StopHTTPServer();
 
@@ -973,16 +975,23 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
     const ArgsManager& args = *Assert(node.args);
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
-    if (!g_rpc.Init(gArgs, context)) {
+    if (!g_rpc.Init(args, context)) {
         return false;
     }
-    if (!InitHTTPServer(context, g_rpc.GetPrivateRequestProcessor(), g_rpc.GetWebRequestProcessor()))
+    // TODO (losty-nat): clean up
+    if (!InitHTTPServer(context, g_rpc.GetPrivateRequestProcessor(), g_rpc.GetWebRequestProcessor(), g_rest.GetRestRequestProcessor(), g_rest.GetStaticRequestProcessor()))
         return false;
     StartRPC();
     node.rpc_interruption_point = RpcInterruptionPoint;
     if (!g_rpc.StartHTTPRPC())
         return false;
-    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) g_rpc.StartREST(context);
+    if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) {
+        if (!g_rest.Init(args, context))
+        // TODO (losty-nat): log
+            return false;
+        if (!g_rest.StartREST())
+            return false;
+    } 
     StartHTTPServer();
     return true;
 }

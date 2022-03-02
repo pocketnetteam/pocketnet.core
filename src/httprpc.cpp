@@ -37,6 +37,7 @@ bool RPC::StartHTTPRPC()
 
 void RPC::InterruptHTTPRPC()
 {
+    // TODO (losty-nat): ?
     LogPrint(BCLog::RPC, "Interrupting HTTP RPC server\n");
 }
 

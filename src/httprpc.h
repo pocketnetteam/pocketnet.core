@@ -29,18 +29,6 @@ public:
     */
     void StopHTTPRPC();
 
-    /** Start HTTP REST subsystem.
-    * Precondition; HTTP and RPC has been started.
-    */
-    void StartREST(const util::Ref& context);
-    /** Interrupt RPC REST subsystem.
-    */
-    void InterruptREST();
-    /** Stop HTTP REST subsystem.
-    * Precondition; HTTP and RPC has been stopped.
-    */
-    void StopREST();
-
     std::shared_ptr<IRequestProcessor> GetPrivateRequestProcessor() const
     {
         return m_rpcProcessor;

@@ -41,37 +41,6 @@ static const size_t MAX_HEADERS_SIZE = 8192;
 /* Stored RPC timer interface (for unregistration) */
 static std::unique_ptr<HTTPRPCTimerInterface> httpRPCTimerInterface;
 
-class ExecutorSqlite : public IQueueProcessor<std::unique_ptr<HTTPClosure>>
-{
-public:
-    explicit ExecutorSqlite(bool selfDbConnection)
-    {
-        if (selfDbConnection)
-            m_sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
-    }
-    void Process(std::unique_ptr<HTTPClosure> closure) override
-    {
-        (*closure)(m_sqliteConnection);
-    }
-private:
-    DbConnectionRef m_sqliteConnection;
-};
-
-
-struct HTTPPathHandler
-{
-    HTTPPathHandler(std::string _prefix, bool _exactMatch, HTTPRequestHandler _handler,
-                    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> _queue) :
-        prefix(_prefix), exactMatch(_exactMatch), handler(_handler), queue(_queue)
-    {
-    }
-
-    std::string prefix;
-    bool exactMatch;
-    HTTPRequestHandler handler;
-    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue;
-};
-
 /** HTTP module state */
 
 //! libevent event loop
@@ -304,7 +273,7 @@ static void libevent_log_cb(int severity, const char *msg)
 
 using namespace std::chrono;
 
-bool InitHTTPServer(const util::Ref& context, const std::shared_ptr<IRequestProcessor>& privateHandler, const std::shared_ptr<IRequestProcessor>& webHandler)
+bool InitHTTPServer(const util::Ref& context, const std::shared_ptr<IRequestProcessor>& privateHandler, const std::shared_ptr<IRequestProcessor>& webHandler, const std::shared_ptr<IRequestProcessor>& restHandler, const std::shared_ptr<IRequestProcessor>& staticHandler)
 {
     if (!InitHTTPAllowList())
         return false;
@@ -341,8 +310,11 @@ bool InitHTTPServer(const util::Ref& context, const std::shared_ptr<IRequestProc
         g_webSocket = new HTTPWebSocket(eventBase, timeout, true);
         g_webSocket->RegisterRequestProcessor(webHandler);
         // Additional pocketnet static files socket
+        // TODO (losty-nat): cleanup
         g_staticSocket = new HTTPSocket(eventBase, timeout, true);
+        g_staticSocket->RegisterRequestProcessor(staticHandler);
         g_restSocket = new HTTPSocket(eventBase, timeout, true);
+        g_restSocket->RegisterRequestProcessor(restHandler);
     }
  
     if (!HTTPBindAddresses())
@@ -382,6 +354,7 @@ void StartHTTPServer()
     assert(eventBase);
     httpRPCTimerInterface = MakeUnique<HTTPRPCTimerInterface>(eventBase);
     RPCSetTimerInterface(httpRPCTimerInterface.get());
+    // TODO (losty-nat): call StartHTTPSocket() here
 }
 
 void InterruptHTTPServer()
@@ -500,6 +473,8 @@ void HTTPSocket::StopHTTPSocket()
 
 void HTTPSocket::InterruptHTTPSocket()
 {
+    // TODO (losty-nat): socket is not usable after this call.
+    //                   Need to set this callback back to http_request_cb in StartHTTPSocket()
     if (m_eventHTTP)
     {
         // Reject requests on current connections

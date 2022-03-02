@@ -33,8 +33,6 @@ class HTTPRequest;
 template<typename WorkItem>
 class WorkQueue;
 
-struct HTTPPathHandler;
-
 namespace util {
 class Ref;
 }
@@ -42,7 +40,7 @@ class Ref;
 /** Initialize HTTP server.
  * Call this before RegisterHTTPHandler or EventBase().
  */
-bool InitHTTPServer(const util::Ref& context, const std::shared_ptr<IRequestProcessor>& privateHandler, const std::shared_ptr<IRequestProcessor>& webHandler);
+bool InitHTTPServer(const util::Ref& context, const std::shared_ptr<IRequestProcessor>& privateHandler, const std::shared_ptr<IRequestProcessor>& webHandler, const std::shared_ptr<IRequestProcessor>& restHandler, const std::shared_ptr<IRequestProcessor>& staticHandler);
 /** Start HTTP server.
  * This is separate from InitHTTPServer to give users race-condition-free time
  * to register their handlers between InitHTTPServer and StartHTTPServer.

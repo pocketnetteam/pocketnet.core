@@ -1118,6 +1118,8 @@ add_library(${POCKETCOIN_SERVER}
         rpcapi/rpcapi.cpp
         rpcapi/rpchandler.h
         rpcapi/rpchandler.cpp
+        rpcapi/rpcprocessor.h
+        rpcapi/rpcprocessor.cpp
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
