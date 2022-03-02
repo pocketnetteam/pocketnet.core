@@ -13,6 +13,8 @@ namespace util {
 class Ref;
 } // namespace util
 
+extern std::shared_ptr<CRPCTable> g_privateTable;
+
 class RPC
 {
 public:

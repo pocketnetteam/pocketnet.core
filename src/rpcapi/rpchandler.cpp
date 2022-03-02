@@ -7,6 +7,7 @@
 #include "rpc/register.h"
 #include "zmq/zmqrpc.h"
 #include "interfaces/chain.h"
+#include "httprpc.h"
 
 
 // TODO (losty-nat): refactor this!
@@ -264,19 +265,19 @@ std::pair<std::shared_ptr<RequestProcessor>, std::shared_ptr<RequestProcessor>> 
 
     const auto& node = EnsureNodeContext(context);
     // General private socket
-    auto privateTable = std::make_shared<CRPCTable>();
-    RegisterBlockchainRPCCommands(*privateTable);
-    RegisterNetRPCCommands(*privateTable);
-    RegisterMiscRPCCommands(*privateTable);
-    RegisterMiningRPCCommands(*privateTable);
-    RegisterRawTransactionRPCCommands(*privateTable);
+    g_privateTable = std::make_shared<CRPCTable>();
+    RegisterBlockchainRPCCommands(*g_privateTable);
+    RegisterNetRPCCommands(*g_privateTable);
+    RegisterMiscRPCCommands(*g_privateTable);
+    RegisterMiningRPCCommands(*g_privateTable);
+    RegisterRawTransactionRPCCommands(*g_privateTable);
 
     for (const auto& client : node.chain_clients) {
         // TODO (losty-nat): pass table inside
         client->registerRpcs();
     }
 #if ENABLE_ZMQ
-    RegisterZMQRPCCommands(*privateTable);
+    RegisterZMQRPCCommands(*g_privateTable);
 #endif
 
     std::string strRPCUserColonPass;
@@ -315,7 +316,7 @@ std::pair<std::shared_ptr<RequestProcessor>, std::shared_ptr<RequestProcessor>> 
 
         return RPCTableExecutor::ProcessRPC(reqContext, table, sqliteConnection);
     };
-    auto handlerPrivate = std::make_shared<RPCTableFunctionalHandler>(privateTable, authFunc);
+    auto handlerPrivate = std::make_shared<RPCTableFunctionalHandler>(g_privateTable, authFunc);
     auto commonFunc = [](const RequestContext& reqContext, const CRPCTable& table, const DbConnectionRef& sqliteConnection) {
         return RPCTableExecutor::ProcessRPC(reqContext, table, sqliteConnection);
     };

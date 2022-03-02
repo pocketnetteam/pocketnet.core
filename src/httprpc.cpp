@@ -7,11 +7,11 @@
 #include "rpcapi/rpcapi.h"
 #include "rpcapi/rpchandler.h"
 
+std::shared_ptr<CRPCTable> g_privateTable;
 
 bool RPC::Init(const ArgsManager& args, const util::Ref& context)
 {
     RPCFactory factory;
-    // TODO (losty-nat): use parameter-provided args instead of gargs
     auto [privateProcessor, webProcessor] = factory.Init(args, context);
     if (!privateProcessor) {
         return false;

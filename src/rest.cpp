@@ -823,8 +823,7 @@ static bool rest_topaddresses(const RequestContext& reqContext, const DbConnecti
             count = 1000;
     }
 
-    // TODO (losty-nat)
-    // auto result = req->DbConnection()->WebRpcRepoInst->GetTopAddresses(count);
+    auto result = sqliteConnection->WebRpcRepoInst->GetTopAddresses(count);
     replier->WriteHeader("Content-Type", "application/json");
     // req->WriteReply(HTTP_OK, result.write() + "\n");
     return true;
