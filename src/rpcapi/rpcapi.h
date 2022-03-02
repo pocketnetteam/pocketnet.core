@@ -51,6 +51,20 @@ private:
     std::function<void(const RequestContext& reqContext, const CRPCTable&, const DbConnectionRef& sqliteConnection)> m_func;
 };
 
+class FunctionalHandler : public IRequestHandler
+{
+public:
+    FunctionalHandler(const std::function<void(const RequestContext& reqContext, const DbConnectionRef&)>& func)
+        : m_func(func)
+    {}
+    void Exec(const RequestContext& reqContext, const DbConnectionRef& sqliteConnection)
+    {
+        m_func(reqContext, sqliteConnection);
+    }
+private:
+    std::function<void(const RequestContext& reqContext, const DbConnectionRef&)> m_func;
+};
+
 
 class RequestWorkItem : public IWorkItem {
 public:
