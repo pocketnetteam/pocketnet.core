@@ -4621,7 +4621,7 @@ bool ProcessNewBlock(CValidationState& state,
             MILLI * (double)(nTime3 - nTime2),
             pocketBlock->size() <= 1 ? 0 : MILLI * (double)(nTime3 - nTime2) / (double)(pocketBlock->size() - 1));
 
-        // It is necessary to check that block and pocket Black contain an equal number of transactions
+        // It is necessary to check that block and PocketBlock contain an equal number of transactions
         // Also check pocket block with general pocketnet consensus rules
         if (ret)
         {
@@ -4632,7 +4632,13 @@ bool ProcessNewBlock(CValidationState& state,
                 checkHeight = _pindex->nHeight;
 
             if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(*pblock, pocketBlock, checkHeight); !ok)
-                ret = false;
+            {
+                if (_pindex)
+                    _pindex->nStatus &= ~BLOCK_HAVE_DATA;
+
+                ret = state.DoS(200, false, REJECT_INCOMPLETE, "failed-check-social-payload", false, "", true);
+                *fNewBlock = false;
+            }
                 
             LogPrint(BCLog::CONSENSUS, "    Block checked with result %d: Height: %d BH: %s\n", (ret ? 1 : 0), checkHeight, pblock->GetHash().GetHex());
         }
