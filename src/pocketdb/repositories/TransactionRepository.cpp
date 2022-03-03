@@ -33,34 +33,23 @@ namespace PocketDb
 
             switch (partType)
             {
-            case 0: {
-                auto[ok, ptx] = ParseTransaction(stmt, txHash);
-                if (!ok) return false;
+                case 0: {
+                    auto[ok, ptx] = ParseTransaction(stmt, txHash);
+                    if (!ok) return false;
 
-                ptx->SetHash(txHash);
-                m_transactions.emplace(txHash, ptx);
-                break;
-            }
-            case 1: {
-                if (!ParsePayload(stmt, m_transactions[txHash], txHash))
+                    ptx->SetHash(txHash);
+                    m_transactions.emplace(txHash, ptx);
+                    return true;
+                }
+                case 1:
+                    return ParsePayload(stmt, m_transactions[txHash], txHash);
+                case 2:
+                    return ParseInput(stmt, m_transactions[txHash], txHash);
+                case 3:
+                    return ParseOutput(stmt, m_transactions[txHash], txHash);
+                default:
                     return false;
-                break;
             }
-            case 2: {
-                if (!ParseInput(stmt, m_transactions[txHash], txHash))
-                    return false;
-                break;
-            }
-            case 3: {
-                if (!ParseOutput(stmt, m_transactions[txHash], txHash))
-                    return false;
-                break;
-            }
-            default:
-                return false;
-            }
-
-            return true;
         }
 
         /**
@@ -123,13 +112,13 @@ namespace PocketDb
             Payload payload;
             payload.SetTxHash(txHash);
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { payload.SetString1(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { payload.SetString2(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { payload.SetString3(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { payload.SetString4(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { payload.SetString5(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { payload.SetString6(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) { payload.SetString7(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { payload.SetString1(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { payload.SetString2(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { payload.SetString3(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { payload.SetString4(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { payload.SetString5(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { payload.SetString6(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) { payload.SetString7(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
             if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) { payload.SetInt1(value); empty = false; }
 
             ptx->SetPayload(payload);
