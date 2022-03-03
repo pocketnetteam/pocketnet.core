@@ -29,10 +29,7 @@ namespace PocketDb
             if (!okTxHash) return false;
 
             if (partType > 0 && m_transactions.find(txHash) == m_transactions.end())
-            {
-                LogPrintf("txHash not found in m_transactions: %s\n", txHash);
                 return false;
-            }
 
             switch (partType)
             {
@@ -212,10 +209,9 @@ namespace PocketDb
         string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
 
         auto sql = R"sql(
-            select un.* from (
-                select (0)tp, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
-                from Transactions
-                where Hash in ( )sql" + txReplacers + R"sql( )
+            select (0)tp, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
+            from Transactions
+            where Hash in ( )sql" + txReplacers + R"sql( )
         )sql" +
 
         // Payload part
@@ -244,8 +240,7 @@ namespace PocketDb
         )sql") : "") +
 
         string(R"sql(
-            )un
-            order by un.tp asc
+            order by tp asc
         )sql");
         
         TransactionReconstructor reconstructor;
