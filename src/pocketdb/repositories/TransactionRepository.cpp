@@ -49,7 +49,7 @@ namespace PocketDb
                 }
                 case 1:
                     LogPrintf("FeedRow pre 1: %s\n", txHash);
-                    return ParsePayload(stmt, m_transactions[txHash], txHash);
+                    return ParsePayload(stmt, m_transactions[txHash]);
                 case 2:
                     LogPrintf("FeedRow pre 2: %s\n", txHash);
                     return ParseInput(stmt, m_transactions[txHash], txHash);
@@ -115,23 +115,20 @@ namespace PocketDb
          * Index:   0  1       2     3     4     5     6     7     8        9        10       11       12       13       14       15
          * Columns: 1, TxHash, null, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
          */
-        bool ParsePayload(sqlite3_stmt* stmt, PTransactionRef& ptx, const string& txHash)
+        bool ParsePayload(sqlite3_stmt* stmt, PTransactionRef& ptx)
         {
-            bool empty = true;
-            Payload payload;
-            payload.SetTxHash(txHash);
+            ptx->GeneratePayload();
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { payload.SetString1(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { payload.SetString2(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { payload.SetString3(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { payload.SetString4(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { payload.SetString5(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { payload.SetString6(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) { payload.SetString7(value); empty = false; }
-            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) { payload.SetInt1(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { ptx->GetPayload()->SetString1(value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { ptx->GetPayload()->SetString2(value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { ptx->GetPayload()->SetString3(value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { ptx->GetPayload()->SetString4(value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { ptx->GetPayload()->SetString5(value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { ptx->GetPayload()->SetString6(value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) { ptx->GetPayload()->SetString7(value); }
+            if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) { ptx->GetPayload()->SetInt1(value); }
 
-            ptx->SetPayload(payload);
-            return !empty;
+            return true;
         }
 
         /**
