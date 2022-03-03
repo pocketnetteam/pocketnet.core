@@ -28,8 +28,6 @@ namespace PocketDb
             auto[okTxHash, txHash] = TryGetColumnString(stmt, 1);
             if (!okTxHash) return false;
 
-            LogPrintf("FeedRow: %s\n", txHash);
-
             if (partType > 0 && m_transactions.find(txHash) == m_transactions.end())
             {
                 LogPrintf("txHash not found in m_transactions: %s\n", txHash);
@@ -44,17 +42,14 @@ namespace PocketDb
 
                     ptx->SetHash(txHash);
                     m_transactions.emplace(txHash, ptx);
-                    LogPrintf("FeedRow 0: %s\n", txHash);
+                    
                     return true;
                 }
                 case 1:
-                    LogPrintf("FeedRow pre 1: %s\n", txHash);
                     return ParsePayload(stmt, m_transactions[txHash]);
                 case 2:
-                    LogPrintf("FeedRow pre 2: %s\n", txHash);
                     return ParseInput(stmt, m_transactions[txHash], txHash);
                 case 3:
-                    LogPrintf("FeedRow pre 3: %s\n", txHash);
                     return ParseOutput(stmt, m_transactions[txHash], txHash);
                 default:
                     return false;
@@ -282,7 +277,6 @@ namespace PocketDb
                 // TODO (brangr): maybe throw exception if errors?
                 if (!reconstructor.FeedRow(*stmt))
                 {
-                    LogPrintf("FALSE\n");
                     break;
                 }
             }
