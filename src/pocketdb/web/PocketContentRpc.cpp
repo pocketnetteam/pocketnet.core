@@ -507,12 +507,62 @@ namespace PocketWeb::PocketWebRpc
         return result;
     }
 
+    // TODO (o1q): Remove this method when the client gui switches to new methods
     UniValue FeedSelector(const JSONRPCRequest& request)
     {
-        if (request.params.size() > 1 && request.params[1].isStr() && request.params[1].get_str() == "1")
-            return GetSubscribesFeed(request);
+        if (request.fHelp)
+        {
+            throw runtime_error(
+                "feedselector\n"
+                "\nOld method. Will be removed in future");
+        }
 
-        return GetProfileFeed(request);
+        string addressFrom;
+        if (request.params.size() > 0 && request.params[0].isStr())
+            addressFrom = request.params[0].get_str();
+
+        string addressTo = "";
+        if (request.params.size() > 1 && request.params[1].isStr())
+            addressTo = request.params[1].get_str();
+
+        string topContentHash;
+        if (request.params.size() > 2 && request.params[2].isStr())
+            topContentHash = request.params[2].get_str();
+
+        int count = 10;
+        if (request.params.size() > 3 && request.params[3].isNum())
+        {
+            count = request.params[3].get_int();
+            if (count > 10)
+                count = 10;
+        }
+
+        string lang = "";
+        if (request.params.size() > 4 && request.params[4].isStr())
+            lang = request.params[4].get_str();
+
+        vector<string> tags;
+        if (request.params.size() > 5)
+            ParseRequestTags(request.params[5], tags);
+
+        // content types
+        vector<int> contentTypes;
+        ParseRequestContentTypes(request.params[6], contentTypes);
+
+        int64_t topContentId = 0;
+        if (!topContentHash.empty())
+        {
+            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
+            if (!ids.empty())
+                topContentId = ids[0];
+        }
+
+        if (addressTo == "1")
+            //return GetSubscribesFeed(request);
+            return request.DbConnection()->WebRpcRepoInst->GetSubscribesFeedOld(addressFrom, topContentId, count, lang, tags, contentTypes);
+
+        //return GetProfileFeed(request);
+        return request.DbConnection()->WebRpcRepoInst->GetProfileFeedOld(addressFrom, addressTo, topContentId, count, lang, tags, contentTypes);
     }
 
     UniValue GetContentsStatistic(const JSONRPCRequest& request)
