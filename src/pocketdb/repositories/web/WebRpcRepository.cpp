@@ -211,6 +211,9 @@ namespace PocketDb
                     where p.Type in (201) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as VideoSpent,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
+                    where p.Type in (202) and p.Hash=p.String2 and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as ArticleSpent,
+
+                (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
                     where p.Type in (204) and p.String1=u.String1 and (p.Height>=? or p.Height isnull)) as CommentSpent,
 
                 (select count(1) from Transactions p indexed by Transactions_Type_String1_Height_Time_Int1
@@ -240,7 +243,8 @@ namespace PocketDb
             TryBindStatementInt(stmt, 4, heightWindow);
             TryBindStatementInt(stmt, 5, heightWindow);
             TryBindStatementInt(stmt, 6, heightWindow);
-            TryBindStatementText(stmt, 7, address);
+            TryBindStatementInt(stmt, 7, heightWindow);
+            TryBindStatementText(stmt, 8, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
@@ -252,10 +256,11 @@ namespace PocketDb
 
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 5); ok) result.pushKV("post_spent", value);
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 6); ok) result.pushKV("video_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("comment_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("comment_score_spent", value);
-                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("complain_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 7); ok) result.pushKV("article_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 8); ok) result.pushKV("comment_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 9); ok) result.pushKV("score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 10); ok) result.pushKV("comment_score_spent", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 12); ok) result.pushKV("complain_spent", value);
             }
 
             FinalizeSqlStatement(*stmt);
