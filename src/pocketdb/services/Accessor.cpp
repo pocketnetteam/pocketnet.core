@@ -43,6 +43,8 @@ namespace PocketServices
         if (dataPtr)
             data = dataPtr->write();
 
+        LogPrintf("Accessor::GetBlock: %s\n", data);
+
         return true;
     }
 

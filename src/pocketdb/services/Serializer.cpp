@@ -98,6 +98,8 @@ namespace PocketServices
             auto txJson = DecodeBase64(txDataBase64);
             txDataSrc.read(txJson);
 
+            LogPrintf("Serializer::buildInstance Deserialize: %s\n", txJson);
+
             if (src.exists("t") && src["t"].get_str() == "Mempool" && txDataSrc.exists("data"))
             {
                 auto txMempoolDataBase64 = txDataSrc["data"].get_str();

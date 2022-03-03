@@ -28,7 +28,7 @@ namespace PocketDb
             auto[okTxHash, txHash] = TryGetColumnString(stmt, 1);
             if (!okTxHash) return false;
 
-            if (partType >= 1 && partType <= 3 && m_transactions.find(txHash) == m_transactions.end())
+            if (partType > 0 && m_transactions.find(txHash) == m_transactions.end())
                 return false;
 
             switch (partType)
@@ -220,16 +220,18 @@ namespace PocketDb
     PocketBlockRef TransactionRepository::List(const vector<string>& txHashes, bool includePayload, bool includeInputs, bool includeOutputs)
     {
         string txReplacers = join(vector<string>(txHashes.size(), "?"), ",");
+
         auto sql = R"sql(
-            select 0, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
-            from Transactions
-            where Hash in ( )sql" + txReplacers + R"sql( )
+            select un.* from (
+                select (0)tp, Hash, Type, Time, BlockHash, Height, Last, Id, String1, String2, String3, String4, String5, null, null, Int1
+                from Transactions
+                where Hash in ( )sql" + txReplacers + R"sql( )
         )sql" +
 
         // Payload part
         (includePayload ? string(R"sql(
             union
-            select 1, TxHash, null, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
+            select (1)tp, TxHash, null, null, null, null, null, null, String1, String2, String3, String4, String5, String6, String7, Int1
             from Payload
             where TxHash in ( )sql" + txReplacers + R"sql( )
         )sql") : "") +
@@ -237,7 +239,7 @@ namespace PocketDb
         // Inputs part
         (includeInputs ? string(R"sql(
             union
-            select 2, i.SpentTxHash, null, null, i.TxHash, i.Number, o.Value, null, o.AddressHash, null, null, null, null, null, null, null
+            select (2)tp, i.SpentTxHash, null, null, i.TxHash, i.Number, o.Value, null, o.AddressHash, null, null, null, null, null, null, null
             from TxInputs i
             join TxOutputs o on o.TxHash = i.TxHash and o.Number = i.Number
             where i.SpentTxHash in ( )sql" + txReplacers + R"sql( )
@@ -246,10 +248,15 @@ namespace PocketDb
         // Outputs part
         (includeOutputs ? string(R"sql(
             union
-            select 3, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, SpentTxHash, SpentHeight
+            select (3)tp, TxHash, null, Number, AddressHash, Value, null, null, null, null, ScriptPubKey, null, null, null, SpentTxHash, SpentHeight
             from TxOutputs
             where TxHash in ( )sql" + txReplacers + R"sql( )
-        )sql") : "");
+        )sql") : "") +
+
+        string(R"sql(
+            )un
+            order by un.tp asc
+        )sql");
         
         TransactionReconstructor reconstructor;
 
