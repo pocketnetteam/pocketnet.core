@@ -28,8 +28,13 @@ namespace PocketDb
             auto[okTxHash, txHash] = TryGetColumnString(stmt, 1);
             if (!okTxHash) return false;
 
+            LogPrintf("FeedRow: %s - ", txHash);
+
             if (partType > 0 && m_transactions.find(txHash) == m_transactions.end())
+            {
+                LogPrintf("txHash not found in m_transactions: %s\n", txHash);
                 return false;
+            }
 
             switch (partType)
             {
@@ -112,13 +117,13 @@ namespace PocketDb
             Payload payload;
             payload.SetTxHash(txHash);
 
-            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { payload.SetString1(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { payload.SetString2(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { payload.SetString3(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { payload.SetString4(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { payload.SetString5(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { payload.SetString6(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
-            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) { payload.SetString7(value); empty = false; LogPrintf("----- %s : %s\n", txHash, value); }
+            if (auto[ok, value] = TryGetColumnString(stmt, 8); ok) { payload.SetString1(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 9); ok) { payload.SetString2(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 10); ok) { payload.SetString3(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 11); ok) { payload.SetString4(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 12); ok) { payload.SetString5(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 13); ok) { payload.SetString6(value); empty = false; }
+            if (auto[ok, value] = TryGetColumnString(stmt, 14); ok) { payload.SetString7(value); empty = false; }
             if (auto[ok, value] = TryGetColumnInt64(stmt, 15); ok) { payload.SetInt1(value); empty = false; }
 
             ptx->SetPayload(payload);
@@ -269,11 +274,16 @@ namespace PocketDb
                 for (auto& txHash : txHashes)
                     TryBindStatementText(stmt, i++, txHash);
 
+            LogPrintf("----- %s\n", sqlite3_expanded_sql(*stmt));
+
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 // TODO (brangr): maybe throw exception if errors?
                 if (!reconstructor.FeedRow(*stmt))
+                {
+                    LogPrintf("FALSE\n");
                     break;
+                }
             }
 
             FinalizeSqlStatement(*stmt);
