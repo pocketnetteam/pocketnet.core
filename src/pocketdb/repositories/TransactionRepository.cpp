@@ -270,8 +270,6 @@ namespace PocketDb
                 for (auto& txHash : txHashes)
                     TryBindStatementText(stmt, i++, txHash);
 
-            LogPrintf("----- %s\n", sqlite3_expanded_sql(*stmt));
-
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 // TODO (brangr): maybe throw exception if errors?
