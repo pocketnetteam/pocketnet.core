@@ -83,6 +83,8 @@ public:
         std::unique_lock<std::mutex> lock(m_mutex);
         return _Size();
     }
+
+    virtual ~Queue() = default;
 protected:
     // Override following methods to define special queue restrictions, e.x. max queue length.
     virtual bool AddConditionCheck() {
@@ -131,6 +133,7 @@ template<class T>
 class IQueueProcessor {
 public:
     virtual void Process(T entry) = 0;
+    virtual ~IQueueProcessor() = default;
 };
 
 /**
