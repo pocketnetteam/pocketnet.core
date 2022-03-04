@@ -157,6 +157,7 @@ namespace PocketWeb::PocketWebRpc
 
         int64_t postLimit;
         int64_t videoLimit;
+        int64_t articleLimit;
         int64_t complainLimit;
         int64_t commentLimit;
         int64_t scoreCommentLimit;
@@ -166,6 +167,7 @@ namespace PocketWeb::PocketWebRpc
             case PocketConsensus::AccountMode_Trial:
                 postLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_post);
                 videoLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_video);
+                articleLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_article);
                 complainLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_complain);
                 commentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_comment);
                 scoreCommentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_trial_comment_score);
@@ -174,6 +176,7 @@ namespace PocketWeb::PocketWebRpc
             case PocketConsensus::AccountMode_Full:
                 postLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_post);
                 videoLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_video);
+                articleLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_article);
                 complainLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_complain);
                 commentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment);
                 scoreCommentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment_score);
@@ -182,6 +185,7 @@ namespace PocketWeb::PocketWebRpc
             case PocketConsensus::AccountMode_Pro:
                 postLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_post);
                 videoLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_pro_video);
+                articleLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_article);
                 complainLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_complain);
                 commentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment);
                 scoreCommentLimit = reputationConsensus->GetConsensusLimit(ConsensusLimit_full_comment_score);
@@ -194,6 +198,9 @@ namespace PocketWeb::PocketWebRpc
 
         if (!result["video_spent"].isNull())
             result.pushKV("video_unspent", videoLimit - result["video_spent"].get_int());
+
+        if (!result["article_spent"].isNull())
+            result.pushKV("article_unspent", articleLimit - result["article_spent"].get_int());
 
         if (!result["complain_spent"].isNull())
             result.pushKV("complain_unspent", complainLimit - result["complain_spent"].get_int());
