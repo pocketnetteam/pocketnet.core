@@ -323,7 +323,7 @@ namespace PocketWeb::PocketWebRpc
 
         promise<void> promise;
         CAmount nMaxRawTxFee = maxTxFee;
-        if (*ptx->GetType() == PocketTx::BOOST_CONTENT)
+        if (ptx && *ptx->GetType() == PocketTx::BOOST_CONTENT)
             nMaxRawTxFee = 0;
 
         { // cs_main scope
