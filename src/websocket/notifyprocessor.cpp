@@ -41,7 +41,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
     std::map<std::string, std::vector<UniValue>> messages;
     uint256 _block_hash = block.GetHash();
     // vtx[1] - always staking transaction
-    string _block_stake_txHash = block.IsProofOfStake() && block.vtx.size() > 1 ? block.vtx[1] : "";
+    string _block_stake_txHash = (block.IsProofOfStake() && block.vtx.size() > 1) ? block.vtx[1]->GetHash().GetHex() : "";
 
     int sharesCnt = 0;
     std::map<std::string, std::map<std::string, int>> contentLangCnt;
