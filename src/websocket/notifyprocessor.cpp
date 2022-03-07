@@ -40,6 +40,9 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
     auto blockIndex = entry.second;
     std::map<std::string, std::vector<UniValue>> messages;
     uint256 _block_hash = block.GetHash();
+    // vtx[1] - always staking transaction
+    string _block_stake_txHash = block.IsProofOfStake() && block.vtx.size() > 1 ? block.vtx[1] : "";
+
     int sharesCnt = 0;
     std::map<std::string, std::map<std::string, int>> contentLangCnt;
     std::string txidpocketnet;
@@ -357,6 +360,7 @@ void NotifyBlockProcessor::Process(std::pair<CBlock, CBlockIndex*> entry)
     auto send = [&](std::pair<const std::string, WSUser>& connWS) {
         UniValue msg(UniValue::VOBJ);
         msg.pushKV("addr", connWS.second.Address);
+        msg.pushKV("stakeTxHash", _block_stake_txHash);
         msg.pushKV("msg", "new block");
         msg.pushKV("blockhash", _block_hash.GetHex());
         msg.pushKV("time", std::to_string(block.nTime));
