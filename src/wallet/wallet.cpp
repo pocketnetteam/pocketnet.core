@@ -4660,7 +4660,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 			int64_t nBlockTime;
 			if (CheckKernel(pindexPrev, nBits, txNew.nTime - n, prevoutStake, &nBlockTime, this, hashProofOfStakeSource)) {
 				// Found a kernel
-				// LogPrintf("CreateCoinStake : kernel found\n");
+				LogPrint(BCLog::WALLET, "CreateCoinStake : kernel found\n");
 				std::vector<std::vector<unsigned char>> vSolutions;
 				CScript scriptPubKeyOut;
 				scriptPubKeyKernel = pcoin.first->tx->vout[pcoin.second].scriptPubKey;
@@ -4669,11 +4669,14 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 					LogPrintf("CreateCoinStake : failed to parse kernel\n");
 					break;
 				}
-				// LogPrintf("CreateCoinStake : parsed kernel type=%d\n", whichType);
+
+				LogPrint(BCLog::WALLET, "CreateCoinStake : parsed kernel type=%d\n", whichType);
+
 				if (whichType != TX_PUBKEY && whichType != TX_PUBKEYHASH) {
 					LogPrintf("CreateCoinStake : no support for kernel type=%d\n", whichType);
 					break;  // only support pay to public key and pay to address
 				}
+
 				if (whichType == TX_PUBKEYHASH) {
 					// convert to pay to public key type
 					if (!keystore.GetKey(CKeyID(uint160(vSolutions[0])), key)) {
@@ -4682,6 +4685,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 					}
 					scriptPubKeyOut << ToByteVector(key.GetPubKey()) << OP_CHECKSIG;
 				}
+				
 				if (whichType == TX_PUBKEY) {
 					std::vector<unsigned char>& vchPubKey = vSolutions[0];
 					if (!keystore.GetKey(CKeyID(Hash160(vchPubKey)), key)) {
@@ -4703,7 +4707,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 				vwtxPrev.insert(std::make_pair(pcoin.first, pcoin.second));
 				txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
 
-				// LogPrintf("CreateCoinStake : added kernel type=%d\n", whichType);
+				LogPrint(BCLog::WALLET, "CreateCoinStake : added kernel type=%d\n", whichType);
 				fKernelFound = true;
 				break;
 			}
@@ -4825,7 +4829,7 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 		return error("CreateCoinStake : exceeded coinstake size limit");
 	}
 
-	// LogPrintf("Created coin stake\n");
+	LogPrint(BCLog::WALLET, "Created coin stake\n");
 
 	// Successfully generated coinstake
 	return true;
