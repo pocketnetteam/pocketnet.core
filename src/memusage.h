@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018 The Pocketcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,9 +6,11 @@
 #define POCKETCOIN_MEMUSAGE_H
 
 #include <indirectmap.h>
+#include <prevector.h>
 
 #include <stdlib.h>
 
+#include <cassert>
 #include <map>
 #include <memory>
 #include <set>

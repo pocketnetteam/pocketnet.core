@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -29,7 +29,7 @@
 #include "streams.h"
 #include "logging.h"
 
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 namespace PocketServices
 {
@@ -39,8 +39,8 @@ namespace PocketServices
     class Serializer
     {
     public:
-        static tuple<bool, PocketBlock> DeserializeBlock(CBlock& block, CDataStream& stream);
-        static tuple<bool, PocketBlock> DeserializeBlock(CBlock& block);
+        static tuple<bool, PocketBlock> DeserializeBlock(const CBlock& block, CDataStream& stream);
+        static tuple<bool, PocketBlock> DeserializeBlock(const CBlock& block);
 
         static tuple<bool, PTransactionRef> DeserializeTransactionRpc(const CTransactionRef& tx, const UniValue& pocketData);
         static tuple<bool, PTransactionRef> DeserializeTransaction(const CTransactionRef& tx, CDataStream& stream);
@@ -52,9 +52,10 @@ namespace PocketServices
     private:
         static shared_ptr<Transaction> buildInstance(const CTransactionRef& tx, const UniValue& src);
         static shared_ptr<Transaction> buildInstanceRpc(const CTransactionRef& tx, const UniValue& src);
+        static bool buildInputs(const CTransactionRef& tx, shared_ptr<Transaction>& ptx);
         static bool buildOutputs(const CTransactionRef& tx, shared_ptr<Transaction>& ptx);
         static UniValue parseStream(CDataStream& stream);
-        static tuple<bool, PocketBlock> deserializeBlock(CBlock& block, UniValue& pocketData);
+        static tuple<bool, PocketBlock> deserializeBlock(const CBlock& block, UniValue& pocketData);
         static tuple<bool, shared_ptr<Transaction>> deserializeTransaction(const CTransactionRef& tx, UniValue& pocketData);
     };
 

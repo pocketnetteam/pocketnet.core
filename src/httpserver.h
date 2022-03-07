@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2018 The Pocketcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -19,6 +19,7 @@
 #include "rpc/server.h"
 #include "init.h"
 #include "pocketdb/SQLiteConnection.h"
+#include <eventloop.h>
 
 static const int DEFAULT_HTTP_THREADS = 4;
 static const int DEFAULT_HTTP_POST_THREADS = 4;
@@ -43,10 +44,14 @@ class WorkQueue;
 
 struct HTTPPathHandler;
 
+namespace util {
+class Ref;
+}
+
 /** Initialize HTTP server.
  * Call this before RegisterHTTPHandler or EventBase().
  */
-bool InitHTTPServer();
+bool InitHTTPServer(const util::Ref& context);
 /** Start HTTP server.
  * This is separate from InitHTTPServer to give users race-condition-free time
  * to register their handlers between InitHTTPServer and StartHTTPServer.
@@ -81,7 +86,7 @@ private:
     DbConnectionRef dbConnection;
 
 public:
-    explicit HTTPRequest(struct evhttp_request* req);
+    explicit HTTPRequest(struct evhttp_request* req, bool _replySent = false);
     ~HTTPRequest();
 
     Statistic::RequestTime Created;
@@ -217,10 +222,10 @@ private:
 class HTTPWorkItem final : public HTTPClosure
 {
 public:
-    HTTPWorkItem(std::unique_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
+    HTTPWorkItem(std::shared_ptr<HTTPRequest> _req, const std::string &_path, const HTTPRequestHandler &_func) :
         req(std::move(_req)), path(_path), func(_func)
     {
-        // log = g_logger->WillLogCategory(BCLog::STAT);
+        // log = LogInstance().WillLogCategory(BCLog::STAT);
         // created = gStatEngineInstance.GetCurrentSystemTime();
     }
 
@@ -236,7 +241,7 @@ public:
 
         func(jreq, path);
 
-        // auto finish = gStatEngineInstance.GetCurrentSystemTime();
+        // auto stop = gStatEngineInstance.GetCurrentSystemTime();
 
         // if (log)
         // {
@@ -244,7 +249,7 @@ public:
         //         Statistic::RequestSample{
         //             uri,
         //             created,
-        //             start,
+        //             stop,
         //             finish,
         //             peer,
         //             0,
@@ -254,7 +259,7 @@ public:
         // }
     }
 
-    std::unique_ptr<HTTPRequest> req;
+    std::shared_ptr<HTTPRequest> req;
 
 private:
     std::string path;
@@ -269,10 +274,10 @@ private:
     struct evhttp* m_http;
     struct evhttp* m_eventHTTP;
     std::vector<evhttp_bound_socket*> m_boundSockets;
-    std::vector<std::thread> m_thread_http_workers;
+    std::vector<std::shared_ptr<QueueEventLoopThread<std::unique_ptr<HTTPClosure>>>> m_thread_http_workers;
 
 protected:
-    void StartThreads(WorkQueue<HTTPClosure>* queue, int threadCount, bool selfDbConnection);
+    void StartThreads(std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection);
 
 public:
     HTTPSocket(struct event_base* base, int timeout, int queueDepth, bool publicAccess);
@@ -284,7 +289,7 @@ public:
     
     /** Work queue for handling longer requests off the event loop thread */
     CRPCTable m_table_rpc;
-    WorkQueue<HTTPClosure>* m_workQueue;
+    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> m_workQueue;
     std::vector<HTTPPathHandler> m_pathHandlers;
 
     /** Start worker threads to listen on bound http sockets */
@@ -303,19 +308,19 @@ public:
      * be invoked.
      */
     void RegisterHTTPHandler(const std::string& prefix, bool exactMatch,
-        const HTTPRequestHandler& handler, WorkQueue<HTTPClosure>* _queue);
+        const HTTPRequestHandler& handler, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> _queue);
 
     /** Unregister handler for prefix */
     void UnregisterHTTPHandler(const std::string& prefix, bool exactMatch);
 
-    bool HTTPReq(HTTPRequest* req, CRPCTable& table);
+    bool HTTPReq(HTTPRequest* req, const util::Ref& context,  CRPCTable& table);
 };
 
 class HTTPWebSocket: public HTTPSocket
 {
 public:
     CRPCTable m_table_post_rpc;
-    WorkQueue<HTTPClosure>* m_workPostQueue;
+    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> m_workPostQueue;
 
     HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess);
     ~HTTPWebSocket();
@@ -324,8 +329,6 @@ public:
     void StopHTTPSocket();
     void InterruptHTTPSocket();
 };
-
-std::string urlDecode(const std::string& urlEncoded);
 
 extern HTTPSocket* g_socket;
 extern HTTPSocket* g_staticSocket;

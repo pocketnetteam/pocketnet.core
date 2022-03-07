@@ -1,15 +1,18 @@
-// Copyright (c) 2015-2018 The Pocketcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "util/time.h"
+#include <chrono>
 #include <httprpc.h>
 
 #include <httpserver.h>
 #include <rpc/protocol.h>
 #include <rpc/server.h>
-#include <ui_interface.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <node/ui_interface.h>
+#include <util/system.h>
+#include <util/strencodings.h>
+#include <util/ref.h>
 #include <walletinitinterface.h>
 #include <memory>
 #include <boost/algorithm/string.hpp> // boost::trim
@@ -86,17 +89,17 @@ static bool RPCAuthorized(const std::string& strAuth, std::string& strAuthUserna
     return multiUserAuthorized(strUserPass);
 }
 
-static bool HTTPReq_JSONRPC_Anonymous(HTTPRequest* req, const std::string&)
+static bool HTTPReq_JSONRPC_Anonymous(const util::Ref& context, HTTPRequest* req)
 {
-    return g_webSocket->HTTPReq(req, g_webSocket->m_table_rpc);
+    return g_webSocket->HTTPReq(req, context, g_webSocket->m_table_rpc);
 }
 
-static bool HTTPReq_JSONRPC_Post_Anonymous(HTTPRequest* req, const std::string&)
+static bool HTTPReq_JSONRPC_Post_Anonymous(const util::Ref& context, HTTPRequest* req)
 {
-    return g_webSocket->HTTPReq(req, g_webSocket->m_table_post_rpc);
+    return g_webSocket->HTTPReq(req, context, g_webSocket->m_table_post_rpc);
 }
 
-static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
+static bool HTTPReq_JSONRPC(const util::Ref& context, HTTPRequest* req)
 {
     auto peerAddr = req->GetPeer().ToString();
     // Check authorization
@@ -116,24 +119,21 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string&)
             If this results in a DoS the user really
             shouldn't have their RPC port exposed.
         */
-        MilliSleep(250);
+        UninterruptibleSleep(std::chrono::milliseconds{250});
 
         req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
         req->WriteReply(HTTP_UNAUTHORIZED);
         return false;
     }
 
-    return g_socket->HTTPReq(req, g_socket->m_table_rpc);
+    return g_socket->HTTPReq(req, context, g_socket->m_table_rpc);
 }
 
 static bool InitRPCAuthentication()
 {
     if (gArgs.GetArg("-rpcpassword", "").empty()) {
-        LogPrintf("No rpcpassword set - using random cookie authentication.\n");
+        LogPrintf("Using random cookie authentication.\n");
         if (!GenerateAuthCookie(&strRPCUserColonPass)) {
-            uiInterface.ThreadSafeMessageBox(
-                _("Error: A fatal internal error occurred, see debug.log for details"), // Same message as AbortNode
-                "", CClientUIInterface::MSG_ERROR);
             return false;
         }
     } else {
@@ -146,7 +146,7 @@ static bool InitRPCAuthentication()
     return true;
 }
 
-bool StartHTTPRPC()
+bool StartHTTPRPC(const util::Ref& context)
 {
     LogPrint(BCLog::RPC, "Starting HTTP RPC server\n");
     if (!InitRPCAuthentication())
@@ -154,16 +154,19 @@ bool StartHTTPRPC()
 
     if (g_socket)
     {
-        g_socket->RegisterHTTPHandler("/", true, HTTPReq_JSONRPC, g_socket->m_workQueue);
+        auto handler = [&context](HTTPRequest* req, const std::string&) { return HTTPReq_JSONRPC(context, req); };
+        g_socket->RegisterHTTPHandler("/", true, handler, g_socket->m_workQueue);
 
         if (g_wallet_init_interface.HasWalletSupport())
-            g_socket->RegisterHTTPHandler("/wallet/", false, HTTPReq_JSONRPC, g_socket->m_workQueue);
+            g_socket->RegisterHTTPHandler("/wallet/", false, handler, g_socket->m_workQueue);
     }
 
     if (g_webSocket)
     {
-        g_webSocket->RegisterHTTPHandler("/post/", false, HTTPReq_JSONRPC_Post_Anonymous, g_webSocket->m_workPostQueue);
-        g_webSocket->RegisterHTTPHandler("/", false, HTTPReq_JSONRPC_Anonymous, g_webSocket->m_workQueue);
+        auto postAnonymousHandler = [&context](HTTPRequest* req, const std::string&) { return HTTPReq_JSONRPC_Post_Anonymous(context, req); };
+        g_webSocket->RegisterHTTPHandler("/post/", false, postAnonymousHandler, g_webSocket->m_workPostQueue);
+        auto anonymousHandler = [&context](HTTPRequest* req, const std::string&) { return HTTPReq_JSONRPC_Anonymous(context, req); };
+        g_webSocket->RegisterHTTPHandler("/", false, anonymousHandler, g_webSocket->m_workQueue);
     }
 
     struct event_base* eventBase = EventBase();
@@ -182,7 +185,13 @@ void StopHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
     
-    g_socket->UnregisterHTTPHandler("/", true);
+    if (g_socket)
+    {
+        g_socket->UnregisterHTTPHandler("/", true);
+        if (g_wallet_init_interface.HasWalletSupport()) {
+            g_socket->UnregisterHTTPHandler("/wallet/", false);
+        }
+    }
 
     if (g_webSocket)
     {
@@ -190,10 +199,6 @@ void StopHTTPRPC()
         g_webSocket->UnregisterHTTPHandler("/", false);
     }
 
-    if (g_wallet_init_interface.HasWalletSupport()) {
-        g_socket->UnregisterHTTPHandler("/wallet/", false);
-    }
-    
     if (httpRPCTimerInterface) {
         RPCUnsetTimerInterface(httpRPCTimerInterface.get());
         httpRPCTimerInterface.reset();

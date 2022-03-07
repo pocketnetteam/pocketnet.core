@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -12,18 +12,9 @@ namespace PocketTx
         SetType(TxType::CONTENT_VIDEO);
     }
 
-    Video::Video(const std::shared_ptr<const CTransaction>& tx) : Post(tx)
+    Video::Video(const CTransactionRef& tx) : Post(tx)
     {
         SetType(TxType::CONTENT_VIDEO);
     }
-
-    shared_ptr <UniValue> Video::Serialize() const
-    {
-        auto result = Post::Serialize();
-
-        result->pushKV("type", 1);
-
-        return result;
-    }
-
+    
 } // namespace PocketTx

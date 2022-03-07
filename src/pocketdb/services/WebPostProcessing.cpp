@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -92,7 +92,7 @@ namespace PocketServices
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<Tag> contentTags = webRepoInst->GetContentTags(blockHash);
+            vector<WebTag> contentTags = webRepoInst->GetContentTags(blockHash);
             if (contentTags.empty())
                 return;
 
@@ -127,7 +127,7 @@ namespace PocketServices
         {
             int64_t nTime1 = GetTimeMicros();
 
-            vector<Content> contentList = webRepoInst->GetContent(blockHash);
+            vector<WebContent> contentList = webRepoInst->GetContent(blockHash);
             if (contentList.empty())
                 return;
 

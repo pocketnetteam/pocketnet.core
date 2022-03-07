@@ -1,6 +1,6 @@
-//
-// Created by Joknek on 9/30/2021.
-//
+// Copyright (c) 2018-2022 The Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
 
 #include "NotifierRepository.h"
 
@@ -9,6 +9,42 @@ namespace PocketDb
     void NotifierRepository::Init() {}
 
     void NotifierRepository::Destroy() {}
+
+    UniValue NotifierRepository::GetAccountInfoByAddress(const string& address)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            select u.String1 as Address,
+                p.String2 as Name,
+                p.String3 as Avatar
+            from Transactions u indexed by Transactions_Type_Last_String1_Height_Id
+            cross join Payload p on p.TxHash = u.Hash
+            where u.Type in (100,101,102)
+              and u.Last=1
+              and u.Last=1
+              and u.Height is not null
+              and u.String1 = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("address", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("name", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("avatar", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
 
     UniValue NotifierRepository::GetPostLang(const string &postHash)
     {
@@ -31,6 +67,83 @@ namespace PocketDb
             if (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("lang", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue NotifierRepository::GetPostInfo(const string& postHash)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            select
+                t.Hash Hash,
+                t.String2 RootHash
+            from Transactions t
+            where t.Type in (200, 201, 202, 203)
+              and t.Hash = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, postHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("hash", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("rootHash", value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    UniValue NotifierRepository::GetBoostInfo(const string& boostHash)
+    {
+        UniValue result(UniValue::VOBJ);
+
+        string sql = R"sql(
+            select
+                tBoost.Hash Hash,
+                tBoost.String1 boostAddress,
+                tBoost.Int1 boostAmount,
+                p.String2 as boostName,
+                p.String3 as boostAvatar,
+                tContent.String1 as contentAddress,
+                tContent.String2 as contentHash
+            from Transactions tBoost indexed by Transactions_Hash_Height
+            join Transactions tContent indexed by Transactions_Type_Last_String2_Height on tContent.String2=tBoost.String2
+                and tContent.Last = 1 and tContent.Height > 0 and tContent.Type in (200, 201, 202)
+            join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = tBoost.String1
+                and u.Type in (100) and u.Last = 1 and u.Height > 0
+            join Payload p on p.TxHash = u.Hash
+            where tBoost.Type in (208)
+              and tBoost.Hash = ?
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            TryBindStatementText(stmt, 1, boostHash);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("hash", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("boostAddress", value);
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 2); ok) result.pushKV("boostAmount", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("boostName", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("boostAvatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) result.pushKV("contentAddress", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) result.pushKV("contentHash", value);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -271,8 +384,8 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 0); ok) result.pushKV("commentHash", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 1); ok) result.pushKV("value", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("commentAddress", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("scoreCommentName", value);
-                if (auto[ok, value] = TryGetColumnString(*stmt, 2); ok) result.pushKV("scoreCommentAvatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 3); ok) result.pushKV("scoreCommentName", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 4); ok) result.pushKV("scoreCommentAvatar", value);
             }
 
             FinalizeSqlStatement(*stmt);
@@ -294,12 +407,17 @@ namespace PocketDb
                 content.String1 ContentAddress,
                 answer.String1 AnswerAddress,
                 p.String2 as commentName,
-                p.String3 as commentAvatar
+                p.String3 as commentAvatar,
+                (
+                    select o.Value
+                    from TxOutputs o indexed by TxOutputs_TxHash_AddressHash_Value
+                    where o.TxHash = comment.Hash and o.AddressHash = content.String1 and o.AddressHash != comment.String1
+                ) as Donate
             from Transactions comment -- sqlite_autoindex_Transactions_1 (Hash)
             join Transactions u indexed by Transactions_Type_Last_String1_Height_Id on u.String1 = comment.String1
             join Payload p on p.TxHash = u.Hash
             join Transactions content -- sqlite_autoindex_Transactions_1 (Hash)
-                on content.Type in (200, 201) and content.Hash = comment.String3
+                on content.Type in (200, 201, 202) and content.Hash = comment.String3
             left join Transactions answer indexed by Transactions_Type_Last_String2_Height
                 on answer.Type in (204, 205) and answer.Last = 1 and answer.String2 = comment.String5
             WHERE comment.Type in (204, 205)
@@ -325,6 +443,11 @@ namespace PocketDb
                 if (auto[ok, value] = TryGetColumnString(*stmt, 5); ok) result.pushKV("answerAddress", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 6); ok) result.pushKV("commentName", value);
                 if (auto[ok, value] = TryGetColumnString(*stmt, 7); ok) result.pushKV("commentAvatar", value);
+                if (auto[ok, value] = TryGetColumnString(*stmt, 8); ok)
+                {
+                    result.pushKV("donation", "true");
+                    result.pushKV("amount", value);
+                }
             }
 
             FinalizeSqlStatement(*stmt);

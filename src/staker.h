@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The Pocketcoin developers
+// Copyright (c) 2018-2021 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,6 +7,7 @@
 
 #include <boost/thread.hpp>
 #include <chainparams.h>
+#include <util/ref.h>
 #include <unordered_set>
 #include <memory>
 
@@ -25,13 +26,14 @@ public:
 
     void startWorkers(
         boost::thread_group& threadGroup,
+        const util::Ref& context,
         CChainParams const& chainparams,
         unsigned int minerSleep = 500
     );
 
-    void run(CChainParams const&, boost::thread_group&);
+    void run(const util::Ref& context, CChainParams const&, boost::thread_group&);
 
-    void worker(CChainParams const&, std::string const& walletName);
+    void worker(const util::Ref& context, CChainParams const&, std::string const& walletName);
 
     bool signBlock(std::shared_ptr<CBlock>, std::shared_ptr<CWallet>, int64_t);
 

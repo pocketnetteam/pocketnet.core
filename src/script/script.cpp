@@ -1,14 +1,15 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <script/script.h>
 
-#include <tinyformat.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
-const char* GetOpName(opcodetype opcode)
+#include <string>
+
+std::string GetOpName(opcodetype opcode)
 {
     switch (opcode)
     {
@@ -144,6 +145,9 @@ const char* GetOpName(opcodetype opcode)
     case OP_WINNER_POST_REFERRAL   : return "OP_WINNER_POST_REFERRAL";
     case OP_WINNER_COMMENT         : return "OP_WINNER_COMMENT";
     case OP_WINNER_COMMENT_REFERRAL: return "OP_WINNER_COMMENT_REFERRAL";
+
+    // Opcode added by BIP 342 (Tapscript)
+    case OP_CHECKSIGADD            : return "OP_CHECKSIGADD";
 
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";
 
@@ -332,4 +336,13 @@ bool GetScriptOp(CScriptBase::const_iterator& pc, CScriptBase::const_iterator en
 
     opcodeRet = static_cast<opcodetype>(opcode);
     return true;
+}
+
+bool IsOpSuccess(const opcodetype& opcode)
+{
+    // TODO (losty-fur): do we need to inject something pocketnet specific here?
+    return opcode == 80 || opcode == 98 || (opcode >= 126 && opcode <= 129) ||
+           (opcode >= 131 && opcode <= 134) || (opcode >= 137 && opcode <= 138) ||
+           (opcode >= 141 && opcode <= 142) || (opcode >= 149 && opcode <= 153) ||
+           (opcode >= 187 && opcode <= 254);
 }

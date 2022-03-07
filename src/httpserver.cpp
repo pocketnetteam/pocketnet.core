@@ -1,21 +1,26 @@
-// Copyright (c) 2015-2021 The Pocketcoin Core developers
+// Copyright (c) 2015-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "logging.h"
+#include "rpc/blockchain.h"
 #include <httpserver.h>
+#include <interfaces/chain.h>
 
 #include <chainparamsbase.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/strencodings.h>
+#include <util/translation.h>
 #include <netbase.h>
 #include <sync.h>
-#include <ui_interface.h>
+#include <node/ui_interface.h>
 #include <memory>
 #include <cstdlib>
 #include <deque>
 #include <future>
 #include <rpc/register.h>
 #include <walletinitinterface.h>
+#include "eventloop.h"
 
 #ifdef EVENT__HAVE_NETINET_IN_H
 #include <netinet/in.h>
@@ -31,82 +36,27 @@
 /** Maximum size of http request (request line + headers) */
 static const size_t MAX_HEADERS_SIZE = 8192;
 
-/** Simple work queue for distributing work over multiple threads.
- * Work items are simply callable objects.
- */
-template<typename WorkItem>
-class WorkQueue
+class ExecutorSqlite : public IQueueProcessor<std::unique_ptr<HTTPClosure>>
 {
-private:
-    /** Mutex protects entire object */
-    Mutex cs;
-    std::condition_variable cond;
-    std::deque<std::unique_ptr<WorkItem>> queue;
-    bool running;
-    size_t maxDepth;
-
 public:
-    explicit WorkQueue(size_t _maxDepth) : running(true), maxDepth(_maxDepth)
+    explicit ExecutorSqlite(bool selfDbConnection)
     {
-
-    }
-
-    /** Precondition: worker threads have all stopped (they have been joined).
-     */
-    ~WorkQueue()
-    {
-    }
-
-    /** Enqueue a work item */
-    bool Enqueue(WorkItem *item)
-    {
-        LOCK(cs);
-
-        if (queue.size() >= maxDepth)
-            return false;
-
-        queue.emplace_back(std::unique_ptr<WorkItem>(item));
-        cond.notify_one();
-
-        return true;
-    }
-
-    /** Thread function */
-    void Run(bool selfDbConnection)
-    {
-        DbConnectionRef sqliteConnection;
         if (selfDbConnection)
-            sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
-
-        while (true)
-        {
-            std::unique_ptr<WorkItem> i;
-            {
-                WAIT_LOCK(cs, lock);
-                while (running && queue.empty())
-                    cond.wait(lock);
-                if (!running)
-                    break;
-                i = std::move(queue.front());
-                queue.pop_front();
-            }
-            (*i)(sqliteConnection);
-        }
+            m_sqliteConnection = std::make_shared<PocketDb::SQLiteConnection>();
     }
-
-    /** Interrupt and exit loops */
-    void Interrupt()
+    void Process(std::unique_ptr<HTTPClosure> closure) override
     {
-        LOCK(cs);
-        running = false;
-        cond.notify_all();
+        (*closure)(m_sqliteConnection);
     }
+private:
+    DbConnectionRef m_sqliteConnection;
 };
+
 
 struct HTTPPathHandler
 {
     HTTPPathHandler(std::string _prefix, bool _exactMatch, HTTPRequestHandler _handler,
-                    WorkQueue<HTTPClosure>* _queue) :
+                    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> _queue) :
         prefix(_prefix), exactMatch(_exactMatch), handler(_handler), queue(_queue)
     {
     }
@@ -114,7 +64,7 @@ struct HTTPPathHandler
     std::string prefix;
     bool exactMatch;
     HTTPRequestHandler handler;
-    WorkQueue<HTTPClosure>* queue;
+    std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue;
 };
 
 /** HTTP module state */
@@ -122,7 +72,7 @@ struct HTTPPathHandler
 //! libevent event loop
 static struct event_base *eventBase = nullptr;
 //! HTTP server
-struct evhttp *eventHTTP = nullptr;
+static struct evhttp *eventHTTP = nullptr;
 //! List of subnets to allow RPC connections from
 static std::vector<CSubNet> rpc_allow_subnets;
 
@@ -132,8 +82,7 @@ HTTPWebSocket *g_webSocket;
 HTTPSocket *g_staticSocket;
 HTTPSocket *g_restSocket;
 
-std::thread threadHTTP;
-std::future<bool> threadResult;
+static std::thread g_thread_http;
 
 /** Check if a network address is allowed to access the HTTP server */
 static bool ClientAllowed(const CNetAddr &netaddr)
@@ -159,12 +108,12 @@ static bool InitHTTPAllowList()
     for (const std::string &strAllow : gArgs.GetArgs("-rpcallowip"))
     {
         CSubNet subnet;
-        LookupSubNet(strAllow.c_str(), subnet);
+        LookupSubNet(strAllow, subnet);
         if (!subnet.IsValid())
         {
             uiInterface.ThreadSafeMessageBox(
                 strprintf(
-                    "Invalid -rpcallowip subnet specification: %s. Valid are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24).",
+                    Untranslated("Invalid -rpcallowip subnet specification: %s. Valid are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0) or a network/CIDR (e.g. 1.2.3.4/24)."),
                     strAllow),
                 "", CClientUIInterface::MSG_ERROR);
             return false;
@@ -179,7 +128,7 @@ static bool InitHTTPAllowList()
 }
 
 /** HTTP request method as string - use for logging only */
-static std::string RequestMethodString(HTTPRequest::RequestMethod m)
+std::string RequestMethodString(HTTPRequest::RequestMethod m)
 {
     switch (m)
     {
@@ -215,7 +164,7 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
             }
         }
     }
-    std::unique_ptr<HTTPRequest> hreq(new HTTPRequest(req));
+    std::shared_ptr<HTTPRequest> hreq = std::make_shared<HTTPRequest>(req);
 
     LogPrint(BCLog::HTTP, "Received a %s request for %s from %s\n",
         RequestMethodString(hreq->GetRequestMethod()), hreq->GetURI(), hreq->GetPeer().ToString());
@@ -269,16 +218,12 @@ static void http_request_cb(struct evhttp_request *req, void *arg)
     // Dispatch to worker thread
     if (i != iend)
     {
-        std::unique_ptr<HTTPWorkItem> item(new HTTPWorkItem(std::move(hreq), path, i->handler));
+        auto item = std::make_unique<HTTPWorkItem>(hreq, path, i->handler);
 
-        if (i->queue->Enqueue(item.get()))
-        {
-            item.release();
-        }
-        else
+        if (!i->queue->Add(std::move(item)))
         {
             LogPrint(BCLog::RPCERROR, "WARNING: request rejected because http work queue depth exceeded.\n");
-            item->req->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded");
+            hreq->WriteReply(HTTP_INTERNAL, "Work queue depth exceeded");
         }
     }
     else
@@ -298,7 +243,7 @@ static void http_reject_request_cb(struct evhttp_request *req, void *)
 /** Event dispatcher thread */
 static bool ThreadHTTP(struct event_base *base)
 {
-    RenameThread("pocketcoin-http");
+    util::ThreadRename("pocketcoin-http");
     LogPrint(BCLog::HTTP, "Entering http event loop\n");
     event_base_dispatch(base);
     // Event loop will be interrupted by InterruptHTTPServer()
@@ -318,10 +263,15 @@ static bool HTTPBindAddresses()
     // Determine what addresses to bind to
     if (g_socket)
     {
-        if (!gArgs.IsArgSet("-rpcallowip"))
+        if (!(gArgs.IsArgSet("-rpcallowip") && gArgs.IsArgSet("-rpcbind")))
         { // Default to loopback if not allowing external IPs
             g_socket->BindAddress("::1", securePort);
             g_socket->BindAddress("127.0.0.1", securePort);
+            if (gArgs.IsArgSet("-rpcallowip"))
+            {
+                LogPrintf(
+                    "WARNING: option -rpcallowip was specified without -rpcbind; this doesn't usually make sense\n");
+            }
             if (gArgs.IsArgSet("-rpcbind"))
             {
                 LogPrintf(
@@ -337,11 +287,6 @@ static bool HTTPBindAddresses()
                 SplitHostPort(strRPCBind, port, host);
                 g_socket->BindAddress(host, port);
             }
-        }
-        else
-        { // No specific bind address specified, bind to any
-            g_socket->BindAddress("::", securePort);
-            g_socket->BindAddress("0.0.0.0", securePort);
         }
 
         bindAddresses += g_socket->GetAddressCount();
@@ -365,13 +310,6 @@ static bool HTTPBindAddresses()
     }
 
     return bindAddresses;
-}
-
-/** Simple wrapper to set thread name and run work queue */
-static void HTTPWorkQueueRun(WorkQueue<HTTPClosure> *queue, bool selfDbConnection)
-{
-    RenameThread("pocketcoin-httpworker");
-    queue->Run(selfDbConnection);
 }
 
 /** libevent event log callback */
@@ -406,7 +344,7 @@ static void JSONErrorReply(HTTPRequest* req, const UniValue& objError, const Uni
     req->WriteReply(nStatus, strReply);
 }
 
-bool InitHTTPServer()
+bool InitHTTPServer(const util::Ref& context)
 {
     if (!InitHTTPAllowList())
         return false;
@@ -416,9 +354,9 @@ bool InitHTTPServer()
     // Update libevent's log handling. Returns false if our version of
     // libevent doesn't support debug logging, in which case we should
     // clear the BCLog::LIBEVENT flag.
-    if (!UpdateHTTPServerLogging(g_logger->WillLogCategory(BCLog::LIBEVENT)))
+    if (!UpdateHTTPServerLogging(LogInstance().WillLogCategory(BCLog::LIBEVENT)))
     {
-        g_logger->DisableCategory(BCLog::LIBEVENT);
+        LogInstance().DisableCategory(BCLog::LIBEVENT);
     }
 
 #ifdef WIN32
@@ -437,6 +375,7 @@ bool InitHTTPServer()
     raii_event_base base_ctr = obtain_event_base();
     eventBase = base_ctr.get();
 
+    const auto& node = EnsureNodeContext(context);
     // General private socket
     g_socket = new HTTPSocket(eventBase, timeout, workQueueMainDepth, false);
     RegisterBlockchainRPCCommands(g_socket->m_table_rpc);
@@ -444,13 +383,16 @@ bool InitHTTPServer()
     RegisterMiscRPCCommands(g_socket->m_table_rpc);
     RegisterMiningRPCCommands(g_socket->m_table_rpc);
     RegisterRawTransactionRPCCommands(g_socket->m_table_rpc);
-    g_wallet_init_interface.RegisterRPC(g_socket->m_table_rpc);
+
+    for (const auto& client : node.chain_clients) {
+        client->registerRpcs();
+    }
 #if ENABLE_ZMQ
     RegisterZMQRPCCommands(g_socket->m_table_rpc);
 #endif
 
     // Additional pocketnet seocket
-    if (gArgs.GetBoolArg("-api", false))
+    if (gArgs.GetBoolArg("-api", true))
     {
         g_webSocket = new HTTPWebSocket(eventBase, timeout, workQueuePublicDepth, workQueuePostDepth, true);
         RegisterPocketnetWebRPCCommands(g_webSocket->m_table_rpc, g_webSocket->m_table_post_rpc);
@@ -499,9 +441,7 @@ void StartHTTPServer()
     int rpcStaticThreads = std::max((long) gArgs.GetArg("-rpcstaticthreads", DEFAULT_HTTP_STATIC_THREADS), 1L);
     int rpcRestThreads = std::max((long) gArgs.GetArg("-rpcrestthreads", DEFAULT_HTTP_REST_THREADS), 1L);
 
-    std::packaged_task<bool(event_base *)> task(ThreadHTTP);
-    threadResult = task.get_future();
-    threadHTTP = std::thread(std::move(task), eventBase);
+    g_thread_http = std::thread(ThreadHTTP, eventBase);
 
     if (g_socket)
     {
@@ -549,23 +489,7 @@ void StopHTTPServer()
     if (eventBase)
     {
         LogPrint(BCLog::HTTP, "Waiting for HTTP event thread to exit\n");
-        // Exit the event loop as soon as there are no active events.
-        event_base_loopexit(eventBase, nullptr);
-
-        // Give event loop a few seconds to exit (to send back last RPC responses), then break it
-        // Before this was solved with event_base_loopexit, but that didn't work as expected in
-        // at least libevent 2.0.21 and always introduced a delay. In libevent
-        // master that appears to be solved, so in the future that solution
-        // could be used again (if desirable).
-        // (see discussion in https://github.com/pocketcoin/pocketcoin/pull/6990)
-        if (threadResult.valid() &&
-            threadResult.wait_for(std::chrono::milliseconds(2000)) == std::future_status::timeout)
-        {
-            LogPrintf("HTTP event loop did not exit within allotted time, sending loopbreak\n");
-            event_base_loopbreak(eventBase);
-        }
-
-        threadHTTP.join();
+        if (g_thread_http.joinable()) g_thread_http.join();
     }
 
     delete g_socket;
@@ -627,7 +551,7 @@ HTTPSocket::HTTPSocket(struct event_base *base, int timeout, int queueDepth, boo
         evhttp_cmd_type::EVHTTP_REQ_OPTIONS
     );
 
-    m_workQueue = new WorkQueue<HTTPClosure>(queueDepth);
+    m_workQueue = std::make_shared<QueueLimited<std::unique_ptr<HTTPClosure>>>(queueDepth);
     LogPrintf("HTTP: creating work queue of depth %d\n", queueDepth);
 
     // transfer ownership to eventBase/HTTP via .release()
@@ -643,10 +567,16 @@ HTTPSocket::~HTTPSocket()
     }
 }
 
-void HTTPSocket::StartThreads(WorkQueue<HTTPClosure>* queue, int threadCount, bool selfDbConnection)
+void HTTPSocket::StartThreads(std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> queue, int threadCount, bool selfDbConnection)
 {
-    for (int i = 0; i < threadCount; i++)
-        m_thread_http_workers.emplace_back(HTTPWorkQueueRun, queue, selfDbConnection);
+    for (int i = 0; i < threadCount; i++) {
+        // Creating exec processor for every thread to guarantee each thread will have its own sqliteConnection.
+        // If unique sqliteConnection for each thread is not required, execProcessor can be shared between threads
+        auto execProcessor = std::make_shared<ExecutorSqlite>(selfDbConnection);
+        auto thread = std::make_shared<QueueEventLoopThread<std::unique_ptr<HTTPClosure>>>(queue, std::move(execProcessor));
+        thread->Start(strprintf("pocketcoin-httpworker.%i", i));
+        m_thread_http_workers.emplace_back(thread);
+    }
 }
 
 void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
@@ -656,32 +586,39 @@ void HTTPSocket::StartHTTPSocket(int threadCount, bool selfDbConnection)
 
 void HTTPSocket::StopHTTPSocket()
 {
-    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
-
-    for (auto &thread: m_thread_http_workers)
-        thread.join();
-
-    m_thread_http_workers.clear();
+    // Interrupting socket here because stop without interrupting is illegal.
+    if (!m_thread_http_workers.empty()) {
+        InterruptHTTPSocket();
+    }
+    // Resetting queue as it has done previously that restricts running this socket again.
+    // However this doesn't affect current rpc handlers because they handle their own shared_ptr of queue, but adding new rpc handlers
+    // is UB after this call.
+    m_workQueue.reset();
     
-    delete m_workQueue;
-    m_workQueue = nullptr;
+    // Unlisten sockets, these are what make the event loop running, which means
+    // that after this and all connections are closed the event loop will quit.
+    for (evhttp_bound_socket *socket : m_boundSockets)
+    {
+        evhttp_del_accept_socket(m_eventHTTP, socket);
+    }
+    m_boundSockets.clear();
 }
 
 void HTTPSocket::InterruptHTTPSocket()
 {
     if (m_eventHTTP)
     {
-        // Unlisten sockets
-        for (evhttp_bound_socket *socket : m_boundSockets)
-        {
-            evhttp_del_accept_socket(m_eventHTTP, socket);
-        }
         // Reject requests on current connections
         evhttp_set_gencb(m_eventHTTP, http_reject_request_cb, nullptr);
     }
 
-    if (m_workQueue)
-        m_workQueue->Interrupt();
+    // Do not clear queue so if we want to start again call StartHTTPSocket
+    // and new threads will be created to process already exists queue.
+    LogPrint(BCLog::HTTP, "Waiting for HTTP worker threads to exit\n");
+    for (auto &thread: m_thread_http_workers)
+        thread->Stop();
+
+    m_thread_http_workers.clear();
 }
 
 void HTTPSocket::BindAddress(std::string ipAddr, int port)
@@ -690,6 +627,10 @@ void HTTPSocket::BindAddress(std::string ipAddr, int port)
     evhttp_bound_socket *bind_handle = evhttp_bind_socket_with_handle(m_eventHTTP, ipAddr.empty() ? nullptr : ipAddr.c_str(), port);
     if (bind_handle)
     {
+        CNetAddr addr;
+        if (ipAddr.empty() || (LookupHost(ipAddr, addr, false) && addr.IsBindAny())) {
+            LogPrintf("WARNING: the RPC server is not safe to expose to untrusted networks such as the public internet\n");
+        }
         m_boundSockets.push_back(bind_handle);
     }
     else
@@ -704,7 +645,7 @@ int HTTPSocket::GetAddressCount()
 }
 
 void HTTPSocket::RegisterHTTPHandler(const std::string &prefix, bool exactMatch,
-                                     const HTTPRequestHandler &handler, WorkQueue<HTTPClosure>* _queue)
+                                     const HTTPRequestHandler &handler, std::shared_ptr<Queue<std::unique_ptr<HTTPClosure>>> _queue)
 {
     LogPrint(BCLog::HTTP, "Registering HTTP handler for %s (exactmatch %d)\n", prefix, exactMatch);
     m_pathHandlers.emplace_back(prefix, exactMatch, handler, _queue);
@@ -744,7 +685,7 @@ static inline std::string gen_random(const int len) {
 
 }
 
-bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
+bool HTTPSocket::HTTPReq(HTTPRequest* req, const util::Ref& context, CRPCTable& table)
 {
     // JSONRPC handles only POST
     if (req->GetRequestMethod() != HTTPRequest::POST) {
@@ -759,7 +700,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
     auto start = gStatEngineInstance.GetCurrentSystemTime();
     bool executeSuccess = true;
 
-    JSONRPCRequest jreq;
+    JSONRPCRequest jreq(context);
     try
     {
         UniValue valRequest;
@@ -825,7 +766,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
     }
 
     // Collect statistic data
-    if (g_logger->WillLogCategory(BCLog::STAT))
+    if (LogInstance().WillLogCategory(BCLog::STAT))
     {
         auto finish = gStatEngineInstance.GetCurrentSystemTime();
 
@@ -850,7 +791,7 @@ bool HTTPSocket::HTTPReq(HTTPRequest* req, CRPCTable& table)
 HTTPWebSocket::HTTPWebSocket(struct event_base* base, int timeout, int queueDepth, int queuePostDepth, bool publicAccess)
     : HTTPSocket(base, timeout, queueDepth, publicAccess)
 {
-    m_workPostQueue = new WorkQueue<HTTPClosure>(queuePostDepth);
+    m_workPostQueue = std::make_shared<QueueLimited<std::unique_ptr<HTTPClosure>>>(queuePostDepth);
     LogPrintf("HTTP: creating work post queue of depth %d\n", queuePostDepth);
 }
 
@@ -866,16 +807,12 @@ void HTTPWebSocket::StopHTTPSocket()
 {   
     HTTPSocket::StopHTTPSocket();
 
-    delete m_workPostQueue;
-    m_workPostQueue = nullptr;
+    m_workPostQueue.reset();
 }
 
 void HTTPWebSocket::InterruptHTTPSocket()
 {
     HTTPSocket::InterruptHTTPSocket();
-
-    if (m_workPostQueue)
-        m_workPostQueue->Interrupt();
 }
 
 HTTPEvent::HTTPEvent(struct event_base *base, bool _deleteWhenTriggered, std::function<void()> _handler) :
@@ -898,18 +835,19 @@ void HTTPEvent::trigger(struct timeval *tv)
         evtimer_add(ev, tv); // trigger after timeval passed
 }
 
-HTTPRequest::HTTPRequest(struct evhttp_request *_req) : req(_req),
-                                                        replySent(false)
+HTTPRequest::HTTPRequest(struct evhttp_request *_req, bool _replySent) : req(_req),
+                                                        replySent(_replySent)
 {
     Created = gStatEngineInstance.GetCurrentSystemTime();
 }
+
 HTTPRequest::~HTTPRequest()
 {
     if (!replySent)
     {
         // Keep track of whether reply was sent to avoid request leaks
         LogPrintf("%s: Unhandled request\n", __func__);
-        WriteReply(HTTP_INTERNAL, "Unhandled request");
+        WriteReply(HTTP_INTERNAL_SERVER_ERROR, "Unhandled request");
     }
     // evhttpd cleans up the request, as long as a reply was sent.
 }
@@ -960,7 +898,10 @@ void HTTPRequest::WriteHeader(const std::string &hdr, const std::string &value)
 void HTTPRequest::WriteReply(int nStatus, const std::string &strReply)
 {
     assert(!replySent && req);
-
+    if (ShutdownRequested())
+    {
+        WriteHeader("Connection", "close");
+    }
     // Send event to main http thread to send reply message
     struct evbuffer *evb = evhttp_request_get_output_buffer(req);
     assert(evb);
@@ -1042,19 +983,4 @@ HTTPRequest::RequestMethod HTTPRequest::GetRequestMethod() const
             return UNKNOWN;
             break;
     }
-}
-
-std::string urlDecode(const std::string &urlEncoded)
-{
-    std::string res;
-    if (!urlEncoded.empty())
-    {
-        char *decoded = evhttp_uridecode(urlEncoded.c_str(), false, nullptr);
-        if (decoded)
-        {
-            res = std::string(decoded);
-            free(decoded);
-        }
-    }
-    return res;
 }

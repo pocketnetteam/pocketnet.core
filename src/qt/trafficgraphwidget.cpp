@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2018 The Pocketcoin Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,9 +6,9 @@
 #include <qt/trafficgraphwidget.h>
 #include <qt/clientmodel.h>
 
-#include <QColor>
 #include <QPainter>
 #include <QPainterPath>
+#include <QColor>
 #include <QTimer>
 
 #include <cmath>
@@ -20,14 +20,14 @@
 
 TrafficGraphWidget::TrafficGraphWidget(QWidget *parent) :
     QWidget(parent),
-    timer(0),
+    timer(nullptr),
     fMax(0.0f),
     nMins(0),
     vSamplesIn(),
     vSamplesOut(),
     nLastBytesIn(0),
     nLastBytesOut(0),
-    clientModel(0)
+    clientModel(nullptr)
 {
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &TrafficGraphWidget::updateRates);
@@ -105,6 +105,7 @@ void TrafficGraphWidget::paintEvent(QPaintEvent *)
         }
     }
 
+    painter.setRenderHint(QPainter::Antialiasing);
     if(!vSamplesIn.empty()) {
         QPainterPath p;
         paintPath(p, vSamplesIn);

@@ -1,9 +1,13 @@
 #pragma once
 
+#include "logging.h"
+#include "rpc/blockchain.h"
 #include "univalue.h"
+#include "util/time.h"
 
 #include "chainparams.h"
 #include "validation.h"
+#include "util/ref.h"
 #include "clientversion.h"
 #include <boost/thread.hpp>
 #include <chrono>
@@ -165,9 +169,10 @@ namespace Statistic
             return GetUniqueSourceIPsSince(RequestTime::min());
         }
 
-        UniValue CompileStatsAsJsonSince(RequestTime since)
+        UniValue CompileStatsAsJsonSince(RequestTime since, const util::Ref& context)
         {
             UniValue result{UniValue::VOBJ};
+            const auto& node = EnsureNodeContext(context);
 
             constexpr auto top_limit = 1;
             const auto sample_to_json = [](const RequestSample& sample)
@@ -192,7 +197,7 @@ namespace Statistic
 
             auto unique_ips = GetUniqueSourceIPsSince(since);
             auto unique_ips_count = unique_ips.size();
-            if (g_logger->WillLogCategory(BCLog::STATDETAIL))
+            if (LogInstance().WillLogCategory(BCLog::STATDETAIL))
             {
                 auto top_tm = GetTopHeavyTimeSamplesSince(top_limit, since);
                 auto top_in = GetTopHeavyInputSamplesSince(top_limit, since);
@@ -214,11 +219,11 @@ namespace Statistic
             UniValue chainStat(UniValue::VOBJ);
             chainStat.pushKV("Version", FormatVersion(CLIENT_VERSION));
             chainStat.pushKV("Chain", Params().NetworkIDString());
-            chainStat.pushKV("Height", chainActive.Height());
-            chainStat.pushKV("LastBlock", chainActive.Tip()->GetBlockHash().GetHex());
-            chainStat.pushKV("PeersALL", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
-            chainStat.pushKV("PeersIN", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
-            chainStat.pushKV("PeersOUT", (int) g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
+            chainStat.pushKV("Height", ChainActive().Height());
+            chainStat.pushKV("LastBlock", ChainActive().Tip()->GetBlockHash().GetHex());
+            chainStat.pushKV("PeersALL", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
+            chainStat.pushKV("PeersIN", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_IN));
+            chainStat.pushKV("PeersOUT", (int) node.connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_OUT));
             result.pushKV("General", chainStat);
 
             UniValue rpcStat(UniValue::VOBJ);
@@ -227,7 +232,7 @@ namespace Statistic
             rpcStat.pushKV("AvgReqTime", GetAvgRequestTimeSince(since).count());
             rpcStat.pushKV("AvgExecTime", GetAvgExecutionTimeSince(since).count());
             rpcStat.pushKV("UniqueIPs", (int) unique_ips_count);
-            if (g_logger->WillLogCategory(BCLog::STATDETAIL))
+            if (LogInstance().WillLogCategory(BCLog::STATDETAIL))
             {
                 rpcStat.pushKV("UniqueIps", unique_ips_json);
                 rpcStat.pushKV("TopTime", top_tm_json);
@@ -276,10 +281,10 @@ namespace Statistic
             return std::chrono::duration_cast<RequestTime>(std::chrono::system_clock::now().time_since_epoch());
         }
 
-        void Run(boost::thread_group& threadGroup)
+        void Run(boost::thread_group& threadGroup, const util::Ref& context)
         {
             shutdown = false;
-            threadGroup.create_thread(boost::bind(&RequestStatEngine::PeriodicStatLogger, this));
+            threadGroup.create_thread(boost::bind(&RequestStatEngine::PeriodicStatLogger, this, boost::cref(context)));
         }
 
         void Stop()
@@ -287,7 +292,7 @@ namespace Statistic
             shutdown = true;
         }
 
-        void PeriodicStatLogger()
+        void PeriodicStatLogger(const util::Ref& context)
         {
             auto statLoggerSleep = gArgs.GetArg("-statdepth", 60) * 1000;
             std::string msg = "Statistic for last %lds:\n%s\n";
@@ -295,12 +300,12 @@ namespace Statistic
             while (!shutdown)
             {
                 auto chunkSize = GetCurrentSystemTime() - std::chrono::milliseconds(statLoggerSleep);
-                LogPrint(BCLog::STAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize).write(1));
+                LogPrint(BCLog::STAT, msg.c_str(), statLoggerSleep / 1000, CompileStatsAsJsonSince(chunkSize, context).write(1));
                 LogPrint(BCLog::STATDETAIL, msg.c_str(), statLoggerSleep / 1000,
-                    CompileStatsAsJsonSince(chunkSize).write(1));
+                    CompileStatsAsJsonSince(chunkSize, context).write(1));
 
                 RemoveSamplesBefore(chunkSize * 2);
-                MilliSleep(statLoggerSleep);
+                UninterruptibleSleep(std::chrono::milliseconds{statLoggerSleep});
             }
         }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -13,9 +13,9 @@
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetTime(const JSONRPCRequest& request);
-    UniValue GetPeerInfo(const JSONRPCRequest& request);
-    UniValue GetNodeInfo(const JSONRPCRequest& request);
+    RPCHelpMan GetTime();
+    RPCHelpMan GetPeerInfo();
+    RPCHelpMan GetNodeInfo();
 }
 
 #endif //SRC_POCKETSYSTEMRPC_H

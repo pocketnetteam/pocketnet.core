@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -110,7 +110,7 @@ namespace PocketServices
                     ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
                         (scoreData->ScoreValue - 3) * 10;
 
-                    ratingValues[RatingType::RATING_POST][scoreData->ContentId] +=
+                    ratingValues[RatingType::RATING_CONTENT][scoreData->ContentId] +=
                         scoreData->ScoreValue - 3;
 
                     if (scoreData->ScoreValue == 4 || scoreData->ScoreValue == 5)
@@ -193,4 +193,5 @@ namespace PocketServices
         if (found == accountLikers[scoreData->ContentAddressId].end())
             accountLikers[scoreData->ContentAddressId].push_back(scoreData->ScoreAddressId);
     }
+    
 } // namespace PocketServices

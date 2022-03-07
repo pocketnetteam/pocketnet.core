@@ -1,13 +1,14 @@
-# Copyright (c) 2013-2016 The Pocketcoin Core developers
+# Copyright (c) 2013-2016 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 DIST_SUBDIRS = sqlite secp256k1 univalue
 
-AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
+AM_LDFLAGS = $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
 AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS)
 AM_CPPFLAGS = $(DEBUG_CPPFLAGS) $(HARDENED_CPPFLAGS)
 AM_LIBTOOLFLAGS = --preserve-dup-deps
+PTHREAD_FLAGS = $(PTHREAD_CFLAGS) $(PTHREAD_LIBS)
 EXTRA_LIBRARIES =
 
 if EMBEDDED_UNIVALUE
@@ -19,8 +20,8 @@ else
 LIBUNIVALUE = $(UNIVALUE_LIBS)
 endif
 
-POCKETCOIN_INCLUDES=-I$(builddir) $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
-POCKETCOIN_INCLUDES += -I$(srcdir)/secp256k1/include
+POCKETCOIN_INCLUDES=-I$(builddir) -I$(srcdir)/secp256k1/include $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS)
+
 POCKETCOIN_INCLUDES += -I$(srcdir)/sqlite/include
 POCKETCOIN_INCLUDES += $(UNIVALUE_CFLAGS)
 
@@ -42,6 +43,7 @@ LIBPOCKETCOINCONSENSUS=libpocketcoinconsensus.la
 endif
 if ENABLE_WALLET
 LIBPOCKETCOIN_WALLET=libpocketcoin_wallet.a
+LIBPOCKETCOIN_WALLET_TOOL=libpocketcoin_wallet_tool.a
 endif
 
 LIBPOCKETCOIN_CRYPTO= $(LIBPOCKETCOIN_CRYPTO_BASE)
@@ -74,7 +76,8 @@ EXTRA_LIBRARIES += \
   $(LIBPOCKETCOIN_SERVER) \
   $(LIBPOCKETCOIN_CLI) \
   $(LIBPOCKETCOIN_WALLET) \
-  $(LIBPOCKETCOIN_ZMQ)  
+  $(LIBPOCKETCOIN_WALLET_TOOL) \
+  $(LIBPOCKETCOIN_ZMQ)
 
 lib_LTLIBRARIES = $(LIBPOCKETCOINCONSENSUS)
 
@@ -87,8 +90,20 @@ if BUILD_POCKETCOIND
   bin_PROGRAMS += pocketcoind
 endif
 
-if BUILD_POCKETCOIN_UTILS
-  bin_PROGRAMS += pocketcoin-cli pocketcoin-tx
+if BUILD_POCKETCOIN_NODE
+  bin_PROGRAMS += pocketcoin-node
+endif
+
+if BUILD_POCKETCOIN_CLI
+  bin_PROGRAMS += pocketcoin-cli
+endif
+if BUILD_POCKETCOIN_TX
+  bin_PROGRAMS += pocketcoin-tx
+endif
+if ENABLE_WALLET
+# if BUILD_POCKETCOIN_WALLET
+#   bin_PROGRAMS += pocketcoin-wallet
+# endif
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -152,6 +167,8 @@ POCKETDB_H = \
     pocketdb/consensus/social/Complain.hpp \
     pocketdb/consensus/social/Post.hpp \
     pocketdb/consensus/social/Video.hpp \
+    pocketdb/consensus/social/Article.hpp \
+    pocketdb/consensus/social/BoostContent.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
     pocketdb/consensus/social/ScoreContent.hpp \
     pocketdb/consensus/social/Subscribe.hpp \
@@ -165,6 +182,7 @@ POCKETDB_H = \
     pocketdb/models/base/Base.h \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/Transaction.h \
+    pocketdb/models/base/TransactionInput.h \
     pocketdb/models/base/TransactionOutput.h \
     pocketdb/models/base/Rating.h \
     pocketdb/models/base/Payload.h \
@@ -173,8 +191,10 @@ POCKETDB_H = \
     pocketdb/models/dto/Default.h \
     pocketdb/models/dto/Coinbase.h \
     pocketdb/models/dto/Coinstake.h \
+    pocketdb/models/dto/Content.h \
     pocketdb/models/dto/Post.h \
     pocketdb/models/dto/ContentDelete.h \
+    pocketdb/models/dto/BoostContent.h \
     pocketdb/models/dto/AccountSetting.h \
     pocketdb/models/dto/User.h \
     pocketdb/models/dto/ScoreContent.h \
@@ -189,9 +209,10 @@ POCKETDB_H = \
     pocketdb/models/dto/SubscribeCancel.h \
     pocketdb/models/dto/Complain.h \
     pocketdb/models/dto/Video.h \
+    pocketdb/models/dto/Article.h \
     \
-    pocketdb/models/web/Tag.h \
-    pocketdb/models/web/Content.h \
+    pocketdb/models/web/WebTag.h \
+    pocketdb/models/web/WebContent.h \
     pocketdb/models/web/SearchRequest.h
 
 # PocketDb CPP
@@ -230,6 +251,7 @@ POCKETDB_CPP = \
     pocketdb/models/base/Base.cpp \
     pocketdb/models/base/Payload.cpp \
     pocketdb/models/base/Transaction.cpp \
+    pocketdb/models/base/TransactionInput.cpp \
     pocketdb/models/base/TransactionOutput.cpp \
     pocketdb/models/base/Rating.cpp \
     pocketdb/models/base/Payload.cpp \
@@ -251,8 +273,10 @@ POCKETDB_CPP = \
     pocketdb/models/dto/Default.cpp \
     pocketdb/models/dto/Coinbase.cpp \
     pocketdb/models/dto/Coinstake.cpp \
+    pocketdb/models/dto/Content.cpp \
     pocketdb/models/dto/Post.cpp \
     pocketdb/models/dto/ContentDelete.cpp \
+    pocketdb/models/dto/BoostContent.cpp \
     pocketdb/models/dto/AccountSetting.cpp \
     pocketdb/models/dto/User.cpp \
     pocketdb/models/dto/ScoreContent.cpp \
@@ -266,90 +290,116 @@ POCKETDB_CPP = \
     pocketdb/models/dto/SubscribePrivate.cpp \
     pocketdb/models/dto/SubscribeCancel.cpp \
     pocketdb/models/dto/Complain.cpp \
-    pocketdb/models/dto/Video.cpp
+    pocketdb/models/dto/Video.cpp \
+    pocketdb/models/dto/BoostContent.cpp \
+    pocketdb/models/dto/Article.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \
     addrdb.h \
     addrman.h \
     attributes.h \
+    banman.h \
     base58.h \
     bech32.h \
-    bloom.h \
     blockencodings.h \
     blockfilter.h \
+    bloom.h \
     chain.h \
     chainparams.h \
     chainparamsbase.h \
     chainparamsseeds.h \
-    checkpoints.h \
     checkqueue.h \
     clientversion.h \
     coins.h \
     compat.h \
+    compat/assumptions.h \
     compat/byteswap.h \
+    compat/cpuid.h \
     compat/endian.h \
     compat/sanity.h \
     compressor.h \
     consensus/consensus.h \
+    consensus/tx_check.h \
     consensus/tx_verify.h \
     core_io.h \
     core_memusage.h \
     cuckoocache.h \
+    dbwrapper.h \
+    ldb/ldb.h \
+    flatfile.h \
     fs.h \
+    eventloop.h \
     httprpc.h \
     httpserver.h \
     index/base.h \
+    index/blockfilterindex.h \
+    index/disktxpos.h \
     index/txindex.h \
     indirectmap.h \
     init.h \
+    interfaces/chain.h \
     interfaces/handler.h \
     interfaces/node.h \
     interfaces/wallet.h \
     key.h \
     key_io.h \
-    keystore.h \
-    dbwrapper.h \
-    ldb/ldb.h \
-    limitedmap.h \
     logging.h \
+    logging/timer.h \
     memusage.h \
     merkleblock.h \
     miner.h \
     net.h \
+    net_permissions.h \
     net_processing.h \
+    net_types.h \
     netaddress.h \
     netbase.h \
     netmessagemaker.h \
+    node/coin.h \
+    node/coinstats.h \
+    node/context.h \
+    node/psbt.h \
+    node/transaction.h \
+    node/ui_interface.h \
+    node/utxo_snapshot.h \
     noui.h \
+    optional.h \
     outputtype.h \
     policy/feerate.h \
     policy/fees.h \
     policy/policy.h \
     policy/rbf.h \
+    policy/settings.h \
     pos.h \
     pow.h \
+    protectedmap.h \
     protocol.h \
+    psbt.h \
     random.h \
+    randomenv.h \
     reverse_iterator.h \
-    reverselock.h \
     rpc/blockchain.h \
+    rpc/cache.h \
     rpc/client.h \
     rpc/mining.h \
     rpc/protocol.h \
-    rpc/server.h \
-    rpc/rawtransaction.h \
+    rpc/rawtransaction_util.h \
     rpc/register.h \
+    rpc/request.h \
+    rpc/server.h \
     rpc/util.h \
     statistic.hpp \
     scheduler.h \
     script/descriptor.h \
-    script/ismine.h \
+    script/keyorigin.h \
     script/sigcache.h \
     script/sign.h \
+    script/signingprovider.h \
     script/standard.h \
     shutdown.h \
     staker.h \
+    signet.h \
     streams.h \
     support/allocators/secure.h \
     support/allocators/zeroafterfree.h \
@@ -357,40 +407,69 @@ POCKETCOIN_CORE_H = \
     support/events.h \
     support/lockedpool.h \
     sync.h \
-    threadsafety.h \
     threadinterrupt.h \
+    threadsafety.h \
     timedata.h \
     torcontrol.h \
     txdb.h \
+    txrequest.h \
     txmempool.h \
-    ui_interface.h \
     undo.h \
-    util.h \
-    utilmemory.h \
-    utilmoneystr.h \
-    utiltime.h \
+    util/asmap.h \
+    util/bip32.h \
+    util/bytevectorhash.h \
+    util/check.h \
+    util/error.h \
+    util/fees.h \
+    util/golombrice.h \
+    util/macros.h \
+    util/memory.h \
+    util/message.h \
+    util/moneystr.h \
+    util/rbf.h \
+    util/ref.h \
+    util/settings.h \
+    util/spanparsing.h \
+    util/string.h \
+    util/system.h \
+    util/threadnames.h \
+    util/time.h \
+    util/translation.h \
+    util/ui_change_type.h \
+    util/url.h \
+    util/vector.h \
+    util/html.h \
     validation.h \
     validationinterface.h \
     versionbits.h \
-    walletinitinterface.h \
+    versionbitsinfo.h \
+    wallet/bdb.h \
     wallet/coincontrol.h \
+    wallet/coinselection.h \
+    wallet/context.h \
     wallet/crypter.h \
     wallet/db.h \
     wallet/feebumper.h \
     wallet/fees.h \
+    wallet/ismine.h \
+    wallet/load.h \
     wallet/rpcwallet.h \
+    wallet/salvage.h \
+    wallet/scriptpubkeyman.h \
+    wallet/sqlite.h \
     wallet/wallet.h \
     wallet/walletdb.h \
+    wallet/wallettool.h \
     wallet/walletutil.h \
-    wallet/coinselection.h \
+    walletinitinterface.h \
     warnings.h \
     zmq/zmqabstractnotifier.h \
-    zmq/zmqconfig.h\
     zmq/zmqnotificationinterface.h \
     zmq/zmqpublishnotifier.h \
     zmq/zmqrpc.h \
+    zmq/zmqutil.h \
     websocket/ws.h \
-    utils/html.h \
+    websocket/notifyprocessor.h \
     $(POCKETDB_H)
 
 
@@ -401,73 +480,86 @@ obj/build.h: FORCE
 libpocketcoin_util_a-clientversion.$(OBJEXT): obj/build.h
 
 # server: shared between pocketcoind and pocketcoin-qt
+# Contains code accessing mempool and chain state that is meant to be separated
+# from wallet and gui code (see node/README.md). Shared code should go in
+# libpocketcoin_common or libpocketcoin_util libraries, instead.
 libpocketcoin_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libpocketcoin_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libpocketcoin_server_a_SOURCES = \
     addrdb.cpp \
     addrman.cpp \
-    bloom.cpp \
+    banman.cpp \
     blockencodings.cpp \
     blockfilter.cpp \
     chain.cpp \
-    checkpoints.cpp \
     consensus/tx_verify.cpp \
+    dbwrapper.cpp \
+    flatfile.cpp \
     httprpc.cpp \
     httpserver.cpp \
     index/base.cpp \
+    index/blockfilterindex.cpp \
     index/txindex.cpp \
-    interfaces/handler.cpp \
-    interfaces/node.cpp \
-    init.cpp  \
+    init.cpp \
     ldb/ldb.cpp \
-    dbwrapper.cpp \
-    merkleblock.cpp \
+    interfaces/chain.cpp \
+    interfaces/node.cpp \
     miner.cpp \
     net.cpp \
     net_processing.cpp \
+    node/coin.cpp \
+    node/coinstats.cpp \
+    node/context.cpp \
+    node/psbt.cpp \
+    node/transaction.cpp \
+    node/ui_interface.cpp \
     noui.cpp \
-    outputtype.cpp \
     policy/fees.cpp \
-    policy/policy.cpp \
     policy/rbf.cpp \
+    policy/settings.cpp \
     pos.cpp \
     pow.cpp \
     rest.cpp \
     rpc/blockchain.cpp \
+    rpc/cache.cpp \
     rpc/mining.cpp \
     rpc/misc.cpp \
     rpc/net.cpp \
     rpc/rawtransaction.cpp \
     rpc/server.cpp \
-    rpc/util.cpp \
     script/sigcache.cpp \
     shutdown.cpp \
     staker.cpp \
+    signet.cpp \
     timedata.cpp \
     torcontrol.cpp \
     txdb.cpp \
+    txrequest.cpp \
     txmempool.cpp \
-    ui_interface.cpp \
     validation.cpp \
     validationinterface.cpp \
     versionbits.cpp \
     websocket/ws.cpp \
-    utils/html.cpp \
+    websocket/notifyprocessor.cpp \
     $(POCKETDB_CPP) \
     $(POCKETCOIN_CORE_H)
 
+if ENABLE_WALLET
+libpocketcoin_server_a_SOURCES += wallet/init.cpp
+endif
 if !ENABLE_WALLET
 libpocketcoin_server_a_SOURCES += dummywallet.cpp
 endif
 
 if ENABLE_ZMQ
-libpocketcoin_zmq_a_CPPFLAGS = $(POCKETCOIN_INCLUDES) $(ZMQ_CFLAGS)
+libpocketcoin_zmq_a_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(ZMQ_CFLAGS)
 libpocketcoin_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libpocketcoin_zmq_a_SOURCES = \
   zmq/zmqabstractnotifier.cpp \
   zmq/zmqnotificationinterface.cpp \
   zmq/zmqpublishnotifier.cpp \
-  zmq/zmqrpc.cpp
+  zmq/zmqrpc.cpp \
+  zmq/zmqutil.cpp
 endif
 
 
@@ -477,18 +569,32 @@ libpocketcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES)
 libpocketcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libpocketcoin_wallet_a_SOURCES = \
   interfaces/wallet.cpp \
+  wallet/bdb.cpp \
   wallet/coincontrol.cpp \
+  wallet/context.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/feebumper.cpp \
   wallet/fees.cpp \
-  wallet/init.cpp \
+  wallet/load.cpp \
   wallet/rpcdump.cpp \
   wallet/rpcwallet.cpp \
+  wallet/salvage.cpp \
+  wallet/scriptpubkeyman.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
   wallet/coinselection.cpp \
+  $(POCKETCOIN_CORE_H)
+
+if USE_SQLITE
+libpocketcoin_wallet_a_SOURCES += wallet/sqlite.cpp
+endif
+
+libpocketcoin_wallet_tool_a_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES)
+libpocketcoin_wallet_tool_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libpocketcoin_wallet_tool_a_SOURCES = \
+  wallet/wallettool.cpp \
   $(POCKETCOIN_CORE_H)
 
 # crypto primitives library
@@ -497,21 +603,31 @@ crypto_libpocketcoin_crypto_base_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_libpocketcoin_crypto_base_a_SOURCES = \
   crypto/aes.cpp \
   crypto/aes.h \
+  crypto/chacha_poly_aead.h \
+  crypto/chacha_poly_aead.cpp \
   crypto/chacha20.h \
   crypto/chacha20.cpp \
   crypto/common.h \
+  crypto/hkdf_sha256_32.cpp \
+  crypto/hkdf_sha256_32.h \
   crypto/hmac_sha256.cpp \
   crypto/hmac_sha256.h \
   crypto/hmac_sha512.cpp \
   crypto/hmac_sha512.h \
+  crypto/poly1305.h \
+  crypto/poly1305.cpp \
   crypto/ripemd160.cpp \
   crypto/ripemd160.h \
   crypto/sha1.cpp \
   crypto/sha1.h \
   crypto/sha256.cpp \
   crypto/sha256.h \
+  crypto/sha3.cpp \
+  crypto/sha3.h \
   crypto/sha512.cpp \
-  crypto/sha512.h
+  crypto/sha512.h \
+  crypto/siphash.cpp \
+  crypto/siphash.h
 
 if USE_ASM
 crypto_libpocketcoin_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp
@@ -545,6 +661,7 @@ libpocketcoin_consensus_a_SOURCES = \
   consensus/merkle.cpp \
   consensus/merkle.h \
   consensus/params.h \
+  consensus/tx_check.cpp \
   consensus/validation.h \
   hash.cpp \
   hash.h \
@@ -567,8 +684,8 @@ libpocketcoin_consensus_a_SOURCES = \
   tinyformat.h \
   uint256.cpp \
   uint256.h \
-  utilstrencodings.cpp \
-  utilstrencodings.h \
+  util/strencodings.cpp \
+  util/strencodings.h \
   version.h
 
 # common: shared between pocketcoind, and pocketcoin-qt and non-server tools
@@ -577,6 +694,7 @@ libpocketcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libpocketcoin_common_a_SOURCES = \
   base58.cpp \
   bech32.cpp \
+  bloom.cpp \
   chainparams.cpp \
   coins.cpp \
   compressor.cpp \
@@ -584,16 +702,23 @@ libpocketcoin_common_a_SOURCES = \
   core_write.cpp \
   key.cpp \
   key_io.cpp \
-  keystore.cpp \
+  merkleblock.cpp \
   netaddress.cpp \
   netbase.cpp \
+  net_permissions.cpp \
+  outputtype.cpp \
   policy/feerate.cpp \
+  policy/policy.cpp \
   protocol.cpp \
+  psbt.cpp \
+  rpc/rawtransaction_util.cpp \
+  rpc/util.cpp \
   scheduler.cpp \
   script/descriptor.cpp \
-  script/ismine.cpp \
   script/sign.cpp \
+  script/signingprovider.cpp \
   script/standard.cpp \
+  versionbitsinfo.cpp \
   warnings.cpp \
   $(POCKETCOIN_CORE_H)
 
@@ -610,17 +735,35 @@ libpocketcoin_util_a_SOURCES = \
   compat/glibcxx_sanity.cpp \
   compat/strnlen.cpp \
   fs.cpp \
+  interfaces/handler.cpp \
   logging.cpp \
   random.cpp \
-  rpc/protocol.cpp \
+  randomenv.cpp \
+  rpc/request.cpp \
   support/cleanse.cpp \
   sync.cpp \
   threadinterrupt.cpp \
-  util.cpp \
-  utilmoneystr.cpp \
-  utilstrencodings.cpp \
-  utiltime.cpp \
+  util/asmap.cpp \
+  util/bip32.cpp \
+  util/bytevectorhash.cpp \
+  util/error.cpp \
+  util/fees.cpp \
+  util/html.cpp \
+  util/system.cpp \
+  util/message.cpp \
+  util/moneystr.cpp \
+  util/rbf.cpp \
+  util/settings.cpp \
+  util/threadnames.cpp \
+  util/spanparsing.cpp \
+  util/strencodings.cpp \
+  util/string.cpp \
+  util/time.cpp \
   $(POCKETCOIN_CORE_H)
+
+if USE_LIBEVENT
+libpocketcoin_util_a_SOURCES += util/url.cpp
+endif
 
 if GLIBC_BACK_COMPAT
 libpocketcoin_util_a_SOURCES += compat/glibc_compat.cpp
@@ -631,28 +774,29 @@ endif
 libpocketcoin_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES)
 libpocketcoin_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libpocketcoin_cli_a_SOURCES = \
+  compat/stdin.h \
+  compat/stdin.cpp \
   rpc/client.cpp \
   $(POCKETCOIN_CORE_H)
 
 nodist_libpocketcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
-# pocketcoind binary #
-pocketcoind_SOURCES = pocketcoind.cpp
-pocketcoind_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES)
-pocketcoind_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-pocketcoind_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+# pocketcoind & pocketcoin-node binaries #
+pocketcoin_daemon_sources = pocketcoind.cpp
+pocketcoin_bin_cppflags = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES)
+pocketcoin_bin_cxxflags = $(AM_CXXFLAGS) $(PIE_FLAGS)
+pocketcoin_bin_ldflags = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
-pocketcoind_SOURCES += pocketcoind-res.rc
+pocketcoin_daemon_sources += pocketcoind-res.rc
 endif
 
-pocketcoind_LDADD = \
-  $(LIBPOCKETCOIN_SERVER) \
+pocketcoin_bin_ldadd = \
   $(LIBPOCKETCOIN_WALLET) \
   $(LIBPOCKETCOIN_COMMON) \
-  $(LIBUNIVALUE) \
   $(LIBPOCKETCOIN_UTIL) \
+  $(LIBUNIVALUE) \
   $(LIBPOCKETCOIN_ZMQ) \
   $(LIBPOCKETCOIN_CONSENSUS) \
   $(LIBPOCKETCOIN_CRYPTO) \
@@ -662,13 +806,25 @@ pocketcoind_LDADD = \
   $(LIBSECP256K1) \
   $(LIBSQLITE3)
 
-pocketcoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+pocketcoin_bin_ldadd += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
+
+pocketcoind_SOURCES = $(pocketcoin_daemon_sources)
+pocketcoind_CPPFLAGS = $(pocketcoin_bin_cppflags)
+pocketcoind_CXXFLAGS = $(pocketcoin_bin_cxxflags)
+pocketcoind_LDFLAGS = $(pocketcoin_bin_ldflags)
+pocketcoind_LDADD = $(LIBPOCKETCOIN_SERVER) $(pocketcoin_bin_ldadd)
+
+pocketcoin_node_SOURCES = $(pocketcoin_daemon_sources)
+pocketcoin_node_CPPFLAGS = $(pocketcoin_bin_cppflags)
+pocketcoin_node_CXXFLAGS = $(pocketcoin_bin_cxxflags)
+pocketcoin_node_LDFLAGS = $(pocketcoin_bin_ldflags)
+pocketcoin_node_LDADD = $(LIBPOCKETCOIN_SERVER) $(pocketcoin_bin_ldadd)
 
 # pocketcoin-cli binary #
 pocketcoin_cli_SOURCES = pocketcoin-cli.cpp
 pocketcoin_cli_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES) $(EVENT_CFLAGS)
 pocketcoin_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-pocketcoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+pocketcoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
 pocketcoin_cli_SOURCES += pocketcoin-cli-res.rc
@@ -680,13 +836,14 @@ pocketcoin_cli_LDADD = \
   $(LIBPOCKETCOIN_UTIL) \
   $(LIBPOCKETCOIN_CRYPTO)
 
-pocketcoin_cli_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+pocketcoin_cli_LDADD += $(BOOST_LIBS) $(EVENT_LIBS)
+#
 
 # pocketcoin-tx binary #
 pocketcoin_tx_SOURCES = pocketcoin-tx.cpp
 pocketcoin_tx_CPPFLAGS = $(AM_CPPFLAGS) $(POCKETCOIN_INCLUDES)
 pocketcoin_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-pocketcoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+pocketcoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
 pocketcoin_tx_SOURCES += pocketcoin-tx-res.rc
@@ -700,13 +857,25 @@ pocketcoin_tx_LDADD = \
   $(LIBPOCKETCOIN_CRYPTO) \
   $(LIBSECP256K1)
 
-pocketcoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+pocketcoin_tx_LDADD += $(BOOST_LIBS)
+#
+
+# pocketcoin-wallet binary #
+# pocketcoin_wallet_SOURCES = pocketcoin-wallet.cpp #
+# pocketcoin_wallet_CPPFLAGS = $(pocketcoin_bin_cppflags) #
+# pocketcoin_wallet_CXXFLAGS = $(pocketcoin_bin_cxxflags) #
+# pocketcoin_wallet_LDFLAGS = $(pocketcoin_bin_ldflags) #
+# pocketcoin_wallet_LDADD = $(LIBPOCKETCOIN_WALLET_TOOL) $(pocketcoin_bin_ldadd) #
+
+# if TARGET_WINDOWS
+# pocketcoin_wallet_SOURCES += pocketcoin-wallet-res.rc
+# endif
 #
 
 # pocketcoinconsensus library #
 if BUILD_POCKETCOIN_LIBS
 include_HEADERS = script/pocketcoinconsensus.h
-libpocketcoinconsensus_la_SOURCES = $(crypto_libpocketcoin_crypto_base_a_SOURCES) $(libpocketcoin_consensus_a_SOURCES)
+libpocketcoinconsensus_la_SOURCES = support/cleanse.cpp $(crypto_libpocketcoin_crypto_base_a_SOURCES) $(libpocketcoin_consensus_a_SOURCES)
 
 if GLIBC_BACK_COMPAT
   libpocketcoinconsensus_la_SOURCES += compat/glibc_compat.cpp
@@ -731,12 +900,18 @@ CLEANFILES = $(EXTRA_LIBRARIES)
 CLEANFILES += *.gcda *.gcno
 CLEANFILES += compat/*.gcda compat/*.gcno
 CLEANFILES += consensus/*.gcda consensus/*.gcno
+CLEANFILES += crc32c/src/*.gcda crc32c/src/*.gcno
 CLEANFILES += crypto/*.gcda crypto/*.gcno
+CLEANFILES += index/*.gcda index/*.gcno
+CLEANFILES += interfaces/*.gcda interfaces/*.gcno
+CLEANFILES += node/*.gcda node/*.gcno
 CLEANFILES += policy/*.gcda policy/*.gcno
 CLEANFILES += primitives/*.gcda primitives/*.gcno
+CLEANFILES += rpc/*.gcda rpc/*.gcno
 CLEANFILES += script/*.gcda script/*.gcno
 CLEANFILES += support/*.gcda support/*.gcno
 CLEANFILES += univalue/*.gcda univalue/*.gcno
+CLEANFILES += util/*.gcda util/*.gcno
 CLEANFILES += wallet/*.gcda wallet/*.gcno
 CLEANFILES += wallet/test/*.gcda wallet/test/*.gcno
 CLEANFILES += zmq/*.gcda zmq/*.gcno
@@ -765,32 +940,42 @@ clean-local:
 	$(AM_V_GEN) $(WINDRES) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(CPPFLAGS) -DWINDRES_PREPROC -i $< -o $@
 
 check-symbols: $(bin_PROGRAMS)
+if TARGET_DARWIN
+	@echo "Checking macOS dynamic libraries..."
+	$(AM_V_at) OTOOL=$(OTOOL) $(PYTHON) $(top_srcdir)/contrib/devtools/symbol-check.py $(bin_PROGRAMS)
+endif
+
+if TARGET_WINDOWS
+	@echo "Checking Windows dynamic libraries..."
+	$(AM_V_at) OBJDUMP=$(OBJDUMP) $(PYTHON) $(top_srcdir)/contrib/devtools/symbol-check.py $(bin_PROGRAMS)
+endif
+
 if GLIBC_BACK_COMPAT
 	@echo "Checking glibc back compat..."
-	$(AM_V_at) READELF=$(READELF) CPPFILT=$(CPPFILT) $(top_srcdir)/contrib/devtools/symbol-check.py < $(bin_PROGRAMS)
+	$(AM_V_at) READELF=$(READELF) CPPFILT=$(CPPFILT) $(PYTHON) $(top_srcdir)/contrib/devtools/symbol-check.py $(bin_PROGRAMS)
 endif
 
 check-security: $(bin_PROGRAMS)
 if HARDEN
 	@echo "Checking binary security..."
-	$(AM_V_at) READELF=$(READELF) OBJDUMP=$(OBJDUMP) $(top_srcdir)/contrib/devtools/security-check.py < $(bin_PROGRAMS)
+	$(AM_V_at) READELF=$(READELF) OBJDUMP=$(OBJDUMP) OTOOL=$(OTOOL) $(PYTHON) $(top_srcdir)/contrib/devtools/security-check.py $(bin_PROGRAMS)
 endif
-
-%.pb.cc %.pb.h: %.proto
-	@test -f $(PROTOC)
-	$(AM_V_GEN) $(PROTOC) --cpp_out=$(@D) --proto_path=$(<D) $<
 
 if EMBEDDED_LEVELDB
+include Makefile.crc32c.include
 include Makefile.leveldb.include
 endif
+
+include Makefile.test_util.include
+include Makefile.test_fuzz.include
 
 if ENABLE_TESTS
 include Makefile.test.include
 endif
 
-# if ENABLE_BENCH
-# include Makefile.bench.include
-# endif
+if ENABLE_BENCH
+include Makefile.bench.include
+endif
 
 if ENABLE_QT
 include Makefile.qt.include

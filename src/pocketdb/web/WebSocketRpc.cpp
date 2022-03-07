@@ -1,18 +1,30 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/WebSocketRpc.h"
+#include "rpc/util.h"
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue GetMissedInfo(const JSONRPCRequest& request)
+    RPCHelpMan GetMissedInfo()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getmissedinfo \"address\" block_number\n"
-                "\nGet missed info.\n");
-
+        return RPCHelpMan{
+                "getmissedinfo",
+                "\nGet missed info.\n",
+                {
+                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+                    {"block_number", RPCArg::Type::NUM, RPCArg::Optional::NO, ""}
+                },
+                {
+                    // TODO (team)
+                },
+                RPCExamples{
+                    // TODO (team)
+                    ""
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VNUM});
 
         // Get address from arguments
@@ -25,8 +37,8 @@ namespace PocketWeb::PocketWebRpc
 
         // Get initial block number
         int blockNumber = request.params[1].get_int();
-        if (chainActive.Height() - blockNumber > 10000)
-            blockNumber = chainActive.Height() - 10000;
+        if (ChainActive().Height() - blockNumber > 10000)
+            blockNumber = ChainActive().Height() - 10000;
 
         // Get count of result records
         int cntResult = 30;
@@ -41,7 +53,7 @@ namespace PocketWeb::PocketWebRpc
         // Language statistic
         auto[contentCount, contentLangCount] = request.DbConnection()->WebRpcRepoInst->GetContentLanguages(blockNumber);
         UniValue fullStat(UniValue::VOBJ);
-        fullStat.pushKV("block", chainActive.Height());
+        fullStat.pushKV("block", ::ChainActive().Height());
         fullStat.pushKV("cntposts", contentCount);
         fullStat.pushKV("contentsLang", contentLangCount);
         result.push_back(fullStat);
@@ -49,11 +61,12 @@ namespace PocketWeb::PocketWebRpc
         // ---------------------------------------------------------------------
 
         // Pocketnet Team content
-        std::string teamAddress = "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd";
+        std::string teamAddress = (Params().NetworkIDString() == CBaseChainParams::MAIN) ? "PEj7QNjKdDPqE9kMDRboKoCtp8V6vZeZPd" : "TAqR1ncH95eq9XKSDRR18DtpXqktxh74UU";
         auto[teamCount, teamData] = request.DbConnection()->WebRpcRepoInst->GetLastAddressContent(teamAddress, blockNumber, 99);
         for (size_t i = 0; i < teamData.size(); i++)
         {
             teamData.At(i).pushKV("msg", "sharepocketnet");
+            teamData.At(i).pushKV("addrFrom", teamAddress);
             result.push_back(teamData[i]);
         }
 
@@ -89,6 +102,11 @@ namespace PocketWeb::PocketWebRpc
 
         // ---------------------------------------------------------------------
 
+        // Subscribers/unsubscribers
+        result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedSubscribers(address, blockNumber, cntResult));
+
+        // ---------------------------------------------------------------------
+
         // Scores to comments
         result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedCommentsScores(address, blockNumber, cntResult));
 
@@ -101,14 +119,12 @@ namespace PocketWeb::PocketWebRpc
         vector<string> txIds;
         for (const auto& tx: missedTransactions)
             txIds.push_back(tx.first);
-        auto transactionsInfo = request.DbConnection()->ExplorerRepoInst->GetTransactions(txIds, 1, (int) txIds.size());
 
-        // Extend missed transactions
-        for (size_t i = 0; i < transactionsInfo.size(); i++)
+        auto transactionsInfo = request.DbConnection()->TransactionRepoInst->List(txIds, false, true, true);
+        for (const auto& txInfo : *transactionsInfo)
         {
-            auto txInfo = transactionsInfo.At(i);
-            missedTransactions[txInfo["txid"].get_str()].pushKV("txinfo", txInfo);
-            result.push_back(transactionsInfo[i]);
+            auto utx = _constructTransaction(txInfo);
+            result.push_back(utx);
         }
 
         // ---------------------------------------------------------------------
@@ -127,6 +143,12 @@ namespace PocketWeb::PocketWebRpc
 
         // ---------------------------------------------------------------------
 
+        result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedBoosts(address, blockNumber, cntResult));
+
+        // ---------------------------------------------------------------------
+
         return result;
+    },
+        };
     }
 }

@@ -1,3 +1,7 @@
+// Copyright (c) 2018-2022 The Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 #include "pocketdb/migrations/main.h"
 
 namespace PocketDb
@@ -40,6 +44,7 @@ namespace PocketDb
                 -- Subscribe.AddressHash
                 -- Blocking.AddressHash
                 -- Complain.AddressHash
+                -- Boost.AddressHash
                 String1   text   null,
 
                 -- AccountUser.ReferrerAddressHash
@@ -52,6 +57,7 @@ namespace PocketDb
                 -- Subscribe.AddressToHash
                 -- Blocking.AddressToHash
                 -- Complain.PostTxHash
+                -- Boost.ContentTxHash
                 String2   text   null,
 
                 -- ContentPost.RelayTxHash
@@ -68,6 +74,7 @@ namespace PocketDb
                 -- ScoreContent.Value
                 -- ScoreComment.Value
                 -- Complain.Reason
+                -- Boost.Amount
                 Int1      int    null
             );
         )sql");
@@ -135,6 +142,15 @@ namespace PocketDb
         )sql");
 
         _tables.emplace_back(R"sql(
+            create table if not exists TxInputs
+            (
+                SpentTxHash text not null,
+                TxHash text not null,
+                Number int not null
+            );
+        )sql");
+
+        _tables.emplace_back(R"sql(
             create table if not exists Ratings
             (
                 Type   int not null,
@@ -157,7 +173,34 @@ namespace PocketDb
             );
         )sql");
 
+
+        _preProcessing = R"sql(
+            
+            insert into TxInputs
+            (
+                SpentTxHash,
+                TxHash,
+                Number
+            )
+            select
+                o.SpentTxHash,
+                o.TxHash,
+                o.Number
+            from TxOutputs o indexed by TxOutputs_SpentTxHash
+            where o.SpentTxHash is not null
+              and not exists (select i.ROWID from TxInputs i)
+
+        )sql";
+
+
         _indexes = R"sql(
+
+            drop index if exists Payload_String2;
+            drop index if exists Payload_String2_TxHash;
+            drop index if exists Transactions_Height_Time;
+            drop index if exists Transactions_Time_Type_Height;
+            drop index if exists Transactions_Type_Time_Height;
+
             create index if not exists Transactions_Id on Transactions (Id);
             create index if not exists Transactions_Id_Last on Transactions (Id, Last);
             create index if not exists Transactions_Hash_Height on Transactions (Hash, Height);
@@ -173,17 +216,18 @@ namespace PocketDb
             create index if not exists Transactions_Type_String1_Height_Time_Int1 on Transactions (Type, String1, Height, Time, Int1);
             create index if not exists Transactions_String1_Last_Height on Transactions (String1, Last, Height);
             create index if not exists Transactions_Last_Id_Height on Transactions (Last, Id, Height);
-            create index if not exists Transactions_Time_Type_Height on Transactions (Time, Type, Height);
-            create index if not exists Transactions_Type_Time_Height on Transactions (Type, Time, Height);
             create index if not exists Transactions_BlockHash on Transactions (BlockHash);
-            create index if not exists Transactions_Height_Time on Transactions (Height, Time);
             create index if not exists Transactions_Height_Id on Transactions (Height, Id);
+            create index if not exists Transactions_Type_HeightByDay on Transactions (Type, (Height / 1440));
+            create index if not exists Transactions_Type_HeightByHour on Transactions (Type, (Height / 60));
 
             create index if not exists TxOutputs_SpentHeight_AddressHash on TxOutputs (SpentHeight, AddressHash);
             create index if not exists TxOutputs_TxHeight_AddressHash on TxOutputs (TxHeight, AddressHash);
             create index if not exists TxOutputs_SpentTxHash on TxOutputs (SpentTxHash);
             create index if not exists TxOutputs_TxHash_AddressHash_Value on TxOutputs (TxHash, AddressHash, Value);
             create index if not exists TxOutputs_AddressHash_TxHeight_SpentHeight on TxOutputs (AddressHash, TxHeight, SpentHeight);
+
+            create unique index if not exists TxInputs_SpentTxHash_TxHash_Number on TxInputs (SpentTxHash, TxHash, Number);
 
             create index if not exists Ratings_Last_Id_Height on Ratings (Last, Id, Height);
             create index if not exists Ratings_Height_Last on Ratings (Height, Last);
@@ -192,8 +236,6 @@ namespace PocketDb
             create index if not exists Ratings_Type_Id_Last_Value on Ratings (Type, Id, Last, Value);
             create index if not exists Ratings_Type_Id_Height_Value on Ratings (Type, Id, Height, Value);
 
-            drop index if exists Payload_String2;
-            create index if not exists Payload_String2_TxHash on Payload (String2, TxHash);
             create index if not exists Payload_String2_nocase_TxHash on Payload (String2 collate nocase, TxHash);
             create index if not exists Payload_String7 on Payload (String7);
             create index if not exists Payload_String1_TxHash on Payload (String1, TxHash);
@@ -202,6 +244,11 @@ namespace PocketDb
             create index if not exists Balances_AddressHash_Last_Height on Balances (AddressHash, Last, Height);
             create index if not exists Balances_Last_Value on Balances (Last, Value);
             create index if not exists Balances_AddressHash_Last on Balances (AddressHash, Last);
+
+        )sql";
+
+        _postProcessing = R"sql(
+
         )sql";
     }
 }

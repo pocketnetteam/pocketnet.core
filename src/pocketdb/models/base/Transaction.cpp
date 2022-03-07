@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -21,6 +21,7 @@ namespace PocketTx
     shared_ptr <UniValue> Transaction::Serialize() const
     {
         auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
+        
         result->pushKV("txid", *GetHash());
         result->pushKV("time", *GetTime());
         result->pushKV("block", 0);
@@ -48,6 +49,12 @@ namespace PocketTx
     shared_ptr <int64_t> Transaction::GetTime() const { return m_time; }
     void Transaction::SetTime(int64_t value) { m_time = make_shared<int64_t>(value); }
 
+    shared_ptr<int64_t> Transaction::GetHeight() const { return m_height; }
+    void Transaction::SetHeight(int64_t value) { m_height = make_shared<int64_t>(value); }
+
+    shared_ptr<string> Transaction::GetBlockHash() const { return m_blockhash; }
+    void Transaction::SetBlockHash(string value) { m_blockhash = make_shared<string>(value); }
+
     shared_ptr<bool> Transaction::GetLast() const { return m_last; }
     void Transaction::SetLast(bool value) { m_last = make_shared<bool>(value); }
 
@@ -72,7 +79,9 @@ namespace PocketTx
     shared_ptr <int64_t> Transaction::GetId() const { return m_id; }
     void Transaction::SetId(int64_t value) { m_id = make_shared<int64_t>(value); }
 
+    vector <shared_ptr<TransactionInput>>& Transaction::Inputs() { return m_inputs; }
     vector <shared_ptr<TransactionOutput>>& Transaction::Outputs() { return m_outputs; }
+    const vector <shared_ptr<TransactionOutput>>& Transaction::OutputsConst() const { return m_outputs; }
 
     shared_ptr <Payload> Transaction::GetPayload() const { return m_payload; }
     void Transaction::SetPayload(Payload value) { m_payload = make_shared<Payload>(value); }

@@ -1,18 +1,19 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/services/Serializer.h"
+#include "script/standard.h"
 
 namespace PocketServices
 {
-    tuple<bool, PocketBlock> Serializer::DeserializeBlock(CBlock& block, CDataStream& stream)
+    tuple<bool, PocketBlock> Serializer::DeserializeBlock(const CBlock& block, CDataStream& stream)
     {
         // Get Serialized data from stream
         auto pocketData = parseStream(stream);
         return deserializeBlock(block, pocketData);
     }
-    tuple<bool, PocketBlock> Serializer::DeserializeBlock(CBlock& block)
+    tuple<bool, PocketBlock> Serializer::DeserializeBlock(const CBlock& block)
     {
         UniValue fakeData(UniValue::VOBJ);
         return deserializeBlock(block, fakeData);
@@ -82,7 +83,11 @@ namespace PocketServices
         if (!ptx)
             return nullptr;
 
-        // Build outputs & inputs
+        // Build inputs
+        if (!buildInputs(tx, ptx))
+            return nullptr;
+
+        // Build outputs
         if (!buildOutputs(tx, ptx))
             return nullptr;
 
@@ -118,7 +123,11 @@ namespace PocketServices
         if (!ptx)
             return nullptr;
 
-        // Build outputs & inputs
+        // Build inputs
+        if (!buildInputs(tx, ptx))
+            return nullptr;
+
+        // Build outputs
         if (!buildOutputs(tx, ptx))
             return nullptr;
 
@@ -126,31 +135,53 @@ namespace PocketServices
         return ptx;
     }
 
+    bool Serializer::buildInputs(const CTransactionRef& tx, shared_ptr <Transaction>& ptx)
+    {
+        string spentTxHash = tx->GetHash().GetHex();
+
+        for (size_t i = 0; i < tx->vin.size(); i++)
+        {
+            const CTxIn& txin = tx->vin[i];
+
+            auto inp = make_shared<TransactionInput>();
+            inp->SetSpentTxHash(spentTxHash);
+            inp->SetTxHash(txin.prevout.hash.GetHex());
+            inp->SetNumber(txin.prevout.n);
+            
+            ptx->Inputs().push_back(inp);
+        }
+
+        return !ptx->Inputs().empty();
+    }
 
     bool Serializer::buildOutputs(const CTransactionRef& tx, shared_ptr <Transaction>& ptx)
     {
-        // indexing Outputs
+        string txHash = tx->GetHash().GetHex();
+
         for (size_t i = 0; i < tx->vout.size(); i++)
         {
             const CTxOut& txout = tx->vout[i];
 
-            txnouttype type;
+            auto out = make_shared<TransactionOutput>();
+            out->SetTxHash(txHash);
+            out->SetNumber((int) i);
+            out->SetValue(txout.nValue);
+            out->SetScriptPubKey(HexStr(txout.scriptPubKey));
+
+            TxoutType type;
             std::vector <CTxDestination> vDest;
             int nRequired;
             if (ExtractDestinations(txout.scriptPubKey, type, vDest, nRequired))
             {
                 for (const auto& dest : vDest)
-                {
-                    auto out = make_shared<TransactionOutput>();
-                    out->SetTxHash(tx->GetHash().GetHex());
-                    out->SetNumber((int) i);
                     out->SetAddressHash(EncodeDestination(dest));
-                    out->SetValue(txout.nValue);
-                    out->SetScriptPubKey(HexStr(txout.scriptPubKey));
-
-                    ptx->Outputs().push_back(out);
-                }
             }
+            else
+            {
+                out->SetAddressHash("");
+            }
+
+            ptx->Outputs().push_back(out);
         }
 
         return !ptx->Outputs().empty();
@@ -172,7 +203,7 @@ namespace PocketServices
     }
 
 
-    tuple<bool, PocketBlock> Serializer::deserializeBlock(CBlock& block, UniValue& pocketData)
+    tuple<bool, PocketBlock> Serializer::deserializeBlock(const CBlock& block, UniValue& pocketData)
     {
         // Restore pocket transaction instance
         PocketBlock pocketBlock;

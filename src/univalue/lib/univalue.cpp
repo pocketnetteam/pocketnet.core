@@ -164,6 +164,19 @@ void UniValue::getObjMap(std::map<std::string,UniValue>& kv) const
         kv[keys[i]] = values[i];
 }
 
+std::map<std::string,UniValue> UniValue::getObjMap() const
+{
+    std::map<std::string,UniValue> kv;
+
+    if (typ != VOBJ)
+        return kv;
+
+    for (size_t i = 0; i < keys.size(); i++)
+        kv[keys[i]] = values[i];
+
+    return kv;
+}
+
 bool UniValue::findKey(const std::string& key, size_t& retIdx) const
 {
     for (size_t i = 0; i < keys.size(); i++) {

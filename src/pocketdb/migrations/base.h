@@ -1,3 +1,7 @@
+// Copyright (c) 2018-2022 The Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
+
 #ifndef POCKETDB_MIGRATION
 #define POCKETDB_MIGRATION
 
@@ -14,7 +18,9 @@ namespace PocketDb
     protected:
         vector<string> _tables;
         vector<string> _views;
+        string _preProcessing;
         string _indexes;
+        string _postProcessing;
 
     public:
 
@@ -22,7 +28,9 @@ namespace PocketDb
 
         vector<string>& Tables() { return _tables; }
         vector<string>& Views() { return _views; }
+        string& PreProcessing() { return _preProcessing; }
         string& Indexes() { return _indexes; }
+        string& PostProcessing() { return _postProcessing; }
     };
 
     typedef std::shared_ptr<PocketDbMigration> PocketDbMigrationRef;

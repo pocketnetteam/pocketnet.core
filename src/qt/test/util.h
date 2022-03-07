@@ -1,5 +1,11 @@
+// Copyright (c) 2018-2019 The Pocketcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef POCKETCOIN_QT_TEST_UTIL_H
 #define POCKETCOIN_QT_TEST_UTIL_H
+
+#include <QString>
 
 /**
  * Press "Ok" button in message box dialog.

@@ -1,37 +1,78 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketSystemRpc.h"
+#include "rpc/blockchain.h"
+#include "rpc/util.h"
 
 namespace PocketWeb::PocketWebRpc
 {
 
-    UniValue GetTime(const JSONRPCRequest& request)
+    RPCHelpMan GetTime()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "gettime\n"
-                "\nReturn node time.\n");
-
+        return RPCHelpMan{"gettime",
+                "\nReturn node time.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", 
+                    {
+                        {RPCResult::Type::NUM_TIME, "time", ""},
+                    },
+                },
+                RPCExamples{
+                    HelpExampleCli("gettime", "") +
+                    HelpExampleRpc("gettime", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         UniValue entry(UniValue::VOBJ);
         entry.pushKV("time", GetAdjustedTime());
 
         return entry;
+    },
+        };
     }
 
-    UniValue GetPeerInfo(const JSONRPCRequest& request)
+    RPCHelpMan GetPeerInfo()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getpeerinfo\n"
-                "\nReturns data about each connected network node as a json array of objects.\n"
-            );
-
+        return RPCHelpMan{"getpeerinfo",
+                "\nReturns data about each connected network node as a json array of objects..\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::ARR, "", "",
+                    {
+                        {
+                            RPCResult::Type::OBJ, "", "", 
+                            {
+                                {RPCResult::Type::STR, "addr", ""},
+                                {RPCResult::Type::STR, "services", ""},
+                                {RPCResult::Type::BOOL, "relaytxes", ""},
+                                {RPCResult::Type::NUM, "lastsend", ""},
+                                {RPCResult::Type::NUM, "lastrecv", ""},
+                                {RPCResult::Type::NUM, "conntime", ""},
+                                {RPCResult::Type::NUM, "timeoffset", ""},
+                                {RPCResult::Type::NUM, "protocol", ""},
+                                {RPCResult::Type::STR, "version", ""},
+                                {RPCResult::Type::BOOL, "inbound", ""},
+                                {RPCResult::Type::BOOL, "addnode", ""},
+                                {RPCResult::Type::NUM, "startingheight", ""},
+                                {RPCResult::Type::BOOL, "whitelisted", ""},
+                            },
+                        },
+                    },
+                },
+                RPCExamples{
+                    HelpExampleCli("getpeerinfo", "") +
+                    HelpExampleRpc("getpeerinfo", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        const auto& node = EnsureNodeContext(request.context);
         UniValue ret(UniValue::VARR);
 
         std::vector<CNodeStats> vstats;
-        g_connman->GetNodeStats(vstats);
+        node.connman->GetNodeStats(vstats);
         for (const CNodeStats& stats : vstats) {
             UniValue obj(UniValue::VOBJ);
 
@@ -42,19 +83,19 @@ namespace PocketWeb::PocketWebRpc
             obj.pushKV("lastrecv", stats.nLastRecv);
             obj.pushKV("conntime", stats.nTimeConnected);
             obj.pushKV("timeoffset", stats.nTimeOffset);
-            obj.pushKV("pingtime", stats.dPingTime);
+            obj.pushKV("pingtime", stats.m_ping_usec); // TODO (losty-fur): ping changed from double to usec
             obj.pushKV("protocol", stats.nVersion);
             obj.pushKV("version", stats.cleanSubVer);
             obj.pushKV("inbound", stats.fInbound);
             obj.pushKV("addnode", stats.m_manual_connection);
             obj.pushKV("startingheight", stats.nStartingHeight);
-            obj.pushKV("whitelisted", stats.fWhitelisted);
+            obj.pushKV("whitelisted", stats.m_legacyWhitelisted); // TODO (losty-fur): probably remove this
 
             // Mutex guarded node statistic
             CNodeStateStats nodeState;
             if (GetNodeStateStats(stats.nodeid, nodeState))
             {
-                obj.pushKV("banscore", nodeState.nMisbehavior);
+                obj.pushKV("banscore", nodeState.m_misbehavior_score);
                 obj.pushKV("synced_headers", nodeState.nSyncHeight);
                 obj.pushKV("synced_blocks", nodeState.nCommonHeight);
             }
@@ -63,9 +104,64 @@ namespace PocketWeb::PocketWebRpc
         }
 
         return ret;
+    },
+        };
     }
 
-    UniValue GetNodeInfo(const JSONRPCRequest& request)
+    RPCHelpMan GetNodeInfo()
+    {
+        return RPCHelpMan{"getnodeinfo",
+                "\nReturns data about node.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", 
+                    {
+                        {RPCResult::Type::STR, "version", ""},
+                        {RPCResult::Type::NUM_TIME, "time", ""},
+                        {RPCResult::Type::STR, "chain", ""},
+                        {RPCResult::Type::BOOL, "proxy", ""},
+                        {RPCResult::Type::NUM, "netstakeweight", ""},
+                        {
+                            RPCResult::Type::OBJ, "lastblock", "",
+                            {
+                                {RPCResult::Type::NUM, "height", ""},
+                                {RPCResult::Type::STR, "hash", ""},
+                                {RPCResult::Type::NUM_TIME, "time", ""},
+                                {RPCResult::Type::STR, "ntx", ""},
+                            }
+                        },
+                        {
+                            RPCResult::Type::ARR, "", "",
+                            {
+                                {
+                                    RPCResult::Type::OBJ, "", "",
+                                    {
+                                        {RPCResult::Type::STR, "address", ""},
+                                        {RPCResult::Type::STR, "ip", ""},
+                                        {RPCResult::Type::NUM, "port", ""},
+                                        {RPCResult::Type::NUM, "portWss", ""},
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            RPCResult::Type::OBJ, "ports", "",
+                            {
+                                {RPCResult::Type::NUM, "node", ""},
+                                {RPCResult::Type::NUM, "api", ""},
+                                {RPCResult::Type::NUM, "rest", ""},
+                                {RPCResult::Type::NUM, "wss", ""},
+                                {RPCResult::Type::NUM, "http", ""},
+                                {RPCResult::Type::NUM, "https", ""},
+                            }
+                        }
+                    },
+                },
+                RPCExamples{
+                    HelpExampleCli("getnodeinfo", "") +
+                    HelpExampleRpc("getnodeinfo", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
         if (request.fHelp)
             throw std::runtime_error(
@@ -82,7 +178,7 @@ namespace PocketWeb::PocketWebRpc
         uint64_t nNetworkWeight = GetPoSKernelPS();
         entry.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
 
-        CBlockIndex* pindex = chainActive.Tip();
+        CBlockIndex* pindex = ::ChainActive().Tip();
         UniValue oblock(UniValue::VOBJ);
         oblock.pushKV("height", pindex->nHeight);
         oblock.pushKV("hash", pindex->GetBlockHash().GetHex());
@@ -91,8 +187,8 @@ namespace PocketWeb::PocketWebRpc
         entry.pushKV("lastblock", oblock);
 
         UniValue proxies(UniValue::VARR);
-        if (!WSConnections.empty()) {
-            for (auto& it : WSConnections) {
+        if (WSConnections) {
+            auto fillProxy = [&proxies](const std::pair<const std::string, WSUser>& it) {
                 if (it.second.Service) {
                     UniValue proxy(UniValue::VOBJ);
                     proxy.pushKV("address", it.second.Address);
@@ -101,7 +197,8 @@ namespace PocketWeb::PocketWebRpc
                     proxy.pushKV("portWss", it.second.WssPort);
                     proxies.push_back(proxy);
                 }
-            }
+            };
+            WSConnections->Iterate(fillProxy);
         }
         entry.pushKV("proxies", proxies);
 
@@ -122,19 +219,33 @@ namespace PocketWeb::PocketWebRpc
         entry.pushKV("ports", ports);
 
         return entry;
+    },
+        };
     }
     
-    UniValue GetCoinInfo(const JSONRPCRequest& request)
+    RPCHelpMan GetCoinInfo()
     {
-        if (request.fHelp)
-            throw std::runtime_error(
-                "getcoininfo height\n"
-                "\n Returns current Pocketcoin emission for any given block\n"
-                "\nArguments:\n"
-                "1. height (integer optional) to calculate emission as of that block number\n"
-                "   if arguments are empty or non-numeric, then returns as of the current block number");
-
-        int height = chainActive.Height();
+        return RPCHelpMan{"getcoininfo",
+                "\nReturns current Pocketcoin emission for any given block\n",
+                {
+                    {"height", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "height (integer optional) to calculate emission as of that block number. If arguments are empty or non-numeric, then returns as of the current block number"}
+                },
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "", 
+                    {
+                        {RPCResult::Type::STR_AMOUNT, "emission", ""},
+                        {RPCResult::Type::NUM, "height", ""},
+                    },
+                },
+                RPCExamples{
+                    HelpExampleCli("getcoininfo", "") +
+                    HelpExampleRpc("getcoininfo", "") +
+                    HelpExampleCli("getcoininfo", "1231") +
+                    HelpExampleRpc("getcoininfo", "1231")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        int height = ChainActive().Height();
         if (request.params.size() > 0 && request.params[0].isNum())
             height = request.params[0].get_int();
 
@@ -166,6 +277,8 @@ namespace PocketWeb::PocketWebRpc
         result.pushKV("height", height);
         
         return result;
+    },
+        };
     }
 
 }

@@ -1,9 +1,11 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #ifndef POCKETCONSENSUS_USER_HPP
 #define POCKETCONSENSUS_USER_HPP
+
+#include <boost/algorithm/string.hpp>
 
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/User.h"
@@ -50,53 +52,18 @@ namespace PocketConsensus
             // Check payload
             if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
 
-            // TODO (brangr): enable with fork height
-            //if (IsEmpty(ptx->GetPayloadName())) return {false, SocialConsensusResult_Failed};
-
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
                 return make_tuple(false, SocialConsensusResult_ReferrerSelf);
 
-            // Maximum length for user name
-            auto name = *ptx->GetPayloadName();
-
-            // TODO (brangr): enable with fork height
-            // if (name.empty() || name.size() > 35)
-            // {
-            //     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_NicknameLong))
-            //         return {false, SocialConsensusResult_NicknameLong};
-            // }
-
-            // Trim spaces
-            if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
-            {
-                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(),
-                    SocialConsensusResult_Failed))
-                    return {false, SocialConsensusResult_Failed};
-            }
+            // Name check
+            if (auto[ok, result] = CheckLogin(ptx); !ok)
+                return {false, result};
 
             return Success;
         }
-
         ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
         {
-            auto ptxORHash = ptx->BuildHash();
-            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
-
-            if (ptxORHash != txORHash)
-            {
-                auto ptxORHashRef = ptx->BuildHash(false);
-                if (ptxORHashRef != txORHash)
-                {
-                    auto data = ptx->PreBuildHash();
-                    LogPrint(BCLog::CONSENSUS, "--- %s\n", data);
-                    LogPrint(BCLog::CONSENSUS, "Warning: FailedOpReturn for USER %s: %s | %s != %s\n",
-                        *ptx->GetHash(), ptxORHash, ptxORHashRef, txORHash);
-                    //if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                    //    return {false, SocialConsensusResult_FailedOpReturn};
-                }
-            }
-
             return Success;
         }
 
@@ -118,6 +85,9 @@ namespace PocketConsensus
                     if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(), SocialConsensusResult_ChangeInfoDoubleInBlock))
                         return {false, SocialConsensusResult_ChangeInfoDoubleInBlock};
                 }
+
+                if (auto[ok, result] = ValidateBlockDuplicateName(ptx, blockPtx); !ok)
+                    return {false, result};
             }
 
             if (GetChainCount(ptx) > GetConsensusLimit(ConsensusLimit_edit_user_daily_count))
@@ -156,12 +126,12 @@ namespace PocketConsensus
         virtual ConsensusValidateResult ValidateEditLimit(const UserRef& ptx)
         {
             // First user account transaction allowed without next checks
-            auto[prevOk, prevTx] = ConsensusRepoInst.GetLastAccount(*ptx->GetAddress());
+            auto[prevOk, prevTime] = ConsensusRepoInst.GetLastAccountTime(*ptx->GetAddress());
             if (!prevOk)
                 return Success;
 
             // We allow edit profile only with delay
-            if ((*ptx->GetTime() - *prevTx->GetTime()) <= GetConsensusLimit(ConsensusLimit_edit_user_depth))
+            if ((*ptx->GetTime() - prevTime) <= GetConsensusLimit(ConsensusLimit_edit_user_depth))
                 return {false, SocialConsensusResult_ChangeInfoLimit};
 
             return Success;
@@ -187,6 +157,26 @@ namespace PocketConsensus
             if (dataSize > (size_t) GetConsensusLimit(ConsensusLimit_max_user_size))
                 return {false, SocialConsensusResult_ContentSizeLimit};
 
+            return Success;
+        }
+    
+        virtual ConsensusValidateResult CheckLogin(const UserRef& ptx)
+        {
+            auto name = *ptx->GetPayloadName();
+
+            // Trim spaces
+            if (boost::algorithm::ends_with(name, "%20") || boost::algorithm::starts_with(name, "%20"))
+            {
+                if (!CheckpointRepoInst.IsSocialCheckpoint(*ptx->GetHash(), *ptx->GetType(),
+                    SocialConsensusResult_Failed))
+                    return {false, SocialConsensusResult_Failed};
+            }
+
+            return Success;
+        }
+    
+        virtual ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx)
+        {
             return Success;
         }
     };
@@ -236,15 +226,71 @@ namespace PocketConsensus
     };
 
     /*******************************************************************************************************************
+    *  Limitations for username
+    *******************************************************************************************************************/
+    class UserConsensus_checkpoint_login_limitation : public UserConsensus_checkpoint_1381841
+    {
+    public:
+        UserConsensus_checkpoint_login_limitation(int height) : UserConsensus_checkpoint_1381841(height) {}
+
+    protected:
+        ConsensusValidateResult CheckLogin(const UserRef& ptx) override
+        {
+            if (IsEmpty(ptx->GetPayloadName()))
+                return {false, SocialConsensusResult_Failed};
+
+            auto name = *ptx->GetPayloadName();
+            boost::algorithm::to_lower(name);
+
+            if (name.size() > 20)
+                return {false, SocialConsensusResult_NicknameLong};
+            
+            if (!all_of(name.begin(), name.end(), [](unsigned char ch) { return ::isalnum(ch) || ch == '_'; }))
+                return {false, SocialConsensusResult_Failed};
+
+            return Success;
+        }
+        // TODO (brangr): move to base class after this checkpoint
+        ConsensusValidateResult ValidateBlockDuplicateName(const UserRef& ptx, const UserRef& blockPtx) override
+        {
+            auto ptxName = *ptx->GetPayloadName();
+            boost::algorithm::to_lower(ptxName);
+
+            auto blockPtxName = *blockPtx->GetPayloadName();
+            boost::algorithm::to_lower(blockPtxName);
+
+            if (ptxName == blockPtxName)
+                return {false, SocialConsensusResult_NicknameDouble};
+
+            return Success;
+        }
+        // TODO (brangr): move to base class after this checkpoint
+        ConsensusValidateResult CheckOpReturnHash(const CTransactionRef& tx, const UserRef& ptx) override
+        {
+            auto ptxORHash = ptx->BuildHash();
+            auto txORHash = TransactionHelper::ExtractOpReturnHash(tx);
+            if (ptxORHash == txORHash)
+                return Success;
+
+            if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
+                return Success;
+
+            return {false, SocialConsensusResult_FailedOpReturn};
+        }
+    };
+
+
+    /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
     class UserConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint < UserConsensus>> m_rules = {
-            { 0, -1, [](int height) { return make_shared<UserConsensus>(height); }},
-            { 1180000, 0, [](int height) { return make_shared<UserConsensus_checkpoint_1180000>(height); }},
+        const vector<ConsensusCheckpoint<UserConsensus>> m_rules = {
+            {       0,     -1, [](int height) { return make_shared<UserConsensus>(height); }},
+            { 1180000,      0, [](int height) { return make_shared<UserConsensus_checkpoint_1180000>(height); }},
             { 1381841, 162000, [](int height) { return make_shared<UserConsensus_checkpoint_1381841>(height); }},
+            { 1629000, 650000, [](int height) { return make_shared<UserConsensus_checkpoint_login_limitation>(height); }}, // ~ 03/25/2022
         };
     public:
         shared_ptr<UserConsensus> Instance(int height)

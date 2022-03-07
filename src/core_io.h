@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -6,6 +6,8 @@
 #define POCKETCOIN_CORE_IO_H
 
 #include <amount.h>
+#include <attributes.h>
+
 #include <string>
 #include <vector>
 
@@ -14,15 +16,14 @@ class CBlockHeader;
 class CScript;
 class CTransaction;
 struct CMutableTransaction;
-struct PartiallySignedTransaction;
 class uint256;
 class UniValue;
 
 // core_read.cpp
 CScript ParseScript(const std::string& s);
 std::string ScriptToAsmStr(const CScript& script, const bool fAttemptSighashDecode = false);
-bool DecodeHexTx(CMutableTransaction& tx, const std::string& hex_tx, bool try_no_witness = false, bool try_witness = true);
-bool DecodeHexBlk(CBlock&, const std::string& strHexBlk);
+NODISCARD bool DecodeHexTx(CMutableTransaction& tx, const std::string& hex_tx, bool try_no_witness = false, bool try_witness = true);
+NODISCARD bool DecodeHexBlk(CBlock&, const std::string& strHexBlk);
 bool DecodeHexBlockHeader(CBlockHeader&, const std::string& hex_header);
 
 /**
@@ -35,7 +36,6 @@ bool DecodeHexBlockHeader(CBlockHeader&, const std::string& hex_header);
  */
 bool ParseHashStr(const std::string& strHex, uint256& result);
 std::vector<unsigned char> ParseHexUV(const UniValue& v, const std::string& strName);
-bool DecodePSBT(PartiallySignedTransaction& psbt, const std::string& base64_tx, std::string& error);
 int ParseSighashString(const UniValue& sighash);
 
 // core_write.cpp

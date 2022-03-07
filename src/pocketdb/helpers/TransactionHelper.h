@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -11,18 +11,20 @@
 #include <numeric>
 #include "script/standard.h"
 #include "primitives/transaction.h"
-#include "utilstrencodings.h"
+#include "util/strencodings.h"
 
 #include "pocketdb/models/base/ReturnDtoModels.h"
 #include "pocketdb/models/base/PocketTypes.h"
 
 #include "pocketdb/models/dto/Blocking.h"
 #include "pocketdb/models/dto/BlockingCancel.h"
+#include "pocketdb/models/dto/BoostContent.h"
 #include "pocketdb/models/dto/Coinbase.h"
 #include "pocketdb/models/dto/Coinstake.h"
 #include "pocketdb/models/dto/Default.h"
 #include "pocketdb/models/dto/Post.h"
 #include "pocketdb/models/dto/Video.h"
+#include "pocketdb/models/dto/Article.h"
 #include "pocketdb/models/dto/Comment.h"
 #include "pocketdb/models/dto/CommentEdit.h"
 #include "pocketdb/models/dto/CommentDelete.h"
@@ -42,14 +44,17 @@ namespace PocketHelpers
     using namespace PocketTx;
 
     // Accumulate transactions in block
+    typedef PocketTx::Transaction PTransaction;
     typedef shared_ptr<PocketTx::Transaction> PTransactionRef;
+    typedef shared_ptr<PocketTx::TransactionInput> PTransactionInputRef;
+    typedef shared_ptr<PocketTx::TransactionOutput> PTransactionOutputRef;
     typedef vector<PTransactionRef> PocketBlock;
     typedef shared_ptr<PocketBlock> PocketBlockRef;
 
     class TransactionHelper
     {
     public:
-        static txnouttype ScriptType(const CScript& scriptPubKey);
+        static TxoutType ScriptType(const CScript& scriptPubKey);
         static std::string ExtractDestination(const CScript& scriptPubKey);
         static tuple<bool, string> GetPocketAuthorAddress(const CTransactionRef& tx);
         static TxType ConvertOpReturnToType(const string& op);

@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2018 Bitcoin developers
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -32,10 +32,10 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
-        tuple<bool, PTransactionRef> GetLastAccount(const string& address);
         tuple<bool, PTransactionRef> GetFirstContent(const string& rootHash);
         tuple<bool, PTransactionRef> GetLastContent(const string& rootHash, const vector<TxType>& types);
 
+        tuple<bool, int64_t> GetLastAccountTime(const string& address);
         tuple<bool, int64_t> GetLastAccountHeight(const string& address);
         tuple<bool, int64_t> GetTransactionHeight(const string& hash);
 
@@ -88,6 +88,12 @@ namespace PocketDb
         int CountChainPostTime(const string& address, int64_t time);
         int CountChainPostHeight(const string& address, int height);
 
+        int CountMempoolVideo(const string& address);
+        int CountChainVideo(const string& address, int height);
+
+        int CountMempoolArticle(const string& address);
+        int CountChainArticle(const string& address, int height);
+
         int CountMempoolScoreComment(const string& address);
         int CountChainScoreCommentTime(const string& address, int64_t time);
         int CountChainScoreCommentHeight(const string& address, int height);
@@ -101,9 +107,6 @@ namespace PocketDb
         int CountMempoolAccountSetting(const string& address);
         int CountChainAccountSetting(const string& address, int height);
 
-        int CountMempoolVideo(const string& address);
-        int CountChainVideoHeight(const string& address, int height);
-
         int CountChainAccount(TxType txType, const string& address, int height);
 
         int CountMempoolCommentEdit(const string& address, const string& rootTxHash);
@@ -114,6 +117,9 @@ namespace PocketDb
 
         int CountMempoolVideoEdit(const string& address, const string& rootTxHash);
         int CountChainVideoEdit(const string& address, const string& rootTxHash);
+
+        int CountMempoolArticleEdit(const string& address, const string& rootTxHash);
+        int CountChainArticleEdit(const string& address, const string& rootTxHash);
 
         int CountMempoolContentDelete(const string& address, const string& rootTxHash);
     };

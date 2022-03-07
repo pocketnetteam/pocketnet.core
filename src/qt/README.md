@@ -50,7 +50,7 @@ Various dialogs, e.g. to open a URL. Inherit from [QDialog](https://doc.qt.io/qt
 
 ### paymentserver.(h/cpp)
 
-Used to process BIP21 and BIP70 (see https://github.com/pocketcoin/pocketcoin/pull/11622) payment URI / requests. Also handles URI based application switching (e.g. when following a pocketcoin:... link from a browser).
+Used to process BIP21 payment URI requests. Also handles URI based application switching (e.g. when following a pocketcoin:... link from a browser).
 
 ### walletview.(h/cpp)
 
@@ -60,12 +60,12 @@ Represents the view to a single wallet.
 
 * UI elements like PocketcoinAmountField, which inherit from QWidget.
 * `pocketcoinstrings.cpp`: automatically generated
-* `pocketcoinunits.(h/cpp)`: POC / mPOC / etc handling
+* `pocketcoinunits.(h/cpp)`: PKOIN / mPKOIN / etc handling
 * `callback.h`
 * `guiconstants.h`: UI colors, app name, etc
 * `guiutil.h`: several helper functions
-* `macdockiconhandler.(h/cpp)`
-* `macdockiconhandler.(h/cpp)`: display notifications in macOS
+* `macdockiconhandler.(h/mm)`: macOS dock icon handler
+* `macnotificationhandler.(h/mm)`: display notifications in macOS
 
 ## Contribute
 

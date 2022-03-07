@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2015-2018 The Pocketcoin Core developers
+# Copyright (c) 2015-2022 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test share/rpcauth/rpcauth.py
@@ -24,8 +24,8 @@ class TestRPCAuth(unittest.TestCase):
         self.rpcauth = importlib.import_module('rpcauth')
 
     def test_generate_salt(self):
-        self.assertLessEqual(len(self.rpcauth.generate_salt()), 32)
-        self.assertGreaterEqual(len(self.rpcauth.generate_salt()), 16)
+        for i in range(16, 32 + 1):
+            self.assertEqual(len(self.rpcauth.generate_salt(i)), i * 2)
 
     def test_generate_password(self):
         password = self.rpcauth.generate_password()
@@ -34,7 +34,7 @@ class TestRPCAuth(unittest.TestCase):
         self.assertEqual(expected_password, password)
 
     def test_check_password_hmac(self):
-        salt = self.rpcauth.generate_salt()
+        salt = self.rpcauth.generate_salt(16)
         password = self.rpcauth.generate_password()
         password_hmac = self.rpcauth.password_to_hmac(salt, password)
 

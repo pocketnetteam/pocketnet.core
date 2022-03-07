@@ -1,18 +1,36 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #include "pocketdb/web/PocketTransactionRpc.h"
+#include "consensus/validation.h"
+#include "node/coin.h"
+#include "primitives/transaction.h"
+#include "rpc/blockchain.h"
+#include "script/signingprovider.h"
+#include "util/rbf.h"
+#include "rpc/rawtransaction_util.h"
+#include "pocketdb/consensus/social/User.hpp"
 
 namespace PocketWeb::PocketWebRpc
 {
-    UniValue AddTransaction(const JSONRPCRequest& request)
+    RPCHelpMan AddTransaction()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "addtransaction\n"
-                "\nAdd new pocketnet transaction.\n"
-            );
+        return RPCHelpMan{"addtransaction",
+                "\nGet transaction data.\n"
+                "in BIP 141 (witness data is discounted).\n",
+                {
+                    // TODO (losty-rpc): provide arguments description
+                },
+                {
+                    // TODO (losty-rpc): provide return description
+                },
+                RPCExamples{
+                    "" // TODO (losty-rpc): provide examples
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        auto& node = EnsureNodeContext(request.context);
 
         RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
 
@@ -35,31 +53,25 @@ namespace PocketWeb::PocketWebRpc
         // Set required fields
         ptx->SetAddress(address);
 
+        // TODO (team): TEMPORARY
+        // Temporary check for UserConsensus_checkpoint_login_limitation checkpoint
+        // Remove this after 1629000 in main net
+        if (*ptx->GetType() == ACCOUNT_USER)
+        {
+            std::shared_ptr<PocketConsensus::UserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::UserConsensus_checkpoint_login_limitation>(ChainActive().Height());
+            if (auto[ok, result] = accountUserConsensus->Check(tx, static_pointer_cast<User>(ptx)); !ok)
+                throw JSONRPCError((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
+        }
+
         // Insert into mempool
-        return _accept_transaction(tx, ptx);
+        return _accept_transaction(tx, ptx, *node.mempool, *node.connman); // TODO (losty-fur): possible null
+    },
+        };
     }
     
-    UniValue EstimateSmartFee(const JSONRPCRequest& request)
+    RPCHelpMan EstimateSmartFee()
     {
-        return estimatesmartfee(request);
-    }
-
-    UniValue GetTransaction(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw runtime_error(
-                "getrawtransaction\n"
-                "\nGet transaction data.\n"
-            );
-
-        RPCTypeCheck(request.params, {UniValue::VSTR});
-        string txid = request.params[0].get_str();
-
-        UniValue txs = request.DbConnection()->ExplorerRepoInst->GetTransactions({ txid }, 1, 2);
-        if (txs.empty())
-            return UniValue(UniValue::VOBJ);
-
-        return txs[0];
+        return estimatesmartfee();
     }
 
     CMutableTransaction ConstructPocketnetTransaction(const UniValue& inputs_in, const CTxOut& dataOut,
@@ -146,8 +158,6 @@ namespace PocketWeb::PocketWebRpc
             CTxDestination destination = DecodeDestination(name_);
             if (!IsValidDestination(destination))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Pocketcoin address: ") + name_);
-            if (!destinations.insert(destination).second)
-                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
 
             CScript scriptPubKey = GetScriptForDestination(destination);
             CAmount nAmount = outputs[name_].get_int64();
@@ -156,7 +166,7 @@ namespace PocketWeb::PocketWebRpc
             rawTx.vout.push_back(out);
         }
 
-        if (!rbf.isNull() && rawTx.vin.size() > 0 && rbfOptIn != SignalsOptInRBF(rawTx)) {
+        if (!rbf.isNull() && rawTx.vin.size() > 0 && rbfOptIn != SignalsOptInRBF(CTransaction(rawTx))) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter combination: Sequence number(s) contradict replaceable option");
         }
 
@@ -166,14 +176,21 @@ namespace PocketWeb::PocketWebRpc
         return rawTx;
     }
 
-    UniValue GenerateTransaction(const JSONRPCRequest& request)
+    RPCHelpMan GenerateTransaction()
     {
-        if (request.fHelp)
-            throw runtime_error(
-                "generatetransaction\n"
-                "\nAdd new pocketnet transaction.\n"
-            );
-
+        return RPCHelpMan{"generatetransaction",
+                "\nAdd new pocketnet transaction.\n",
+                {
+                    // TODO (losty-rpc): provide arguments description
+                },
+                {
+                    // TODO (losty-rpc): provide return description
+                },
+                RPCExamples{
+                    "" // TODO (losty-rpc): provide examples
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
         if (Params().NetworkIDString() != CBaseChainParams::TESTNET)
             throw runtime_error("Only for testnet\n");
 
@@ -198,6 +215,11 @@ namespace PocketWeb::PocketWebRpc
         // Get payload object
         UniValue txPayload = request.params[4].get_obj();
 
+        // Fee
+        int64_t fee = 1;
+        if (request.params[5].isNum())
+            fee = request.params[5].get_int64();
+
         // Build template for transaction
         auto txType = PocketHelpers::TransactionHelper::ConvertOpReturnToType(txTypeHex);
         shared_ptr<Transaction> _ptx = PocketHelpers::TransactionHelper::CreateInstance(txType);
@@ -206,24 +228,34 @@ namespace PocketWeb::PocketWebRpc
         // Deserialize params
         _ptx->SetHash("");
         _ptx->DeserializeRpc(txPayload);
-
+        auto& node = EnsureNodeContext(request.context);
+        // TODO (losty): probably bad assert like this
+        assert(node.mempool);
         // Get unspents
         vector<pair<string, uint32_t>> mempoolInputs;
-        vector<string> addresses {address};
-        auto unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents(addresses, chainActive.Height(), mempoolInputs);
+        node.mempool->GetAllInputs(mempoolInputs);
+        UniValue unsp = request.DbConnection()->WebRpcRepoInst->GetUnspents({ address }, ChainActive().Height(), mempoolInputs);
 
         // Build inputs
+        int64_t totalAmount = 0;
         UniValue _inputs(UniValue::VARR);
-        _inputs.push_back(unsp[0]);
+        int i = 0;
+        while (totalAmount <= (fee + outputCount) && i < unsp.size())
+        {
+            totalAmount += unsp[i]["amountSat"].get_int64();
+            _inputs.push_back(unsp[i]);
+            i += 1;
+        }
 
         // Build outputs
         UniValue _outputs(UniValue::VARR);
-        auto totalAmount = unsp[0]["amountSat"].get_int64();
-        auto chunkAmount = totalAmount / outputCount;
+        int64_t returned = totalAmount - fee;
+        int64_t chunkAmount = (totalAmount - fee) / outputCount;
         for (int i = 0; i < outputCount; i++)
         {
+            returned -= chunkAmount;
             UniValue _output_address(UniValue::VOBJ);
-            _output_address.pushKV(address, chunkAmount - (i + 1 == outputCount ? 1 : 0));
+            _output_address.pushKV(address, chunkAmount + (i + 1 == outputCount ? returned : 0));
             _outputs.push_back(_output_address);
         }
 
@@ -232,7 +264,7 @@ namespace PocketWeb::PocketWebRpc
         CMutableTransaction mTx = ConstructPocketnetTransaction(_inputs, _dataOut, _outputs, NullUniValue, NullUniValue);
 
         // Decode private keys
-        CBasicKeyStore keystore;
+        FillableSigningProvider keystore; // TODO (losty-critical): CBasicKeyStore removed.
         for (unsigned int idx = 0; idx < privKeys.size(); ++idx) {
             UniValue k = privKeys[idx];
             CKey key = DecodeSecret(k.get_str());
@@ -241,9 +273,22 @@ namespace PocketWeb::PocketWebRpc
             keystore.AddKey(key);
         }
 
+        // TODO (losty-critical): validate above is correct. In rawtransaction also used coins from prevouts (ParsePrevouts(...) method). Prevouts came there as rpc parameter
+        //                        see also signrawtransactionwithwallet(...) from wallet/rpcwallet.cpp
+        // Fetch previous transactions (inputs):
+        std::map<COutPoint, Coin> coins;
+        for (const CTxIn& txin : mTx.vin) {
+            coins[txin.prevout]; // Create empty map entry keyed by prevout.
+        }
+        FindCoins(node, coins);
+
         // Try sign transaction
-        UniValue signResult = SignTransaction(mTx, NullUniValue, &keystore, true, NullUniValue);
-        if (!signResult["complete"].get_bool()) {
+        UniValue signResult{UniValue::VOBJ};
+        std::map<int, std::string> input_errors;
+
+        bool fSignRes = SignTransaction(mTx, &keystore, coins, SIGHASH_ALL /*Or ParseSighashString(..) or smth.*/, input_errors);  // TODO (losty-critical): SignTransaction changed. Required vector of coins
+        SignTransactionResultToJSON(mTx, fSignRes, coins, input_errors, signResult);
+        if (!fSignRes) {
             if (signResult.exists("errors"))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid sign: " + signResult["errors"].write());
             else
@@ -260,20 +305,88 @@ namespace PocketWeb::PocketWebRpc
         // Set required fields
         ptx->SetAddress(address);
 
+        // TODO (losty-fur): possible null mempool and connman
         // Insert into mempool
-        return _accept_transaction(tx, ptx);
+        return _accept_transaction(tx, ptx, *node.mempool, *node.connman);
+        //const CTransaction& ctx = *tx;
+        //return ctx.ToString();
+    },
+        };
     }
 
-    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx)
+    RPCHelpMan GenerateAddress()
+    {
+        return RPCHelpMan{"generateaddress",
+                "\nCreate new pocketnet address.\n",
+                {
+                    // TODO (losty-rpc): provide arguments description
+                },
+                {
+                    // TODO (losty-rpc): provide return description
+                },
+                RPCExamples{
+                    "" // TODO (losty-rpc): provide examples
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+    {
+        if (request.fHelp)
+            throw runtime_error(
+                "generateaddress\n"
+                "\nCreate new pocketnet address.\n"
+            );
+
+        if (Params().NetworkIDString() != CBaseChainParams::TESTNET)
+            throw runtime_error("Only for testnet\n");
+
+        std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+        if (!wallet) {
+            return NullUniValue;
+        }
+        CWallet* const pwallet = wallet.get();
+
+        // // Amount for full address
+        // CAmount nAmount = 2000;
+
+        UniValue result(UniValue::VOBJ);
+
+        LOCK2(cs_main, pwallet->cs_wallet);
+
+        // Create address
+        bool fCompressed = pwallet->CanSupportFeature(FEATURE_COMPRPUBKEY); // default to compressed public keys if we want 0.6.0 wallets
+        CKey secretKey;
+        secretKey.MakeNewKey(fCompressed);
+        CPubKey pubkey = secretKey.GetPubKey();
+
+        OutputType output_type = pwallet->m_default_address_type;
+        CTxDestination dest = GetDestinationForKey(pubkey, output_type);
+        auto addressDest = EncodeDestination(dest);
+
+        // // Send money
+        // CCoinControl coin_control;
+        // mapValue_t mapValue;
+        // auto tx = SendMoney(pwallet, dest, nAmount, false, coin_control, std::move(mapValue));
+
+
+        result.pushKV("address", addressDest);
+        result.pushKV("privkey", EncodeSecret(secretKey));
+        //result.pushKV("refill", tx->GetHash().GetHex());
+        return result;
+    },
+        };
+    }
+
+    UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman)
     {
         promise<void> promise;
-        CAmount nMaxRawTxFee = maxTxFee;
+        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty-fur): validate corresponding check is performed in wallet by using walletInstance->m_default_max_tx_fee
+        // if (ptx && *ptx->GetType() == PocketTx::BOOST_CONTENT)
+        //    nMaxRawTxFee = 0;
         const uint256& txid = tx->GetHash();
 
         { // cs_main scope
             LOCK(cs_main);
 
-            CCoinsViewCache& view = *pcoinsTip;
+            CCoinsViewCache& view = ::ChainstateActive().CoinsTip();
             bool fHaveChain = false;
             for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++)
             {
@@ -282,38 +395,31 @@ namespace PocketWeb::PocketWebRpc
             }
             
             bool fHaveMempool = mempool.exists(txid);
-
             if (!fHaveMempool && !fHaveChain)
             {
                 // push to local node and sync with wallets
-                CValidationState state;
-                bool fMissingInputs;
-                if (!AcceptToMemoryPool(mempool, state, tx, ptx, &fMissingInputs,
-                    nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee))
+                TxValidationState state;
+                if (!AcceptToMemoryPool(mempool, state, tx, ptx,
+                    nullptr /* plTxnReplaced */, false /* bypass_limits */))
                 {
                     if (state.IsConsensusFailed())
                     {
-                        throw JSONRPCError(state.GetRejectCode(), FormatStateMessage(state));
+                        throw JSONRPCError(state.GetRejectCode(), state.ToString());
                     }
                     else if (state.IsInvalid())
                     {
-                        throw JSONRPCError(RPC_TRANSACTION_REJECTED, FormatStateMessage(state));
-                    }
-                    else
-                    {
-                        if (state.GetRejectCode() == RPC_POCKETTX_MATURITY)
+                        if (state.GetResult() == TxValidationResult::TX_POCKET_PREMATURE_SPEND)
                         {
-                            throw JSONRPCError(RPC_POCKETTX_MATURITY, FormatStateMessage(state));
+                            throw JSONRPCError(RPC_POCKETTX_MATURITY, state.ToString());
                         }
                         else
                         {
-                            if (fMissingInputs)
-                            {
-                                throw JSONRPCError(RPC_TRANSACTION_ERROR, "Missing inputs");
-                            }
-
-                            throw JSONRPCError(RPC_TRANSACTION_ERROR, FormatStateMessage(state));
+                            throw JSONRPCError(RPC_TRANSACTION_REJECTED, state.ToString());
                         }
+                    }
+                    else
+                    {
+                        throw JSONRPCError(RPC_TRANSACTION_ERROR, state.ToString());
                     }
                 }
                 else
@@ -342,13 +448,11 @@ namespace PocketWeb::PocketWebRpc
 
         promise.get_future().wait();
 
-        if (g_connman)
-        {
-            CInv inv(MSG_TX, txid);
-            g_connman->ForEachNode([&inv](CNode* pnode) {
-                pnode->PushInventory(inv);
-            });
-        }
+        CInv inv(MSG_TX, txid);
+        connman.ForEachNode([&inv](CNode* pnode) {
+            // TODO (losty-fur): Validate this is working
+            pnode->PushTxInventory(inv.hash);
+        });
 
         return txid.GetHex();
     }

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -165,6 +165,7 @@ namespace PocketConsensus
 
         ConsensusLimit_trial_post,
         ConsensusLimit_trial_video,
+        ConsensusLimit_trial_article,
         ConsensusLimit_trial_score,
         ConsensusLimit_trial_complain,
         ConsensusLimit_trial_comment,
@@ -172,6 +173,7 @@ namespace PocketConsensus
 
         ConsensusLimit_full_post,
         ConsensusLimit_full_video,
+        ConsensusLimit_full_article,
         ConsensusLimit_full_score,
         ConsensusLimit_full_complain,
         ConsensusLimit_full_comment,
@@ -181,10 +183,12 @@ namespace PocketConsensus
 
         ConsensusLimit_post_edit_count,
         ConsensusLimit_video_edit_count,
+        ConsensusLimit_article_edit_count,
         ConsensusLimit_comment_edit_count,
 
         ConsensusLimit_edit_post_depth,
         ConsensusLimit_edit_video_depth,
+        ConsensusLimit_edit_article_depth,
         ConsensusLimit_edit_comment_depth,
         ConsensusLimit_edit_user_depth,
 
@@ -194,6 +198,7 @@ namespace PocketConsensus
         ConsensusLimit_max_user_size,
         ConsensusLimit_max_post_size,
         ConsensusLimit_max_video_size,
+        ConsensusLimit_max_article_size,
         ConsensusLimit_max_comment_size,
         ConsensusLimit_max_account_setting_size,
 
@@ -426,6 +431,24 @@ namespace PocketConsensus
                 }
             }
         },
+        // ConsensusLimit_trial_article
+        {
+            ConsensusLimit_trial_article,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0,       1}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 10}
+                    }
+                }
+            }
+        },
         // ConsensusLimit_trial_score
         {
             ConsensusLimit_trial_score,
@@ -490,6 +513,24 @@ namespace PocketConsensus
                     NetworkMain,
                     {
                         {0, 30}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 30}
+                    }
+                }
+            }
+        },
+        // ConsensusLimit_full_article
+        {
+            ConsensusLimit_full_article,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 3}
                     }
                 },
                 {
@@ -593,6 +634,24 @@ namespace PocketConsensus
                 }
             }
         },
+        // ConsensusLimit_article_edit_count
+        {
+            ConsensusLimit_article_edit_count,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 10}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 10}
+                    }
+                }
+            }
+        },
         // ConsensusLimit_comment_edit_count
         {
             ConsensusLimit_comment_edit_count,
@@ -686,6 +745,24 @@ namespace PocketConsensus
                 }
             }
         },
+        // ConsensusLimit_edit_article_depth
+        {
+            ConsensusLimit_edit_article_depth,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 4320}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 4320}
+                    }
+                }
+            }
+        },
         // ConsensusLimit_edit_comment_depth
         {
             ConsensusLimit_edit_comment_depth,
@@ -750,6 +827,24 @@ namespace PocketConsensus
                     NetworkMain,
                     {
                         {0, 60000}
+                    }
+                },
+                {
+                    NetworkTest,
+                    {
+                        {0, 60000}
+                    }
+                }
+            }
+        },
+        // ConsensusLimit_max_article_size
+        {
+            ConsensusLimit_max_article_size,
+            {
+                {
+                    NetworkMain,
+                    {
+                        {0, 120000}
                     }
                 },
                 {

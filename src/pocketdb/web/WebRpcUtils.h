@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -6,7 +6,7 @@
 #define SRC_WEB_RPC_UTILS_H
 
 #include "rpc/server.h"
-#include "utils/html.h"
+#include "util/html.h"
 #include "pocketdb/models/base/PocketTypes.h"
 #include "pocketdb/helpers/TransactionHelper.h"
 

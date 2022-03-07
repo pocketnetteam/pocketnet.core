@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -58,7 +58,7 @@ public:
         return (int64_t)nTime;
     }
 
-    unsigned int GetStakeEntropyBit() const
+    unsigned int GetStakeEntropyBit() const // Pocketcoin addition
     {
         // Take last bit of block hash as entropy bit
         unsigned int nEntropyBit = ((UintToArith256(GetHash()).GetLow64()) & 1llu);

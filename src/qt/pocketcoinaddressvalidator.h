@@ -1,4 +1,4 @@
-// Copyright (c) 2011-2014 The Pocketcoin Core developers
+// Copyright (c) 2011-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -17,7 +17,7 @@ class PocketcoinAddressEntryValidator : public QValidator
 public:
     explicit PocketcoinAddressEntryValidator(QObject *parent);
 
-    State validate(QString &input, int &pos) const;
+    State validate(QString &input, int &pos) const override;
 };
 
 /** Pocketcoin address widget validator, checks for a valid pocketcoin address.
@@ -29,7 +29,7 @@ class PocketcoinAddressCheckValidator : public QValidator
 public:
     explicit PocketcoinAddressCheckValidator(QObject *parent);
 
-    State validate(QString &input, int &pos) const;
+    State validate(QString &input, int &pos) const override;
 };
 
 #endif // POCKETCOIN_QT_POCKETCOINADDRESSVALIDATOR_H

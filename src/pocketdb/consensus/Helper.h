@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -11,18 +11,20 @@
 
 #include "pocketdb/consensus/social/Blocking.hpp"
 #include "pocketdb/consensus/social/BlockingCancel.hpp"
+#include "pocketdb/consensus/social/BoostContent.hpp"
 #include "pocketdb/consensus/social/Comment.hpp"
 #include "pocketdb/consensus/social/CommentEdit.hpp"
 #include "pocketdb/consensus/social/CommentDelete.hpp"
 #include "pocketdb/consensus/social/Complain.hpp"
 #include "pocketdb/consensus/social/Post.hpp"
+#include "pocketdb/consensus/social/Video.hpp"
+#include "pocketdb/consensus/social/Article.hpp"
 #include "pocketdb/consensus/social/ScoreComment.hpp"
 #include "pocketdb/consensus/social/ScoreContent.hpp"
 #include "pocketdb/consensus/social/Subscribe.hpp"
 #include "pocketdb/consensus/social/SubscribeCancel.hpp"
 #include "pocketdb/consensus/social/SubscribePrivate.hpp"
 #include "pocketdb/consensus/social/User.hpp"
-#include "pocketdb/consensus/social/Video.hpp"
 #include "pocketdb/consensus/social/AccountSetting.hpp"
 #include "pocketdb/consensus/social/ContentDelete.hpp"
 
@@ -39,18 +41,17 @@ namespace PocketConsensus
         static tuple<bool, SocialConsensusResult> Validate(const CBlock& block, const PocketBlockRef& pBlock, int height);
         static tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PTransactionRef& ptx, int height);
         static tuple<bool, SocialConsensusResult> Validate(const CTransactionRef& tx, const PTransactionRef& ptx, PocketBlockRef& pBlock, int height);
-        // Проверяет блок транзакций без привязки к цепи
-        static tuple<bool, SocialConsensusResult> Check(const CBlock& block, const PocketBlockRef& pBlock);
-        // Проверяет транзакцию без привязки к цепи
-        static tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PTransactionRef& ptx);
+        static tuple<bool, SocialConsensusResult> Check(const CBlock& block, const PocketBlockRef& pBlock, int height);
+        static tuple<bool, SocialConsensusResult> Check(const CTransactionRef& tx, const PTransactionRef& ptx, int height);
     protected:
         static tuple<bool, SocialConsensusResult> validate(const CTransactionRef& tx, const PTransactionRef& ptx, const PocketBlockRef& pBlock, int height);
-        static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx);
+        static tuple<bool, SocialConsensusResult> check(const CTransactionRef& tx, const PTransactionRef& ptx, int height);
         static bool isConsensusable(TxType txType);
     private:
         static PostConsensusFactory m_postFactory;
-        static UserConsensusFactory m_userFactory;
         static VideoConsensusFactory m_videoFactory;
+        static ArticleConsensusFactory m_articleFactory;
+        static UserConsensusFactory m_userFactory;
         static CommentConsensusFactory m_commentFactory;
         static CommentEditConsensusFactory m_commentEditFactory;
         static CommentDeleteConsensusFactory m_commentDeleteFactory;
@@ -64,6 +65,7 @@ namespace PocketConsensus
         static ComplainConsensusFactory m_complainFactory;
         static AccountSettingConsensusFactory m_accountSettingFactory;
         static ContentDeleteConsensusFactory m_contentDeleteFactory;
+        static BoostContentConsensusFactory m_boostContentFactory;
     };
 }
 

@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Pocketcoin Core developers
+// Copyright (c) 2009-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,10 +11,6 @@
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
-#include "core_io.h"
-#include "streams.h"
-
-#include "pocketdb/models/base/Transaction.h"
 
 #include <tuple>
 
@@ -33,18 +29,12 @@ public:
     uint256 hash;
     uint32_t n;
 
-   static constexpr uint32_t NULL_INDEX = std::numeric_limits<uint32_t>::max();
+    static constexpr uint32_t NULL_INDEX = std::numeric_limits<uint32_t>::max();
 
-    COutPoint(): n((uint32_t) -1) { }
+    COutPoint(): n(NULL_INDEX) { }
     COutPoint(const uint256& hashIn, uint32_t nIn): hash(hashIn), n(nIn) { }
 
     SERIALIZE_METHODS(COutPoint, obj) { READWRITE(obj.hash, obj.n); }
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(hash);
-        READWRITE(n);
-    }
 
     void SetNull() { hash.SetNull(); n = NULL_INDEX; }
     bool IsNull() const { return (hash.IsNull() && n == NULL_INDEX); }
@@ -78,7 +68,7 @@ public:
     COutPoint prevout;
     CScript scriptSig;
     uint32_t nSequence;
-    CScriptWitness scriptWitness; //! Only serialized through CTransaction
+    CScriptWitness scriptWitness; //!< Only serialized through CTransaction
 
     /* Setting nSequence to this value for every input in a transaction
      * disables nLockTime. */
@@ -112,8 +102,8 @@ public:
         nSequence = SEQUENCE_FINAL;
     }
 
-    explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
-    CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
+    explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn = CScript(), uint32_t nSequenceIn = SEQUENCE_FINAL);
+    CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn = CScript(), uint32_t nSequenceIn = SEQUENCE_FINAL);
 
     SERIALIZE_METHODS(CTxIn, obj) { READWRITE(obj.prevout, obj.scriptSig, obj.nSequence); }
 
@@ -173,7 +163,8 @@ public:
         while (pc < scriptPubKey.end())
         {
             opcodetype opcode;
-            if (!scriptPubKey.GetOp(pc, opcode)) {
+            if (!scriptPubKey.GetOp(pc, opcode))
+            {
                 winners = false;
                 break;
             }
@@ -256,6 +247,11 @@ inline void UnserializeTransaction(TxType& tx, Stream& s)
         for (size_t i = 0; i < tx.vin.size(); i++)
         {
             s >> tx.vin[i].scriptWitness.stack;
+        }
+        if (!tx.HasWitness())
+        {
+            /* It's illegal to encode witnesses when all witness stacks are empty. */
+            throw std::ios_base::failure("Superfluous witness record");
         }
     }
     if (flags)
@@ -341,7 +337,7 @@ public:
     CTransaction();
 
     /** Convert a CMutableTransaction into a CTransaction. */
-    CTransaction(const CMutableTransaction& tx);
+    explicit CTransaction(const CMutableTransaction& tx);
     CTransaction(CMutableTransaction&& tx);
 
     template<typename Stream>
@@ -365,8 +361,6 @@ public:
 
     // Return sum of txouts.
     CAmount GetValueOut() const;
-    // GetValueIn() is a method on CCoinsViewCache, because
-    // inputs must be known to compute value in.
 
     /**
      * Get the total transaction size in bytes, including witness data.
@@ -471,5 +465,18 @@ static inline CTransactionRef MakeTransactionRef(Tx&& txIn)
 {
     return std::make_shared<const CTransaction>(std::forward<Tx>(txIn));
 }
+
+/** A generic txid reference (txid or wtxid). */
+class GenTxid
+{
+    bool m_is_wtxid;
+    uint256 m_hash;
+public:
+    GenTxid(bool is_wtxid, const uint256& hash) : m_is_wtxid(is_wtxid), m_hash(hash) {}
+    bool IsWtxid() const { return m_is_wtxid; }
+    const uint256& GetHash() const { return m_hash; }
+    friend bool operator==(const GenTxid& a, const GenTxid& b) { return a.m_is_wtxid == b.m_is_wtxid && a.m_hash == b.m_hash; }
+    friend bool operator<(const GenTxid& a, const GenTxid& b) { return std::tie(a.m_is_wtxid, a.m_hash) < std::tie(b.m_is_wtxid, b.m_hash); }
+};
 
 #endif // POCKETCOIN_PRIMITIVES_TRANSACTION_H

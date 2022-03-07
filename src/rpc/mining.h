@@ -1,4 +1,4 @@
-// Copyright (c) 2017 The Pocketcoin Core developers
+// Copyright (c) 2017-2022 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,13 +9,11 @@
 
 #include <univalue.h>
 #include <rpc/server.h>
+// TODO (losty-fur): server.h breaks header dependencies because forces pocketcoin-cli to use libpocketcoin_server.
 
-/** Generate blocks (mine) */
-UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript);
+/** Default max iterations to try in RPC generatetodescriptor, generatetoaddress, and generateblock. */
+static const uint64_t DEFAULT_MAX_TRIES{1000000};
 
-/** Check bounds on a command line confirm target */
-unsigned int ParseConfirmTarget(const UniValue& value);
-
-UniValue estimatesmartfee(const JSONRPCRequest& request);
+RPCHelpMan estimatesmartfee();
 
 #endif

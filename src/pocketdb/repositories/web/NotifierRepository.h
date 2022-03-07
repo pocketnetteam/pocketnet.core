@@ -1,6 +1,6 @@
-//
-// Created by Joknek on 9/30/2021.
-//
+// Copyright (c) 2018-2022 The Pocketnet developers
+// Distributed under the Apache 2.0 software license, see the accompanying
+// https://www.apache.org/licenses/LICENSE-2.0
 
 #ifndef POCKETNET_CORE_NOTIFIERREPOSITORY_H
 #define POCKETNET_CORE_NOTIFIERREPOSITORY_H
@@ -17,7 +17,10 @@ namespace PocketDb
         void Init() override;
         void Destroy() override;
 
+        UniValue GetAccountInfoByAddress(const string& address);
         UniValue GetPostLang(const string& postHash);
+        UniValue GetPostInfo(const string& postHash);
+        UniValue GetBoostInfo(const string& boostHash);
         UniValue GetOriginalPostAddressByRepost(const string& repostHash);
         UniValue GetPrivateSubscribeAddressesByAddressTo(const string& addressTo);
         UniValue GetUserReferrerAddress(const string& userHash);

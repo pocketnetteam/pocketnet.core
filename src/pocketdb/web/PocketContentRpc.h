@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -16,16 +16,17 @@ namespace PocketWeb::PocketWebRpc
     using namespace PocketHelpers;
     using namespace PocketConsensus;
 
-    UniValue GetContent(const JSONRPCRequest& request);
-    UniValue GetContents(const JSONRPCRequest& request);
-    UniValue GetHotPosts(const JSONRPCRequest& request);
-    UniValue GetHistoricalFeed(const JSONRPCRequest& request);
-    UniValue GetHierarchicalFeed(const JSONRPCRequest& request);
-    UniValue GetProfileFeed(const JSONRPCRequest& request);
-    UniValue GetSubscribesFeed(const JSONRPCRequest& request);
-    UniValue FeedSelector(const JSONRPCRequest& request);
-    UniValue GetContentsStatistic(const JSONRPCRequest& request);
-    UniValue GetRandomContents(const JSONRPCRequest& request);
+    RPCHelpMan GetContent();
+    RPCHelpMan GetContents();
+    RPCHelpMan GetHotPosts();
+    RPCHelpMan GetHistoricalFeed();
+    RPCHelpMan GetHierarchicalFeed();
+    RPCHelpMan GetBoostFeed();
+    RPCHelpMan GetProfileFeed();
+    RPCHelpMan GetSubscribesFeed();
+    RPCHelpMan FeedSelector();
+    RPCHelpMan GetContentsStatistic();
+    RPCHelpMan GetRandomContents();
     
 }
 

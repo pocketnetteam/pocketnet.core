@@ -1,11 +1,11 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
 #ifndef POCKETCONSENSUS_COMMENT_HPP
 #define POCKETCONSENSUS_COMMENT_HPP
 
-#include "utils/html.h"
+#include "util/html.h"
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
 #include "pocketdb/models/dto/Comment.h"
@@ -32,10 +32,7 @@ namespace PocketConsensus
             if (!IsEmpty(ptx->GetParentTxHash()))
             {
                 // TODO (brangr): replace to check exists not deleted comment
-                auto[ok, parentTx] = ConsensusRepoInst.GetLastContent(
-                    *ptx->GetParentTxHash(),
-                    { CONTENT_COMMENT, CONTENT_COMMENT_EDIT }
-                );
+                auto[ok, parentTx] = ConsensusRepoInst.GetLastContent(*ptx->GetParentTxHash(), { CONTENT_COMMENT, CONTENT_COMMENT_EDIT });
 
                 if (!ok)
                     return {false, SocialConsensusResult_InvalidParentComment};
@@ -57,7 +54,7 @@ namespace PocketConsensus
             // Check exists content transaction
             auto[contentOk, contentTx] = PocketDb::ConsensusRepoInst.GetLastContent(
                 *ptx->GetPostTxHash(),
-                { CONTENT_POST, CONTENT_VIDEO, CONTENT_DELETE }
+                { CONTENT_POST, CONTENT_VIDEO, CONTENT_ARTICLE, CONTENT_DELETE }
             );
 
             if (!contentOk)

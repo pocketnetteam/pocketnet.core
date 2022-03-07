@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2021 Pocketnet developers
+// Copyright (c) 2018-2022 The Pocketnet developers
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
@@ -13,7 +13,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <timedata.h>
 #include "core_io.h"
-#include "utils/html.h"
+#include "util/html.h"
 
 namespace PocketDb
 {
@@ -89,7 +89,7 @@ namespace PocketDb
 
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
 
-        UniValue GetUnspents(vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
+        UniValue GetUnspents(const vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
 
         tuple<int, UniValue> GetContentLanguages(int height);
         tuple<int, UniValue> GetLastAddressContent(const string& address, int height, int count);
@@ -101,6 +101,8 @@ namespace PocketDb
         map<string, UniValue> GetMissedTransactions(const string& address, int height, int count);
         vector<UniValue> GetMissedCommentAnswers(const string& address, int height, int count);
         vector<UniValue> GetMissedPostComments(const string& address, const vector<string>& excludePosts, int height, int count);
+        vector<UniValue> GetMissedSubscribers(const string& address, int height, int count);
+        vector<UniValue> GetMissedBoosts(const string& address, int height, int count);
 
         UniValue SearchLinks(const vector<string>& links, const vector<int>& contentTypes, const int nHeight, const int countOut);
 
@@ -108,9 +110,13 @@ namespace PocketDb
         
         UniValue GetHotPosts(int countOut, const int depth, const int nHeight, const string& lang, const vector<int>& contentTypes, const string& address, int badReputationLimit);
         
-        UniValue GetProfileFeed(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
+        UniValue GetProfileFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
         
-        UniValue GetSubscribesFeed(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
+        UniValue GetSubscribesFeed(const string& addressFeed, int countOut, const int64_t& topContentId, int topHeight, const string& lang,
+            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address);
 
         UniValue GetHistoricalFeed(int countOut, const int64_t& topContentId, int topHeight, const string& lang,
             const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
@@ -122,9 +128,18 @@ namespace PocketDb
             const vector<string>& adrsExcluded, const vector<string>& tagsExcluded, const string& address,
             int badReputationLimit);
 
+        UniValue GetBoostFeed(int topHeight, const string& lang,
+            const vector<string>& tags, const vector<int>& contentTypes, const vector<string>& txidsExcluded,
+            const vector<string>& adrsExcluded, const vector<string>& tagsExcluded,
+            int badReputationLimit);
+
         UniValue GetContentsStatistic(const vector<string>& addresses, const vector<int>& contentTypes);
 
         vector<int64_t> GetRandomContentIds(const string& lang, int count, int height);
+
+        // TODO (o1q): Remove this two methods when the client gui switches to new methods
+        UniValue GetProfileFeedOld(const string& addressFrom, const string& addressTo, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
+        UniValue GetSubscribesFeedOld(const string& addressFrom, int64_t topContentId, int count, const string& lang, const vector<string>& tags, const vector<int>& contentTypes);
 
     private:
         int cntBlocksForResult = 300;
