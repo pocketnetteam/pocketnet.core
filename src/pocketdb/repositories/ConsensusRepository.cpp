@@ -763,8 +763,9 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select Time
-                from Transactions
-                where String1 = ?
+                from Transactions indexed by Transactions_Type_Last_String1_Height_Id
+                where Type in (100, 101, 102)
+                  and String1 = ?
                   and Last = 1
                   and Height is not null
             )sql");
@@ -789,8 +790,9 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(R"sql(
                 select Height
-                from Transactions
-                where String1 = ?
+                from Transactions indexed by Transactions_Type_Last_String1_Height_Id
+                where Type in (100, 101, 102)
+                  and String1 = ?
                   and Last = 1
                   and Height is not null
             )sql");
