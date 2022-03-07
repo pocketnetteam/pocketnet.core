@@ -4452,7 +4452,7 @@ bool ChainstateManager::ProcessNewBlock(BlockValidationState& state, const CChai
                 if (_pindex)
                     _pindex->nStatus &= ~BLOCK_HAVE_DATA;
 
-                ret = state.DoS(200, false, REJECT_INCOMPLETE, "failed-check-social-payload", false, "", true);
+                ret = false;
                 *fNewBlock = false;
             }
                 

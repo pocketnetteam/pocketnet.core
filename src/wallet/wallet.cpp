@@ -4853,7 +4853,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 					break;
 				}
 
-				LogPrint(BCLog::WALLET, "CreateCoinStake : parsed kernel type=%d\n", whichType);
+				LogPrint(BCLog::WALLET, "CreateCoinStake : parsed kernel type=%d\n", GetTxnOutputType(whichType));
 				if (whichType != TxoutType::PUBKEY && whichType != TxoutType::PUBKEYHASH) {
 					LogPrintf("CreateCoinStake : no support for kernel type=\"%s\"\n", GetTxnOutputType(whichType));
 					break;  // only support pay to public key and pay to address
@@ -4889,7 +4889,7 @@ bool CWallet::CreateCoinStake(const FillableSigningProvider& keystore, unsigned 
 				vwtxPrev.insert(std::make_pair(pcoin.first, pcoin.second));
 				txNew.vout.push_back(CTxOut(0, scriptPubKeyOut));
 
-				LogPrint(BCLog::WALLET, "CreateCoinStake : added kernel type=%d\n", whichType);
+				LogPrint(BCLog::WALLET, "CreateCoinStake : added kernel type=%d\n", GetTxnOutputType(whichType));
 				fKernelFound = true;
 				break;
 			}

@@ -338,8 +338,8 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
         LogPrint(BCLog::WALLET, "CheckStakeKernelHash() : check modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s bnTarget=%s nBits=%08x nValueIn=%d bnWeight=%s\n",
            nStakeModifier,
-           nTimeBlockFrom, txPrev->nTime, prevout.n, nTimeTx,
-           hashProofOfStake.ToString(),bnTarget.ToString(), nBits, nValueIn,bnWeight.ToString());
+           nTimeBlockFrom, *txPrev.GetTime(), prevout.n, nTimeTx,
+           hashProofOfStake.ToString(), bnTarget.ToString(), nBits, nValueIn, bnWeight.ToString());
     }
 
     // Now check if proof-of-stake hash meets target protocol
