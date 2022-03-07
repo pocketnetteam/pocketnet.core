@@ -83,6 +83,9 @@ namespace PocketTx
         shared_ptr<Payload> GetPayload() const;
         void SetPayload(Payload value);
         bool HasPayload() const;
+        
+        void GeneratePayload();
+        void ClearPayload();
 
     protected:
         shared_ptr<TxType> m_type = nullptr;
@@ -101,9 +104,6 @@ namespace PocketTx
         shared_ptr<Payload> m_payload = nullptr;
         vector<shared_ptr<TransactionInput>> m_inputs;
         vector<shared_ptr<TransactionOutput>> m_outputs;
-
-        void GeneratePayload();
-        void ClearPayload();
 
         string GenerateHash(const string& data) const;
     };

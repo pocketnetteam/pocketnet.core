@@ -314,8 +314,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
     // Weighted target
     int64_t nValueIn = *txPrev.OutputsConst()[prevout.n]->GetValue();
-    arith_uint256 bnWeight = std::min(
-        nValueIn, Params().GetConsensus().nStakeMaximumThreshold);
+    arith_uint256 bnWeight = std::min(nValueIn, Params().GetConsensus().nStakeMaximumThreshold);
     bnTarget *= bnWeight;
 
     targetProofOfStake = bnTarget;
@@ -332,14 +331,15 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
     if (fPrintProofOfStake)
     {
-        //LogPrintf("CheckStakeKernelHash() : using modifier 0x%016x at height=%d timestamp=%s for block from timestamp=%s\n",
-        //    nStakeModifier, nStakeModifierHeight,
-        //    FormatISO8601DateTime(nStakeModifierTime),
-        //    FormatISO8601DateTime(nTimeBlockFrom));
-        //LogPrintf("CheckStakeKernelHash() : check modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s bnTarget=%s nBits=%08x nValueIn=%d bnWeight=%s\n",
-        //    nStakeModifier,
-        //    nTimeBlockFrom, txPrev->nTime, prevout.n, nTimeTx,
-        //    hashProofOfStake.ToString(),bnTarget.ToString(), nBits, nValueIn,bnWeight.ToString());
+        LogPrint(BCLog::WALLET, "CheckStakeKernelHash() : using modifier 0x%016x at height=%d timestamp=%s for block from timestamp=%s\n",
+           nStakeModifier, nStakeModifierHeight,
+           FormatISO8601DateTime(nStakeModifierTime),
+           FormatISO8601DateTime(nTimeBlockFrom));
+
+        LogPrint(BCLog::WALLET, "CheckStakeKernelHash() : check modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s bnTarget=%s nBits=%08x nValueIn=%d bnWeight=%s\n",
+           nStakeModifier,
+           nTimeBlockFrom, txPrev->nTime, prevout.n, nTimeTx,
+           hashProofOfStake.ToString(),bnTarget.ToString(), nBits, nValueIn,bnWeight.ToString());
     }
 
     // Now check if proof-of-stake hash meets target protocol
@@ -350,12 +350,13 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
     if (!fPrintProofOfStake)
     {
-        LogPrintf(
+        LogPrint(BCLog::WALLET,
             "CheckStakeKernelHash() : using modifier 0x%016x at height=%d timestamp=%s for block from timestamp=%s\n",
             nStakeModifier, nStakeModifierHeight,
             FormatISO8601DateTime(nStakeModifierTime),
             FormatISO8601DateTime(nTimeBlockFrom));
-        LogPrintf(
+
+        LogPrint(BCLog::WALLET,
             "CheckStakeKernelHash() : pass modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s\n",
             nStakeModifier,
             nTimeBlockFrom, txPrev.GetTime(), prevout.n, nTimeTx,

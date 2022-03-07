@@ -122,103 +122,6 @@ namespace PocketWeb::PocketWebRpc
         ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded, adrsExcluded, tagsExcluded, address, skipString);
     }
 
-    static UniValue _getsubscribersfeed(const JSONRPCRequest& request)
-    {
-        int topHeight;
-        string topContentHash;
-        int countOut;
-        string lang;
-        vector<string> tags;
-        vector<int> contentTypes;
-        vector<string> txIdsExcluded;
-        vector<string> adrsExcluded;
-        vector<string> tagsExcluded;
-        string address;
-        string address_feed;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
-            adrsExcluded, tagsExcluded, address, address_feed);
-
-        if (address_feed.empty())
-            throw JSONRPCError(RPC_INVALID_REQUEST, string("No profile address"));
-
-        int64_t topContentId = 0;
-        if (!topContentHash.empty())
-        {
-            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
-            if (!ids.empty())
-                topContentId = ids[0];
-        }
-
-        UniValue result(UniValue::VOBJ);
-        UniValue content = request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(
-            address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
-            txIdsExcluded, adrsExcluded, tagsExcluded, address);
-
-        result.pushKV("height", topHeight);
-        result.pushKV("contents", content);
-        return result;
-    }
-
-    static UniValue _getprofilefeed(const JSONRPCRequest& request)
-    {
-        if (request.fHelp)
-            throw runtime_error(
-                "GetProfileFeed\n"
-                "topHeight           (int) - ???\n"
-                "topContentHash      (string, optional) - ???\n"
-                "countOut            (int, optional) - ???\n"
-                "lang                (string, optional) - ???\n"
-                "tags                (vector<string>, optional) - ???\n"
-                "contentTypes        (vector<int>, optional) - ???\n"
-                "txIdsExcluded       (vector<string>, optional) - ???\n"
-                "adrsExcluded        (vector<string>, optional) - ???\n"
-                "tagsExcluded        (vector<string>, optional) - ???\n"
-                "address             (string, optional) - ???\n"
-                "address_feed        (string) - ???\n"
-            ); // TODO 
-        string addressFrom;
-        if (request.params.size() > 0 && request.params[0].isStr())
-            addressFrom = request.params[0].get_str();
-            
-        string addressTo;
-        if (request.params.size() > 1 && request.params[1].isStr())
-            addressTo = request.params[1].get_str();
-
-        int topHeight;
-        string topContentHash;
-        int countOut;
-        string lang;
-        vector<string> tags;
-        vector<int> contentTypes;
-        vector<string> txIdsExcluded;
-        vector<string> adrsExcluded;
-        vector<string> tagsExcluded;
-        string address;
-        string address_feed;
-        ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
-            adrsExcluded, tagsExcluded, address, address_feed);
-
-        if (address_feed.empty())
-            throw JSONRPCError(RPC_INVALID_REQUEST, string("No profile address"));
-
-        int64_t topContentId = 0;
-        if (!topContentHash.empty())
-        {
-            auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
-            if (!ids.empty())
-                topContentId = ids[0];
-        }
-
-        UniValue result(UniValue::VOBJ);
-        UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileFeed(
-            address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
-            txIdsExcluded, adrsExcluded, tagsExcluded, address);
-
-        result.pushKV("height", topHeight);
-        result.pushKV("contents", content);
-        return result;
-    }
-
     RPCHelpMan GetContent()
     {
         return RPCHelpMan{"getcontent",
@@ -306,22 +209,69 @@ namespace PocketWeb::PocketWebRpc
     RPCHelpMan GetProfileFeed()
     {
         return RPCHelpMan{"getprofilefeed",
-                "\nReturns contents for list of ids\n", // TODO (team): description, args and examples really need to be fixed
-                {
-                    {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
-                },
-                {
-                    // TODO (losty-rpc): provide return description
-                },
-                RPCExamples{
-                    HelpExampleCli("getprofilefeed", "") +
-                    HelpExampleRpc("getprofilefeed", "")
-                },
+            "\nReturns contents for list of ids\n", // TODO (team): description, args and examples really need to be fixed
+            {
+                {"count", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, ""}
+            },
+            {
+                // TODO (losty-rpc): provide return description
+            },
+            RPCExamples{
+                HelpExampleCli("getprofilefeed", "") +
+                HelpExampleRpc("getprofilefeed", "")
+            },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-    {
-        return _getprofilefeed(request);
-    },
-        };
+        {
+            // if (request.fHelp)
+            //     throw runtime_error(
+            //         "GetProfileFeed\n"
+            //         "topHeight           (int) - ???\n"
+            //         "topContentHash      (string, optional) - ???\n"
+            //         "countOut            (int, optional) - ???\n"
+            //         "lang                (string, optional) - ???\n"
+            //         "tags                (vector<string>, optional) - ???\n"
+            //         "contentTypes        (vector<int>, optional) - ???\n"
+            //         "txIdsExcluded       (vector<string>, optional) - ???\n"
+            //         "adrsExcluded        (vector<string>, optional) - ???\n"
+            //         "tagsExcluded        (vector<string>, optional) - ???\n"
+            //         "address             (string, optional) - ???\n"
+            //         "address_feed        (string) - ???\n"
+            //     );
+
+            int topHeight;
+            string topContentHash;
+            int countOut;
+            string lang;
+            vector<string> tags;
+            vector<int> contentTypes;
+            vector<string> txIdsExcluded;
+            vector<string> adrsExcluded;
+            vector<string> tagsExcluded;
+            string address;
+            string address_feed;
+            ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+                adrsExcluded, tagsExcluded, address, address_feed);
+
+            if (address_feed.empty())
+                throw JSONRPCError(RPC_INVALID_REQUEST, string("No profile address"));
+
+            int64_t topContentId = 0;
+            if (!topContentHash.empty())
+            {
+                auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+                if (!ids.empty())
+                    topContentId = ids[0];
+            }
+
+            UniValue result(UniValue::VOBJ);
+            UniValue content = request.DbConnection()->WebRpcRepoInst->GetProfileFeed(
+                address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
+                txIdsExcluded, adrsExcluded, tagsExcluded, address);
+
+            result.pushKV("height", topHeight);
+            result.pushKV("contents", content);
+            return result;
+        }};
     }
 
     RPCHelpMan GetHotPosts()
@@ -587,10 +537,58 @@ namespace PocketWeb::PocketWebRpc
                     HelpExampleRpc("getsubscribesfeed", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-    {
-        return _getsubscribersfeed(request);
-    },
-        };
+        {
+            // if (request.fHelp)
+            //     throw runtime_error(
+            //         "GetSubscribesFeed\n"
+            //         "topHeight           (int) - ???\n"
+            //         "topContentHash      (string, optional) - ???\n"
+            //         "countOut            (int, optional) - ???\n"
+            //         "lang                (string, optional) - ???\n"
+            //         "tags                (vector<string>, optional) - ???\n"
+            //         "contentTypes        (vector<int>, optional) - ???\n"
+            //         "txIdsExcluded       (vector<string>, optional) - ???\n"
+            //         "adrsExcluded        (vector<string>, optional) - ???\n"
+            //         "tagsExcluded        (vector<string>, optional) - ???\n"
+            //         "address             (string, optional) - ???\n"
+            //         "address_feed        (string) - ???\n"
+            //     );
+
+            int topHeight;
+            string topContentHash;
+            int countOut;
+            string lang;
+            vector<string> tags;
+            vector<int> contentTypes;
+            vector<string> txIdsExcluded;
+            vector<string> adrsExcluded;
+            vector<string> tagsExcluded;
+            string address;
+            string address_feed;
+            ParseFeedRequest(request, topHeight, topContentHash, countOut, lang, tags, contentTypes, txIdsExcluded,
+                adrsExcluded, tagsExcluded, address, address_feed);
+
+            if (address_feed.empty())
+                throw JSONRPCError(RPC_INVALID_REQUEST, string("No profile address"));
+
+            int64_t topContentId = 0;
+            if (!topContentHash.empty())
+            {
+                auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({topContentHash});
+                if (!ids.empty())
+                    topContentId = ids[0];
+            }
+
+            UniValue result(UniValue::VOBJ);
+            UniValue content = request.DbConnection()->WebRpcRepoInst->GetSubscribesFeed(
+                address_feed, countOut, topContentId, topHeight, lang, tags, contentTypes,
+                txIdsExcluded, adrsExcluded, tagsExcluded, address);
+
+            result.pushKV("height", topHeight);
+            result.pushKV("contents", content);
+
+            return result;
+        }};
     }
 
     RPCHelpMan GetBoostFeed()
@@ -652,29 +650,76 @@ namespace PocketWeb::PocketWebRpc
         };
     }
 
+     // TODO (o1q): Remove this method when the client gui switches to new methods
     RPCHelpMan FeedSelector()
     {
         return RPCHelpMan{"getrawtransactionwithmessage",
-                // TODO (team): provide description
-                "",
-                {
-                    // Args
-                },
-                {
-                    // Returns
-                },
-                RPCExamples{
-                    // Examples (HelpExampleCli() and HelpExampleRpc())
-                    ""
-                },
+            // TODO (team): provide description
+            "",
+            {
+                // Args
+            },
+            {
+                // Returns
+            },
+            RPCExamples{
+                // Examples (HelpExampleCli() and HelpExampleRpc())
+                ""
+            },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-    {
-        if (request.params.size() > 1 && request.params[1].isStr() && request.params[1].get_str() == "1")
-            return _getsubscribersfeed(request);
+        {
+            // if (request.fHelp)
+            // {
+            //     throw runtime_error(
+            //         "feedselector\n"
+            //         "\nOld method. Will be removed in future");
+            // }
 
-        return _getprofilefeed(request);
-    },
-        };
+            string addressFrom;
+            if (request.params.size() > 0 && request.params[0].isStr())
+                addressFrom = request.params[0].get_str();
+
+            string addressTo = "";
+            if (request.params.size() > 1 && request.params[1].isStr())
+                addressTo = request.params[1].get_str();
+
+            string topContentHash;
+            if (request.params.size() > 2 && request.params[2].isStr())
+                topContentHash = request.params[2].get_str();
+
+            int count = 10;
+            if (request.params.size() > 3 && request.params[3].isNum())
+            {
+                count = request.params[3].get_int();
+                if (count > 10)
+                    count = 10;
+            }
+
+            string lang = "";
+            if (request.params.size() > 4 && request.params[4].isStr())
+                lang = request.params[4].get_str();
+
+            vector<string> tags;
+            if (request.params.size() > 5)
+                ParseRequestTags(request.params[5], tags);
+
+            // content types
+            vector<int> contentTypes;
+            ParseRequestContentTypes(request.params[6], contentTypes);
+
+            int64_t topContentId = 0;
+            if (!topContentHash.empty())
+            {
+                auto ids = request.DbConnection()->WebRpcRepoInst->GetContentIds({ topContentHash });
+                if (!ids.empty())
+                    topContentId = ids[0];
+            }
+
+            if (addressTo == "1")
+                return request.DbConnection()->WebRpcRepoInst->GetSubscribesFeedOld(addressFrom, topContentId, count, lang, tags, contentTypes);
+
+            return request.DbConnection()->WebRpcRepoInst->GetProfileFeedOld(addressFrom, addressTo, topContentId, count, lang, tags, contentTypes);
+        }};
     }
 
     RPCHelpMan GetContentsStatistic()

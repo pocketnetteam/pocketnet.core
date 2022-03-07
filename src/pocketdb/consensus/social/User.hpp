@@ -272,29 +272,8 @@ namespace PocketConsensus
             if (ptxORHash == txORHash)
                 return Success;
 
-            // if (!IsEmpty(ptx->GetReferrerAddress()))
-            // {
-            //     auto ptxORHashRef = ptx->BuildHash(false);
-            //     if (ptxORHashRef == txORHash)
-            //         return Success;
-            // }
-                
-            // if (auto[ok, referrer] = ConsensusRepoInst.GetReferrer(*ptx->GetAddress()); ok)
-            // {
-            //     auto ptxReferrer = make_shared<User>(*ptx);
-            //     ptxReferrer->SetReferrerAddress(referrer);
-            //     auto ptxORHashRef = ptx->BuildHash();
-            //     if (ptxORHashRef == txORHash)
-            //         return Success;
-            // }
-
             if (CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
                 return Success;
-
-            auto data = ptx->PreBuildHash();
-            LogPrint(BCLog::CONSENSUS, "--- %s\n", data);
-            LogPrint(BCLog::CONSENSUS, "Warning: FailedOpReturn for USER (2) %s: %s != %s\n",
-                *ptx->GetHash(), ptxORHash, txORHash);
 
             return {false, SocialConsensusResult_FailedOpReturn};
         }
