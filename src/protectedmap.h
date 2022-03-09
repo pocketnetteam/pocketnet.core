@@ -22,6 +22,12 @@ public:
         m_map.insert_or_assign(key, std::forward<Value>(value));
     }
 
+    auto insert(const Key& key, Value&& value)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_map.insert({key, std::forward<Value>(value)});
+    }
+
     auto erase(const Key& key)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
