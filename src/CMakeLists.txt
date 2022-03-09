@@ -7,6 +7,7 @@ include(CheckCXXSourceRuns)
 include(CheckIncludeFileCXX)
 
 set(CMAKE_CXX_STANDARD 17)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 ### Options
 
@@ -77,7 +78,7 @@ endif()
 # BerkeleyDB
 if (NOT DISABLE_WALLET)
     set(BerkeleyDB_FIND_REQUIRED ON)
-    include(cmake/FindBerkeleyDB.cmake)
+    find_package(BerkeleyDB REQUIRED)
     set(BDB_INTERESTED_VERSION "${BerkeleyDB_VERSION_MAJOR}.${BerkeleyDB_VERSION_MINOR}")
     if (BDB_INTERESTED_VERSION VERSION_EQUAL "4.8")
         set(BDB_FOUND ON)
@@ -479,8 +480,6 @@ if (ENABLE_REDUCE_EXPORTS)
         message(FATAL_ERROR "Cannot set default symbol visibility. Use -DENABLE_REDUCE_EXPORTS=OFF")
     endif ()
 endif ()
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES_BACKUP})
 set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS_BACKUP})
