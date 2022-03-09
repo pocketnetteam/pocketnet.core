@@ -102,6 +102,11 @@ namespace PocketWeb::PocketWebRpc
 
         // ---------------------------------------------------------------------
 
+        // Subscribers/unsubscribers
+        result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedSubscribers(address, blockNumber, cntResult));
+
+        // ---------------------------------------------------------------------
+
         // Scores to comments
         result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedCommentsScores(address, blockNumber, cntResult));
 
@@ -135,6 +140,10 @@ namespace PocketWeb::PocketWebRpc
 
         // New comments to posts
         result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedPostComments(address, answersPosts, blockNumber, cntResult));
+
+        // ---------------------------------------------------------------------
+
+        result.push_backV(request.DbConnection()->WebRpcRepoInst->GetMissedBoosts(address, blockNumber, cntResult));
 
         // ---------------------------------------------------------------------
 

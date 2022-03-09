@@ -74,6 +74,7 @@ namespace PocketDb
                 -- ScoreContent.Value
                 -- ScoreComment.Value
                 -- Complain.Reason
+                -- Boost.Amount
                 Int1      int    null
             );
         )sql");
@@ -182,12 +183,12 @@ namespace PocketDb
                 Number
             )
             select
-                t.Hash,
-                i.TxHash,
-                i.Number
-            from Transactions t
-            join TxOutputs i on i.SpentTxHash = t.Hash
-            where not exists (select 1 from TxInputs);
+                o.SpentTxHash,
+                o.TxHash,
+                o.Number
+            from TxOutputs o indexed by TxOutputs_SpentTxHash
+            where o.SpentTxHash is not null
+              and not exists (select i.ROWID from TxInputs i)
 
         )sql";
 

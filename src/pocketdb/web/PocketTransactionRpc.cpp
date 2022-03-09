@@ -10,6 +10,7 @@
 #include "script/signingprovider.h"
 #include "util/rbf.h"
 #include "rpc/rawtransaction_util.h"
+#include "pocketdb/consensus/social/User.hpp"
 
 namespace PocketWeb::PocketWebRpc
 {
@@ -51,6 +52,16 @@ namespace PocketWeb::PocketWebRpc
 
         // Set required fields
         ptx->SetAddress(address);
+
+        // TODO (team): TEMPORARY
+        // Temporary check for UserConsensus_checkpoint_login_limitation checkpoint
+        // Remove this after 1629000 in main net
+        if (*ptx->GetType() == ACCOUNT_USER)
+        {
+            std::shared_ptr<PocketConsensus::UserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::UserConsensus_checkpoint_login_limitation>(ChainActive().Height());
+            if (auto[ok, result] = accountUserConsensus->Check(tx, static_pointer_cast<User>(ptx)); !ok)
+                throw JSONRPCError((int)result, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result));
+        }
 
         // Insert into mempool
         return _accept_transaction(tx, ptx, *node.mempool, *node.connman); // TODO (losty-fur): possible null
@@ -368,7 +379,7 @@ namespace PocketWeb::PocketWebRpc
     {
         promise<void> promise;
         // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty-fur): validate corresponding check is performed in wallet by using walletInstance->m_default_max_tx_fee
-        // if (*ptx->GetType() == PocketTx::BOOST_CONTENT)
+        // if (ptx && *ptx->GetType() == PocketTx::BOOST_CONTENT)
         //    nMaxRawTxFee = 0;
         const uint256& txid = tx->GetHash();
 
@@ -384,7 +395,6 @@ namespace PocketWeb::PocketWebRpc
             }
             
             bool fHaveMempool = mempool.exists(txid);
-
             if (!fHaveMempool && !fHaveChain)
             {
                 // push to local node and sync with wallets

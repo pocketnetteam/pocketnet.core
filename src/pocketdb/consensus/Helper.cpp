@@ -135,10 +135,6 @@ namespace PocketConsensus
     // Проверяет транзакцию без привязки к цепи
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Check(const CTransactionRef& tx, const PTransactionRef& ptx, int height)
     {
-        // Not double check for already in DB
-        if (TransRepoInst.Exists(*ptx->GetHash()))
-            return {true, SocialConsensusResult_Success};
-
         if (auto[ok, result] = check(tx, ptx, height); !ok)
         {
             LogPrint(BCLog::CONSENSUS, "Warning: SocialConsensus type:%d check failed with result:%d for tx:%s at height:%d\n",

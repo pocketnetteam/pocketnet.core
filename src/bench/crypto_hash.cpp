@@ -26,7 +26,7 @@ static void RIPEMD160(benchmark::Bench& bench)
     });
 }
 
-static void SHA1(benchmark::Bench& bench)
+static void SHA1_test(benchmark::Bench& bench)
 {
     uint8_t hash[CSHA1::OUTPUT_SIZE];
     std::vector<uint8_t> in(BUFFER_SIZE,0);
@@ -35,7 +35,7 @@ static void SHA1(benchmark::Bench& bench)
     });
 }
 
-static void SHA256(benchmark::Bench& bench)
+static void SHA256_test(benchmark::Bench& bench)
 {
     uint8_t hash[CSHA256::OUTPUT_SIZE];
     std::vector<uint8_t> in(BUFFER_SIZE,0);
@@ -71,7 +71,7 @@ static void SHA256D64_1024(benchmark::Bench& bench)
     });
 }
 
-static void SHA512(benchmark::Bench& bench)
+static void SHA512_test(benchmark::Bench& bench)
 {
     uint8_t hash[CSHA512::OUTPUT_SIZE];
     std::vector<uint8_t> in(BUFFER_SIZE,0);
@@ -106,11 +106,10 @@ static void FastRandom_1bit(benchmark::Bench& bench)
 }
 
 BENCHMARK(RIPEMD160);
-BENCHMARK(SHA1);
-BENCHMARK(SHA256);
-BENCHMARK(SHA512);
+BENCHMARK(SHA1_test);
+BENCHMARK(SHA256_test);
+BENCHMARK(SHA512_test);
 BENCHMARK(SHA3_256_1M);
-
 BENCHMARK(SHA256_32b);
 BENCHMARK(SipHash_32b);
 BENCHMARK(SHA256D64_1024);

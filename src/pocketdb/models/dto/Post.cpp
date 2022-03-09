@@ -19,7 +19,7 @@ namespace PocketTx
 
     shared_ptr<UniValue> Post::Serialize() const
     {
-        auto result = Transaction::Serialize();
+        auto result = Content::Serialize();
 
         result->pushKV("address", GetAddress() ? *GetAddress() : "");
         result->pushKV("txidRepost", GetRelayTxHash() ? *GetRelayTxHash() : "");
@@ -55,7 +55,7 @@ namespace PocketTx
 
     void Post::Deserialize(const UniValue& src)
     {
-        Transaction::Deserialize(src);
+        Content::Deserialize(src);
         if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
         if (auto[ok, val] = TryGetStr(src, "txidRepost"); ok) SetRelayTxHash(val);
 
@@ -88,7 +88,7 @@ namespace PocketTx
 
     void Post::DeserializePayload(const UniValue& src)
     {
-        Transaction::DeserializePayload(src);
+        Content::DeserializePayload(src);
 
         if (auto[ok, val] = TryGetStr(src, "lang"); ok) m_payload->SetString1(val);
         else m_payload->SetString1("en");
@@ -147,7 +147,7 @@ namespace PocketTx
 
         data += GetRelayTxHash() ? *GetRelayTxHash() : "";
 
-        return Transaction::GenerateHash(data);
+        return Content::GenerateHash(data);
     }
 
 } // namespace PocketTx

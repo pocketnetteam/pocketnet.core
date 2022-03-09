@@ -3,14 +3,12 @@ name: make check
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ $default-branch, 0.20, 0.21 ]
-    types: [ready_for_review]
+    branches: [ $default-branch, "0.20", "0.21" ]
 
 jobs:
   build:
-
     runs-on: ubuntu-20.04
-
+    if: github.event.pull_request.draft == false
     steps:
     - uses: actions/checkout@v2
     - name: apt update
@@ -33,6 +31,11 @@ jobs:
       run: make -j2
     - name: make check
       run: make check
+    - name: bench
+      run: |
+        cd src/bench
+        ./bench_pocketcoin
+        cd ../..
     - name: make deploy
       run: make deploy
     - uses: actions/upload-artifact@v2

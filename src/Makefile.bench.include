@@ -10,6 +10,9 @@ RAW_BENCH_FILES = \
   bench/data/block413567.raw
 GENERATED_BENCH_FILES = $(RAW_BENCH_FILES:.raw=.raw.h)
 
+# disabled bench tests:
+#   bench/prevector.cpp
+
 bench_bench_pocketcoin_SOURCES = \
   $(RAW_BENCH_FILES) \
   bench/addrman.cpp \
@@ -17,17 +20,15 @@ bench_bench_pocketcoin_SOURCES = \
   bench/bench.cpp \
   bench/bench.h \
   bench/block_assemble.cpp \
+  bench/ccoins_caching.cpp \
   bench/checkblock.cpp \
   bench/checkqueue.cpp \
   bench/data.h \
   bench/data.cpp \
   bench/duplicate_inputs.cpp \
-  bench/examples.cpp \
-  bench/rollingbloom.cpp \
   bench/chacha20.cpp \
   bench/chacha_poly_aead.cpp \
   bench/crypto_hash.cpp \
-  bench/ccoins_caching.cpp \
   bench/gcs_filter.cpp \
   bench/hashpadding.cpp \
   bench/merkle_root.cpp \
@@ -42,8 +43,7 @@ bench_bench_pocketcoin_SOURCES = \
   bench/base58.cpp \
   bench/bech32.cpp \
   bench/lockedpool.cpp \
-  bench/poly1305.cpp \
-  bench/prevector.cpp
+  bench/poly1305.cpp
 
 nodist_bench_bench_pocketcoin_SOURCES = $(GENERATED_BENCH_FILES)
 
@@ -53,25 +53,34 @@ bench_bench_pocketcoin_LDADD = \
   $(LIBPOCKETCOIN_SERVER) \
   $(LIBPOCKETCOIN_WALLET) \
   $(LIBPOCKETCOIN_COMMON) \
+  $(LIBUNIVALUE) \
   $(LIBPOCKETCOIN_UTIL) \
+  $(LIBPOCKETCOIN_CLI) \
   $(LIBPOCKETCOIN_CONSENSUS) \
   $(LIBPOCKETCOIN_CRYPTO) \
   $(LIBTEST_UTIL) \
   $(LIBLEVELDB) \
   $(LIBLEVELDB_SSE42) \
   $(LIBMEMENV) \
+  $(BOOST_LIBS) \
   $(LIBSECP256K1) \
   $(LIBUNIVALUE) \
   $(EVENT_PTHREADS_LIBS) \
-  $(EVENT_LIBS)
+  $(EVENT_LIBS) \
+  $(LIBSQLITE3)
+
+
+# TODO (losty-fur): this is needed because websocket is included in "validation.h" even it is not used here.
+#                   Fix this in validation.h (probably move openssl headers to pImpl or smth) and remove ssl libs from here
+bench_bench_pocketcoin_LDADD += $(SSL_LIBS) $(CRYPTO_LIBS)
 
 if ENABLE_ZMQ
 bench_bench_pocketcoin_LDADD += $(LIBPOCKETCOIN_ZMQ) $(ZMQ_LIBS)
 endif
 
 if ENABLE_WALLET
-bench_bench_pocketcoin_SOURCES += bench/coin_selection.cpp
-bench_bench_pocketcoin_SOURCES += bench/wallet_balance.cpp
+  bench_bench_pocketcoin_SOURCES += bench/coin_selection.cpp
+  bench_bench_pocketcoin_SOURCES += bench/wallet_balance.cpp
 endif
 
 bench_bench_pocketcoin_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(MINIUPNPC_LIBS) $(SQLITE_LIBS)
