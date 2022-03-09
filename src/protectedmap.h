@@ -13,13 +13,13 @@ public:
     auto insert_or_assign(const Key& key, const Value& value)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_map.insert_or_assign(key, value);
+        return m_map.insert_or_assign(key, value);
     }
 
     auto insert_or_assign(const Key& key, Value&& value)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        m_map.insert_or_assign(key, std::forward<Value>(value));
+        return m_map.insert_or_assign(key, std::forward<Value>(value));
     }
 
     auto insert(const Key& key, Value&& value)
