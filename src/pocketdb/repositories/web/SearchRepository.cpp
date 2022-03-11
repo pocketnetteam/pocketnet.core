@@ -105,7 +105,7 @@ namespace PocketDb
         return ids;
     }
 
-    vector<int64_t> SearchRepository::SearchUsers(const SearchRequest& request)
+    vector<int64_t> SearchRepository::SearchUsersOld(const SearchRequest& request)
     {
         auto func = __func__;
         vector<int64_t> result;
@@ -152,6 +152,51 @@ namespace PocketDb
             TryBindStatementText(stmt, i++, keyword);
             TryBindStatementInt(stmt, i++, request.PageSize);
             TryBindStatementInt(stmt, i++, request.PageStart);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok) result.push_back(value);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
+    vector<int64_t> SearchRepository::SearchUsers(const SearchRequest& request)
+    {
+        auto func = __func__;
+        vector<int64_t> result;
+
+        string keyword = "\"" + request.Keyword + "\"" + " OR " + request.Keyword + "*";
+
+        string sql = R"sql(
+            select fm.ContentId, r.Value, rank
+            from web.Content f
+            join web.ContentMap fm on fm.ROWID = f.ROWID
+            left join Ratings r on r.Id = fm.ContentId and r.Last = 1 and r.Type = 0
+            where fm.FieldType in ( )sql" + join(vector<string>(request.FieldTypes.size(), "?"), ",") + R"sql( )
+              and f.Value match ?
+        )sql";
+
+        if (request.OrderByRank)
+            sql += " order by r.Value desc, rank desc ";
+
+        sql += " limit ? ";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            int i = 1;
+            auto stmt = SetupSqlStatement(sql);
+
+            // if (request.TopBlock > 0)
+            //     TryBindStatementInt(stmt, i++, request.TopBlock);
+            for (const auto& fieldtype: request.FieldTypes)
+                TryBindStatementInt(stmt, i++, fieldtype);
+            TryBindStatementText(stmt, i++, keyword);
+            TryBindStatementInt(stmt, i++, request.PageSize);
+            // TryBindStatementInt(stmt, i++, request.PageStart);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
