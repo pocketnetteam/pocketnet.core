@@ -463,9 +463,9 @@ namespace PocketDb
     // and have not yet been added to a block 
     void TransactionRepository::CleanExpiredTransactions(int64_t time)
     {
+        std::vector<std::string> hashes;
         TryTransactionStep(__func__, [&]()
         {
-            std::vector<std::string> hashes;
 
             // Get list of expired transaction hashes which have not been added to a block
             auto stmt = SetupSqlStatement(R"sql(
@@ -474,12 +474,12 @@ namespace PocketDb
             TryBindStatementInt64(stmt, 1, time);
             while (sqlite3_step(*stmt) == SQLITE_ROW)
                 hashes.push_back( std::string(reinterpret_cast<const char*>(sqlite3_column_text(*stmt, 0))) );
-
-            for (std::string hash : hashes)
-            {
-                CleanTransaction(hash);
-            }
         });
+
+        for (std::string hash : hashes)
+        {
+            CleanTransaction(hash);
+        }
     }
 
     void TransactionRepository::CleanMempool()
