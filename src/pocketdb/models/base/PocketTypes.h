@@ -45,6 +45,8 @@ namespace PocketTx
 
     #define OR_CONTENT_BOOST "636f6e74656e74426f6f7374" // Boost content
 
+    #define OR_ADPOST "6164706f7374"
+
     #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
 
     // Int tx type
@@ -85,6 +87,8 @@ namespace PocketTx
         ACTION_BLOCKING_CANCEL = 306,
 
         ACTION_COMPLAIN = 307,
+
+        ACTION_AD_POST = 308,
     };
 
     // Rating types
@@ -165,6 +169,11 @@ namespace PocketTx
         bool IsBoostContent() const
         {
             return Type == TxType::BOOST_CONTENT;
+        }
+
+        bool IsAdPost() const
+        {
+            return Type == TxType::ACTION_AD_POST;
         }
     };
 }

@@ -9,6 +9,7 @@
 #include "pocketdb/models/base/Transaction.h"
 #include "pocketdb/consensus/Reputation.h"
 
+#include "pocketdb/consensus/social/AdPost.hpp"
 #include "pocketdb/consensus/social/Blocking.hpp"
 #include "pocketdb/consensus/social/BlockingCancel.hpp"
 #include "pocketdb/consensus/social/BoostContent.hpp"
@@ -66,6 +67,7 @@ namespace PocketConsensus
         static AccountSettingConsensusFactory m_accountSettingFactory;
         static ContentDeleteConsensusFactory m_contentDeleteFactory;
         static BoostContentConsensusFactory m_boostContentFactory;
+        static AdPostConsensusFactory m_adPostFactory;
     };
 }
 

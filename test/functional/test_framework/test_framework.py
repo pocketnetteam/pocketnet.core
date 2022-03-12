@@ -17,6 +17,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import shutil
 
 from .authproxy import JSONRPCException
 from . import coverage
@@ -693,6 +694,7 @@ class PocketcoinTestFramework(metaclass=PocketcoinTestMetaClass):
             self.log.debug("Creating cache directory {}".format(cache_node_dir))
 
             initialize_datadir(self.options.cachedir, CACHE_NODE_ID, self.chain)
+            shutil.copytree(self.options.cachedir + "/../../checkpoints", cache_node_dir + "/" + self.chain + "/checkpoints")
             self.nodes.append(
                 TestNode(
                     CACHE_NODE_ID,

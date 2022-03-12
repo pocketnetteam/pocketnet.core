@@ -83,6 +83,31 @@ static bool MatchPayToPubkeyHash(const CScript& script, valtype& pubkeyhash)
     return false;
 }
 
+static bool MatchPocketNetAd(const CScript& script, valtype& pubkeyhash)
+{
+    if (script.size() == 60 &&
+        script[0] == OP_IF &&
+        script[1] == 2 && 
+        script[4] == OP_EQUALVERIFY &&
+        script[5] == OP_DUP &&
+        script[6] == OP_HASH160 &&
+        script[7] == 20 &&
+        script[28] == OP_EQUALVERIFY &&
+        script[29] == OP_CHECKSIG &&
+        script[30] == OP_ELSE &&
+        script[32] == OP_CHECKSEQUENCEVERIFY &&
+        script[33] == OP_DROP &&
+        script[34] == OP_DUP &&
+        script[35] == OP_HASH160 &&
+        script[36] == 20 &&
+        script[57] == OP_EQUALVERIFY &&
+        script[58] == OP_CHECKSIG) {
+        pubkeyhash = valtype(script.begin () + 7, script.begin() + 27);
+        return true;
+    }
+    return false;
+}
+
 /** Test for "small positive integer" script opcodes - OP_1 through OP_16. */
 static constexpr bool IsSmallInteger(opcodetype opcode)
 {
@@ -171,6 +196,11 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
         vSolutionsRet.insert(vSolutionsRet.end(), keys.begin(), keys.end());
         vSolutionsRet.push_back({static_cast<unsigned char>(keys.size())}); // safe as size is in range 1..16
         return TxoutType::MULTISIG;
+    }
+
+    if (MatchPocketNetAd(scriptPubKey, data)) {
+        vSolutionsRet.push_back(std::move(data));
+        return TxoutType::POCKETNET_AD;
     }
 
     vSolutionsRet.clear();

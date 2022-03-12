@@ -687,6 +687,40 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
+    for (const CTxIn& txin : tx.vin)
+    {
+        std::vector<std::vector<unsigned char>> stack;
+        auto& pocketTx = ws.m_pocketTx;
+
+        if (!EvalScript(stack, txin.scriptSig, SCRIPT_VERIFY_NONE, BaseSignatureChecker(), SigVersion::BASE))
+            return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed to get scripSig stack!"));
+        unsigned int len = stack.size();
+        if (len == 4 && CScript::EncodeOP_N(stack[len -1][0]) == OP_TRUE && stack[len-2][0] == 'a' && stack[len-2][1] == 'd')
+        {
+            PocketBlockRef adBlock = PocketDb::TransRepoInst.List(std::vector<std::string>{txin.prevout.hash.ToString()}, true, false, false);
+            if (*(*adBlock)[0]->GetType() == PocketTx::ACTION_AD_POST)
+            {
+                PocketConsensus::AdPostRef adPost = static_pointer_cast<AdPost>((*adBlock)[0]);
+                auto address = adPost->GetAddress();
+                std::shared_ptr<std::string> postTxHash = adPost->GetContentTxHash();
+                PocketBlockRef postBlock = PocketDb::TransRepoInst.List(std::vector<std::string>{*postTxHash}, true, false, false);
+
+                // Verify repost payload is present
+                if (*pocketTx->GetType() != TxType::CONTENT_POST)
+                    return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS,
+                                                 strprintf("Failed with invalid type %d for AdPost transactions, expected CONTENT_POST\n",
+                                                 (int) *pocketTx->GetType()));
+                
+                PocketConsensus::PostRef post = static_pointer_cast<Post>(pocketTx);
+                if (*post->GetRelayTxHash() != *adPost->GetContentTxHash())
+                    return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS,
+                                                 strprintf("Failed AdPost incorrect TX hash: expected = %s, found = %s\n",
+                                                 *adPost->GetContentTxHash(),
+                                                 *post->GetRelayTxHash()));
+            }
+        }
+    }
+
     // Bring the best block into scope
     m_view.GetBestBlock();
 

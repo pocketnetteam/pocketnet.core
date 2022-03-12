@@ -581,6 +581,7 @@ add_library(${POCKETDB}
         pocketdb/models/dto/Video.h
         pocketdb/models/dto/AccountSetting.h
         pocketdb/models/dto/ContentDelete.h
+        pocketdb/models/dto/AdPost.h
         pocketdb/models/dto/BoostContent.h
         pocketdb/migrations/main.cpp
         pocketdb/migrations/web.cpp
@@ -616,6 +617,7 @@ add_library(${POCKETDB}
         pocketdb/models/dto/ContentDelete.cpp
         pocketdb/models/web/WebTag.h
         pocketdb/models/web/WebContent.h
+        pocketdb/models/dto/AdPost.cpp
         pocketdb/models/dto/BoostContent.cpp
         pocketdb/models/web/SearchRequest.h
         )
@@ -1109,6 +1111,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/User.hpp
         pocketdb/consensus/social/AccountSetting.hpp
         pocketdb/consensus/social/ContentDelete.hpp
+        pocketdb/consensus/social/AdPost.hpp
         pocketdb/consensus/social/BoostContent.hpp
         pocketdb/consensus/Helper.cpp
         pocketdb/consensus/Base.cpp

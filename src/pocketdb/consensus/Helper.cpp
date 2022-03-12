@@ -24,6 +24,7 @@ namespace PocketConsensus
     ComplainConsensusFactory SocialConsensusHelper::m_complainFactory;
     ContentDeleteConsensusFactory SocialConsensusHelper::m_contentDeleteFactory;
     BoostContentConsensusFactory SocialConsensusHelper::m_boostContentFactory;
+    AdPostConsensusFactory SocialConsensusHelper::m_adPostFactory;
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CBlock& block, const PocketBlockRef& pBlock, int height)
     {
@@ -105,7 +106,9 @@ namespace PocketConsensus
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
             if (txType == TxType::NOT_SUPPORTED)
                 continue;
-            if (coinstakeBlock && txType == TxType::TX_COINBASE)
+            // TAWMAZ: Coinbase exists in early mined blocks as well, 
+            // if (coinstakeBlock && txType == TxType::TX_COINBASE)
+            if (txType == TxType::TX_COINBASE)
                 continue;
 
             // Maybe payload not exists?
@@ -193,6 +196,8 @@ namespace PocketConsensus
                 return m_blockingCancelFactory.Instance(height)->Check(tx, static_pointer_cast<BlockingCancel>(ptx));
             case ACTION_COMPLAIN:
                 return m_complainFactory.Instance(height)->Check(tx, static_pointer_cast<Complain>(ptx));
+            case ACTION_AD_POST:
+                return m_adPostFactory.Instance(height)->Check(tx, static_pointer_cast<AdPost>(ptx));
             // TODO (brangr): future realize types
             // case ACCOUNT_VIDEO_SERVER:
             // case ACCOUNT_MESSAGE_SERVER:
@@ -247,6 +252,8 @@ namespace PocketConsensus
                 return m_blockingCancelFactory.Instance(height)->Validate(tx, static_pointer_cast<BlockingCancel>(ptx), pBlock);
             case ACTION_COMPLAIN:
                 return m_complainFactory.Instance(height)->Validate(tx, static_pointer_cast<Complain>(ptx), pBlock);
+            case ACTION_AD_POST:
+                return m_adPostFactory.Instance(height)->Validate(tx, static_pointer_cast<AdPost>(ptx), pBlock);
             // TODO (brangr): future realize types
             // case ACCOUNT_VIDEO_SERVER:
             // case ACCOUNT_MESSAGE_SERVER:

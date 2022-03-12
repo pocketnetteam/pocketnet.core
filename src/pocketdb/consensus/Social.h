@@ -107,8 +107,8 @@ namespace PocketConsensus
 
             if (ptxORHash != txORHash)
             {
-               if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
-                   return {false, SocialConsensusResult_FailedOpReturn};
+                if (!CheckpointRepoInst.IsOpReturnCheckpoint(*ptx->GetHash(), ptxORHash))
+                    return {false, SocialConsensusResult_FailedOpReturn};
             }
 
             return Success;

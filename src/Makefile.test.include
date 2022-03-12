@@ -221,7 +221,6 @@ FUZZ_SUITE_LD_COMMON = \
 #  test/pow_tests.cpp
 #  test/prevector_tests.cpp
 #  test/rpc_tests.cpp
-#  test/sighash_tests.cpp
 #  test/txindex_tests.cpp
 #  test/txrequest_tests.cpp \
 #  test/validation_block_tests.cpp \
@@ -277,6 +276,7 @@ POCKETCOIN_TESTS =\
   test/ref_tests.cpp \
   test/reverselock_tests.cpp \
   test/sanity_tests.cpp \
+  test/sighash_tests.cpp \
   test/scheduler_tests.cpp \
   test/script_p2sh_tests.cpp \
   test/script_tests.cpp \

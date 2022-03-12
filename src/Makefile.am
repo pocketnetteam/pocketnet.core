@@ -168,6 +168,7 @@ POCKETDB_H = \
     pocketdb/consensus/social/Post.hpp \
     pocketdb/consensus/social/Video.hpp \
     pocketdb/consensus/social/Article.hpp \
+    pocketdb/consensus/social/AdPost.hpp \
     pocketdb/consensus/social/BoostContent.hpp \
     pocketdb/consensus/social/ScoreComment.hpp \
     pocketdb/consensus/social/ScoreContent.hpp \
@@ -195,6 +196,7 @@ POCKETDB_H = \
     pocketdb/models/dto/Post.h \
     pocketdb/models/dto/ContentDelete.h \
     pocketdb/models/dto/BoostContent.h \
+    pocketdb/models/dto/AdPost.h \
     pocketdb/models/dto/AccountSetting.h \
     pocketdb/models/dto/User.h \
     pocketdb/models/dto/ScoreContent.h \
@@ -276,6 +278,7 @@ POCKETDB_CPP = \
     pocketdb/models/dto/Content.cpp \
     pocketdb/models/dto/Post.cpp \
     pocketdb/models/dto/ContentDelete.cpp \
+    pocketdb/models/dto/AdPost.cpp \
     pocketdb/models/dto/BoostContent.cpp \
     pocketdb/models/dto/AccountSetting.cpp \
     pocketdb/models/dto/User.cpp \
@@ -291,7 +294,6 @@ POCKETDB_CPP = \
     pocketdb/models/dto/SubscribeCancel.cpp \
     pocketdb/models/dto/Complain.cpp \
     pocketdb/models/dto/Video.cpp \
-    pocketdb/models/dto/BoostContent.cpp \
     pocketdb/models/dto/Article.cpp
 
 # CORE

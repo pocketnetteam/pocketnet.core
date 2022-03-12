@@ -16,6 +16,7 @@
 #include "pocketdb/models/base/ReturnDtoModels.h"
 #include "pocketdb/models/base/PocketTypes.h"
 
+#include "pocketdb/models/dto/AdPost.h"
 #include "pocketdb/models/dto/Blocking.h"
 #include "pocketdb/models/dto/BlockingCancel.h"
 #include "pocketdb/models/dto/BoostContent.h"

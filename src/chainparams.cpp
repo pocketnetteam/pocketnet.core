@@ -410,7 +410,7 @@ public:
     explicit CRegTestParams(const ArgsManager& args)
     {
         strNetworkID =  CBaseChainParams::REGTEST;
-        networkId = NetworkRegTest;
+        networkId = NetworkTest;
         consensus.signet_blocks = false; // TODO (losty): may be change?
         consensus.signet_challenge.clear(); // TODO (losty): may be change?
         consensus.nSubsidyHalvingInterval = 150;

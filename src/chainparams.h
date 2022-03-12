@@ -46,8 +46,7 @@ struct ChainTxData {
 enum NetworkId
 {
     NetworkMain,
-    NetworkTest,
-    NetworkRegTest
+    NetworkTest
 };
 
 /**

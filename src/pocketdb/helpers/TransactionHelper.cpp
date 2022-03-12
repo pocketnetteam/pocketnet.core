@@ -73,6 +73,8 @@ namespace PocketHelpers
             return TxType::CONTENT_COMMENT_DELETE;
         else if (op == OR_COMMENT_SCORE)
             return TxType::ACTION_SCORE_COMMENT;
+        else if (op == OR_ADPOST)
+            return TxType::ACTION_AD_POST;
 
         return TxType::TX_DEFAULT;
     }
@@ -152,6 +154,8 @@ namespace PocketHelpers
                 return "Subscribes";
             case TxType::BOOST_CONTENT:
                 return "Boosts";
+            case TxType::ACTION_AD_POST:
+                return "Ads";
             default:
                 return "";
         }
@@ -326,6 +330,9 @@ namespace PocketHelpers
             case ACTION_COMPLAIN:
                 ptx = make_shared<Complain>(tx);
                 break;
+            case ACTION_AD_POST:
+                ptx = make_shared<AdPost>(tx);
+                break;
             default:
                 return nullptr;
         }
@@ -401,6 +408,9 @@ namespace PocketHelpers
             case ACTION_COMPLAIN:
                 ptx = make_shared<Complain>();
                 break;
+            case ACTION_AD_POST:
+                ptx = make_shared<AdPost>();
+                break;
             default:
                 return nullptr;
         }
@@ -451,6 +461,8 @@ namespace PocketHelpers
                 return "cScore";
             case PocketTx::BOOST_CONTENT:
                 return "contentBoost";
+            case PocketTx::ACTION_AD_POST:
+                return "adpost";
             default:
                 return "";
         }
@@ -473,6 +485,7 @@ namespace PocketHelpers
         else if (type == "commentDelete" || type == OR_COMMENT_DELETE) return TxType::CONTENT_COMMENT_DELETE;
         else if (type == "cScore" || type == OR_COMMENT_SCORE) return TxType::ACTION_SCORE_COMMENT;
         else if (type == "contentBoost" || type == OR_CONTENT_BOOST) return TxType::BOOST_CONTENT;
+        else if (type == "adpost" || type == OR_ADPOST) return TxType::ACTION_AD_POST;
         else return TxType::NOT_SUPPORTED;
     }
 }

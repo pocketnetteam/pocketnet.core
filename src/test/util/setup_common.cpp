@@ -279,6 +279,35 @@ CBlock TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransa
     return block;
 }
 
+CBlock TestChain100Setup::CreateAndProcessMempoolBlock(CTxMemPool &mempool, const CScript& scriptPubKey)
+{
+    const CChainParams& chainparams = Params();
+    auto& active = ChainActive();
+    CTxMemPool empty_pool;
+
+    SetMockTime(++g_mocktime);
+
+    std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(mempool, chainparams).CreateNewBlock(scriptPubKey);
+
+    // IncrementExtraNonce creates a valid coinbase and merkleRoot
+    {
+        LOCK(cs_main);
+        unsigned int extraNonce = 0;
+        IncrementExtraNonce(&pblocktemplate->block, active.Tip(), extraNonce);
+    }
+
+    while (!CheckProofOfWork(pblocktemplate->block.GetHash(), pblocktemplate->block.nBits, chainparams.GetConsensus(), ChainActive().Height())) ++pblocktemplate->block.nNonce;
+
+
+    BlockValidationState state;
+    bool fNewBlock = false;
+ 
+    bool ret = m_node.chainman->ProcessNewBlock(state, chainparams, std::make_shared<CBlock>(pblocktemplate->block), pblocktemplate->pocketBlock, true, &fNewBlock);
+    assert(ret);
+
+    return pblocktemplate->block;
+}
+
 TestChain100Setup::~TestChain100Setup()
 {
 }

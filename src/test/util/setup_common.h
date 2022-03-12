@@ -115,6 +115,7 @@ struct TestChain100Setup : public RegTestingSetup {
      */
     CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
                                  const CScript& scriptPubKey);
+    CBlock CreateAndProcessMempoolBlock(CTxMemPool &mempool, const CScript& scriptPubKey);
 
     ~TestChain100Setup();
 

@@ -47,10 +47,12 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress()))
+                return {false, SocialConsensusResult_Failed};
 
             // Check payload
-            if (!ptx->GetPayload()) return {false, SocialConsensusResult_Failed};
+            if (!ptx->GetPayload())
+                return {false, SocialConsensusResult_Failed};
 
             // Self referring
             if (!IsEmpty(ptx->GetReferrerAddress()) && *ptx->GetAddress() == *ptx->GetReferrerAddress())
