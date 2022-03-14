@@ -38,7 +38,7 @@ namespace PocketWeb::PocketWebRpc
 
         // TODO (team): TEMPORARY
         // Temporary check for UserConsensus_checkpoint_login_limitation checkpoint
-        // Remove this after 1629000 in main net
+        // Remove this after 1647000 in main net
         if (*ptx->GetType() == ACCOUNT_USER)
         {
             std::shared_ptr<PocketConsensus::UserConsensus> accountUserConsensus = std::make_shared<PocketConsensus::UserConsensus_checkpoint_login_limitation>(chainActive.Height());
