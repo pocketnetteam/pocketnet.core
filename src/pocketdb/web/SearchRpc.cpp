@@ -174,11 +174,8 @@ namespace PocketWeb::PocketWebRpc
         auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
 
         UniValue result(UniValue::VARR);
-        for (auto &profile : usersProfiles)
-        {
-            // profile.second.pushKV("searchResult", users[profile.first]);
-            result.push_back(profile.second);
-        }
+        for (auto& id : ids)
+            result.push_back(usersProfiles[id]);
 
         return result;
     }
