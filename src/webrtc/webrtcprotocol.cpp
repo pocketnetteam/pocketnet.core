@@ -51,10 +51,14 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
         pc->onStateChange([ip, peerConnections = m_peerConnections](rtc::PeerConnection::State state) {
             switch (state) {
                 case rtc::PeerConnection::State::Failed:
-                case rtc::PeerConnection::State::Closed:
                 case rtc::PeerConnection::State::Disconnected: {
                     // TODO (losty-rtc): dead lock if removing here!
-                    // peerConnections->erase(ip);
+                    peerConnections->erase(ip);
+                    break;
+                }
+                case rtc::PeerConnection::State::Closed: {
+                    // The only cased it is called is when peer conenction is destroyed;
+                    break;
                 }
                 default: {
                     int pulp = 1;
