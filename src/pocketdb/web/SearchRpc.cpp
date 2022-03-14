@@ -168,12 +168,15 @@ namespace PocketWeb::PocketWebRpc
 
         RPCTypeCheck(request.params, {UniValue::VSTR});
 
+        UniValue result(UniValue::VARR);
+
         string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
+        if (keyword.size() <= 1)
+            return result;
 
         auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(keyword);
         auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
-
-        UniValue result(UniValue::VARR);
+        
         for (auto& id : ids)
             result.push_back(usersProfiles[id]);
 
