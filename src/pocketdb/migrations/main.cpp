@@ -173,6 +173,22 @@ namespace PocketDb
             );
         )sql");
 
+        // The jury table is used to generate an index of moderation requests based on moderation flags.
+        _tables.emplace_back(R"sql(
+            --create table if not exists Jury
+            --(
+            --    ??????
+            --);
+        )sql");
+
+        // Table of bans for fixing the results of the jury's work
+        _tables.emplace_back(R"sql(
+            --create table if not exists Ban
+            --(
+            --    ??????
+            --);
+        )sql");
+
 
         _preProcessing = R"sql(
             
