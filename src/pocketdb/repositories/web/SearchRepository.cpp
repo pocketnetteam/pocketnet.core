@@ -219,8 +219,11 @@ namespace PocketDb
             TryBindStatementInt(stmt, i++, 10);
 
             while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
                 if (auto[ok, value] = TryGetColumnInt64(*stmt, 0); ok)
-                    result.push_back(value);
+                    if (find(result.begin(), result.end(), value) == result.end())
+                        result.push_back(value);
+            }
 
             FinalizeSqlStatement(*stmt);
         });
