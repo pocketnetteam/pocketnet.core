@@ -60,6 +60,18 @@ public:
         return m_map.find(key) != m_map.end();
     }
 
+    bool exec_for_elem(const Key& key, const std::function<void(const Value& value)>& func)
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto itr = m_map.find(key);
+        if (itr == m_map.end()) {
+            return false;
+        }
+
+        func(itr->second);
+        return true;
+    }
+
 protected:
     std::map<Key, Value> m_map;
     std::mutex m_mutex;
