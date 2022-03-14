@@ -205,6 +205,8 @@ enum opcodetype
     OP_WINNER_POST_REFERRAL = 0xc1,
     OP_WINNER_COMMENT = 0xc2,
     OP_WINNER_COMMENT_REFERRAL = 0xc3,
+    // Payments for the work of moderators
+    OP_WINNER_MODERATION = 0xc4,
 
     // Opcode added by BIP 342 (Tapscript)
     OP_CHECKSIGADD = 0xba,

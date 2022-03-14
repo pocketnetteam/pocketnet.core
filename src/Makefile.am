@@ -184,6 +184,7 @@ POCKETDB_H = \
     pocketdb/models/base/Transaction.h \
     pocketdb/models/base/TransactionInput.h \
     pocketdb/models/base/TransactionOutput.h \
+    pocketdb/models/base/SocialTransaction.h \
     pocketdb/models/base/Rating.h \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/ReturnDtoModels.h \
@@ -210,6 +211,10 @@ POCKETDB_H = \
     pocketdb/models/dto/Complain.h \
     pocketdb/models/dto/Video.h \
     pocketdb/models/dto/Article.h \
+    pocketdb/models/dto/moderation/ModeratorRequest.h \
+    pocketdb/models/dto/moderation/ModeratorRegister.h \
+    pocketdb/models/dto/moderation/ModerationFlag.h \
+    pocketdb/models/dto/moderation/ModerationVote.h \
     \
     pocketdb/models/web/WebTag.h \
     pocketdb/models/web/WebContent.h \
@@ -253,6 +258,7 @@ POCKETDB_CPP = \
     pocketdb/models/base/Transaction.cpp \
     pocketdb/models/base/TransactionInput.cpp \
     pocketdb/models/base/TransactionOutput.cpp \
+    pocketdb/models/base/SocialTransaction.cpp \
     pocketdb/models/base/Rating.cpp \
     pocketdb/models/base/Payload.cpp \
     \
@@ -292,7 +298,11 @@ POCKETDB_CPP = \
     pocketdb/models/dto/Complain.cpp \
     pocketdb/models/dto/Video.cpp \
     pocketdb/models/dto/BoostContent.cpp \
-    pocketdb/models/dto/Article.cpp
+    pocketdb/models/dto/Article.cpp \
+    pocketdb/models/dto/moderation/ModeratorRequest.cpp \
+    pocketdb/models/dto/moderation/ModeratorRegister.cpp \
+    pocketdb/models/dto/moderation/ModerationFlag.cpp \
+    pocketdb/models/dto/moderation/ModerationVote.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \
