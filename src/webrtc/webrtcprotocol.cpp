@@ -1,19 +1,21 @@
 
 #include "webrtc/webrtcprotocol.h"
-#include "univalue.h"
+
+#include <memory>
 #include <rtc/peerconnection.hpp>
+
+#include "univalue.h"
+#include "webrtc/webrtcconnection.h"
 
 
 WebRTCProtocol::WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler) 
     : m_requestHandler(std::move(requestHandler)),
-      m_peerConnections(std::make_shared<ProtectedMap<std::string, std::shared_ptr<rtc::PeerConnection>>>()),
-      m_dataChannels(std::make_shared<ProtectedMap<std::string, std::shared_ptr<rtc::DataChannel>>>())
+      m_connections(std::make_shared<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>>())
 {
     // TODO (losty-rtc): maybe another stun servers
     m_config.iceServers = {
             {"stun:stun.l.google.com:19302"},
-            {"stun:stun3.l.google.com:19302"},
-
+//            {"stun:stun3.l.google.com:19302"},
     };
 }
 
@@ -24,40 +26,42 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
         return false;
     auto type = message["type"].get_str();
     // TODO (losty-rtc): move to selector
-    std::shared_ptr<rtc::PeerConnection> pc;
     if (type == "offer") {
         if (!message.exists("sdp")) {
             // TODO (losty-rtc): error
             return false;
         }
-        pc = std::make_shared<rtc::PeerConnection>(m_config);
-        pc->onLocalCandidate([ws, ip](rtc::Candidate candidate) {
+        auto pc = std::make_shared<rtc::PeerConnection>(m_config);
+        auto webrtcConnectionnn = std::make_shared<WebRTCConnection>(ip, std::weak_ptr(m_connections), pc);
+
+        pc->onLocalCandidate([ws = std::weak_ptr(ws), ip](rtc::Candidate candidate) {
             UniValue message(UniValue::VOBJ);
             // TODO (losty-rtc): receiver ip here. // message.pushKV("ip", ip);
             message.pushKV("type", "candidate");
             message.pushKV("candidate", std::string(candidate));
             message.pushKV("mid", candidate.mid());
-
-            ws->send(constructProtocolMessage(message, ip).write());
+            if (auto lock = ws.lock()) {
+                lock->send(constructProtocolMessage(message, ip).write());
+            }
         });
-        pc->onLocalDescription([ws, ip](rtc::Description description) {
+        pc->onLocalDescription([ws = std::weak_ptr(ws), ip](rtc::Description description) {
             UniValue message(UniValue::VOBJ);
             // TODO (losty-rtc): receiver ip here. // message.pushKV("ip", ip);
             message.pushKV("type", description.typeString());
             message.pushKV("sdp", std::string(description));
 
-            ws->send(constructProtocolMessage(message, ip).write());
+            if (auto lock = ws.lock()) {
+                lock->send(constructProtocolMessage(message, ip).write());
+            }
         });
-        pc->onStateChange([ip, peerConnections = m_peerConnections](rtc::PeerConnection::State state) {
+        pc->onStateChange([webrtcConnection = std::weak_ptr(webrtcConnectionnn)](rtc::PeerConnection::State state) {
             switch (state) {
                 case rtc::PeerConnection::State::Failed:
-                case rtc::PeerConnection::State::Disconnected: {
-                    // TODO (losty-rtc): dead lock if removing here!
-                    peerConnections->erase(ip);
-                    break;
-                }
+                case rtc::PeerConnection::State::Disconnected:
                 case rtc::PeerConnection::State::Closed: {
-                    // The only cased it is called is when peer conenction is destroyed;
+                    if (auto lock = webrtcConnection.lock()) {
+                        lock->OnPeerConnectionClosed();
+                    }
                     break;
                 }
                 default: {
@@ -65,16 +69,23 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
                 }
             }
         });
-        pc->onDataChannel([requestHandler = m_requestHandler, ip, dcMap = m_dataChannels](std::shared_ptr<rtc::DataChannel> dataChannel) {
+        pc->onDataChannel([requestHandler = m_requestHandler, webrtcConnection = std::weak_ptr(webrtcConnectionnn)](std::shared_ptr<rtc::DataChannel> dataChannel) {
             // TODO (losty-rtc): MOST INTERESTED THING.
             // Add dataChannel to class that will setup it and provide rpc handlers to it.
-            dataChannel->label(); // "notifications" for websocket functional and "rpc" for rpc
-            dataChannel->onClosed([&dcMap, ip]() {
-                dcMap->erase(ip);
+            const auto label = dataChannel->label(); // "notifications" for websocket functional and "rpc" for rpc
+            dataChannel->onClosed([webrtcConnection, label]() {
+                if (auto lock = webrtcConnection.lock()) {
+                    lock->RemoveDataChannel(label);
+                }
             });
-            dataChannel->onMessage([dataChannel, requestHandler](rtc::message_variant data) {
+            dataChannel->onMessage([/*TODO (losty-rtc): a bit dirty hack to allow free memory for datachannel*/dataChannel = std::weak_ptr(dataChannel), requestHandler](rtc::message_variant data) {
                 if (!std::holds_alternative<std::string>(data)) {
                     // TOOD (losty-rtc): error
+                    return;
+                }
+                auto dc = dataChannel.lock();
+                if (!dc) {
+                    // Freeing memory
                     return;
                 }
                 // auto message = std::get<std::string>(data);
@@ -86,42 +97,38 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
                 }
                 auto path = message["path"].get_str();
                 auto body = message["requestData"].write();
-                auto replier = std::make_shared<DataChannelReplier>(dataChannel);
+                // TODO (losty-rtc): probably unique replier for all
+                auto replier = std::make_shared<DataChannelReplier>(dc);
                 requestHandler->Process(path, body, replier);
+
             });
-            dcMap->insert(ip, dataChannel);
+            if (auto lock = webrtcConnection.lock()) {
+                lock->AddDataChannel(dataChannel);
+            }
         });
         auto sdp = message["sdp"].get_str();
         pc->setRemoteDescription(rtc::Description(sdp, type));
 
-        // Just inserting without assigning. This will cause
-        // problems for client if he disconnects and instantly tries to reconnect
-        // before the connection is cleared. But this prevents from dropping client
-        // connections someone else by somehow specifying client's ip in request.
-        m_peerConnections->insert(ip, pc);
+        // insert_or_assign is called to allow client quickly reconnect to us because there is a possible delay
+        // between real disconnection and its handling.
+        // This can be possibly evaluated by malevolent signaling server to force client disconnection
+        // by providing new connection offer with same IP.
+        m_connections->insert_or_assign(ip, webrtcConnectionnn);
         return true;
-    } else if (type == "answer") {
-        // Node is not going to be initiator of connection
-        // TODO (losty-rtc): proove no answer will be here even for setRemoteDescription
-        return false;
     } else if (type == "candidate") {
-        // TODO (losty-rtc): add candidate to PeerConnection specified in id field
-        bool res = false;
-        m_peerConnections->exec_for_elem(ip, [message, &res](const shared_ptr<rtc::PeerConnection>& pc) {
-            if (!message.exists("candidate") || !message.exists("mid")) {
-                return;
-            }
-            auto sdp = message["candidate"].get_str();
-            auto mid = message["mid"].get_str();
-            pc->addRemoteCandidate(rtc::Candidate(sdp, mid));
-            res = true;
+        if (!message.exists("candidate") || !message.exists("mid")) {
+            return false;
+        }
+        auto sdp = message["candidate"].get_str();
+        auto mid = message["mid"].get_str();
+        rtc::Candidate candidate(sdp, mid);
+        return m_connections->exec_for_elem(ip, [&candidate](const shared_ptr<WebRTCConnection>& webrtcConnection) {
+            webrtcConnection->AddRemoteCandidate(candidate);
         });
-        return res;
     } else {
         return false;
     }
 }
-
 
 inline UniValue WebRTCProtocol::constructProtocolMessage(const UniValue& message, const std::string& ip)
 {

@@ -15,12 +15,15 @@ void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
         return;
     }
     auto ws = std::make_shared<rtc::WebSocket>();
-    ws->onOpen([ws]() {
+    // TODO (losty-rtc): better memory handling in callbacks
+    ws->onOpen([ws = std::weak_ptr(ws)]() {
         UniValue registermeMsg(UniValue::VOBJ);
         registermeMsg.pushKV("type", "registerme");
-        ws->send(registermeMsg.write());
+        if (auto lock = ws.lock()) {
+            lock->send(registermeMsg.write());
+        }
     });
-    ws->onMessage([ws, protocol = m_protocol](rtc::message_variant data) {
+    ws->onMessage([ws = std::weak_ptr(ws), protocol = m_protocol](rtc::message_variant data) {
         if (!std::holds_alternative<std::string>(data))
             return; // TODO (losty-rtc): error
         UniValue message(UniValue::VOBJ);
@@ -45,8 +48,9 @@ void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
             return;
         }
 
-
-        protocol->Process(message["message"], ip, ws);
+        if (auto lock = ws.lock()) {
+            protocol->Process(message["message"], ip, lock);
+        }
     });
     ws->onClosed([ip, &wsConnections = m_wsConnections]() {
         wsConnections.erase(ip);

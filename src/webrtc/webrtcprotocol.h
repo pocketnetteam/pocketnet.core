@@ -11,11 +11,12 @@
 #include "univalue.h"
 #include <map>
 #include <memory>
-#include <rtc/peerconnection.hpp>
 #include <string>
 
 
+#include <rtc/peerconnection.hpp>
 #include "rtc/rtc.hpp"
+#include "webrtc/webrtcconnection.h"
 
 
 class DataChannelReplier : public IReplier
@@ -57,8 +58,7 @@ protected:
 
 private:
     // TODO (losty-rtc): move out from protocol
-    std::shared_ptr<ProtectedMap<std::string, std::shared_ptr<rtc::PeerConnection>>> m_peerConnections;
-    std::shared_ptr<ProtectedMap<std::string, std::shared_ptr<rtc::DataChannel>>> m_dataChannels;
+    std::shared_ptr<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>> m_connections;
     std::shared_ptr<IRequestProcessor> m_requestHandler;
     rtc::Configuration m_config;
 };
