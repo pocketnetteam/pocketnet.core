@@ -77,6 +77,8 @@
 #include "pocketdb/migrations/main.h"
 #include "pocketdb/migrations/web.h"
 
+#include "webrtc/webrtc.h"
+
 #include <functional>
 #include <set>
 #include <stdint.h>
@@ -110,8 +112,12 @@ Statistic::RequestStatEngine gStatEngineInstance;
 std::shared_ptr<ProtectedMap<std::string, WSUser>> WSConnections;
 std::shared_ptr<QueueEventLoopThread<std::pair<CBlock, CBlockIndex*>>> notifyClientsThread;
 std::shared_ptr<Queue<std::pair<CBlock, CBlockIndex*>>> notifyClientsQueue;
+
+// TODO (losty-rpc): fixup
 RPC g_rpc;
 Rest g_rest;
+// TODO (losty-rtc): fixup
+std::shared_ptr<WebRTC> g_webrtc;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -991,7 +997,10 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
             return false;
         if (!g_rest.StartREST())
             return false;
-    } 
+    }
+    g_webrtc = std::make_shared<WebRTC>(g_rpc.GetWebRequestProcessor(), 13131);
+    // TODO (losty-rtc): hardcoded. Should be moved somewhere to net_processing on new peers
+    g_webrtc->InitiateNewSignalingConnection("92.53.101.23");
     StartHTTPServer();
     return true;
 }

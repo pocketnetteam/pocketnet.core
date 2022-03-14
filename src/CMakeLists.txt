@@ -75,6 +75,8 @@ if(MSVC AND MSVC_FORCE_STATIC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
+find_package(LibDataChannel REQUIRED)
+
 # BerkeleyDB
 if (NOT DISABLE_WALLET)
     set(BerkeleyDB_FIND_REQUIRED ON)
@@ -1119,8 +1121,12 @@ add_library(${POCKETCOIN_SERVER}
         rpcapi/rpchandler.cpp
         rpcapi/rpcprocessor.h
         rpcapi/rpcprocessor.cpp
+        webrtc/webrtc.h
+        webrtc/webrtc.cpp
+        webrtc/webrtcprotocol.h
+        webrtc/webrtcprotocol.cpp
         )
-target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
+target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time LibDataChannel::libdatachannel)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})
 target_link_libraries(${POCKETCOIN_SERVER} PUBLIC sqlite3 univalue leveldb)
 target_include_directories(${POCKETCOIN_SERVER} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
