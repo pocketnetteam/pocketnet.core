@@ -141,7 +141,7 @@ namespace PocketWeb::PocketWebRpc
             };
 
             // Search
-            auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest);
+            auto ids = request.DbConnection()->SearchRepoInst->SearchUsersOld(searchRequest);
             
             // Get accounts data
             auto accounts = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids, true);
@@ -168,22 +168,17 @@ namespace PocketWeb::PocketWebRpc
 
         RPCTypeCheck(request.params, {UniValue::VSTR});
 
-        SearchRequest searchRequest;
-
-        searchRequest.Keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
-        searchRequest.FieldTypes = { ContentFieldType::ContentFieldType_AccountUserName };
-        // ContentFieldType::ContentFieldType_AccountUserAbout, ContentFieldType::ContentFieldType_AccountUserUrl
-        searchRequest.OrderByRank = true;
-
-        auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(searchRequest);
-        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
-
         UniValue result(UniValue::VARR);
-        for (auto &profile : usersProfiles)
-        {
-            // profile.second.pushKV("searchResult", users[profile.first]);
-            result.push_back(profile.second);
-        }
+
+        string keyword = HtmlUtils::UrlDecode(request.params[0].get_str());
+        if (keyword.size() <= 1)
+            return result;
+
+        auto ids = request.DbConnection()->SearchRepoInst->SearchUsers(keyword);
+        auto usersProfiles = request.DbConnection()->WebRpcRepoInst->GetAccountProfiles(ids);
+        
+        for (auto& id : ids)
+            result.push_back(usersProfiles[id]);
 
         return result;
     }

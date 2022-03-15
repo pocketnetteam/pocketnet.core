@@ -14,16 +14,24 @@ This software allows you to participate in the work of the blockchain network - 
 
 To start a node independently, you need basic skills of working with the operating system, understanding the principle of the blockchain network. A deeper level of personal computer proficiency is welcome.
 
-## Prerequisities
+## Minimum System Requirements
+Below are the minimum system requirements to run a PocketNet node to use as a wallet, for coin staking to earn PKOIN, and to use as a local node on your home network. A node with these requirements may need to be upgraded within the next 1 - 2 years.
 
-PocketnetCore is distributed in two ways: binary installer and build from source code.
+- 2 core x86-64 CPU
+- 4GB RAM
+- 100 GB harddrive
+- 10 Mbps internet connection
 
-Minimum system requirements:
-- 4 core CPU
-- 20GB RAM
-- 25GB free disk space
-- 10Mbps internet connection
+## Recommended System Requirements
+The below system requirements are recommended for a node which will act as a public node to service the Bastyon front end, in addition to wallet, and coin staking capabilities. The recommended requirements should provide enough headroom to support the PocketNet network for at least 2 years into the future.
 
+- 4 core x86-64 CPU
+- 16 GB RAM
+- 500 GB SSD Harddrive
+- 100 Mbps internet connection
+- Publicly accessible IP address and ports (see Network Setup below)
+
+## Docker installation
 In order to run this container you'll need docker installed.
 
 * [Windows](https://docs.docker.com/windows/started)
@@ -36,9 +44,10 @@ In order to run this container you'll need docker installed.
 ```shell
 $ docker run -d \
     --name=pocketnet.core \
-    --log-driver local
-    --log-opt max-size=10m
-    --log-opt max-file=3
+    --ulimit nofile=65536:65536 \
+    --log-driver local \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
     -p 37070:37070 \
     -p 37071:37071 \
     -p 38081:38081 \
@@ -47,7 +56,7 @@ $ docker run -d \
     pocketnetteam/pocketnet.core:latest
 ```
 
-### But we recommend using `docker-compose.yml` to configure the node:
+### We recommend using `docker-compose.yml` to configure the node:
 ```yml
 version: '3.7'
 services:
@@ -56,6 +65,7 @@ services:
     image: pocketnetteam/pocketnet.core:latest
     restart: on-failure
     stop_grace_period: 1m30s
+    # Increasing the number of available file descriptors
     ulimits:
       nofile:
         soft: "65536"
@@ -81,7 +91,8 @@ services:
 
 ### Access to node API over CLI tool
 ```shell
-docker exec -it pocketnet.core pocketcoin-cli help
+$ docker exec -it pocketnet.core pocketcoin-cli help
+$ docker exec -it pocketnet.core /bin/sh
 ```
 
 ## Help
