@@ -18,7 +18,30 @@ namespace PocketTx
     {
         auto result = Transaction::Serialize();
 
-        result->pushKV("address", GetAddress() ? *GetAddress() : "");
+        if (GetString1()) result->pushKV("s1", *GetString1());
+        if (GetString2()) result->pushKV("s2", *GetString2());
+        if (GetString3()) result->pushKV("s3", *GetString3());
+        if (GetString4()) result->pushKV("s4", *GetString4());
+        if (GetString5()) result->pushKV("s5", *GetString5());
+        if (GetInt1()) result->pushKV("i1", *GetInt1());
+
+        if (GetPayload())
+        {
+            UniValue payload(UniValue::VOBJ);
+
+            if (GetPayload()->GetTxHash()) payload.pushKV("h", *GetTxHash());
+            if (GetPayload()->GetString1()) payload.pushKV("s1", *GetString1());
+            if (GetPayload()->GetString2()) payload.pushKV("s2", *GetString2());
+            if (GetPayload()->GetString3()) payload.pushKV("s3", *GetString3());
+            if (GetPayload()->GetString4()) payload.pushKV("s4", *GetString4());
+            if (GetPayload()->GetString5()) payload.pushKV("s5", *GetString5());
+            if (GetPayload()->GetString6()) payload.pushKV("s6", *GetString6());
+            if (GetPayload()->GetString7()) payload.pushKV("s7", *GetString7());
+            if (GetPayload()->GetInt1()) payload.pushKV("i1", *GetInt1());
+
+            if (!payload.empty())
+                result->pushKV("p", payload);
+        }
 
         return result;
     }
@@ -26,7 +49,29 @@ namespace PocketTx
     void SocialTransaction::Deserialize(const UniValue& src)
     {
         Transaction::Deserialize(src);
-        if (auto[ok, val] = TryGetStr(src, "address"); ok) SetAddress(val);
+
+        // Deserialize all general fields
+        if (auto[ok, val] = TryGetStr(src, "s1"); ok) SetString1(val);
+        if (auto[ok, val] = TryGetStr(src, "s2"); ok) SetString2(val);
+        if (auto[ok, val] = TryGetStr(src, "s3"); ok) SetString3(val);
+        if (auto[ok, val] = TryGetStr(src, "s4"); ok) SetString4(val);
+        if (auto[ok, val] = TryGetStr(src, "s5"); ok) SetString5(val);
+        if (auto[ok, val] = TryGetInt64(src, "i1"); ok) SetInt1(val);
+
+        // Deserialize payload part if exists non-empty "p" object
+        if (auto[pOk, pVal] = TryGetObj(src, "p"); pOk)
+        {
+            m_payload = make_shared<Payload>();
+            if (auto[ok, val] = TryGetStr(pVal, "h"); ok) m_payload->SetTxHash(val);
+            if (auto[ok, val] = TryGetStr(pVal, "s1"); ok) m_payload->SetString1(val);
+            if (auto[ok, val] = TryGetStr(pVal, "s2"); ok) m_payload->SetString2(val);
+            if (auto[ok, val] = TryGetStr(pVal, "s3"); ok) m_payload->SetString3(val);
+            if (auto[ok, val] = TryGetStr(pVal, "s4"); ok) m_payload->SetString4(val);
+            if (auto[ok, val] = TryGetStr(pVal, "s5"); ok) m_payload->SetString5(val);
+            if (auto[ok, val] = TryGetStr(pVal, "s6"); ok) m_payload->SetString6(val);
+            if (auto[ok, val] = TryGetStr(pVal, "s7"); ok) m_payload->SetString7(val);
+            if (auto[ok, val] = TryGetInt64(pVal, "i1"); ok) m_payload->SetInt1(val);
+        }
     }
     
     shared_ptr<string> SocialTransaction::GetAddress() const { return m_string1; }

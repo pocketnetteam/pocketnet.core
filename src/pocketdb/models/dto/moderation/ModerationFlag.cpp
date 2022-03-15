@@ -15,40 +15,7 @@ namespace PocketTx
     {
         SetType(TxType::MODERATION_FLAG);
     }
-
-    shared_ptr<UniValue> ModerationFlag::Serialize() const
-    {
-        auto result = SocialTransaction::Serialize();
-
-        // TODO (brangr): tx data & payload
-
-        // result->pushKV("data", (m_payload && m_payload->GetString1()) ? *m_payload->GetString1() : "");
-
-        return result;
-    }
-
-    void ModerationFlag::Deserialize(const UniValue& src)
-    {
-        SocialTransaction::Deserialize(src);
-        // TODO (brangr): tx data
-    }
     
-    void ModerationFlag::DeserializePayload(const UniValue& src)
-    {
-        SocialTransaction::DeserializePayload(src);
-        // if (auto[ok, val] = TryGetStr(src, "data"); ok) m_payload->SetString1(val);
-        // TODO (brangr): payload
-    }
-
-    void ModerationFlag::DeserializeRpc(const UniValue& src)
-    {
-        // TODO (brangr): rpc tx data & payload
-        // GeneratePayload();
-        // if (auto[ok, val] = TryGetStr(src, "d"); ok) m_payload->SetString1(val);
-    }
-
-    
-
     string ModerationFlag::BuildHash()
     {
         string data;
@@ -58,6 +25,14 @@ namespace PocketTx
 
         return SocialTransaction::GenerateHash(data);
     }
+
+    
+    shared_ptr<string> ModerationFlag::GetContentTxHash() const { return m_string2; }
+    void ModerationFlag::SetContentTxHash(const string& value) { m_string2 = make_shared<string>(value); }
+
+    shared_ptr<int64_t> ModerationFlag::GetReason() const { return m_int1; }
+    void ModerationFlag::SetReason(int64_t value) { m_int1 = make_shared<int64_t>(value); }
+
 
 } // namespace PocketTx
 

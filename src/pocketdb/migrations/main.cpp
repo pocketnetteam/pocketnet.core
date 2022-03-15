@@ -34,17 +34,7 @@ namespace PocketDb
                 -- Comment.Id
                 Id        int    null,
 
-                -- AccountUser.AddressHash
-                -- ContentPost.AddressHash
-                -- ContentVideo.AddressHash
-                -- ContentDelete.AddressHash
-                -- Comment.AddressHash
-                -- ScorePost.AddressHash
-                -- ScoreComment.AddressHash
-                -- Subscribe.AddressHash
-                -- Blocking.AddressHash
-                -- Complain.AddressHash
-                -- Boost.AddressHash
+                -- SocialTransaction.AddressHash
                 String1   text   null,
 
                 -- AccountUser.ReferrerAddressHash
@@ -52,29 +42,31 @@ namespace PocketDb
                 -- ContentVideo.RootTxHash
                 -- ContentDelete.RootTxHash
                 -- Comment.RootTxHash
-                -- ScorePost.PostTxHash
-                -- ScoreComment.CommentTxHash
+                -- ScorePost.ContentRootTxHash
+                -- ScoreComment.CommentRootTxHash
                 -- Subscribe.AddressToHash
                 -- Blocking.AddressToHash
-                -- Complain.PostTxHash
-                -- Boost.ContentTxHash
+                -- Complain.ContentRootTxHash
+                -- Boost.ContentRootTxHash
+                -- ModerationFlag.ContentTxHash
                 String2   text   null,
 
-                -- ContentPost.RelayTxHash
-                -- ContentVideo.RelayTxHash
-                -- Comment.PostTxHash
+                -- ContentPost.RelayRootTxHash
+                -- ContentVideo.RelayRootTxHash
+                -- Comment.ContentRootTxHash
                 String3   text   null,
 
-                -- Comment.ParentTxHash
+                -- Comment.ParentRootTxHash
                 String4   text   null,
 
-                -- Comment.AnswerTxHash
+                -- Comment.AnswerRootTxHash
                 String5   text   null,
 
                 -- ScoreContent.Value
                 -- ScoreComment.Value
                 -- Complain.Reason
                 -- Boost.Amount
+                -- ModerationFlag.Reason
                 Int1      int    null
             );
         )sql");
@@ -121,7 +113,6 @@ namespace PocketDb
                 -- ContentVideo.Url
                 String7 text   null,
 
-                -- Comment.Donate
                 Int1    int    null
             );
         )sql");

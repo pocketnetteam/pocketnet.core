@@ -15,12 +15,13 @@ namespace PocketTx
         ModerationFlag();
         ModerationFlag(const CTransactionRef& tx);
 
-        shared_ptr<UniValue> Serialize() const override;
-        void Deserialize(const UniValue& src) override;
-        void DeserializeRpc(const UniValue& src) override;
-        void DeserializePayload(const UniValue& src) override;
-
         string BuildHash() override;
+
+        shared_ptr<string> GetContentTxHash() const;
+        void SetContentTxHash(const string& value);
+
+        shared_ptr<int64_t> GetReason() const;
+        void SetReason(int64_t value);
 
     }; // class ModerationFlag
 
