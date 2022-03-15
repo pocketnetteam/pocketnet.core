@@ -32,7 +32,7 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
             return false;
         }
         auto pc = std::make_shared<rtc::PeerConnection>(m_config);
-        auto webrtcConnectionnn = std::make_shared<WebRTCConnection>(ip, std::weak_ptr(m_connections), pc);
+        auto webrtcConnectionnn = std::make_shared<WebRTCConnection>(ip, std::weak_ptr(m_connections), std::weak_ptr(m_toClear), pc);
 
         pc->onLocalCandidate([ws = std::weak_ptr(ws), ip](rtc::Candidate candidate) {
             UniValue message(UniValue::VOBJ);
@@ -60,9 +60,13 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
                 case rtc::PeerConnection::State::Disconnected:
                 case rtc::PeerConnection::State::Closed: {
                     if (auto lock = webrtcConnection.lock()) {
-                        lock->OnPeerConnectionClosed();
+                        lock->OnPeerConnectionClosed(lock);
                     }
                     break;
+                }
+                case rtc::PeerConnection::State::Connected:
+                {
+                    int pulp = 1;
                 }
                 default: {
                     int pulp = 1;
@@ -113,6 +117,7 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
         // between real disconnection and its handling.
         // This can be possibly evaluated by malevolent signaling server to force client disconnection
         // by providing new connection offer with same IP.
+        m_toClear->clear();
         m_connections->insert_or_assign(ip, webrtcConnectionnn);
         return true;
     } else if (type == "candidate") {

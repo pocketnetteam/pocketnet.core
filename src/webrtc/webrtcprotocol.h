@@ -59,6 +59,7 @@ protected:
 private:
     // TODO (losty-rtc): move out from protocol
     std::shared_ptr<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>> m_connections;
+    std::shared_ptr<std::vector<std::shared_ptr<WebRTCConnection>>> m_toClear = std::make_shared<std::vector<std::shared_ptr<WebRTCConnection>>>();
     std::shared_ptr<IRequestProcessor> m_requestHandler;
     rtc::Configuration m_config;
 };

@@ -18,16 +18,18 @@
 class WebRTCConnection
 {
 public:
-    WebRTCConnection(std::string ip, std::weak_ptr<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>> container, std::shared_ptr<rtc::PeerConnection> pc);
+    WebRTCConnection(std::string ip, std::weak_ptr<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>> container, std::weak_ptr<std::vector<std::shared_ptr<WebRTCConnection>>> clearer, std::shared_ptr<rtc::PeerConnection> pc);
     void AddDataChannel(std::shared_ptr<rtc::DataChannel> dc);
     void RemoveDataChannel(const std::string& label);
-    void OnPeerConnectionClosed();
+    void OnPeerConnectionClosed(std::shared_ptr<WebRTCConnection> _this);
     void AddRemoteCandidate(const rtc::Candidate& candidate);
 
 private:
     std::string m_ip;
+    std::atomic_bool m_closed = false;;
     std::shared_ptr<rtc::PeerConnection> m_peerConnection;
     std::weak_ptr<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>> m_container;
+    std::weak_ptr<std::vector<std::shared_ptr<WebRTCConnection>>> m_clearer;
     ProtectedMap<std::string, std::shared_ptr<rtc::DataChannel>> m_dataChannels;
 };
 
