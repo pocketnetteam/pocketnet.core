@@ -999,6 +999,7 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
             return false;
     }
     g_webrtc = std::make_shared<WebRTC>(g_rpc.GetWebRequestProcessor(), 13131);
+    g_webrtc->Start();
     // TODO (losty-rtc): hardcoded. Should be moved somewhere to net_processing on new peers
     g_webrtc->InitiateNewSignalingConnection("92.53.101.23");
     StartHTTPServer();

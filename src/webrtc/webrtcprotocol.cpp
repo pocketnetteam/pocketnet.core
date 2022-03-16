@@ -8,9 +8,10 @@
 #include "webrtc/webrtcconnection.h"
 
 
-WebRTCProtocol::WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler) 
+WebRTCProtocol::WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue) 
     : m_requestHandler(std::move(requestHandler)),
-      m_connections(std::make_shared<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>>())
+      m_connections(std::make_shared<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>>()),
+      m_clearQueue(std::move(clearQueue))
 {
     // TODO (losty-rtc): maybe another stun servers
     m_config.iceServers = {
@@ -32,7 +33,7 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
             return false;
         }
         auto pc = std::make_shared<rtc::PeerConnection>(m_config);
-        auto webrtcConnectionnn = std::make_shared<WebRTCConnection>(ip, std::weak_ptr(m_connections), std::weak_ptr(m_toClear), pc);
+        auto webrtcConnectionnn = std::make_shared<WebRTCConnection>(ip, std::weak_ptr(m_connections), m_clearQueue, pc);
 
         pc->onLocalCandidate([ws = std::weak_ptr(ws), ip](rtc::Candidate candidate) {
             UniValue message(UniValue::VOBJ);
@@ -60,7 +61,8 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
                 case rtc::PeerConnection::State::Disconnected:
                 case rtc::PeerConnection::State::Closed: {
                     if (auto lock = webrtcConnection.lock()) {
-                        lock->OnPeerConnectionClosed(lock);
+                        // Moving is necessary to guarantee that object destruction will not be executed in current thread.
+                        lock->OnPeerConnectionClosed(std::move(lock));
                     }
                     break;
                 }
@@ -117,7 +119,6 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
         // between real disconnection and its handling.
         // This can be possibly evaluated by malevolent signaling server to force client disconnection
         // by providing new connection offer with same IP.
-        m_toClear->clear();
         m_connections->insert_or_assign(ip, webrtcConnectionnn);
         return true;
     } else if (type == "candidate") {

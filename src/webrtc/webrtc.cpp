@@ -1,11 +1,26 @@
 
 #include "webrtc/webrtc.h"
+#include "eventloop.h"
+#include "protectedmap.h"
+
+
+class PCClearer : public IQueueProcessor<std::shared_ptr<WebRTCConnection>>
+{
+public:
+    void Process(std::shared_ptr<WebRTCConnection> pc) override
+    {
+        // Do nothing. This is just needed to guarantee that memory will be freed in different thread
+    }
+};
 
 
 WebRTC::WebRTC(std::shared_ptr <IRequestProcessor> requestProcessor, int port)
-    : m_protocol(std::make_shared<WebRTCProtocol>(requestProcessor)),
-      m_port(port)
-{}
+    : m_port(port),
+      m_queue(std::make_shared<Queue<std::shared_ptr<WebRTCConnection>>>())
+{
+    m_protocol = std::make_shared<WebRTCProtocol>(requestProcessor, m_queue),
+    m_eventLoop = std::make_shared<QueueEventLoopThread<std::shared_ptr<WebRTCConnection>>>(m_queue, std::make_shared<PCClearer>());
+}
 
 
 void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
@@ -60,4 +75,9 @@ void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
     ws->open(url);
 
     m_wsConnections.insert(ip, std::move(ws));
+}
+
+void WebRTC::Start()
+{
+    m_eventLoop->Start();
 }

@@ -51,7 +51,7 @@ private:
 class WebRTCProtocol
 {
 public:
-    WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler);
+    WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue);
     bool Process(const UniValue& message, const std::string& ip, const std::shared_ptr<rtc::WebSocket>& ws);
 protected:
     static inline UniValue constructProtocolMessage(const UniValue& message, const std::string& ip);
@@ -59,9 +59,9 @@ protected:
 private:
     // TODO (losty-rtc): move out from protocol
     std::shared_ptr<ProtectedMap<std::string, std::shared_ptr<WebRTCConnection>>> m_connections;
-    std::shared_ptr<std::vector<std::shared_ptr<WebRTCConnection>>> m_toClear = std::make_shared<std::vector<std::shared_ptr<WebRTCConnection>>>();
     std::shared_ptr<IRequestProcessor> m_requestHandler;
     rtc::Configuration m_config;
+    std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> m_clearQueue;
 };
 
 #endif // POCKETNET_CORE_WEBRTCPROTOCOL_H
