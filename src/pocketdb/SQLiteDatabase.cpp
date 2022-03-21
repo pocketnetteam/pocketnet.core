@@ -90,7 +90,7 @@ namespace PocketDb
                 path.string()
             );
 
-            throw std::runtime_error("Unable to start server. Checkpoints DB not found. See debug log for details.");
+            throw std::runtime_error(_("Unable to start server. Checkpoints DB not found. See debug log for details.").translated);
         }
         SQLiteDbCheckpointInst.Init((path / "checkpoints").string(), checkpointDbName);
     }

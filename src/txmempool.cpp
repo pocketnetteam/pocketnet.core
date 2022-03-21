@@ -1112,9 +1112,6 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     // Remove from memory mempool
     RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
 
-    // Also clean up any additional transactions in the db which are past expiration and not added to a block 
-    PocketDb::TransRepoInst.CleanExpiredTransactions(time.count());
-
     return stage.size();
 }
 

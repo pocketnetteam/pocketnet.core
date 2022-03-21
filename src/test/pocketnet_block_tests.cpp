@@ -22,29 +22,6 @@ const std::string GENESIS_HASH("aced9fcaba8f66be3d4d51a95cb048dda6611b8f2d2bf454
 
 BOOST_AUTO_TEST_SUITE(pocketnet_block_tests)
 
-static UniValue verifydb(CTxMemPool &mempool)
-{
-    UniValue result(UniValue::VARR);
-    uint256 tx_hash;
-    uint256 block_hash;
-
-    LOCK(cs_main);
-    LOCK(mempool.cs);
-    auto hashes = PocketDb::ChainRepoInst.GetTransactionHashes();
-
-    for (auto &hash : hashes)
-    {
-        // Make sure each transaction exists in either the blockchain or the mempool
-        tx_hash = uint256S(hash);
-        CTransactionRef tx_ref = GetTransaction(nullptr, &mempool, tx_hash, Params().GetConsensus(), block_hash);
-        if (tx_ref == nullptr)
-        {
-            result.push_back(tx_hash.ToString());
-        }
-    }
-
-    return result;
-}
 
 BOOST_FIXTURE_TEST_CASE(pocketnet_block_rollback, TestChain100Setup)
 {
@@ -53,8 +30,6 @@ BOOST_FIXTURE_TEST_CASE(pocketnet_block_rollback, TestChain100Setup)
 	bool ret = true;
 
     BOOST_CHECK(ActivateBestChain(state, chainparams));
-    UniValue result = verifydb(*m_node.mempool);
-	BOOST_CHECK(result[0].get_str() == GENESIS_HASH);
 
 	const std::vector<unsigned char> op_true{OP_TRUE};
     uint256 witness_program;
@@ -79,9 +54,6 @@ BOOST_FIXTURE_TEST_CASE(pocketnet_block_rollback, TestChain100Setup)
     const CScript SCRIPT_PUB{CScript(OP_0) << std::vector<unsigned char>{witness_program.begin(), witness_program.end()}};
 
 	BOOST_CHECK(InvalidateBlock(state, chainparams, ::ChainActive().Tip()) );
-
-    result = verifydb(*m_node.mempool);
-	BOOST_CHECK(result[0].get_str() == GENESIS_HASH);
 
     CScript scriptPubKey = CScript() <<  ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
 
@@ -121,14 +93,8 @@ BOOST_FIXTURE_TEST_CASE(pocketnet_block_rollback, TestChain100Setup)
     // Test 1: make sure this block is accepted.
     block = CreateAndProcessBlock(spends, scriptPubKey);
 
-    result = verifydb(*m_node.mempool);
-	BOOST_CHECK(result[0].get_str() == GENESIS_HASH);
-
     BOOST_CHECK(ActivateBestChain(state, Params()));
     BOOST_CHECK(::ChainActive().Tip()->GetBlockHash() == block.GetHash());
-
-    result = verifydb(*m_node.mempool);
-	BOOST_CHECK(result[0].get_str() == GENESIS_HASH);
 
 	BOOST_CHECK(CVerifyDB().VerifyDB(Params(), &::ChainstateActive().CoinsTip(), 4, 102));
 
@@ -168,15 +134,9 @@ BOOST_FIXTURE_TEST_CASE(pocketnet_block_rollback, TestChain100Setup)
     BOOST_CHECK(ToMemPool(spends1[0]));
     BOOST_CHECK(ToMemPool(spends1[1]));
 
-	result = verifydb(*m_node.mempool);
-	BOOST_CHECK(result[0].get_str() == GENESIS_HASH);
-
     block = CreateAndProcessBlock(noTxns, scriptPubKey);
 	BOOST_CHECK(ActivateBestChain(state, Params()));
     BOOST_CHECK(::ChainActive().Tip()->GetBlockHash() == block.GetHash());
-
-	result = verifydb(*m_node.mempool);
-	BOOST_CHECK(result.size() == 1 || result[0].get_str() == GENESIS_HASH);
 
 	// Eject from mempool, verify Transaction database again
 
