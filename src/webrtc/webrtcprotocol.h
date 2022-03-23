@@ -53,6 +53,7 @@ class WebRTCProtocol
 public:
     WebRTCProtocol(std::shared_ptr<IRequestProcessor> requestHandler, std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> clearQueue);
     bool Process(const UniValue& message, const std::string& ip, const std::shared_ptr<rtc::WebSocket>& ws);
+    void StopAll();
 protected:
     static inline UniValue constructProtocolMessage(const UniValue& message, const std::string& ip);
 

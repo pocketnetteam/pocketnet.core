@@ -17,6 +17,7 @@
 
 #include <string>
 #include <vector>
+#include <atomic>
 #include <memory>
 
 
@@ -24,10 +25,16 @@ class WebRTC
 {
 public:
     WebRTC(std::shared_ptr<IRequestProcessor> requestProcessor, int port);
+    /**
+     * Initializing internal thread that is required to
+     * corretly freeing memory
+     */
     void Start();
+    void Stop();
     void InitiateNewSignalingConnection(const std::string& ip);
 
 private:
+    std::atomic_bool m_fRunning = false;
     const int m_port;
     ProtectedMap<std::string, std::shared_ptr<rtc::WebSocket>> m_wsConnections;
     std::shared_ptr<WebRTCProtocol> m_protocol;

@@ -25,6 +25,10 @@ WebRTC::WebRTC(std::shared_ptr <IRequestProcessor> requestProcessor, int port)
 
 void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
 {
+    if (!m_fRunning) {
+        // TODO (losty-rtc): error
+        return;
+    }
     if (m_wsConnections.has(ip)) {
         // TODO (losty-rtc): error
         return;
@@ -79,5 +83,15 @@ void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
 
 void WebRTC::Start()
 {
+    m_fRunning = true;
     m_eventLoop->Start();
+}
+
+void WebRTC::Stop()
+{
+    m_fRunning = false;
+    m_eventLoop->Stop();
+    m_wsConnections.clear();
+    m_protocol->StopAll();
+    // TODO (losty-rtc): queue is not cleared
 }

@@ -211,6 +211,7 @@ void ShutdownPocketServices()
 
 void Interrupt(NodeContext& node)
 {
+    // TODO (losty-rtc): interrupt webrtc.
     InterruptHTTPServer();
     g_rpc.InterruptHTTPRPC();
     InterruptRPC();
@@ -238,6 +239,7 @@ void Shutdown(NodeContext& node)
 
     g_rpc.StopHTTPRPC();
     g_rest.StopREST();
+    g_webrtc->Stop();
     StopRPC();
     StopHTTPServer();
 

@@ -136,6 +136,11 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
     }
 }
 
+void WebRTCProtocol::StopAll()
+{
+    m_connections->clear();
+}
+
 inline UniValue WebRTCProtocol::constructProtocolMessage(const UniValue& message, const std::string& ip)
 {
     UniValue result(UniValue::VOBJ);
