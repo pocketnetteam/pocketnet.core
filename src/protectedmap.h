@@ -72,6 +72,12 @@ public:
         return true;
     }
 
+    void clear()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_map.clear();
+    }
+
 protected:
     std::map<Key, Value> m_map;
     std::mutex m_mutex;
