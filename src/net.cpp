@@ -21,6 +21,7 @@
 #include <scheduler.h>
 #include <util/strencodings.h>
 #include <util/translation.h>
+#include <webrtc/webrtc.h>
 
 #ifdef WIN32
 #include <string.h>
@@ -1154,6 +1155,8 @@ void CConnman::AcceptConnection(const ListenSocket& hListenSocket) {
     {
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
+        // TODO (losty-rtc): validate
+        g_webrtc->InitiateNewSignalingConnection(pnode->GetAddrName().substr(0, pnode->GetAddrName().find(":")));
     }
 
     // We received a new connection, harvest entropy from the time (and our peer count)
@@ -1181,6 +1184,7 @@ void CConnman::DisconnectNodes()
         {
             if (pnode->fDisconnect)
             {
+                g_webrtc->DropConnection(pnode->GetAddrName().substr(0, pnode->GetAddrName().find(":")));
                 // remove from vNodes
                 vNodes.erase(remove(vNodes.begin(), vNodes.end(), pnode), vNodes.end());
 
@@ -2208,6 +2212,7 @@ void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
     {
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
+        g_webrtc->InitiateNewSignalingConnection(pnode->GetAddrName().substr(0, pnode->GetAddrName().find(":")));
     }
 }
 

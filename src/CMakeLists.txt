@@ -1127,6 +1127,10 @@ add_library(${POCKETCOIN_SERVER}
         webrtc/webrtcprotocol.cpp
         webrtc/webrtcconnection.h
         webrtc/webrtcconnection.cpp
+        webrtc/signaling/signalingserver.h 
+        webrtc/signaling/signalingserver.cpp 
+        webrtc/signaling/signalingprocessor.h 
+        webrtc/signaling/signalingprocessor.cpp 
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time LibDataChannel::libdatachannel)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})

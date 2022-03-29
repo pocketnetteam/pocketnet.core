@@ -32,6 +32,7 @@ public:
     void Start();
     void Stop();
     void InitiateNewSignalingConnection(const std::string& ip);
+    void DropConnection(const std::string& ip);
 
 private:
     std::atomic_bool m_fRunning = false;
@@ -41,5 +42,7 @@ private:
     std::shared_ptr<Queue<std::shared_ptr<WebRTCConnection>>> m_queue;
     std::shared_ptr<QueueEventLoopThread<std::shared_ptr<WebRTCConnection>>> m_eventLoop;
 };
+
+extern std::shared_ptr<WebRTC> g_webrtc;
 
 #endif // POCKETNET_CORE_WEBRTC_H

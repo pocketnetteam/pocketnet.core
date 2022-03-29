@@ -27,6 +27,8 @@ bool RPC::StartHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Starting HTTP RPC server\n");
 
+    if (!m_rpcProcessor)
+        return false;
     m_rpcProcessor->Start();
     if (m_webRpcProcessor) {
         m_webRpcProcessor->Start();
@@ -45,6 +47,8 @@ void RPC::StopHTTPRPC()
 {
     LogPrint(BCLog::RPC, "Stopping HTTP RPC server\n");
 
-    m_rpcProcessor->Stop();
-    m_webRpcProcessor->Stop();
+    if (m_rpcProcessor)
+        m_rpcProcessor->Stop();
+    if (m_webRpcProcessor)
+        m_webRpcProcessor->Stop();
 }

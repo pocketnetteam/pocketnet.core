@@ -78,6 +78,7 @@
 #include "pocketdb/migrations/web.h"
 
 #include "webrtc/webrtc.h"
+#include "webrtc/signaling/signalingserver.h"
 
 #include <functional>
 #include <set>
@@ -118,6 +119,7 @@ RPC g_rpc;
 Rest g_rest;
 // TODO (losty-rtc): fixup
 std::shared_ptr<WebRTC> g_webrtc;
+webrtc::signaling::SignalingServer g_signaling;
 
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
@@ -239,7 +241,9 @@ void Shutdown(NodeContext& node)
 
     g_rpc.StopHTTPRPC();
     g_rest.StopREST();
-    g_webrtc->Stop();
+    if (g_webrtc)
+        g_webrtc->Stop();
+    g_signaling.Stop();
     StopRPC();
     StopHTTPServer();
 
@@ -1003,7 +1007,8 @@ static bool AppInitServers(const util::Ref& context, NodeContext& node)
     g_webrtc = std::make_shared<WebRTC>(g_rpc.GetWebRequestProcessor(), 13131);
     g_webrtc->Start();
     // TODO (losty-rtc): hardcoded. Should be moved somewhere to net_processing on new peers
-    g_webrtc->InitiateNewSignalingConnection("92.53.101.23");
+    g_signaling.Init("^/signaling/?$", 13131);
+    g_signaling.Start();
     StartHTTPServer();
     return true;
 }
