@@ -1619,9 +1619,9 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         RandAddPeriodic();
     }, std::chrono::minutes{1});
 
-        // ********************************************************* Step 4b: Start PocketDB
+    // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB...").translated);
-    
+
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
     PocketDb::InitSQLiteCheckpoints(GetDataDir()  / "checkpoints");
 

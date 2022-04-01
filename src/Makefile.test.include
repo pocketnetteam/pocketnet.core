@@ -214,7 +214,7 @@ FUZZ_SUITE_LD_COMMON = \
 #  test/hash_tests.cpp
 #  test/key_io_tests.cpp
 #  test/key_tests.cpp
-#  test/mempool_tests.cpp
+#  test/main_tests.cpp
 #  test/merkle_tests.cpp
 #  test/merkleblock_tests.cpp
 #  test/miner_tests.cpp
@@ -223,15 +223,14 @@ FUZZ_SUITE_LD_COMMON = \
 #  test/rpc_tests.cpp
 #  test/sighash_tests.cpp
 #  test/txindex_tests.cpp
-#  test/txvalidation_tests.cpp
 #  test/txrequest_tests.cpp \
-#  test/txvalidationcache_tests.cpp \
 #  test/validation_block_tests.cpp \
 #  test/validation_chainstate_tests.cpp \
 #  test/validation_chainstatemanager_tests.cpp \
 #  test/validation_flush_tests.cpp \
 #  test/validationinterface_tests.cpp \
 #  test/versionbits_tests.cpp
+#  test/validation_block_tests.cpp  # Intermittant failure in validation_block_tests
 
 
 POCKETCOIN_TESTS =\
@@ -264,9 +263,12 @@ POCKETCOIN_TESTS =\
   test/logging_tests.cpp \
   test/dbwrapper_tests.cpp \
   test/validation_tests.cpp \
+  test/mempool_tests.cpp \
   test/multisig_tests.cpp \
   test/net_tests.cpp \
   test/netbase_tests.cpp \
+  test/pocketnet_block_tests.cpp \
+  test/pocketnet_social_tests.cpp \
   test/pmt_tests.cpp \
   test/policy_fee_tests.cpp \
   test/policyestimator_tests.cpp \
@@ -291,19 +293,21 @@ POCKETCOIN_TESTS =\
   test/timedata_tests.cpp \
   test/torcontrol_tests.cpp \
   test/transaction_tests.cpp \
+  test/txvalidation_tests.cpp \
+  test/txvalidationcache_tests.cpp \
   test/uint256_tests.cpp \
   test/util_tests.cpp
 
 if ENABLE_WALLET
-# POCKETCOIN_TESTS += \
-#  wallet/test/db_tests.cpp \
-#  wallet/test/psbt_wallet_tests.cpp \
-#  wallet/test/wallet_tests.cpp \
-#  wallet/test/wallet_crypto_tests.cpp \
-#  wallet/test/coinselector_tests.cpp \
-#  wallet/test/init_tests.cpp \
-#  wallet/test/ismine_tests.cpp \
-#  wallet/test/scriptpubkeyman_tests.cpp
+POCKETCOIN_TESTS += \
+  wallet/test/db_tests.cpp \
+  wallet/test/psbt_wallet_tests.cpp \
+  wallet/test/wallet_tests.cpp \
+  wallet/test/wallet_crypto_tests.cpp \
+  wallet/test/coinselector_tests.cpp \
+  wallet/test/init_tests.cpp \
+  wallet/test/ismine_tests.cpp \
+  wallet/test/scriptpubkeyman_tests.cpp
 
 POCKETCOIN_TEST_SUITE += \
   wallet/test/wallet_test_fixture.cpp \

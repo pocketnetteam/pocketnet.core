@@ -373,6 +373,7 @@ BOOST_AUTO_TEST_CASE(TransactionsRequestDeserializationMaxTest) {
     BOOST_CHECK_EQUAL(req0.indexes[0], req1.indexes[0]);
 }
 
+#ifdef DISABLE_TEST
 BOOST_AUTO_TEST_CASE(TransactionsRequestDeserializationOverflowTest) {
     // Any set of index deltas that starts with N values that sum to (0x10000 - N)
     // causes the edge-case overflow that was originally not checked for. Such
@@ -404,4 +405,5 @@ BOOST_AUTO_TEST_CASE(TransactionsRequestDeserializationOverflowTest) {
     }
 }
 
+#endif /* DISABLE_TEST */
 BOOST_AUTO_TEST_SUITE_END()

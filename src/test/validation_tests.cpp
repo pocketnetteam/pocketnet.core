@@ -36,7 +36,7 @@ static void TestBlockSubsidyHalvings(int nSubsidyHalvingInterval)
     consensusParams.nSubsidyHalvingInterval = nSubsidyHalvingInterval;
     TestBlockSubsidyHalvings(consensusParams);
 }
-
+#ifdef DISABLE_TEST
 BOOST_AUTO_TEST_CASE(block_subsidy_test)
 {
     const auto chainParams = CreateChainParams(*m_node.args, CBaseChainParams::MAIN);
@@ -57,6 +57,7 @@ BOOST_AUTO_TEST_CASE(subsidy_limit_test)
     }
     BOOST_CHECK_EQUAL(nSum, CAmount{2099999997690000});
 }
+#endif /* DISABLE_TEST */
 
 BOOST_AUTO_TEST_CASE(signet_parse_tests)
 {

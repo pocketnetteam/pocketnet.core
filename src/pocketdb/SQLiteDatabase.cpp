@@ -73,9 +73,16 @@ namespace PocketDb
 
     void InitSQLiteCheckpoints(fs::path path)
     {
-        // Intialize Checkpoints DB
         auto checkpointDbName = Params().NetworkIDString();
-        if (!fs::exists((path / (checkpointDbName + ".sqlite3")).string()))
+        int i = 0;
+
+        // Look for checkpoints directory in current folder or up to two directories up.
+        while (i < 3 && !fs::exists((path / "checkpoints" / (checkpointDbName + ".sqlite3")).string()))
+        {
+            path = path / "..";
+            i++;
+        }
+        if (!fs::exists((path / "checkpoints" / (checkpointDbName + ".sqlite3")).string()))
         {
             LogPrintf("Checkpoint DB %s not found!\nDownload actual DB file from %s and place to %s directory.\n",
                 (path / (checkpointDbName + ".sqlite3")).string(),
@@ -85,8 +92,7 @@ namespace PocketDb
 
             throw std::runtime_error(_("Unable to start server. Checkpoints DB not found. See debug log for details.").translated);
         }
-        SQLiteDbCheckpointInst.Init(path.string(), checkpointDbName);
-
+        SQLiteDbCheckpointInst.Init((path / "checkpoints").string(), checkpointDbName);
     }
 
     SQLiteDatabase::SQLiteDatabase(bool readOnly) : isReadOnlyConnect(readOnly)

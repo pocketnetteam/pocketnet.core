@@ -335,7 +335,7 @@ namespace PocketWeb::PocketWebRpc
                 "\nCreate new pocketnet address.\n"
             );
 
-        if (Params().NetworkIDString() != CBaseChainParams::TESTNET)
+        if (Params().NetworkIDString() != CBaseChainParams::TESTNET && Params().NetworkIDString() != CBaseChainParams::REGTEST)
             throw runtime_error("Only for testnet\n");
 
         std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);

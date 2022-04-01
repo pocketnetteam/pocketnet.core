@@ -10,6 +10,9 @@
 #include <test/util/setup_common.h>
 #include <txmempool.h>
 #include <validation.h>
+#include <core_io.h>
+#include <policy/policy.h>
+#include "pocketdb/services/Serializer.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -28,8 +31,14 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
     const auto ToMemPool = [this](const CMutableTransaction& tx) {
         LOCK(cs_main);
 
+        auto transaction = new CTransaction(tx);
+        CTransactionRef txref(transaction);
+
+        auto[ok, pocketTx] = PocketServices::Serializer::DeserializeTransaction(txref);
+        BOOST_CHECK(ok);
+
         TxValidationState state;
-        return AcceptToMemoryPool(*m_node.mempool, state, MakeTransactionRef(tx), nullptr /* pocketTx */,
+        return AcceptToMemoryPool(*m_node.mempool, state, MakeTransactionRef(tx), pocketTx,
             nullptr /* plTxnReplaced */, true /* bypass_limits */);
     };
 

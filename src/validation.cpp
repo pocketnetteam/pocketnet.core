@@ -2846,6 +2846,17 @@ bool CChainState::DisconnectTip(BlockValidationState& state, const CChainParams&
             disconnectpool->removeEntry(it);
         }
     }
+    else
+    {
+        for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it)
+        {
+            auto hash = (**it).GetHash();
+            if (PocketDb::TransRepoInst.Exists(hash.GetHex()))
+            {
+                PocketDb::TransRepoInst.CleanTransaction(hash.GetHex());
+            }
+        }
+    }
 
     m_chain.SetTip(pindexDelete->pprev);
 
@@ -5804,8 +5815,8 @@ bool LoadMempool(CTxMemPool& pool)
             pool.PrioritiseTransaction(i.first, i.second);
         }
 
-        // Also remove from sqlite db
-        pool.CleanSQLite(expiredHashes, "init", MemPoolRemovalReason::EXPIRY);
+        LOCK(pool.cs);
+        pool.CleanSQLite(expiredHashes, MemPoolRemovalReason::EXPIRY);
 
         // TODO: remove this try except in v0.22
         std::set<uint256> unbroadcast_txids;
@@ -5821,7 +5832,9 @@ bool LoadMempool(CTxMemPool& pool)
             // unbroadcast set.
             if (pool.get(txid) != nullptr) pool.AddUnbroadcastTx(txid);
         }
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         LogPrintf("Failed to deserialize mempool data on disk: %s. Continuing anyway.\n", e.what());
         return false;
     }
