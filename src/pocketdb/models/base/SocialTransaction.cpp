@@ -25,19 +25,19 @@ namespace PocketTx
         if (GetString5()) result->pushKV("s5", *GetString5());
         if (GetInt1()) result->pushKV("i1", *GetInt1());
 
-        if (GetPayload())
+        if (m_payload)
         {
             UniValue payload(UniValue::VOBJ);
 
-            if (GetPayload()->GetTxHash()) payload.pushKV("h", *GetTxHash());
-            if (GetPayload()->GetString1()) payload.pushKV("s1", *GetString1());
-            if (GetPayload()->GetString2()) payload.pushKV("s2", *GetString2());
-            if (GetPayload()->GetString3()) payload.pushKV("s3", *GetString3());
-            if (GetPayload()->GetString4()) payload.pushKV("s4", *GetString4());
-            if (GetPayload()->GetString5()) payload.pushKV("s5", *GetString5());
-            if (GetPayload()->GetString6()) payload.pushKV("s6", *GetString6());
-            if (GetPayload()->GetString7()) payload.pushKV("s7", *GetString7());
-            if (GetPayload()->GetInt1()) payload.pushKV("i1", *GetInt1());
+            if (m_payload->GetTxHash()) payload.pushKV("h", *m_payload->GetTxHash());
+            if (m_payload->GetString1()) payload.pushKV("s1", *m_payload->GetString1());
+            if (m_payload->GetString2()) payload.pushKV("s2", *m_payload->GetString2());
+            if (m_payload->GetString3()) payload.pushKV("s3", *m_payload->GetString3());
+            if (m_payload->GetString4()) payload.pushKV("s4", *m_payload->GetString4());
+            if (m_payload->GetString5()) payload.pushKV("s5", *m_payload->GetString5());
+            if (m_payload->GetString6()) payload.pushKV("s6", *m_payload->GetString6());
+            if (m_payload->GetString7()) payload.pushKV("s7", *m_payload->GetString7());
+            if (m_payload->GetInt1()) payload.pushKV("i1", *m_payload->GetInt1());
 
             if (!payload.empty())
                 result->pushKV("p", payload);
