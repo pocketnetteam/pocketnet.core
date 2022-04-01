@@ -179,7 +179,6 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     // Kernel (input 0) must match the stake hash target per coin age (nBits)
     const CTxIn &txin = tx->vin[0];
 
-    LogPrintf("DEBUG: txin.prevout.hash = %s\n", txin.prevout.hash.ToString());
     auto txPrev = PocketDb::TransRepoInst.Get(txin.prevout.hash.ToString(), false, false, true);
     if (!txPrev)
     {
