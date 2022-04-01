@@ -179,6 +179,7 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
     // Kernel (input 0) must match the stake hash target per coin age (nBits)
     const CTxIn &txin = tx->vin[0];
 
+    LogPrintf("DEBUG: txin.prevout.hash = %s\n", txin.prevout.hash.ToString());
     auto txPrev = PocketDb::TransRepoInst.Get(txin.prevout.hash.ToString(), false, false, true);
     if (!txPrev)
     {
@@ -329,38 +330,10 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     hashProofOfStakeSource = ss;
     hashProofOfStake = UintToArith256(Hash(ss));
 
-    if (fPrintProofOfStake)
-    {
-        LogPrint(BCLog::WALLET, "CheckStakeKernelHash() : using modifier 0x%016x at height=%d timestamp=%s for block from timestamp=%s\n",
-           nStakeModifier, nStakeModifierHeight,
-           FormatISO8601DateTime(nStakeModifierTime),
-           FormatISO8601DateTime(nTimeBlockFrom));
-
-        LogPrint(BCLog::WALLET, "CheckStakeKernelHash() : check modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s bnTarget=%s nBits=%08x nValueIn=%d bnWeight=%s\n",
-           nStakeModifier,
-           nTimeBlockFrom, *txPrev.GetTime(), prevout.n, nTimeTx,
-           hashProofOfStake.ToString(), bnTarget.ToString(), nBits, nValueIn, bnWeight.ToString());
-    }
-
     // Now check if proof-of-stake hash meets target protocol
     if (hashProofOfStake > bnTarget)
     {
         return false;
-    }
-
-    if (!fPrintProofOfStake)
-    {
-        LogPrint(BCLog::WALLET,
-            "CheckStakeKernelHash() : using modifier 0x%016x at height=%d timestamp=%s for block from timestamp=%s\n",
-            nStakeModifier, nStakeModifierHeight,
-            FormatISO8601DateTime(nStakeModifierTime),
-            FormatISO8601DateTime(nTimeBlockFrom));
-
-        LogPrint(BCLog::WALLET,
-            "CheckStakeKernelHash() : pass modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s\n",
-            nStakeModifier,
-            nTimeBlockFrom, txPrev.GetTime(), prevout.n, nTimeTx,
-            hashProofOfStake.ToString());
     }
 
     return true;
