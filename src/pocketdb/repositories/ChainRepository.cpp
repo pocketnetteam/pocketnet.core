@@ -94,6 +94,7 @@ namespace PocketDb
         }
     }
 
+
     tuple<bool, bool> ChainRepository::ExistsBlock(const string& blockHash, int height)
     {
         bool exists = false;

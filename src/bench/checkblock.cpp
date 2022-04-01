@@ -16,7 +16,7 @@
 
 static void DeserializeBlockTest(benchmark::Bench& bench)
 {
-    CDataStream stream(benchmark::data::block1533073, SER_NETWORK, PROTOCOL_VERSION);
+   CDataStream stream(benchmark::data::block1533073, SER_NETWORK, PROTOCOL_VERSION);
     char a = '\0';
     stream.write(&a, 1); // Prevent compaction
 
