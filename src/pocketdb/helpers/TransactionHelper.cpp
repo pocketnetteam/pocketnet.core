@@ -195,7 +195,7 @@ namespace PocketHelpers
 
     bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx)
     {
-        TxType txType = NOT_SUPPORTED;
+        TxType txType = TX_EMPTY;
         return IsPocketTransaction(tx, txType);
     }
 
