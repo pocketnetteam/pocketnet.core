@@ -246,7 +246,7 @@ namespace PocketHelpers
         switch (txType)
         {
             case TX_EMPTY:
-                ptx = make_shared<Empty>();
+                ptx = make_shared<Empty>(tx);
                 break;
             case TX_COINBASE:
                 ptx = make_shared<Coinbase>(tx);

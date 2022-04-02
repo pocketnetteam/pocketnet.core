@@ -72,13 +72,8 @@ namespace PocketServices
         return result;
     }
 
-
     shared_ptr<Transaction> Serializer::buildInstance(const CTransactionRef& tx, const UniValue& src)
     {
-        int qq = 1;
-        if (tx->GetHash().GetHex() == "3d6baeea93e803b163b19974b8c20356c2ef5339b83fa00a72d7b891bd9ac824")
-            qq = 2;
-
         TxType txType = PocketHelpers::TransactionHelper::ParseType(tx);
         shared_ptr<Transaction> ptx = PocketHelpers::TransactionHelper::CreateInstance(txType, tx);
         if (!ptx)

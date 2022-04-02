@@ -135,7 +135,7 @@ namespace PocketDb
                 BlockHash = ?,
                 BlockNum = ?,
                 Height = ?
-            WHERE Hash = ?
+            WHERE Hash = ? and BlockHash is null
         )sql");
         TryBindStatementText(stmt, 1, blockHash);
         TryBindStatementInt(stmt, 2, blockNumber);
@@ -146,7 +146,7 @@ namespace PocketDb
         auto stmtOuts = SetupSqlStatement(R"sql(
             UPDATE TxOutputs SET
                 TxHeight = ?
-            WHERE TxHash = ?
+            WHERE TxHash = ? and TxHeight is null
         )sql");
         TryBindStatementInt(stmtOuts, 1, height);
         TryBindStatementText(stmtOuts, 2, txHash);

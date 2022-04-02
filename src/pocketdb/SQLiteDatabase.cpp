@@ -137,17 +137,19 @@ namespace PocketDb
 
         if (dbVersion < newDbVersion)
         {
-            int i = 0;
+            // TODO (team): Clean mempool
+
+            int height = 0;
             int percent = ChainActive().Height() / 100;
             int64_t startTime = GetTimeMicros();
 
-            while (i <= ChainActive().Height() && !ShutdownRequested())
+            while (height <= ChainActive().Height() && !ShutdownRequested())
             {
                 try
                 {
                     // Read block from disk
                     CBlock block;
-                    CBlockIndex* pblockindex = ChainActive()[i];
+                    CBlockIndex* pblockindex = ChainActive()[height];
                     if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
                     {
                         LogPrintf("Failed read block %s from disk. Stopping\n", pblockindex->GetBlockHash().GetHex());
@@ -155,32 +157,40 @@ namespace PocketDb
                         return;
                     }
 
-                    for (const auto& tx : block.vtx)
+                    // The default logic is used to deserialize the necessary data
+                    // We can use standard methods to write data to the database, because inside `WHERE NOT EXISTS` is used
+                    // This will allow us to record only the missing data without changing the existing ones.
+                    if (auto[ok, pocketBlock] = PocketServices::Serializer::DeserializeBlock(block); ok)
                     {
-                        // The default logic is used to deserialize the necessary data
-                        // We can use standard methods to write data to the database, because inside `INSERT OR IGNORE` is used
-                        // This will allow us to record only the missing data without changing the existing ones.
-                        if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(tx); ok)
+                        TransRepoInst.InsertTransactions(pocketBlock);
+                        
+                        for (size_t i = 0; i < block.vtx.size(); i++)
                         {
-                            TransRepoInst.InsertTransactionInputs(ptx);
-                            TransRepoInst.InsertTransactionOutputs(ptx);
+                            const auto& tx = block.vtx[i];
+
+                            ChainRepoInst.UpdateTransactionHeight(
+                                pblockindex->GetBlockHash().GetHex(),
+                                i,
+                                height,
+                                tx->GetHash().GetHex()
+                            );
                         }
-                        else
-                        {
-                            LogPrintf("Failed deserialize tx %s in block %s. Stopping\n", tx->GetHash().GetHex(), pblockindex->GetBlockHash().GetHex());
-                            StartShutdown();
-                            return;
-                        }
+                    }
+                    else
+                    {
+                        LogPrintf("Failed deserialize block %s. Stopping\n", pblockindex->GetBlockHash().GetHex());
+                        StartShutdown();
+                        return;
                     }
 
                     // Message for logging
-                    if (i % percent == 0)
+                    if (height % percent == 0)
                     {
                         int64_t time = GetTimeMicros();
-                        LogPrintf("Updating Pocket DB: %d%% (%.2fm)\n", (i / percent), (0.000001 * (time - startTime)) / 60.0);
+                        LogPrintf("Updating Pocket DB: %d%% (%.2fm)\n", (height / percent), (0.000001 * (time - startTime)) / 60.0);
                     }
 
-                    i += 1;
+                    height += 1;
                 }
                 catch (std::exception& e)
                 {
