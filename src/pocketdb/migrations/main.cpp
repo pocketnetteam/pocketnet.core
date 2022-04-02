@@ -173,23 +173,18 @@ namespace PocketDb
             );
         )sql");
 
+        _tables.emplace_back(R"sql(
+            create table if not exists System
+            (
+                Db text not null,
+                Version int not null,
+                primary key (Db)
+            );
+        )sql");
+
 
         _preProcessing = R"sql(
-            
-            insert into TxInputs
-            (
-                SpentTxHash,
-                TxHash,
-                Number
-            )
-            select
-                o.SpentTxHash,
-                o.TxHash,
-                o.Number
-            from TxOutputs o indexed by TxOutputs_SpentTxHash
-            where o.SpentTxHash is not null
-              and not exists (select i.ROWID from TxInputs i)
-
+            insert or ignore into System (Db, Version) values ('main', 0);
         )sql";
 
 

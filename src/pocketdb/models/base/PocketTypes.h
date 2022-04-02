@@ -50,8 +50,7 @@ namespace PocketTx
     // Int tx type
     enum TxType
     {
-        NOT_SUPPORTED = 0,
-
+        TX_EMPTY = 0,
         TX_DEFAULT = 1,
         TX_COINBASE = 2,
         TX_COINSTAKE = 3,

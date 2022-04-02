@@ -102,7 +102,7 @@ namespace PocketHelpers
                 [](int i, const CTxOut& o) { return o.nValue + i; });
 
             if (txOutSum <= 0)
-                return TxType::NOT_SUPPORTED;
+                return TxType::TX_EMPTY;
             else
                 return TxType::TX_COINBASE;
         }
@@ -179,27 +179,9 @@ namespace PocketHelpers
         return { !vasm[3].empty(), vasm[3] };
     }
 
-    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx, TxType& txType)
-    {
-        txType = ParseType(tx);
-        return txType != NOT_SUPPORTED;
-    }
-
-    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx)
-    {
-        TxType txType = NOT_SUPPORTED;
-        return IsPocketSupportedTransaction(tx, txType);
-    }
-
-    bool TransactionHelper::IsPocketSupportedTransaction(const CTransaction& tx)
-    {
-        auto txRef = MakeTransactionRef(tx);
-        return IsPocketSupportedTransaction(txRef);
-    }
-
     bool TransactionHelper::IsPocketTransaction(TxType& txType)
     {
-        return txType != NOT_SUPPORTED &&
+        return txType != TX_EMPTY &&
                txType != TX_COINBASE &&
                txType != TX_COINSTAKE &&
                txType != TX_DEFAULT;
@@ -263,6 +245,9 @@ namespace PocketHelpers
         PTransactionRef ptx = nullptr;
         switch (txType)
         {
+            case TX_EMPTY:
+                ptx = make_shared<Empty>();
+                break;
             case TX_COINBASE:
                 ptx = make_shared<Coinbase>(tx);
                 break;
@@ -338,6 +323,9 @@ namespace PocketHelpers
         PTransactionRef ptx = nullptr;
         switch (txType)
         {
+            case TX_EMPTY:
+                ptx = make_shared<Empty>();
+                break;
             case TX_COINBASE:
                 ptx = make_shared<Coinbase>();
                 break;
@@ -473,6 +461,6 @@ namespace PocketHelpers
         else if (type == "commentDelete" || type == OR_COMMENT_DELETE) return TxType::CONTENT_COMMENT_DELETE;
         else if (type == "cScore" || type == OR_COMMENT_SCORE) return TxType::ACTION_SCORE_COMMENT;
         else if (type == "contentBoost" || type == OR_CONTENT_BOOST) return TxType::BOOST_CONTENT;
-        else return TxType::NOT_SUPPORTED;
+        else return TxType::TX_EMPTY;
     }
 }

@@ -101,9 +101,9 @@ namespace PocketConsensus
         // Check all transactions in block and payload block
         for (const auto& tx : block.vtx)
         {
-            // NOT_SUPPORTED transactions not checked
+            // TX_EMPTY transactions not checked
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
-            if (txType == TxType::NOT_SUPPORTED)
+            if (txType == TxType::TX_EMPTY)
                 continue;
             if (coinstakeBlock && txType == TxType::TX_COINBASE)
                 continue;
@@ -260,6 +260,7 @@ namespace PocketConsensus
     {
         switch (txType)
         {
+            case TX_EMPTY:
             case TX_COINBASE:
             case TX_COINSTAKE:
             case TX_DEFAULT:

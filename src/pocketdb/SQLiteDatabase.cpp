@@ -6,6 +6,9 @@
 #include "util/system.h"
 #include "pocketdb/pocketnet.h"
 #include "util/translation.h"
+#include "validation.h"
+
+#include "pocketdb/services/Serializer.h"
 
 namespace PocketDb
 {
@@ -59,6 +62,7 @@ namespace PocketDb
         RatingsRepoInst.Init();
         ConsensusRepoInst.Init();
         NotifierRepoInst.Init();
+        SystemRepoInst.Init();
 
         // Open, create structure and close `web` db
         PocketDbMigrationRef webDbMigration = std::make_shared<PocketDbWebMigration>();
@@ -107,6 +111,86 @@ namespace PocketDb
         if (ret != SQLITE_OK)
         {
             LogPrintf("%s: %d; Failed to shutdown SQLite: %s\n", __func__, ret, sqlite3_errstr(ret));
+        }
+    }
+
+    void SQLiteDatabase::InitMigration()
+    {
+
+        /*** Update Pocket DB from 0 to version 1 ********************************************
+         *
+         * This migration is necessary to fill the database with TxOutputs
+         * records with OP_RETURN records - these records were not saved initially in the database
+         * 
+         * It is also necessary to fill in the TxInputs table
+         * 
+         * Since the data of these tables become critically important for the operation of the node,
+         * it is necessary to make sure that they are available and valid.
+         * To do this, a full chainActive scan is performed, checking for the presence of all data.
+         * 
+         * Only after the end of the process, the DB version will be increased - in case of a process failure.
+         * 
+         ************************************************************************************/
+        const string dbNameMain = "main";
+        const int newDbVersion = 1;
+        int dbVersion = SystemRepoInst.GetDbVersion(dbNameMain);
+
+        if (dbVersion < newDbVersion)
+        {
+            int i = 0;
+            int percent = ChainActive().Height() / 100;
+            int64_t startTime = GetTimeMicros();
+
+            while (i <= ChainActive().Height() && !ShutdownRequested())
+            {
+                try
+                {
+                    // Read block from disk
+                    CBlock block;
+                    CBlockIndex* pblockindex = ChainActive()[i];
+                    if (!pblockindex || !ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+                    {
+                        LogPrintf("Failed read block %s from disk. Stopping\n", pblockindex->GetBlockHash().GetHex());
+                        StartShutdown();
+                        return;
+                    }
+
+                    for (const auto& tx : block.vtx)
+                    {
+                        // The default logic is used to deserialize the necessary data
+                        // We can use standard methods to write data to the database, because inside `INSERT OR IGNORE` is used
+                        // This will allow us to record only the missing data without changing the existing ones.
+                        if (auto[ok, ptx] = PocketServices::Serializer::DeserializeTransaction(tx); ok)
+                        {
+                            TransRepoInst.InsertTransactionInputs(ptx);
+                            TransRepoInst.InsertTransactionOutputs(ptx);
+                        }
+                        else
+                        {
+                            LogPrintf("Failed deserialize tx %s in block %s. Stopping\n", tx->GetHash().GetHex(), pblockindex->GetBlockHash().GetHex());
+                            StartShutdown();
+                            return;
+                        }
+                    }
+
+                    // Message for logging
+                    if (i % percent == 0)
+                    {
+                        int64_t time = GetTimeMicros();
+                        LogPrintf("Updating Pocket DB: %d%% (%.2fm)\n", (i / percent), (0.000001 * (time - startTime)) / 60.0);
+                    }
+
+                    i += 1;
+                }
+                catch (std::exception& e)
+                {
+                    LogPrintf("Unknown error: %s\n", e.what());
+                    StartShutdown();
+                    return;
+                }
+            }
+
+            SystemRepoInst.SetDbVersion(dbNameMain, newDbVersion);
         }
     }
 

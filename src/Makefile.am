@@ -141,6 +141,7 @@ POCKETDB_H = \
     pocketdb/repositories/ConsensusRepository.h \
     pocketdb/repositories/RatingsRepository.h \
     pocketdb/repositories/CheckpointRepository.h \
+    pocketdb/repositories/SystemRepository.h \
     pocketdb/repositories/web/WebRepository.h \
     pocketdb/repositories/web/WebRpcRepository.h \
     pocketdb/repositories/web/NotifierRepository.h \
@@ -188,6 +189,7 @@ POCKETDB_H = \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/ReturnDtoModels.h \
     \
+    pocketdb/models/dto/Empty.h \
     pocketdb/models/dto/Default.h \
     pocketdb/models/dto/Coinbase.h \
     pocketdb/models/dto/Coinstake.h \
@@ -237,6 +239,7 @@ POCKETDB_CPP = \
     pocketdb/repositories/TransactionRepository.cpp \
     pocketdb/repositories/RatingsRepository.cpp \
     pocketdb/repositories/CheckpointRepository.cpp \
+    pocketdb/repositories/SystemRepository.cpp \
     pocketdb/repositories/web/WebRepository.cpp \
     pocketdb/repositories/web/WebRpcRepository.cpp \
     pocketdb/repositories/web/NotifierRepository.cpp \
@@ -270,6 +273,7 @@ POCKETDB_CPP = \
     pocketdb/web/PocketRpc.cpp \
     pocketdb/web/WebRpcUtils.cpp \
     \
+    pocketdb/models/dto/Empty.cpp \
     pocketdb/models/dto/Default.cpp \
     pocketdb/models/dto/Coinbase.cpp \
     pocketdb/models/dto/Coinstake.cpp \

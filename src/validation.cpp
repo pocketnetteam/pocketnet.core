@@ -1036,20 +1036,16 @@ bool MemPoolAccept::Finalize(ATMPArgs& args, Workspace& ws)
     }
 
     // For supported transactions payload must be exists
-    if (!_pocketTx && PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx))
+    if (!_pocketTx)
         return state.Invalid(TxValidationResult::TX_SOCIAL_UNWARRANT, "pocketnet payload data not found");
 
-    // Check consensus if transaction payload exists
-    if (_pocketTx)
-    {
-        // Check transaction with pocketnet base rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, ::ChainActive().Height() + 1); !ok)
-            return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result), (int)result);
+    // Check transaction with pocketnet base rules
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Check(ptx, _pocketTx, ::ChainActive().Height() + 1); !ok)
+        return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_CONSENSUS, strprintf("Failed SocialConsensusHelper::Check with result %d\n", (int)result), (int)result);
 
-        // Check transaction with pocketnet consensus rules
-        if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
-            return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_UNWARRANT, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result), (int)result);
-    }
+    // Check transaction with pocketnet consensus rules
+    if (auto[ok, result] = PocketConsensus::SocialConsensusHelper::Validate(ptx, _pocketTx, ChainActive().Height() + 1); !ok)
+        return state.ConsensusFailed(TxValidationResult::TX_SOCIAL_UNWARRANT, strprintf("Failed SocialConsensusHelper::Validate with result %d\n", (int)result), (int)result);
 
     // At this point, we believe that all the checks have been carried
     // out and we can safely save the transaction to the database for

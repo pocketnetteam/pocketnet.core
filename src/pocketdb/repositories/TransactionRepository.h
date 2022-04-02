@@ -37,6 +37,11 @@ namespace PocketDb
 
         //  Base transaction operations
         void InsertTransactions(PocketBlock& pocketBlock);
+        void InsertTransactionModel(const PTransactionRef& ptx);
+        void InsertTransactionPayload(const PTransactionRef& ptx);
+        void InsertTransactionInputs(const PTransactionRef& ptx);
+        void InsertTransactionOutputs(const PTransactionRef& ptx);
+
         PocketBlockRef List(const vector<string>& txHashes, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
         PTransactionRef Get(const string& hash, bool includePayload = false, bool includeInputs = false, bool includeOutputs = false);
         PTransactionOutputRef GetTxOutput(const string& txHash, int number);
@@ -48,12 +53,6 @@ namespace PocketDb
         void CleanTransaction(const string& hash);
         void CleanMempool();
         void Clean();
-
-    private:
-        void InsertTransactionInputs(const PTransactionRef& ptx);
-        void InsertTransactionOutputs(const PTransactionRef& ptx);
-        void InsertTransactionPayload(const PTransactionRef& ptx);
-        void InsertTransactionModel(const PTransactionRef& ptx);
 
     protected:
         tuple<bool, PTransactionRef> CreateTransactionFromListRow(
