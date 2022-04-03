@@ -7,6 +7,7 @@
 #include "pocketdb/pocketnet.h"
 #include "util/translation.h"
 #include "validation.h"
+#include <node/ui_interface.h>
 
 #include "pocketdb/services/Serializer.h"
 
@@ -114,7 +115,7 @@ namespace PocketDb
         }
     }
 
-    void SQLiteDatabase::InitMigration()
+    void SQLiteDatabase::InitMigration(bool& cleanMempool)
     {
 
         /*** Update Pocket DB from 0 to version 1 ********************************************
@@ -137,12 +138,17 @@ namespace PocketDb
 
         if (dbVersion < newDbVersion)
         {
-            // TODO (team): Clean mempool
+            // Clean mempool for resaving transactions data
+            cleanMempool = true;
 
+            // For optimize work drop all indexes
+            uiInterface.InitMessage("Preparing the database for updating..");
+            DropIndexes();
+
+            // Full rescan blockchain for resaving all transactions data
             int height = 0;
             int percent = ChainActive().Height() / 100;
             int64_t startTime = GetTimeMicros();
-
             while (height <= ChainActive().Height() && !ShutdownRequested())
             {
                 try
@@ -187,6 +193,7 @@ namespace PocketDb
                     if (height % percent == 0)
                     {
                         int64_t time = GetTimeMicros();
+                        uiInterface.InitMessage(tfm::format("Updating Pocket DB: %d%% (%.2fm)", (height / percent), (0.000001 * (time - startTime)) / 60.0));
                         LogPrintf("Updating Pocket DB: %d%% (%.2fm)\n", (height / percent), (0.000001 * (time - startTime)) / 60.0);
                     }
 
@@ -200,6 +207,10 @@ namespace PocketDb
                 }
             }
 
+            // Restore db structure
+            CreateStructure();
+
+            // Increment db version
             SystemRepoInst.SetDbVersion(dbNameMain, newDbVersion);
         }
     }
@@ -335,7 +346,8 @@ namespace PocketDb
 
         try
         {
-            LogPrintf("Migration Sqlite database `%s` structure..\n", m_file_path);
+            uiInterface.InitMessage(tfm::format("Updating Pocket DB `%s` structure..", m_file_path));
+            LogPrintf("Updating Pocket DB`%s` structure..\n", m_file_path);
 
             if (sqlite3_get_autocommit(m_db) == 0)
                 throw std::runtime_error(strprintf("%s: Database `%s` not opened?\n", __func__, m_file_path));
