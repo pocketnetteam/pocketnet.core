@@ -22,7 +22,6 @@ namespace PocketDb
     using namespace std;
 
     void InitSQLite(fs::path path);
-
     void InitSQLiteCheckpoints(fs::path path);
 
     class SQLiteDatabase
