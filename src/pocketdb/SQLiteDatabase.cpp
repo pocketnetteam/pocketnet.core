@@ -12,7 +12,7 @@ namespace PocketDb
     static void ErrorLogCallback(void* arg, int code, const char* msg)
     {
         // From sqlite3_config() documentation for the SQLITE_CONFIG_LOG option:
-        // "The void pointer that is the second argument t SQLITE_CONFIG_LOG is passed through as
+        // "The void pointer that is the second argument to SQLITE_CONFIG_LOG is passed through as
         // the first parameter to the application-defined logger function whenever that function is
         // invoked."
         // Assert that this is the case:

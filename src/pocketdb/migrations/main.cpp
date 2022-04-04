@@ -34,7 +34,17 @@ namespace PocketDb
                 -- Comment.Id
                 Id        int    null,
 
-                -- SocialTransaction.AddressHash
+                -- AccountUser.AddressHash
+                -- ContentPost.AddressHash
+                -- ContentVideo.AddressHash
+                -- ContentDelete.AddressHash
+                -- Comment.AddressHash
+                -- ScorePost.AddressHash
+                -- ScoreComment.AddressHash
+                -- Subscribe.AddressHash
+                -- Blocking.AddressHash
+                -- Complain.AddressHash
+                -- Boost.AddressHash
                 String1   text   null,
 
                 -- AccountUser.ReferrerAddressHash
