@@ -60,7 +60,8 @@ namespace PocketConsensus
                 return {false, baseCheckCode};
 
             // Check required fields
-            if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
+            if (IsEmpty(ptx->GetAddress()))
+                return {false, SocialConsensusResult_Failed};
 
             return Success;
         }
