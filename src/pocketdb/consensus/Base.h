@@ -77,6 +77,10 @@ namespace PocketConsensus
         SocialConsensusResult_BadPayload = 59,
         SocialConsensusResult_ScoreLowReputation = 60,
         SocialConsensusResult_ChangeInfoDoubleInMempool = 61,
+        SocialConsensusResult_Duplicate = 62,
+
+        SocialConsensusResult_ExceededLimit = 100,
+        SocialConsensusResult_LowReputation = 101,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
@@ -141,6 +145,12 @@ namespace PocketConsensus
             case (SocialConsensusResult_ScoreDeletedContent): return "ScoreDeletedContent";
             case (SocialConsensusResult_RelayContentNotFound): return "RelayContentNotFound";
             case (SocialConsensusResult_BadPayload): return "BadPayload";
+            case (SocialConsensusResult_ChangeInfoDoubleInMempool): return "ChangeInfoDoubleInMempool";
+            case (SocialConsensusResult_Duplicate): return "Duplicate";
+
+            case (SocialConsensusResult_ExceededLimit): return "ExceededLimit";
+            case (SocialConsensusResult_LowReputation): return "LowReputation";
+
             default: return "Unknown";
         }
     }
@@ -210,6 +220,9 @@ namespace PocketConsensus
         ConsensusLimit_lottery_referral_depth,
 
         ConsensusLimit_bad_reputation,
+
+        ConsensusLimit_moderation_flag_count,
+        ConsensusLimit_moderation_flag_one_to_one_depth,
     };
 
     /*********************************************************************************************/
@@ -1077,6 +1090,28 @@ namespace PocketConsensus
                 }
             }
         },
+
+        //
+        // MODERATION
+        //
+
+        { ConsensusLimit_moderation_flag_count, {
+            { NetworkMain, {
+                {0, 30}
+            }},
+            { NetworkTest, {
+                {0, 100}
+            }}
+        }},
+        { ConsensusLimit_moderation_flag_one_to_one_depth, {
+            { NetworkMain, {
+                {0, 43200}
+            }},
+            { NetworkTest, {
+                {0, 60}
+            }}
+        }},
+        
     };
 
     /*********************************************************************************************/

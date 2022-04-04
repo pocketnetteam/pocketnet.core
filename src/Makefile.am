@@ -164,6 +164,8 @@ POCKETDB_H = \
     pocketdb/consensus/social/AccountSetting.hpp \
     pocketdb/consensus/social/ContentDelete.hpp \
     \
+    pocketdb/consensus/moderation/Flag.hpp \
+    \
     pocketdb/models/base/PocketTypes.h \
     pocketdb/models/base/Base.h \
     pocketdb/models/base/Payload.h \
@@ -197,7 +199,7 @@ POCKETDB_H = \
     pocketdb/models/dto/Complain.h \
     pocketdb/models/dto/Video.h \
     pocketdb/models/dto/Article.h \
-    pocketdb/models/dto/moderation/ModerationFlag.h \
+    pocketdb/models/dto/moderation/Flag.h \
     \
     pocketdb/models/web/WebTag.h \
     pocketdb/models/web/WebContent.h \
@@ -283,7 +285,7 @@ POCKETDB_CPP = \
     pocketdb/models/dto/Video.cpp \
     pocketdb/models/dto/BoostContent.cpp \
     pocketdb/models/dto/Article.cpp \
-    pocketdb/models/dto/moderation/ModerationFlag.cpp
+    pocketdb/models/dto/moderation/Flag.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \

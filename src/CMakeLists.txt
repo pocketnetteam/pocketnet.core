@@ -415,12 +415,12 @@ add_library(${POCKETDB}
         pocketdb/models/dto/Complain.cpp
         pocketdb/models/dto/AccountSetting.cpp
         pocketdb/models/dto/ContentDelete.cpp
+        pocketdb/models/dto/moderation/Flag.h
+        pocketdb/models/dto/moderation/Flag.cpp
         pocketdb/models/web/WebTag.h
         pocketdb/models/web/WebContent.h
         pocketdb/models/dto/BoostContent.cpp
         pocketdb/models/web/SearchRequest.h
-        pocketdb/models/dto/moderation/ModerationFlag.h
-        pocketdb/models/dto/moderation/ModerationFlag.cpp
         )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
 
@@ -817,6 +817,7 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/AccountSetting.hpp
         pocketdb/consensus/social/ContentDelete.hpp
         pocketdb/consensus/social/BoostContent.hpp
+        pocketdb/consensus/moderation/Flag.hpp
         pocketdb/consensus/Helper.cpp
         pocketdb/consensus/Base.cpp
         pocketdb/consensus/Lottery.cpp

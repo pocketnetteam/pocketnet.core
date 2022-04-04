@@ -42,10 +42,11 @@ namespace PocketTx
     #define OR_SERVER_PING "73657276657250696e67"          // Server ping over Posts
 
     #define OR_CONTENT_DELETE "636f6e74656e7444656c657465" // Deleting content
-
     #define OR_CONTENT_BOOST "636f6e74656e74426f6f7374" // Boost content
-
     #define OR_ACCOUNT_SETTING "616363536574" // Public account settings (accSet)
+
+    #define OR_MODERATION_FLAG "6d6f64466c6167" // Flag for moderation
+    
 
     // Int tx type
     enum TxType

@@ -19,6 +19,9 @@ namespace PocketTx
 
         shared_ptr<string> GetContentTxHash() const;
         void SetContentTxHash(const string& value);
+        
+        shared_ptr<string> GetContentAddressHash() const;
+        void SetContentAddressHash(const string& value);
 
         shared_ptr<int64_t> GetReason() const;
         void SetReason(int64_t value);
