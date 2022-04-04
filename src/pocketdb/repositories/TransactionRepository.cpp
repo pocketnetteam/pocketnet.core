@@ -500,21 +500,23 @@ namespace PocketDb
         {
             // Build transaction output
             auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO TxInputs
+                INSERT OR IGNORE INTO TxInputs
                 (
                     SpentTxHash,
                     TxHash,
                     Number
-                ) SELECT ?,?,?
-                WHERE not exists (select 1 from TxInputs i where i.SpentTxHash = ? and i.TxHash = ? and i.Number = ?)
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?
+                )
             )sql");
 
             TryBindStatementText(stmt, 1, input->GetSpentTxHash());
             TryBindStatementText(stmt, 2, input->GetTxHash());
             TryBindStatementInt64(stmt, 3, input->GetNumber());
-            TryBindStatementText(stmt, 4, input->GetSpentTxHash());
-            TryBindStatementText(stmt, 5, input->GetTxHash());
-            TryBindStatementInt64(stmt, 6, input->GetNumber());
 
             TryStepStatement(stmt);
         }
@@ -526,14 +528,21 @@ namespace PocketDb
         {
             // Build transaction output
             auto stmt = SetupSqlStatement(R"sql(
-                INSERT OR FAIL INTO TxOutputs (
+                INSERT OR IGNORE INTO TxOutputs (
                     TxHash,
                     Number,
                     AddressHash,
                     Value,
                     ScriptPubKey
-                ) SELECT ?,?,?,?,?
-                WHERE not exists (select 1 from TxOutputs o where o.TxHash = ? and o.Number = ? and o.AddressHash = ?)
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?
+                )
             )sql");
 
             TryBindStatementText(stmt, 1, output->GetTxHash());
@@ -541,9 +550,6 @@ namespace PocketDb
             TryBindStatementText(stmt, 3, output->GetAddressHash());
             TryBindStatementInt64(stmt, 4, output->GetValue());
             TryBindStatementText(stmt, 5, output->GetScriptPubKey());
-            TryBindStatementText(stmt, 6, output->GetTxHash());
-            TryBindStatementInt64(stmt, 7, output->GetNumber());
-            TryBindStatementText(stmt, 8, output->GetAddressHash());
 
             TryStepStatement(stmt);
         }

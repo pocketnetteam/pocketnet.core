@@ -48,11 +48,13 @@ namespace PocketDb
         // Check block exist in db
         tuple<bool, bool> ExistsBlock(const string& blockHash, int height);
 
-        void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
-        void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
+    private:
 
         void RollbackHeight(int height);
         void RestoreOldLast(int height);
+
+        void UpdateTransactionHeight(const string& blockHash, int blockNumber, int height, const string& txHash);
+        void UpdateTransactionOutputs(const TransactionIndexingInfo& txInfo, int height);
 
         void IndexAccount(const string& txHash);
         void IndexContent(const string& txHash);

@@ -50,7 +50,7 @@ namespace PocketDb
 
         void Cleanup() noexcept;
         
-        void InitMigration(bool& cleanMempool);
+        /* void InitMigration(bool& cleanMempool); */
 
         void Close();
 
