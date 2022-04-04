@@ -10,6 +10,7 @@
 #include <utility>
 #include <utilstrencodings.h>
 #include <crypto/sha256.h>
+#include <primitives/transaction.h>
 
 #include "pocketdb/models/base/Payload.h"
 #include "pocketdb/models/base/TransactionInput.h"
@@ -23,8 +24,7 @@ namespace PocketTx
     {
     public:
         Transaction();
-
-        explicit Transaction(const std::shared_ptr<const CTransaction>& tx);
+        Transaction(const CTransactionRef& tx);
 
         virtual shared_ptr<UniValue> Serialize() const;
 

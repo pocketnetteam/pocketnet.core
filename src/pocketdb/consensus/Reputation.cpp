@@ -7,44 +7,37 @@
 namespace PocketConsensus
 {
     using namespace std;
+    using namespace PocketDb;
 
     // -------------------------------
     // Consensus checkpoint at 0 block
-    int64_t ReputationConsensus::GetMinLikers(int addressId)
+    int64_t ReputationConsensus::GetMinLikers(int64_t registrationHeight)
     {
         return GetConsensusLimit(ConsensusLimit_threshold_likers_count);
     }
 
-    bool ReputationConsensus::AllowModifyReputation(int addressId)
+    bool ReputationConsensus::IsShark(const string& address, ConsensusLimit limit)
     {
-        auto minUserReputation = GetConsensusLimit(ConsensusLimit_threshold_reputation_score);
-        auto userReputation = PocketDb::ConsensusRepoInst.GetUserReputation(addressId);
-        if (userReputation < minUserReputation)
-            return false;
+        auto accountData = ConsensusRepoInst.GetAccountData(address);
 
-        auto minLikersCount = GetMinLikers(addressId);
-        auto userLikers = PocketDb::ConsensusRepoInst.GetUserLikersCount(addressId);
-        if (userLikers < minLikersCount)
-            return false;
+        auto minReputation = GetConsensusLimit(limit);
+        auto minLikersCount = GetMinLikers(accountData.RegistrationHeight);
 
-        // All is OK
-        return true;
+        return accountData.Reputation >= minReputation && accountData.LikersCount >= minLikersCount;
     }
 
-    tuple<int, string> ReputationConsensus::SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
+    string ReputationConsensus::SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
     {
         if (lottery)
-            return make_tuple(scoreData->ScoreAddressId, scoreData->ScoreAddressHash);
+            return scoreData->ScoreAddressHash;
 
-        return make_tuple(scoreData->ContentAddressId, scoreData->ContentAddressHash);
+        return scoreData->ContentAddressHash;
     }
 
     bool ReputationConsensus::AllowModifyReputationOverPost(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
     {
-        auto[checkScoreAddressId, checkScoreAddressHash] = SelectAddressScoreContent(scoreData, lottery);
-
         // Check user reputation
-        if (!AllowModifyReputation(checkScoreAddressId))
+        if (!IsShark(SelectAddressScoreContent(scoreData, lottery), ConsensusLimit_threshold_reputation_score))
             return false;
 
         // Disable reputation increment if from one address to one address > 2 scores over day
@@ -79,7 +72,7 @@ namespace PocketConsensus
     bool ReputationConsensus::AllowModifyReputationOverComment(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
     {
         // Check user reputation
-        if (!AllowModifyReputation(scoreData->ScoreAddressId))
+        if (!IsShark(scoreData->ScoreAddressHash, ConsensusLimit_threshold_reputation_score))
             return false;
 
         // Disable reputation increment if from one address to one address > Limit::scores_one_to_one scores over Limit::scores_one_to_one_depth
@@ -165,21 +158,19 @@ namespace PocketConsensus
 
     // ------------------------------------
     // Consensus checkpoint at 151600 block
-    tuple<int, string> ReputationConsensus_checkpoint_151600::SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
+    string ReputationConsensus_checkpoint_151600::SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery)
     {
-        return make_tuple(scoreData->ScoreAddressId, scoreData->ScoreAddressHash);
+        return scoreData->ScoreAddressHash;
     }
 
     // -------------------------------------
     // Consensus checkpoint at 1180000 block
-    int64_t ReputationConsensus_checkpoint_1180000::GetMinLikers(int addressId)
+    int64_t ReputationConsensus_checkpoint_1180000::GetMinLikers(int64_t registrationHeight)
     {
-        auto minLikersCount = GetConsensusLimit(ConsensusLimit_threshold_likers_count);
-        auto accountRegistrationHeight = PocketDb::ConsensusRepoInst.GetAccountRegistrationHeight(addressId);
-        if (Height - accountRegistrationHeight > GetConsensusLimit(ConsensusLimit_threshold_low_likers_depth))
-            minLikersCount = GetConsensusLimit(ConsensusLimit_threshold_low_likers_count);
+        if (Height - registrationHeight > GetConsensusLimit(ConsensusLimit_threshold_low_likers_depth))
+            return GetConsensusLimit(ConsensusLimit_threshold_low_likers_count);
 
-        return minLikersCount;
+        return GetConsensusLimit(ConsensusLimit_threshold_likers_count);
     }
 
     // -------------------------------------

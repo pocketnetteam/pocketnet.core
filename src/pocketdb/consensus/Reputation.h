@@ -16,15 +16,15 @@ namespace PocketConsensus
     class ReputationConsensus : public BaseConsensus
     {
     protected:
-        virtual int64_t GetMinLikers(int addressId);
-        virtual bool AllowModifyReputation(int addressId);
-        virtual tuple<int, string> SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
+        virtual int64_t GetMinLikers(int64_t registrationHeight);
+        virtual string SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
         virtual bool AllowModifyReputationOverPost(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
         virtual bool AllowModifyReputationOverComment(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
 
     public:
         explicit ReputationConsensus(int height) : BaseConsensus(height) {}
 
+        virtual bool IsShark(const string& address, ConsensusLimit limit = ConsensusLimit_threshold_reputation);
         virtual AccountMode GetAccountMode(int reputation, int64_t balance);
         virtual tuple<AccountMode, int, int64_t> GetAccountMode(string& address);
         virtual bool AllowModifyReputation(shared_ptr<ScoreDataDto>& scoreData, bool lottery);
@@ -39,7 +39,7 @@ namespace PocketConsensus
     public:
         explicit ReputationConsensus_checkpoint_151600(int height) : ReputationConsensus(height) {}
     protected:
-        tuple<int, string> SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery) override;
+        string SelectAddressScoreContent(shared_ptr<ScoreDataDto>& scoreData, bool lottery) override;
     };
 
     // ------------------------------------------
@@ -49,7 +49,7 @@ namespace PocketConsensus
     public:
         explicit ReputationConsensus_checkpoint_1180000(int height) : ReputationConsensus_checkpoint_151600(height) {}
     protected:
-        int64_t GetMinLikers(int addressId) override;
+        int64_t GetMinLikers(int64_t registrationHeight) override;
     };
 
     // ------------------------------------------
