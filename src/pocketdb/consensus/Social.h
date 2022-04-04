@@ -2,8 +2,8 @@
 // Distributed under the Apache 2.0 software license, see the accompanying
 // https://www.apache.org/licenses/LICENSE-2.0
 
-#ifndef POCKETCONSENSUS_SOCIALT_H
-#define POCKETCONSENSUS_SOCIALT_H
+#ifndef POCKETCONSENSUS_SOCIAL_H
+#define POCKETCONSENSUS_SOCIAL_H
 
 #include <utility>
 
@@ -135,4 +135,4 @@ namespace PocketConsensus
     };
 }
 
-#endif // POCKETCONSENSUS_SOCIALT_H
+#endif // POCKETCONSENSUS_SOCIAL_H

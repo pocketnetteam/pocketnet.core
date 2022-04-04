@@ -360,6 +360,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Transaction.h
         pocketdb/models/base/TransactionInput.h
         pocketdb/models/base/TransactionOutput.h
+        pocketdb/models/base/SocialTransaction.h
         pocketdb/models/base/Rating.h
         pocketdb/models/base/ReturnDtoModels.h
         pocketdb/models/dto/Default.h
@@ -388,6 +389,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Transaction.cpp
         pocketdb/models/base/TransactionInput.cpp
         pocketdb/models/base/TransactionOutput.cpp
+        pocketdb/models/base/SocialTransaction.cpp
         pocketdb/models/base/Rating.cpp
         pocketdb/models/dto/Default.cpp
         pocketdb/models/dto/Coinbase.cpp
@@ -417,6 +419,8 @@ add_library(${POCKETDB}
         pocketdb/models/web/WebContent.h
         pocketdb/models/dto/BoostContent.cpp
         pocketdb/models/web/SearchRequest.h
+        pocketdb/models/dto/moderation/ModerationFlag.h
+        pocketdb/models/dto/moderation/ModerationFlag.cpp
         )
 target_link_libraries(${POCKETDB} PRIVATE ${POCKETCOIN_COMMON} ${POCKETCOIN_UTIL} ${POCKETCOIN_CRYPTO} univalue leveldb)
 
@@ -779,6 +783,8 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/repositories/ConsensusRepository.cpp
         pocketdb/repositories/CheckpointRepository.h
         pocketdb/repositories/CheckpointRepository.cpp
+        pocketdb/repositories/SystemRepository.h
+        pocketdb/repositories/SystemRepository.cpp
         pocketdb/repositories/web/NotifierRepository.h
         pocketdb/repositories/web/NotifierRepository.cpp
         pocketdb/repositories/web/WebRepository.h
