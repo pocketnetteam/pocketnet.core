@@ -350,24 +350,10 @@ namespace PocketConsensus
                 }
             }
         },
-        // ConsensusLimit_threshold_low_likers_count
-        {
-            ConsensusLimit_threshold_low_likers_count,
-            {
-                {
-                    NetworkMain,
-                    {
-                        {0, 30}
-                    }
-                },
-                {
-                    NetworkTest,
-                    {
-                        {0, 30}
-                    }
-                }
-            }
-        },
+        { ConsensusLimit_threshold_low_likers_count, {
+            { NetworkMain, { {0, 30} }},
+            { NetworkTest, { {0, 30}, {450000, 0} }}
+        }},
         // ConsensusLimit_threshold_low_likers_depth
         {
             ConsensusLimit_threshold_low_likers_depth,
@@ -1096,20 +1082,12 @@ namespace PocketConsensus
         //
 
         { ConsensusLimit_moderation_flag_count, {
-            { NetworkMain, {
-                {0, 30}
-            }},
-            { NetworkTest, {
-                {0, 100}
-            }}
+            { NetworkMain, { {0, 30} }},
+            { NetworkTest, { {0, 100} }}
         }},
         { ConsensusLimit_moderation_flag_one_to_one_depth, {
-            { NetworkMain, {
-                {0, 43200}
-            }},
-            { NetworkTest, {
-                {0, 60}
-            }}
+            { NetworkMain, { {0, 43200} }},
+            { NetworkTest, { {0, 60} }}
         }},
         
     };
