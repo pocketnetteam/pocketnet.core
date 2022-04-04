@@ -85,6 +85,11 @@ namespace PocketTx
         ACTION_BLOCKING_CANCEL = 306,
 
         ACTION_COMPLAIN = 307,
+
+        MODERATOR_REQUEST = 400, // Some users have the right to choose a moderator
+        MODERATOR_REGISTER = 401, // Each moderator must define a list of public key hashes for voting
+        MODERATION_FLAG = 410, // Flags are used to mark content that needs moderation
+        MODERATION_VOTE = 420, // Votes is used by moderators in the jury process
     };
 
     // Rating types
