@@ -133,7 +133,7 @@ namespace PocketDb
          * Only after the end of the process, the DB version will be increased - in case of a process failure.
          * 
          ************************************************************************************/
-        const string dbNameMain = "main";
+/*        const string dbNameMain = "main";
         const int newDbVersion = 1;
         int dbVersion = SystemRepoInst.GetDbVersion(dbNameMain);
 
