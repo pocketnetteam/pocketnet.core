@@ -24,7 +24,7 @@ POCKETCOIN_DAEMON_NAME=pocketcoind
 POCKETCOIN_GUI_NAME=pocketcoin-qt
 POCKETCOIN_CLI_NAME=pocketcoin-cli
 POCKETCOIN_TX_NAME=pocketcoin-tx
-POCKETCOIN_WALLET_TOOL_NAME=pocketcoin-wallet
+# POCKETCOIN_WALLET_TOOL_NAME=pocketcoin-wallet
 
 dnl Unless the user specified ARFLAGS, force it to be cr
 AC_ARG_VAR(ARFLAGS, [Flags for the archiver, defaults to <cr> if not set])
@@ -257,7 +257,7 @@ AC_ARG_WITH([mpgen],
 
 AC_ARG_ENABLE([multiprocess],
   [AS_HELP_STRING([--enable-multiprocess],
-  [build multiprocess pocketcoin-node, pocketcoin-wallet, and pocketcoin-gui executables in addition to monolithic pocketcoind and pocketcoin-qt executables. Requires libmultiprocess library. Experimental (default is no)])],
+  [build multiprocess pocketcoin-node, and pocketcoin-gui executables in addition to monolithic pocketcoind and pocketcoin-qt executables. Requires libmultiprocess library. Experimental (default is no)])],
   [enable_multiprocess=$enableval],
   [enable_multiprocess=no])
 
@@ -545,7 +545,7 @@ CPPFLAGS="$CPPFLAGS -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS"
 
 AC_ARG_WITH([utils],
   [AS_HELP_STRING([--with-utils],
-  [build pocketcoin-cli pocketcoin-tx pocketcoin-wallet (default=yes)])],
+  [build pocketcoin-cli pocketcoin-tx (default=yes)])],
   [build_pocketcoin_utils=$withval],
   [build_pocketcoin_utils=yes])
 
@@ -561,11 +561,11 @@ AC_ARG_ENABLE([util-tx],
   [build_pocketcoin_tx=$enableval],
   [build_pocketcoin_tx=$build_pocketcoin_utils])
 
-AC_ARG_ENABLE([util-wallet],
-  [AS_HELP_STRING([--enable-util-wallet],
-  [build pocketcoin-wallet])],
-  [build_pocketcoin_wallet=$enableval],
-  [build_pocketcoin_wallet=$build_pocketcoin_utils])
+# AC_ARG_ENABLE([util-wallet],
+#   [AS_HELP_STRING([--enable-util-wallet],
+#   [build pocketcoin-wallet])],
+#   [build_pocketcoin_wallet=$enableval],
+#   [build_pocketcoin_wallet=$build_pocketcoin_utils])
 
 AC_ARG_WITH([libs],
   [AS_HELP_STRING([--with-libs],
@@ -1264,11 +1264,7 @@ if test x$have_miniupnpc != xno; then
 fi
 fi
 
-if test x$build_pocketcoin_wallet$build_pocketcoin_cli$build_pocketcoin_tx$build_pocketcoind$pocketcoin_enable_qt$use_tests$use_bench = xnonononononono; then
-    use_boost=no
-else
-    use_boost=yes
-fi
+use_boost=yes
 
 if test x$use_boost = xyes; then
 
@@ -1631,7 +1627,7 @@ AC_SUBST(POCKETCOIN_DAEMON_NAME)
 AC_SUBST(POCKETCOIN_GUI_NAME)
 AC_SUBST(POCKETCOIN_CLI_NAME)
 AC_SUBST(POCKETCOIN_TX_NAME)
-AC_SUBST(POCKETCOIN_WALLET_TOOL_NAME)
+# AC_SUBST(POCKETCOIN_WALLET_TOOL_NAME)
 
 AC_SUBST(RELDFLAGS)
 AC_SUBST(DEBUG_CPPFLAGS)
