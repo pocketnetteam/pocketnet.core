@@ -108,7 +108,7 @@ namespace PocketServices
             {
                 case PocketTx::ACTION_SCORE_CONTENT:
                     ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
-                        (scoreData->ScoreValue - 3) * 10;
+                        (scoreData->ScoreValue - 3) * reputationConsensus->GetScoreMultiplier();
 
                     ratingValues[RatingType::RATING_CONTENT][scoreData->ContentId] +=
                         scoreData->ScoreValue - 3;

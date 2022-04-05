@@ -237,7 +237,6 @@ POCKETDB_CPP = \
     pocketdb/consensus/Helper.cpp \
     pocketdb/consensus/Base.cpp \
     pocketdb/consensus/Lottery.cpp \
-    pocketdb/consensus/Reputation.cpp \
     \
     pocketdb/models/base/Base.cpp \
     pocketdb/models/base/Payload.cpp \
