@@ -35,8 +35,8 @@ namespace PocketConsensus
             if (!reputationConsensus->IsShark(*ptx->GetAddress()))
                 return {false, SocialConsensusResult_LowReputation};
 
-            // Target transaction must be a exists and is a content
-            if (!ConsensusRepoInst.Exists(ptx->GetContentTxHash(), { CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }, true))
+            // Target transaction must be a exists and is a content and author should be equals ptx->GetContentAddressHash()
+            if (!ConsensusRepoInst.Exists(*ptx->GetContentTxHash(), *ptx->GetContentAddressHash(), { CONTENT_POST, CONTENT_ARTICLE, CONTENT_VIDEO, CONTENT_COMMENT, CONTENT_COMMENT_EDIT }, true))
                 return {false, SocialConsensusResult_NotFound};
 
             return Success;
@@ -61,7 +61,7 @@ namespace PocketConsensus
             // Count flags in block
             for (auto& blockTx : *block)
             {
-                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATION_FLAG }) || blockTx->GetHash() == ptx->GetHash())
+                if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATION_FLAG }) || *blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
                 auto blockPtx = static_pointer_cast<ModerationFlagRef>(blockTx);

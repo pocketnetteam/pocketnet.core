@@ -364,6 +364,40 @@ namespace PocketDb
         return result;
     }
 
+    bool ConsensusRepository::Exists(const string& txHash, const string& address, const vector<TxType>& types, bool inChain = true)
+    {
+        bool result = false;
+
+        string sql = R"sql(
+            select 1
+            from Transactions
+            where Hash = ?
+              and Type in ( )sql" + join(vector<string>(types.size(), "?"), ",") + R"sql( )
+              and String1 = ?
+        )sql";
+
+        if (inChain)
+            sql += " and Height is not null";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+            
+            int i = 1;
+            TryBindStatementText(stmt, i, txHash);
+            for (const auto& type: types)
+                TryBindStatementInt(stmt, i++, type);
+            TryBindStatementText(stmt, i, address);
+
+            if (sqlite3_step(*stmt) == SQLITE_ROW)
+                result = true;
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
 
     int64_t ConsensusRepository::GetUserBalance(const string& address)
     {
