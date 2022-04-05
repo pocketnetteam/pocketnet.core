@@ -1086,8 +1086,8 @@ namespace PocketConsensus
             { NetworkTest, { {0, 100} }}
         }},
         { ConsensusLimit_moderation_flag_one_to_one_depth, {
-            { NetworkMain, { {0, 43200} }},
-            { NetworkTest, { {0, 60} }}
+            { NetworkMain, { {0, 10000} }},
+            { NetworkTest, { {0, 600} }}
         }},
         
     };

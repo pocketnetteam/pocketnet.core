@@ -163,11 +163,6 @@ namespace PocketConsensus
                 }
             }
         }
-    
-        virtual int GetScoreMultiplier()
-        {
-            return 10;
-        }
     };
 
     // Consensus checkpoint at 151600 block
@@ -233,17 +228,6 @@ namespace PocketConsensus
         }
     };
 
-    // Consensus checkpoint: reducing the impact on the reputation of scores 1,2 for content
-    class ReputationConsensus_checkpoint_scores_reducing_impact : public ReputationConsensus_checkpoint_1324655_2
-    {
-    public:
-        explicit ReputationConsensus_checkpoint_scores_reducing_impact(int height) : ReputationConsensus_checkpoint_1324655_2(height) {}
-        int GetScoreMultiplier() override
-        {
-            return 1;
-        }
-    };
-
     //  Factory for select actual rules version
     class ReputationConsensusFactory
     {
@@ -254,7 +238,6 @@ namespace PocketConsensus
             { 1180000,     0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
             { 1324655, 65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
             { 1324655, 75000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655_2>(height); }},
-            { 9999999, 75000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_reducing_impact>(height); }},  // TODO (brangr): !!!!!! set heights 761000 for test
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
