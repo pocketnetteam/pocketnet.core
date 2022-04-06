@@ -417,6 +417,8 @@ namespace PocketDb
                     )
                 ),0) as ReferralsCount
 
+                , u.Hash as AccountHash
+
             )sql";
         }
 
@@ -551,6 +553,7 @@ namespace PocketDb
                     }
                     
                     if (auto[ok, value] = TryGetColumnInt(*stmt, 21); ok) record.pushKV("rc", value);
+                    if (auto[ok, value] = TryGetColumnText(*stmt, 22); ok) record.pushKV("hash", value);
                 }
 
                 result.emplace_back(address, id, record);
