@@ -23,7 +23,7 @@ namespace PocketTx
         void DeserializePayload(const UniValue& src) override;
 
         shared_ptr<string> GetAddress() const;
-        void SetAddress(const string& value) override;
+        void SetAddress(const string& value);
 
         shared_ptr<string> GetAddressTo() const;
         void SetAddressTo(const string& value);

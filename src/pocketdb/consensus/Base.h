@@ -78,6 +78,7 @@ namespace PocketConsensus
         SocialConsensusResult_ScoreLowReputation = 60,
         SocialConsensusResult_ChangeInfoDoubleInMempool = 61,
         SocialConsensusResult_Duplicate = 62,
+        SocialConsensusResult_NotImplemeted = 63,
 
         SocialConsensusResult_ExceededLimit = 100,
         SocialConsensusResult_LowReputation = 101,
@@ -147,6 +148,7 @@ namespace PocketConsensus
             case (SocialConsensusResult_BadPayload): return "BadPayload";
             case (SocialConsensusResult_ChangeInfoDoubleInMempool): return "ChangeInfoDoubleInMempool";
             case (SocialConsensusResult_Duplicate): return "Duplicate";
+            case (SocialConsensusResult_NotImplemeted): return "NotImplemeted";
 
             case (SocialConsensusResult_ExceededLimit): return "ExceededLimit";
             case (SocialConsensusResult_LowReputation): return "LowReputation";
@@ -266,7 +268,7 @@ namespace PocketConsensus
                 {
                     NetworkTest,
                     {
-                        {0, 100}
+                        {0, 0} // TODO !!!!!!!: return 100
                     }
                 }
             }
@@ -352,7 +354,7 @@ namespace PocketConsensus
         },
         { ConsensusLimit_threshold_low_likers_count, {
             { NetworkMain, { {0, 30} }},
-            { NetworkTest, { {0, 30}, {300000, 0} }}
+            { NetworkTest, { {0, 30}, {300000, 0} }} // TODO !!!!!!!: change height to 761000
         }},
         // ConsensusLimit_threshold_low_likers_depth
         {

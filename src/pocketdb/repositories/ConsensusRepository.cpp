@@ -384,10 +384,10 @@ namespace PocketDb
             auto stmt = SetupSqlStatement(sql);
             
             int i = 1;
-            TryBindStatementText(stmt, i, txHash);
+            TryBindStatementText(stmt, i++, txHash);
             for (const auto& type: types)
                 TryBindStatementInt(stmt, i++, type);
-            TryBindStatementText(stmt, i, address);
+            TryBindStatementText(stmt, i++, address);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 result = true;
