@@ -17,9 +17,10 @@ namespace PocketTx
 
         shared_ptr<UniValue> Serialize() const override;
         void Deserialize(const UniValue& src) override;
+        void DeserializeRpc(const UniValue& src) override;
 
         shared_ptr<string> GetAddress() const;
-        void SetAddress(const string& value) override;
+        void SetAddress(const string& value);
         
     }; // class SocialTransaction
 

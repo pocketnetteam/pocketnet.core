@@ -73,6 +73,11 @@ namespace PocketTx
             if (auto[ok, val] = TryGetInt64(pVal, "i1"); ok) m_payload->SetInt1(val);
         }
     }
+
+    void SocialTransaction::DeserializeRpc(const UniValue& src)
+    {
+        Deserialize(src);
+    }
     
     shared_ptr<string> SocialTransaction::GetAddress() const { return m_string1; }
     void SocialTransaction::SetAddress(const string& value) { m_string1 = make_shared<string>(value); }

@@ -7,7 +7,7 @@
 
 #include "pocketdb/consensus/Reputation.h"
 #include "pocketdb/consensus/Social.h"
-#include "pocketdb/models/dto/moderation/ContentFlag.h"
+#include "pocketdb/models/dto/moderation/Flag.h"
 
 namespace PocketConsensus
 {
@@ -19,10 +19,10 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  ModerationFlag consensus base class
     *******************************************************************************************************************/
-    class ModerationFlag : public SocialConsensus<ModerationFlag>
+    class ModerationFlagConsensus : public SocialConsensus<ModerationFlag>
     {
     public:
-        ModerationFlag(int height) : SocialConsensus<ModerationFlag>(height) {}
+        ModerationFlagConsensus(int height) : SocialConsensus<ModerationFlag>(height) {}
 
         ConsensusValidateResult Validate(const CTransactionRef& tx, const ModerationFlagRef& ptx, const PocketBlockRef& block) override
         {
@@ -52,7 +52,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateBlock(const ModerationFlagRef& ptx, const PocketBlockRef& block) override
         {
             // Check flag from one to one in week
-            if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetAddressTo(), Height - (int)GetConsensusLimit(ConsensusLimit_moderation_flag_one_to_one_depth), false) > 1)
+            if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), Height - (int)GetConsensusLimit(ConsensusLimit_moderation_flag_one_to_one_depth), false) > 0)
                 return {false, SocialConsensusResult_Duplicate};
 
             // Count flags in chain
@@ -64,7 +64,7 @@ namespace PocketConsensus
                 if (!TransactionHelper::IsIn(*blockTx->GetType(), { MODERATION_FLAG }) || *blockTx->GetHash() == *ptx->GetHash())
                     continue;
 
-                auto blockPtx = static_pointer_cast<ModerationFlagRef>(blockTx);
+                auto blockPtx = static_pointer_cast<ModerationFlag>(blockTx);
                 if (*ptx->GetAddress() == *blockPtx->GetAddress())
                     if (*ptx->GetContentTxHash() == *blockPtx->GetContentTxHash())
                         return {false, SocialConsensusResult_Duplicate};
@@ -79,7 +79,7 @@ namespace PocketConsensus
         ConsensusValidateResult ValidateMempool(const ModerationFlagRef& ptx) override
         {
             // Check flag from one to one in week
-            if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetAddressTo(), Height - (int)GetConsensusLimit(ConsensusLimit_moderation_flag_one_to_one_depth), true) > 1)
+            if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), Height - (int)GetConsensusLimit(ConsensusLimit_moderation_flag_one_to_one_depth), true) > 0)
                 return {false, SocialConsensusResult_Duplicate};
 
             // Check limit
@@ -103,10 +103,10 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Enable ModerationFlag consensus rules
     *******************************************************************************************************************/
-    class ModerationFlag_checkpoint_enable : public ModerationFlag
+    class ModerationFlagConsensus_checkpoint_enable : public ModerationFlagConsensus
     {
     public:
-        ModerationFlag_checkpoint_enable(int height) : ModerationFlag(height) {}
+        ModerationFlagConsensus_checkpoint_enable(int height) : ModerationFlagConsensus(height) {}
     protected:
         ConsensusValidateResult Check(const CTransactionRef& tx, const ModerationFlagRef& ptx) override
         {
@@ -127,19 +127,19 @@ namespace PocketConsensus
     /*******************************************************************************************************************
     *  Factory for select actual rules version
     *******************************************************************************************************************/
-    class ModerationFlagFactory
+    class ModerationFlagConsensusFactory
     {
     private:
-        const vector<ConsensusCheckpoint < ModerationFlag>> m_rules = {
-            {       0,     -1, [](int height) { return make_shared<ModerationFlag>(height); }},
-            { 9999999,      1, [](int height) { return make_shared<ModerationFlag_checkpoint_enable>(height); }}, // TODO (brangr): !!!!!! set heights 761000 for test
+        const vector<ConsensusCheckpoint<ModerationFlagConsensus>> m_rules = {
+            {       0,     -1, [](int height) { return make_shared<ModerationFlagConsensus>(height); }},
+            { 9999999,      1, [](int height) { return make_shared<ModerationFlagConsensus_checkpoint_enable>(height); }}, // TODO (brangr): !!!!!! set heights 761000 for test
         };
     public:
-        shared_ptr<ModerationFlag> Instance(int height)
+        shared_ptr<ModerationFlagConsensus> Instance(int height)
         {
             int m_height = (height > 0 ? height : 0);
             return (--upper_bound(m_rules.begin(), m_rules.end(), m_height,
-                [&](int target, const ConsensusCheckpoint<ComplainConsensus>& itm)
+                [&](int target, const ConsensusCheckpoint<ModerationFlagConsensus>& itm)
                 {
                     return target < itm.Height(Params().NetworkIDString());
                 }
