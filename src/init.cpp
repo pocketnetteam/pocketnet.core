@@ -905,7 +905,6 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
             }
         }
 
-        // TODO (losty-fur): seems good
         BlockValidationState state;
         int64_t disconnectHeight = args.GetArg("-disconnectlast", -1);
         if (disconnectHeight > -1)

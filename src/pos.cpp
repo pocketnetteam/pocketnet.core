@@ -151,9 +151,6 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
         {
             return error("CheckStake() : generated block is stale");
         }
-
-        // TODO (losty-fur): idk what it is doing here because BlockFound signal is never connected to anything (see validationinterface.cpp)
-        // GetMainSignals().BlockFound(pblock->GetHash());
     }
 
     // Process this block the same as if we had received it from another node
@@ -202,9 +199,8 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
         const CTransaction &txn = *tx;
         PrecomputedTransactionData txdata(txn);
         const COutPoint &prevout = tx->vin[0].prevout;
-        // TODO (losty-fur): do we really need pointer here? Moreover below "assert" will never be triggered.
+
         const Coin *coins = &::ChainstateActive().CoinsTip().AccessCoin(prevout);
-        assert(coins);
 
         // Verify signature
         CScriptCheck check(coins->out, *tx, 0, SCRIPT_VERIFY_NONE, false, &txdata);

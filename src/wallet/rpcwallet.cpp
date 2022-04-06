@@ -292,9 +292,9 @@ static RPCHelpMan getprivkeyaddress()
             {"output_type", RPCArg::Type::STR, RPCArg::Optional::OMITTED_NAMED_ARG, ""},
         },
         RPCResult{
-            RPCResult::Type::STR, "address", "The pocketcoin address" // TODO (losty-rpc): improve return description
+            RPCResult::Type::STR, "address", "The pocketcoin address" // TODO (rpc): improve return description
         },
-        // TODO (losty-rpc): provide examples
+        // TODO (rpc): provide examples
         RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
@@ -640,7 +640,7 @@ static RPCHelpMan listaddresses()
                 "in past transactions\n",
                 {},
                 {
-                    // TODO (losty-rpc): return description
+                    // TODO (rpc): return description
                 },
                 RPCExamples{
                     HelpExampleCli("listaddresses", "") +
@@ -4783,7 +4783,7 @@ static RPCHelpMan getstakereport()
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                // TODO (losty-rpc): provide descriptions and probably update key's names
+                // TODO (rpc): provide descriptions and probably update key's names
                 {RPCResult::Type::STR, "Latest Time", ""},
                 {RPCResult::Type::NUM, "Stake counted", ""},
                 {RPCResult::Type::NUM, "time took (ms)", ""}
@@ -4850,7 +4850,7 @@ RPCHelpMan getaddressbook()
                     {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Pagination size"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getaddressbook", "") +

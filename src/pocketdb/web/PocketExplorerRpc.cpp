@@ -17,10 +17,10 @@ namespace PocketWeb::PocketWebRpc
                     {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth hours (Maximum: 24 hours)"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     // HelpExampleCli("getstatisticbyhours", "") +
                     // HelpExampleRpc("getstatisticbyhours", "")
                     ""
@@ -50,10 +50,10 @@ namespace PocketWeb::PocketWebRpc
                     {"depth", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Depth days (Maximum: 30 days)"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     // HelpExampleCli("getstatisticbydays", "") +
                     // HelpExampleRpc("getstatisticbydays", "")
                     ""
@@ -81,10 +81,10 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet statistics for content transactions grouped by hours\n",
                 {},
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): examples
+                    // TODO (rpc): examples
                     HelpExampleCli("getstatisticcontentbyhours", "") +
                     HelpExampleRpc("getstatisticcontentbyhours", "")
                 },
@@ -110,10 +110,10 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet statistics for content transactions grouped by days\n",
                 {},
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): examples
+                    // TODO (rpc): examples
                     HelpExampleCli("getstatisticcontentbydays", "") +
                     HelpExampleRpc("getstatisticcontentbydays", "")
                 },
@@ -143,7 +143,7 @@ namespace PocketWeb::PocketWebRpc
                     {"verbosity", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Verbosity output."},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getlastblocks", "") +
@@ -225,7 +225,7 @@ namespace PocketWeb::PocketWebRpc
                     {"blocknumber", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "The block by number"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getcompactblock", "123acbadbcca") +
@@ -287,7 +287,7 @@ namespace PocketWeb::PocketWebRpc
                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getaddressinfo", "1bd123c12f123a123b") +
@@ -335,7 +335,7 @@ namespace PocketWeb::PocketWebRpc
                     {"count", RPCArg::Type::NUM, RPCArg::Optional::NO, "Count of records"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                     // "[ [height, amount], [1000, 500], [999,495], ... ]"
                 },
                 RPCExamples{
@@ -397,7 +397,7 @@ namespace PocketWeb::PocketWebRpc
                     {"string", RPCArg::Type::STR, RPCArg::Optional::NO, "Input string"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("checkstringtype", "123123123123") +
@@ -450,7 +450,7 @@ namespace PocketWeb::PocketWebRpc
                     {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getaddresstransactions", "abaa1231bca1231") +
@@ -510,7 +510,7 @@ namespace PocketWeb::PocketWebRpc
                     {"pageSize", RPCArg::Type::NUM, RPCArg::Optional::OMITTED_NAMED_ARG, "Page size"},
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
                     HelpExampleCli("getblocktransactions", "abaa1231bca1231") +
@@ -560,14 +560,14 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getrawtransaction",
                 "\nGet transaction data.\n",
                 {
-                    // TODO (losty-rpc)
+                    // TODO (rpc)
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
                     ""
-                    // TODO (losty-rpc)
+                    // TODO (rpc)
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -598,7 +598,7 @@ namespace PocketWeb::PocketWebRpc
                     },
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
                     // TODO (team): provide examples

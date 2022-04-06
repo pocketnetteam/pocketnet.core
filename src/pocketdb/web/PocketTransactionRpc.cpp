@@ -20,13 +20,13 @@ namespace PocketWeb::PocketWebRpc
                 "\nGet transaction data.\n"
                 "in BIP 141 (witness data is discounted).\n",
                 {
-                    // TODO (losty-rpc): provide arguments description
+                    // TODO (rpc): provide arguments description
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    "" // TODO (losty-rpc): provide examples
+                    "" // TODO (rpc): provide examples
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -181,13 +181,13 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"generatetransaction",
                 "\nAdd new pocketnet transaction.\n",
                 {
-                    // TODO (losty-rpc): provide arguments description
+                    // TODO (rpc): provide arguments description
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    "" // TODO (losty-rpc): provide examples
+                    "" // TODO (rpc): provide examples
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
@@ -319,13 +319,13 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"generateaddress",
                 "\nCreate new pocketnet address.\n",
                 {
-                    // TODO (losty-rpc): provide arguments description
+                    // TODO (rpc): provide arguments description
                 },
                 {
-                    // TODO (losty-rpc): provide return description
+                    // TODO (rpc): provide return description
                 },
                 RPCExamples{
-                    "" // TODO (losty-rpc): provide examples
+                    "" // TODO (rpc): provide examples
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
     {
