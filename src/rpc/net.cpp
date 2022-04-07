@@ -662,6 +662,30 @@ UniValue getstakinginfo(const JSONRPCRequest &request)
 
 }
 
+UniValue getnetstakeweighthist(const JSONRPCRequest& request)
+{
+    int fromHeight = chainActive.Height();
+    int toHeight = chainActive.Height();
+
+    if(request.params.size()>0)
+        fromHeight = request.params[0].get_int();
+
+    UniValue result(UniValue::VARR);
+    for(int nHeight = fromHeight; nHeight <= toHeight; nHeight++)
+    {
+        uint64_t nNetworkWeight = GetPoSKernelPS(nHeight);
+
+        UniValue item(UniValue::VOBJ);
+        item.pushKV("nHeight", nHeight);
+        item.pushKV("time", (int64_t) chainActive[nHeight]->nTime);
+        item.pushKV("netstakeweight", (uint64_t)nNetworkWeight);
+
+        result.push_back(item);
+    }
+
+    return result;
+}
+
 static UniValue setnetworkactive(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1) {
@@ -752,6 +776,8 @@ static const CRPCCommand commands[] =
     { "network",            "getstakinginfo",         &getstakinginfo,         {} },
     { "network",            "setnetworkactive",       &setnetworkactive,       {"state"} },
     { "network",            "getnodeaddresses",       &getnodeaddresses,       {"count"} },
+
+    { "network",            "getnetstakeweighthist",  &getnetstakeweighthist,  {"height"} },
 };
 // clang-format on
 

@@ -170,6 +170,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
         {"getaddressregistration",        0, "addresses"},
         {"getuserprofile",                0, "addresses"},
         {"getuserstate",                  1, "time"},
+
+        {"getnetstakeweighthist",         0, "height"},
     };
 // clang-format on
 
