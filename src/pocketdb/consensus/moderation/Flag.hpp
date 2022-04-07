@@ -51,8 +51,8 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateBlock(const ModerationFlagRef& ptx, const PocketBlockRef& block) override
         {
-            // Check flag from one to one in week
-            if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), Height - (int)GetConsensusLimit(ConsensusLimit_moderation_flag_one_to_one_depth), false) > 0)
+            // Check flag from one to one
+            if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), false) > 0)
                 return {false, SocialConsensusResult_Duplicate};
 
             // Count flags in chain
@@ -78,8 +78,8 @@ namespace PocketConsensus
 
         ConsensusValidateResult ValidateMempool(const ModerationFlagRef& ptx) override
         {
-            // Check flag from one to one in week
-            if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), Height - (int)GetConsensusLimit(ConsensusLimit_moderation_flag_one_to_one_depth), true) > 0)
+            // Check flag from one to one
+            if (ConsensusRepoInst.CountModerationFlag(*ptx->GetAddress(), *ptx->GetContentAddressHash(), true) > 0)
                 return {false, SocialConsensusResult_Duplicate};
 
             // Check limit

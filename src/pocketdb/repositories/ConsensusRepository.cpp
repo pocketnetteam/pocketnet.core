@@ -1900,10 +1900,10 @@ namespace PocketDb
         return result;
     }
     
-    int ConsensusRepository::CountModerationFlag(const string& address, const string& addressTo, int height, bool includeMempool)
+    int ConsensusRepository::CountModerationFlag(const string& address, const string& addressTo, bool includeMempool)
     {
         int result = 0;
-        string whereMempool = includeMempool ? " or Height is null " : "";
+        string whereHeight = includeMempool ? " and Height is null " : " and Height > 0 ";
 
         TryTransactionStep(__func__, [&]()
         {
@@ -1913,11 +1913,10 @@ namespace PocketDb
                 where Type = 410
                   and String1 = ?
                   and String3 = ?
-                  and ( Height >= ? )sql" + whereMempool + R"sql( )
+                  )sql" + whereHeight + R"sql(
             )sql");
             TryBindStatementText(stmt, 1, address);
             TryBindStatementText(stmt, 2, addressTo);
-            TryBindStatementInt64(stmt, 3, height);
 
             if (sqlite3_step(*stmt) == SQLITE_ROW)
                 if (auto[ok, value] = TryGetColumnInt(*stmt, 0); ok)

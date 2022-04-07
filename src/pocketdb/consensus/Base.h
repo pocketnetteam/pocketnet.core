@@ -224,7 +224,6 @@ namespace PocketConsensus
         ConsensusLimit_bad_reputation,
 
         ConsensusLimit_moderation_flag_count,
-        ConsensusLimit_moderation_flag_one_to_one_depth,
     };
 
     /*********************************************************************************************/
@@ -1086,10 +1085,6 @@ namespace PocketConsensus
         { ConsensusLimit_moderation_flag_count, {
             { NetworkMain, { {0, 30} }},
             { NetworkTest, { {0, 100} }}
-        }},
-        { ConsensusLimit_moderation_flag_one_to_one_depth, {
-            { NetworkMain, { {0, 10000} }},
-            { NetworkTest, { {0, 600} }}
         }},
         
     };
