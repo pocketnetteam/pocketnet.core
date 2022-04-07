@@ -117,7 +117,7 @@ AC_ARG_ENABLE([wallet],
   [enable_wallet=$enableval],
   [enable_wallet=yes])
 
-# TODO (team): we are using bundled sqlite so explicitly disable it here to avoid autotools finding it on system
+# We are using bundled sqlite so explicitly disable it here to avoid autotools finding it on system
 # AC_ARG_WITH([sqlite],
 #   [AS_HELP_STRING([--with-sqlite=yes|no|auto],
 #   [enable sqlite wallet support (default: auto, i.e., enabled if wallet is enabled and sqlite is found)])],
@@ -579,7 +579,7 @@ AC_ARG_WITH([daemon],
   [build_pocketcoind=$withval],
   [build_pocketcoind=yes])
 
-dnl TODO openssl is removed out of bitcoin
+dnl Restore openssl that was removed from bitcoin 0.21
 AC_CHECK_HEADER([openssl/crypto.h],,AC_MSG_ERROR(libcrypto headers missing))
 AC_CHECK_LIB([crypto],      [main],CRYPTO_LIBS=-lcrypto, AC_MSG_ERROR(libcrypto missing))
 
@@ -1577,7 +1577,7 @@ if test x$build_pocketcoin_wallet$build_pocketcoin_cli$build_pocketcoin_tx$build
   AC_MSG_ERROR([No targets! Please specify at least one of: --with-utils --with-libs --with-daemon --with-gui --enable-bench or --enable-tests])
 fi
 
-# TODO (team) hardcoded cause we use sqlite anyway
+# Forced using sqlite
 AC_DEFINE([USE_SQLITE],[1],[Define if sqlite support should be compiled in])
 
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
@@ -1711,7 +1711,6 @@ if test x$need_bundled_univalue = xyes; then
   AC_CONFIG_SUBDIRS([src/univalue])
 fi
 
-# TODO probably make this optional
 AC_CONFIG_SUBDIRS([src/sqlite])
 
 ac_configure_args="${ac_configure_args} --disable-shared --with-pic --enable-benchmark=no --with-bignum=no --enable-module-recovery --enable-module-schnorrsig --enable-experimental"
