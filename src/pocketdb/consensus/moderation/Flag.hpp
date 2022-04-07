@@ -117,7 +117,7 @@ namespace PocketConsensus
             if (IsEmpty(ptx->GetAddress())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentTxHash())) return {false, SocialConsensusResult_Failed};
             if (IsEmpty(ptx->GetContentAddressHash())) return {false, SocialConsensusResult_Failed};
-            if (*ptx->GetContentTxHash() == *ptx->GetContentAddressHash()) return {false, SocialConsensusResult_SelfFlag};
+            if (*ptx->GetAddress() == *ptx->GetContentAddressHash()) return {false, SocialConsensusResult_SelfFlag};
             if (IsEmpty(ptx->GetReason()) || *ptx->GetReason() < 1 || *ptx->GetReason() > 4) return {false, SocialConsensusResult_Failed};
 
             return Success;
