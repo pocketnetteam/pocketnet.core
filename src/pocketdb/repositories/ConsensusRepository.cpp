@@ -1903,7 +1903,7 @@ namespace PocketDb
     int ConsensusRepository::CountModerationFlag(const string& address, const string& addressTo, bool includeMempool)
     {
         int result = 0;
-        string whereHeight = includeMempool ? " and Height is null " : " and Height > 0 ";
+        string whereMempool = includeMempool ? " or Height is null " : "";
 
         TryTransactionStep(__func__, [&]()
         {
@@ -1913,7 +1913,7 @@ namespace PocketDb
                 where Type = 410
                   and String1 = ?
                   and String3 = ?
-                  )sql" + whereHeight + R"sql(
+                  and ( Height > 0 )sql" + whereMempool + R"sql( )
             )sql");
             TryBindStatementText(stmt, 1, address);
             TryBindStatementText(stmt, 2, addressTo);
