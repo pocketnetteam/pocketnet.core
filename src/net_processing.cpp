@@ -1252,6 +1252,7 @@ bool PeerManager::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationSt
     case BlockValidationResult::BLOCK_CHECKPOINT:
     case BlockValidationResult::BLOCK_INVALID_PREV:
     case BlockValidationResult::BLOCK_SPAM:
+    case BlockValidationResult::BLOCK_INCOMPLETE: // Was 200 previously
         Misbehaving(nodeid, 100, message);
         return true;
     // Conflicting (but not necessarily invalid) data or different policy:
@@ -1264,7 +1265,6 @@ bool PeerManager::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationSt
         return true;
     case BlockValidationResult::BLOCK_RECENT_CONSENSUS_CHANGE:
     case BlockValidationResult::BLOCK_TIME_FUTURE:
-    case BlockValidationResult::BLOCK_INCOMPLETE: // TODO (losty): validate we do not want punish in this case
     case BlockValidationResult::BLOCK_TIMESTAMP_INVALID:
         break;
     }
