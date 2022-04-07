@@ -24,7 +24,7 @@ static constexpr size_t MINIMUM_WITNESS_COMMITMENT{38};
 enum class TxValidationResult {
     TX_RESULT_UNSET = 0,     //!< initial value. Tx has not yet been rejected
     TX_CONSENSUS,            //!< invalid by consensus rules
-    // TODO (losty-fur): probably rename this. 2 below are the same, but first results in node's punishment, second is common situation if current node is much behind others
+    // TODO (team): probably rename this. 2 below are the same, but first results in node's punishment, second is common situation if current node is much behind others
     TX_SOCIAL_CONSENSUS,     //!< invalid by social (pocketnet) consensus rules that is critical
     TX_SOCIAL_UNWARRANT,     //!< invalid by social (pocketnet) rules that is common if current node is much behind others  
     /**
@@ -87,6 +87,7 @@ enum class BlockValidationResult {
     BLOCK_SPAM,              //!< error on spam detected
     BLOCK_STAKE_BITS,        //!< error in validating stake bits. Punish with score 1
     BLOCK_TIMESTAMP_INVALID, //!< incorrect stake timestamp
+    BLOCK_PROOF_INVALID,     //!< POW block when POS expected and vice-versa
 };
 
 
