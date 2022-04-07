@@ -378,7 +378,7 @@ namespace PocketWeb::PocketWebRpc
     UniValue _accept_transaction(const CTransactionRef& tx, const PTransactionRef& ptx, CTxMemPool& mempool, CConnman& connman)
     {
         promise<void> promise;
-        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty-fur): validate corresponding check is performed in wallet by using walletInstance->m_default_max_tx_fee
+        // CAmount nMaxRawTxFee = maxTxFee; // TODO (losty-critical): validate corresponding check is performed in wallet by using walletInstance->m_default_max_tx_fee
         // if (ptx && *ptx->GetType() == PocketTx::BOOST_CONTENT)
         //    nMaxRawTxFee = 0;
         const uint256& txid = tx->GetHash();

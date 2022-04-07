@@ -125,8 +125,8 @@ public:
                 throw;
             }
         };
-        // TODO (losty-fur): g_socket can possibly be null. Need some kind of segfault protection. Probably in a more generic way because this problem occurs many places
-        g_socket->m_table_rpc.appendCommand(m_command.name, &m_command);
+        if (g_socket)
+            g_socket->m_table_rpc.appendCommand(m_command.name, &m_command);
     }
 
     void disconnect() final

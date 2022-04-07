@@ -436,7 +436,7 @@ void SetupServerArgs(NodeContext& node)
     const auto signetChainParams = CreateChainParams(argsman, CBaseChainParams::SIGNET);
     const auto regtestChainParams = CreateChainParams(argsman, CBaseChainParams::REGTEST);
 
-    // TODO (losty): hidden args were not ported.
+    // TODO (losty-critical): hidden args were not ported.
     // Hidden Options
     std::vector<std::string> hidden_args = {
         "-dbcrashratio", "-forcecompactdb",

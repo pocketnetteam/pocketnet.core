@@ -65,6 +65,7 @@ class CMainParams : public CChainParams
 public:
     CMainParams()
     {
+        // TODO (losty-critical): check all below todos
         strNetworkID = CBaseChainParams::MAIN;
         networkId = NetworkMain;
         consensus.signet_blocks = false; // TODO (losty): may be change??
