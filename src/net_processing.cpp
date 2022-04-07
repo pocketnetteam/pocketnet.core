@@ -779,13 +779,15 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats& stats)
     CNodeState* state = State(nodeid);
     if (state == nullptr)
         return false;
+
     stats.nMisbehavior = state->nMisbehavior;
     stats.nSyncHeight = state->pindexBestKnownBlock ? state->pindexBestKnownBlock->nHeight : -1;
     stats.nCommonHeight = state->pindexLastCommonBlock ? state->pindexLastCommonBlock->nHeight : -1;
-    for (const QueuedBlock& queue : state->vBlocksInFlight) {
+
+    for (const QueuedBlock& queue : state->vBlocksInFlight)
         if (queue.pindex)
             stats.vHeightInFlight.push_back(queue.pindex->nHeight);
-    }
+    
     return true;
 }
 
@@ -801,6 +803,10 @@ bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
     stats.nSyncHeight = state->pindexBestKnownBlock ? state->pindexBestKnownBlock->nHeight : -1;
     stats.nCommonHeight = state->pindexLastCommonBlock ? state->pindexLastCommonBlock->nHeight : -1;
 
+    for (const QueuedBlock& queue : state->vBlocksInFlight)
+        if (queue.pindex)
+            stats.vHeightInFlight.push_back(queue.pindex->nHeight);
+    
     return true;
 }
 
