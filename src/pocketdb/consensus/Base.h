@@ -79,9 +79,9 @@ namespace PocketConsensus
         SocialConsensusResult_ChangeInfoDoubleInMempool = 61,
         SocialConsensusResult_Duplicate = 62,
         SocialConsensusResult_NotImplemeted = 63,
-
-        SocialConsensusResult_ExceededLimit = 100,
-        SocialConsensusResult_LowReputation = 101,
+        SocialConsensusResult_SelfFlag = 64,
+        SocialConsensusResult_ExceededLimit = 65,
+        SocialConsensusResult_LowReputation = 66,
     };
 
     static inline string SocialConsensusResultString(SocialConsensusResult code)
@@ -149,7 +149,7 @@ namespace PocketConsensus
             case (SocialConsensusResult_ChangeInfoDoubleInMempool): return "ChangeInfoDoubleInMempool";
             case (SocialConsensusResult_Duplicate): return "Duplicate";
             case (SocialConsensusResult_NotImplemeted): return "NotImplemeted";
-
+            case (SocialConsensusResult_SelfFlag): return "SelfFlag";
             case (SocialConsensusResult_ExceededLimit): return "ExceededLimit";
             case (SocialConsensusResult_LowReputation): return "LowReputation";
 
