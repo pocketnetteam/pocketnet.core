@@ -451,7 +451,7 @@ void SetupServerArgs(NodeContext& node)
     const auto signetChainParams = CreateChainParams(argsman, CBaseChainParams::SIGNET);
     const auto regtestChainParams = CreateChainParams(argsman, CBaseChainParams::REGTEST);
 
-    // TODO (losty): hidden args were not ported.
+    // TODO (losty-critical): hidden args were not ported.
     // Hidden Options
     std::vector<std::string> hidden_args = {
         "-dbcrashratio", "-forcecompactdb",
@@ -920,7 +920,6 @@ static void ThreadImport(ChainstateManager& chainman, const util::Ref& context, 
             }
         }
 
-        // TODO (losty-fur): seems good
         BlockValidationState state;
         int64_t disconnectHeight = args.GetArg("-disconnectlast", -1);
         if (disconnectHeight > -1)
@@ -1564,7 +1563,7 @@ bool AppInitInterfaces(NodeContext& node)
 
 bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 {
-    const ArgsManager& args = *Assert(node.args);
+    ArgsManager& args = *Assert(node.args);
     const CChainParams& chainparams = Params();
     // ********************************************************* Step 4a: application initialization
     if (!CreatePidFile(args)) {
@@ -1649,12 +1648,12 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         RandAddPeriodic();
     }, std::chrono::minutes{1});
 
-        // ********************************************************* Step 4b: Start PocketDB
+    // ********************************************************* Step 4b: Start PocketDB
     uiInterface.InitMessage(_("Loading Pocket DB...").translated);
-    
+
     PocketDb::InitSQLite(GetDataDir() / "pocketdb");
     PocketDb::InitSQLiteCheckpoints(GetDataDir()  / "checkpoints");
-
+    
     PocketWeb::PocketFrontendInst.Init();
 
     if (args.GetBoolArg("-api", true))
@@ -2098,6 +2097,12 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
         }
     }
 
+    // // ********************************************************* Step 7.1: start db migrations
+    // uiInterface.InitMessage(_("Updating Pocket DB...").translated);
+    // bool cleanMempool = false;
+    // PocketDb::SQLiteDbInst.InitMigration(cleanMempool);
+    // if (cleanMempool) args.SoftSetBoolArg("-mempoolclean", true);
+
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
     // As the program has not fully started yet, Shutdown() is possibly overkill.
@@ -2112,9 +2117,9 @@ bool AppInitMain(const util::Ref& context, NodeContext& node, interfaces::BlockA
     if (!est_filein.IsNull())
         ::feeEstimator.Read(est_filein);
     fFeeEstimatesInitialized = true;
-
+    
     // ********************************************************* Step 8: start indexers
-    // TXIndex need! Force enabled!
+    // TODO (brangr): maybe not needed?
     g_txindex = MakeUnique<TxIndex>(nTxIndexCache, false, fReindex);
     g_txindex->Start();
 

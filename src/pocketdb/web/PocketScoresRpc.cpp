@@ -13,7 +13,7 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getaddressscores",
                 "\nGet scores from address.\n",
                 {
-                    // TODO (losty-rpc): provide arguments description
+                    // TODO (rpc): provide arguments description
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "", 
@@ -32,7 +32,7 @@ namespace PocketWeb::PocketWebRpc
                     },
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("getaddressscores", "") +
                     HelpExampleRpc("getaddressscores", "")
                 },
@@ -84,7 +84,7 @@ namespace PocketWeb::PocketWebRpc
         return RPCHelpMan{"getpostscores",
                 "\nGet scores from address.\n",
                 {
-                    // TODO (losty-rpc): provide arguments description
+                    // TODO (rpc): provide arguments description
                 },
                 RPCResult{
                     RPCResult::Type::ARR, "", "", 
@@ -99,7 +99,7 @@ namespace PocketWeb::PocketWebRpc
                     },
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     HelpExampleCli("getpostscores", "") +
                     HelpExampleRpc("getpostscores", "")
                 },
@@ -141,7 +141,7 @@ namespace PocketWeb::PocketWebRpc
                         {
                             RPCResult::Type::OBJ, "", "",
                             {
-                                // TODO (losty-rpc): may be change above. The reason everything is optional is
+                                // TODO (rpc): may be change above. The reason everything is optional is
                                 // that there are two types of objects in array (post or comment)
                             // Comment scores
                                 {RPCResult::Type::STR, "cmntid", /* optional */ true, ""},
@@ -157,7 +157,7 @@ namespace PocketWeb::PocketWebRpc
                     },
                 },
                 RPCExamples{
-                    // TODO (losty-rpc): provide correct examples
+                    // TODO (rpc): provide correct examples
                     // HelpExampleCli("getpagescores", "1231") +
                     // HelpExampleRpc("getpagescores", "1231")
                     ""

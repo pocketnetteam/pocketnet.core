@@ -417,6 +417,20 @@ namespace PocketDb
                     )
                 ),0) as ReferralsCount
 
+                , u.Hash as AccountHash
+
+                , (
+                    select json_group_object(gr.Type, gr.Cnt)
+                    from (
+                      select (f.Int1)Type, (count())Cnt
+                      from Transactions f indexed by Transactions_Type_Last_String3_Height
+                      where f.Type in ( 410 )
+                        and f.Last = 0
+                        and f.String3 = u.String1
+                      group by f.Int1
+                    )gr
+                ) as FlagsJson
+
             )sql";
         }
 
@@ -492,12 +506,14 @@ namespace PocketDb
         {
             auto stmt = SetupSqlStatement(sql);
 
+            // Bind parameters
             int i = 1;
             for (const string& address : addresses)
                 TryBindStatementText(stmt, i++, address);
             for (int64_t id : ids)
                 TryBindStatementInt64(stmt, i++, id);
 
+            // Fetch data
             while (sqlite3_step(*stmt) == SQLITE_ROW)
             {
                 auto[ok0, address] = TryGetColumnString(*stmt, 0);
@@ -551,6 +567,14 @@ namespace PocketDb
                     }
                     
                     if (auto[ok, value] = TryGetColumnInt(*stmt, 21); ok) record.pushKV("rc", value);
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 22); ok) record.pushKV("hash", value);
+
+                    if (auto[ok, value] = TryGetColumnString(*stmt, 18); ok)
+                    {
+                        UniValue subscribes(UniValue::VARR);
+                        subscribes.read(value);
+                        record.pushKV("subscribes", subscribes);
+                    }
                 }
 
                 result.emplace_back(address, id, record);
@@ -2008,13 +2032,13 @@ namespace PocketDb
 
         string sql = R"sql(
             select
-                c.String2 as RootTxHash,
-                c.Time,
-                c.Height,
-                c.String1 as addrFrom,
-                c.String3 as posttxid,
-                c.String4 as  parentid,
-                c.String5 as  answerid
+                a.String2 as RootTxHash,
+                a.Time,
+                a.Height,
+                a.String1 as addrFrom,
+                a.String3 as posttxid,
+                a.String4 as parentid,
+                a.String5 as answerid
             from Transactions c indexed by Transactions_Type_Last_String1_String2_Height
             join Transactions a indexed by Transactions_Type_Last_Height_String5_String1
                 on a.Type in (204, 205) and a.Height > ? and a.Last = 1 and a.String5 = c.String2 and a.String1 != c.String1

@@ -28,6 +28,8 @@
 #include "pocketdb/consensus/social/AccountSetting.hpp"
 #include "pocketdb/consensus/social/ContentDelete.hpp"
 
+#include "pocketdb/consensus/moderation/Flag.hpp"
+
 namespace PocketConsensus
 {
     using namespace std;
@@ -66,6 +68,8 @@ namespace PocketConsensus
         static AccountSettingConsensusFactory m_accountSettingFactory;
         static ContentDeleteConsensusFactory m_contentDeleteFactory;
         static BoostContentConsensusFactory m_boostContentFactory;
+        
+        static ModerationFlagConsensusFactory m_moderationFlagFactory;
     };
 }
 

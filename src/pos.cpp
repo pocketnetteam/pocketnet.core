@@ -151,9 +151,6 @@ bool CheckStake(const std::shared_ptr<CBlock> pblock, const PocketBlockRef& pock
         {
             return error("CheckStake() : generated block is stale");
         }
-
-        // TODO (losty-fur): idk what it is doing here because BlockFound signal is never connected to anything (see validationinterface.cpp)
-        // GetMainSignals().BlockFound(pblock->GetHash());
     }
 
     // Process this block the same as if we had received it from another node
@@ -202,9 +199,8 @@ bool CheckProofOfStake(CBlockIndex *pindexPrev, CTransactionRef const &tx, unsig
         const CTransaction &txn = *tx;
         PrecomputedTransactionData txdata(txn);
         const COutPoint &prevout = tx->vin[0].prevout;
-        // TODO (losty-fur): do we really need pointer here? Moreover below "assert" will never be triggered.
+
         const Coin *coins = &::ChainstateActive().CoinsTip().AccessCoin(prevout);
-        assert(coins);
 
         // Verify signature
         CScriptCheck check(coins->out, *tx, 0, SCRIPT_VERIFY_NONE, false, &txdata);
@@ -329,39 +325,9 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
     hashProofOfStakeSource = ss;
     hashProofOfStake = UintToArith256(Hash(ss));
 
-    if (fPrintProofOfStake)
-    {
-        LogPrint(BCLog::WALLET, "CheckStakeKernelHash() : using modifier 0x%016x at height=%d timestamp=%s for block from timestamp=%s\n",
-           nStakeModifier, nStakeModifierHeight,
-           FormatISO8601DateTime(nStakeModifierTime),
-           FormatISO8601DateTime(nTimeBlockFrom));
-
-        LogPrint(BCLog::WALLET, "CheckStakeKernelHash() : check modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s bnTarget=%s nBits=%08x nValueIn=%d bnWeight=%s\n",
-           nStakeModifier,
-           nTimeBlockFrom, *txPrev.GetTime(), prevout.n, nTimeTx,
-           hashProofOfStake.ToString(), bnTarget.ToString(), nBits, nValueIn, bnWeight.ToString());
-    }
-
     // Now check if proof-of-stake hash meets target protocol
     if (hashProofOfStake > bnTarget)
-    {
         return false;
-    }
-
-    if (!fPrintProofOfStake)
-    {
-        LogPrint(BCLog::WALLET,
-            "CheckStakeKernelHash() : using modifier 0x%016x at height=%d timestamp=%s for block from timestamp=%s\n",
-            nStakeModifier, nStakeModifierHeight,
-            FormatISO8601DateTime(nStakeModifierTime),
-            FormatISO8601DateTime(nTimeBlockFrom));
-
-        LogPrint(BCLog::WALLET,
-            "CheckStakeKernelHash() : pass modifier=0x%016x nTimeBlockFrom=%u nTimeTxPrev=%u nPrevout=%u nTimeTx=%u hashProof=%s\n",
-            nStakeModifier,
-            nTimeBlockFrom, txPrev.GetTime(), prevout.n, nTimeTx,
-            hashProofOfStake.ToString());
-    }
 
     return true;
 }
@@ -370,12 +336,9 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock, int64_t nTimeTx)
 {
     if (nHeight > 0)
-    {
         return (nTimeBlock == nTimeTx) && ((nTimeTx & STAKE_TIMESTAMP_MASK) == 0);
-    } else
-    {
+    else
         return (nTimeBlock == nTimeTx);
-    }
 }
 
 // Stake Modifier (hash modifier of proof-of-stake):

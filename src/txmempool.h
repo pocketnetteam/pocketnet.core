@@ -668,7 +668,7 @@ public:
 
     /** Remove transactions from SQLite db with payload and additional data
      */
-    void CleanSQLite(const std::unordered_set<std::string>& hashes, const std::string& func, MemPoolRemovalReason reason);
+    void CleanSQLite(const std::unordered_set<std::string>& hashes, MemPoolRemovalReason reason);
 
     /** When adding transactions from a disconnected block back to the mempool,
      *  new mempool entries may have children in the mempool (which is generally

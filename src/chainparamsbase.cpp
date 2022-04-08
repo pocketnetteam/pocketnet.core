@@ -43,7 +43,6 @@ const CBaseChainParams& BaseParams()
  */
 std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const std::string& chain)
 {
-    // TODO (losty-fur): probably update ports for onion and signet.
     if (chain == CBaseChainParams::MAIN) {
         return MakeUnique<CBaseChainParams>("", 37071, 38081, 38082, 38083, 38084);
     } else if (chain == CBaseChainParams::TESTNET) {

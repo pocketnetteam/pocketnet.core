@@ -1053,6 +1053,10 @@ bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
             return false;
         stats.nSyncHeight = state->pindexBestKnownBlock ? state->pindexBestKnownBlock->nHeight : -1;
         stats.nCommonHeight = state->pindexLastCommonBlock ? state->pindexLastCommonBlock->nHeight : -1;
+
+        for (const QueuedBlock& queue : state->vBlocksInFlight)
+            if (queue.pindex)
+                stats.vHeightInFlight.push_back(queue.pindex->nHeight);
     }
 
     PeerRef peer = GetPeerRef(nodeid);
@@ -1060,7 +1064,7 @@ bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
     stats.m_misbehavior_score = WITH_LOCK(peer->m_misbehavior_mutex, return peer->m_misbehavior_score);
     stats.m_addr_processed = peer->m_addr_processed.load();
     stats.m_addr_rate_limited = peer->m_addr_rate_limited.load();
-
+    
     return true;
 }
 
@@ -1252,10 +1256,12 @@ bool PeerManager::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationSt
     case BlockValidationResult::BLOCK_CHECKPOINT:
     case BlockValidationResult::BLOCK_INVALID_PREV:
     case BlockValidationResult::BLOCK_SPAM:
+    case BlockValidationResult::BLOCK_INCOMPLETE: // Was 200 previously
         Misbehaving(nodeid, 100, message);
         return true;
     // Conflicting (but not necessarily invalid) data or different policy:
     case BlockValidationResult::BLOCK_MISSING_PREV:
+    case BlockValidationResult::BLOCK_PROOF_INVALID:
         // TODO: Handle this much more gracefully (10 DoS points is super arbitrary)
         Misbehaving(nodeid, 10, message);
         return true;
@@ -1264,7 +1270,6 @@ bool PeerManager::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidationSt
         return true;
     case BlockValidationResult::BLOCK_RECENT_CONSENSUS_CHANGE:
     case BlockValidationResult::BLOCK_TIME_FUTURE:
-    case BlockValidationResult::BLOCK_INCOMPLETE: // TODO (losty): validate we do not want punish in this case
     case BlockValidationResult::BLOCK_TIMESTAMP_INVALID:
         break;
     }

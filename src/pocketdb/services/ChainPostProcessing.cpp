@@ -37,22 +37,19 @@ namespace PocketServices
             auto& tx = block.vtx[i];
             auto txType = PocketHelpers::TransactionHelper::ParseType(tx);
 
-            if (txType != TxType::NOT_SUPPORTED)
+            TransactionIndexingInfo txInfo;
+            txInfo.Hash = tx->GetHash().GetHex();
+            txInfo.BlockNumber = (int) i;
+            txInfo.Time = tx->nTime;
+            txInfo.Type = txType;
+
+            if (!tx->IsCoinBase())
             {
-                TransactionIndexingInfo txInfo;
-                txInfo.Hash = tx->GetHash().GetHex();
-                txInfo.BlockNumber = (int) i;
-                txInfo.Time = tx->nTime;
-                txInfo.Type = txType;
-
-                if (!tx->IsCoinBase())
-                {
-                    for (const auto& inp : tx->vin)
-                        txInfo.Inputs.emplace_back(inp.prevout.hash.GetHex(), inp.prevout.n);
-                }
-
-                txs.emplace_back(txInfo);
+                for (const auto& inp : tx->vin)
+                    txInfo.Inputs.emplace_back(inp.prevout.hash.GetHex(), inp.prevout.n);
             }
+
+            txs.emplace_back(txInfo);
         }
     }
 
@@ -108,7 +105,7 @@ namespace PocketServices
             {
                 case PocketTx::ACTION_SCORE_CONTENT:
                     ratingValues[RatingType::RATING_ACCOUNT][scoreData->ContentAddressId] +=
-                        (scoreData->ScoreValue - 3) * 10;
+                        reputationConsensus->GetScoreMultiplier(scoreData->ScoreValue);
 
                     ratingValues[RatingType::RATING_CONTENT][scoreData->ContentId] +=
                         scoreData->ScoreValue - 3;

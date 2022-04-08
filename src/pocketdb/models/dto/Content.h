@@ -18,7 +18,7 @@ namespace PocketTx
         Content(const CTransactionRef& tx);
 
         shared_ptr<string> GetAddress() const;
-        void SetAddress(const string& value) override;
+        void SetAddress(const string& value);
 
         shared_ptr<string> GetRootTxHash() const;
         void SetRootTxHash(const string& value);

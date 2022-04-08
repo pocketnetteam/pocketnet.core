@@ -70,7 +70,7 @@ bench_bench_pocketcoin_LDADD = \
   $(LIBSQLITE3)
 
 
-# TODO (losty-fur): this is needed because websocket is included in "validation.h" even it is not used here.
+# TODO (build): this is needed because websocket is included in "validation.h" even it is not used here.
 #                   Fix this in validation.h (probably move openssl headers to pImpl or smth) and remove ssl libs from here
 bench_bench_pocketcoin_LDADD += $(SSL_LIBS) $(CRYPTO_LIBS)
 

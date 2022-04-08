@@ -76,7 +76,6 @@ CBlock BuildChainTestingSetup::CreateBlock(const CBlockIndex* prev,
     unsigned int extraNonce = 0;
     IncrementExtraNonce(&block, prev, extraNonce);
 
-    // TODO (losty-fur): is height correct?
     while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus(), prev->nHeight + 1)) ++block.nNonce;
 
     return block;

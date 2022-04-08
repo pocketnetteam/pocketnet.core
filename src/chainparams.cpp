@@ -65,6 +65,7 @@ class CMainParams : public CChainParams
 public:
     CMainParams()
     {
+        // TODO (losty-critical): check all below todos
         strNetworkID = CBaseChainParams::MAIN;
         networkId = NetworkMain;
         consensus.signet_blocks = false; // TODO (losty): may be change??
@@ -135,14 +136,14 @@ public:
 
         nDefaultPort = 37070;
         nPruneAfterHeight = 100000;
-        m_assumed_blockchain_size = 50; // TODO (losty+): пока хватает 50 - будем увеличивать по мере роста
-        m_assumed_chain_state_size = 0; // TODO (losty+): мы не используем пока prune
+        m_assumed_blockchain_size = 50; // 50 is ok for now
+        m_assumed_chain_state_size = 0; // We do not use prune
 
         genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        // TODO (losty): assertion fails here
-        // assert(consensus.hashGenesisBlock == uint256S("0x00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f"));
-        // assert(genesis.hashMerkleRoot == uint256S("0xaced9fcaba8f66be3d4d51a95cb048dda6611b8f2d2bf4541d9e2e16c07ee1c9"));
+
+        assert(consensus.hashGenesisBlock == uint256S("0x00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f"));
+        assert(genesis.hashMerkleRoot == uint256S("0xaced9fcaba8f66be3d4d51a95cb048dda6611b8f2d2bf4541d9e2e16c07ee1c9"));
 
         // Note that of those which support the service bits prefix, most only support a subset of
         // possible options.
@@ -260,9 +261,9 @@ public:
 
         genesis = CreateGenesisBlock(1548092268, 234579, 0x1e0fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        // TODO (losty): assertion fails here
-        // assert(consensus.hashGenesisBlock == uint256S("0x00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f"));
-        // assert(genesis.hashMerkleRoot == uint256S("0xaced9fcaba8f66be3d4d51a95cb048dda6611b8f2d2bf4541d9e2e16c07ee1c9"));
+
+        assert(consensus.hashGenesisBlock == uint256S("0x00000fd0f6633d395541056e8adc32961e15f8133674b2e3937c4d210ced6f3f"));
+        assert(genesis.hashMerkleRoot == uint256S("0xaced9fcaba8f66be3d4d51a95cb048dda6611b8f2d2bf4541d9e2e16c07ee1c9"));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 65); //T
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 78); //Y
@@ -415,12 +416,12 @@ public:
         consensus.signet_challenge.clear(); // TODO (losty): may be change?
         consensus.nSubsidyHalvingInterval = 150;
         consensus.BIP16Exception = uint256();
-        consensus.BIP34Height = 100000000; // BIP34 has not activated on regtest (far in the future so block v1 are not rejected in tests)
+        consensus.BIP34Height = 500; // BIP34 activated on regtest (Used in functional tests)
         consensus.BIP34Hash = uint256();
         consensus.BIP65Height = 1351; // BIP65 activated on regtest (Used in functional tests)
         consensus.BIP66Height = 1251; // BIP66 activated on regtest (Used in functional tests)
         consensus.CSVHeight = 432; // CSV activated on regtest (Used in rpc activation tests)
-        consensus.SegwitHeight = 0; // SEGWIT is always activated on regtest unless overridden
+        consensus.SegwitHeight = std::numeric_limits<int>::max(); // SEGWIT is disabled on regtest
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 3.5 * 24 * 60 * 60; // two weeks
@@ -431,10 +432,15 @@ public:
         consensus.nMinerConfirmationWindow = 100;
         consensus.nPosFirstBlock = 200;
 
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
+        consensus.nMinerConfirmationWindow = 100;
+        consensus.nPosFirstBlock = 1020;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
+
+        consensus.nModifierInterval = 10 * 60; // time to elapse before new modifier is computed
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;

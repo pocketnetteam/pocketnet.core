@@ -38,6 +38,8 @@
 #include "pocketdb/models/dto/ScoreComment.h"
 #include "pocketdb/models/dto/ContentDelete.h"
 
+#include "pocketdb/models/dto/moderation/Flag.h"
+
 namespace PocketHelpers
 {
     using namespace std;

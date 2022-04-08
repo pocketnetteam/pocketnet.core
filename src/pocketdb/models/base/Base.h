@@ -22,6 +22,7 @@ namespace PocketTx
         tuple<bool, string> TryGetStr(const UniValue& o, const string& key);
         tuple<bool, int> TryGetInt(const UniValue& o, const string& key);
         tuple<bool, int64_t> TryGetInt64(const UniValue& o, const string& key);
+        tuple<bool, UniValue> TryGetObj(const UniValue& o, const string& key);
     };
 
 }

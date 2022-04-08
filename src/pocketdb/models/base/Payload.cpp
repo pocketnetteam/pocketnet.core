@@ -8,31 +8,31 @@ namespace PocketTx
 {
     Payload::Payload() {}
 
-    shared_ptr <string> Payload::GetTxHash() const { return m_txHash; }
+    shared_ptr<string> Payload::GetTxHash() const { return m_txHash; }
     void Payload::SetTxHash(string value) { m_txHash = make_shared<string>(value); }
 
-    shared_ptr <string> Payload::GetString1() const { return m_string1; }
+    shared_ptr<string> Payload::GetString1() const { return m_string1; }
     void Payload::SetString1(string value) { m_string1 = make_shared<string>(value); }
 
-    shared_ptr <string> Payload::GetString2() const { return m_string2; }
+    shared_ptr<string> Payload::GetString2() const { return m_string2; }
     void Payload::SetString2(string value) { m_string2 = make_shared<string>(value); }
 
-    shared_ptr <string> Payload::GetString3() const { return m_string3; }
+    shared_ptr<string> Payload::GetString3() const { return m_string3; }
     void Payload::SetString3(string value) { m_string3 = make_shared<string>(value); }
 
-    shared_ptr <string> Payload::GetString4() const { return m_string4; }
+    shared_ptr<string> Payload::GetString4() const { return m_string4; }
     void Payload::SetString4(string value) { m_string4 = make_shared<string>(value); }
 
-    shared_ptr <string> Payload::GetString5() const { return m_string5; }
+    shared_ptr<string> Payload::GetString5() const { return m_string5; }
     void Payload::SetString5(string value) { m_string5 = make_shared<string>(value); }
 
-    shared_ptr <string> Payload::GetString6() const { return m_string6; }
+    shared_ptr<string> Payload::GetString6() const { return m_string6; }
     void Payload::SetString6(string value) { m_string6 = make_shared<string>(value); }
 
-    shared_ptr <string> Payload::GetString7() const { return m_string7; }
+    shared_ptr<string> Payload::GetString7() const { return m_string7; }
     void Payload::SetString7(string value) { m_string7 = make_shared<string>(value); }
 
-    shared_ptr <int> Payload::GetInt1() const { return m_int1; }
-    void Payload::SetInt1(int value) { m_int1 = make_shared<int>(value); }
+    shared_ptr<int64_t> Payload::GetInt1() const { return m_int1; }
+    void Payload::SetInt1(int64_t value) { m_int1 = make_shared<int64_t>(value); }
 
 } // namespace PocketTx

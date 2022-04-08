@@ -39,7 +39,7 @@ namespace PocketServices
 
     // Serialize protocol compatible with Reindexer
     // It makes sense to serialize only Pocket transactions that contain a payload.
-    shared_ptr <UniValue> Serializer::SerializeBlock(const PocketBlock& block)
+    shared_ptr<UniValue> Serializer::SerializeBlock(const PocketBlock& block)
     {
         auto result = make_shared<UniValue>(UniValue(UniValue::VOBJ));
         for (const auto& transaction : block)
@@ -56,7 +56,7 @@ namespace PocketServices
 
     // Serialize protocol compatible with Reindexer
     // It makes sense to serialize only Pocket transactions that contain a payload.
-    shared_ptr <UniValue> Serializer::SerializeTransaction(const Transaction& transaction)
+    shared_ptr<UniValue> Serializer::SerializeTransaction(const Transaction& transaction)
     {
         if (!PocketHelpers::TransactionHelper::IsPocketTransaction(*transaction.GetType()))
             return nullptr;
@@ -72,8 +72,7 @@ namespace PocketServices
         return result;
     }
 
-
-    shared_ptr <Transaction> Serializer::buildInstance(const CTransactionRef& tx, const UniValue& src)
+    shared_ptr<Transaction> Serializer::buildInstance(const CTransactionRef& tx, const UniValue& src)
     {
         TxType txType;
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
@@ -113,7 +112,7 @@ namespace PocketServices
         return ptx;
     }
 
-    shared_ptr <Transaction> Serializer::buildInstanceRpc(const CTransactionRef& tx, const UniValue& src)
+    shared_ptr<Transaction> Serializer::buildInstanceRpc(const CTransactionRef& tx, const UniValue& src)
     {
         TxType txType;
         if (!PocketHelpers::TransactionHelper::IsPocketSupportedTransaction(tx, txType))
@@ -135,7 +134,7 @@ namespace PocketServices
         return ptx;
     }
 
-    bool Serializer::buildInputs(const CTransactionRef& tx, shared_ptr <Transaction>& ptx)
+    bool Serializer::buildInputs(const CTransactionRef& tx, shared_ptr<Transaction>& ptx)
     {
         string spentTxHash = tx->GetHash().GetHex();
 
@@ -154,7 +153,7 @@ namespace PocketServices
         return !ptx->Inputs().empty();
     }
 
-    bool Serializer::buildOutputs(const CTransactionRef& tx, shared_ptr <Transaction>& ptx)
+    bool Serializer::buildOutputs(const CTransactionRef& tx, shared_ptr<Transaction>& ptx)
     {
         string txHash = tx->GetHash().GetHex();
 
