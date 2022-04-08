@@ -17,8 +17,8 @@ namespace webrtc::signaling
     class SignalingProcessor
     {
     public:
-        void NewConnection(std::shared_ptr<Connection> conn);
-        void ClosedConnection(const std::shared_ptr<Connection>& conn);
+        void OnNewConnection(std::shared_ptr<Connection> conn);
+        void OnClosedConnection(const std::shared_ptr<Connection>& conn);
         void ProcessMessage(const std::shared_ptr<Connection>& connection, std::shared_ptr<Message> in_message);
         void Stop();
     private:

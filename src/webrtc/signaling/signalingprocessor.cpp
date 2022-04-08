@@ -7,13 +7,13 @@
 #include "univalue.h"
 
 
-void webrtc::signaling::SignalingProcessor::NewConnection(std::shared_ptr<Connection> conn)
+void webrtc::signaling::SignalingProcessor::OnNewConnection(std::shared_ptr<Connection> conn)
 {
     auto ip = conn->remote_endpoint_address();
     m_connections.insert(ip, std::move(conn));
 }
 
-void webrtc::signaling::SignalingProcessor::ClosedConnection(const std::shared_ptr<Connection> &conn)
+void webrtc::signaling::SignalingProcessor::OnClosedConnection(const std::shared_ptr<Connection> &conn)
 {
     m_connections.erase(conn->remote_endpoint_address());
 }

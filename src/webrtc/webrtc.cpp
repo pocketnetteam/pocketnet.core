@@ -71,7 +71,7 @@ void WebRTC::InitiateNewSignalingConnection(const std::string& ip)
             protocol->Process(message["message"], ip, lock);
         }
     });
-    ws->onClosed([ip, &wsConnections = m_wsConnections]() {
+    ws->onClosed([ip, /*HACK*/&wsConnections = m_wsConnections]() {
         wsConnections.erase(ip);
     });
 

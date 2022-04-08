@@ -6,7 +6,7 @@
 
 
 webrtc::signaling::SignalingServer::SignalingServer()
-    : m_processor(std::make_shared<SignalingProcessor>())
+    : m_processor(std::make_shared<SignalingProcessor>()) // TODO (losty-rtc): DI
 {}
 
 void webrtc::signaling::SignalingServer::Init(const std::string &ep, const short &port)
@@ -17,11 +17,11 @@ void webrtc::signaling::SignalingServer::Init(const std::string &ep, const short
 
     // Can capture here by shared 
     endpoint.on_open = [proc = m_processor](std::shared_ptr<WsServer::Connection> connection) {
-        proc->NewConnection(std::move(connection));
+        proc->OnNewConnection(std::move(connection));
     };
 
     endpoint.on_close = [proc = m_processor](std::shared_ptr<WsServer::Connection> connection, int, const std::string&) {
-        proc->ClosedConnection(std::move(connection));
+        proc->OnClosedConnection(std::move(connection));
     };
 
     // TODO (losty-signaling): ugly capturing
