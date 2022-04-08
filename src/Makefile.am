@@ -192,7 +192,6 @@ POCKETDB_H = \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/ReturnDtoModels.h \
     \
-    pocketdb/models/dto/Empty.h \
     pocketdb/models/dto/Default.h \
     pocketdb/models/dto/Coinbase.h \
     pocketdb/models/dto/Coinstake.h \
@@ -277,7 +276,6 @@ POCKETDB_CPP = \
     pocketdb/web/PocketRpc.cpp \
     pocketdb/web/WebRpcUtils.cpp \
     \
-    pocketdb/models/dto/Empty.cpp \
     pocketdb/models/dto/Default.cpp \
     pocketdb/models/dto/Coinbase.cpp \
     pocketdb/models/dto/Coinstake.cpp \

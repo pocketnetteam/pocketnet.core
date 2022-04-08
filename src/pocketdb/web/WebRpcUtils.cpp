@@ -14,7 +14,7 @@ namespace PocketWeb::PocketWebRpc
         }
         else if (value.isStr())
         {
-            if (TransactionHelper::TxIntType(value.get_str()) != TxType::TX_EMPTY)
+            if (TransactionHelper::TxIntType(value.get_str()) != TxType::NOT_SUPPORTED)
                 types.push_back(TransactionHelper::TxIntType(value.get_str()));
         }
         else if (value.isArray())

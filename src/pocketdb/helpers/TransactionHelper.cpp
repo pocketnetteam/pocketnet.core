@@ -113,7 +113,7 @@ namespace PocketHelpers
                 [](int i, const CTxOut& o) { return o.nValue + i; });
 
             if (txOutSum <= 0)
-                return TxType::TX_EMPTY;
+                return TxType::NOT_SUPPORTED;
             else
                 return TxType::TX_COINBASE;
         }
@@ -192,9 +192,27 @@ namespace PocketHelpers
         return { !vasm[3].empty(), vasm[3] };
     }
 
+    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx, TxType& txType)
+    {
+        txType = ParseType(tx);
+        return txType != NOT_SUPPORTED;
+    }
+
+    bool TransactionHelper::IsPocketSupportedTransaction(const CTransactionRef& tx)
+    {
+        TxType txType = NOT_SUPPORTED;
+        return IsPocketSupportedTransaction(tx, txType);
+    }
+
+    bool TransactionHelper::IsPocketSupportedTransaction(const CTransaction& tx)
+    {
+        auto txRef = MakeTransactionRef(tx);
+        return IsPocketSupportedTransaction(txRef);
+    }
+
     bool TransactionHelper::IsPocketTransaction(TxType& txType)
     {
-        return txType != TX_EMPTY &&
+        return txType != NOT_SUPPORTED &&
                txType != TX_COINBASE &&
                txType != TX_COINSTAKE &&
                txType != TX_DEFAULT;
@@ -208,7 +226,7 @@ namespace PocketHelpers
 
     bool TransactionHelper::IsPocketTransaction(const CTransactionRef& tx)
     {
-        TxType txType = TX_EMPTY;
+        TxType txType = NOT_SUPPORTED;
         return IsPocketTransaction(tx, txType);
     }
 
@@ -258,9 +276,6 @@ namespace PocketHelpers
         PTransactionRef ptx = nullptr;
         switch (txType)
         {
-            case TX_EMPTY:
-                ptx = make_shared<Empty>(tx);
-                break;
             case TX_COINBASE:
                 ptx = make_shared<Coinbase>(tx);
                 break;
@@ -339,9 +354,6 @@ namespace PocketHelpers
         PTransactionRef ptx = nullptr;
         switch (txType)
         {
-            case TX_EMPTY:
-                ptx = make_shared<Empty>();
-                break;
             case TX_COINBASE:
                 ptx = make_shared<Coinbase>();
                 break;
