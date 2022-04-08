@@ -58,6 +58,7 @@ private:
                                                         "getstatisticcontentbydays",
                                                         "getrecomendedaccountsbytags",
                                                         "getrecomendedcontentsbyscoresonsimilarcontents",
+                                                        "getrecommendedcontentbycontentid",
                                                         "getaddressinfo",
                                                         "getcompactblock",
                                                         "getlastblocks",

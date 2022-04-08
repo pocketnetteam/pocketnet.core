@@ -522,5 +522,7 @@ namespace PocketWeb::PocketWebRpc
             auto contents = request.DbConnection()->WebRpcRepoInst->GetContentsData(ids, address);
             result.push_backV(contents);
         }
+
+        return result;
     }
 }
