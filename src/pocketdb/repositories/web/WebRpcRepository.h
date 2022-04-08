@@ -88,6 +88,7 @@ namespace PocketDb
         UniValue GetTags(const string& lang, int pageSize, int pageStart);
 
         vector<int64_t> GetContentIds(const vector<string>& txHashes);
+        map<string,string> GetContentsAddresses(const vector<string>& txHashes);
 
         UniValue GetUnspents(const vector<string>& addresses, int height, vector<pair<string, uint32_t>>& mempoolInputs);
 

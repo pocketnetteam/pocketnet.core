@@ -1508,6 +1508,42 @@ namespace PocketDb
         return result;
     }
 
+    map<string,string> WebRpcRepository::GetContentsAddresses(const vector<string>& txHashes)
+    {
+        map<string, string> result;
+
+        if (txHashes.empty())
+            return result;
+
+        string sql = R"sql(
+            select Hash, String1
+            from Transactions
+            where Hash in ( )sql" + join(vector<string>(txHashes.size(), "?"), ",") + R"sql( )
+              and Height is not null
+        )sql";
+
+        TryTransactionStep(__func__, [&]()
+        {
+            auto stmt = SetupSqlStatement(sql);
+
+            int i = 1;
+            for (const string& txHash : txHashes)
+                TryBindStatementText(stmt, i++, txHash);
+
+            while (sqlite3_step(*stmt) == SQLITE_ROW)
+            {
+                auto[ok0, contenthash] = TryGetColumnString(*stmt, 0);
+                auto[ok1, contentaddress] = TryGetColumnString(*stmt, 1);
+                if(ok0 && ok1)
+                    result.emplace(contenthash,contentaddress);
+            }
+
+            FinalizeSqlStatement(*stmt);
+        });
+
+        return result;
+    }
+
     UniValue WebRpcRepository::GetUnspents(const vector<string>& addresses, int height,
         vector<pair<string, uint32_t>>& mempoolInputs)
     {
