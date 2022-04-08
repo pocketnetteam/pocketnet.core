@@ -163,6 +163,11 @@ namespace PocketConsensus
                 }
             }
         }
+    
+        virtual int GetScoreMultiplier(int scoreValue)
+        {
+            return (scoreValue - 3) * 10;
+        }
     };
 
     // Consensus checkpoint at 151600 block
@@ -228,16 +233,32 @@ namespace PocketConsensus
         }
     };
 
+    // Consensus checkpoint: reducing the impact on the reputation of scores 1,2 for content
+    class ReputationConsensus_checkpoint_scores_reducing_impact : public ReputationConsensus_checkpoint_1324655_2
+    {
+    public:
+        explicit ReputationConsensus_checkpoint_scores_reducing_impact(int height) : ReputationConsensus_checkpoint_1324655_2(height) {}
+        int GetScoreMultiplier(int scoreValue) override
+        {
+            int multiplier = 10;
+            if (scoreValue == 1 || scoreValue == 2)
+                multiplier = 2;
+            
+            return (scoreValue - 3) * multiplier;
+        }
+    };
+
     //  Factory for select actual rules version
     class ReputationConsensusFactory
     {
     private:
         const vector<ConsensusCheckpoint<ReputationConsensus>> m_rules = {
-            { 0,          -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
-            { 151600,     -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
-            { 1180000,     0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
-            { 1324655, 65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
-            { 1324655, 75000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655_2>(height); }},
+            { 0,           -1, [](int height) { return make_shared<ReputationConsensus>(height); }},
+            { 151600,      -1, [](int height) { return make_shared<ReputationConsensus_checkpoint_151600>(height); }},
+            { 1180000,      0, [](int height) { return make_shared<ReputationConsensus_checkpoint_1180000>(height); }},
+            { 1324655,  65000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655>(height); }},
+            { 1324655,  75000, [](int height) { return make_shared<ReputationConsensus_checkpoint_1324655_2>(height); }},
+            { 9999999, 761000, [](int height) { return make_shared<ReputationConsensus_checkpoint_scores_reducing_impact>(height); }},
         };
     public:
         shared_ptr<ReputationConsensus> Instance(int height)
