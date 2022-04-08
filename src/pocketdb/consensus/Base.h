@@ -267,7 +267,8 @@ namespace PocketConsensus
                 {
                     NetworkTest,
                     {
-                        {0, 0} // TODO !!!!!!!: return 100
+                        {0, 100},
+                        {761000, 10}
                     }
                 }
             }
@@ -353,7 +354,7 @@ namespace PocketConsensus
         },
         { ConsensusLimit_threshold_low_likers_count, {
             { NetworkMain, { {0, 30} }},
-            { NetworkTest, { {0, 30}, {300000, 0} }} // TODO !!!!!!!: change height to 761000
+            { NetworkTest, { {0, 30}, {761000, 0} }}
         }},
         // ConsensusLimit_threshold_low_likers_depth
         {
