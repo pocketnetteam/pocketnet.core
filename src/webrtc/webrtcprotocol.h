@@ -22,8 +22,9 @@
 class DataChannelReplier : public IReplier
 {
 public:
-    DataChannelReplier(std::shared_ptr<rtc::DataChannel> dataChannel)
-        : m_dataChannel(std::move(dataChannel))
+    DataChannelReplier(std::shared_ptr<rtc::DataChannel> dataChannel, const std::string& ip)
+        : m_dataChannel(std::move(dataChannel)),
+          m_ip(ip)
     {}
     void WriteReply(int nStatus, const std::string& reply = "") override
     {
@@ -33,6 +34,10 @@ public:
     void WriteHeader(const std::string& hdr, const std::string& value) override
     {
         // Ignore
+    }
+    const std::string& GetPeerStr() const override
+    {
+        return m_ip;
     }
     bool GetAuthCredentials(std::string& out) override
     {
@@ -45,6 +50,7 @@ public:
     }
 private:
     std::shared_ptr<rtc::DataChannel> m_dataChannel;
+    std::string m_ip;
     Statistic::RequestTime m_created = gStatEngineInstance.GetCurrentSystemTime();
 };
 

@@ -71,6 +71,7 @@ class HTTPRequest : public IReplier
 private:
     struct evhttp_request* req;
     bool replySent;
+    std::string m_peerStr;
 
     DbConnectionRef dbConnection;
 
@@ -95,6 +96,8 @@ public:
     /** Get requested URI.
      */
     std::string GetURI() const;
+
+    const std::string& GetPeerStr() const override;
 
     /** Get CService (address:ip) for the origin of the http request.
      */

@@ -8,6 +8,8 @@
 #include "util/ref.h"
 #include "eventloop.h"
 #include "rpcapi/rpcprocessor.h"
+#include "rpc/protocol.h"
+
 
 #include <functional>
 #include <memory>
@@ -17,13 +19,23 @@
 #include <vector>
 
 
+
+/**
+ * Class to perform a per request reply.
+ * Should not be handled as a connection for further communication. 
+ */
 class IReplier
 {
 public:
+    /**
+     * @param nStatus - http status code (for all connection types) 
+     * @param reply - msg to reply with
+     */
     virtual void WriteReply(int nStatus, const std::string& reply = "") = 0;
-    virtual void WriteHeader(const std::string& hdr, const std::string& value) = 0;
-    virtual bool GetAuthCredentials(std::string& out) = 0;
-    virtual Statistic::RequestTime GetCreated() const = 0;
+    virtual void WriteHeader(const std::string& hdr, const std::string& value) = 0; // TODO (losty-rpc): http specific, remove somehow
+    virtual bool GetAuthCredentials(std::string& out) = 0; // TODO (losty-rpc): http specific, remove somehow
+    virtual const std::string& GetPeerStr() const = 0;
+    virtual Statistic::RequestTime GetCreated() const = 0; // TODO (losty-rpc): should not be here
     virtual ~IReplier() = default;
 };
 
@@ -86,6 +98,12 @@ struct PathRequestHandlerEntry
     std::shared_ptr<IRequestHandler> requestHandler;
 };
 
+enum class PodProcessingResult
+{
+    Success,
+    NotFound,
+    QueueOverflow
+};
 
 /**
  * The pod represents a pack of handlers that are attached to only one queue.
@@ -95,7 +113,7 @@ class RequestHandlerPod
 {
 public:
     RequestHandlerPod(std::vector<PathRequestHandlerEntry> handlers, int queueLimit, int nThreads);
-    bool Process(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier);
+    PodProcessingResult Process(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier);
 
     bool Start();
 
@@ -118,6 +136,9 @@ public:
     virtual ~IRequestsController() = default;
 };
 
+/**
+ * Interface for processing requests
+ */
 class IRequestProcessor
 {
 public:
@@ -127,7 +148,6 @@ public:
 
 /**
  * Simple agregator to generalize manipulation with pods and provide node context to them.
- * Has 2 interfaces: control and 
  */
 class RequestProcessor : public IRequestProcessor
 {
@@ -139,12 +159,25 @@ public:
     {
         for (auto& pod : m_pods)
         {
-            // TODO (losty-nat): right handler can be found but request rejected because of queue overflow. Probably handle this inside pod.
-            if (pod->Process(m_context, strURI, body, replier)) {
+            auto res = pod->Process(m_context, strURI, body, replier);
+            if (res == PodProcessingResult::NotFound) {
+                // Check all over pods.
+                continue;
+            } else if (res == PodProcessingResult::Success) {
+                // Successfully find request handler. Reply will be sent inside.
                 return true;
+            } else if (res == PodProcessingResult::QueueOverflow) {
+                // Find right handler but its queue is overflowed
+                LogPrint(BCLog::RPCERROR, "WARNING: request rejected because http work queue depth exceeded.\n");
+                replier->WriteReply(HTTP_INTERNAL_SERVER_ERROR, "Work queue depth exceeded");
+                return false;
             }
+
         }
 
+        // We are here if all pods reported with NotFound
+        LogPrint(BCLog::HTTP, "Request from %s not found\n", replier->GetPeerStr());
+        replier->WriteReply(HTTP_NOT_FOUND);
         return false;
     }
 

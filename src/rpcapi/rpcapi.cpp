@@ -30,7 +30,7 @@ RequestHandlerPod::RequestHandlerPod(std::vector<PathRequestHandlerEntry> handle
 {}
 
 
-bool RequestHandlerPod::Process(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier)
+PodProcessingResult RequestHandlerPod::Process(const util::Ref& context, const std::string& strURI, const std::string& body, const std::shared_ptr<IReplier>& replier)
 {
     for (const auto& pathHandler : m_handlers) {
         bool match = false;
@@ -41,12 +41,14 @@ bool RequestHandlerPod::Process(const util::Ref& context, const std::string& str
 
         if (match) {
             RequestContext reqContext{context, strURI.substr(pathHandler.prefix.size()), body, replier};
-            m_queue->Add(std::make_unique<RequestWorkItem>(std::move(reqContext), pathHandler.requestHandler));
-            return true;
+            if (!m_queue->Add(std::make_unique<RequestWorkItem>(std::move(reqContext), pathHandler.requestHandler))) {
+                return PodProcessingResult::QueueOverflow;
+            }
+            return PodProcessingResult::Success;
         }
     }
 
-    return false;
+    return PodProcessingResult::NotFound;
 }
 
 

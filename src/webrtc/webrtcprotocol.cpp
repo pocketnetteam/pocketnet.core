@@ -75,7 +75,7 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
                 }
             }
         });
-        pc->onDataChannel([requestHandler = m_requestHandler, webrtcConnection = std::weak_ptr(webrtcConnectionnn)](std::shared_ptr<rtc::DataChannel> dataChannel) {
+        pc->onDataChannel([requestHandler = m_requestHandler, webrtcConnection = std::weak_ptr(webrtcConnectionnn), ip](std::shared_ptr<rtc::DataChannel> dataChannel) {
             // TODO (losty-rtc): MOST INTERESTED THING.
             // Add dataChannel to class that will setup it and provide rpc handlers to it.
             const auto label = dataChannel->label(); // "notifications" for websocket functional and "rpc" for rpc
@@ -84,7 +84,7 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
                     lock->RemoveDataChannel(label);
                 }
             });
-            dataChannel->onMessage([/*TODO (losty-rtc): a bit dirty hack to allow free memory for datachannel*/dataChannel = std::weak_ptr(dataChannel), requestHandler](rtc::message_variant data) {
+            dataChannel->onMessage([/*TODO (losty-rtc): a bit dirty hack to allow free memory for datachannel*/dataChannel = std::weak_ptr(dataChannel), requestHandler, ip](rtc::message_variant data) {
                 if (!std::holds_alternative<std::string>(data)) {
                     // TOOD (losty-rtc): error
                     return;
@@ -103,8 +103,7 @@ bool WebRTCProtocol::Process(const UniValue& message, const std::string& ip, con
                 }
                 auto path = message["path"].get_str();
                 auto body = message["requestData"].write();
-                // TODO (losty-rtc): probably unique replier for all
-                auto replier = std::make_shared<DataChannelReplier>(dc);
+                auto replier = std::make_shared<DataChannelReplier>(dc, ip);
                 requestHandler->Process(path, body, replier);
 
             });

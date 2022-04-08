@@ -546,6 +546,7 @@ HTTPRequest::HTTPRequest(struct evhttp_request *_req, bool _replySent) : req(_re
                                                         replySent(_replySent)
 {
     Created = gStatEngineInstance.GetCurrentSystemTime();
+    m_peerStr = GetPeer().ToString();
 }
 
 Statistic::RequestTime HTTPRequest::GetCreated() const
@@ -647,6 +648,11 @@ bool HTTPRequest::GetAuthCredentials(std::string& out)
     auto[ok, cred] = this->GetHeader("authorization");
     out = cred;
     return ok;
+}
+
+const std::string& HTTPRequest::GetPeerStr() const
+{
+    return m_peerStr;
 }
 
 CService HTTPRequest::GetPeer() const
