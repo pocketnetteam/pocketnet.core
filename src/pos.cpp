@@ -327,9 +327,7 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 
     // Now check if proof-of-stake hash meets target protocol
     if (hashProofOfStake > bnTarget)
-    {
         return false;
-    }
 
     return true;
 }
@@ -338,12 +336,9 @@ bool CheckStakeKernelHash(CBlockIndex *pindexPrev, unsigned int nBits, CBlockInd
 bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock, int64_t nTimeTx)
 {
     if (nHeight > 0)
-    {
         return (nTimeBlock == nTimeTx) && ((nTimeTx & STAKE_TIMESTAMP_MASK) == 0);
-    } else
-    {
+    else
         return (nTimeBlock == nTimeTx);
-    }
 }
 
 // Stake Modifier (hash modifier of proof-of-stake):

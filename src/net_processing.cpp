@@ -1061,6 +1061,10 @@ bool GetNodeStateStatsView(NodeId nodeid, CNodeStateStats& stats)
     stats.m_addr_processed = peer->m_addr_processed.load();
     stats.m_addr_rate_limited = peer->m_addr_rate_limited.load();
 
+    for (const QueuedBlock& queue : state->vBlocksInFlight)
+        if (queue.pindex)
+            stats.vHeightInFlight.push_back(queue.pindex->nHeight);
+    
     return true;
 }
 

@@ -24,6 +24,8 @@ namespace PocketConsensus
     ComplainConsensusFactory SocialConsensusHelper::m_complainFactory;
     ContentDeleteConsensusFactory SocialConsensusHelper::m_contentDeleteFactory;
     BoostContentConsensusFactory SocialConsensusHelper::m_boostContentFactory;
+    
+    ModerationFlagConsensusFactory SocialConsensusHelper::m_moderationFlagFactory;
 
     tuple<bool, SocialConsensusResult> SocialConsensusHelper::Validate(const CBlock& block, const PocketBlockRef& pBlock, int height)
     {
@@ -193,12 +195,13 @@ namespace PocketConsensus
                 return m_blockingCancelFactory.Instance(height)->Check(tx, static_pointer_cast<BlockingCancel>(ptx));
             case ACTION_COMPLAIN:
                 return m_complainFactory.Instance(height)->Check(tx, static_pointer_cast<Complain>(ptx));
-            // TODO (brangr): future realize types
-            // case ACCOUNT_VIDEO_SERVER:
-            // case ACCOUNT_MESSAGE_SERVER:
-            // case CONTENT_SERVERPING:
+
+            // Moderation
+            case MODERATION_FLAG:
+                return m_moderationFlagFactory.Instance(height)->Check(tx, static_pointer_cast<ModerationFlag>(ptx));
+
             default:
-                return {true, SocialConsensusResult_Success};
+                return {false, SocialConsensusResult_NotImplemeted};
         }
     }
 
@@ -247,12 +250,13 @@ namespace PocketConsensus
                 return m_blockingCancelFactory.Instance(height)->Validate(tx, static_pointer_cast<BlockingCancel>(ptx), pBlock);
             case ACTION_COMPLAIN:
                 return m_complainFactory.Instance(height)->Validate(tx, static_pointer_cast<Complain>(ptx), pBlock);
-            // TODO (brangr): future realize types
-            // case ACCOUNT_VIDEO_SERVER:
-            // case ACCOUNT_MESSAGE_SERVER:
-            // case CONTENT_SERVERPING:
+
+            // Moderation
+            case MODERATION_FLAG:
+                return m_moderationFlagFactory.Instance(height)->Validate(tx, static_pointer_cast<ModerationFlag>(ptx), pBlock);
+
             default:
-                return {true, SocialConsensusResult_Success};
+                return {false, SocialConsensusResult_NotImplemeted};
         }
     }
 

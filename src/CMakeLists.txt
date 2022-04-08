@@ -560,6 +560,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Transaction.h
         pocketdb/models/base/TransactionInput.h
         pocketdb/models/base/TransactionOutput.h
+        pocketdb/models/base/SocialTransaction.h
         pocketdb/models/base/Rating.h
         pocketdb/models/base/ReturnDtoModels.h
         pocketdb/models/dto/Empty.h
@@ -589,6 +590,7 @@ add_library(${POCKETDB}
         pocketdb/models/base/Transaction.cpp
         pocketdb/models/base/TransactionInput.cpp
         pocketdb/models/base/TransactionOutput.cpp
+        pocketdb/models/base/SocialTransaction.cpp
         pocketdb/models/base/Rating.cpp
         pocketdb/models/dto/Empty.cpp
         pocketdb/models/dto/Default.cpp
@@ -615,6 +617,8 @@ add_library(${POCKETDB}
         pocketdb/models/dto/Complain.cpp
         pocketdb/models/dto/AccountSetting.cpp
         pocketdb/models/dto/ContentDelete.cpp
+        pocketdb/models/dto/moderation/Flag.h
+        pocketdb/models/dto/moderation/Flag.cpp
         pocketdb/models/web/WebTag.h
         pocketdb/models/web/WebContent.h
         pocketdb/models/dto/BoostContent.cpp
@@ -1112,10 +1116,10 @@ add_library(${POCKETCOIN_SERVER}
         pocketdb/consensus/social/AccountSetting.hpp
         pocketdb/consensus/social/ContentDelete.hpp
         pocketdb/consensus/social/BoostContent.hpp
+        pocketdb/consensus/moderation/Flag.hpp
         pocketdb/consensus/Helper.cpp
         pocketdb/consensus/Base.cpp
         pocketdb/consensus/Lottery.cpp
-        pocketdb/consensus/Reputation.cpp
         )
 target_link_libraries(${POCKETCOIN_SERVER} PRIVATE ${POCKETCOIN_COMMON_RPC} ${POCKETCOIN_UTIL} ${POCKETCOIN_COMMON} ${POCKETCOIN_SYSTEM} ${POCKETCOIN_CONSENSUS} ${POCKETCOIN_CRYPTO} Event::event OpenSSL::Crypto ${CRYPT32} Boost::boost Boost::date_time)
 target_include_directories(${POCKETCOIN_SERVER} PRIVATE ${OPENSSL_INCLUDE_DIR} ${Event_INCLUDE_DIRS})

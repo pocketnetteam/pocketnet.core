@@ -179,12 +179,15 @@ POCKETDB_H = \
     pocketdb/consensus/social/AccountSetting.hpp \
     pocketdb/consensus/social/ContentDelete.hpp \
     \
+    pocketdb/consensus/moderation/Flag.hpp \
+    \
     pocketdb/models/base/PocketTypes.h \
     pocketdb/models/base/Base.h \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/Transaction.h \
     pocketdb/models/base/TransactionInput.h \
     pocketdb/models/base/TransactionOutput.h \
+    pocketdb/models/base/SocialTransaction.h \
     pocketdb/models/base/Rating.h \
     pocketdb/models/base/Payload.h \
     pocketdb/models/base/ReturnDtoModels.h \
@@ -212,6 +215,7 @@ POCKETDB_H = \
     pocketdb/models/dto/Complain.h \
     pocketdb/models/dto/Video.h \
     pocketdb/models/dto/Article.h \
+    pocketdb/models/dto/moderation/Flag.h \
     \
     pocketdb/models/web/WebTag.h \
     pocketdb/models/web/WebContent.h \
@@ -249,13 +253,13 @@ POCKETDB_CPP = \
     pocketdb/consensus/Helper.cpp \
     pocketdb/consensus/Base.cpp \
     pocketdb/consensus/Lottery.cpp \
-    pocketdb/consensus/Reputation.cpp \
     \
     pocketdb/models/base/Base.cpp \
     pocketdb/models/base/Payload.cpp \
     pocketdb/models/base/Transaction.cpp \
     pocketdb/models/base/TransactionInput.cpp \
     pocketdb/models/base/TransactionOutput.cpp \
+    pocketdb/models/base/SocialTransaction.cpp \
     pocketdb/models/base/Rating.cpp \
     pocketdb/models/base/Payload.cpp \
     \
@@ -296,7 +300,8 @@ POCKETDB_CPP = \
     pocketdb/models/dto/Complain.cpp \
     pocketdb/models/dto/Video.cpp \
     pocketdb/models/dto/BoostContent.cpp \
-    pocketdb/models/dto/Article.cpp
+    pocketdb/models/dto/Article.cpp \
+    pocketdb/models/dto/moderation/Flag.cpp
 
 # CORE
 POCKETCOIN_CORE_H = \
